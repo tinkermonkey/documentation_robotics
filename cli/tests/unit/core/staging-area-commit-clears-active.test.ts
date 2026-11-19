@@ -127,7 +127,7 @@ describe("StagingAreaManager.commit and the active changeset", () => {
       expect(await manager.getActiveId()).toBeNull();
       expect(await manager.staleActiveMarker()).toEqual({ id: plan!.id, name: "plan", status: "committed" });
       expect(await baseGoals(rootPath)).toEqual(["motivation.goal.faster-checkout"]);
-      expect(warn.mock.calls.some((call) => String(call[0]).includes(".active marker could not be cleared"))).toBe(true);
+      expect(warn.mock.calls.some((call) => String(call[0]).includes("active-changeset marker could not be cleared"))).toBe(true);
     } finally {
       warn.mockRestore();
       clearModelCache();

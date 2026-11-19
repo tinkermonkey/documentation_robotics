@@ -143,8 +143,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `byLayer`. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
-   with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
-   `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
+   with the code. Don't add the whole `changesets/` directory: any `<name>-as-built` changeset
+   stays out of the commit. If the build has to differ from the plan,
    change the plan to match and say why. Don't verify during the build: no `codebase_extract`, no
    as-built changeset and no `changeset_verify` until the build is committed. Verify is the next
    step, on its own.

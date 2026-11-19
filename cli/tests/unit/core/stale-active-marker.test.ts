@@ -1,11 +1,15 @@
 /**
- * A `.active` marker that outlived its changeset (#1218).
+ * The active-changeset marker (#1218).
  *
- * The marker is a file under documentation-robotics/changesets. Committed to git, or left behind by
- * an interrupted landing, it can name a changeset that is committed, discarded or gone. Model.load
- * used to project that changeset anyway while the write path (MutationHandler) staged only into a
- * staged one, so a write went into a projected copy of the layer and was saved nowhere, with a
- * success message. The marker now counts on every surface only while it names a staged changeset.
+ * A marker can name a changeset that is committed, discarded or gone: left behind by an
+ * interrupted landing or, while the marker was `documentation-robotics/changesets/.active`,
+ * committed to git with the changesets. Model.load used to project that changeset anyway while the
+ * write path (MutationHandler) staged only into a staged one, so a write went into a projected
+ * copy of the layer and was saved nowhere, with a success message. The marker now counts on every
+ * surface only while it names a staged changeset.
+ *
+ * The marker is per-checkout state and lives in `.dr/active-changeset`. The old place is still
+ * read when `.dr/` has no marker, and every write moves it.
  */
 import { describe, it, expect } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
@@ -66,7 +70,9 @@ async function withModel(test: (root: string) => Promise<void>): Promise<void> {
   }
 }
 
-const markerPath = (root: string) => join(root, "documentation-robotics", "changesets", ".active");
+const markerPath = (root: string) => join(root, ".dr", "active-changeset");
+const legacyMarkerPath = (root: string) => join(root, "documentation-robotics", "changesets", ".active");
+const exists = (file: string) => readFile(file).then(() => true, () => false);
 
 const goalFile = (root: string) => readFile(join(root, "documentation-robotics", "model", "01_motivation", "goal.yaml"), "utf-8");
 
@@ -119,7 +125,7 @@ describe("a .active marker that names a changeset that is no longer staged", () 
 
   it("is no active changeset when the changeset is gone", () =>
     withModel(async (root) => {
-      await mkdir(join(root, "documentation-robotics", "changesets"), { recursive: true });
+      await mkdir(join(root, ".dr"), { recursive: true });
       await writeFile(markerPath(root), "changeset-1700000000000-gone00000\n");
       const { model, manager } = await managerFor(root);
 
@@ -173,7 +179,7 @@ describe("a .active marker that names a changeset that is no longer staged", () 
         deactivated: null,
         clearedLeftoverMarker: { changeset: "landed-earlier", status: "committed" },
       });
-      expect((await readFile(markerPath(root), "utf-8")).trim()).toBe("");
+      expect(await exists(markerPath(root))).toBe(false);
       expect(JSON.parse(text(await changesetDeactivateHandler({ rootPath: root })))).toEqual({ deactivated: null });
     }));
 
@@ -182,7 +188,7 @@ describe("a .active marker that names a changeset that is no longer staged", () 
       const id = await leaveMarkerBehind(root, "committed");
       const { manager } = await managerFor(root);
       await manager.delete(id);
-      expect((await readFile(markerPath(root), "utf-8")).trim()).toBe("");
+      expect(await exists(markerPath(root))).toBe(false);
     }));
 });
 
@@ -214,5 +220,61 @@ describe("a base write from a model that is still projecting a changeset", () =>
         "The change was not saved"
       );
       expect(await goalFile(root)).not.toContain("lost-without-the-guard");
+    }));
+});
+
+describe("where the marker lives", () => {
+  it("is .dr/active-changeset, not beside the committed changesets", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const changeset = await manager.create("in-progress");
+      await manager.setActive(changeset.id!);
+
+      expect(await readFile(markerPath(root), "utf-8")).toBe(`${changeset.id}\n`);
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
+
+      await manager.clearActive();
+      expect(await exists(markerPath(root))).toBe(false);
+      expect(await manager.getActiveId()).toBeNull();
+    }));
+
+  it("still reads a marker in the old place when .dr/ has none, and moves it on the next write", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const first = await manager.create("mid-change-before-the-move");
+      const second = await manager.create("the-next-one");
+      await writeFile(legacyMarkerPath(root), `${first.id}\n`);
+
+      // A checkout that was mid-change keeps its active changeset, in the model too
+      expect(await manager.getActiveId()).toBe(first.id!);
+      expect((await Model.load(root, { lazyLoad: false })).getActiveChangesetId()).toBe(first.id!);
+
+      await manager.setActive(second.id!);
+      expect(await readFile(markerPath(root), "utf-8")).toBe(`${second.id}\n`);
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
+      expect(await manager.getActiveId()).toBe(second.id!);
+    }));
+
+  it("prefers .dr/ when both places hold a marker", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const old = await manager.create("named-in-the-old-place");
+      const current = await manager.create("named-in-dot-dr");
+      await manager.setActive(current.id!);
+      await writeFile(legacyMarkerPath(root), `${old.id}\n`);
+
+      expect(await manager.getActiveId()).toBe(current.id!);
+    }));
+
+  it("removes a marker left in the old place when deactivating", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const changeset = await manager.create("mid-change-before-the-move");
+      await writeFile(legacyMarkerPath(root), `${changeset.id}\n`);
+
+      await manager.clearActive();
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
+      expect(await exists(markerPath(root))).toBe(false);
+      expect(await manager.getActiveId()).toBeNull();
     }));
 });

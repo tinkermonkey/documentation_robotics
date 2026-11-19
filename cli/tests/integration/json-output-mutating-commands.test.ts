@@ -645,8 +645,9 @@ describe("JSON Output on Mutating Commands", () => {
       expect(JSON.parse(asJson.stdout.trim()).status).toBe("ok");
     });
 
-    // #1218: a marker committed to git, or left by an interrupted landing, outlives its changeset.
-    it("a .active marker that names an applied changeset is not the active changeset: a write goes to the base model", async () => {
+    // #1218: a marker left by an interrupted landing (or, before the marker moved to .dr/, one
+    // committed to git) outlives its changeset.
+    it("a marker that names an applied changeset is not the active changeset: a write goes to the base model", async () => {
       await runCLICommand(workdir.path, ["changeset", "create", "landed-plan"]);
       await runCLICommand(workdir.path, ["changeset", "activate", "landed-plan"]);
       await runCLICommand(workdir.path, [
@@ -654,13 +655,14 @@ describe("JSON Output on Mutating Commands", () => {
         "--name", "Landed Plan Goal",
         "--attributes", '{"priority": "medium"}',
       ]);
-      const markerPath = path.join(workdir.path, "documentation-robotics", "changesets", ".active");
+      const markerPath = path.join(workdir.path, ".dr", "active-changeset");
       const marker = await fs.readFile(markerPath, "utf-8");
       expect(marker.trim()).not.toBe("");
       const applied = await runCLICommand(workdir.path, ["changeset", "apply", "landed-plan", "--no-validate", "--force"]);
       expect(applied.exitCode).toBe(0);
 
-      // Put the marker back, as a checkout that tracks it would have it
+      // Put the marker back, as a landing interrupted before it cleared the marker leaves it
+      await fs.mkdir(path.dirname(markerPath), { recursive: true });
       await fs.writeFile(markerPath, marker);
 
       const status = await runCLICommand(workdir.path, ["changeset", "status"]);
@@ -685,7 +687,7 @@ describe("JSON Output on Mutating Commands", () => {
       const deactivated = await runCLICommand(workdir.path, ["changeset", "deactivate"]);
       expect(deactivated.exitCode).toBe(0);
       expect(`${deactivated.stdout}${deactivated.stderr}`).toContain("cleared a marker");
-      expect((await fs.readFile(markerPath, "utf-8")).trim()).toBe("");
+      expect(await fs.access(markerPath).then(() => true, () => false)).toBe(false);
     });
 
     it("dr changeset apply --json should output valid JSON", async () => {

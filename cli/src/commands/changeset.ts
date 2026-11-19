@@ -266,7 +266,7 @@ function reportDeactivation(
   if (result.deactivationError) {
     details.deactivationError = result.deactivationError;
     handleWarning(
-      `The changeset was committed, but its .active marker could not be cleared (${result.deactivationError}). ` +
+      `The changeset was committed, but its active-changeset marker could not be cleared (${result.deactivationError}). ` +
         "The marker is ignored, since a committed changeset is never the active one.",
       ["Run 'dr changeset deactivate' once the cause is fixed, to remove the marker"]
     );
@@ -781,7 +781,7 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
       const stale = await manager.staleActiveMarker();
       if (stale) {
         console.log(
-          ansis.dim(`  The .active marker names ${staleMarkerLabel(stale)}; it is ignored, and writes go to the base model`)
+          ansis.dim(`  The active-changeset marker names ${staleMarkerLabel(stale)}; it is ignored, and writes go to the base model`)
         );
       }
       if (isTelemetryEnabled && span) {

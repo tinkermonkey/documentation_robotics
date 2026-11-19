@@ -11,6 +11,7 @@
 import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import { clearActiveMarker, readActiveMarker, writeActiveMarker } from "./active-changeset-marker.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
@@ -1224,7 +1225,7 @@ export class StagingAreaManager {
         } catch (error) {
           result.deactivationError = getErrorMessage(error);
           console.warn(
-            `Warning: changeset '${changeset.name}' was committed, but its .active marker could not be cleared ` +
+            `Warning: changeset '${changeset.name}' was committed, but its active-changeset marker could not be cleared ` +
               `(${result.deactivationError}). The marker is ignored: a committed changeset is never the active one.`
           );
           emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
@@ -1446,17 +1447,11 @@ export class StagingAreaManager {
       await this.storage.save(changeset);
     }
 
-    const { writeFile, ensureDir } = await import("../utils/file-io.js");
-    const changesetDir = path.join(this.rootPath, "documentation-robotics", "changesets");
-    await ensureDir(changesetDir);
-
-    const activePath = path.join(changesetDir, ".active");
     // Write the actual changeset ID (not the user-provided name)
     if (!changeset.id) {
       throw new Error(`Changeset has no ID, cannot activate`);
     }
-    // Newline-terminated, as end-of-file-fixer leaves it (#1155); readers trim it.
-    await writeFile(activePath, changeset.id + "\n");
+    await writeActiveMarker(this.rootPath, changeset.id);
   }
 
   /**
@@ -1468,34 +1463,21 @@ export class StagingAreaManager {
   }
 
   private async writeNoActive(): Promise<void> {
-    const { writeFile } = await import("../utils/file-io.js");
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-
-    if (await fileExists(activePath)) {
-      await writeFile(activePath, "");
-    }
+    await clearActiveMarker(this.rootPath);
   }
 
   /**
-   * The id the `.active` marker holds, whatever became of that changeset: it may have been
-   * committed, discarded or deleted since (a marker committed to git outlives its changeset in
-   * every clone). Only for clearing the marker; everything else asks getActive or getActiveId.
+   * The id the active-changeset marker holds (active-changeset-marker.ts), whatever became of
+   * that changeset: it may have been committed, discarded or deleted since. Only for clearing the
+   * marker; everything else asks getActive or getActiveId.
    */
   private async readActiveMarker(): Promise<string | null> {
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-
-    if (!(await fileExists(activePath))) {
-      return null;
-    }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const id = (await readFile(activePath)).trim();
-
-    return id || null;
+    return readActiveMarker(this.rootPath);
   }
 
   /**
-   * Get the currently active changeset: the one the `.active` marker names, while it is staged.
+   * Get the currently active changeset: the one the marker (`.dr/active-changeset`) names, while
+   * it is staged.
    * A marker that names a changeset that is committed, discarded or gone is no active changeset
    * (#1218): Model.load reads it the same way, so writes go to the base model.
    *
@@ -1521,7 +1503,7 @@ export class StagingAreaManager {
   }
 
   /**
-   * A marker left behind: the name and status of the changeset `.active` names when that
+   * A marker left behind: the name and status of the changeset the marker names when that
    * changeset is not staged (so it is not the active one), or `missing` when it is gone. Null
    * when there is no marker or it names the active changeset. For status output.
    */

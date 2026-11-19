@@ -1229,6 +1229,7 @@ describe("upgrade command - unified flow", () => {
       const activate = await runDr(["changeset", "activate", `upgrade-drops-${version}`], { cwd: tempDir.path });
       expect(activate.exitCode).not.toBe(0);
       expect(`${activate.stdout}${activate.stderr}`).toContain("It cannot be made active");
+      expect(await fileExists(join(tempDir.path, ".dr/active-changeset"))).toBe(false);
       expect(await fileExists(join(tempDir.path, "documentation-robotics/changesets/.active"))).toBe(false);
 
       // A second run has nothing to drop, and writes no second record

@@ -384,7 +384,9 @@ describe("Changeset Storage Location", () => {
   });
 
   describe("Active Changeset Tracking", () => {
-    it("should create .active marker in documentation-robotics/changesets/", async () => {
+    // Which changeset is active is per-checkout state, so the marker is in .dr/ (#1218). The
+    // changesets themselves are committed and stay in documentation-robotics/changesets/.
+    it("should create the active-changeset marker in .dr/", async () => {
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
       const changesetId = "active-marker-test";
       const stagingManager = new StagingAreaManager(tempDir, baseModel);
@@ -398,8 +400,7 @@ describe("Changeset Storage Location", () => {
       );
       await stagingManager.setActive(changesetId);
 
-      // Verify .active marker exists in correct location
-      const activeMarkerPath = join(tempDir, "documentation-robotics", "changesets", ".active");
+      const activeMarkerPath = join(tempDir, ".dr", "active-changeset");
       expect(await fileExists(activeMarkerPath)).toBe(true);
 
       // Verify marker contains correct changeset ID
@@ -407,17 +408,16 @@ describe("Changeset Storage Location", () => {
       expect(markerContent.trim()).toBe(changesetId);
     });
 
-    it("should not create .active marker in .dr/changesets/", async () => {
+    it("should not create a marker beside the committed changesets, nor in .dr/changesets/", async () => {
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
-      const changesetId = "not-in-dr-active";
+      const changesetId = "not-beside-changesets";
       const stagingManager = new StagingAreaManager(tempDir, baseModel);
 
-      await storage.create(changesetId, "Not in DR", "Verify .active not in .dr", baseSnapshot);
+      await storage.create(changesetId, "Not beside changesets", "Verify the old marker places are unused", baseSnapshot);
       await stagingManager.setActive(changesetId);
 
-      // Verify old location is not used
-      const oldActiveMarkerPath = join(tempDir, ".dr", "changesets", "active");
-      expect(await fileExists(oldActiveMarkerPath)).toBe(false);
+      expect(await fileExists(join(tempDir, "documentation-robotics", "changesets", ".active"))).toBe(false);
+      expect(await fileExists(join(tempDir, ".dr", "changesets", "active"))).toBe(false);
     });
   });
 
