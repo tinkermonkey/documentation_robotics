@@ -41,8 +41,8 @@ description: >-
   change. Not built: the api.operation delivers api.response route (needs
   intermediate api.responses elements and a Context Studio proposal).
 created: 2026-11-19T13:36:21.051Z
-modified: 2026-11-19T13:49:47.365Z
-status: staged
+modified: 2026-11-19T14:46:07.729Z
+status: committed
 baseSnapshot: sha256:cb92b7c0a10abebd18b422f7344de7264681f8111915a595a55a89186b22a9f1
 origin:
   kind: plan
@@ -50,7 +50,7 @@ stats:
   additions: 14
   modifications: 0
   deletions: 0
-lastSequence: 14
+lastSequence: 15
 unstaged:
   - sequence: 2
     removedAt: 14
