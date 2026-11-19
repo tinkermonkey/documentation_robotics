@@ -654,10 +654,16 @@ paths:
                     description: Server health status
                   version:
                     type: string
-                    description: API version
+                    description:
+                      API version (the version of this HTTP API, not of the dr CLI or the
+                      spec)
+                  cliVersion:
+                    type: string
+                    description: Version of the dr CLI that is serving this API, e.g. "0.5.0"
                 required:
                   - status
                   - version
+                  - cliVersion
   /api/model:
     get:
       tags:

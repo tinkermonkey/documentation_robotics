@@ -208,7 +208,8 @@ export const ErrorResponseSchema = z.object({
 
 export const HealthResponseSchema = z.object({
   status: z.string().describe('Server health status'),
-  version: z.string().describe('API version'),
+  version: z.string().describe('API version (the version of this HTTP API, not of the dr CLI or the spec)'),
+  cliVersion: z.string().describe('Version of the dr CLI that is serving this API, e.g. "0.5.0"'),
 });
 
 export const AnnotationSchema = z.object({
