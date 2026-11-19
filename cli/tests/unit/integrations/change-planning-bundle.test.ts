@@ -111,7 +111,9 @@ describe("change-planning integration", () => {
       it("commits only the plan's own changeset directory", () => {
         expect(text).toContain("`documentation-robotics/changesets/<id>/`");
         expect(text).not.toContain("(`documentation-robotics/changesets/`)");
-        expect(text).toContain("`.active`");
+        // Which changeset is active is local state in .dr/ (#1218), so there is no marker to keep out
+        expect(text).not.toContain("`.active`");
+        expect(text).toContain("as-built");
       });
 
       it("lands only when the human asks and confirms", () => {

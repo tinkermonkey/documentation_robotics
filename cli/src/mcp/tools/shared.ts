@@ -7,13 +7,14 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
+import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
 import path from "node:path";
 import { z, type ZodRawShape } from "zod";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { CallToolResult, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { Model } from "../../core/model.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
+import { readActiveMarkerSync } from "../../core/active-changeset-marker.js";
 import {
   acquireModelWriteLock,
   modelWriteGeneration,
@@ -194,12 +195,7 @@ function modelFingerprint(projectRoot: string): string | null {
     if (modelDir === null) return null;
     const hash = createHash("sha1");
     for (const stamp of fileStamps(modelDir)) hash.update(`m\t${stamp}\n`);
-    let activeId = "";
-    try {
-      activeId = readFileSync(path.join(drDir, "changesets", ".active"), "utf-8").trim();
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
+    const activeId = readActiveMarkerSync(projectRoot) ?? "";
     hash.update(`active\t${activeId}\n`);
     if (activeId) {
       const dir = new StagedChangesetStorage(projectRoot).getChangesetPath(activeId);

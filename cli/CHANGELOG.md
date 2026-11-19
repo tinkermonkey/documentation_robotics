@@ -85,6 +85,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The active-changeset marker moved to `.dr/`** (#1218). Which changeset a checkout is working
+  in is per-checkout state, so the marker is now `.dr/active-changeset`, with the spec reference
+  and the analyzer state that `dr init` and `dr upgrade` already keep out of git. It was
+  `documentation-robotics/changesets/.active`, beside the changesets that are committed, where it
+  was easy to commit and then outlived its changeset in every clone. The old file is still read
+  when `.dr/` has no marker, so a checkout that is mid-change keeps its active changeset, and the
+  next activate or deactivate writes `.dr/` and deletes the old file. A project that committed
+  the old file should commit its deletion. `dr visualize` watches the new file, so the viewer
+  still learns of an activation made from the CLI or an agent. A dr older than this change (an
+  installed plugin, say) reads and writes only the old file, so mixing the two on one checkout can
+  disagree about which changeset is active until both are updated.
 - **Bundled viewer bumped to v0.12.0**: `documentation_robotics_viewer` moves `0.11.0` → `0.12.0`
   (`cli/scripts/download-viewer.sh`). The viewer now follows what this release's changeset API
   reports:
@@ -196,7 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   leftover marker is being ignored, and `dr changeset deactivate` removes it. A base write from a
   model that is still projecting a changeset (it stopped being staged after the model was read)
   now fails with "The change was not saved" instead of storing nothing. This repository no longer
-  tracks its own `.active` file.
+  tracks its own `.active` file, and the marker has moved to `.dr/` (see Changed).
 - **`dr upgrade` rewrites three links it used to drop** (#1164). Spec 0.11.0 removed `database
   serves applicationcomponent`, `database serves applicationservice` and `ux.view serves
   applicationservice` with no replacement, so the migration dropped every such relationship.

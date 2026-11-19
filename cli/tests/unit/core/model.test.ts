@@ -529,8 +529,8 @@ describe("Model — Error Handling", () => {
       "name: Test\nversion: 1.0.0"
     );
 
-    // Create .active file with a changeset ID
-    const activeChangesetPath = path.join(testDir, "documentation-robotics", "changesets", ".active");
+    // Create the active-changeset marker with a changeset ID
+    const activeChangesetPath = path.join(testDir, ".dr", "active-changeset");
     await mkdir(path.dirname(activeChangesetPath), { recursive: true });
     await writeFile(activeChangesetPath, "bad-changeset-id");
 

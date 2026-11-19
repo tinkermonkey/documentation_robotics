@@ -284,13 +284,14 @@ layers: {}`;
       expect(active?.name).toBe("active-test");
     });
 
-    it("writes .active and base-index.json the way end-of-file-fixer and prettier leave them (#1155)", async () => {
+    it("writes the marker in .dr/ and base-index.json the way end-of-file-fixer and prettier leave them (#1155)", async () => {
       const changeset = await manager.create("newline-test");
       await manager.setActive(changeset.id!);
       const changesetsDir = path.join(testDir, "documentation-robotics", "changesets");
       const { readFile } = await import("../../src/utils/file-io.js");
 
-      expect(await readFile(path.join(changesetsDir, ".active"))).toBe(`${changeset.id}\n`);
+      expect(await readFile(path.join(testDir, ".dr", "active-changeset"))).toBe(`${changeset.id}\n`);
+      expect(await fileExists(path.join(changesetsDir, ".active"))).toBe(false);
       expect(await manager.getActiveId()).toBe(changeset.id);
 
       const index = await readFile(path.join(changesetsDir, changeset.id!, "base-index.json"));

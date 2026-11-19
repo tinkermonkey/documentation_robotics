@@ -32,8 +32,12 @@ the CLI. Planning a change therefore always starts with `changeset_create`. In c
 is refused with a pointer to `changeset_create`. `project_init` and `project_upgrade` write outside
 any changeset, so that mode refuses them outright.
 
-**Which changeset is active.** One file, `documentation-robotics/changesets/.active`, names it. It is
-per checkout, so keep it out of git (this repository ignores it). The marker counts only while it names a staged changeset: one
+**Which changeset is active.** One file names it: `.dr/active-changeset`, the changeset's id. It is
+per-checkout state, so it lives in `.dr/` with the spec reference and the analyzer state, which
+`dr init` and `dr upgrade` keep out of git. Until #1218 it was
+`documentation-robotics/changesets/.active`, beside the changesets that are committed; that file is
+still read when `.dr/` has no marker, and the next activate or deactivate moves it (delete it from
+git if a project committed it). The marker counts only while it names a staged changeset: one
 that names a changeset that has been committed, discarded or deleted since is no active changeset
 on any surface (`Model.load`, the CLI, the MCP tools, the viewer), and writes then go to the base
 model. `dr changeset status` says when such a marker is being ignored; `dr changeset deactivate`
