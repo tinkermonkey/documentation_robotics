@@ -81,6 +81,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Bundled viewer bumped to v0.12.0**: `documentation_robotics_viewer` moves `0.11.0` → `0.12.0`
+  (`cli/scripts/download-viewer.sh`). The viewer now follows what this release's changeset API
+  reports:
+  - It treats a changeset by its `purpose` and offers only the moves in `actions`, so a
+    verification record or an upgrade record shows as a record with Discard only.
+  - It shows base drift before review and before Apply, from the API's `drift` (state, what
+    overlaps and why), instead of only when an Apply is refused.
+  - Apply can land changes that have no verdict yet, and the review says "Keep all N" before
+    anything is decided.
+  - Each change in review and in Impact is easier to read, with origin badges and a filter by who
+    decided it.
+  - The Tier 1 panel shows spend, warming progress, mode and OpenRouter routing.
+  - It shows the real spec and CLI versions.
 - **Only a base change that overlaps a changeset blocks its landing.** A commit refused a changeset
   for drift whenever any element in the base had changed or been removed since it was created,
   also one the changeset neither edits nor links to, so one landing that edited an element blocked
