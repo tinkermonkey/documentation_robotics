@@ -410,7 +410,7 @@ You should:
    - 2 elements added
    - 1 element updated
 
-   These changes will be REVERTED (changeset file kept)"
+   These staged changes will be DISCARDED and the changeset deleted"
 
 2. Confirm:
    "Are you sure? Type 'revert' to confirm: "
@@ -420,11 +420,12 @@ You should:
 
 4. Confirm:
    "✓ Changeset reverted
-   ✓ Changes discarded
-   ✓ Changeset marked as 'reverted'
-   ✓ Now working in main model
+   ✓ Staged changes discarded and the changeset deleted
+   ✓ Now working in main model"
 
-   To permanently delete: dr changeset delete auth-system"
+   A changeset that was already applied is different: `revert` keeps its record,
+   marked 'discarded', and the model keeps the changes it applied. It does not
+   undo them.
 ```
 
 **Example - Clean up old changesets:**
