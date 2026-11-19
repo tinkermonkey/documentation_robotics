@@ -61,6 +61,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Only a base change that overlaps a changeset blocks its landing.** A commit refused a changeset
+  for drift whenever any element in the base had changed or been removed since it was created,
+  also one the changeset neither edits nor links to, so one landing that edited an element blocked
+  every other staged plan until each was forced (#1169 had excepted only additions to the base).
+  With a base index, drift now blocks only when the base overlaps a staged change: an element the
+  changeset stages any change for (an update, a delete, or a delete then an add) changed or was
+  removed (new overlap reason `removed-in-base`), an element it deletes gained a relationship the
+  delete would remove (new reason `linked-in-base`), an element at an end of a relationship it adds
+  or deletes changed or was removed, the base already has what it adds, or no longer has what it
+  deletes. Any other base change is content-free and lands without `force`. Without a base index a changed hash still
+  blocks. `dr changeset commit`, `changeset_commit` and its preview, the viewer's Apply,
+  `project_status`'s `baseDrifted` and the viewer API's `drift` all read the one rule
+  (`StagingAreaManager.detectDrift`).
 - **`model_list` fits one tool result by default** (#1187). When 150 elements or fewer match, each
   comes back on one line with its id, name and the first sentence of its description (160
   characters at most, with `…` where something was left out). When more match, the result is a

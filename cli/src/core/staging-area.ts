@@ -658,8 +658,9 @@ export class StagingAreaManager {
 
     const warnings: string[] = [];
 
-    // The hash covers the manifest too, so landing another changeset changes it with nothing this
-    // one depends on changed. The base index tells the two apart; without one it stays drift.
+    // The hash covers the manifest and every element, so landing another changeset changes it
+    // whether or not it touched anything this one stages. The base index tells the two apart (only
+    // a base change that overlaps a staged change is drift); without one it stays drift.
     if (isDrifted) {
       let contentFree: string | undefined;
       try {

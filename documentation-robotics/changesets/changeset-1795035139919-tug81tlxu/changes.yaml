@@ -1,0 +1,115 @@
+- type: add
+  elementId: motivation.assessment.one-base-edit-blocks-every-staged-plan
+  layerName: motivation
+  after:
+    id: ffd84d4c-a64d-4c62-9473-5a5b32a173bb
+    path: motivation.assessment.one-base-edit-blocks-every-staged-plan
+    spec_node_id: motivation.assessment
+    type: assessment
+    layer_id: motivation
+    name: One base edit blocks every staged plan
+    description:
+      A commit refuses a changeset for drift whenever any element in the
+      base changed or was removed since the changeset was created, also one the
+      changeset neither edits nor links to. So one landing that edits an element
+      blocks every other staged plan until each is forced.
+    attributes:
+      assessmentType: gap
+      documentation: "Found 2026-11-18, twice. Building the REST drift field (PR
+        1191): its own plan read drifted with nothing overlapping after PR 1189
+        landed and changed four features it does not touch. The viewer session's
+        live test of that field: three staged plans, one base edit to an element
+        none of them touches, all three drifted with blocksCommit true and an
+        empty overlapping, so the viewer held Apply on all of them. The rule is
+        contentFreeDrift (cli/src/core/changeset-base-index.ts), added for
+        #1169: it counts only additions to the base as content-free."
+    metadata:
+      created_at: 2026-11-18T20:52:36.710Z
+      updated_at: 2026-11-18T20:52:36.710Z
+      version: 1
+  timestamp: 2026-11-18T20:52:36.737Z
+  sequenceNumber: 0
+- type: add
+  elementId: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+  layerName: motivation
+  after:
+    id: 1214a779-73a8-463e-95cf-8ce4681faf4a
+    path: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Only an overlapping base change blocks a landing
+    description: "A staged changeset is refused for drift only when the base
+      overlaps it: an element it stages any change for (an update, a delete, or
+      a delete then an add) changed or was removed, an element it deletes gained
+      a relationship the delete would remove, an element at an end of a
+      relationship it adds or deletes changed or was removed, the base already
+      has what it adds, or lacks what it deletes. Any other change to the base
+      does not block it."
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: with a base index recorded, a changeset staged
+        before another one landed commits without force when the other changed
+        or removed only elements and relationships it does not edit or link to;
+        it is still refused when the other changed or removed an element it
+        stages a change for (whatever the staged ops and their order), linked an
+        element it deletes, or changed or removed an element it links to.
+        Without a base index a changed hash still blocks, since the two cannot
+        be told apart. The CLI, changeset_commit, the viewer's Apply,
+        project_status and the viewer API's drift field all read the one rule
+        (StagingAreaManager.detectDrift). Not covered, as before this change:
+        fields outside the base index's content hash (accepted gaps, metadata,
+        references), and an update of an element the base gained after the
+        changeset was created."
+    metadata:
+      created_at: 2026-11-18T20:52:36.711Z
+      updated_at: 2026-11-18T20:52:36.711Z
+      version: 1
+  timestamp: 2026-11-18T21:35:14.592Z
+  sequenceNumber: 1
+- type: relationship-add
+  elementId: motivation.assessment.one-base-edit-blocks-every-staged-plan::influence::motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+  layerName: motivation
+  after:
+    source: motivation.assessment.one-base-edit-blocks-every-staged-plan
+    target: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T20:52:36.737Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing::realizes::motivation.outcome.changesets-land-with-the-code
+  layerName: motivation
+  after:
+    source: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    target: motivation.outcome.changesets-land-with-the-code
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T20:52:36.737Z
+  sequenceNumber: 3
+- type: relationship-add
+  elementId: product.feature.changeset-commit::satisfies::motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+  layerName: product
+  after:
+    source: product.feature.changeset-commit
+    target: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-18T20:52:36.737Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing::realizes::motivation.principle.base-model-is-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    target: motivation.principle.base-model-is-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-18T20:52:55.256Z
+  sequenceNumber: 5
