@@ -118,14 +118,16 @@ describe("StagingAreaManager.commit and the active changeset", () => {
       const result = await manager.commit(model, plan!.id, { validate: true });
 
       // The changes landed and the changeset is committed; the marker still names it, and the
-      // result and a console warning say so.
+      // result and a console warning say so. A committed changeset is never the active one, so
+      // the leftover marker is ignored (#1218).
       expect(result.committed).toBe(1);
       expect(result.deactivated).toBe(false);
       expect(result.deactivationError).toContain("EACCES");
       expect((await manager.load("plan"))!.status).toBe("committed");
-      expect(await manager.getActiveId()).toBe(plan!.id);
+      expect(await manager.getActiveId()).toBeNull();
+      expect(await manager.staleActiveMarker()).toEqual({ id: plan!.id, name: "plan", status: "committed" });
       expect(await baseGoals(rootPath)).toEqual(["motivation.goal.faster-checkout"]);
-      expect(warn.mock.calls.some((call) => String(call[0]).includes("still the active changeset"))).toBe(true);
+      expect(warn.mock.calls.some((call) => String(call[0]).includes(".active marker could not be cleared"))).toBe(true);
     } finally {
       warn.mockRestore();
       clearModelCache();

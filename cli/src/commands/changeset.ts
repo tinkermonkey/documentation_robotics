@@ -266,9 +266,9 @@ function reportDeactivation(
   if (result.deactivationError) {
     details.deactivationError = result.deactivationError;
     handleWarning(
-      `The changeset was committed but is still the active changeset (${result.deactivationError}). ` +
-        "Reads still project it and writes still stage into it.",
-      ["Run 'dr changeset deactivate' once the cause is fixed"]
+      `The changeset was committed, but its .active marker could not be cleared (${result.deactivationError}). ` +
+        "The marker is ignored, since a committed changeset is never the active one.",
+      ["Run 'dr changeset deactivate' once the cause is fixed, to remove the marker"]
     );
   }
 }
@@ -575,6 +575,11 @@ export async function changesetActivateCommand(name: string, options: { model?: 
   }
 }
 
+/** "'name', which is committed" / "changeset-1, which is missing", for a marker left behind. */
+function staleMarkerLabel(stale: { id: string; name?: string; status: string }): string {
+  return `${stale.name ? `'${stale.name}'` : stale.id}, which is ${stale.status}`;
+}
+
 /**
  * Deactivate the current changeset
  */
@@ -587,7 +592,17 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
     const active = await manager.getActiveId();
 
     if (!active) {
-      handleInfo(ansis.yellow("No active changeset"));
+      // A marker left behind by a changeset that is no longer staged: it is not the active
+      // changeset, but deactivating is the moment to remove it.
+      const stale = await manager.staleActiveMarker();
+      if (stale) await manager.clearActive();
+      handleInfo(
+        ansis.yellow(
+          stale
+            ? `No active changeset (cleared a marker left by ${staleMarkerLabel(stale)})`
+            : "No active changeset"
+        )
+      );
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("changeset.wasActive", false);
         (span as any).setStatus({ code: 0 });
@@ -763,6 +778,12 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
 
     if (!active) {
       console.log(ansis.dim("No active changeset"));
+      const stale = await manager.staleActiveMarker();
+      if (stale) {
+        console.log(
+          ansis.dim(`  The .active marker names ${staleMarkerLabel(stale)}; it is ignored, and writes go to the base model`)
+        );
+      }
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("changeset.hasActive", false);
         (span as any).setStatus({ code: 0 });

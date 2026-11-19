@@ -278,8 +278,7 @@ export class StagingAreaManager {
     }
 
     // Check if this changeset is the active one and clear it if so
-    const activeChangeset = await this.getActive();
-    if (activeChangeset && activeChangeset.id === changeset.id) {
+    if ((await this.readActiveMarker()) === changeset.id) {
       await this.clearActive();
     }
 
@@ -582,7 +581,7 @@ export class StagingAreaManager {
     const id = changeset.id ?? changesetId;
 
     // The active marker must not name a folder that is gone: the model would stage into nothing.
-    if ((await this.getActiveId()) === id) {
+    if ((await this.readActiveMarker()) === id) {
       await this.clearActive();
     }
     // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
@@ -1218,15 +1217,15 @@ export class StagingAreaManager {
         // active marker is left alone. The changes are already landed, so a failure here is
         // reported in the result (deactivationError) rather than rolled back.
         try {
-          if ((await this.getActiveId()) === changeset.id) {
+          if ((await this.readActiveMarker()) === changeset.id) {
             await this.clearActive();
             result.deactivated = true;
           }
         } catch (error) {
           result.deactivationError = getErrorMessage(error);
           console.warn(
-            `Warning: changeset '${changeset.name}' was committed but is still the active changeset ` +
-              `(${result.deactivationError}). Deactivate it before making further changes.`
+            `Warning: changeset '${changeset.name}' was committed, but its .active marker could not be cleared ` +
+              `(${result.deactivationError}). The marker is ignored: a committed changeset is never the active one.`
           );
           emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
             "changeset.id": changesetId,
@@ -1409,14 +1408,7 @@ export class StagingAreaManager {
   async isActive(changesetId: string): Promise<boolean> {
     this.validateChangesetId(changesetId);
 
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-    if (!(await fileExists(activePath))) {
-      return false;
-    }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const activeId = await readFile(activePath);
-    return activeId.trim() === changesetId;
+    return (await this.getActiveId()) === changesetId;
   }
 
   /**
@@ -1485,47 +1477,64 @@ export class StagingAreaManager {
   }
 
   /**
-   * Get the currently active changeset.
-   * Returns null if no changeset is active.
+   * The id the `.active` marker holds, whatever became of that changeset: it may have been
+   * committed, discarded or deleted since (a marker committed to git outlives its changeset in
+   * every clone). Only for clearing the marker; everything else asks getActive or getActiveId.
+   */
+  private async readActiveMarker(): Promise<string | null> {
+    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
+
+    if (!(await fileExists(activePath))) {
+      return null;
+    }
+
+    const { readFile } = await import("../utils/file-io.js");
+    const id = (await readFile(activePath)).trim();
+
+    return id || null;
+  }
+
+  /**
+   * Get the currently active changeset: the one the `.active` marker names, while it is staged.
+   * A marker that names a changeset that is committed, discarded or gone is no active changeset
+   * (#1218): Model.load reads it the same way, so writes go to the base model.
    *
    * @returns The active changeset or null if none is active
    */
   async getActive(): Promise<Changeset | null> {
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-
-    if (!(await fileExists(activePath))) {
-      return null;
-    }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const activeId = await readFile(activePath);
-    const id = activeId.trim();
-
+    const id = await this.readActiveMarker();
     if (!id) {
       return null;
     }
 
-    return this.storage.load(id);
+    const changeset = await this.storage.load(id);
+    return changeset && changeset.status === "staged" ? changeset : null;
   }
 
   /**
-   * Get the ID of the active changeset without loading the full changeset object.
-   * Useful for status display and quick active changeset checks.
+   * Get the ID of the active changeset, by the same rule as getActive.
    *
    * @returns The active changeset ID or null if no active changeset exists
    */
   async getActiveId(): Promise<string | null> {
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
+    return (await this.getActive())?.id ?? null;
+  }
 
-    if (!(await fileExists(activePath))) {
+  /**
+   * A marker left behind: the name and status of the changeset `.active` names when that
+   * changeset is not staged (so it is not the active one), or `missing` when it is gone. Null
+   * when there is no marker or it names the active changeset. For status output.
+   */
+  async staleActiveMarker(): Promise<{ id: string; name?: string; status: string } | null> {
+    const id = await this.readActiveMarker();
+    if (!id) {
       return null;
     }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const activeId = await readFile(activePath);
-    const id = activeId.trim();
-
-    return id || null;
+    const changeset = await this.storage.load(id);
+    if (!changeset) {
+      return { id, status: "missing" };
+    }
+    return changeset.status === "staged" ? null : { id, name: changeset.name, status: changeset.status };
   }
 
   /**
@@ -1583,7 +1592,7 @@ export class StagingAreaManager {
     await this.storage.save(changeset);
     // Only the record stays (name, description, status): nothing reads a base index after this.
     await this.storage.removeSideFiles(id);
-    if ((await this.getActiveId()) === id) {
+    if ((await this.readActiveMarker()) === id) {
       await this.clearActive();
     }
 

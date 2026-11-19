@@ -168,6 +168,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A leftover `.active` marker no longer loses writes** (#1218). The marker
+  (`documentation-robotics/changesets/.active`) could name a changeset that was committed,
+  discarded or deleted since: committed to git it outlives its changeset in every clone. The model
+  then projected that changeset while the write path staged only into a staged one, so `dr add`,
+  `dr update`, `dr delete` and the MCP `model_*` tools edited a projected copy of the layer,
+  reported success and saved nothing. The marker now counts only while it names a staged
+  changeset, on every surface: `Model.load`, `StagingAreaManager.getActive` / `getActiveId` /
+  `isActive`, and so the CLI, the MCP tools and the viewer. `dr changeset status` says when a
+  leftover marker is being ignored, and `dr changeset deactivate` removes it. A base write from a
+  model that is still projecting a changeset (it stopped being staged after the model was read)
+  now fails with "The change was not saved" instead of storing nothing. This repository no longer
+  tracks its own `.active` file.
 - **`dr upgrade` rewrites three links it used to drop** (#1164). Spec 0.11.0 removed `database
   serves applicationcomponent`, `database serves applicationservice` and `ux.view serves
   applicationservice` with no replacement, so the migration dropped every such relationship.
