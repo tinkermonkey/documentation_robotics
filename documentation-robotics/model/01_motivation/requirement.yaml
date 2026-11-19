@@ -254,3 +254,49 @@ motivation.requirement.only-an-overlapping-base-change-blocks-a-landing:
     created_at: 2026-11-18T20:52:36.711Z
     updated_at: 2026-11-18T20:52:36.711Z
     version: 1
+motivation.requirement.a-migration-records-what-it-drops:
+  id: ee6ddf29-29f2-492c-93c5-db3723f4aacc
+  path: motivation.requirement.a-migration-records-what-it-drops
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A migration records what it drops
+  description: When a spec migration removes relationships whose type has no
+    replacement in the catalog, it leaves a record that names each one (source,
+    predicate, target, and the rule that retired it), which the user can review
+    and restore from. The record is a staged changeset that never lands.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation:
+      "Issue #1164, maintainer decision 2026-11-18. Verified when an
+      upgrade that drops relationships leaves one staged upgrade-record
+      changeset listing them, the dry run names it, and a run that drops nothing
+      writes none."
+  metadata:
+    created_at: 2026-11-19T13:36:34.322Z
+    updated_at: 2026-11-19T13:36:34.322Z
+    version: 1
+motivation.requirement.a-migration-takes-the-route-the-catalog-offers:
+  id: 830c9304-fb28-479a-8620-7c30bd282853
+  path: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A migration takes the route the catalog offers
+  description: A relationship of a retired type is rewritten, not dropped, when
+    the catalog has a type that says the same thing and a change record names it
+    as the replacement. Replacements come only from catalog types a Context
+    Studio proposal added.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation:
+      "Issue #1164. The rewrite table is generated from change records;
+      a replace-dropped action names the replacement for a triple an earlier
+      record dropped, and the generator fails when the replacement is not in the
+      catalog."
+  metadata:
+    created_at: 2026-11-19T13:36:34.344Z
+    updated_at: 2026-11-19T13:36:34.344Z
+    version: 1

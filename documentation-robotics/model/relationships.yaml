@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-19T11:51:16.880Z
+# Last updated: 2026-11-19T14:46:07.724Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -1712,4 +1712,61 @@
   target: motivation.principle.base-model-is-as-built
   predicate: realizes
   layer: motivation
+  category: structural
+- source: motivation.requirement.a-migration-records-what-it-drops
+  target: motivation.goal.model-stays-as-built
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: motivation.requirement.a-migration-records-what-it-drops
+  target: motivation.principle.every-model-change-is-a-changeset
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+  target: motivation.goal.model-stays-as-built
+  predicate: realizes
+  layer: motivation
+  category: structural
+- source: product.feature.upgrade-drop-record
+  target: motivation.requirement.a-migration-records-what-it-drops
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: product.feature.upgrade-drop-record
+  target: product.softwarecapability.spec-migration
+  predicate: realizes
+  layer: product
+  category: structural
+- source: product.feature.upgrade-drop-record
+  target: product.persona.project-maintainer
+  predicate: serves
+  layer: product
+  category: structural
+- source: product.feature.upgrade-drop-record
+  target: product.feature.model-upgrade
+  predicate: depends-on
+  layer: product
+  category: structural
+- source: product.feature.upgrade-drop-record
+  target: product.feature.changeset-lifecycle
+  predicate: depends-on
+  layer: product
+  category: structural
+- source: product.feature.model-upgrade
+  target: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+  predicate: satisfies
+  layer: product
+  targetLayer: motivation
+  category: structural
+- source: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+  target: product.feature.upgrade-drop-record
+  predicate: uses
+  layer: product
+  category: structural
+- source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+  target: product.feature.upgrade-drop-record
+  predicate: uses
+  layer: product
   category: structural
