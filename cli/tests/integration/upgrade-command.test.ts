@@ -443,7 +443,7 @@ describe("upgrade command - unified flow", () => {
       // Verify model spec version was updated to latest
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.13.0");
+      expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
     it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
@@ -490,7 +490,7 @@ describe("upgrade command - unified flow", () => {
       // Should complete all migrations and reach latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.13.0");
+      expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
     it("should show migration steps in output", async () => {
@@ -553,7 +553,7 @@ describe("upgrade command - unified flow", () => {
       // Model should be upgraded to latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.13.0");
+      expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
     it("should complete both upgrades successfully", async () => {

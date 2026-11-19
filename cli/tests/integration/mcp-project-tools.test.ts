@@ -14,6 +14,7 @@ import { pathToFileURL } from "node:url";
 import yaml from "yaml";
 import { runDr } from "../helpers/cli-runner.js";
 import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
+import { MigrationRegistry } from "../../src/core/migration-registry.js";
 
 const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
@@ -251,7 +252,12 @@ describe("project_upgrade over MCP", () => {
     expect(preview.isError).toBe(false);
     expect(preview.body.status).toBe("preview");
     expect(preview.body.model).toEqual({ specVersion: "0.10.0", targetSpecVersion: target });
-    expect(preview.body.steps.map((s: any) => `${s.from}->${s.to}`)).toEqual(["0.10.0->0.11.0", "0.11.0->0.12.0", `0.12.0->${target}`]);
+    // The chain comes from the registry, so the next spec bump doesn't need this line edited
+    // (it broke the 0.5.0 and 0.6.0 release preflights).
+    const chain = new MigrationRegistry().getMigrationPath("0.10.0").map((m) => `${m.fromVersion}->${m.toVersion}`);
+    expect(chain[0]).toBe("0.10.0->0.11.0");
+    expect(chain.at(-1)!.endsWith(`->${target}`)).toBe(true);
+    expect(preview.body.steps.map((s: any) => `${s.from}->${s.to}`)).toEqual(chain);
     expect(preview.body.elementTypeRenames).toEqual([
       {
         fromType: "product.capability",

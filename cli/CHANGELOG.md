@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-19
+
+**Specification Support:** v0.14.0
+
+The changeset lifecycle release. Every changeset now declares what it is for (a plan, DrBot's chat,
+a bootstrap, a reconcile, a verification record or an upgrade record), and that decides what may
+happen to it: a record never lands. Base drift is reported before a commit is tried and blocks only
+when the base overlaps what the changeset stages, so landing one plan no longer blocks the others.
+`changeset_commit` lands from clients that can't show its dialog, such as the Claude desktop app,
+through a preview and a confirmation token. `dr upgrade` rewrites three links it used to drop and
+records what it still drops in a changeset of its own. Which changeset is active is now
+per-checkout state in `.dr/`, and a marker that outlived its changeset can no longer lose a write.
+Extraction no longer offers a file as a candidate element. Bundles spec 0.14.0 (the generic Message
+type, and "a declared shape is a schema") and viewer 0.12.0.
+
+**Upgrading from 0.5.0:**
+
+- **Run `dr upgrade`** to take a model from spec 0.13.0 to 0.14.0. It is additive, except that a
+  model still holding `database serves applicationcomponent`, `database serves applicationservice`
+  or `ux.view serves applicationservice` has those links rewritten with their ends swapped.
+- **The active-changeset marker moved** from `documentation-robotics/changesets/.active` to
+  `.dr/active-changeset`. Nothing needs doing in a checkout: the old file is read until the next
+  activate or deactivate, which moves it. A project that committed the old file should commit its
+  deletion. A dr 0.5.0 on the same checkout (an installed plugin not yet updated) reads only the
+  old file, so update the two together.
+- **MCP callers:** the changeset argument is now `changeset` on every tool (#1158). The older
+  names (`changesetId`, `planned`, `against.changesetId`) are accepted in this release and go in
+  the next.
+- **`model_list` is compact by default** (#1187), and a summary above 150 elements. Pass
+  `detail: "full"` for the previous output.
+- **`changeset_discard` deletes the changeset's folder** (#1173), and refuses a committed
+  changeset. `dr changeset revert` still accepts one.
+- **`changeset_verify` returns a compact report by default** over MCP (#1152). Pass
+  `detail: "full"` for the whole report, or `sections: [...]` for some sections in full.
+- **Extraction no longer offers a file as a card.** `codebase_extract` and `dr analyzer classify`
+  build no card for a source file, and `dr analyzer classify --labels Module` is refused. An
+  element modelled from a file card stays in the model; nothing removes it.
+
 ### Added
 
 - **`GET /health` reports the CLI's version** as `cliVersion`. The response's `version` is the
@@ -32,7 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `upgrade-record`, the changeset `origin.kind` gains `upgrade`, and a change's `origin.by` gains
   `upgrade`; `docs/api-spec.yaml` is regenerated. A viewer older than these values shows the
   record by what the API reports for it (`actions`), not by its purpose.
-
 - **`changeset_commit` lands from clients that can't show its confirmation dialog.** The Claude
   desktop app runs Claude Code in print mode, which declines every MCP elicitation at once while
   still advertising it, so `changeset_commit` was always refused there. The new
@@ -141,14 +178,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   record nothing owns, and clears the active marker when it named it. A committed changeset can't
   be discarded. `dr changeset revert` still accepts one, as it did before: its record is kept and
   marked `discarded`, and the model keeps the changes it applied, which the command now says.
-- **`base-index.json` and `.active` are written the way prettier and end-of-file-fixer leave
-  them** (#1155): indented JSON and a final newline.
-
+- **`base-index.json` and the active-changeset marker are written the way prettier and
+  end-of-file-fixer leave them** (#1155): indented JSON and a final newline.
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
-  (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
+  (see `spec/CHANGELOG.md`, 0.14.0): 194 node types and 1,001 relationship types. The
   application and data-model layer skills teach the new boundaries.
 - **Bundled spec: code can access a database as a whole, and a service serves the view it backs**
-  (see `spec/CHANGELOG.md`, Unreleased). Three relationship types, which brings the catalog to
+  (see `spec/CHANGELOG.md`, 0.14.0). Three relationship types, which brings the catalog to
   1,004: `applicationcomponent accesses data-store.database`, `applicationservice accesses
   data-store.database` and `applicationservice serves ux.view`. The application, data-store and ux
   layer skills list them. Additive for a model already in line with the catalog. A model that
@@ -166,7 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (85.6%; 65.4% before the rulings, on four corpora), still short of the target, so it stays a
   suggestion the agent confirms. Thresholds are unchanged (0.6, 0.4, 0.6).
 - **Bundled spec: a data object is a domain object, and a store-style interface is an object
-  schema** (see `spec/CHANGELOG.md`, Unreleased; wording only). These definitions are part of the
+  schema** (see `spec/CHANGELOG.md`, 0.14.0; wording only). These definitions are part of the
   criteria Tier 1 sends, so the held-out runs were repeated on them
   (`docs/analyzers/TIER1_CALIBRATION.md` section 14). Clef's not-element band is unchanged at 227
   of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion. The
@@ -193,6 +229,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cards Tier 1 was asked were files.
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
+- **Internal: `npm test` fails when any of its test blocks fails.** `test`, `test:unit`, `test:all`
+  and the `test:coverage*` scripts joined their `bun test` blocks with `;`, so only the last block's
+  exit code counted: in the 0.5.0 release prep, 30 failures in the first (`--concurrent`) block still
+  exited 0 and would have passed the release workflow's `npm test` gate (and `npm run test:linux --
+  test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
+  failed ones and exits 1 if any failed. The blocks, flags, paths and `--test-name-pattern`
+  exclusions are unchanged.
 
 ### Fixed
 
@@ -772,13 +815,6 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
 
 ### Changed
 
-- **Internal: `npm test` fails when any of its test blocks fails.** `test`, `test:unit`, `test:all`
-  and the `test:coverage*` scripts joined their `bun test` blocks with `;`, so only the last block's
-  exit code counted: in the 0.5.0 release prep, 30 failures in the first (`--concurrent`) block still
-  exited 0 and would have passed the release workflow's `npm test` gate (and `npm run test:linux --
-  test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
-  failed ones and exits 1 if any failed. The blocks, flags, paths and `--test-name-pattern`
-  exclusions are unchanged.
 - **Tier 1's layer criteria leave out each layer's "Modelling rules:" paragraph** (rollout PR 8;
   `layerScopeCriterion` in `src/analyzers/classifier/criteria.ts`). Since spec 0.11.0 those
   paragraphs (which predicates a layer's elements use) tripled the layer criteria and cost Clef 11

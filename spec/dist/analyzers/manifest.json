@@ -1,9 +1,9 @@
 {
-  "specVersion": "0.13.0",
+  "specVersion": "0.14.0",
   "analyzers": [
     {
       "name": "cbm",
-      "version": "0.13.0"
+      "version": "0.14.0"
     }
   ]
 }
