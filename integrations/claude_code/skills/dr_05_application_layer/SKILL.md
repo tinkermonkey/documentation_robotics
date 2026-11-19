@@ -208,39 +208,42 @@ Explicit DO NOT rules with rationale:
 
 ### Outgoing References (Application → Other Layers)
 
-| Source Type            | Predicate      | Target Type                     | Example                                                        |
-| ---------------------- | -------------- | ------------------------------- | -------------------------------------------------------------- |
-| ApplicationService     | realizes       | `business.businessservice`      | "Order API" realizes "Order Management"                        |
-| ApplicationService     | serves         | `business.businessprocess`      | "Payment Service" serves "Checkout" business process           |
-| ApplicationService     | accesses       | `business.businessobject`       | "Order API" accesses "Customer Order"                          |
-| ApplicationProcess     | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"              |
-| ApplicationFunction    | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                    |
-| ApplicationEvent       | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                     |
-| ApplicationInterface   | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                         |
-| ApplicationService     | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"       |
-| ApplicationService     | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                      |
-| ApplicationFunction    | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"    |
-| ApplicationService     | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                  |
-| ApplicationService     | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"       |
-| ApplicationService     | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                         |
-| ApplicationService     | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy" |
-| ApplicationComponent   | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"          |
-| ApplicationComponent   | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                        |
-| ApplicationComponent   | accesses       | `data-model.objectschema`       | "OrderRepository" accesses the "Order" entity class            |
-| ApplicationFunction    | accesses       | `data-model.objectschema`       | "saveOrder" accesses the "Order" entity class                  |
-| ApplicationService     | accesses       | `data-model.objectschema`       | "Customer Service" accesses the "CustomerDto" it returns       |
-| ApplicationProcess     | accesses       | `data-model.objectschema`       | "Import Pipeline" accesses the "ImportState" it passes along   |
-| ApplicationInteraction | accesses       | `data-model.objectschema`       | "Checkout Handshake" accesses the "PaymentIntent" record       |
-| ApplicationEvent       | accesses       | `data-model.objectschema`       | "OrderPlaced" accesses its "OrderSummary" payload type         |
-| ApplicationComponent   | accesses       | `data-model.schemadefinition`   | "PayloadValidator" accesses the "Address" definition           |
-| ApplicationFunction    | accesses       | `data-model.schemadefinition`   | "buildInvoice" accesses the "Invoice" definition               |
-| ApplicationEvent       | accesses       | `data-model.schemadefinition`   | "OrderPlaced" accesses its "OrderPlacedPayload" definition     |
-| ApplicationComponent   | accesses       | `data-store.collection`         | "OrderRepository" accesses the `orders` table                  |
-| ApplicationFunction    | accesses       | `data-store.collection`         | "findOrdersByCustomer" accesses `orders`                       |
-| ApplicationFunction    | accesses       | `data-store.view`               | "monthlyRevenueReport" accesses `monthly_revenue_mv`           |
-| ApplicationService     | accesses       | `data-store.collection`         | "Order API" accesses `orders`                                  |
-| ApplicationService     | accesses       | `data-store.view`               | "Reporting Service" accesses `monthly_revenue_mv`              |
-| ApplicationService     | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                 |
+| Source Type            | Predicate      | Target Type                     | Example                                                                                                                              |
+| ---------------------- | -------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| ApplicationService     | realizes       | `business.businessservice`      | "Order API" realizes "Order Management"                                                                                              |
+| ApplicationService     | serves         | `business.businessprocess`      | "Payment Service" serves "Checkout" business process                                                                                 |
+| ApplicationService     | accesses       | `business.businessobject`       | "Order API" accesses "Customer Order"                                                                                                |
+| ApplicationProcess     | realizes       | `business.businessprocess`      | "Order Fulfillment Saga" realizes "Fulfill Order"                                                                                    |
+| ApplicationFunction    | realizes       | `business.businessfunction`     | "Credit Scoring" realizes "Risk Assessment"                                                                                          |
+| ApplicationEvent       | triggers       | `business.businessprocess`      | "PaymentFailed" triggers "Dunning" process                                                                                           |
+| ApplicationInterface   | serves         | `business.businessrole`         | "Admin Console" serves "Support Agent"                                                                                               |
+| ApplicationService     | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"                                                                             |
+| ApplicationService     | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                                                                                            |
+| ApplicationFunction    | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"                                                                          |
+| ApplicationService     | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                                                                                        |
+| ApplicationService     | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"                                                                             |
+| ApplicationService     | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                                                                                               |
+| ApplicationService     | constrained-by | `security.securitypolicy`       | "Patient Records Service" constrained-by "HIPAA Access Policy"                                                                       |
+| ApplicationComponent   | realizes       | `security.countermeasure`       | "Fetch Interceptor" realizes "Bearer Token Injection"                                                                                |
+| ApplicationComponent   | accesses       | `security.secureresource`       | "OrderService" accesses "Order Records"                                                                                              |
+| ApplicationComponent   | accesses       | `data-model.objectschema`       | "OrderRepository" accesses the "Order" entity class                                                                                  |
+| ApplicationFunction    | accesses       | `data-model.objectschema`       | "saveOrder" accesses the "Order" entity class                                                                                        |
+| ApplicationService     | accesses       | `data-model.objectschema`       | "Customer Service" accesses the "CustomerDto" it returns                                                                             |
+| ApplicationProcess     | accesses       | `data-model.objectschema`       | "Import Pipeline" accesses the "ImportState" it passes along                                                                         |
+| ApplicationInteraction | accesses       | `data-model.objectschema`       | "Checkout Handshake" accesses the "PaymentIntent" record                                                                             |
+| ApplicationEvent       | accesses       | `data-model.objectschema`       | "OrderPlaced" accesses its "OrderSummary" payload type                                                                               |
+| ApplicationComponent   | accesses       | `data-model.schemadefinition`   | "PayloadValidator" accesses the "Address" definition                                                                                 |
+| ApplicationFunction    | accesses       | `data-model.schemadefinition`   | "buildInvoice" accesses the "Invoice" definition                                                                                     |
+| ApplicationEvent       | accesses       | `data-model.schemadefinition`   | "OrderPlaced" accesses its "OrderPlacedPayload" definition                                                                           |
+| ApplicationComponent   | accesses       | `data-store.collection`         | "OrderRepository" accesses the `orders` table                                                                                        |
+| ApplicationComponent   | accesses       | `data-store.database`           | "Persistence Layer" accesses `orders-db` as a whole (its connection pool or ORM session; use `collection` when the tables are named) |
+| ApplicationFunction    | accesses       | `data-store.collection`         | "findOrdersByCustomer" accesses `orders`                                                                                             |
+| ApplicationFunction    | accesses       | `data-store.view`               | "monthlyRevenueReport" accesses `monthly_revenue_mv`                                                                                 |
+| ApplicationService     | accesses       | `data-store.collection`         | "Order API" accesses `orders`                                                                                                        |
+| ApplicationService     | accesses       | `data-store.view`               | "Reporting Service" accesses `monthly_revenue_mv`                                                                                    |
+| ApplicationService     | accesses       | `data-store.database`           | "Order API" accesses `orders-db` (use `collection` when the collections are modelled)                                                |
+| ApplicationService     | serves         | `ux.view`                       | "Order API" serves the "Order History" view that loads from it                                                                       |
+| ApplicationService     | references     | `apm.traceconfiguration`        | "Order API" references "Order Service Tracing"                                                                                       |
 
 ### Incoming References (Other Layers → Application)
 
