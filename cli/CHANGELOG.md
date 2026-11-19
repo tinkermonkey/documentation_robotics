@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`GET /health` reports the CLI's version** as `cliVersion`. The response's `version` is the
+  HTTP API's own (`0.1.0`), so the viewer had nothing to show for the CLI: viewer 0.12.0 reads
+  `cliVersion` for its status bar and showed `cli —` without it. `docs/api-spec.yaml` is
+  regenerated.
 - **An upgrade records the relationships it drops** (#1164). A spec migration removes
   relationships whose type the catalog retired with no replacement, and until now the only trace
   was the git diff. `dr upgrade` and `project_upgrade` (with `apply`) now write them to a staged

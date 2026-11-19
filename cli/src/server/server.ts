@@ -24,6 +24,7 @@ import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { getCliVersion } from "../utils/spec-version.js";
 import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
@@ -885,6 +886,8 @@ export class VisualizationServer {
       const response: any = {
         status: this.chatInitializationError ? "degraded" : "ok",
         version: "0.1.0",
+        // The dr CLI serving the API: the viewer shows it; `version` is the API's own.
+        cliVersion: getCliVersion(),
       };
 
       // Include warnings if any services failed to initialize
