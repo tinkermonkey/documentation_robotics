@@ -56,12 +56,24 @@ export interface ResolvedElement {
 
 export type ElementResolver = (elementId: string) => ResolvedElement | undefined;
 
+/** What the migration knows about a relationship it dropped for want of a replacement */
+export interface DroppedRelationshipDetail {
+  /** The retired relationship type, "{layer}.{type}.{predicate}.{layer}.{type}" */
+  type: string;
+  /** The change records the rule that retired it was composed from, oldest first */
+  records: string[];
+  /** The relationship as it was recorded, with every field it had */
+  relationship: Relationship;
+}
+
 export interface RelationshipRewriteChange {
   action: "rewritten" | "dropped-duplicate" | "dropped";
   before: { source: string; predicate: string; target: string };
   after?: { source: string; predicate: string; target: string };
   /** The rules applied, e.g. "a.x.implements.b.y -> a.x.realizes.b.y" */
   rules: string[];
+  /** For action "dropped": the retired type, what retired it and the relationship itself */
+  dropped?: DroppedRelationshipDetail;
 }
 
 export interface RelationshipRewriteResult {
@@ -102,7 +114,7 @@ function rewriteOne(
   rel: Relationship,
   resolve: ElementResolver,
   table: RelationshipRewriteTable
-): { rel: Relationship | null; rules: string[] } | null {
+): { rel: Relationship | null; rules: string[]; retired?: { type: string; records: string[] } } | null {
   let current = rel;
   const rules: string[] = [];
 
@@ -116,7 +128,7 @@ function rewriteOne(
     if (key && rule) {
       if (rule.to === null) {
         rules.push(`${key} -> (removed)`);
-        return { rel: null, rules };
+        return { rel: null, rules, retired: { type: key, records: rule.records } };
       }
       rules.push(`${key} -> ${rule.to}`);
       const predicate = predicateOf(rule.to);
@@ -151,6 +163,14 @@ function tripleOf(rel: Relationship): RelationshipRewriteChange["before"] {
   return { source: rel.source, predicate: rel.predicate, target: rel.target };
 }
 
+/** The `dropped` field of a change, for a relationship whose rule has no replacement */
+function droppedDetail(
+  rel: Relationship,
+  outcome: { retired?: { type: string; records: string[] } }
+): Pick<RelationshipRewriteChange, "dropped"> {
+  return outcome.retired ? { dropped: { ...outcome.retired, relationship: rel } } : {};
+}
+
 /**
  * Rewrite relationships recorded against retired catalog entries.
  *
@@ -182,7 +202,7 @@ export function rewriteRelationships(
       continue;
     }
     if (outcome.rel === null) {
-      changes.push({ action: "dropped", before: triple(rel), rules: outcome.rules });
+      changes.push({ action: "dropped", before: triple(rel), rules: outcome.rules, ...droppedDetail(rel, outcome) });
       continue;
     }
     const key = identity(outcome.rel);
@@ -493,7 +513,7 @@ export function rewriteStagedChangeset(
     const stagedAs = change.type as StagedRelationshipRewriteChange["stagedAs"];
     if (outcome !== null && outcome.rel === null) {
       // A delete has nothing left to delete: the file migration dropped the relationship too
-      record(stagedAs, { action: "dropped", before: tripleOf(rel), rules: outcome.rules });
+      record(stagedAs, { action: "dropped", before: tripleOf(rel), rules: outcome.rules, ...droppedDetail(rel, outcome) });
       return;
     }
     const image = outcome?.rel ?? rel;
@@ -550,7 +570,9 @@ export interface StagedRelationshipMigrationResult {
 /**
  * Apply the rewrite table to the relationship changes of every staged changeset under
  * documentation-robotics/changesets. Committed and discarded changesets are history and stay as
- * they are. A changeset is rewritten only when at least one of its changes is affected.
+ * they are, and so does an upgrade record (upgrade-drop-record.ts): its staged deletes are the
+ * list of what an earlier migration dropped, which this one would otherwise empty. A changeset is
+ * rewritten only when at least one of its changes is affected.
  *
  * @param committed - relationships.yaml before and after migrateRelationshipsFile rewrote it
  */
@@ -583,7 +605,7 @@ export async function migrateStagedChangesets(
     try {
       await new FileLock(storage.getChangesetPath(id)).withLock(async () => {
         const changeset = await storage.load(id);
-        if (!changeset || changeset.status !== "staged") {
+        if (!changeset || changeset.status !== "staged" || changeset.purpose === "upgrade-record") {
           return;
         }
         const resolve = withStagedElements(base, changeset.changes);

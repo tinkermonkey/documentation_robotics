@@ -242,6 +242,15 @@ function pickNextStep(s: Sections, root: string): NextStep {
     return asBuiltStep(changesets.active, changesets.staged);
   }
 
+  if (changesets.status === "ok" && changesets.active?.purpose === "upgrade-record") {
+    return {
+      summary:
+        `Changeset "${changesets.active.name}" is active, but it is an upgrade record: the relationships a spec migration ` +
+        "dropped. It never lands. Deactivate it with changeset_deactivate so writes don't stage into it, and read it with changeset_show.",
+      tool: "changeset_deactivate",
+    };
+  }
+
   if (changesets.status === "ok" && changesets.active) {
     const { name, changes, baseDrifted } = changesets.active;
     const drifted = baseDrifted ? " Its base model has changed since it was opened." : "";
@@ -307,10 +316,18 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
 
-  if (changesets.status === "ok" && changesets.staged.length > 0) {
-    const names = changesets.staged.map((changeset) => `"${changeset.name}"`).join(", ");
+  // An upgrade record is read and restored from, never continued
+  const records = changesets.status === "ok" ? changesets.staged.filter((entry) => entry.purpose === "upgrade-record") : [];
+  const continuable = changesets.status === "ok" ? changesets.staged.filter((entry) => entry.purpose !== "upgrade-record") : [];
+  const recordNote =
+    records.length > 0
+      ? ` ${records.map((entry) => `"${entry.name}"`).join(", ")} ${records.length === 1 ? "records" : "record"} the relationships a spec migration dropped: ` +
+        "read it with changeset_show, re-add what still applies in a changeset of the user's own, and discard it only when the user asks."
+      : "";
+  if (continuable.length > 0) {
+    const names = continuable.map((changeset) => `"${changeset.name}"`).join(", ");
     return {
-      summary: `No changeset is active; ${changesets.staged.length} staged: ${names}. Activate one with changeset_activate to continue it, or plan a new change with changeset_create.`,
+      summary: `No changeset is active; ${continuable.length} staged: ${names}. Activate one with changeset_activate to continue it, or plan a new change with changeset_create.${recordNote}`,
       tool: "changeset_activate",
     };
   }
@@ -323,7 +340,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
         ? "The model is current and in step with the code, counted from its last commit: no as-built landing is recorded yet."
         : "The model is current.";
   return {
-    summary: `${inStep} To plan a change, start with changeset_create.`,
+    summary: `${inStep} To plan a change, start with changeset_create.${recordNote}`,
     tool: "changeset_create",
   };
 }
@@ -339,7 +356,7 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
   const intro =
     `Changeset "${asBuilt.name}" is active, with ${changes}: it is the as-built changeset codebase_extract staged ` +
     "from the code, not a plan. Don't build from it or edit it as a plan.";
-  const plans = staged.filter((entry) => entry.id !== asBuilt.id && !entry.asBuilt);
+  const plans = staged.filter((entry) => entry.id !== asBuilt.id && !entry.asBuilt && entry.purpose !== "upgrade-record");
   const fromRecord = asBuilt.previousActive ? plans.find((entry) => entry.id === asBuilt.previousActive!.id) : undefined;
   const plan = fromRecord ?? (plans.length === 1 ? plans[0] : undefined);
 

@@ -1,0 +1,90 @@
+id: changeset-1795095381044-z1zdxgop8
+name: record-upgrade-drops
+description: >-
+  Fix tinkermonkey/documentation_robotics#1164: a spec migration no longer drops
+  relationships without a record, and takes the routes the catalog now offers.
+
+
+  1. Routes. The rewrite-table generator
+  (cli/scripts/generate-relationship-migration.ts) gets a `replace-dropped`
+  action: a later hand-written record names the catalog triple that replaces a
+  triple an earlier record dropped. The generator fails when no earlier record
+  dropped the triple, when the replacement is not in the catalog, or when it
+  links other types. One record (applied-routes-for-dropped-relationships.json)
+  wires the three routes Context Studio proposals 93d40a94 and 38fa8fa3
+  restored, each with ends swapped: database serves applicationcomponent ->
+  applicationcomponent accesses database; database serves applicationservice ->
+  applicationservice accesses database; view serves applicationservice ->
+  applicationservice serves view. Committed and staged relationships get the
+  same rewrites.
+
+
+  2. Record. When `dr upgrade` or `project_upgrade` (apply: true) drops
+  relationships that have no replacement, it writes one staged changeset named
+  `upgrade-drops-<spec version>` with a new purpose, `upgrade-record`. Each
+  dropped relationship is a staged relationship delete (source, predicate,
+  target) whose change origin (`by: upgrade`) names the retired type and the
+  change record that retired it. Staged relationship adds the migration removed
+  from other changesets are recorded too, with the changeset they were in. The
+  description counts the drops by type and lists, per type, the relationship
+  types the catalog still has between the same two element types (either
+  direction), so the user can re-add by hand. An upgrade record never lands
+  (commit refused on the CLI, the MCP tool and the viewer's Apply; actions:
+  discard only), base drift does not apply to it, and later migrations leave it
+  alone. The dry run and the preview name the changeset that would be written. A
+  run that drops nothing writes none.
+
+
+  Done: unit tests for the generator action, the three rewrites (committed and
+  staged) and the record; an integration test in upgrade-command.test.ts;
+  docs/CHANGE_MODELING.md, docs/api-spec.yaml, cli/CHANGELOG.md updated. No spec
+  change. Not built: the api.operation delivers api.response route (needs
+  intermediate api.responses elements and a Context Studio proposal).
+created: 2026-11-19T13:36:21.051Z
+modified: 2026-11-19T13:49:47.365Z
+status: staged
+baseSnapshot: sha256:cb92b7c0a10abebd18b422f7344de7264681f8111915a595a55a89186b22a9f1
+origin:
+  kind: plan
+stats:
+  additions: 14
+  modifications: 0
+  deletions: 0
+lastSequence: 14
+unstaged:
+  - sequence: 2
+    removedAt: 14
+    change:
+      type: add
+      elementId: product.feature.upgrade-drop-record
+      layerName: product
+      after:
+        id: a7cedc7c-9612-4ec9-82d0-34708eae28d2
+        path: product.feature.upgrade-drop-record
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Upgrade drop record
+        description:
+          "dr upgrade and project_upgrade (apply) write the relationships a
+          migration dropped into a staged changeset, upgrade-drops-<spec
+          version>, with purpose upgrade-record: one staged relationship delete
+          per drop, its origin naming the retired type and change record, and a
+          description listing the relationship types the catalog still has
+          between the same element types. It never lands; the user re-adds what
+          they want by hand and discards it. The dry run and the preview name
+          it."
+        attributes:
+          priority: high
+          status: developing
+          size: m
+          documentation:
+            cli/src/core/upgrade-drop-record.ts, written from upgradeModel
+            (cli/src/core/model-upgrade.ts). Purpose and landing refusal in
+            cli/src/core/changeset-purpose.ts.
+        metadata:
+          created_at: 2026-11-19T13:36:34.344Z
+          updated_at: 2026-11-19T13:36:34.344Z
+          version: 1
+      timestamp: 2026-11-19T13:36:34.353Z
+    rewritten: true

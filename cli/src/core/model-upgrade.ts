@@ -8,12 +8,22 @@
  * files. So the upgrade re-baselines each staged changeset that was in step with the model
  * before the upgrade onto the upgraded model. A changeset that had drifted before the upgrade
  * keeps its base snapshot, so that drift still blocks its commit.
+ *
+ * Relationships the migration dropped for want of a replacement are written to a staged
+ * changeset of their own, the upgrade record (upgrade-drop-record.ts).
  */
 
 import { readdir } from "fs/promises";
 import { Model } from "./model.js";
 import { MigrationRegistry, type ApplyMigrationsResult } from "./migration-registry.js";
-import { applyCatalogMigrations } from "./catalog-migration.js";
+import { applyCatalogMigrations, type CatalogMigrationResult } from "./catalog-migration.js";
+import {
+  droppedRelationshipsOf,
+  planDropRecord,
+  writeDropRecord,
+  type DroppedRelationship,
+  type UpgradeDropRecord,
+} from "./upgrade-drop-record.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
@@ -53,6 +63,12 @@ export interface ModelUpgradeResult {
   /** The migrations applied; absent for a version bump */
   migration?: ApplyMigrationsResult;
   changesets: ChangesetRebaselineResult;
+  /**
+   * The staged changeset that records the relationships the migration dropped; absent when it
+   * dropped none. With `error` set the record could not be written, and the drops are only in
+   * `migration`'s details.
+   */
+  dropRecord?: UpgradeDropRecord;
 }
 
 /** Staged changesets sorted by whether they match the model before an upgrade */
@@ -117,7 +133,48 @@ export async function upgradeModel(
     await model.saveDirtyLayers();
   }
 
-  return { migration, changesets: await rebaselineChangesets(startPath, baselines) };
+  const changesets = await rebaselineChangesets(startPath, baselines);
+  const dropRecord = await recordDrops(model.rootPath, options, droppedByMigration(migration));
+  return { migration, changesets, ...(dropRecord ? { dropRecord } : {}) };
+}
+
+/** The relationships the applied migration steps dropped for want of a replacement */
+export function droppedByMigration(migration: ApplyMigrationsResult | undefined): DroppedRelationship[] {
+  const details: Pick<CatalogMigrationResult["details"], "relationshipChanges" | "stagedRelationshipChanges"> = {
+    relationshipChanges: [],
+    stagedRelationshipChanges: [],
+  };
+  for (const step of migration?.applied ?? []) {
+    const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
+    details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
+    details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+  }
+  return droppedRelationshipsOf(details);
+}
+
+/**
+ * Write the upgrade record. The migration is already on disk, so a failure here is reported with
+ * the result, not thrown: the drops are still in the migration's details.
+ */
+async function recordDrops(
+  rootPath: string,
+  versions: { fromVersion: string; toVersion: string },
+  drops: DroppedRelationship[]
+): Promise<UpgradeDropRecord | undefined> {
+  if (drops.length === 0) {
+    return undefined;
+  }
+  try {
+    return await writeDropRecord(rootPath, versions, drops);
+  } catch (error) {
+    const planned = await planDropRecord(rootPath, versions.toVersion, drops).catch(() => undefined);
+    return {
+      name: planned?.name ?? `upgrade-drops-${versions.toVersion}`,
+      count: drops.length,
+      byType: planned?.byType ?? [],
+      error: getErrorMessage(error),
+    };
+  }
 }
 
 /**
@@ -226,7 +283,8 @@ async function listStagedChangesets(rootPath: string): Promise<{
   for (const id of ids) {
     try {
       const changeset = await storage.load(id);
-      if (changeset?.status === "staged") {
+      // An upgrade record never lands, so it has no base to keep in step
+      if (changeset?.status === "staged" && changeset.purpose !== "upgrade-record") {
         changesets.push({
           ref: { id, name: changeset.name || id },
           baseSnapshot: changeset.baseSnapshot,

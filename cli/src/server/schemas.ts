@@ -305,22 +305,24 @@ export const SpecResponseSchema = z.object({
 });
 
 export const ChangesetOriginSchema = z.object({
-  kind: z.enum(['chat', 'plan', 'extract', 'cli'] as const)
-    .describe('Who created the changeset: DrBot in `dr visualize` (chat), the changeset_create MCP tool (plan), codebase_extract (extract), or `dr changeset create` (cli)'),
+  kind: z.enum(['chat', 'plan', 'extract', 'cli', 'upgrade'] as const)
+    .describe('Who created the changeset: DrBot in `dr visualize` (chat), the changeset_create MCP tool (plan), codebase_extract (extract), `dr changeset create` (cli), or a spec migration run by `dr upgrade` or project_upgrade (upgrade)'),
   detail: z.string().optional(),
 }).describe('Where the changeset came from; absent on changesets made before it was recorded');
 
-export const ChangesetPurposeSchema = z.enum(['plan', 'bootstrap', 'reconcile', 'verification', 'chat'] as const)
+export const ChangesetPurposeSchema = z.enum(['plan', 'bootstrap', 'reconcile', 'verification', 'chat', 'upgrade-record'] as const)
   .describe(
     'What the changeset is for, declared when it was made (inferred for one made before that): plan (changeset_create; ' +
     'lands with the code), chat (DrBot; lands after review), bootstrap (codebase_extract of the whole code; lands and ' +
     'reconciles code drift), reconcile (codebase_extract with since and no plan active; lands and reconciles code drift), ' +
     'verification (codebase_extract with since while a plan was active: the record of what was built, compared with ' +
-    'the plan; never lands, it is kept as a record or discarded)'
+    'the plan; never lands, it is kept as a record or discarded), upgrade-record (`dr upgrade` or project_upgrade: the ' +
+    'relationships a spec migration dropped because the catalog has no replacement for their types, each a staged ' +
+    'relationship delete; never lands, it is reviewed, restored from by hand and discarded)'
   );
 
 export const ChangesetActionsSchema = z.array(z.enum(['commit', 'discard'] as const))
-  .describe('The moves its purpose and status allow now: commit and discard while staged, discard only for a verification record, none once committed or discarded');
+  .describe('The moves its purpose and status allow now: commit and discard while staged, discard only for a verification record or an upgrade record, none once committed or discarded');
 
 export const VerificationScopeSchema = z.object({
   since: z.string().describe('The git ref extraction read the changes since'),
@@ -336,7 +338,7 @@ export const ChangesetDriftStateSchema = z.enum(['none', 'content-free', 'drifte
     'content-free (the base changed, as when another changeset lands, but it overlaps none of this one\'s staged ' +
     'changes; not blocking), drifted (the base overlaps a staged change, listed in overlapping, or the changeset has no ' +
     'base index to tell; a commit is refused), ' +
-    'not-applicable (a verification record, which never lands, or a changeset that is no longer staged), ' +
+    'not-applicable (a verification record or an upgrade record, which never lands, or a changeset that is no longer staged), ' +
     'unknown (no base snapshot was recorded, or the check failed; a commit is not blocked by drift)'
   );
 
@@ -462,10 +464,10 @@ const ChangeTypeSchema = z.enum(['add', 'update', 'delete', 'relationship-add', 
  * changeset). Holds no secret.
  */
 export const ChangeOriginSchema = z.object({
-  by: z.enum(['tier0', 'tier1', 'agent'] as const)
-    .describe('tier0: a Tier-0 rule or the node or edge mapping; tier1: a decision model (Tier 1); agent: the calling agent'),
+  by: z.enum(['tier0', 'tier1', 'agent', 'upgrade'] as const)
+    .describe('tier0: a Tier-0 rule or the node or edge mapping; tier1: a decision model (Tier 1); agent: the calling agent; upgrade: a spec migration, which dropped the relationship (the relationship deletes of an upgrade record)'),
   rule: z.string().optional()
-    .describe('Tier 0: the rule (e.g. node-mapping:Route, or edge:CALLS for a relationship between elements the run did not add); Tier 1: tier1:<question set> (e.g. tier1:dr-qset-2)'),
+    .describe('Tier 0: the rule (e.g. node-mapping:Route, or edge:CALLS for a relationship between elements the run did not add); Tier 1: tier1:<question set> (e.g. tier1:dr-qset-2); upgrade: the retired relationship type and the change record that retired it'),
   provider: z.string().optional().describe('Tier 1: the provider (e.g. cloudflare-workers-ai)'),
   model: z.string().optional().describe('Tier 1: the model, as the provider\'s response named it when it did'),
   upstream: z.string().optional().describe('Tier 1 through OpenRouter: the upstream that served the request'),
@@ -475,7 +477,7 @@ export const ChangeOriginSchema = z.object({
   }).optional().describe('Tier 1: the probabilities of the chosen layer and type'),
   confirmed: z.enum(['auto', 'agent'] as const).optional()
     .describe('Tier 1: auto (staged by stage mode) or agent (the agent accepted the band with acceptTier1)'),
-}).describe('Who decided this change (codebase_extract only); absent on changes staged otherwise and in older changesets')
+}).describe('Who decided this change (codebase_extract, and the relationship deletes of an upgrade record); absent on changes staged otherwise and in older changesets')
   .openapi('ChangeOrigin');
 
 /** A change as stored in a tombstone (compact: no `before` on an add). */

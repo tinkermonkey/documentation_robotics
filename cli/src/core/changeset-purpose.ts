@@ -11,6 +11,7 @@
  * | `bootstrap`    | codebase_extract without `since`                    | Lands; reconciles code drift             |
  * | `reconcile`    | codebase_extract with `since` and no plan active    | Lands; reconciles code drift             |
  * | `verification` | codebase_extract with `since` while a plan is active | Never lands: compared with the plan, then kept as a record (it stays staged and is committed to git with the plan) or discarded |
+ * | `upgrade-record` | `dr upgrade`, project_upgrade (upgrade-drop-record.ts) | Never lands: lists the relationships a spec migration dropped, to review and restore from by hand, then discarded |
  *
  * The purpose is declared when the changeset is made, in its `metadata.yaml` (committed with the
  * changeset, unlike the extraction record in the gitignored `.dr/`). A verification record also
@@ -28,8 +29,19 @@ import path from "node:path";
 import type { ChangesetOrigin } from "./changeset-review.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 
-export const CHANGESET_PURPOSES = ["plan", "bootstrap", "reconcile", "verification", "chat"] as const;
+export const CHANGESET_PURPOSES = ["plan", "bootstrap", "reconcile", "verification", "chat", "upgrade-record"] as const;
 export type ChangesetPurpose = (typeof CHANGESET_PURPOSES)[number];
+
+/**
+ * The purposes that are records: a verification record (what was built, compared with a plan) and
+ * an upgrade record (what a spec migration dropped). A record never lands, with force or without.
+ */
+export const RECORD_PURPOSES: readonly ChangesetPurpose[] = ["verification", "upgrade-record"];
+
+/** Whether a changeset of this purpose is a record, which never lands. */
+export function isRecordPurpose(purpose: ChangesetPurpose): boolean {
+  return RECORD_PURPOSES.includes(purpose);
+}
 
 /** The purposes whose landing reconciles the model with the code (stamps `reconciled`). */
 export const RECONCILING_PURPOSES: readonly ChangesetPurpose[] = ["bootstrap", "reconcile"];
@@ -93,10 +105,10 @@ export function purposeFields(declaration: PurposeDeclaration | undefined): Part
   };
 }
 
-/** The moves allowed from a changeset's state: a verification record is never committed. */
+/** The moves allowed from a changeset's state: a record (verification or upgrade) is never committed. */
 export function allowedActions(purpose: ChangesetPurpose, status: string): ChangesetAction[] {
   if (status !== "staged") return [];
-  return purpose === "verification" ? ["discard"] : ["commit", "discard"];
+  return isRecordPurpose(purpose) ? ["discard"] : ["commit", "discard"];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -241,32 +253,63 @@ export async function creationPurpose(
 }
 
 /**
- * The refusal to land a verification record (StagingAreaManager.commit, changeset_commit and its
- * preview, the viewer's Apply). It names no CLI command or flag: the MCP tools and the viewer show
- * it as it is. The CLI adds its own suggestions.
+ * The refusal to land a record (StagingAreaManager.commit, changeset_commit and its preview, the
+ * viewer's Apply). Its message and suggestions name no CLI command or flag: the MCP tools and the
+ * viewer show them as they are. The CLI adds its own suggestions.
  */
-export class VerificationRecordLandingError extends CLIError {
+export class RecordLandingError extends CLIError {
   constructor(
     public readonly changesetName: string,
-    public readonly plan: { id: string; name: string } | undefined
+    message: string,
+    suggestions: string[]
   ) {
-    const planText = plan ? `plan '${plan.name}'` : "its plan";
-    super(
-      `Changeset '${changesetName}' is a verification record: the record of what was built, compared with ` +
-        `${planText}. A verification record is never landed.`,
-      ErrorCategory.USER,
-      [
-        plan ? `Land the plan '${plan.name}' instead` : "Land the plan it verifies instead",
-        "Keep this record (it stays staged and is committed to git with the plan) or discard it",
-        "To reconcile the model with code drift, extract without a plan active and land that changeset",
-      ],
-      { operation: "commit" }
-    );
-    this.name = "VerificationRecordLandingError";
+    super(message, ErrorCategory.USER, suggestions, { operation: "commit" });
+    this.name = "RecordLandingError";
   }
 
   /** The message with its suggestions, for surfaces that show one string (the viewer). */
   get fullText(): string {
     return [this.message, ...(this.suggestions ?? []).map((s) => `${s}.`)].join(" ");
+  }
+}
+
+/** The refusal to land a verification record. */
+export class VerificationRecordLandingError extends RecordLandingError {
+  constructor(
+    changesetName: string,
+    public readonly plan: { id: string; name: string } | undefined
+  ) {
+    const planText = plan ? `plan '${plan.name}'` : "its plan";
+    super(
+      changesetName,
+      `Changeset '${changesetName}' is a verification record: the record of what was built, compared with ` +
+        `${planText}. A verification record is never landed.`,
+      [
+        plan ? `Land the plan '${plan.name}' instead` : "Land the plan it verifies instead",
+        "Keep this record (it stays staged and is committed to git with the plan) or discard it",
+        "To reconcile the model with code drift, extract without a plan active and land that changeset",
+      ]
+    );
+    this.name = "VerificationRecordLandingError";
+  }
+}
+
+/**
+ * The refusal to land an upgrade record. Its staged deletes name relationships the migration
+ * already removed, so landing it would change nothing, or would remove a relationship the user
+ * has since added back.
+ */
+export class UpgradeRecordLandingError extends RecordLandingError {
+  constructor(changesetName: string) {
+    super(
+      changesetName,
+      `Changeset '${changesetName}' is an upgrade record: the list of relationships a spec migration dropped ` +
+        "because the catalog has no replacement for their types. An upgrade record is never landed.",
+      [
+        "To restore a dropped relationship, add one of a type the catalog has now, in a changeset of your own; the record's description lists those types",
+        "Keep this record while you still need it, then discard it",
+      ]
+    );
+    this.name = "UpgradeRecordLandingError";
   }
 }

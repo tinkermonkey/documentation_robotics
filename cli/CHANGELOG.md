@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An upgrade records the relationships it drops** (#1164). A spec migration removes
+  relationships whose type the catalog retired with no replacement, and until now the only trace
+  was the git diff. `dr upgrade` and `project_upgrade` (with `apply`) now write them to a staged
+  changeset, `upgrade-drops-<spec version>`, with a new purpose, `upgrade-record`. Each dropped
+  relationship is one staged relationship delete: `before` is the relationship as it was recorded,
+  and the change's `origin` (`by: upgrade`) names the retired type and the change record that
+  retired it. Staged adds the upgrade removed from other changesets are recorded the same way. The
+  description counts the drops by type and lists, per type, the relationship types the catalog
+  still has between the same two element types, in either direction, so the user can re-add by
+  hand. An upgrade record never lands: `dr changeset commit`, `changeset_commit` (and its preview)
+  and the viewer's Apply (409) refuse it, its `actions` are `discard` only, base drift is
+  `not-applicable`, and later migrations leave it alone. `dr upgrade --dry-run` names the
+  changeset it would write, and `project_upgrade` returns `dropRecord` in the preview and the
+  applied result. A run that drops nothing writes no changeset. The REST API's `purpose` gains
+  `upgrade-record`, the changeset `origin.kind` gains `upgrade`, and a change's `origin.by` gains
+  `upgrade`; `docs/api-spec.yaml` is regenerated. A viewer older than these values shows the
+  record by what the API reports for it (`actions`), not by its purpose.
+
 - **`changeset_commit` lands from clients that can't show its confirmation dialog.** The Claude
   desktop app runs Claude Code in print mode, which declines every MCP elicitation at once while
   still advertising it, so `changeset_commit` was always refused there. The new
@@ -103,9 +121,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (see `spec/CHANGELOG.md`, Unreleased). Three relationship types, which brings the catalog to
   1,004: `applicationcomponent accesses data-store.database`, `applicationservice accesses
   data-store.database` and `applicationservice serves ux.view`. The application, data-store and ux
-  layer skills list them. Additive: `dr upgrade` has nothing to rewrite, and links an earlier
-  upgrade dropped (`database serves applicationcomponent`, `ux.view serves applicationservice`)
-  are not restored by it.
+  layer skills list them. Additive for a model already in line with the catalog. A model that
+  still holds the links spec 0.11.0 removed (`database serves applicationcomponent`, `database
+  serves applicationservice`, `ux.view serves applicationservice`) now has them rewritten to these
+  types by `dr upgrade` (see Fixed, #1164); links an earlier upgrade already dropped are not
+  restored by it.
 - **Tier 1 is re-measured on those definitions, and Clef stays in hide mode.** The definitions
   changed the criteria Tier 1 sends, which made the 2026-11-16 held-out verdict stale. The held-out
   runs were repeated (`docs/analyzers/TIER1_CALIBRATION.md` section 12) with Tier 0's interface rule
@@ -146,6 +166,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dr upgrade` rewrites three links it used to drop** (#1164). Spec 0.11.0 removed `database
+  serves applicationcomponent`, `database serves applicationservice` and `ux.view serves
+  applicationservice` with no replacement, so the migration dropped every such relationship.
+  Context Studio proposals 93d40a94 and 38fa8fa3 have since added the types that say the same
+  thing the other way round, and the migration now rewrites the old links to `applicationcomponent
+  accesses database`, `applicationservice accesses database` and `applicationservice serves
+  ux.view`, each with source and target swapped, in `relationships.yaml` and in staged changesets
+  alike. The rewrite table's generator (`scripts/generate-relationship-migration.ts`) gains a
+  `replace-dropped` action for this: a hand-written change record
+  (`applied-routes-for-dropped-relationships.json`) names the catalog type that replaces a triple
+  an earlier record dropped. The generator stops when no earlier record dropped the triple, when
+  the replacement is not in the catalog, or when it links other element types.
 - **A plan's verification record can't be landed** (#1172). `codebase_extract` stages what was
   built into it so `changeset_verify` can compare it with the plan; landing it added extraction's
   raw reading of the branch to the model and stamped `reconciled` as if the whole model matched the

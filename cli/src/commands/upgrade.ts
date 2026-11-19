@@ -15,6 +15,7 @@ import { getCliVersion, getCliBundledSpecVersion, getModelSpecVersion } from "..
 import {
   countDroppedRelationships,
   previewCatalog,
+  previewDropRecord,
   scanUpgrades,
   UpgradeScanError,
   type UpgradeAction,
@@ -25,6 +26,7 @@ import {
   type ChangesetRebaselineResult,
   type ChangesetRef,
 } from "../core/model-upgrade.js";
+import { formatRoutes, type UpgradeDropRecord } from "../core/upgrade-drop-record.js";
 import {
   summarizeRelationshipChanges,
   type RelationshipRewriteChange,
@@ -660,9 +662,11 @@ async function executeModelMigration(
       )
     );
     printChangesetRebaseline(result.changesets);
+    printDropRecord(result.dropRecord);
 
     if (operationSpan) {
       operationSpan.setAttribute("upgrade.model.result", "migrated");
+      operationSpan.setAttribute("upgrade.model.relationships_dropped", result.dropRecord?.count ?? 0);
       operationSpan.setAttribute("upgrade.model.migrations_applied", applied.length);
       operationSpan.setAttribute(
         "upgrade.model.changesets_rebaselined",
@@ -769,7 +773,59 @@ async function printDroppedRelationshipPreview(projectRoot: string, scan: Upgrad
       ansis.yellow(`⚠ The migration would drop ${stagedDropped} staged relationship change(s) that have no replacement in the catalog`)
     );
   }
+  const record = await previewDropRecord(projectRoot, scan, details).catch(() => undefined);
+  if (record) {
+    console.log(
+      ansis.dim(
+        `   They would be recorded in a staged changeset, '${record.name}' (${record.count} relationship(s)), to review and restore from; it never lands`
+      )
+    );
+    printDropRoutes(record);
+  }
   console.log();
+}
+
+/** For each dropped type the catalog still links, the relationship types it has between the two element types */
+function printDropRoutes(record: UpgradeDropRecord): void {
+  const withRoutes = record.byType.filter((entry) => entry.routes.length > 0);
+  if (withRoutes.length === 0) {
+    return;
+  }
+  console.log(ansis.dim("   The catalog still has a relationship type between the element types of:"));
+  for (const entry of withRoutes) {
+    console.log(
+      ansis.dim(`     ${entry.sourceType} --[${entry.predicate}]--> ${entry.targetType}: ${formatRoutes(entry.routes)}`)
+    );
+  }
+}
+
+/** After the upgrade: where the dropped relationships were recorded */
+function printDropRecord(record: UpgradeDropRecord | undefined): void {
+  if (!record) {
+    return;
+  }
+  if (record.error) {
+    console.log(
+      ansis.yellow(
+        `⚠ Could not record the ${record.count} dropped relationship(s) in a changeset: ${record.error}. They are listed above and in the git diff of relationships.yaml.`
+      )
+    );
+    return;
+  }
+  console.log(
+    ansis.yellow(
+      `⚠ Recorded ${record.count} dropped relationship(s) in the staged changeset '${record.name}'. It is a record and never lands.`
+    )
+  );
+  console.log(
+    ansis.dim(
+      `   Review it: documentation-robotics/changesets/${record.id}/changes.yaml lists each one (also in dr changeset list and the viewer's changesets view)`
+    )
+  );
+  printDropRoutes(record);
+  console.log(
+    ansis.dim(`   Restore what still applies with dr relationship add, then discard it: dr changeset delete ${record.name}`)
+  );
 }
 
 /**

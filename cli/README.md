@@ -348,7 +348,7 @@ your-project/
 │       └── ...
 ```
 
-**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths. `dr upgrade` also applies catalog changes (renamed element types, retired relationship types) to a model already at the current spec version, since the catalog can change between version bumps; see `cli/src/core/catalog-migration.ts`.
+**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths. `dr upgrade` also applies catalog changes (renamed element types, retired relationship types) to a model already at the current spec version, since the catalog can change between version bumps; see `cli/src/core/catalog-migration.ts`. A relationship whose type was retired with no replacement is dropped from the model and written to a staged changeset, `upgrade-drops-<spec version>`: a record that never lands, listing each dropped relationship and the relationship types the catalog still has between the same element types, to restore from by hand. `dr upgrade --dry-run` counts the drops and names that changeset. See [What an upgrade drops](../docs/CHANGE_MODELING.md#what-an-upgrade-drops).
 
 ### Specification Reference
 

@@ -15,15 +15,20 @@ import { resolveModel } from "../analyzers/classifier/decision-model/registry.js
 
 /**
  * Who decided a staged change (docs/analyzers/TIER1_DESIGN.md section 7): codebase_extract sets it
- * on the adds and relationship-adds it stages. It sits beside `after`, never in it, so landing the
- * changeset never writes it into an element; it holds no secret.
+ * on the adds and relationship-adds it stages, and a spec migration on the relationship deletes of
+ * its upgrade record (upgrade-drop-record.ts). It sits beside `before` and `after`, never in them,
+ * so landing the changeset never writes it into an element; it holds no secret.
  */
 export interface ChangeOrigin {
-  /** `tier0`: a Tier-0 rule or the node or edge mapping; `tier1`: a decision model; `agent`: the calling agent. */
-  by: "tier0" | "tier1" | "agent";
+  /**
+   * `tier0`: a Tier-0 rule or the node or edge mapping; `tier1`: a decision model; `agent`: the
+   * calling agent; `upgrade`: a spec migration, which dropped the relationship.
+   */
+  by: "tier0" | "tier1" | "agent" | "upgrade";
   /**
    * Tier 0: the rule (`node-mapping:Route`; `edge:CALLS` for a relationship between elements the
-   * run didn't add); Tier 1: `tier1:<question set>`.
+   * run didn't add); Tier 1: `tier1:<question set>`; upgrade: the retired relationship type and the
+   * change record that retired it (`ux.view.serves.business.businessservice retired by cs-e08cc84a`).
    */
   rule?: string;
   /** Tier 1: the provider (`cloudflare-workers-ai`). */
@@ -77,7 +82,10 @@ export interface Change {
   before?: Record<string, unknown>; // Element/relationship state before change
   after?: Record<string, unknown>;  // Element/relationship state after change
   timestamp?: string; // ISO timestamp; optional in interface but always set before storage
-  /** Who decided it, on the adds and relationship-adds codebase_extract stages; absent elsewhere and in older changesets. */
+  /**
+   * Who decided it, on the adds and relationship-adds codebase_extract stages and the relationship
+   * deletes of an upgrade record; absent elsewhere and in older changesets.
+   */
   origin?: ChangeOrigin;
 }
 

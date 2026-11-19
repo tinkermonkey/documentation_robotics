@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { VerificationRecordLandingError } from "../core/changeset-purpose.js";
 import { resolveOrigin } from "../core/changeset-review.js";
 import { originLabel } from "../core/changeset.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
@@ -1601,15 +1602,21 @@ export async function changesetCommitCommand(
           process.exit(1);
         }
 
-        // A verification record never lands, --force or not (StagingAreaManager.commit refuses it
-        // too); here with the CLI's own next steps.
+        // A record never lands, --force or not (StagingAreaManager.commit refuses it too); here
+        // with the CLI's own next steps.
         const purposeRefusal = await stagingManager.landingRefusal(changeset);
-        if (purposeRefusal) {
+        if (purposeRefusal instanceof VerificationRecordLandingError) {
           const plan = purposeRefusal.plan;
           throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
             plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
             `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changeset.name}"`,
             "To reconcile the model with code drift, extract without a plan active and land that changeset",
+          ]);
+        }
+        if (purposeRefusal) {
+          throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
+            "To restore a dropped relationship, add one of a type the catalog has now (dr relationship add); the record's description lists those types",
+            `Keep this record while you still need it, then discard it: dr changeset delete "${changeset.name}"`,
           ]);
         }
 

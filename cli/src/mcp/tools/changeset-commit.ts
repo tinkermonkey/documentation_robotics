@@ -461,7 +461,7 @@ async function prepareLanding(
       'Use "changeset_list" to find a staged changeset',
     ]);
   }
-  // A verification record never lands, force or not (StagingAreaManager.commit refuses it too).
+  // A record (verification or upgrade) never lands, force or not (StagingAreaManager.commit refuses it too).
   const purposeRefusal = await manager.landingRefusal(changeset);
   if (purposeRefusal) throw purposeRefusal;
   if (changeset.changes.length === 0) {
