@@ -10,8 +10,8 @@ description: "GET /api/changesets and GET /api/changesets/:id on the dr
   clean, drifted plan, content-free and verification record, docs/api-spec.yaml
   is regenerated, PR open against main."
 created: 2026-11-18T19:40:20.775Z
-modified: 2026-11-18T20:04:20.608Z
-status: staged
+modified: 2026-11-19T11:49:54.904Z
+status: committed
 baseSnapshot: sha256:2033be4db84bec0ef6c8ee28f3ab97bb1b84f2fafb67640349a223aa218f60ac
 origin:
   kind: plan
@@ -19,7 +19,7 @@ stats:
   additions: 15
   modifications: 0
   deletions: 0
-lastSequence: 15
+lastSequence: 16
 unstaged:
   - sequence: 2
     removedAt: 15

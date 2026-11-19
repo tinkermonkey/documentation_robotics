@@ -11,8 +11,8 @@ description: "A staged changeset is refused for drift only when the base
   of a removed element (refused); the REST drift field follows; docs and
   changelog updated; a PR is open against main, stacked on PR 1191."
 created: 2026-11-18T20:52:19.920Z
-modified: 2026-11-18T21:35:14.600Z
-status: staged
+modified: 2026-11-19T11:51:16.885Z
+status: committed
 baseSnapshot: sha256:5d93bc0e2426000cd441e3c0cc6c3ff62fff1b79993f8d17fc1193d915b2b1ec
 origin:
   kind: plan
@@ -20,7 +20,7 @@ stats:
   additions: 6
   modifications: 0
   deletions: 0
-lastSequence: 6
+lastSequence: 7
 unstaged:
   - sequence: 1
     removedAt: 6

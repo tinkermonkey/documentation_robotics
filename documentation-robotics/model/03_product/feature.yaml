@@ -704,3 +704,44 @@ product.feature.commit-confirmation-token:
     created_at: 2026-11-17T20:42:52.469Z
     updated_at: 2026-11-17T20:42:52.469Z
     version: 1
+product.feature.base-drift-on-the-changeset-api:
+  id: e4c2e358-5964-4c9a-8f61-e13c0a5d94f4
+  path: product.feature.base-drift-on-the-changeset-api
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Base drift on the changeset API
+  description:
+    "Viewer API: GET /api/changesets and GET /api/changesets/:id carry
+    a drift field, with no commit attempt. The list gives each changeset's drift
+    state (none, content-free, drifted, not-applicable, unknown), whether it
+    blocks a commit, and a sentence saying why. The detail adds what changed:
+    the staged changes the base now overlaps, the elements and relationships
+    added, removed or changed in the base since the changeset was created, and
+    the layers they are in. Read from the same code as changeset_brief's drift
+    and the commit's drift check."
+  attributes:
+    priority: high
+    status: developing
+    size: s
+    documentation:
+      "Purpose-aware (changeset-purpose.ts): blocksCommit is true only
+      for a staged changeset whose actions include commit and whose base drifted
+      in content. A verification record reads not-applicable, since it never
+      lands, and names its plan's state. A committed or discarded changeset
+      reads not-applicable. Content-free drift (the model hash changed, nothing
+      the changeset was staged against did) is its own state and never blocks.
+      Cost, measured on a synthetic model with 9 staged changesets: the list's
+      check is about 2 ms per changeset at 200 elements and 8 ms at 2,000; the
+      detail's description adds about 4 ms at 2,000. The list therefore carries
+      the summary and only the detail carries the id lists. Additive: no
+      existing field changes. docs/api-spec.yaml is regenerated with it."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-drift-status.ts
+        symbol: driftStatus
+  metadata:
+    created_at: 2026-11-18T19:52:37.509Z
+    updated_at: 2026-11-18T19:52:37.509Z
+    version: 1
