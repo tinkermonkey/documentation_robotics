@@ -605,6 +605,45 @@ describe("JSON Output on Mutating Commands", () => {
       expect(result.stdout).not.toContain("\x1b");
     });
 
+    // The compatibility suite's "Changeset core lifecycle" pipeline: revert after apply exits 0.
+    it("dr changeset revert accepts a changeset that was applied, and leaves the model as it is", async () => {
+      await runCLICommand(workdir.path, ["changeset", "create", "applied-then-reverted"]);
+      await runCLICommand(workdir.path, ["changeset", "activate", "applied-then-reverted"]);
+      await runCLICommand(workdir.path, [
+        "add", "motivation", "goal", "applied-revert-goal",
+        "--name", "Applied Revert Goal",
+        "--attributes", '{"priority": "medium"}',
+      ]);
+      await runCLICommand(workdir.path, ["changeset", "deactivate"]);
+      const applied = await runCLICommand(workdir.path, [
+        "changeset", "apply", "applied-then-reverted", "--no-validate", "--force",
+      ]);
+      expect(applied.exitCode).toBe(0);
+
+      const result = await runCLICommand(workdir.path, ["changeset", "revert", "applied-then-reverted"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Reverted");
+      expect(result.stdout).toContain("the model keeps the changes it applied");
+
+      // The element the changeset applied is still in the model.
+      const shown = await runCLICommand(workdir.path, ["show", "motivation.goal.applied-revert-goal"]);
+      expect(shown.exitCode).toBe(0);
+
+      // In JSON mode the note goes to stderr, so stdout stays one JSON object.
+      await runCLICommand(workdir.path, ["changeset", "create", "applied-then-reverted-json"]);
+      await runCLICommand(workdir.path, ["changeset", "activate", "applied-then-reverted-json"]);
+      await runCLICommand(workdir.path, [
+        "add", "motivation", "goal", "applied-revert-goal-json",
+        "--name", "Applied Revert Goal JSON",
+        "--attributes", '{"priority": "medium"}',
+      ]);
+      await runCLICommand(workdir.path, ["changeset", "deactivate"]);
+      await runCLICommand(workdir.path, ["changeset", "apply", "applied-then-reverted-json", "--no-validate", "--force"]);
+      const asJson = await runCLICommand(workdir.path, ["changeset", "revert", "applied-then-reverted-json", "--json"]);
+      expect(asJson.exitCode).toBe(0);
+      expect(JSON.parse(asJson.stdout.trim()).status).toBe("ok");
+    });
+
     it("dr changeset apply --json should output valid JSON", async () => {
       // Create a changeset with some changes
       await runCLICommand(workdir.path, ["changeset", "create", "apply-test"]);

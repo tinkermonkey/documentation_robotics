@@ -12,7 +12,7 @@ import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
-import { Changeset, StagedChange, withSequenceNumbers } from "./changeset.js";
+import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
 import { trackModelWrite } from "./model-write-tracker.js";
@@ -1539,18 +1539,45 @@ export class StagingAreaManager {
   }
 
   /**
-   * Revert a changeset without applying changes.
-   * Alias for discard() to match legacy command terminology.
+   * Revert a changeset: `dr changeset revert`. A staged changeset is discarded (discard()).
+   *
+   * A committed changeset is accepted too, as it was before discard() began to refuse one (#1173):
+   * its record is kept with the status 'discarded' and no changes, and its side files are removed.
+   * The base model is not touched, so what the changeset applied stays in the model. discard(), which
+   * the MCP tool and the viewer use, still refuses a committed changeset.
    *
    * @param changesetId - ID of the changeset to revert
+   * @returns The status the changeset had before the revert
    * @throws Error if changeset ID is invalid or changeset not found
-   *
-   * @remarks
-   * This method provides backward compatibility with changeset commands that use
-   * "revert" instead of "discard" terminology. All logic is delegated to discard().
    */
-  async revert(changesetId: string): Promise<void> {
-    return this.discard(changesetId);
+  async revert(changesetId: string): Promise<ChangesetStatus> {
+    this.validateChangesetId(changesetId);
+
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    const was = changeset.status;
+    if (was !== "committed") {
+      await this.discard(changesetId);
+      return was;
+    }
+    const id = changeset.id ?? changesetId;
+
+    changeset.changes = [];
+    changeset.unstaged = [];
+    changeset.status = "discarded";
+    changeset.updateModified();
+    await this.storage.save(changeset);
+    // Only the record stays (name, description, status): nothing reads a base index after this.
+    await this.storage.removeSideFiles(id);
+    if ((await this.getActiveId()) === id) {
+      await this.clearActive();
+    }
+
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnDiscard(changesetId);
+    return was;
   }
 
   /**

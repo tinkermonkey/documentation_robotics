@@ -476,7 +476,7 @@ export async function changesetRevertCommand(name: string, options: { model?: st
       endSpan(span);
       process.exit(1);
     }
-    await manager.revert(changesetId);
+    const was = await manager.revert(changesetId);
 
     handleInfo("");
 
@@ -486,6 +486,12 @@ export async function changesetRevertCommand(name: string, options: { model?: st
       changesetId,
       changesetStatus: "discarded",
     });
+    if (was === "committed") {
+      // Revert never undid a landing: say so rather than let "Reverted" imply it.
+      handleInfo(
+        ansis.dim("This changeset was already applied. Its record is now discarded; the model keeps the changes it applied.")
+      );
+    }
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -2009,7 +2015,7 @@ Examples:
 
   changesetGroup
     .command("revert <name>")
-    .description("Revert a changeset from the model")
+    .description("Discard a changeset. One already applied keeps its changes in the model; only its record is marked discarded")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",

@@ -78,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refused.
 - **`changeset_discard` deletes the changeset's folder** (#1173) rather than leaving a `discarded`
   record nothing owns, and clears the active marker when it named it. A committed changeset can't
-  be discarded.
+  be discarded. `dr changeset revert` still accepts one, as it did before: its record is kept and
+  marked `discarded`, and the model keeps the changes it applied, which the command now says.
 - **`base-index.json` and `.active` are written the way prettier and end-of-file-fixer leave
   them** (#1155): indented JSON and a final newline.
 
