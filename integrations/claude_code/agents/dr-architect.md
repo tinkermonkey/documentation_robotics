@@ -233,6 +233,12 @@ dr upgrade          # apply
 dr validate --strict  # verify
 ```
 
+A migration drops relationships whose type the catalog retired with no replacement. The dry run
+counts them and names the staged changeset they will be recorded in (`upgrade-drops-<spec
+version>`); `project_upgrade` returns it as `dropRecord`. That changeset is a record and never
+lands: read it with `changeset_show`, re-add what still applies as a relationship type the catalog
+has now (its description lists them per dropped type), and discard it only when the user asks.
+
 ## Audit
 
 ```bash

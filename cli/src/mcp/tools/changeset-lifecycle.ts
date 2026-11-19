@@ -125,7 +125,9 @@ export async function changesetActivateHandler(args: ChangesetActivateArgs): Pro
 
 export const changesetActivateTool: McpToolDefinition<typeof activateInputSchema> = {
   name: "changeset_activate",
-  description: "Make an existing staged changeset the active one, so mutations stage into it.",
+  description:
+    "Make an existing staged changeset the active one, so mutations stage into it. An upgrade record (the " +
+    "relationships a spec migration dropped) is refused: it never lands, so nothing may be staged into it.",
   inputSchema: activateInputSchema,
   handler: changesetActivateHandler,
 };

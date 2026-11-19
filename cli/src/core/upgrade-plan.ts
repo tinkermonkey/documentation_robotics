@@ -12,6 +12,7 @@ import { MigrationRegistry } from "./migration-registry.js";
 import { Model } from "./model.js";
 import { applyCatalogMigrations, type CatalogMigrationResult } from "./catalog-migration.js";
 import { summarizeRetiredAttributeChanges } from "./attribute-migration.js";
+import { droppedRelationshipsOf, planDropRecord, type UpgradeDropRecord } from "./upgrade-drop-record.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { fileExists } from "../utils/file-io.js";
 import { join } from "path";
@@ -259,6 +260,22 @@ export async function previewCatalog(
       errors: [`Could not preview the catalog changes: ${getErrorMessage(error)}`],
     };
   }
+}
+
+/**
+ * The upgrade record the scanned plan would write for the relationships its catalog changes drop
+ * (upgrade-drop-record.ts): its name, the count and the drops by type with the routes the catalog
+ * still has. Undefined when the plan drops nothing, or the model's target version is unknown.
+ */
+export async function previewDropRecord(
+  projectRoot: string,
+  scan: UpgradeScan,
+  details: CatalogMigrationResult["details"]
+): Promise<UpgradeDropRecord | undefined> {
+  if (scan.model.state !== "found") {
+    return undefined;
+  }
+  return planDropRecord(projectRoot, scan.model.targetSpecVersion, droppedRelationshipsOf(details));
 }
 
 /** Relationships the migration drops, counted by predicate and source and target element type */

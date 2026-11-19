@@ -21,6 +21,13 @@
  *       Elements of the old type become the new type (the upgrade renames them before it
  *       rewrites relationships), so every earlier rule naming the old type is re-keyed and
  *       re-targeted to the new one, and later records name the new type.
+ *   replace-dropped            {from: <triple an earlier record dropped>, to: <catalog triple>}
+ *       Written by hand, when the catalog later gains a type that says what a dropped one said
+ *       (the proposal that adds it is a plain create, which names no predecessor). Every rule
+ *       that ended in the drop of "from", the triple itself and any renamed into it, now ends at
+ *       "to", with source and target swapped when "to" runs the other way. It stops the generator
+ *       when no earlier record dropped "from", when "to" is not in the catalog, or when "to"
+ *       links other element types.
  *
  * Rules are composed across records (a triple renamed in one tier and removed in a later one maps
  * straight to the final triple), rows whose note starts with "skipped" are ignored, and every
@@ -43,7 +50,7 @@ export const CATALOG_DIR = path.join(repoRoot, "spec", "dist");
 export const OUTPUT_FILE = path.join(cliDir, "src", "core", "relationship-migration-table.ts");
 
 export interface ChangeAction {
-  action: "rename" | "create" | "delete" | "retire-predicate" | "rename-type";
+  action: "rename" | "create" | "delete" | "retire-predicate" | "rename-type" | "replace-dropped";
   kind?: string;
   from: string;
   to: string | null;
@@ -156,6 +163,8 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
   const predicateRenames = new Map<string, string>();
   const retiredOutright = new Set<string>();
   const typeRenames = new Map<string, string>();
+  // Rule key -> the triple whose removal left the rule with no replacement, for replace-dropped
+  const droppedAt = new Map<string, string>();
   const warnings: string[] = [];
   const errors: string[] = [];
 
@@ -192,6 +201,42 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
           }
           triples.delete(key);
           triples.set(newKey, { ...rule, to: newTo, records: [...rule.records, record.record] });
+        }
+        for (const [key, at] of [...droppedAt]) {
+          droppedAt.delete(key);
+          droppedAt.set(renameIn(key), renameIn(at));
+        }
+        continue;
+      }
+
+      if (action.action === "replace-dropped") {
+        const replacement = action.to;
+        const ended = [...droppedAt].filter(([, at]) => at === action.from).map(([key]) => key);
+        if (!replacement) {
+          errors.push(`${record.record}: replacing dropped '${action.from}' needs a replacement triple`);
+        } else if (ended.length === 0) {
+          errors.push(
+            `${record.record}: ${action.from} -> ${replacement}: no earlier record dropped ${action.from}, so there is nothing to replace`
+          );
+        } else if (!catalog.has(replacement)) {
+          errors.push(`${record.record}: ${action.from} -> ${replacement}: the replacement is not in the current catalog`);
+        } else {
+          let swap: boolean;
+          try {
+            swap = isSwap(action, parseTriple(action.from), parseTriple(replacement));
+          } catch (error) {
+            errors.push(`${record.record}: ${(error as Error).message}`);
+            continue;
+          }
+          for (const key of ended) {
+            const rule = triples.get(key)!;
+            triples.set(key, {
+              to: replacement,
+              swap: rule.swap !== swap,
+              records: [...rule.records, record.record],
+            });
+            droppedAt.delete(key);
+          }
         }
         continue;
       }
@@ -247,12 +292,20 @@ export function buildRewriteTable(records: ChangeRecord[], catalog: Set<string>)
             swap: earlier.swap !== rule.swap,
             records: [...earlier.records, record.record],
           });
+          if (rule.to === null) {
+            droppedAt.set(key, action.from);
+          }
         }
       }
       if (triples.has(action.from)) {
         warnings.push(`${record.record}: ${action.from} already had a rule; the later record wins`);
       }
       triples.set(action.from, rule);
+      if (rule.to === null) {
+        droppedAt.set(action.from, action.from);
+      } else {
+        droppedAt.delete(action.from);
+      }
     }
   }
 

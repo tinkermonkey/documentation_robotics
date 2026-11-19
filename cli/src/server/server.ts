@@ -24,7 +24,7 @@ import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
-import { allowedActions, purposeOf, VerificationRecordLandingError } from "../core/changeset-purpose.js";
+import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
 import {
@@ -1746,7 +1746,7 @@ export class VisualizationServer {
       },
       409: {
         description:
-          'Changeset is not staged, the model drifted since it was created, or (commit) it is a verification record, which is never landed',
+          'Changeset is not staged, the model drifted since it was created, or (commit) it is a verification record or an upgrade record, which is never landed',
         content: { 'application/json': { schema: ErrorResponseSchema } },
       },
       422: {
@@ -4408,7 +4408,7 @@ export class VisualizationServer {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
     }
     if (action === "commit") {
-      // A verification record never lands (commit refuses it too); refused before any review drop.
+      // A record (verification or upgrade) never lands (commit refuses it too); refused before any review drop.
       const refusal = await manager.landingRefusal(changeset);
       if (refusal) return c.json({ error: refusal.fullText }, 409);
     }
@@ -4461,7 +4461,7 @@ export class VisualizationServer {
       }
     } catch (error) {
       if (restoreOnFailure) await this.restoreDroppedChanges(changeset.id, restoreOnFailure);
-      if (error instanceof VerificationRecordLandingError) {
+      if (error instanceof RecordLandingError) {
         return c.json({ error: error.fullText }, 409);
       }
       const message = getErrorMessage(error);

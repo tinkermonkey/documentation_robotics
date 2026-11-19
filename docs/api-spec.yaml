@@ -44,9 +44,9 @@ components:
             this one's staged changes; not blocking), drifted (the base overlaps
             a staged change, listed in overlapping, or the changeset has no base
             index to tell; a commit is refused), not-applicable (a verification
-            record, which never lands, or a changeset that is no longer staged),
-            unknown (no base snapshot was recorded, or the check failed; a
-            commit is not blocked by drift)"
+            record or an upgrade record, which never lands, or a changeset that
+            is no longer staged), unknown (no base snapshot was recorded, or the
+            check failed; a commit is not blocked by drift)"
         blocksCommit:
           type: boolean
           description:
@@ -84,9 +84,9 @@ components:
             this one's staged changes; not blocking), drifted (the base overlaps
             a staged change, listed in overlapping, or the changeset has no base
             index to tell; a commit is refused), not-applicable (a verification
-            record, which never lands, or a changeset that is no longer staged),
-            unknown (no base snapshot was recorded, or the check failed; a
-            commit is not blocked by drift)"
+            record or an upgrade record, which never lands, or a changeset that
+            is no longer staged), unknown (no base snapshot was recorded, or the
+            check failed; a commit is not blocked by drift)"
         blocksCommit:
           type: boolean
           description:
@@ -297,15 +297,19 @@ components:
             - tier0
             - tier1
             - agent
+            - upgrade
           description:
             "tier0: a Tier-0 rule or the node or edge mapping; tier1: a
-            decision model (Tier 1); agent: the calling agent"
+            decision model (Tier 1); agent: the calling agent; upgrade: a spec
+            migration, which dropped the relationship (the relationship deletes
+            of an upgrade record)"
         rule:
           type: string
           description:
             "Tier 0: the rule (e.g. node-mapping:Route, or edge:CALLS for a
             relationship between elements the run did not add); Tier 1:
-            tier1:<question set> (e.g. tier1:dr-qset-2)"
+            tier1:<question set> (e.g. tier1:dr-qset-2); upgrade: the retired
+            relationship type and the change record that retired it"
         provider:
           type: string
           description: "Tier 1: the provider (e.g. cloudflare-workers-ai)"
@@ -343,8 +347,9 @@ components:
       required:
         - by
       description:
-        Who decided this change (codebase_extract only); absent on changes
-        staged otherwise and in older changesets
+        Who decided this change (codebase_extract, and the relationship
+        deletes of an upgrade record); absent on changes staged otherwise and in
+        older changesets
     Tier1Status:
       type: object
       properties:
@@ -1748,11 +1753,13 @@ paths:
                                 - plan
                                 - extract
                                 - cli
+                                - upgrade
                               description:
                                 "Who created the changeset: DrBot in `dr visualize` (chat), the
                                 changeset_create MCP tool (plan),
-                                codebase_extract (extract), or `dr changeset
-                                create` (cli)"
+                                codebase_extract (extract), `dr changeset
+                                create` (cli), or a spec migration run by `dr
+                                upgrade` or project_upgrade (upgrade)"
                             detail:
                               type: string
                           required:
@@ -1768,6 +1775,7 @@ paths:
                             - reconcile
                             - verification
                             - chat
+                            - upgrade-record
                           description:
                             "What the changeset is for, declared when it was made (inferred for
                             one made before that): plan (changeset_create; lands
@@ -1779,7 +1787,12 @@ paths:
                             (codebase_extract with since while a plan was
                             active: the record of what was built, compared with
                             the plan; never lands, it is kept as a record or
-                            discarded)"
+                            discarded), upgrade-record (`dr upgrade` or
+                            project_upgrade: the relationships a spec migration
+                            dropped because the catalog has no replacement for
+                            their types, each a staged relationship delete;
+                            never lands, it is reviewed, restored from by hand
+                            and discarded)"
                         verifies:
                           type: string
                           description:
@@ -1794,8 +1807,9 @@ paths:
                               - discard
                           description:
                             "The moves its purpose and status allow now: commit and discard
-                            while staged, discard only for a verification
-                            record, none once committed or discarded"
+                            while staged, discard only for a verification record
+                            or an upgrade record, none once committed or
+                            discarded"
                         drift:
                           $ref: "#/components/schemas/ChangesetDriftSummary"
                         revision:
@@ -1905,10 +1919,13 @@ paths:
                           - plan
                           - extract
                           - cli
+                          - upgrade
                         description:
                           "Who created the changeset: DrBot in `dr visualize` (chat), the
                           changeset_create MCP tool (plan), codebase_extract
-                          (extract), or `dr changeset create` (cli)"
+                          (extract), `dr changeset create` (cli), or a spec
+                          migration run by `dr upgrade` or project_upgrade
+                          (upgrade)"
                       detail:
                         type: string
                     required:
@@ -1924,6 +1941,7 @@ paths:
                       - reconcile
                       - verification
                       - chat
+                      - upgrade-record
                     description:
                       "What the changeset is for, declared when it was made (inferred for
                       one made before that): plan (changeset_create; lands with
@@ -1933,7 +1951,12 @@ paths:
                       plan active; lands and reconciles code drift),
                       verification (codebase_extract with since while a plan was
                       active: the record of what was built, compared with the
-                      plan; never lands, it is kept as a record or discarded)"
+                      plan; never lands, it is kept as a record or discarded),
+                      upgrade-record (`dr upgrade` or project_upgrade: the
+                      relationships a spec migration dropped because the catalog
+                      has no replacement for their types, each a staged
+                      relationship delete; never lands, it is reviewed, restored
+                      from by hand and discarded)"
                   verifies:
                     type: string
                     description:
@@ -1960,8 +1983,8 @@ paths:
                         - discard
                     description:
                       "The moves its purpose and status allow now: commit and discard
-                      while staged, discard only for a verification record, none
-                      once committed or discarded"
+                      while staged, discard only for a verification record or an
+                      upgrade record, none once committed or discarded"
                   drift:
                     $ref: "#/components/schemas/ChangesetDrift"
                   unstaged:
@@ -2393,7 +2416,8 @@ paths:
         "409":
           description:
             Changeset is not staged, the model drifted since it was created, or
-            (commit) it is a verification record, which is never landed
+            (commit) it is a verification record or an upgrade record, which is
+            never landed
           content:
             application/json:
               schema:
@@ -2535,7 +2559,8 @@ paths:
         "409":
           description:
             Changeset is not staged, the model drifted since it was created, or
-            (commit) it is a verification record, which is never landed
+            (commit) it is a verification record or an upgrade record, which is
+            never landed
           content:
             application/json:
               schema:

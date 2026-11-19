@@ -41,6 +41,9 @@ import {
   extractionOrigin,
   purposeOf,
   VerificationRecordLandingError,
+  UpgradeRecordLandingError,
+  UpgradeRecordActivationError,
+  type RecordLandingError,
   type ChangesetPurposeInfo,
   type PurposeDeclaration,
 } from "./changeset-purpose.js";
@@ -330,12 +333,15 @@ export class StagingAreaManager {
 
   /**
    * The refusal to land this changeset for what it is, or null when its purpose lets it land. A
-   * verification record (codebase_extract's as-built reading of a branch, compared with a plan) is
-   * never landed, with force or without: landing it would add extraction's raw reading of the
-   * branch to the model, and it read only the branch's changes, so it doesn't reconcile drift.
+   * record is never landed, with force or without. A verification record (codebase_extract's
+   * as-built reading of a branch, compared with a plan): landing it would add extraction's raw
+   * reading of the branch to the model, and it read only the branch's changes, so it doesn't
+   * reconcile drift. An upgrade record (the relationships a spec migration dropped): the model
+   * no longer has them, so its staged deletes have nothing to delete.
    */
-  async landingRefusal(changeset: Changeset): Promise<VerificationRecordLandingError | null> {
+  async landingRefusal(changeset: Changeset): Promise<RecordLandingError | null> {
     const info = await purposeOf(this.rootPath, changeset);
+    if (info.purpose === "upgrade-record") return new UpgradeRecordLandingError(changeset.name);
     if (info.purpose !== "verification") return null;
     let plan: { id: string; name: string } | undefined;
     if (info.verifies) {
@@ -716,7 +722,7 @@ export class StagingAreaManager {
    * @remarks
    * Validation errors always block commit (force flag does not override).
    * Drift warnings can be bypassed with --force flag.
-   * A verification record (purpose `verification`) is refused, force or not (landingRefusal).
+   * A record (purpose `verification` or `upgrade-record`) is refused, force or not (landingRefusal).
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
@@ -747,10 +753,10 @@ export class StagingAreaManager {
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
 
-      // Step 0: A verification record never lands, dry run or not; force is for drift, not purpose.
+      // Step 0: A record never lands, dry run or not; force is for drift, not purpose.
       const refusal = await this.landingRefusal(changeset);
       if (refusal) {
-        emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a verification record", {
+        emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a record, which never lands", {
           "changeset.name": changeset.name,
         });
         throw refusal;
@@ -1420,6 +1426,8 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to activate
    * @throws Error if changeset ID is invalid or changeset not found
+   * @throws UpgradeRecordActivationError for an upgrade record, which never lands: writes staged
+   *   into it would be stuck there
    *
    * @remarks
    * When a changeset is active, add/update/delete commands will stage changes
@@ -1435,6 +1443,9 @@ export class StagingAreaManager {
     const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.purpose === "upgrade-record") {
+      throw new UpgradeRecordActivationError(changeset.name);
     }
 
     // Transition to 'staged' status to enable interception

@@ -1,0 +1,29 @@
+{
+  "backend": "maintainer",
+  "record": "routes-for-dropped-relationships",
+  "applied_at": "2026-11-19T00:00:00.000Z",
+  "basis": "tinkermonkey/documentation_robotics#1164. Spec 0.11.0 removed these three relationship types with no replacement, so dr upgrade dropped every model relationship of them. Context Studio proposals 93d40a94 and 38fa8fa3 (landed 2026-11-18, spec/CHANGELOG.md [Unreleased]) added the types that say the same thing with source and target the other way round. Their change records are plain creates, which name no predecessor; this record names it. Add an action here only for a replacement type a Context Studio proposal added to the catalog.",
+  "counts": {
+    "replace-dropped": 3
+  },
+  "actions": [
+    {
+      "action": "replace-dropped",
+      "from": "data-store.database.serves.application.applicationcomponent",
+      "to": "application.applicationcomponent.accesses.data-store.database",
+      "note": "dropped by data-store-principles (stored data is passive and never serves); proposal 93d40a94 lets code access a database as a whole, so the component that the database served now accesses it"
+    },
+    {
+      "action": "replace-dropped",
+      "from": "data-store.database.serves.application.applicationservice",
+      "to": "application.applicationservice.accesses.data-store.database",
+      "note": "dropped by data-store-principles (stored data is passive and never serves); proposal 93d40a94 lets code access a database as a whole, so the service that the database served now accesses it"
+    },
+    {
+      "action": "replace-dropped",
+      "from": "ux.view.serves.application.applicationservice",
+      "to": "application.applicationservice.serves.ux.view",
+      "note": "dropped by Context Studio proposal e08cc84a (it ran against the direction of serves, provider to consumer); proposal 38fa8fa3 added the type for the service a view loads its data from, so the service now serves the view"
+    }
+  ]
+}

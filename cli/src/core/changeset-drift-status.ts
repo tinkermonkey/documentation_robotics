@@ -9,15 +9,15 @@
  * changed is `describeDrift`'s, the description changeset_brief gives.
  *
  * It is read by the changeset's purpose (changeset-purpose.ts): drift is about landing, so a
- * verification record, which never lands, has none to report (#1171), and neither has a changeset
- * that is no longer staged.
+ * record (a verification record or an upgrade record), which never lands, has none to report
+ * (#1171), and neither has a changeset that is no longer staged.
  *
  * | State            | Means                                                                    | Blocks a commit |
  * | ---------------- | ------------------------------------------------------------------------ | --------------- |
  * | `none`           | The base is as it was when the changeset was created                     | No              |
  * | `content-free`   | The base changed, but it overlaps none of the staged changes (#1169)     | No              |
  * | `drifted`        | The base overlaps a staged change, or there is no base index to tell     | Yes             |
- * | `not-applicable` | A verification record, or a changeset that is no longer staged           | No              |
+ * | `not-applicable` | A record (never lands), or a changeset that is no longer staged          | No              |
  * | `unknown`        | No base snapshot was recorded, or the check failed                       | No              |
  */
 
@@ -79,6 +79,13 @@ function withoutCheck({ changeset, purpose, plan }: DriftSubject): DriftStatus |
       state: "not-applicable",
       blocksCommit: false,
       message: `A verification record is never landed, so base drift does not apply to it.${planClause(plan)}`,
+    };
+  }
+  if (purpose === "upgrade-record") {
+    return {
+      state: "not-applicable",
+      blocksCommit: false,
+      message: "An upgrade record is never landed, so base drift does not apply to it.",
     };
   }
   if (!changeset.baseSnapshot) {
