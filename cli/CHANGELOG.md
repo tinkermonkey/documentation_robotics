@@ -20,7 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still has between the same two element types, in either direction, so the user can re-add by
   hand. An upgrade record never lands: `dr changeset commit`, `changeset_commit` (and its preview)
   and the viewer's Apply (409) refuse it, its `actions` are `discard` only, base drift is
-  `not-applicable`, and later migrations leave it alone. `dr upgrade --dry-run` names the
+  `not-applicable`, and later migrations leave it alone. It cannot be made active either (`dr
+  changeset activate` and `changeset_activate` refuse it), so no change is staged into a changeset
+  that could never land. `dr upgrade --dry-run` names the
   changeset it would write, and `project_upgrade` returns `dropRecord` in the preview and the
   applied result. A run that drops nothing writes no changeset. The REST API's `purpose` gains
   `upgrade-record`, the changeset `origin.kind` gains `upgrade`, and a change's `origin.by` gains

@@ -5,7 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
-import { VerificationRecordLandingError } from "../core/changeset-purpose.js";
+import { VerificationRecordLandingError, type RecordLandingError } from "../core/changeset-purpose.js";
 import { resolveOrigin } from "../core/changeset-review.js";
 import { originLabel } from "../core/changeset.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
@@ -1498,6 +1498,26 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
 }
 
 /**
+ * Throw the refusal to land a record, with the CLI's own next steps. A record (a verification
+ * record or an upgrade record) never lands, --force or not; StagingAreaManager.commit refuses it too.
+ */
+function throwIfRecord(refusal: RecordLandingError | null, changesetName: string): void {
+  if (!refusal) return;
+  if (refusal instanceof VerificationRecordLandingError) {
+    const plan = refusal.plan;
+    throw new CLIError(refusal.message, ErrorCategory.USER, [
+      plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
+      `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changesetName}"`,
+      "To reconcile the model with code drift, extract without a plan active and land that changeset",
+    ]);
+  }
+  throw new CLIError(refusal.message, ErrorCategory.USER, [
+    "To restore a dropped relationship, add one of a type the catalog has now (dr relationship add); the record's description lists those types",
+    `Keep this record while you still need it, then discard it: dr changeset delete "${changesetName}"`,
+  ]);
+}
+
+/**
  * Apply staged changes to the base model
  *
  * Implements atomic commit with validation and rollback on failure.
@@ -1535,7 +1555,8 @@ export async function changesetCommitCommand(
     const probe = await Model.load(rootPath, { lazyLoad: true });
     const manager = new StagingAreaManager(probe.rootPath, probe);
     const prior = previous ? await manager.load(previous) : null;
-    if (prior?.status === "staged") {
+    // An upgrade record can't be made active (setActive refuses it)
+    if (prior?.status === "staged" && prior.purpose !== "upgrade-record") {
       await manager.setActive(previous!);
       if (!isJson()) console.log(ansis.dim(`Changeset '${prior.name}' is active again.`));
     } else {
@@ -1563,6 +1584,8 @@ export async function changesetCommitCommand(
               ['Run "dr changeset list" to find a staged changeset']
             );
           }
+          // A record never lands: refuse it before it is made active for the commit.
+          throwIfRecord(await probeManager.landingRefusal(target), target.name);
           const activeId = await probeManager.getActiveId();
           if (activeId !== target.id) {
             // Commit works on the active changeset: the model it loads merges that one's staged changes.
@@ -1604,21 +1627,7 @@ export async function changesetCommitCommand(
 
         // A record never lands, --force or not (StagingAreaManager.commit refuses it too); here
         // with the CLI's own next steps.
-        const purposeRefusal = await stagingManager.landingRefusal(changeset);
-        if (purposeRefusal instanceof VerificationRecordLandingError) {
-          const plan = purposeRefusal.plan;
-          throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
-            plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
-            `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changeset.name}"`,
-            "To reconcile the model with code drift, extract without a plan active and land that changeset",
-          ]);
-        }
-        if (purposeRefusal) {
-          throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
-            "To restore a dropped relationship, add one of a type the catalog has now (dr relationship add); the record's description lists those types",
-            `Keep this record while you still need it, then discard it: dr changeset delete "${changeset.name}"`,
-          ]);
-        }
+        throwIfRecord(await stagingManager.landingRefusal(changeset), changeset.name);
 
         const changeCount = changeset.changes.length;
 

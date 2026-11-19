@@ -42,6 +42,7 @@ import {
   purposeOf,
   VerificationRecordLandingError,
   UpgradeRecordLandingError,
+  UpgradeRecordActivationError,
   type RecordLandingError,
   type ChangesetPurposeInfo,
   type PurposeDeclaration,
@@ -1425,6 +1426,8 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to activate
    * @throws Error if changeset ID is invalid or changeset not found
+   * @throws UpgradeRecordActivationError for an upgrade record, which never lands: writes staged
+   *   into it would be stuck there
    *
    * @remarks
    * When a changeset is active, add/update/delete commands will stage changes
@@ -1440,6 +1443,9 @@ export class StagingAreaManager {
     const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    if (changeset.purpose === "upgrade-record") {
+      throw new UpgradeRecordActivationError(changeset.name);
     }
 
     // Transition to 'staged' status to enable interception

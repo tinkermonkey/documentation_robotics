@@ -147,8 +147,9 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
   reader's call. `dr upgrade --dry-run` prints the same list and the name of the changeset it would
   write; `project_upgrade` returns both as `dropRecord` (`changeset`, `relationships`, `routes`),
   in the preview and in the applied result.
-- **It never lands.** `actions` is `discard` only, base drift is `not-applicable`, and it is not
-  made active. Later migrations leave it alone, and the upgrade does not re-baseline it. If its
+- **It never lands.** `actions` is `discard` only, base drift is `not-applicable`, and it cannot be
+  made active: `dr changeset activate` and `changeset_activate` refuse it, so nothing is staged
+  into a changeset that could never land. Later migrations leave it alone, and the upgrade does not re-baseline it. If its
   deletes were applied all the same (by a dr older than the purpose, which reads it as a plan),
   they would find nothing to delete: the model no longer has those relationships.
 - **Restoring.** Add a relationship of a type the catalog has now, in a changeset of your own

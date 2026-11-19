@@ -1225,6 +1225,12 @@ describe("upgrade command - unified flow", () => {
       expect(`${commit.stdout}${commit.stderr}`).toContain("is an upgrade record");
       expect(yaml.parse(await readFile(join(tempDir.path, "documentation-robotics/model/relationships.yaml"), "utf-8"))).toEqual(rels);
 
+      // It cannot be made active either: a change staged into it could never land
+      const activate = await runDr(["changeset", "activate", `upgrade-drops-${version}`], { cwd: tempDir.path });
+      expect(activate.exitCode).not.toBe(0);
+      expect(`${activate.stdout}${activate.stderr}`).toContain("It cannot be made active");
+      expect(await fileExists(join(tempDir.path, "documentation-robotics/changesets/.active"))).toBe(false);
+
       // A second run has nothing to drop, and writes no second record
       const again = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(again.exitCode).toBe(0);

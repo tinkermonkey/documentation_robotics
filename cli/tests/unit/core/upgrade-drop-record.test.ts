@@ -22,6 +22,7 @@ import {
   purposeOf,
   readPurpose,
   RecordLandingError,
+  UpgradeRecordActivationError,
   UpgradeRecordLandingError,
 } from "../../../src/core/changeset-purpose.js";
 import { readOrigin } from "../../../src/core/changeset-review.js";
@@ -410,6 +411,22 @@ describe("an upgrade record", () => {
       expect(statuses).toEqual([`${OPERATION} references ${TAG}: unchanged`]);
       expect(graph.changedRelationships()).toEqual([]);
       expect(graph.changedElements()).toEqual([]);
+    }));
+
+  it("cannot be made active, so nothing can be staged into it", () =>
+    withModel([DELIVERS], async (root) => {
+      const recordId = (await upgrade(root)).dropRecord!.id!;
+      const { manager, storage } = await managerFor(root);
+
+      await expect(manager.setActive(recordId)).rejects.toBeInstanceOf(UpgradeRecordActivationError);
+      await expect(manager.setActive(RECORD_NAME)).rejects.toThrow("It cannot be made active");
+      expect(await manager.getActiveId()).toBeNull();
+      expect((await storage.load(recordId))!.changes).toHaveLength(1);
+
+      // A changeset of the user's own still activates beside it
+      const own = await manager.create("restore-links", "Re-add what still applies");
+      await manager.setActive(own.id!);
+      expect(await manager.getActiveId()).toBe(own.id!);
     }));
 
   it("can be discarded, which removes it and frees its name", () =>

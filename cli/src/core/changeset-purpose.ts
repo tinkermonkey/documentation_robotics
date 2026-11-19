@@ -313,3 +313,24 @@ export class UpgradeRecordLandingError extends RecordLandingError {
     this.name = "UpgradeRecordLandingError";
   }
 }
+
+/**
+ * The refusal to make an upgrade record the active changeset (StagingAreaManager.setActive, so
+ * `dr changeset activate`, changeset_activate and the viewer alike). Writes stage into the active
+ * changeset, and a record never lands: whatever was staged into it would be stuck there.
+ */
+export class UpgradeRecordActivationError extends CLIError {
+  constructor(public readonly changesetName: string) {
+    super(
+      `Changeset '${changesetName}' is an upgrade record: the list of relationships a spec migration dropped. ` +
+        "It cannot be made active, because changes staged into it could never land.",
+      ErrorCategory.USER,
+      [
+        "Read it without activating it; its description lists the relationship types the catalog still has",
+        "Stage what you restore in a changeset of your own",
+      ],
+      { operation: "activate" }
+    );
+    this.name = "UpgradeRecordActivationError";
+  }
+}
