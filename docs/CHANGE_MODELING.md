@@ -81,13 +81,13 @@ Every changeset declares its purpose when it is made, in its `metadata.yaml` (co
 changeset), apart from `origin.kind`, which says who made it. The purpose decides what can happen
 to it:
 
-| Purpose        | Made by                                                              | What happens to it                                                                                                                                           |
-| -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `plan`         | `changeset_create`, `dr changeset create`                            | Lands with the code.                                                                                                                                         |
-| `chat`         | DrBot (`changeset_create` or `dr` under `dr visualize`)              | Lands after review.                                                                                                                                          |
-| `bootstrap`    | `codebase_extract` without `since`                                   | Lands, and reconciles code drift.                                                                                                                            |
-| `reconcile`    | `codebase_extract` with `since` and no plan active                   | Lands, and reconciles code drift.                                                                                                                            |
-| `verification` | `codebase_extract` with `since` while a plan is active (verify mode) | Never lands. `changeset_verify` compares the plan with it; then it is discarded, or kept as a record: it stays staged and is committed to git with the plan. |
+| Purpose        | Made by                                                              | What happens to it                                                                                                              |
+| -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `plan`         | `changeset_create`, `dr changeset create`                            | Lands with the code.                                                                                                            |
+| `chat`         | DrBot (`changeset_create` or `dr` under `dr visualize`)              | Lands after review.                                                                                                             |
+| `bootstrap`    | `codebase_extract` without `since`                                   | Lands, and reconciles code drift.                                                                                               |
+| `reconcile`    | `codebase_extract` with `since` and no plan active                   | Lands, and reconciles code drift.                                                                                               |
+| `verification` | `codebase_extract` with `since` while a plan is active (verify mode) | Never lands. Compare it with the plan; discard it, or keep it staged and commit its directory beside the plan's in the code PR. |
 
 - A verification record also carries the plan it verifies (`verifies`, the plan's changeset id)
   and what its extraction read (`scope: {since, codeCommit}`).
@@ -894,13 +894,17 @@ Then `/dr-plan <change>` runs the loop:
    it is staged with the plan and read back on every later pass.
 5. `review_open` and hand the human its link, which opens the changeset on the graph in the viewer
    (`dr visualize`); read their annotations, revise.
-6. Build from the brief. Keep the changeset staged and commit its files on the branch. Don't
-   extract or verify during the build.
+6. Build from the brief. Commit only the plan's changeset directory on the branch, not `.active`.
+   The as-built verification record is created in Verify, after this build commit. Don't extract or
+   verify during the build.
 7. Verify as its own step, once the build is committed: `codebase_index`, then `codebase_extract`
    with `since` (the branch the work started from) stages the build into an as-built changeset;
    `changeset_verify` the plan against it. The as-built side comes only from extraction: elements
-   are named after their cards, and plan elements are never copied into it. Cards the agent can't
-   place with confidence go to the developer as one short list of questions. Fix what diverges, in
+   are named after their cards, and plan elements are never copied into it. After comparison, ask
+   whether to discard the record with `changeset_discard` or keep it. Discard it only if chosen; if
+   kept, leave it staged and commit its directory beside the plan's directory in the same PR. It
+   is never landed. Cards the agent can't place with confidence go to the developer as one short
+   list of questions. Fix what diverges, in
    the code or in the plan, and copy the source references the report lists
    (`changeset_adopt_source_references`), then `changeset_activate` the plan again. The as-built
    changeset is then discarded or kept as a record, not landed.

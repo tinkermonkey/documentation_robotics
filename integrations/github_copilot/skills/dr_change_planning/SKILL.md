@@ -132,8 +132,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `byLayer`. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
-   with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
-   `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
+   with the code. Don't add the whole `changesets/` directory: keep the `.active` marker out of Git.
+   The as-built verification record is created in Verify, after this build commit. If the build has
+   to differ from the plan,
    change the plan to match and say why. Don't verify during the build: no `codebase_extract`, no
    as-built changeset and no `changeset_verify` until the build is committed. Verify is the next
    step, on its own.
@@ -189,9 +190,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
    changeset: it is the plan's verification record, and `changeset_commit` refuses to land it,
    `force` or not. Ask the human whether to discard the as-built changeset (`changeset_discard`,
-   `confirm: true`) or keep it as a record, and discard it only when they agree. A kept record
-   stays staged, and its directory is committed to git with the plan's, as the record of what was
-   built; it is never landed, so it doesn't reconcile code drift (for that, `codebase_extract`
+   `confirm: true`) or keep it as a record, and discard it only when they agree. If discarded, call
+   `changeset_discard` with `confirm: true`; if kept, leave it staged and commit its directory with
+   the plan's directory on the same branch and in the same PR. The record is never landed, so it
+   doesn't reconcile code drift (for that, `codebase_extract`
    with no plan active). Until they decide, add only the plan's directory when you commit fixes.
    If an as-built changeset was landed before DR refused it,
    `against: {"base": true, "extracted": true}` compares the plan with the model, with extraction's blind spots applied.
