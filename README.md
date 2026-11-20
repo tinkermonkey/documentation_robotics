@@ -85,8 +85,8 @@ dr changeset commit             # when the code that builds it lands
 
 Other commands:
 
-- `dr visualize` serves the viewer, with DrBot (`--with-changesets` lets it stage changes for you
-  to review).
+- `dr visualize` serves the viewer, with DrBot (it stages changes in a changeset for you to
+  review; `--read-only` turns that off).
 - `dr upgrade --dry-run` migrates a model to the current spec version.
 - `dr conformance`, `dr audit`, `dr trace`, `dr stats` check and explore a model.
 - `dr export <format>`: ArchiMate, OpenAPI, JSON Schema, PlantUML, GraphML, Markdown, Mermaid.

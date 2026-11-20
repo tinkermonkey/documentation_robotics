@@ -78,11 +78,11 @@ change another process makes, the same message its own API sends, once. Fetch
 
 ### Requests
 
-| Method        | Params                                  | Result                                          |
-| ------------- | --------------------------------------- | ----------------------------------------------- |
-| `chat.status` |                                         | `{ sdk_available, sdk_version, error_message }` |
-| `chat.send`   | `message`, `conversation_id` (optional) | Sent when the reply ends (below)                |
-| `chat.cancel` | `conversation_id` (optional)            | `{ cancelled, conversation_id }`                |
+| Method        | Params                                  | Result                                                           |
+| ------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| `chat.status` |                                         | `{ sdk_available, sdk_version, error_message, permission_mode }` |
+| `chat.send`   | `message`, `conversation_id` (optional) | Sent when the reply ends (below)                                 |
+| `chat.cancel` | `conversation_id` (optional)            | `{ cancelled, conversation_id }`                                 |
 
 **`conversation_id`** ties sends into one conversation. On Claude Code, the first send with a new
 id starts a Claude Code session (`--session-id`), and each later send with that id resumes it
@@ -118,11 +118,11 @@ up and returns it.
 
 All carry `conversation_id` and `timestamp`.
 
-| Method                   | Params                                                                                              | Meaning                               |
-| ------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `chat.response.chunk`    | `content`, `is_final`                                                                               | Reply text                            |
-| `chat.tool.invoke`       | `tool_use_id`, `tool_name`, `tool_input`, `status`, and on completion `is_error`, `result`, `error` | A tool call started, or finished      |
-| `chat.response.complete` | `result`, `is_error`                                                                                | The agent's turn ended (one per send) |
+| Method                   | Params                                                                                                                                                               | Meaning                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `chat.response.chunk`    | `content`, `is_final`                                                                                                                                                | Reply text                            |
+| `chat.tool.invoke`       | `tool_use_id`, `tool_name`, `tool_input`, `status`, and on completion `is_error`, `result`, `error`; on a refusal also `permission_denied`, `permission_explanation` | A tool call started, or finished      |
+| `chat.response.complete` | `result`, `is_error`                                                                                                                                                 | The agent's turn ended (one per send) |
 
 Each tool call sends `chat.tool.invoke` twice, matched by `tool_use_id` (Claude Code's `tool_use`
 id):
@@ -132,6 +132,18 @@ id):
    tool's output). A failed call also has `error`, the output as text. A call denied at the
    permission prompt is `failed`; under `--print` nothing can approve one. A call with no result
    when the reply ends is reported `failed` then, unless the reply was cancelled.
+
+A call the chat agent's permissions refused also has `permission_denied: true` and
+`permission_explanation`: which rule refused it, that nobody was asked to approve it, how the
+person allows it, and that the allowlist comes from how `dr visualize` was started. `error` is
+Claude Code's own text, a blank line, then that explanation; `result` is left as Claude Code sent
+it. If the refusal's wording isn't recognised when the result arrives, the call is reported
+`failed` without these fields, then once more with them when the turn's `result` event lists it.
+
+`chat.status`'s `permission_mode` is `"changesets"` (the default: the agent stages changes in a
+changeset), `"read-safe"` (`--read-only`) or `"danger"` (`--with-danger`). It is fixed when the
+viewer starts. GitHub Copilot has no changeset staging, so it reports `"read-safe"` unless the
+viewer runs with `--with-danger`.
 
 ```json
 {
@@ -145,7 +157,9 @@ id):
     "status": "failed",
     "is_error": true,
     "result": "Claude requested permissions to use Bash, but you haven't granted it yet.",
-    "error": "Claude requested permissions to use Bash, but you haven't granted it yet.",
+    "error": "Claude requested permissions to use Bash, but you haven't granted it yet.\n\nBlocked by DrBot's permissions (changeset staging mode): ...",
+    "permission_denied": true,
+    "permission_explanation": "Blocked by DrBot's permissions (changeset staging mode): ...",
     "timestamp": "..."
   }
 }
@@ -163,3 +177,5 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
   `status` and per-tool completion on `chat.tool.invoke`; `chat.tool.result` renamed to
   `chat.response.complete`; new `changesets.updated` broadcast; annotations are stored on disk,
   and changes other processes make are broadcast.
+- CLI 0.7.0: `permission_mode` on `chat.status`; `permission_denied` and `permission_explanation`
+  on a refused `chat.tool.invoke`, whose `error` now ends with the explanation.

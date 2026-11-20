@@ -37,7 +37,10 @@ export interface VisualizeOptions {
   verbose?: boolean
   debug?: boolean
   withDanger?: boolean
+  /** The old name for the default (changeset staging); accepted and ignored. */
   withChangesets?: boolean
+  /** Limit the chat agent to reading the model: no changeset staging. */
+  readOnly?: boolean
   viewerPath?: string
   /** Hours without a browser tab or a request after which the viewer exits (0 or absent: never). */
   idleExit?: string | number
@@ -53,6 +56,19 @@ export function parseIdleExitHours(value: string | number | undefined): number {
     throw new Error(`Invalid --idle-exit value: ${value}. Give a number of hours (0 means never).`)
   }
   return hours
+}
+
+/**
+ * The chat agent's permission mode for these options. It stages changes in a changeset by default
+ * (#1240): --read-only turns that off, and danger mode already allows everything, so it wins over
+ * both. --with-changesets is the old name for the default and changes nothing.
+ */
+export function resolveChatMode(options: Pick<VisualizeOptions, "withDanger" | "readOnly">): {
+  withDanger: boolean
+  withChangesets: boolean
+} {
+  const withDanger = options.withDanger || false
+  return { withDanger, withChangesets: !withDanger && !options.readOnly }
 }
 
 /** How long the server process gets to exit on a signal before it is force-killed. */
@@ -130,9 +146,7 @@ export async function visualizeCommand(
     // Determine auth settings
     const authEnabled = !options.noAuth // Auth enabled by default unless --no-auth flag
     const authToken = options.token // Optional token for testing
-    const withDanger = options.withDanger || false // Danger mode disabled by default
-    // Changeset-only writes; danger mode already allows everything, so it wins
-    const withChangesets = (options.withChangesets || false) && !withDanger
+    const { withDanger, withChangesets } = resolveChatMode(options)
 
     logDebug(`Starting visualization server on port ${port}`)
     logDebug(`Authentication: ${authEnabled ? "enabled" : "disabled"}`)
@@ -347,13 +361,24 @@ export async function visualizeCommand(
               console.log(
                 ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`)
               )
-              if (options.withChangesets) {
-                console.log(ansis.dim(`   (--with-changesets ignored: danger mode already allows all writes)`))
+              if (options.withChangesets || options.readOnly) {
+                console.log(
+                  ansis.dim(
+                    `   (${options.readOnly ? "--read-only" : "--with-changesets"} ignored: danger mode already allows all writes)`
+                  )
+                )
               }
             } else if (withChangesets) {
               console.log(
-                ansis.yellow(`   ⚠ Changeset mode enabled - chat can stage model changes in a changeset (no commit/apply/delete)`)
+                ansis.dim(
+                  `   Chat can stage model changes in a changeset (no commit/apply/delete; Claude Code only, Copilot stays read-only); --read-only turns that off`
+                )
               )
+            } else {
+              console.log(ansis.dim(`   Chat is read-only (--read-only): it cannot change the model`))
+              if (options.withChangesets) {
+                console.log(ansis.dim(`   (--with-changesets ignored: --read-only was given)`))
+              }
             }
 
             console.log(ansis.blueBright(`Model name: ${model.manifest.name}`))

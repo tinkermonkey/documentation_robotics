@@ -28,7 +28,7 @@ skill installed, walks this loop. `dr claude install` installs both.
 All tools are on `dr mcp` (stdio and HTTP) and take an optional `rootPath`. Mutation tools stage
 into the active changeset when there is one and write the base model when there isn't, the same as
 the CLI. Planning a change therefore always starts with `changeset_create`. In changeset-only mode
-(`DR_CHANGESET_ONLY=true`, or `1`/`yes`/`on`, which DrBot's `--with-changesets` sets) a write with no active changeset
+(`DR_CHANGESET_ONLY=true`, or `1`/`yes`/`on`, which DrBot sets unless the viewer is `--read-only`) a write with no active changeset
 is refused with a pointer to `changeset_create`. `project_init` and `project_upgrade` write outside
 any changeset, so that mode refuses them outright.
 
@@ -1056,16 +1056,43 @@ The chat agent that `dr visualize` launches works through the same `dr mcp` serv
 conversation in the viewer and a session in the terminal see the same changeset with the same
 tools. Each launch writes a private MCP config (in a `0700` temp directory, removed when the agent
 exits) that runs this dr installation as `dr mcp` over stdio, with `DR_MCP_ROOT_PATH` set to the
-served project and, under `--with-changesets`, `DR_CHANGESET_ONLY=true`. It holds no API key: over
-stdio there is none.
-Its allowed tools follow the mode: read-safe gets the read tools; `--with-changesets` adds the
-changeset and staging tools and turns on changeset-only mode. Neither mode gets `chat_launch`, the
+served project and, unless the viewer was started with `--read-only`, `DR_CHANGESET_ONLY=true`. It
+holds no API key: over stdio there is none.
+Its allowed tools follow the mode. Changeset staging is the default: the read tools plus the
+changeset and staging tools, in changeset-only mode. `--read-only` leaves the read tools only.
+(`--with-changesets` is the old name for the default and is still accepted.) Neither mode gets `chat_launch`, the
 annotation writers, `changeset_discard`, `changeset_commit`, `project_init`, `project_upgrade` or
 `review_open` (DrBot is already in the viewer). Danger mode skips permissions, as it always has; the
 server still refuses `changeset_commit` in changeset-only mode. If the
-installed `dr-architect` agent predates MCP, the launch warns once to run `dr claude upgrade` and
-skips MCP. If the config can't be written, DrBot launches as before
-(through Bash) and the server logs a warning.
+installed `dr-architect` agent predates MCP, the launch passes it with the mode's dr tools added
+(`--agents`) and warns once to run `dr claude upgrade`. If the config can't be written, DrBot
+launches through Bash and the server logs a warning.
+
+Under an allowlist (every mode but `--with-danger`) three rules hold whatever a settings file
+says: DrBot writes only into a changeset, never lands one, and runs no shell but one plain `dr`
+command inside the served project. Three layers keep them, each on its own:
+
+- **The launch.** `claude --restricted` reads no user, project or local settings file, so none can
+  add allow rules or a permissive default mode, and it confines the file tools to the project.
+  `--tools Bash,Read,Glob,Grep` leaves no editing or network tool, `--permission-mode dontAsk`
+  denies whatever the allowlist doesn't name, `--disallowedTools` denies the person's steps
+  outright (commit, apply, revert, discard, delete, and `--output` or `--save-snapshot` on a read
+  command), and `--strict-mcp-config` loads no MCP server but DrBot's own. The agent is always
+  passed with `--agents`, since a restricted launch loads no agent file. The user's sign-in
+  settings (`apiKeyHelper`, `env`, `model`) are carried over with `--settings`; nothing else is.
+- **A hook.** The same `--settings` registers `dr chat-permission-hook` as the PreToolUse hook on
+  Bash. It refuses anything that is not one plain `dr` command the mode allows (another command,
+  a pipe, a redirect, a substitution, a file-writing flag, a path outside the project), and its
+  reason is what the agent reads for the refused call.
+- **dr itself.** Every process of the launch carries `DR_CHAT_MODE`. `dr` refuses a command, a
+  file-writing flag or a `--model` path the mode doesn't allow before the command runs, and
+  `dr mcp` refuses a tool outside the mode's list and any `rootPath` but the served project.
+  This is also what holds for Copilot, whose own permission flags the launch can't rely on.
+
+Every launch tells the agent its mode, what it may run, and that a refused call was shown to
+nobody: the allowlist comes from the flags `dr visualize` was started with, not from a settings
+file. A refused call says which rule refused it and how to allow it, to the agent (the hook's
+reason, or dr's own error) and in the viewer.
 
 DrBot remembers the conversation. The viewer sends its conversation id with each message; the
 server starts a Claude Code session for a new id and resumes it for later messages, so a new id

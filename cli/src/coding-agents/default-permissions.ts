@@ -11,7 +11,7 @@
  * - Unrestricted (--with-danger): Full tool access
  *
  * The read-safe allowlist covers exactly four capabilities:
- * 1. Running the `dr` CLI
+ * 1. Running the read-only commands of the `dr` CLI (READ_SAFE_DR_COMMANDS)
  * 2. Reading the codebase
  * 3. Reading the `documentation-robotics/` folder
  * 4. Reading the `.dr/` folder
@@ -47,11 +47,63 @@ export interface ToolPermission {
  * IMPORTANT: This array is deeply immutable via Object.freeze() and validated at module load time.
  * Mutating or adding entries after module initialization will not re-validate constraints.
  */
+/**
+ * Every `dr` command that only reads the model, the spec or a changeset: what the chat agent may
+ * run through Bash in every mode. Each becomes its own prefix rule, so `dr trace <id> --direction
+ * up` and `dr trace --help` both match `dr trace`. `dr help <command>` gives the help of any
+ * command, including the ones a mode doesn't allow.
+ *
+ * Left out on purpose:
+ * - `dr analyzer`: the code index is the user's to build and query, as with the codebase_* MCP tools.
+ * - `dr catalog docs` and `dr docs generate`: they write files.
+ * - `dr chat`: it starts another agent, and `dr chat <client> with-danger` an unrestricted one.
+ * - `dr changeset verify`: its `--adopt-source-references` writes the plan (the MCP
+ *   `changeset_verify` reads, and adopting is its own staging tool).
+ * - `dr changeset show`: it only prints which subcommand to use.
+ *
+ * Several of these commands take `--output <path>` (export, validate, stats, report, audit) or
+ * `--save-snapshot` (audit), which write a file wherever the path points. A prefix rule can't
+ * leave an option out, so the launch denies those flags (drBotDisallowedTools) and dr refuses
+ * them itself in a chat process (chat-guard.ts).
+ */
+export const READ_SAFE_DR_COMMANDS: readonly string[] = Object.freeze([
+  "dr query",
+  "dr show",
+  "dr list",
+  "dr search",
+  "dr trace",
+  "dr export",
+  "dr validate",
+  "dr info",
+  "dr stats",
+  "dr report",
+  "dr audit",
+  "dr version",
+  "dr conformance",
+  "dr element list",
+  "dr element show",
+  "dr relationship list",
+  "dr relationship show",
+  "dr schema",
+  "dr catalog types",
+  "dr catalog info",
+  "dr catalog search",
+  "dr catalog validate",
+  "dr docs validate",
+  "dr changeset list",
+  "dr changeset status",
+  "dr changeset staged",
+  "dr changeset preview",
+  "dr changeset diff",
+  "dr help",
+  "dr --help",
+]);
+
 const PERMISSIONS_DEFINITION: ToolPermission[] = [
   {
     name: "Bash",
     description: "Execute the dr CLI tool for read-safe model queries",
-    scope: "dr query|dr show|dr list|dr search|dr export|dr validate|dr info|dr stats|dr report|dr audit|dr chat|dr version|dr conformance",
+    scope: READ_SAFE_DR_COMMANDS.join("|"),
     allowsWrite: false,
   },
   {
@@ -107,9 +159,9 @@ export function formatForClaudeCode(): string {
 /**
  * Extra dr commands for the changeset-only write mode (`dr visualize --with-changesets`).
  *
- * On top of the read-safe list, the agent can open and work in a changeset and stage new
- * elements, element updates and new relationships, and unstage one element it staged by
- * mistake. Committing, applying, reverting, discarding (which throws away every staged change,
+ * On top of the read-safe list (which already has the changeset reads), the agent can open and
+ * work in a changeset and stage new elements, element updates and new relationships, and unstage
+ * one element it staged by mistake. Committing, applying, reverting, discarding (which throws away every staged change,
  * the user's included) or deleting a changeset, and deleting elements or relationships, stay
  * with the user.
  *
@@ -122,21 +174,27 @@ export const CHANGESET_WRITE_COMMANDS: readonly string[] = Object.freeze([
   "dr changeset create",
   "dr changeset activate",
   "dr changeset deactivate",
-  "dr changeset status",
-  "dr changeset list",
-  "dr changeset show",
-  "dr changeset staged",
   "dr changeset stage",
   "dr changeset unstage",
-  "dr changeset preview",
-  "dr changeset diff",
   "dr add",
   "dr update",
   "dr relationship add",
-  "dr relationship list",
-  "dr relationship show",
-  "dr schema",
 ]);
+
+/**
+ * `dr` commands no chat mode short of --with-danger allows, with whose step each is. A refusal
+ * names it (see drbot-permissions.ts), so the agent can tell the person what to do instead.
+ */
+export const USER_ONLY_DR_COMMANDS: Readonly<Record<string, string>> = Object.freeze({
+  "dr changeset commit": "landing a changeset is the person's step: Apply in the viewer",
+  "dr changeset apply": "landing a changeset is the person's step: Apply in the viewer",
+  "dr changeset revert": "discarding a changeset is the person's step: Discard in the viewer",
+  "dr changeset discard": "discarding staged changes is the person's step: Discard in the viewer",
+  "dr changeset delete": "deleting a changeset is the person's step",
+  "dr init": "creating a model is the person's step",
+  "dr upgrade": "migrating the model to a new spec version is the person's step",
+  "dr chat": "starting another chat agent is the person's step",
+});
 
 export { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
 
