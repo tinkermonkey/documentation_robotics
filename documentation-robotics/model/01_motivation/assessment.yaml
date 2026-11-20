@@ -22,3 +22,54 @@ motivation.assessment.print-mode-declines-elicitation:
     created_at: 2026-11-17T20:42:52.452Z
     updated_at: 2026-11-17T20:42:52.452Z
     version: 1
+motivation.assessment.drift-shows-only-when-apply-is-refused:
+  id: 522bbb11-a395-4c53-aeee-e0ae39f8c2df
+  path: motivation.assessment.drift-shows-only-when-apply-is-refused
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: Drift shows only when Apply is refused
+  description: The viewer learns that the base model changed under a changeset
+    only when a commit is attempted and refused (409). GET /api/changesets and
+    GET /api/changesets/:id carry no drift field, so nothing can be shown before
+    Apply.
+  attributes:
+    assessmentType: gap
+    documentation: "Found 2026-11-18 from the viewer side
+      (documentation_robotics_viewer issue 576, show base drift before Apply):
+      at main 6ef30d2f the REST side meets drift only in the commit route
+      (StagingAreaManager.detectDrift), while changeset_brief already names what
+      changed (describeDrift). Dogfood the same day (#1171): the viewer offered
+      Apply on a verification record whose plan had landed, and the refusal for
+      drift was the first sign anything was off. #1169: drift with nothing
+      changed read as blocking until the base index told the two apart."
+  metadata:
+    created_at: 2026-11-18T19:52:37.492Z
+    updated_at: 2026-11-18T19:52:37.492Z
+    version: 1
+motivation.assessment.one-base-edit-blocks-every-staged-plan:
+  id: ffd84d4c-a64d-4c62-9473-5a5b32a173bb
+  path: motivation.assessment.one-base-edit-blocks-every-staged-plan
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: One base edit blocks every staged plan
+  description:
+    A commit refuses a changeset for drift whenever any element in the
+    base changed or was removed since the changeset was created, also one the
+    changeset neither edits nor links to. So one landing that edits an element
+    blocks every other staged plan until each is forced.
+  attributes:
+    assessmentType: gap
+    documentation: "Found 2026-11-18, twice. Building the REST drift field (PR
+      1191): its own plan read drifted with nothing overlapping after PR 1189
+      landed and changed four features it does not touch. The viewer session's
+      live test of that field: three staged plans, one base edit to an element
+      none of them touches, all three drifted with blocksCommit true and an
+      empty overlapping, so the viewer held Apply on all of them. The rule is
+      contentFreeDrift (cli/src/core/changeset-base-index.ts), added for #1169:
+      it counts only additions to the base as content-free."
+  metadata:
+    created_at: 2026-11-18T20:52:36.710Z
+    updated_at: 2026-11-18T20:52:36.710Z
+    version: 1

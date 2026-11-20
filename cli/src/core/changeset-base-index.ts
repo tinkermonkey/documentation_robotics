@@ -53,13 +53,22 @@ export interface ChangesetDrift {
   baseIndex: "recorded" | "not-recorded" | "unreadable";
   /**
    * Staged changes that the base now overlaps: adds whose element or relationship the base already
-   * has, deletes of what the base no longer has, and (with a base index) elements the plan updates
-   * or deletes whose base content changed since the plan was created, and relationships the plan
-   * adds or deletes with an end on a base element that changed or was removed since (`endpoints`
-   * names those ends). The plan doesn't edit such an element, but what it links to is not what it was.
+   * has, deletes of what the base no longer has, and (with a base index) elements the plan stages
+   * any change for whose base content changed since the plan was created (`changed-in-base`) or
+   * that the base removed since (`removed-in-base`, or `already-removed` when the plan ends by
+   * deleting it), elements it deletes that the base has since linked (`linked-in-base`: the delete
+   * would purge a relationship the plan never saw), and relationships the plan adds or deletes
+   * with an end on a base element that changed or was removed since (`endpoints` names those
+   * ends). The plan doesn't edit such an element, but what it links to is not what it was.
+   *
+   * This is the whole of what blocks a landing for drift (`contentFreeDrift`): a base change that
+   * is not listed here is one the changeset was not staged against.
    */
   overlapping: {
-    elements: Array<{ id: string; reason: "already-in-base" | "already-removed" | "changed-in-base" }>;
+    elements: Array<{
+      id: string;
+      reason: "already-in-base" | "already-removed" | "changed-in-base" | "removed-in-base" | "linked-in-base";
+    }>;
     relationships: Array<
       RelationshipRef & {
         reason: "already-in-base" | "already-removed" | "endpoint-changed-in-base" | "endpoint-removed-in-base";
@@ -227,10 +236,13 @@ export async function describeDrift(
     overlapping.relationships.push({ source: rel.source, predicate: rel.predicate, target: rel.target, reason: "already-in-base" });
   }
 
-  // Staged deletes of what the base no longer has.
+  // What the changeset stages, per element and per relationship. `elementOps` and `net` keep the
+  // last op, `addedHere` what the changeset itself first adds, and `staged` every op: a delete
+  // followed by an add (a recreate) leaves "add" as the last op, and still deletes the element.
   const net = new Map<string, "add" | "delete">();
   const elementOps = new Map<string, string>();
   const addedHere = new Set<string>();
+  const staged = { adds: new Set<string>(), deletes: new Set<string>() };
   for (const change of changeset.changes) {
     if (change.type === "relationship-add" || change.type === "relationship-delete") {
       const data = (change.type === "relationship-delete" ? (change.before ?? change.after) : change.after) as
@@ -247,9 +259,12 @@ export async function describeDrift(
     } else {
       const id = graph.resolve(change.elementId);
       if (change.type === "add" && !elementOps.has(id)) addedHere.add(id);
+      if (change.type === "add") staged.adds.add(id);
+      if (change.type === "delete") staged.deletes.add(id);
       elementOps.set(id, change.type);
     }
   }
+  // Staged deletes of what the base no longer has.
   for (const [key, op] of net) {
     if (op !== "delete" || addedHere.has(key)) continue;
     const ref = parseKey(key);
@@ -278,9 +293,43 @@ export async function describeDrift(
     const relationshipsAdded = now.relationships.filter((k) => !thenRels.has(k));
     const relationshipsRemoved = then.relationships.filter((k) => !nowRels.has(k));
 
+    // Elements the base changed, removed or gained since, that the changeset stages a change for.
+    // Any staged op counts, in any order: after a delete and an add of the same element the last
+    // op is "add", and landing it still replaces what the base has now.
+    const listedElements = new Set(overlapping.elements.map((e) => e.id));
+    const flag = (id: string, reason: ChangesetDrift["overlapping"]["elements"][number]["reason"]): void => {
+      if (listedElements.has(id)) return;
+      listedElements.add(id);
+      overlapping.elements.push({ id, reason });
+    };
     for (const id of elementsChanged) {
-      const op = elementOps.get(id);
-      if (op === "update" || op === "delete") overlapping.elements.push({ id, reason: "changed-in-base" });
+      if (elementOps.has(id)) flag(id, "changed-in-base");
+    }
+    for (const id of elementsRemoved) {
+      if (elementOps.has(id)) flag(id, elementOps.get(id) === "delete" ? "already-removed" : "removed-in-base");
+    }
+    // An add of an element the base gained since, also one the changeset deletes again: landing
+    // the delete would remove the base's element.
+    for (const id of elementsAdded) {
+      if (staged.adds.has(id)) flag(id, "already-in-base");
+    }
+    // A staged delete purges every relationship on the element when it lands, also one the base
+    // gained since, which the changeset never saw (unless it stages that relationship's delete).
+    for (const key of relationshipsAdded) {
+      if (net.get(key) === "delete") continue;
+      const ref = parseKey(key);
+      for (const id of new Set([ref.source, ref.target])) {
+        if (staged.deletes.has(id)) flag(id, "linked-in-base");
+      }
+    }
+
+    // A relationship the changeset stages a change for that the base removed since, whatever the
+    // last op: re-adding it after a delete would put back what the base took out.
+    const listedRelationships = new Set(overlapping.relationships.map((r) => relationshipKey(r)));
+    for (const key of net.keys()) {
+      if (listedRelationships.has(key) || !thenRels.has(key) || nowRels.has(key)) continue;
+      listedRelationships.add(key);
+      overlapping.relationships.push({ ...parseKey(key), reason: "already-removed" });
     }
 
     // The plan's links into base elements that changed or went away since: not an edit of theirs,
@@ -292,7 +341,11 @@ export async function describeDrift(
       if (listed.has(key)) continue;
       const ref = parseKey(key);
       const ends = [ref.source, ref.target].filter((id, i, all) => all.indexOf(id) === i);
-      const removed = ends.filter((id) => removedSet.has(id) && !addedHere.has(id));
+      // An end the projection has no element for, on a relationship the changeset adds, while the
+      // base lost elements: a row that names the removed element by an id only it could resolve.
+      const dangling = (id: string): boolean =>
+        net.get(key) === "add" && removedSet.size > 0 && !id.startsWith("@") && !graph.getElement(id);
+      const removed = ends.filter((id) => (removedSet.has(id) && !addedHere.has(id)) || dangling(id));
       const changed = ends.filter((id) => changedSet.has(id) && !elementOps.has(id));
       if (removed.length > 0) {
         overlapping.relationships.push({ ...ref, reason: "endpoint-removed-in-base", endpoints: removed });
@@ -364,33 +417,44 @@ export async function describeDrift(
 }
 
 /**
- * Whether a changeset whose base hash no longer matches drifted only in content it doesn't depend
- * on: the model hash covers the manifest (its `modified`, `cliVersion`, `changeset_history` and
- * `reconciled`), so landing one changeset changes every other one's hash even when nothing they
- * were staged against changed (#1169).
+ * Whether a changeset whose base hash no longer matches drifted only in content it wasn't staged
+ * against. The model hash covers the manifest (its `modified`, `cliVersion`, `changeset_history`
+ * and `reconciled`) and every element, so landing one changeset changes every other one's hash,
+ * whether or not it touched anything they stage (#1169).
  *
- * Content-free means the changeset's base index is recorded and, compared with the base now: no
- * element it covers changed or was removed, no relationship it recorded was removed, and nothing
- * the base gained overlaps a staged change. Elements and relationships added to the base since
- * (another plan landing) don't count. Returns the warning to report when content-free, otherwise
- * undefined (without a base index, the change can't be told apart from a real one).
+ * Content-free means the changeset's base index is recorded and the base overlaps none of its
+ * staged changes (`describeDrift`'s `overlapping`): no element it stages a change for changed or
+ * was removed, none it deletes gained a relationship, no element at an end of a relationship it
+ * adds or deletes changed or was removed, the base doesn't already have what it adds, and still
+ * has what it deletes. Any other
+ * change to the base since (another plan landing that adds, edits or removes other elements and
+ * relationships) doesn't count: it is not what this changeset was staged against. Returns the
+ * warning to report when content-free, otherwise undefined (without a base index, the change can't
+ * be told apart from an overlapping one).
  */
 export async function contentFreeDrift(model: Model, changeset: Changeset): Promise<string | undefined> {
   const drift = await describeDrift(model, await ChangesetGraph.build(model, changeset));
   if (drift.baseIndex !== "recorded" || !drift.baseChanges) return undefined;
+  if (drift.overlapping.elements.length + drift.overlapping.relationships.length > 0) return undefined;
   const { counts } = drift.baseChanges;
-  const overlaps = drift.overlapping.elements.length + drift.overlapping.relationships.length;
-  if (counts.elementsChanged > 0 || counts.elementsRemoved > 0 || counts.relationshipsRemoved > 0 || overlaps > 0) {
-    return undefined;
-  }
-  const added =
-    counts.elementsAdded + counts.relationshipsAdded > 0
-      ? ` The base gained ${counts.elementsAdded} element(s) and ${counts.relationshipsAdded} relationship(s) ` +
-        "since, none of them overlapping a staged change."
+  const parts = (
+    [
+      [counts.elementsAdded, "element(s) added"],
+      [counts.elementsChanged, "element(s) changed"],
+      [counts.elementsRemoved, "element(s) removed"],
+      [counts.relationshipsAdded, "relationship(s) added"],
+      [counts.relationshipsRemoved, "relationship(s) removed"],
+    ] as Array<[number, string]>
+  )
+    .filter(([n]) => n > 0)
+    .map(([n, label]) => `${n} ${label}`);
+  const since =
+    parts.length > 0
+      ? ` In the base since: ${parts.join(", ")}, none of them overlapping a staged change.`
       : " No element or relationship in the base changed.";
   return (
     "The model's hash changed since this changeset was created, but nothing it was staged against changed, so " +
-    `landing it is not blocked.${added}`
+    `landing it is not blocked.${since}`
   );
 }
 

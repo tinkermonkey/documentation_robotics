@@ -1,0 +1,31 @@
+{
+  "backend": "context-studio",
+  "record": "cs-38fa8fa3-0d48-429f-a0a3-825e47f259d5",
+  "select": {
+    "proposal_id": "38fa8fa3-0d48-429f-a0a3-825e47f259d5",
+    "title": "Say which service backs a view: ApplicationService serves ux.View"
+  },
+  "applied_at": "2026-11-18T21:35:47.531Z",
+  "counts": {
+    "rename": 0,
+    "create": 1,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationservice.serves.ux.view",
+      "to": "application.applicationservice.serves.ux.view",
+      "p": 0.55,
+      "claims": [],
+      "note": "Context Studio proposal 38fa8fa3-0d48-429f-a0a3-825e47f259d5 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationservice.serves.ux.view.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "8ecb333f1f088723f0c514b107effea78bd44d9f",
+    "spec_version": "0.13.0"
+  }
+}

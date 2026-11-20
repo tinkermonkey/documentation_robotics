@@ -40,8 +40,8 @@ In short:
 6. **Build** from the brief: `changeset_brief` with `sections: ["changes"]` for each changed
    element's attributes and connections (for a large plan, one layer at a time with
    `layers: ["<layer>"]`, from the default brief's `byLayer`). Commit only the plan's own changeset directory
-   (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep `.active` out of
-   Git. The as-built verification record is created in Verify, after this build commit. Don't verify
+   (`documentation-robotics/changesets/<id>/`) on the branch with the code.
+   The as-built verification record is created in Verify, after this build commit. Don't verify
    during the build: no `codebase_extract`, no as-built changeset and no `changeset_verify` until
    the build is committed.
 7. **Verify**, as its own step after the build is committed: `codebase_index` with `wait: 30`

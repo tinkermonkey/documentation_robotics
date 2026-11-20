@@ -5,6 +5,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { VerificationRecordLandingError, type RecordLandingError } from "../core/changeset-purpose.js";
 import { resolveOrigin } from "../core/changeset-review.js";
 import { originLabel } from "../core/changeset.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
@@ -265,9 +266,9 @@ function reportDeactivation(
   if (result.deactivationError) {
     details.deactivationError = result.deactivationError;
     handleWarning(
-      `The changeset was committed but is still the active changeset (${result.deactivationError}). ` +
-        "Reads still project it and writes still stage into it.",
-      ["Run 'dr changeset deactivate' once the cause is fixed"]
+      `The changeset was committed, but its active-changeset marker could not be cleared (${result.deactivationError}). ` +
+        "The marker is ignored, since a committed changeset is never the active one.",
+      ["Run 'dr changeset deactivate' once the cause is fixed, to remove the marker"]
     );
   }
 }
@@ -476,7 +477,7 @@ export async function changesetRevertCommand(name: string, options: { model?: st
       endSpan(span);
       process.exit(1);
     }
-    await manager.revert(changesetId);
+    const was = await manager.revert(changesetId);
 
     handleInfo("");
 
@@ -486,6 +487,12 @@ export async function changesetRevertCommand(name: string, options: { model?: st
       changesetId,
       changesetStatus: "discarded",
     });
+    if (was === "committed") {
+      // Revert never undid a landing: say so rather than let "Reverted" imply it.
+      handleInfo(
+        ansis.dim("This changeset was already applied. Its record is now discarded; the model keeps the changes it applied.")
+      );
+    }
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -568,6 +575,11 @@ export async function changesetActivateCommand(name: string, options: { model?: 
   }
 }
 
+/** "'name', which is committed" / "changeset-1, which is missing", for a marker left behind. */
+function staleMarkerLabel(stale: { id: string; name?: string; status: string }): string {
+  return `${stale.name ? `'${stale.name}'` : stale.id}, which is ${stale.status}`;
+}
+
 /**
  * Deactivate the current changeset
  */
@@ -580,7 +592,17 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
     const active = await manager.getActiveId();
 
     if (!active) {
-      handleInfo(ansis.yellow("No active changeset"));
+      // A marker left behind by a changeset that is no longer staged: it is not the active
+      // changeset, but deactivating is the moment to remove it.
+      const stale = await manager.staleActiveMarker();
+      if (stale) await manager.clearActive();
+      handleInfo(
+        ansis.yellow(
+          stale
+            ? `No active changeset (cleared a marker left by ${staleMarkerLabel(stale)})`
+            : "No active changeset"
+        )
+      );
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("changeset.wasActive", false);
         (span as any).setStatus({ code: 0 });
@@ -756,6 +778,12 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
 
     if (!active) {
       console.log(ansis.dim("No active changeset"));
+      const stale = await manager.staleActiveMarker();
+      if (stale) {
+        console.log(
+          ansis.dim(`  The active-changeset marker names ${staleMarkerLabel(stale)}; it is ignored, and writes go to the base model`)
+        );
+      }
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute("changeset.hasActive", false);
         (span as any).setStatus({ code: 0 });
@@ -1491,6 +1519,26 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
 }
 
 /**
+ * Throw the refusal to land a record, with the CLI's own next steps. A record (a verification
+ * record or an upgrade record) never lands, --force or not; StagingAreaManager.commit refuses it too.
+ */
+function throwIfRecord(refusal: RecordLandingError | null, changesetName: string): void {
+  if (!refusal) return;
+  if (refusal instanceof VerificationRecordLandingError) {
+    const plan = refusal.plan;
+    throw new CLIError(refusal.message, ErrorCategory.USER, [
+      plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
+      `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changesetName}"`,
+      "To reconcile the model with code drift, extract without a plan active and land that changeset",
+    ]);
+  }
+  throw new CLIError(refusal.message, ErrorCategory.USER, [
+    "To restore a dropped relationship, add one of a type the catalog has now (dr relationship add); the record's description lists those types",
+    `Keep this record while you still need it, then discard it: dr changeset delete "${changesetName}"`,
+  ]);
+}
+
+/**
  * Apply staged changes to the base model
  *
  * Implements atomic commit with validation and rollback on failure.
@@ -1528,7 +1576,8 @@ export async function changesetCommitCommand(
     const probe = await Model.load(rootPath, { lazyLoad: true });
     const manager = new StagingAreaManager(probe.rootPath, probe);
     const prior = previous ? await manager.load(previous) : null;
-    if (prior?.status === "staged") {
+    // An upgrade record can't be made active (setActive refuses it)
+    if (prior?.status === "staged" && prior.purpose !== "upgrade-record") {
       await manager.setActive(previous!);
       if (!isJson()) console.log(ansis.dim(`Changeset '${prior.name}' is active again.`));
     } else {
@@ -1556,6 +1605,8 @@ export async function changesetCommitCommand(
               ['Run "dr changeset list" to find a staged changeset']
             );
           }
+          // A record never lands: refuse it before it is made active for the commit.
+          throwIfRecord(await probeManager.landingRefusal(target), target.name);
           const activeId = await probeManager.getActiveId();
           if (activeId !== target.id) {
             // Commit works on the active changeset: the model it loads merges that one's staged changes.
@@ -1595,17 +1646,9 @@ export async function changesetCommitCommand(
           process.exit(1);
         }
 
-        // A verification record never lands, --force or not (StagingAreaManager.commit refuses it
-        // too); here with the CLI's own next steps.
-        const purposeRefusal = await stagingManager.landingRefusal(changeset);
-        if (purposeRefusal) {
-          const plan = purposeRefusal.plan;
-          throw new CLIError(purposeRefusal.message, ErrorCategory.USER, [
-            plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
-            `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changeset.name}"`,
-            "To reconcile the model with code drift, extract without a plan active and land that changeset",
-          ]);
-        }
+        // A record never lands, --force or not (StagingAreaManager.commit refuses it too); here
+        // with the CLI's own next steps.
+        throwIfRecord(await stagingManager.landingRefusal(changeset), changeset.name);
 
         const changeCount = changeset.changes.length;
 
@@ -2009,7 +2052,7 @@ Examples:
 
   changesetGroup
     .command("revert <name>")
-    .description("Revert a changeset from the model")
+    .description("Discard a changeset. One already applied keeps its changes in the model; only its record is marked discarded")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",

@@ -461,7 +461,7 @@ async function prepareLanding(
       'Use "changeset_list" to find a staged changeset',
     ]);
   }
-  // A verification record never lands, force or not (StagingAreaManager.commit refuses it too).
+  // A record (verification or upgrade) never lands, force or not (StagingAreaManager.commit refuses it too).
   const purposeRefusal = await manager.landingRefusal(changeset);
   if (purposeRefusal) throw purposeRefusal;
   if (changeset.changes.length === 0) {
@@ -618,8 +618,9 @@ export async function changesetCommitHandler(
     });
     if (result.deactivationError) {
       warnings.push(
-        `The changeset was committed but is still the active changeset (${result.deactivationError}): reads ` +
-          "still project it and writes still stage into it. Deactivate it with changeset_deactivate."
+        `The changeset was committed, but its active-changeset marker could not be cleared (${result.deactivationError}). ` +
+          "The marker is ignored, since a committed changeset is never the active one: reads show the base model and " +
+          "writes go to it. Remove the marker with changeset_deactivate once the cause is fixed."
       );
     }
 

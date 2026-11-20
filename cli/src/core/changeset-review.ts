@@ -43,7 +43,7 @@ export interface ChangesetReview {
   lastReviewedRevision?: number;
 }
 
-export const ORIGIN_KINDS = ["chat", "plan", "extract", "cli"] as const;
+export const ORIGIN_KINDS = ["chat", "plan", "extract", "cli", "upgrade"] as const;
 export type ChangesetOriginKind = (typeof ORIGIN_KINDS)[number];
 
 export interface ChangesetOrigin {

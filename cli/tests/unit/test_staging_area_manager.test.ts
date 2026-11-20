@@ -7,7 +7,7 @@ import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { StagedChangesetStorage } from "../../src/core/staged-changeset-storage.js";
 import { Model } from "../../src/core/model.js";
 import path from "path";
-import { rm, mkdtemp } from "fs/promises";
+import { rm, mkdtemp, readFile, writeFile } from "fs/promises";
 import { fileExists, ensureDir } from "../../src/utils/file-io.js";
 import { tmpdir } from "os";
 
@@ -284,13 +284,14 @@ layers: {}`;
       expect(active?.name).toBe("active-test");
     });
 
-    it("writes .active and base-index.json the way end-of-file-fixer and prettier leave them (#1155)", async () => {
+    it("writes the marker in .dr/ and base-index.json the way end-of-file-fixer and prettier leave them (#1155)", async () => {
       const changeset = await manager.create("newline-test");
       await manager.setActive(changeset.id!);
       const changesetsDir = path.join(testDir, "documentation-robotics", "changesets");
       const { readFile } = await import("../../src/utils/file-io.js");
 
-      expect(await readFile(path.join(changesetsDir, ".active"))).toBe(`${changeset.id}\n`);
+      expect(await readFile(path.join(testDir, ".dr", "active-changeset"))).toBe(`${changeset.id}\n`);
+      expect(await fileExists(path.join(changesetsDir, ".active"))).toBe(false);
       expect(await manager.getActiveId()).toBe(changeset.id);
 
       const index = await readFile(path.join(changesetsDir, changeset.id!, "base-index.json"));
@@ -575,6 +576,46 @@ layers: {}`;
       expect(await manager.load(changeset.id!)).toBeNull();
       const allAfter = await manager.list();
       expect(allAfter.length).toBe(countBefore - 1);
+    });
+
+    // `dr changeset revert` accepted an applied changeset until discard() began to refuse one (#1173).
+    it("accepts a committed changeset: its record stays as discarded, and the model keeps what it applied", async () => {
+      const changeset = await manager.create("revert-committed-test");
+      const storage = new StagedChangesetStorage(testDir);
+      const loaded = (await storage.load(changeset.id!))!;
+      loaded.changes = [
+        { type: "add", elementId: "elem-1", layerName: "application", after: { id: "elem-1" } } as any,
+      ];
+      loaded.status = "committed";
+      await storage.save(loaded);
+      const folder = path.join(testDir, "documentation-robotics", "changesets", changeset.id!);
+      await writeFile(path.join(folder, "base-index.json"), "{}\n");
+      const manifest = path.join(testDir, "documentation-robotics", "model", "manifest.yaml");
+      const manifestBefore = await readFile(manifest, "utf-8");
+
+      expect(await manager.revert(changeset.id!)).toBe("committed");
+
+      const after = await manager.load(changeset.id!);
+      expect(after?.status).toBe("discarded");
+      expect(after?.changes).toEqual([]);
+      // The record stays; the side file nothing reads again is gone.
+      expect(await fileExists(path.join(folder, "metadata.yaml"))).toBe(true);
+      expect(await fileExists(path.join(folder, "base-index.json"))).toBe(false);
+      // Revert never undoes a landing: the base model is not written.
+      expect(await readFile(manifest, "utf-8")).toBe(manifestBefore);
+
+      // discard(), which the MCP tool and the viewer use, still refuses a committed changeset.
+      const other = await manager.create("discard-committed-test");
+      const otherLoaded = (await storage.load(other.id!))!;
+      otherLoaded.status = "committed";
+      await storage.save(otherLoaded);
+      await expect(manager.discard(other.id!)).rejects.toThrow("committed");
+    });
+
+    it("reports the status a staged changeset had", async () => {
+      const changeset = await manager.create("revert-staged-status-test");
+      expect(await manager.revert(changeset.id!)).toBe("staged");
+      expect(await manager.load(changeset.id!)).toBeNull();
     });
 
     it("should handle revert of non-existent changeset", async () => {

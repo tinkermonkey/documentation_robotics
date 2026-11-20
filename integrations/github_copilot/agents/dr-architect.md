@@ -838,6 +838,9 @@ dr changeset abandon <changeset-id>
    - Cardinality fixes (single → array)
    - Format corrections
    - Link pattern standardization
+   - Relationships it would drop (their type was retired with no replacement), and the staged
+     changeset they would be recorded in (`upgrade-drops-<spec version>`). That changeset is a
+     record and never lands: restore what still applies by hand from it, then delete it
 
 3. **Recommend migration approach:**
    - Create git branch

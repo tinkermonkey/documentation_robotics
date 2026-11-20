@@ -11,8 +11,9 @@
 import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import { clearActiveMarker, readActiveMarker, writeActiveMarker } from "./active-changeset-marker.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
-import { Changeset, StagedChange, withSequenceNumbers } from "./changeset.js";
+import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
 import { fileExists } from "../utils/file-io.js";
 import { trackModelWrite } from "./model-write-tracker.js";
@@ -41,6 +42,9 @@ import {
   extractionOrigin,
   purposeOf,
   VerificationRecordLandingError,
+  UpgradeRecordLandingError,
+  UpgradeRecordActivationError,
+  type RecordLandingError,
   type ChangesetPurposeInfo,
   type PurposeDeclaration,
 } from "./changeset-purpose.js";
@@ -275,8 +279,7 @@ export class StagingAreaManager {
     }
 
     // Check if this changeset is the active one and clear it if so
-    const activeChangeset = await this.getActive();
-    if (activeChangeset && activeChangeset.id === changeset.id) {
+    if ((await this.readActiveMarker()) === changeset.id) {
       await this.clearActive();
     }
 
@@ -330,12 +333,15 @@ export class StagingAreaManager {
 
   /**
    * The refusal to land this changeset for what it is, or null when its purpose lets it land. A
-   * verification record (codebase_extract's as-built reading of a branch, compared with a plan) is
-   * never landed, with force or without: landing it would add extraction's raw reading of the
-   * branch to the model, and it read only the branch's changes, so it doesn't reconcile drift.
+   * record is never landed, with force or without. A verification record (codebase_extract's
+   * as-built reading of a branch, compared with a plan): landing it would add extraction's raw
+   * reading of the branch to the model, and it read only the branch's changes, so it doesn't
+   * reconcile drift. An upgrade record (the relationships a spec migration dropped): the model
+   * no longer has them, so its staged deletes have nothing to delete.
    */
-  async landingRefusal(changeset: Changeset): Promise<VerificationRecordLandingError | null> {
+  async landingRefusal(changeset: Changeset): Promise<RecordLandingError | null> {
     const info = await purposeOf(this.rootPath, changeset);
+    if (info.purpose === "upgrade-record") return new UpgradeRecordLandingError(changeset.name);
     if (info.purpose !== "verification") return null;
     let plan: { id: string; name: string } | undefined;
     if (info.verifies) {
@@ -576,7 +582,7 @@ export class StagingAreaManager {
     const id = changeset.id ?? changesetId;
 
     // The active marker must not name a folder that is gone: the model would stage into nothing.
-    if ((await this.getActiveId()) === id) {
+    if ((await this.readActiveMarker()) === id) {
       await this.clearActive();
     }
     // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
@@ -658,8 +664,9 @@ export class StagingAreaManager {
 
     const warnings: string[] = [];
 
-    // The hash covers the manifest too, so landing another changeset changes it with nothing this
-    // one depends on changed. The base index tells the two apart; without one it stays drift.
+    // The hash covers the manifest and every element, so landing another changeset changes it
+    // whether or not it touched anything this one stages. The base index tells the two apart (only
+    // a base change that overlaps a staged change is drift); without one it stays drift.
     if (isDrifted) {
       let contentFree: string | undefined;
       try {
@@ -715,7 +722,7 @@ export class StagingAreaManager {
    * @remarks
    * Validation errors always block commit (force flag does not override).
    * Drift warnings can be bypassed with --force flag.
-   * A verification record (purpose `verification`) is refused, force or not (landingRefusal).
+   * A record (purpose `verification` or `upgrade-record`) is refused, force or not (landingRefusal).
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
@@ -746,10 +753,10 @@ export class StagingAreaManager {
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
 
-      // Step 0: A verification record never lands, dry run or not; force is for drift, not purpose.
+      // Step 0: A record never lands, dry run or not; force is for drift, not purpose.
       const refusal = await this.landingRefusal(changeset);
       if (refusal) {
-        emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a verification record", {
+        emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a record, which never lands", {
           "changeset.name": changeset.name,
         });
         throw refusal;
@@ -1211,15 +1218,15 @@ export class StagingAreaManager {
         // active marker is left alone. The changes are already landed, so a failure here is
         // reported in the result (deactivationError) rather than rolled back.
         try {
-          if ((await this.getActiveId()) === changeset.id) {
+          if ((await this.readActiveMarker()) === changeset.id) {
             await this.clearActive();
             result.deactivated = true;
           }
         } catch (error) {
           result.deactivationError = getErrorMessage(error);
           console.warn(
-            `Warning: changeset '${changeset.name}' was committed but is still the active changeset ` +
-              `(${result.deactivationError}). Deactivate it before making further changes.`
+            `Warning: changeset '${changeset.name}' was committed, but its active-changeset marker could not be cleared ` +
+              `(${result.deactivationError}). The marker is ignored: a committed changeset is never the active one.`
           );
           emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
             "changeset.id": changesetId,
@@ -1402,14 +1409,7 @@ export class StagingAreaManager {
   async isActive(changesetId: string): Promise<boolean> {
     this.validateChangesetId(changesetId);
 
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-    if (!(await fileExists(activePath))) {
-      return false;
-    }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const activeId = await readFile(activePath);
-    return activeId.trim() === changesetId;
+    return (await this.getActiveId()) === changesetId;
   }
 
   /**
@@ -1419,6 +1419,8 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to activate
    * @throws Error if changeset ID is invalid or changeset not found
+   * @throws UpgradeRecordActivationError for an upgrade record, which never lands: writes staged
+   *   into it would be stuck there
    *
    * @remarks
    * When a changeset is active, add/update/delete commands will stage changes
@@ -1435,6 +1437,9 @@ export class StagingAreaManager {
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
+    if (changeset.purpose === "upgrade-record") {
+      throw new UpgradeRecordActivationError(changeset.name);
+    }
 
     // Transition to 'staged' status to enable interception
     if (changeset.status !== "staged") {
@@ -1442,17 +1447,11 @@ export class StagingAreaManager {
       await this.storage.save(changeset);
     }
 
-    const { writeFile, ensureDir } = await import("../utils/file-io.js");
-    const changesetDir = path.join(this.rootPath, "documentation-robotics", "changesets");
-    await ensureDir(changesetDir);
-
-    const activePath = path.join(changesetDir, ".active");
     // Write the actual changeset ID (not the user-provided name)
     if (!changeset.id) {
       throw new Error(`Changeset has no ID, cannot activate`);
     }
-    // Newline-terminated, as end-of-file-fixer leaves it (#1155); readers trim it.
-    await writeFile(activePath, changeset.id + "\n");
+    await writeActiveMarker(this.rootPath, changeset.id);
   }
 
   /**
@@ -1464,56 +1463,60 @@ export class StagingAreaManager {
   }
 
   private async writeNoActive(): Promise<void> {
-    const { writeFile } = await import("../utils/file-io.js");
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-
-    if (await fileExists(activePath)) {
-      await writeFile(activePath, "");
-    }
+    await clearActiveMarker(this.rootPath);
   }
 
   /**
-   * Get the currently active changeset.
-   * Returns null if no changeset is active.
+   * The id the active-changeset marker holds (active-changeset-marker.ts), whatever became of
+   * that changeset: it may have been committed, discarded or deleted since. Only for clearing the
+   * marker; everything else asks getActive or getActiveId.
+   */
+  private async readActiveMarker(): Promise<string | null> {
+    return readActiveMarker(this.rootPath);
+  }
+
+  /**
+   * Get the currently active changeset: the one the marker (`.dr/active-changeset`) names, while
+   * it is staged.
+   * A marker that names a changeset that is committed, discarded or gone is no active changeset
+   * (#1218): Model.load reads it the same way, so writes go to the base model.
    *
    * @returns The active changeset or null if none is active
    */
   async getActive(): Promise<Changeset | null> {
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
-
-    if (!(await fileExists(activePath))) {
-      return null;
-    }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const activeId = await readFile(activePath);
-    const id = activeId.trim();
-
+    const id = await this.readActiveMarker();
     if (!id) {
       return null;
     }
 
-    return this.storage.load(id);
+    const changeset = await this.storage.load(id);
+    return changeset && changeset.status === "staged" ? changeset : null;
   }
 
   /**
-   * Get the ID of the active changeset without loading the full changeset object.
-   * Useful for status display and quick active changeset checks.
+   * Get the ID of the active changeset, by the same rule as getActive.
    *
    * @returns The active changeset ID or null if no active changeset exists
    */
   async getActiveId(): Promise<string | null> {
-    const activePath = path.join(this.rootPath, "documentation-robotics", "changesets", ".active");
+    return (await this.getActive())?.id ?? null;
+  }
 
-    if (!(await fileExists(activePath))) {
+  /**
+   * A marker left behind: the name and status of the changeset the marker names when that
+   * changeset is not staged (so it is not the active one), or `missing` when it is gone. Null
+   * when there is no marker or it names the active changeset. For status output.
+   */
+  async staleActiveMarker(): Promise<{ id: string; name?: string; status: string } | null> {
+    const id = await this.readActiveMarker();
+    if (!id) {
       return null;
     }
-
-    const { readFile } = await import("../utils/file-io.js");
-    const activeId = await readFile(activePath);
-    const id = activeId.trim();
-
-    return id || null;
+    const changeset = await this.storage.load(id);
+    if (!changeset) {
+      return { id, status: "missing" };
+    }
+    return changeset.status === "staged" ? null : { id, name: changeset.name, status: changeset.status };
   }
 
   /**
@@ -1539,18 +1542,45 @@ export class StagingAreaManager {
   }
 
   /**
-   * Revert a changeset without applying changes.
-   * Alias for discard() to match legacy command terminology.
+   * Revert a changeset: `dr changeset revert`. A staged changeset is discarded (discard()).
+   *
+   * A committed changeset is accepted too, as it was before discard() began to refuse one (#1173):
+   * its record is kept with the status 'discarded' and no changes, and its side files are removed.
+   * The base model is not touched, so what the changeset applied stays in the model. discard(), which
+   * the MCP tool and the viewer use, still refuses a committed changeset.
    *
    * @param changesetId - ID of the changeset to revert
+   * @returns The status the changeset had before the revert
    * @throws Error if changeset ID is invalid or changeset not found
-   *
-   * @remarks
-   * This method provides backward compatibility with changeset commands that use
-   * "revert" instead of "discard" terminology. All logic is delegated to discard().
    */
-  async revert(changesetId: string): Promise<void> {
-    return this.discard(changesetId);
+  async revert(changesetId: string): Promise<ChangesetStatus> {
+    this.validateChangesetId(changesetId);
+
+    const changeset = await this.load(changesetId);
+    if (!changeset) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    const was = changeset.status;
+    if (was !== "committed") {
+      await this.discard(changesetId);
+      return was;
+    }
+    const id = changeset.id ?? changesetId;
+
+    changeset.changes = [];
+    changeset.unstaged = [];
+    changeset.status = "discarded";
+    changeset.updateModified();
+    await this.storage.save(changeset);
+    // Only the record stays (name, description, status): nothing reads a base index after this.
+    await this.storage.removeSideFiles(id);
+    if ((await this.readActiveMarker()) === id) {
+      await this.clearActive();
+    }
+
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnDiscard(changesetId);
+    return was;
   }
 
   /**

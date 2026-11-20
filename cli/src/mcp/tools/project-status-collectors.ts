@@ -17,6 +17,7 @@ import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
 import { getCliBundledSpecVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
+import { readActiveMarker } from "../../core/active-changeset-marker.js";
 import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
@@ -311,9 +312,7 @@ async function extractionPreviousActive(
 }
 
 async function readActiveChangesetId(projectRoot: string): Promise<string | null> {
-  const activePath = path.join(projectRoot, "documentation-robotics", "changesets", ".active");
-  if (!(await fileExists(activePath))) return null;
-  return (await readFile(activePath)).trim() || null;
+  return readActiveMarker(projectRoot);
 }
 
 function countChanges(changeset: Changeset): ChangesetEntry["changes"] {

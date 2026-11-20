@@ -125,7 +125,9 @@ export async function changesetActivateHandler(args: ChangesetActivateArgs): Pro
 
 export const changesetActivateTool: McpToolDefinition<typeof activateInputSchema> = {
   name: "changeset_activate",
-  description: "Make an existing staged changeset the active one, so mutations stage into it.",
+  description:
+    "Make an existing staged changeset the active one, so mutations stage into it. An upgrade record (the " +
+    "relationships a spec migration dropped) is refused: it never lands, so nothing may be staged into it.",
   inputSchema: activateInputSchema,
   handler: changesetActivateHandler,
 };
@@ -145,11 +147,17 @@ export async function changesetDeactivateHandler(args: ChangesetDeactivateArgs):
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const activeId = await manager.getActiveId();
-    if (activeId) {
+    // A marker left by a changeset that is no longer staged is not the active changeset (#1218),
+    // but this is the moment to remove it.
+    const stale = activeId ? null : await manager.staleActiveMarker();
+    if (activeId || stale) {
       await manager.clearActive();
       await reloadModel(args.rootPath);
     }
-    return jsonResult({ deactivated: activeId ?? null });
+    return jsonResult({
+      deactivated: activeId ?? null,
+      ...(stale ? { clearedLeftoverMarker: { changeset: stale.name ?? stale.id, status: stale.status } } : {}),
+    });
   });
 }
 

@@ -1,0 +1,61 @@
+id: changeset-1795035139919-tug81tlxu
+name: drift-blocks-only-on-overlap
+description: "A staged changeset is refused for drift only when the base
+  overlaps it: an element it updates or deletes changed or was removed, an
+  element at an end of a relationship it adds or deletes changed or was removed,
+  the base already has what it adds, or lacks what it deletes. Any other base
+  change (another plan landing that edits other elements) is content-free and
+  does not block, in the CLI, changeset_commit and the viewer's Apply. Without a
+  base index a changed hash still blocks. Done: detectDrift applies the rule;
+  tests cover an unrelated edit (lands), a linked edit (refused) and an update
+  of a removed element (refused); the REST drift field follows; docs and
+  changelog updated; a PR is open against main, stacked on PR 1191."
+created: 2026-11-18T20:52:19.920Z
+modified: 2026-11-19T11:51:16.885Z
+status: committed
+baseSnapshot: sha256:5d93bc0e2426000cd441e3c0cc6c3ff62fff1b79993f8d17fc1193d915b2b1ec
+origin:
+  kind: plan
+stats:
+  additions: 6
+  modifications: 0
+  deletions: 0
+lastSequence: 7
+unstaged:
+  - sequence: 1
+    removedAt: 6
+    change:
+      type: add
+      elementId: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+      layerName: motivation
+      after:
+        id: 1214a779-73a8-463e-95cf-8ce4681faf4a
+        path: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+        spec_node_id: motivation.requirement
+        type: requirement
+        layer_id: motivation
+        name: Only an overlapping base change blocks a landing
+        description: "A staged changeset is refused for drift only when the base
+          overlaps it: an element it updates or deletes changed or was removed,
+          an element at an end of a relationship it adds or deletes changed or
+          was removed, the base already has what it adds, or lacks what it
+          deletes. Any other change to the base does not block it."
+        attributes:
+          requirementType: functional
+          priority: high
+          documentation:
+            "Acceptance: with a base index recorded, a changeset staged
+            before another one landed commits without force when the other
+            changed or removed only elements and relationships it does not edit
+            or link to; it is still refused when the other changed an element it
+            updates, deletes or links to, or removed an element it updates.
+            Without a base index a changed hash still blocks, since the two
+            cannot be told apart. The CLI, changeset_commit, the viewer's Apply,
+            project_status and the viewer API's drift field all read the one
+            rule (StagingAreaManager.detectDrift)."
+        metadata:
+          created_at: 2026-11-18T20:52:36.711Z
+          updated_at: 2026-11-18T20:52:36.711Z
+          version: 1
+      timestamp: 2026-11-18T20:52:36.737Z
+    rewritten: true

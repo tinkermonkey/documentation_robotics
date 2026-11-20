@@ -119,14 +119,15 @@ describe("change-planning integration", () => {
       it("commits only the plan's own changeset directory", () => {
         expect(text).toContain("`documentation-robotics/changesets/<id>/`");
         expect(text).not.toContain("(`documentation-robotics/changesets/`)");
-        expect(text).toContain("`.active`");
-        expect(text).toMatch(
-          /keep (?:the )?`\.active`(?: marker)? out of\s+Git/
-        );
+        // Which changeset is active is local state in .dr/ (#1218), so there is no marker to keep out
+        expect(text).not.toContain("`.active`");
+        expect(text).toContain("as-built");
+        // #1197: the build step no longer reads as "keep the verification record out of git"
         expect(text).toMatch(
           /as-built verification record is created in Verify,\s+after this build commit/
         );
-        expect(text).not.toMatch(/as-built changeset stay out of the commit/);
+        expect(text).not.toMatch(/as-built changeset\s+stays? out of the commit/);
+        expect(text).not.toMatch(/keep the\s+as-built changeset out of the commit/);
       });
 
       it("lands only when the human asks and confirms", () => {

@@ -7,8 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-19
+
+**Specification Support:** v0.14.0
+
+The changeset lifecycle release. Every changeset now declares what it is for (a plan, DrBot's chat,
+a bootstrap, a reconcile, a verification record or an upgrade record), and that decides what may
+happen to it: a record never lands. Base drift is reported before a commit is tried and blocks only
+when the base overlaps what the changeset stages, so landing one plan no longer blocks the others.
+`changeset_commit` lands from clients that can't show its dialog, such as the Claude desktop app,
+through a preview and a confirmation token. `dr upgrade` rewrites three links it used to drop and
+records what it still drops in a changeset of its own. Which changeset is active is now
+per-checkout state in `.dr/`, and a marker that outlived its changeset can no longer lose a write.
+Extraction no longer offers a file as a candidate element. Bundles spec 0.14.0 (the generic Message
+type, and "a declared shape is a schema") and viewer 0.12.0.
+
+**Upgrading from 0.5.0:**
+
+- **Run `dr upgrade`** to take a model from spec 0.13.0 to 0.14.0. It is additive, except that a
+  model still holding `database serves applicationcomponent`, `database serves applicationservice`
+  or `ux.view serves applicationservice` has those links rewritten with their ends swapped.
+- **The active-changeset marker moved** from `documentation-robotics/changesets/.active` to
+  `.dr/active-changeset`. Nothing needs doing in a checkout: the old file is read until the next
+  activate or deactivate, which moves it. A project that committed the old file should commit its
+  deletion. A dr 0.5.0 on the same checkout (an installed plugin not yet updated) reads only the
+  old file, so update the two together.
+- **MCP callers:** the changeset argument is now `changeset` on every tool (#1158). The older
+  names (`changesetId`, `planned`, `against.changesetId`) are accepted in this release and go in
+  the next.
+- **`model_list` is compact by default** (#1187), and a summary above 150 elements. Pass
+  `detail: "full"` for the previous output.
+- **`changeset_discard` deletes the changeset's folder** (#1173), and refuses a committed
+  changeset. `dr changeset revert` still accepts one.
+- **`changeset_verify` returns a compact report by default** over MCP (#1152). Pass
+  `detail: "full"` for the whole report, or `sections: [...]` for some sections in full.
+- **Extraction no longer offers a file as a card.** `codebase_extract` and `dr analyzer classify`
+  build no card for a source file, and `dr analyzer classify --labels Module` is refused. An
+  element modelled from a file card stays in the model; nothing removes it.
+
 ### Added
 
+- **`GET /health` reports the CLI's version** as `cliVersion`. The response's `version` is the
+  HTTP API's own (`0.1.0`), so the viewer had nothing to show for the CLI: viewer 0.12.0 reads
+  `cliVersion` for its status bar and showed `cli —` without it. `docs/api-spec.yaml` is
+  regenerated.
+- **An upgrade records the relationships it drops** (#1164). A spec migration removes
+  relationships whose type the catalog retired with no replacement, and until now the only trace
+  was the git diff. `dr upgrade` and `project_upgrade` (with `apply`) now write them to a staged
+  changeset, `upgrade-drops-<spec version>`, with a new purpose, `upgrade-record`. Each dropped
+  relationship is one staged relationship delete: `before` is the relationship as it was recorded,
+  and the change's `origin` (`by: upgrade`) names the retired type and the change record that
+  retired it. Staged adds the upgrade removed from other changesets are recorded the same way. The
+  description counts the drops by type and lists, per type, the relationship types the catalog
+  still has between the same two element types, in either direction, so the user can re-add by
+  hand. An upgrade record never lands: `dr changeset commit`, `changeset_commit` (and its preview)
+  and the viewer's Apply (409) refuse it, its `actions` are `discard` only, base drift is
+  `not-applicable`, and later migrations leave it alone. It cannot be made active either (`dr
+  changeset activate` and `changeset_activate` refuse it), so no change is staged into a changeset
+  that could never land. `dr upgrade --dry-run` names the
+  changeset it would write, and `project_upgrade` returns `dropRecord` in the preview and the
+  applied result. A run that drops nothing writes no changeset. The REST API's `purpose` gains
+  `upgrade-record`, the changeset `origin.kind` gains `upgrade`, and a change's `origin.by` gains
+  `upgrade`; `docs/api-spec.yaml` is regenerated. A viewer older than these values shows the
+  record by what the API reports for it (`actions`), not by its purpose.
 - **`changeset_commit` lands from clients that can't show its confirmation dialog.** The Claude
   desktop app runs Claude Code in print mode, which declines every MCP elicitation at once while
   still advertising it, so `changeset_commit` was always refused there. The new
@@ -61,6 +122,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The active-changeset marker moved to `.dr/`** (#1218). Which changeset a checkout is working
+  in is per-checkout state, so the marker is now `.dr/active-changeset`, with the spec reference
+  and the analyzer state that `dr init` and `dr upgrade` already keep out of git. It was
+  `documentation-robotics/changesets/.active`, beside the changesets that are committed, where it
+  was easy to commit and then outlived its changeset in every clone. The old file is still read
+  when `.dr/` has no marker, so a checkout that is mid-change keeps its active changeset, and the
+  next activate or deactivate writes `.dr/` and deletes the old file. A project that committed
+  the old file should commit its deletion. `dr visualize` watches the new file, so the viewer
+  still learns of an activation made from the CLI or an agent. A dr older than this change (an
+  installed plugin, say) reads and writes only the old file, so mixing the two on one checkout can
+  disagree about which changeset is active until both are updated.
+- **Bundled viewer bumped to v0.12.0**: `documentation_robotics_viewer` moves `0.11.0` → `0.12.0`
+  (`cli/scripts/download-viewer.sh`). The viewer now follows what this release's changeset API
+  reports:
+  - It treats a changeset by its `purpose` and offers only the moves in `actions`, so a
+    verification record or an upgrade record shows as a record with Discard only.
+  - It shows base drift before review and before Apply, from the API's `drift` (state, what
+    overlaps and why), instead of only when an Apply is refused.
+  - Apply can land changes that have no verdict yet, and the review says "Keep all N" before
+    anything is decided.
+  - Each change in review and in Impact is easier to read, with origin badges and a filter by who
+    decided it.
+  - The Tier 1 panel shows spend, warming progress, mode and OpenRouter routing.
+  - It shows the real spec and CLI versions.
+- **Only a base change that overlaps a changeset blocks its landing.** A commit refused a changeset
+  for drift whenever any element in the base had changed or been removed since it was created,
+  also one the changeset neither edits nor links to, so one landing that edited an element blocked
+  every other staged plan until each was forced (#1169 had excepted only additions to the base).
+  With a base index, drift now blocks only when the base overlaps a staged change: an element the
+  changeset stages any change for (an update, a delete, or a delete then an add) changed or was
+  removed (new overlap reason `removed-in-base`), an element it deletes gained a relationship the
+  delete would remove (new reason `linked-in-base`), an element at an end of a relationship it adds
+  or deletes changed or was removed, the base already has what it adds, or no longer has what it
+  deletes. Any other base change is content-free and lands without `force`. Without a base index a changed hash still
+  blocks. `dr changeset commit`, `changeset_commit` and its preview, the viewer's Apply,
+  `project_status`'s `baseDrifted` and the viewer API's `drift` all read the one rule
+  (`StagingAreaManager.detectDrift`).
 - **`model_list` fits one tool result by default** (#1187). When 150 elements or fewer match, each
   comes back on one line with its id, name and the first sentence of its description (160
   characters at most, with `…` where something was left out). When more match, the result is a
@@ -78,13 +176,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refused.
 - **`changeset_discard` deletes the changeset's folder** (#1173) rather than leaving a `discarded`
   record nothing owns, and clears the active marker when it named it. A committed changeset can't
-  be discarded.
-- **`base-index.json` and `.active` are written the way prettier and end-of-file-fixer leave
-  them** (#1155): indented JSON and a final newline.
-
+  be discarded. `dr changeset revert` still accepts one, as it did before: its record is kept and
+  marked `discarded`, and the model keeps the changes it applied, which the command now says.
+- **`base-index.json` and the active-changeset marker are written the way prettier and
+  end-of-file-fixer leave them** (#1155): indented JSON and a final newline.
 - **Bundled spec gains `application.message` and the "a declared shape is a schema" definitions**
-  (see `spec/CHANGELOG.md`, Unreleased): 194 node types and 1,001 relationship types. The
+  (see `spec/CHANGELOG.md`, 0.14.0): 194 node types and 1,001 relationship types. The
   application and data-model layer skills teach the new boundaries.
+- **Bundled spec: code can access a database as a whole, and a service serves the view it backs**
+  (see `spec/CHANGELOG.md`, 0.14.0). Three relationship types, which brings the catalog to
+  1,004: `applicationcomponent accesses data-store.database`, `applicationservice accesses
+  data-store.database` and `applicationservice serves ux.view`. The application, data-store and ux
+  layer skills list them. Additive for a model already in line with the catalog. A model that
+  still holds the links spec 0.11.0 removed (`database serves applicationcomponent`, `database
+  serves applicationservice`, `ux.view serves applicationservice`) now has them rewritten to these
+  types by `dr upgrade` (see Fixed, #1164); links an earlier upgrade already dropped are not
+  restored by it.
 - **Tier 1 is re-measured on those definitions, and Clef stays in hide mode.** The definitions
   changed the criteria Tier 1 sends, which made the 2026-11-16 held-out verdict stale. The held-out
   runs were repeated (`docs/analyzers/TIER1_CALIBRATION.md` section 12) with Tier 0's interface rule
@@ -95,7 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (85.6%; 65.4% before the rulings, on four corpora), still short of the target, so it stays a
   suggestion the agent confirms. Thresholds are unchanged (0.6, 0.4, 0.6).
 - **Bundled spec: a data object is a domain object, and a store-style interface is an object
-  schema** (see `spec/CHANGELOG.md`, Unreleased; wording only). These definitions are part of the
+  schema** (see `spec/CHANGELOG.md`, 0.14.0; wording only). These definitions are part of the
   criteria Tier 1 sends, so the held-out runs were repeated on them
   (`docs/analyzers/TIER1_CALIBRATION.md` section 14). Clef's not-element band is unchanged at 227
   of 231, so hide mode stands. Its accept band is 153 of 178 (86.0%), still a suggestion. The
@@ -122,9 +229,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cards Tier 1 was asked were files.
 - **ArchiMate export** writes an `application.message` as an ArchiMate DataObject, since ArchiMate
   has no message element.
+- **Internal: `npm test` fails when any of its test blocks fails.** `test`, `test:unit`, `test:all`
+  and the `test:coverage*` scripts joined their `bun test` blocks with `;`, so only the last block's
+  exit code counted: in the 0.5.0 release prep, 30 failures in the first (`--concurrent`) block still
+  exited 0 and would have passed the release workflow's `npm test` gate (and `npm run test:linux --
+  test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
+  failed ones and exits 1 if any failed. The blocks, flags, paths and `--test-name-pattern`
+  exclusions are unchanged.
 
 ### Fixed
 
+- **A leftover `.active` marker no longer loses writes** (#1218). The marker
+  (`documentation-robotics/changesets/.active`) could name a changeset that was committed,
+  discarded or deleted since: committed to git it outlives its changeset in every clone. The model
+  then projected that changeset while the write path staged only into a staged one, so `dr add`,
+  `dr update`, `dr delete` and the MCP `model_*` tools edited a projected copy of the layer,
+  reported success and saved nothing. The marker now counts only while it names a staged
+  changeset, on every surface: `Model.load`, `StagingAreaManager.getActive` / `getActiveId` /
+  `isActive`, and so the CLI, the MCP tools and the viewer. `dr changeset status` says when a
+  leftover marker is being ignored, and `dr changeset deactivate` removes it. A base write from a
+  model that is still projecting a changeset (it stopped being staged after the model was read)
+  now fails with "The change was not saved" instead of storing nothing. This repository no longer
+  tracks its own `.active` file, and the marker has moved to `.dr/` (see Changed).
+- **`dr upgrade` rewrites three links it used to drop** (#1164). Spec 0.11.0 removed `database
+  serves applicationcomponent`, `database serves applicationservice` and `ux.view serves
+  applicationservice` with no replacement, so the migration dropped every such relationship.
+  Context Studio proposals 93d40a94 and 38fa8fa3 have since added the types that say the same
+  thing the other way round, and the migration now rewrites the old links to `applicationcomponent
+  accesses database`, `applicationservice accesses database` and `applicationservice serves
+  ux.view`, each with source and target swapped, in `relationships.yaml` and in staged changesets
+  alike. The rewrite table's generator (`scripts/generate-relationship-migration.ts`) gains a
+  `replace-dropped` action for this: a hand-written change record
+  (`applied-routes-for-dropped-relationships.json`) names the catalog type that replaces a triple
+  an earlier record dropped. The generator stops when no earlier record dropped the triple, when
+  the replacement is not in the catalog, or when it links other element types.
 - **A plan's verification record can't be landed** (#1172). `codebase_extract` stages what was
   built into it so `changeset_verify` can compare it with the plan; landing it added extraction's
   raw reading of the branch to the model and stamped `reconciled` as if the whole model matched the
@@ -677,13 +815,6 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
 
 ### Changed
 
-- **Internal: `npm test` fails when any of its test blocks fails.** `test`, `test:unit`, `test:all`
-  and the `test:coverage*` scripts joined their `bun test` blocks with `;`, so only the last block's
-  exit code counted: in the 0.5.0 release prep, 30 failures in the first (`--concurrent`) block still
-  exited 0 and would have passed the release workflow's `npm test` gate (and `npm run test:linux --
-  test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
-  failed ones and exits 1 if any failed. The blocks, flags, paths and `--test-name-pattern`
-  exclusions are unchanged.
 - **Tier 1's layer criteria leave out each layer's "Modelling rules:" paragraph** (rollout PR 8;
   `layerScopeCriterion` in `src/analyzers/classifier/criteria.ts`). Since spec 0.11.0 those
   paragraphs (which predicates a layer's elements use) tripled the layer criteria and cost Clef 11

@@ -443,7 +443,7 @@ describe("upgrade command - unified flow", () => {
       // Verify model spec version was updated to latest
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.13.0");
+      expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
     it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
@@ -490,7 +490,7 @@ describe("upgrade command - unified flow", () => {
       // Should complete all migrations and reach latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.13.0");
+      expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
     it("should show migration steps in output", async () => {
@@ -553,7 +553,7 @@ describe("upgrade command - unified flow", () => {
       // Model should be upgraded to latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.13.0");
+      expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
     it("should complete both upgrades successfully", async () => {
@@ -1127,6 +1127,135 @@ describe("upgrade command - unified flow", () => {
       const api = (await Promise.all((await readdir(apiDir)).map((f) => readFile(join(apiDir, f), "utf-8")))).join("\n");
       expect(api).toContain("api.operation.list-orders");
       expect(api).not.toContain("operationId");
+    });
+
+    /**
+     * The three links spec 0.11.0 removed and Context Studio proposals 93d40a94 and 38fa8fa3 gave a
+     * route (ends swapped), and one link with no route: an operation's `delivers` of a response.
+     */
+    async function writeRoutesModel(workdir: string): Promise<void> {
+      const modelDir = join(workdir, "documentation-robotics/model");
+      const element = (path: string) => {
+        const [layerId, type, name] = path.split(".");
+        return { [path]: { id: crypto.randomUUID(), path, spec_node_id: `${layerId}.${type}`, type, layer_id: layerId, name } };
+      };
+      const layerFile = async (dir: string, ...paths: string[]) => {
+        await mkdir(join(modelDir, dir), { recursive: true });
+        await writeFile(join(modelDir, dir, "elements.yaml"), yaml.stringify(Object.assign({}, ...paths.map(element))));
+      };
+      await layerFile("05_application", "application.applicationcomponent.order-repository", "application.applicationservice.order-service");
+      await layerFile("07_api", "api.operation.list-orders", "api.response.ok");
+      await layerFile("09_data-store", "data-store.database.orders-db");
+      await layerFile("10_ux", "ux.view.order-list");
+      await writeFile(
+        join(modelDir, "relationships.yaml"),
+        yaml.stringify([
+          { source: "data-store.database.orders-db", predicate: "serves", target: "application.applicationcomponent.order-repository", layer: "data-store", targetLayer: "application" },
+          { source: "data-store.database.orders-db", predicate: "serves", target: "application.applicationservice.order-service", layer: "data-store", targetLayer: "application" },
+          { source: "ux.view.order-list", predicate: "serves", target: "application.applicationservice.order-service", layer: "ux", targetLayer: "application", properties: { note: "loads the list" } },
+          { source: "api.operation.list-orders", predicate: "delivers", target: "api.response.ok", layer: "api", properties: { status: 200 } },
+        ])
+      );
+    }
+
+    async function readChangesets(workdir: string): Promise<Array<{ metadata: Record<string, any>; changes: Array<Record<string, any>> }>> {
+      const dir = join(workdir, "documentation-robotics/changesets");
+      if (!(await fileExists(dir))) return [];
+      const ids = (await readdir(dir, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory() && !entry.name.endsWith(".lock"))
+        .map((entry) => entry.name);
+      return Promise.all(
+        ids.map(async (id) => ({
+          metadata: yaml.parse(await readFile(join(dir, id, "metadata.yaml"), "utf-8")),
+          changes: yaml.parse(await readFile(join(dir, id, "changes.yaml"), "utf-8")) ?? [],
+        }))
+      );
+    }
+
+    it("rewrites the three links that have a route with their ends swapped, and records the one that has none", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const version = await getModelSpecVersion(tempDir.path);
+      await writeRoutesModel(tempDir.path);
+
+      // The dry run names the record it would write, and writes nothing
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      assertOutputContains(plan, "would drop 1 relationship(s)");
+      assertOutputContains(plan, "1 × api.operation --[delivers]--> api.response");
+      assertOutputContains(plan, `recorded in a staged changeset, 'upgrade-drops-${version}'`);
+      expect(await readChangesets(tempDir.path)).toEqual([]);
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, `Recorded 1 dropped relationship(s) in the staged changeset 'upgrade-drops-${version}'`);
+
+      // The three rewritten, each with source and target swapped; the fourth gone from the model
+      const rels = yaml.parse(await readFile(join(tempDir.path, "documentation-robotics/model/relationships.yaml"), "utf-8"));
+      expect(rels).toEqual([
+        { source: "application.applicationcomponent.order-repository", predicate: "accesses", target: "data-store.database.orders-db", layer: "application", targetLayer: "data-store" },
+        { source: "application.applicationservice.order-service", predicate: "accesses", target: "data-store.database.orders-db", layer: "application", targetLayer: "data-store" },
+        { source: "application.applicationservice.order-service", predicate: "serves", target: "ux.view.order-list", layer: "application", targetLayer: "ux", properties: { note: "loads the list" } },
+      ]);
+
+      // One staged record, holding the dropped relationship as it was, and what retired it
+      const changesets = await readChangesets(tempDir.path);
+      expect(changesets).toHaveLength(1);
+      const [record] = changesets;
+      expect(record.metadata.name).toBe(`upgrade-drops-${version}`);
+      expect(record.metadata.status).toBe("staged");
+      expect(record.metadata.purpose).toBe("upgrade-record");
+      expect(record.metadata.origin.kind).toBe("upgrade");
+      expect(record.metadata.description).toContain("1 x api.operation --[delivers]--> api.response");
+      expect(record.changes).toHaveLength(1);
+      expect(record.changes[0]).toMatchObject({
+        type: "relationship-delete",
+        elementId: "api.operation.list-orders::delivers::api.response.ok",
+        layerName: "api",
+        before: { source: "api.operation.list-orders", predicate: "delivers", target: "api.response.ok", layer: "api", properties: { status: 200 } },
+        origin: { by: "upgrade" },
+      });
+      expect(record.changes[0].origin.rule).toContain("api.operation.delivers.api.response retired by ");
+
+      // It is listed, it is not active, and it never lands
+      const list = await runDr(["changeset", "list"], { cwd: tempDir.path });
+      expect(list.exitCode).toBe(0);
+      assertOutputContains(list, `upgrade-drops-${version}`);
+      const commit = await runDr(["changeset", "commit", `upgrade-drops-${version}`], { cwd: tempDir.path });
+      expect(commit.exitCode).not.toBe(0);
+      expect(`${commit.stdout}${commit.stderr}`).toContain("is an upgrade record");
+      expect(yaml.parse(await readFile(join(tempDir.path, "documentation-robotics/model/relationships.yaml"), "utf-8"))).toEqual(rels);
+
+      // It cannot be made active either: a change staged into it could never land
+      const activate = await runDr(["changeset", "activate", `upgrade-drops-${version}`], { cwd: tempDir.path });
+      expect(activate.exitCode).not.toBe(0);
+      expect(`${activate.stdout}${activate.stderr}`).toContain("It cannot be made active");
+      expect(await fileExists(join(tempDir.path, ".dr/active-changeset"))).toBe(false);
+      expect(await fileExists(join(tempDir.path, "documentation-robotics/changesets/.active"))).toBe(false);
+
+      // A second run has nothing to drop, and writes no second record
+      const again = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(again.exitCode).toBe(0);
+      assertOutputContains(again, "Everything is up to date");
+      expect(await readChangesets(tempDir.path)).toHaveLength(1);
+    });
+
+    it("writes no record when the upgrade drops nothing", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await writeRoutesModel(tempDir.path);
+      const relsPath = join(tempDir.path, "documentation-robotics/model/relationships.yaml");
+      const rels = yaml.parse(await readFile(relsPath, "utf-8")) as Array<{ predicate: string }>;
+      await writeFile(relsPath, yaml.stringify(rels.filter((rel) => rel.predicate !== "delivers")));
+
+      const plan = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(plan.exitCode).toBe(0);
+      expect(plan.stdout).not.toContain("would drop");
+      expect(plan.stdout).not.toContain("upgrade-drops-");
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).not.toContain("Recorded");
+      expect(yaml.parse(await readFile(relsPath, "utf-8"))).toHaveLength(3);
+      expect(await readChangesets(tempDir.path)).toEqual([]);
     });
   });
 

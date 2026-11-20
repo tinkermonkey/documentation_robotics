@@ -12,6 +12,7 @@ import { createServer, type Server } from "node:http";
 import { realpathSync } from "node:fs";
 import { writeViewerRecord } from "../../../src/server/viewer-registry.js";
 import { Model } from "../../../src/core/model.js";
+import { MigrationRegistry } from "../../../src/core/migration-registry.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
@@ -137,7 +138,11 @@ describe("project_status", () => {
     expect(data.spec.model).toBe("0.10.0");
     expect(data.spec.upgradeNeeded).toBe(true);
     expect(data.spec.migration.available).toBe(true);
-    expect(data.spec.migration.steps).toEqual(["0.10.0 → 0.11.0", "0.11.0 → 0.12.0", "0.12.0 → 0.13.0"]);
+    // From the registry, so the next spec bump doesn't need this line edited
+    const chain = new MigrationRegistry().getMigrationPath("0.10.0").map((m) => `${m.fromVersion} → ${m.toVersion}`);
+    expect(chain[0]).toBe("0.10.0 → 0.11.0");
+    expect(chain.length).toBeGreaterThanOrEqual(4);
+    expect(data.spec.migration.steps).toEqual(chain);
     expect(data.nextStep.tool).toBe("project_upgrade");
     expect(data.nextStep.summary).toContain("0.10.0");
   });
@@ -255,12 +260,16 @@ describe("project_status", () => {
     expect(data.nextStep.summary).toContain("add-refunds");
   });
 
-  it("lists staged changesets that aren't active, and flags one whose base moved", async () => {
+  it("lists staged changesets that aren't active, and flags one whose base moved under what it stages", async () => {
     await initModel(rootPath);
     await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
     await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
+    // The plan rewords the element...
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit log", rootPath } as any)
+    );
     await ok(await changesetDeactivateHandler({ rootPath }));
-    // A change, after the changeset opened, to an element the base had then moves its base.
+    // ...and the base then changes the same element under it.
     await ok(
       await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
     );
@@ -272,6 +281,27 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(1);
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
+  });
+
+  it("doesn't flag a changeset when the base changed an element it neither edits nor links to", async () => {
+    await initModel(rootPath);
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "billing", rootPath }));
+    await ok(await changesetCreateHandler({ name: "parked-plan", rootPath }));
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.billing", description: "Invoices", rootPath } as any)
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // The base changes another element than the one the plan rewords.
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
+    );
+    clearModelCache();
+
+    const data = await status(rootPath);
+
+    expect(data.changesets.staged[0].name).toBe("parked-plan");
+    expect(data.changesets.staged[0].baseDrifted).toBe(false);
   });
 
   it("doesn't flag a changeset whose base only gained elements since it opened (#1169)", async () => {

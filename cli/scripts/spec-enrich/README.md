@@ -181,6 +181,15 @@ the triple's relationships to as its `to` (same or reversed pair only). An older
 `records` (or with an empty list) has them derived from the changes, where a retarget's delete is always dropped. Then
 rebuild the spec, the CLI and the migration table as for any spec change.
 
+A proposal that adds a type which says what an earlier dropped one said (often the same pair the
+other way round) lands as a plain create, which names no predecessor, so `dr upgrade` would still
+drop the old relationships. Name the predecessor by hand, in a maintainer record such as
+`data/applied-routes-for-dropped-relationships.json` with an `applied_at` later than the drop:
+`{"action": "replace-dropped", "from": <the dropped triple>, "to": <the new triple>}`. The
+generator re-routes every rule that ended in that drop, swapping ends when the pair is reversed,
+and stops when no earlier record dropped `from`, when `to` is not in the catalog, or when `to`
+links other element types. Use it only for a type a Context Studio proposal added.
+
 The same export carries node types and attributes, and the script lands them in `seq` order with
 the relationship changes:
 

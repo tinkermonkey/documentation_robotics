@@ -11,7 +11,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
 import { randomBytes, randomUUID } from "crypto";
-import { existsSync, realpathSync } from "fs";
+import { existsSync, mkdirSync, realpathSync } from "fs";
 import { realpath } from "fs/promises";
 import { homedir } from "os";
 import { createRequire } from "module";
@@ -24,7 +24,9 @@ import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
-import { allowedActions, purposeOf, VerificationRecordLandingError } from "../core/changeset-purpose.js";
+import { activeMarkerPath } from "../core/active-changeset-marker.js";
+import { getCliVersion } from "../utils/spec-version.js";
+import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
 import {
@@ -885,6 +887,8 @@ export class VisualizationServer {
       const response: any = {
         status: this.chatInitializationError ? "degraded" : "ok",
         version: "0.1.0",
+        // The dr CLI serving the API: the viewer shows it; `version` is the API's own.
+        cliVersion: getCliVersion(),
       };
 
       // Include warnings if any services failed to initialize
@@ -1746,7 +1750,7 @@ export class VisualizationServer {
       },
       409: {
         description:
-          'Changeset is not staged, the model drifted since it was created, or (commit) it is a verification record, which is never landed',
+          'Changeset is not staged, the model drifted since it was created, or (commit) it is a verification record or an upgrade record, which is never landed',
         content: { 'application/json': { schema: ErrorResponseSchema } },
       },
       422: {
@@ -3527,7 +3531,7 @@ export class VisualizationServer {
   /**
    * Watch the model and the changesets for changes made outside the server (the CLI, DrBot).
    * A model change reloads and broadcasts `model.updated`. A changeset change, including the
-   * `.active` marker, broadcasts a debounced `changesets.updated`. An annotation change (the
+   * active-changeset marker in `.dr/`, broadcasts a debounced `changesets.updated`. An annotation change (the
    * MCP annotation_* tools write the same files) broadcasts what changed, debounced.
    */
   private setupFileWatcher(): void {
@@ -3535,6 +3539,9 @@ export class VisualizationServer {
     const modelPath = path.join(drRoot, "model");
     const changesetsPath = path.join(drRoot, "changesets");
     const annotationsPath = path.join(drRoot, "annotations");
+    // Which changeset is active is per-checkout state in .dr/ (active-changeset-marker.ts)
+    const markerPath = activeMarkerPath(this.model.rootPath);
+    const markerDir = path.dirname(markerPath);
     const isWithin = (filePath: string, dir: string) =>
       filePath === dir || filePath.startsWith(dir + path.sep);
 
@@ -3546,12 +3553,23 @@ export class VisualizationServer {
     // changesets/ until its first changeset: watch documentation-robotics/ and keep to
     // model/, changesets/ and annotations/ under it.
     try {
-      this.watcher = chokidar.watch(drRoot, {
+      // .dr/ is watched for the marker alone: its other contents (the spec reference, analyzer
+      // state, logs) are ignored, so nothing under them is read or watched. chokidar can't watch
+      // a directory that isn't there yet, and a fresh checkout has no .dr/ until something
+      // writes per-checkout state, so make it.
+      try {
+        mkdirSync(markerDir, { recursive: true });
+      } catch (error) {
+        console.warn(`[Watcher] Could not create ${markerDir}: ${getErrorMessage(error)}`);
+      }
+      this.watcher = chokidar.watch([drRoot, markerDir], {
         persistent: true,
         ignoreInitial: true,
         ignored: (filePath: string) =>
           !(
             filePath === drRoot ||
+            filePath === markerDir ||
+            filePath === markerPath ||
             isWithin(filePath, modelPath) ||
             isWithin(filePath, changesetsPath) ||
             isWithin(filePath, annotationsPath)
@@ -3568,7 +3586,7 @@ export class VisualizationServer {
           return;
         }
 
-        if (isWithin(filePath, changesetsPath)) {
+        if (filePath === markerPath || isWithin(filePath, changesetsPath)) {
           this.scheduleChangesetsBroadcast();
           return;
         }
@@ -4408,7 +4426,7 @@ export class VisualizationServer {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
     }
     if (action === "commit") {
-      // A verification record never lands (commit refuses it too); refused before any review drop.
+      // A record (verification or upgrade) never lands (commit refuses it too); refused before any review drop.
       const refusal = await manager.landingRefusal(changeset);
       if (refusal) return c.json({ error: refusal.fullText }, 409);
     }
@@ -4461,7 +4479,7 @@ export class VisualizationServer {
       }
     } catch (error) {
       if (restoreOnFailure) await this.restoreDroppedChanges(changeset.id, restoreOnFailure);
-      if (error instanceof VerificationRecordLandingError) {
+      if (error instanceof RecordLandingError) {
         return c.json({ error: error.fullText }, 409);
       }
       const message = getErrorMessage(error);

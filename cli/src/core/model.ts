@@ -4,6 +4,7 @@ import { Element } from "./element.js";
 import { GraphModel, type GraphEdge } from "./graph-model.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
+import { readActiveMarker } from "./active-changeset-marker.js";
 import { Relationships, type Relationship } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import type { StagedChange } from "./changeset.js";
@@ -1283,24 +1284,21 @@ export class Model {
       // Check for active changeset and pre-load staged metadata for transparent projection.
       // This enables getLayer() to return projected views and getLayerNames() to include
       // layers that exist only in staged changes.
-      const activePath = path.join(
-        projectRoot,
-        "documentation-robotics",
-        "changesets",
-        ".active"
-      );
       try {
-        const activeContent = await fs.readFile(activePath, "utf-8");
-        const activeId = activeContent.trim();
+        const activeId = await readActiveMarker(projectRoot);
         if (activeId) {
-          model._activeChangesetId = activeId;
-          // Keep the committed relationships before the active changeset's are merged in below,
-          // for views that apply a changeset themselves (ChangesetGraph).
-          model._baseRelationships = model.relationships.getAll();
           const storage = new StagedChangesetStorage(projectRoot);
           try {
             const changeset = await storage.load(activeId);
-            if (changeset) {
+            // The marker counts only while it names a staged changeset (as
+            // StagingAreaManager.getActive reads it). One that outlived its changeset (committed,
+            // discarded or deleted since) is no active changeset: projecting it would send a
+            // base write into a projected copy of the layer, which is saved nowhere (#1218).
+            if (changeset && changeset.status === "staged") {
+              model._activeChangesetId = activeId;
+              // Keep the committed relationships before the active changeset's are merged in
+              // below, for views that apply a changeset themselves (ChangesetGraph).
+              model._baseRelationships = model.relationships.getAll();
               for (const change of changeset.changes as StagedChange[]) {
                 // Track layer names for getLayerNames()
                 if (
@@ -1324,7 +1322,7 @@ export class Model {
                     properties?: Record<string, unknown>;
                   };
                   // Only inject if not already in relationships.yaml (prevents duplicates
-                  // if .active file is stale after a partial commit or manual edit).
+                  // if the marker is stale after a partial commit or manual edit).
                   const alreadyPresent = model.relationships.find(
                     rel.source,
                     rel.target,
@@ -1365,7 +1363,7 @@ export class Model {
           }
         }
       } catch (err) {
-        // Only ignore ENOENT (.active file doesn't exist - expected for no active changeset)
+        // Only ignore ENOENT (a changeset file that isn't there). No marker reads as null above.
         const isNotFoundError = (err as any)?.code === "ENOENT";
         if (!isNotFoundError) {
           // Re-throw permission/I/O errors and changeset loading errors

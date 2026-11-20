@@ -96,8 +96,10 @@ export const changesetShowTool: McpToolDefinition<typeof inputSchema> = {
     "Show a single changeset's detail including its description, stats, and list of changes. Pass " +
     'detail: "summary" for one compact line per change (operation, element or relationship, changed fields) ' +
     "and totals per operation, without the before/after snapshots. Includes its purpose (plan, chat, bootstrap, " +
-    "reconcile or verification, with verifies and scope for a verification record) and the actions its state " +
-    "allows (commit, discard; a verification record is never committed). Includes the revision and, when the reviewer " +
+    "reconcile, verification or upgrade-record, with verifies and scope for a verification record) and the actions its state " +
+    "allows (commit, discard; a verification record or an upgrade record is never committed). An upgrade record (written by " +
+    "project_upgrade or dr upgrade) lists the relationships a spec migration dropped as staged relationship deletes, each with the retired type and change record in origin; its description lists the types the catalog still has between the " +
+    "same element types. Includes the revision and, when the reviewer " +
     "has given verdicts in the viewer, review.decisions: per change (sequence) keep, drop or ask with the " +
     "reviewer's note; current is false when the change was rewritten or unstaged since the verdict.",
   inputSchema,

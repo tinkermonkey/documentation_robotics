@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import path from "path";
-import { writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { Model } from "@/core/model";
 import { Layer } from "@/core/layer";
 import { Element } from "@/core/element";
@@ -18,7 +18,8 @@ import { validateCommand } from "@/commands/validate";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
 async function activateChangeset(workdirPath: string, changesetId: string): Promise<void> {
-  const activePath = path.join(workdirPath, "documentation-robotics", "changesets", ".active");
+  const activePath = path.join(workdirPath, ".dr", "active-changeset");
+  await mkdir(path.dirname(activePath), { recursive: true });
   await writeFile(activePath, changesetId, "utf-8");
 }
 

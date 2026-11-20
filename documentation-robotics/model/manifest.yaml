@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.5.0
 spec_version: 0.13.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-18T18:12:07.838Z
+updated: 2026-11-19T14:46:07.731Z
 project:
   name: dr-codebase
   description: ""
@@ -16,12 +16,12 @@ layers:
     path: documentation-robotics/model/01_motivation/
     enabled: true
     elements:
-      assessment: 1
+      assessment: 3
+      constraint: 1
       goal: 2
       outcome: 5
       principle: 5
-      requirement: 8
-      constraint: 1
+      requirement: 12
   business:
     order: 2
     name: Business
@@ -33,7 +33,7 @@ layers:
     path: documentation-robotics/model/03_product/
     enabled: true
     elements:
-      feature: 28
+      feature: 30
       persona: 3
       softwarecapability: 7
       userworkflow: 13
@@ -100,4 +100,13 @@ changeset_history:
     action: committed
   - name: files-are-source-links
     committed_at: 2026-11-18T18:12:07.823Z
+    action: committed
+  - name: changeset-drift-in-rest-api
+    committed_at: 2026-11-19T11:49:54.905Z
+    action: committed
+  - name: drift-blocks-only-on-overlap
+    committed_at: 2026-11-19T11:51:16.887Z
+    action: committed
+  - name: record-upgrade-drops
+    committed_at: 2026-11-19T14:46:07.730Z
     action: committed

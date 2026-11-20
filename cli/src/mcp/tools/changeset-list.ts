@@ -36,7 +36,7 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
       }
     > = {};
     for (const changeset of changesets) {
-      // What it is for, and so the moves it allows now: a verification record is never committed.
+      // What it is for, and so the moves it allows now: a record (verification or upgrade) is never committed.
       const { purpose, verifies } = await manager.purposeOf(changeset);
       changesetsById[changeset.id] = {
         name: changeset.name,
@@ -61,8 +61,9 @@ export const changesetListTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_list",
   description:
     "List all staged changesets, mirroring the REST GET /api/changesets endpoint. Each has its purpose (plan, " +
-    "chat, bootstrap, reconcile or verification; a verification record names the plan it verifies) and the " +
-    "actions its state allows (commit, discard): a verification record is never committed.",
+    "chat, bootstrap, reconcile, verification or upgrade-record; a verification record names the plan it verifies; an " +
+    "upgrade record lists the relationships a spec migration dropped) and the actions its state allows (commit, " +
+    "discard): a verification record or an upgrade record is never committed.",
   inputSchema,
   handler: changesetListHandler,
 };

@@ -32,6 +32,17 @@ the CLI. Planning a change therefore always starts with `changeset_create`. In c
 is refused with a pointer to `changeset_create`. `project_init` and `project_upgrade` write outside
 any changeset, so that mode refuses them outright.
 
+**Which changeset is active.** One file names it: `.dr/active-changeset`, the changeset's id. It is
+per-checkout state, so it lives in `.dr/` with the spec reference and the analyzer state, which
+`dr init` and `dr upgrade` keep out of git. Until #1218 it was
+`documentation-robotics/changesets/.active`, beside the changesets that are committed; that file is
+still read when `.dr/` has no marker, and the next activate or deactivate moves it (delete it from
+git if a project committed it). The marker counts only while it names a staged changeset: one
+that names a changeset that has been committed, discarded or deleted since is no active changeset
+on any surface (`Model.load`, the CLI, the MCP tools, the viewer), and writes then go to the base
+model. `dr changeset status` says when such a marker is being ignored; `dr changeset deactivate`
+removes it (#1218).
+
 Changeset files are committed with the code, and dr writes them in its own layout, which prettier
 would reformat on every commit. So when the project uses prettier (a prettier config file, a
 `prettier` key or dependency in `package.json`, or a prettier pre-commit hook, at the git
@@ -48,7 +59,7 @@ gaps (#1026); _tier 1_ is Tier 1 in `codebase_extract` ([TIER1_DESIGN.md](analyz
 | ------------- | ------------------------------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Start         | `project_status`                                             | gateway  | Where the repo stands with DR: model, spec version, changesets, code index, code changed since the model last did (git). Ends with the next step and its tool. The first call in a session.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Onboard       | `project_init`                                               | gateway  | Create an empty model at the current spec version in the open folder, without prompts. Fails if it has a model; installs no integration files.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Upgrade       | `project_upgrade`                                            | gateway  | Preview moving the model to the spec this dr carries (version path, type renames, relationship rewrites, what it can't migrate, and `wouldOrphan`: the elements the migration's own dry-run relationships leave with no relationship or reference, by their new ids); `apply: true` runs it, lists the model files it wrote, added and removed (`filesModified`, `files`), and validates the base model with the warnings `dr validate` reports (orphans, missing source references); `force: true` with `apply` stamps an additive spec change.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Upgrade       | `project_upgrade`                                            | gateway  | Preview moving the model to the spec this dr carries (version path, type renames, relationship rewrites, what it can't migrate, `dropRecord`: the staged changeset the dropped relationships would be recorded in, and `wouldOrphan`: the elements the migration's own dry-run relationships leave with no relationship or reference, by their new ids); `apply: true` runs it, writes that upgrade record when it dropped any (see [What an upgrade drops](#what-an-upgrade-drops)), lists the model files it wrote, added and removed (`filesModified`, `files`), and validates the base model with the warnings `dr validate` reports (orphans, missing source references); `force: true` with `apply` stamps an additive spec change.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Frame         | `changeset_create`                                           | slice 1  | Create a changeset from a name and the change's intent, and activate it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Frame         | `changeset_activate`                                         | slice 1  | Make an existing staged changeset the one mutations stage into.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Frame         | `changeset_deactivate`                                       | slice 1  | Stop staging; mutations write the base model again.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -81,13 +92,14 @@ Every changeset declares its purpose when it is made, in its `metadata.yaml` (co
 changeset), apart from `origin.kind`, which says who made it. The purpose decides what can happen
 to it:
 
-| Purpose        | Made by                                                              | What happens to it                                                                                                              |
-| -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `plan`         | `changeset_create`, `dr changeset create`                            | Lands with the code.                                                                                                            |
-| `chat`         | DrBot (`changeset_create` or `dr` under `dr visualize`)              | Lands after review.                                                                                                             |
-| `bootstrap`    | `codebase_extract` without `since`                                   | Lands, and reconciles code drift.                                                                                               |
-| `reconcile`    | `codebase_extract` with `since` and no plan active                   | Lands, and reconciles code drift.                                                                                               |
-| `verification` | `codebase_extract` with `since` while a plan is active (verify mode) | Never lands. Compare it with the plan; discard it, or keep it staged and commit its directory beside the plan's in the code PR. |
+| Purpose          | Made by                                                                              | What happens to it                                                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plan`           | `changeset_create`, `dr changeset create`                                            | Lands with the code.                                                                                                                                         |
+| `chat`           | DrBot (`changeset_create` or `dr` under `dr visualize`)                              | Lands after review.                                                                                                                                          |
+| `bootstrap`      | `codebase_extract` without `since`                                                   | Lands, and reconciles code drift.                                                                                                                            |
+| `reconcile`      | `codebase_extract` with `since` and no plan active                                   | Lands, and reconciles code drift.                                                                                                                            |
+| `verification`   | `codebase_extract` with `since` while a plan is active (verify mode)                 | Never lands. `changeset_verify` compares the plan with it; then it is discarded, or kept as a record: it stays staged and is committed to git with the plan. |
+| `upgrade-record` | `dr upgrade`, `project_upgrade` with `apply`, when the migration drops relationships | Never lands. It lists the relationships a spec migration dropped; the user restores what still applies by hand, then discards it.                            |
 
 - A verification record also carries the plan it verifies (`verifies`, the plan's changeset id)
   and what its extraction read (`scope: {since, codeCommit}`).
@@ -101,11 +113,13 @@ to it:
 - `changeset_list`, `changeset_show`, `project_status` and the viewer API
   (`GET /api/changesets`, `GET /api/changesets/:id`) report each changeset's `purpose`, and
   `actions`: the moves its state allows. A staged changeset offers `commit` and `discard`, a
-  verification record only `discard`, and a committed or discarded one nothing.
+  record (a verification record or an upgrade record) only `discard`, and a committed or discarded
+  one nothing.
 - The viewer API reports base drift on the same two endpoints, with no commit attempt (`drift`,
   from `cli/src/core/changeset-drift-status.ts`), so the viewer can show it before Apply. Its
-  `state` is `none`, `content-free` (the model's hash changed, as when another changeset lands, but
-  nothing this one was staged against did), `drifted` (the base changed in content), `not-applicable` (a verification record,
+  `state` is `none`, `content-free` (the base changed, as when another changeset lands, but it
+  overlaps none of this one's staged changes), `drifted` (the base overlaps a staged change, or
+  there is no base index to tell), `not-applicable` (a verification record or an upgrade record,
   which never lands, or a changeset that is no longer staged) or `unknown` (no base snapshot, or
   the check failed). `blocksCommit` is true only for `drifted`: it is the check the commit makes
   (`StagingAreaManager.detectDrift`), so it is true exactly when Apply would be refused for drift.
@@ -116,6 +130,44 @@ to it:
   `changeset_commit` (and its preview) and the viewer's Apply (409) all refuse it the same way. The
   refusal names the plan and says what to do: land the plan; keep or discard the record; to
   reconcile drift, extract without a plan active.
+- An upgrade record is refused the same way, on the same three surfaces. Its refusal says how to
+  restore a dropped relationship and to discard the record when done.
+
+### What an upgrade drops
+
+A spec migration rewrites the relationships whose type the catalog retired
+(`cli/src/core/relationship-migration.ts`, from the generated table
+`relationship-migration-table.ts`). A retired type with a replacement is rewritten, with source
+and target swapped when the replacement runs the other way. A retired type with none is dropped:
+the relationship is removed from `relationships.yaml`, and a staged add of it is removed from its
+changeset.
+
+- **The record.** When an upgrade drops anything, it writes one staged changeset,
+  `upgrade-drops-<spec version>` (`-2`, `-3` when that name is taken), with purpose
+  `upgrade-record` and `origin.kind: upgrade` (`cli/src/core/upgrade-drop-record.ts`). Each dropped
+  relationship is one staged relationship delete: `before` holds the relationship as it was
+  recorded, properties included, and the change's `origin` (`by: upgrade`) names the retired type
+  and the change record that retired it (`rule: api.operation.delivers.api.response retired by
+cs-177ff609-...`). A staged add the upgrade removed from another changeset is recorded the same
+  way, its `rule` naming that changeset. A run that drops nothing writes no changeset, so a second
+  run writes no second one.
+- **Routes.** The record's description counts the drops by type and lists, for each type, the
+  relationship types the catalog still has between the same two element types, in either
+  direction (`api.operation --[references]--> api.tag (ends swapped)`), or says it has none. They
+  are candidates, not replacements: whether one says what the dropped relationship said is the
+  reader's call. `dr upgrade --dry-run` prints the same list and the name of the changeset it would
+  write; `project_upgrade` returns both as `dropRecord` (`changeset`, `relationships`, `routes`),
+  in the preview and in the applied result.
+- **It never lands.** `actions` is `discard` only, base drift is `not-applicable`, and it cannot be
+  made active: `dr changeset activate` and `changeset_activate` refuse it, so nothing is staged
+  into a changeset that could never land. Later migrations leave it alone, and the upgrade does not re-baseline it. If its
+  deletes were applied all the same (by a dr older than the purpose, which reads it as a plan),
+  they would find nothing to delete: the model no longer has those relationships.
+- **Restoring.** Add a relationship of a type the catalog has now, in a changeset of your own
+  (`relationship_add`, `dr relationship add`), then discard the record. The upgrade never does this
+  itself: a replacement is wired into the migration only after a Context Studio proposal adds the
+  type to the catalog, through a `replace-dropped` action in a change record under
+  `cli/scripts/spec-enrich/data/` (see `cli/scripts/generate-relationship-migration.ts`).
 
 ### Landing
 
@@ -670,14 +722,19 @@ The full brief:
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
 - **Drift.** Whether the base model changed since the changeset was created (`isDrifted`), which
   staged changes the base now overlaps (`overlapping`: adds the base already has, deletes of what
-  it no longer has, updates of elements changed in the base, and relationships the plan adds or
+  it no longer has, any staged change of an element changed in or removed from the base, deletes
+  of elements the base has since linked (`linked-in-base`), and relationships the plan adds or
   deletes with an end on a base element that changed or was removed since, as
   `endpoint-changed-in-base` or `endpoint-removed-in-base` with the `endpoints`) and, when the
   changeset has a base index, what was added, removed or changed in the base (`baseChanges`). The
   plan doesn't edit an element it only links to, but that element is not what the plan saw. Staged
   adds the base already has are counted as `alreadyInBase`, apart from the adds, for elements and
   relationships alike. New changesets record the base index (`base-index.json` in the changeset's directory);
-  older ones report `baseIndex: "not-recorded"`.
+  older ones report `baseIndex: "not-recorded"`. Only an overlap blocks a landing: with a base
+  index, a commit is refused for drift when `overlapping` is not empty, and any other base change
+  (another plan landing that adds, edits or removes other elements) is content-free and lands
+  without `force`. Without a base index a changed hash still blocks, since the two can't be told
+  apart.
 
 ### What `changeset_verify` reports
 
@@ -894,20 +951,19 @@ Then `/dr-plan <change>` runs the loop:
    it is staged with the plan and read back on every later pass.
 5. `review_open` and hand the human its link, which opens the changeset on the graph in the viewer
    (`dr visualize`); read their annotations, revise.
-6. Build from the brief. Commit only the plan's changeset directory on the branch, not `.active`.
+6. Build from the brief. Keep the changeset staged and commit only its own directory on the branch.
    The as-built verification record is created in Verify, after this build commit. Don't extract or
    verify during the build.
 7. Verify as its own step, once the build is committed: `codebase_index`, then `codebase_extract`
    with `since` (the branch the work started from) stages the build into an as-built changeset;
    `changeset_verify` the plan against it. The as-built side comes only from extraction: elements
-   are named after their cards, and plan elements are never copied into it. After comparison, ask
-   whether to discard the record with `changeset_discard` or keep it. Discard it only if chosen; if
-   kept, leave it staged and commit its directory beside the plan's directory in the same PR. It
-   is never landed. Cards the agent can't place with confidence go to the developer as one short
-   list of questions. Fix what diverges, in
+   are named after their cards, and plan elements are never copied into it. Cards the agent can't
+   place with confidence go to the developer as one short list of questions. Fix what diverges, in
    the code or in the plan, and copy the source references the report lists
-   (`changeset_adopt_source_references`), then `changeset_activate` the plan again. The as-built
-   changeset is then discarded or kept as a record, not landed.
+   (`changeset_adopt_source_references`), then `changeset_activate` the plan again. Then ask
+   whether to discard the as-built changeset (`changeset_discard`) or keep it as a record, and
+   discard it only if the human chooses that. A kept record stays staged, and its directory is
+   committed beside the plan's directory in the same PR. It is never landed.
 8. The human commits the plan in the PR that ships the code: they ask the agent to land it
    (`changeset_commit`) and confirm in the dialog (from Claude Code, approve the commit call that
    carries `changeset_commit_preview`'s token), or commit it in the viewer or the CLI. Once

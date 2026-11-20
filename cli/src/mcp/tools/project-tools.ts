@@ -27,6 +27,7 @@ import { CHANGESETS_FOLDER, ensurePrettierIgnoresChangesets } from "../../core/p
 import { trackModelWrite } from "../../core/model-write-tracker.js";
 import {
   countDroppedRelationships,
+  previewDropRecord,
   emptyCatalogDetails,
   previewCatalog,
   scanUpgrades,
@@ -46,6 +47,7 @@ import {
   type StagedRelationshipRewriteChange,
 } from "../../core/relationship-migration.js";
 import { upgradeModel, type ChangesetRebaselineResult } from "../../core/model-upgrade.js";
+import { formatRoutes, type UpgradeDropRecord } from "../../core/upgrade-drop-record.js";
 import type { Model } from "../../core/model.js";
 import { installSpecReference } from "../../utils/spec-installer.js";
 import { findProjectRoot } from "../../utils/project-paths.js";
@@ -507,6 +509,44 @@ export async function wouldOrphan(projectRoot: string, catalog: CatalogMigration
   }
 }
 
+/**
+ * The upgrade record (core/upgrade-drop-record.ts): the staged changeset the dropped relationships
+ * are written to on apply (`written` false in a preview), with the dropped types the catalog
+ * still links and the relationship types it has between their element types.
+ */
+function dropRecordReport(record: UpgradeDropRecord | undefined, written: boolean) {
+  if (!record) return {};
+  const routes = record.byType
+    .filter((entry) => entry.routes.length > 0)
+    .map((entry) => ({
+      dropped: `${entry.sourceType} --[${entry.predicate}]--> ${entry.targetType}`,
+      count: entry.count,
+      catalogHas: formatRoutes(entry.routes),
+    }));
+  const base = {
+    changeset: record.name,
+    relationships: record.count,
+    ...(routes.length > 0 ? { routes } : {}),
+  };
+  if (record.error) {
+    return {
+      dropRecord: {
+        ...base,
+        error: `The dropped relationships could not be recorded in a changeset: ${record.error}. They are listed in dropped.`,
+      },
+    };
+  }
+  return {
+    dropRecord: {
+      ...base,
+      ...(record.id ? { id: record.id } : {}),
+      note: written
+        ? "The dropped relationships are recorded in this staged changeset, one staged relationship delete each (changeset_show). It is a record and never lands. To restore one, add a relationship of a type the catalog has now (routes lists them per dropped type) in a changeset of the user's own; discard the record only when the user asks."
+        : "Applying records the dropped relationships in this staged changeset, to review and restore from. It never lands. routes lists, per dropped type, the relationship types the catalog still has between the same element types.",
+    },
+  };
+}
+
 function actionSummary(action: UpgradeAction) {
   return {
     type: action.type,
@@ -655,6 +695,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           steps: scan.steps,
           actions: scan.actions.map(actionSummary),
           ...catalogReport(catalog.details, errors),
+          ...dropRecordReport(await previewDropRecord(projectRoot, scan, catalog.details).catch(() => undefined), false),
           ...(await wouldOrphan(projectRoot, catalog.details)),
           ...(!(await hasLayerReports(projectRoot)) ? { reports: "No layer reports yet; applying generates them." } : {}),
           ...(await integrationsNote(projectRoot)),
@@ -670,6 +711,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
     const applied: Array<Record<string, unknown>> = [];
     const details = emptyCatalogDetails();
     let changesets: ChangesetRebaselineResult | undefined;
+    let dropRecord: UpgradeDropRecord | undefined;
     try {
       // One tracked write: the server's other calls don't read the model while it is half migrated.
       await trackModelWrite(projectRoot, undefined, async () => {
@@ -687,6 +729,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
               versionBumpOnly: action.versionBumpOnly,
             });
             changesets = result.changesets;
+            dropRecord = result.dropRecord;
             if (action.versionBumpOnly) {
               applied.push(actionSummary(action));
             }
@@ -736,6 +779,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       ...filesChanged(modelFilesBefore, await hashFiles(projectRoot, "documentation-robotics")),
       ...rewrites,
       ...(cannotMigrate.length > 0 ? { dropped: cannotMigrate } : {}),
+      ...dropRecordReport(dropRecord, true),
       ...(changesets ? { changesets: changesetSummary(changesets) } : {}),
     };
     const warnings = [...checkErrors];
@@ -805,7 +849,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports, and lists the required attributes the migrated elements leave empty (validation.unfilledRequired), per element; it fills in no values.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, writes that record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports, and lists the required attributes the migrated elements leave empty (validation.unfilledRequired), per element; it fills in no values.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

@@ -7,13 +7,20 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-19
+
 Four maintainer rulings on what a code symbol is, from the Tier 1 held-out cards (2026-11-17),
 decided in Context Studio. A declared shape is a schema, a kept log is still a log, a service's
-contract is the service, and a message is one generic type. The catalog goes from 991 relationship
-types to 1,001 and from 193 node types to 194. Additive for existing models: nothing is renamed or
-removed, and `dr upgrade` has nothing to rewrite. An element modelled as `application.dataobject`
-for an interface, record or DTO is still valid, but under the new definition it is a
-`data-model.objectschema`; no migration can tell the two apart mechanically.
+contract is the service, and a message is one generic type. Two more decisions restore links the
+0.11.0 data-store and ux passes left without a type (2026-11-18). The catalog goes from 991
+relationship types to 1,004 and from 193 node types to 194. Additive for existing models: nothing is
+renamed or removed. A model that still holds one of the three links spec 0.11.0 removed (`database
+serves applicationcomponent`, `database serves applicationservice`, `ux.view serves
+applicationservice`) has it rewritten by `dr upgrade` to the type added here, with source and target
+swapped; a model an earlier upgrade already took them from gets nothing back. An element modelled as
+`application.dataobject` for an interface, record or DTO is still valid, but under the new
+definition it is a `data-model.objectschema`; no migration can tell the two apart mechanically. `dr
+upgrade` takes models from 0.13.0 to 0.14.0.
 
 ### Added
 
@@ -28,6 +35,21 @@ for an interface, record or DTO is still valid, but under the new definition it 
   applicationfunction` and `message triggers applicationprocess` (the handler),
   `applicationinteraction aggregates message`, and `data-model.objectschema realizes message` (the
   declared shape of its payload).
+- **Code can access a database as a whole** (Context Studio proposal 93d40a94):
+  `application.applicationcomponent accesses data-store.database` and
+  `application.applicationservice accesses data-store.database`. Spec 0.11.0 made stored data
+  passive and removed `database serves applicationcomponent` and `database serves
+  applicationservice` with no replacement, so a model could only say which database a component
+  uses by modelling every collection. A component bound to one database (a connection pool, a
+  client, an ORM session) or a service backed by a database whose collections are not modelled now
+  links to the database; `accesses collection` stays the link when the collections are named.
+  `apm.exporterconfig accesses data-store.database` was the precedent.
+- **A service serves the view it backs** (proposal 38fa8fa3): `application.applicationservice
+  serves ux.view`, for the service a view loads its data from when it renders. Models had said this
+  as `ux.view serves application.applicationservice`, against the direction of `serves` (provider
+  to consumer), and that type was removed in 0.11.0. The view's `realizes applicationinterface`
+  stays the link when the interface is modelled, and an action component's `triggers` covers calls
+  a user action starts.
 - **Four more behaviours access an object schema directly** (proposal 5cd62ebe):
   `applicationservice`, `applicationprocess`, `applicationinteraction` and `applicationevent`
   `accesses data-model.objectschema`, beside the component and function links that existed. A

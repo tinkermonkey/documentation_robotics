@@ -22,6 +22,11 @@ import {
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
+import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
+import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
+import { changesetCommitPreviewHandler } from "../../../src/mcp/tools/changeset-commit.js";
+import { projectStatus, suggestNextStep } from "../../../src/mcp/tools/project-status.js";
 import { installSpecReference } from "../../../src/utils/spec-installer.js";
 import { Validator } from "../../../src/validators/validator.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
@@ -309,6 +314,74 @@ describe("project_upgrade: dropped relationships and unfilled required attribute
     const api = (await Promise.all((await readdir(apiDir)).map((f) => readFile(join(apiDir, f), "utf8")))).join("\n");
     expect(api).toContain("api.operation.list-orders");
     expect(api).not.toContain("operationId");
+  });
+
+  it("names the upgrade record in the preview, writes it on apply, and the changeset tools read it as a record", async () => {
+    await currentModel(dir);
+    await writeApiModel(dir);
+    const version = getCliBundledSpecVersion();
+    const name = `upgrade-drops-${version}`;
+    const changesetsDir = join(dir, "documentation-robotics/changesets");
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.dropRecord).toMatchObject({ changeset: name, relationships: 1 });
+    expect(preview.dropRecord.id).toBeUndefined();
+    expect(preview.dropRecord.note).toContain("Applying records the dropped relationships");
+    // Nothing is written by a preview
+    expect((await fileExists(changesetsDir)) ? await readdir(changesetsDir) : []).toEqual([]);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.dropRecord).toMatchObject({ changeset: name, relationships: 1 });
+    expect(applied.dropRecord.note).toContain("never lands");
+    const id = applied.dropRecord.id as string;
+
+    // changeset_list: the record, with the only move it allows
+    const list = parse(await changesetListHandler({ rootPath: dir }));
+    expect(list.changesets[id]).toMatchObject({
+      name,
+      status: "staged",
+      changes_count: 1,
+      purpose: "upgrade-record",
+      actions: ["discard"],
+    });
+    expect(list.activeChangesetId ?? null).toBeNull();
+
+    // changeset_show: each drop with the retired type and the change record that retired it
+    const shown = parse(await changesetShowHandler({ rootPath: dir, changesetId: name, detail: "summary" }));
+    expect(shown).toMatchObject({ purpose: "upgrade-record", actions: ["discard"], origin: { kind: "upgrade" } });
+    expect(shown.description).toContain("1 x api.operation --[delivers]--> api.response");
+    expect(shown.totals["relationship-delete"]).toBe(1);
+    expect(JSON.stringify(shown.changes[0])).toContain("api.operation.list-orders");
+    expect(JSON.stringify(shown.changes[0])).toContain("upgrade api.operation.delivers.api.response retired by ");
+
+    // changeset_brief reads it without failing
+    const brief = await changesetBriefHandler({ rootPath: dir, changesetId: name });
+    expect(brief.isError).toBeFalsy();
+
+    // It is never landed: the commit preview (the checks changeset_commit runs) refuses it
+    const refused = await changesetCommitPreviewHandler({ rootPath: dir, changeset: name, force: true });
+    expect(refused.isError).toBe(true);
+    expect(parse(refused).error).toContain("is an upgrade record");
+
+    // project_status lists it as a record, and its next step reads it instead of continuing it
+    const status = await projectStatus({ rootPath: dir }, { git: async () => "" });
+    expect(status.changesets).toMatchObject({ status: "ok", active: null });
+    expect((status.changesets as { staged: unknown[] }).staged).toMatchObject([
+      { id, name, purpose: "upgrade-record", actions: ["discard"] },
+    ]);
+    // With the code index out of the way, the step that would say "activate one to continue it"
+    const next = suggestNextStep(
+      { ...status, codeIndex: { status: "fresh" }, codeDrift: { status: "unknown" } } as unknown as Parameters<typeof suggestNextStep>[0],
+      { root: dir }
+    );
+    expect(next.summary).toContain(`"${name}" records the relationships a spec migration dropped`);
+    expect(next.tool).toBe("changeset_create");
+
+    // A second apply has nothing to do and writes no second record
+    const again = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(again.status).toBe("up-to-date");
+    expect(Object.keys(parse(await changesetListHandler({ rootPath: dir })).changesets)).toEqual([id]);
   });
 });
 

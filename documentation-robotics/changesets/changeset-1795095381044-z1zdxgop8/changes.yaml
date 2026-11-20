@@ -1,0 +1,218 @@
+- type: add
+  elementId: motivation.requirement.a-migration-records-what-it-drops
+  layerName: motivation
+  after:
+    id: ee6ddf29-29f2-492c-93c5-db3723f4aacc
+    path: motivation.requirement.a-migration-records-what-it-drops
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A migration records what it drops
+    description: When a spec migration removes relationships whose type has no
+      replacement in the catalog, it leaves a record that names each one
+      (source, predicate, target, and the rule that retired it), which the user
+      can review and restore from. The record is a staged changeset that never
+      lands.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation:
+        "Issue #1164, maintainer decision 2026-11-18. Verified when an
+        upgrade that drops relationships leaves one staged upgrade-record
+        changeset listing them, the dry run names it, and a run that drops
+        nothing writes none."
+    metadata:
+      created_at: 2026-11-19T13:36:34.322Z
+      updated_at: 2026-11-19T13:36:34.322Z
+      version: 1
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 0
+- type: add
+  elementId: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+  layerName: motivation
+  after:
+    id: 830c9304-fb28-479a-8620-7c30bd282853
+    path: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A migration takes the route the catalog offers
+    description:
+      A relationship of a retired type is rewritten, not dropped, when
+      the catalog has a type that says the same thing and a change record names
+      it as the replacement. Replacements come only from catalog types a Context
+      Studio proposal added.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation:
+        "Issue #1164. The rewrite table is generated from change records;
+        a replace-dropped action names the replacement for a triple an earlier
+        record dropped, and the generator fails when the replacement is not in
+        the catalog."
+    metadata:
+      created_at: 2026-11-19T13:36:34.344Z
+      updated_at: 2026-11-19T13:36:34.344Z
+      version: 1
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 1
+- type: add
+  elementId: product.feature.upgrade-drop-record
+  layerName: product
+  after:
+    id: a7cedc7c-9612-4ec9-82d0-34708eae28d2
+    path: product.feature.upgrade-drop-record
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Upgrade drop record
+    description:
+      "dr upgrade and project_upgrade (apply) write the relationships a
+      migration dropped into a staged changeset, upgrade-drops-<spec version>,
+      with purpose upgrade-record: one staged relationship delete per drop, its
+      origin naming the retired type and change record, and a description
+      listing the relationship types the catalog still has between the same
+      element types. It never lands; the user re-adds what they want by hand and
+      discards it. The dry run and the preview name it."
+    attributes:
+      priority: high
+      status: delivered
+      size: m
+      documentation: cli/src/core/upgrade-drop-record.ts writes the record;
+        upgradeModel (cli/src/core/model-upgrade.ts) calls it after the
+        migration is saved. The purpose and the landing refusal are in
+        cli/src/core/changeset-purpose.ts. docs/CHANGE_MODELING.md, 'What an
+        upgrade drops'.
+    metadata:
+      created_at: 2026-11-19T13:36:34.344Z
+      updated_at: 2026-11-19T13:36:34.344Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/upgrade-drop-record.ts
+  timestamp: 2026-11-19T13:49:47.359Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: motivation.requirement.a-migration-records-what-it-drops::realizes::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-migration-records-what-it-drops
+    target: motivation.goal.model-stays-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 3
+- type: relationship-add
+  elementId: motivation.requirement.a-migration-records-what-it-drops::realizes::motivation.principle.every-model-change-is-a-changeset
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-migration-records-what-it-drops
+    target: motivation.principle.every-model-change-is-a-changeset
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: motivation.requirement.a-migration-takes-the-route-the-catalog-offers::realizes::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+    target: motivation.goal.model-stays-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: product.feature.upgrade-drop-record::satisfies::motivation.requirement.a-migration-records-what-it-drops
+  layerName: product
+  after:
+    source: product.feature.upgrade-drop-record
+    target: motivation.requirement.a-migration-records-what-it-drops
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: product.feature.upgrade-drop-record::realizes::product.softwarecapability.spec-migration
+  layerName: product
+  after:
+    source: product.feature.upgrade-drop-record
+    target: product.softwarecapability.spec-migration
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: product.feature.upgrade-drop-record::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.upgrade-drop-record
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: product.feature.upgrade-drop-record::depends-on::product.feature.model-upgrade
+  layerName: product
+  after:
+    source: product.feature.upgrade-drop-record
+    target: product.feature.model-upgrade
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: product.feature.upgrade-drop-record::depends-on::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.feature.upgrade-drop-record
+    target: product.feature.changeset-lifecycle
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: product.feature.model-upgrade::satisfies::motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+  layerName: product
+  after:
+    source: product.feature.model-upgrade
+    target: motivation.requirement.a-migration-takes-the-route-the-catalog-offers
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration::uses::product.feature.upgrade-drop-record
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    target: product.feature.upgrade-drop-record
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration::uses::product.feature.upgrade-drop-record
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    target: product.feature.upgrade-drop-record
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-19T13:36:34.353Z
+  sequenceNumber: 13

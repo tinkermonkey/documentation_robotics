@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { spawn } from "child_process";
 import * as path from "path";
+import * as fs from "fs/promises";
 
 interface TestWorkdir {
   path: string;
@@ -603,6 +604,90 @@ describe("JSON Output on Mutating Commands", () => {
       expect(json.status).toBe("ok");
       expect(json.changesetName).toBe("activate-test");
       expect(result.stdout).not.toContain("\x1b");
+    });
+
+    // The compatibility suite's "Changeset core lifecycle" pipeline: revert after apply exits 0.
+    it("dr changeset revert accepts a changeset that was applied, and leaves the model as it is", async () => {
+      await runCLICommand(workdir.path, ["changeset", "create", "applied-then-reverted"]);
+      await runCLICommand(workdir.path, ["changeset", "activate", "applied-then-reverted"]);
+      await runCLICommand(workdir.path, [
+        "add", "motivation", "goal", "applied-revert-goal",
+        "--name", "Applied Revert Goal",
+        "--attributes", '{"priority": "medium"}',
+      ]);
+      await runCLICommand(workdir.path, ["changeset", "deactivate"]);
+      const applied = await runCLICommand(workdir.path, [
+        "changeset", "apply", "applied-then-reverted", "--no-validate", "--force",
+      ]);
+      expect(applied.exitCode).toBe(0);
+
+      const result = await runCLICommand(workdir.path, ["changeset", "revert", "applied-then-reverted"]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Reverted");
+      expect(result.stdout).toContain("the model keeps the changes it applied");
+
+      // The element the changeset applied is still in the model.
+      const shown = await runCLICommand(workdir.path, ["show", "motivation.goal.applied-revert-goal"]);
+      expect(shown.exitCode).toBe(0);
+
+      // In JSON mode the note goes to stderr, so stdout stays one JSON object.
+      await runCLICommand(workdir.path, ["changeset", "create", "applied-then-reverted-json"]);
+      await runCLICommand(workdir.path, ["changeset", "activate", "applied-then-reverted-json"]);
+      await runCLICommand(workdir.path, [
+        "add", "motivation", "goal", "applied-revert-goal-json",
+        "--name", "Applied Revert Goal JSON",
+        "--attributes", '{"priority": "medium"}',
+      ]);
+      await runCLICommand(workdir.path, ["changeset", "deactivate"]);
+      await runCLICommand(workdir.path, ["changeset", "apply", "applied-then-reverted-json", "--no-validate", "--force"]);
+      const asJson = await runCLICommand(workdir.path, ["changeset", "revert", "applied-then-reverted-json", "--json"]);
+      expect(asJson.exitCode).toBe(0);
+      expect(JSON.parse(asJson.stdout.trim()).status).toBe("ok");
+    });
+
+    // #1218: a marker left by an interrupted landing (or, before the marker moved to .dr/, one
+    // committed to git) outlives its changeset.
+    it("a marker that names an applied changeset is not the active changeset: a write goes to the base model", async () => {
+      await runCLICommand(workdir.path, ["changeset", "create", "landed-plan"]);
+      await runCLICommand(workdir.path, ["changeset", "activate", "landed-plan"]);
+      await runCLICommand(workdir.path, [
+        "add", "motivation", "goal", "landed-plan-goal",
+        "--name", "Landed Plan Goal",
+        "--attributes", '{"priority": "medium"}',
+      ]);
+      const markerPath = path.join(workdir.path, ".dr", "active-changeset");
+      const marker = await fs.readFile(markerPath, "utf-8");
+      expect(marker.trim()).not.toBe("");
+      const applied = await runCLICommand(workdir.path, ["changeset", "apply", "landed-plan", "--no-validate", "--force"]);
+      expect(applied.exitCode).toBe(0);
+
+      // Put the marker back, as a landing interrupted before it cleared the marker leaves it
+      await fs.mkdir(path.dirname(markerPath), { recursive: true });
+      await fs.writeFile(markerPath, marker);
+
+      const status = await runCLICommand(workdir.path, ["changeset", "status"]);
+      expect(status.exitCode).toBe(0);
+      expect(status.stdout).toContain("No active changeset");
+      expect(status.stdout).toContain("'landed-plan', which is committed");
+
+      const added = await runCLICommand(workdir.path, [
+        "add", "motivation", "goal", "written-after-landing",
+        "--name", "Written After Landing",
+        "--attributes", '{"priority": "low"}',
+      ]);
+      expect(added.exitCode).toBe(0);
+      expect(added.stdout).toContain("Added element");
+
+      // The element is in the model: it can be read back
+      const shown = await runCLICommand(workdir.path, ["show", "motivation.goal.written-after-landing"]);
+      expect(shown.exitCode).toBe(0);
+      expect(shown.stdout).toContain("Written After Landing");
+
+      // Deactivating removes the leftover marker
+      const deactivated = await runCLICommand(workdir.path, ["changeset", "deactivate"]);
+      expect(deactivated.exitCode).toBe(0);
+      expect(`${deactivated.stdout}${deactivated.stderr}`).toContain("cleared a marker");
+      expect(await fs.access(markerPath).then(() => true, () => false)).toBe(false);
     });
 
     it("dr changeset apply --json should output valid JSON", async () => {

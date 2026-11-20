@@ -66,8 +66,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   them, and use them as evidence for features and requirements. `documentation.describe` lists
   staged elements with no description that the docs describe.
 - You never land or discard the plan on your own. Commit it (`changeset_commit`) only when the
-  human asks you to land it; they confirm it in a dialog. Apply is not an MCP tool. Discard only when
-  they agree.
+  human asks you to land it; they confirm it in a dialog, or from Claude Code approve the call that
+  carries `changeset_commit_preview`'s token. Apply is not an MCP tool. Discard only when they agree.
 
 ## The loop
 
@@ -143,8 +143,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `byLayer`. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
-   with the code. Don't add the whole `changesets/` directory: the `.active` marker and any
-   `<name>-as-built` changeset stay out of the commit. If the build has to differ from the plan,
+   with the code. Don't add the whole `changesets/` directory.
+   The as-built verification record is created in Verify, after this build commit. If the build has
+   to differ from the plan,
    change the plan to match and say why. Don't verify during the build: no `codebase_extract`, no
    as-built changeset and no `changeset_verify` until the build is committed. Verify is the next
    step, on its own.
@@ -163,37 +164,58 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    name it gives before you `model_add` its cards. For each card it returns that is a model element, stage it with
    `model_add` (`sourceFile` and `sourceSymbol` from the card, `sourceProvenance: "extracted"`),
    reading the code, not the plan, and ask the developer about the cards you can't place, in one short
-   list;
+   list. Stage at the plan's granularity: one element for each planned element, with the symbols of
+   its file as its locations, not one symbol picked to stand for the file. One code file can back
+   several elements in different layers (an application component and a UX sub-view), and staging
+   one doesn't cover the other;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
-   `candidateDeletes` that are really gone. Then `changeset_verify` with `planned: <name>` and
-   `against: {"changesetId": "<name>-as-built"}`. Fix each missing, unplanned or divergent item in
-   the code or in the plan. `unverifiable` items are planned parts extraction can't see (motivation,
+   `candidateDeletes` that are really gone. Then `changeset_verify` with `changeset: <name>` and
+   `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and
+   counts; missing, divergent and probable matches one line each; unverifiable items one line per
+   reason; unplanned changes counted per type; and `sourceReferences`. `sections: [...]` returns
+   only some sections in full (`["unplanned"]` lists the unplanned items, `["matched"]` every match
+   with its notes), narrowed with `layers` or `ids`; `detail: "full"` returns the whole report.
+   Fix each missing, unplanned or divergent item in the code or in the plan. `unverifiable` items are planned parts extraction can't see (motivation,
    re-exports, TypeScript tests), and `notes` are description-only differences: neither needs a
    plan edit. Never edit the plan to match extracted placeholder text. A verdict of `unverifiable`
-   means the plan has nothing extraction can check; say so rather than call it a failure. Look for missing connections in the as-built too: for each element,
+   means the plan has nothing extraction can check; say so rather than call it a failure. If the
+   report warns that the as-built changeset is thin (most missing relationships have an end with no
+   as-built element), the as-built side is the weak part, not the code: stage the elements it lacks
+   from their cards, extract again for their relationships, and verify again before you report
+   anything missing. Look for missing connections in the as-built too: for each element,
    compare what the spec models for its type with what was staged, and look for evidence of each
    absent one in the code (and the analyzer's graph, `dr analyzer callers` / `callees`). Confirm or
    reject every `probable` match. Then carry the code's source references into the plan: the
    plan's code-level elements were drawn before the code existed, so they have no `sourceFile` or
    `sourceSymbol`. When the report has `sourceReferences`, its `missing` list names the matched plan
    elements whose as-built match has a source reference the plan lacks; call
-   `changeset_adopt_source_references` with the same `planned` and `against` to stage them into
+   `changeset_adopt_source_references` with the same `changeset` and `against` to stage them into
    the plan. Without them the landed model can't tie those elements to the code, and the next
    `codebase_extract` offers their symbols again. It copies exact matches only: confirm a
    `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is
    not copied: confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
+   Its `unreferenced` list names planned adds with no source reference and no as-built match, so
+   nothing can copy one (a product feature extraction can't see, say): for each one the build has
+   code for, set `sourceFile` and `sourceSymbol` with `model_update` (`sourceProvenance: "manual"`).
    `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
-   changeset. Ask the human whether to discard the as-built changeset (`changeset_discard`,
-   `confirm: true`) or keep it as a record, and discard it only when they agree. Don't land it:
-   landing it first changes the plan's base, so the plan then needs `force`, and the plan's
-   descriptions don't apply to elements already in the base. It stays out of git: when you commit
-   fixes, add only the plan's directory again. If the as-built changes were landed anyway,
+   changeset: it is the plan's verification record, and `changeset_commit` refuses to land it,
+   `force` or not. Ask the human whether to discard the as-built changeset or keep it as a
+   record, and discard it only when they agree. To discard it, call
+   `changeset_discard` with `confirm: true`. To keep it, leave it staged and
+   commit its directory with the plan's directory on the same branch and in the same PR. The
+   record is never landed, so it doesn't reconcile code drift (for that, `codebase_extract` with
+   no plan active). Until they decide, add only the plan's directory when you commit fixes.
+   If an as-built changeset was landed before DR refused it,
    `against: {"base": true, "extracted": true}` compares the plan with the model, with extraction's blind spots applied.
 8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
    the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
-   commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
+   commits only if they confirm; if they decline, leave it staged. From Claude Code, call
+   `changeset_commit_preview` with its name first and show them its `summary` in full; if they want it
+   landed, call `changeset_commit` with the same `force` and the preview's `confirmToken`. They approve
+   that call in the permission prompt instead of a dialog, so it lands from the Claude desktop app,
+   which can't show the dialog. A changed plan or base refuses the token: preview again. If it is refused for drift, show
    them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
@@ -212,7 +234,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.
 - `changeset_commit` is refused when the human declines or cancels the dialog, when the client
-  can't show one (no MCP elicitation), and in DrBot, which doesn't have it. Nothing is written; the
+  can't show one (no MCP elicitation, or a dialog the client declines at once, as the Claude desktop
+  app does), and in DrBot, which has neither it nor `changeset_commit_preview`. From Claude Code,
+  land with `changeset_commit_preview`'s token instead. Nothing is written; the
   human lands it in the viewer (`review_open`, then Apply), or from an interactive session.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, accept gaps with `gap_accept` and answer the human's comments in the chat.

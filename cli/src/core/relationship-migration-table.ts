@@ -42,7 +42,10 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-ce4bfe6b-00e6-4ba2-915b-f32101d5389c.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-c2972281-618a-43e7-8d59-8215b7c558cd.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-5cd62ebe-184c-41cc-a2e3-f075820ab106.json",
-    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e7a10b16-d820-4b5e-a0bf-504dbc8cc465.json"
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e7a10b16-d820-4b5e-a0bf-504dbc8cc465.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-38fa8fa3-0d48-429f-a0a3-825e47f259d5.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-93d40a94-ce9f-4e40-a641-5d7504ef1490.json",
+    "cli/scripts/spec-enrich/data/applied-routes-for-dropped-relationships.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -2412,17 +2415,19 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "data-store.database.serves.application.applicationcomponent": {
-      "to": null,
-      "swap": false,
+      "to": "application.applicationcomponent.accesses.data-store.database",
+      "swap": true,
       "records": [
-        "data-store-principles"
+        "data-store-principles",
+        "routes-for-dropped-relationships"
       ]
     },
     "data-store.database.serves.application.applicationservice": {
-      "to": null,
-      "swap": false,
+      "to": "application.applicationservice.accesses.data-store.database",
+      "swap": true,
       "records": [
-        "data-store-principles"
+        "data-store-principles",
+        "routes-for-dropped-relationships"
       ]
     },
     "data-store.database.serves.business.businessprocess": {
@@ -6600,10 +6605,11 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       ]
     },
     "ux.view.serves.application.applicationservice": {
-      "to": null,
-      "swap": false,
+      "to": "application.applicationservice.serves.ux.view",
+      "swap": true,
       "records": [
-        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993"
+        "cs-e08cc84a-6149-484b-b2b5-34a3a8395993",
+        "routes-for-dropped-relationships"
       ]
     },
     "ux.view.serves.business.businessservice": {
