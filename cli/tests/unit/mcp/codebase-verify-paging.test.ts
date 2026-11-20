@@ -43,12 +43,22 @@ describe("pageLayerReport", () => {
     expect(paged.buckets.in_graph_only).toHaveLength(VERIFY_PAGE_SIZE);
     expect(paged.not_checked![0].ids).toHaveLength(VERIFY_PAGE_SIZE);
     expect(paged.relationships!.in_graph_only).toHaveLength(VERIFY_PAGE_SIZE);
-    expect(paged.lists).toEqual({
-      in_graph_only: { total: 130, returned: VERIFY_PAGE_SIZE, offset: 0, nextOffset: VERIFY_PAGE_SIZE },
-      "not_checked[0].ids": { total: 75, returned: VERIFY_PAGE_SIZE, offset: 0, nextOffset: VERIFY_PAGE_SIZE },
-      "relationships.in_graph_only": { total: 60, returned: VERIFY_PAGE_SIZE, offset: 0, nextOffset: VERIFY_PAGE_SIZE },
+    // One offset pages every list; totals holds each list's true length, whole or not.
+    expect(paged.page).toEqual({
+      limit: VERIFY_PAGE_SIZE,
+      offset: 0,
+      totals: {
+        matched: 3,
+        in_graph_only: 130,
+        in_model_only: 0,
+        not_indexed: 0,
+        "not_checked[0].ids": 75,
+        "relationships.matched": 0,
+        "relationships.in_graph_only": 60,
+        "relationships.in_model_only": 0,
+      },
+      nextOffset: VERIFY_PAGE_SIZE,
     });
-    // A list that came back whole is not named: its length is its total.
     expect(paged.buckets.matched).toHaveLength(3);
     expect(pager.nextOffset).toBe(VERIFY_PAGE_SIZE);
     // What the layer says about itself is over everything, not the page.
@@ -69,8 +79,11 @@ describe("pageLayerReport", () => {
       inCode.push(...paged.buckets.in_graph_only);
       ids.push(...paged.not_checked![0].ids);
       rels.push(...paged.relationships!.in_graph_only);
-      // Past the end of a shorter list the page is empty, and says of how many.
-      if (offset >= 100) expect(paged.lists!["relationships.in_graph_only"]).toEqual({ total: 60, returned: 0, offset: 60 });
+      // Past the end of a shorter list the page of it is empty, and totals still says of how many.
+      if (offset >= 100) {
+        expect(paged.relationships!.in_graph_only).toEqual([]);
+        expect(paged.page.totals["relationships.in_graph_only"]).toBe(60);
+      }
       offset = pager.nextOffset;
       calls++;
     }
@@ -80,11 +93,12 @@ describe("pageLayerReport", () => {
     expect(rels).toEqual(whole.relationships!.in_graph_only);
   });
 
-  it("returns everything with a limit that covers it, and names no list", () => {
+  it("returns everything with a limit that covers it, with no next offset", () => {
     const { layer: paged, pager } = pageLayerReport(whole, { limit: 1000 });
     expect(paged.buckets.in_graph_only).toHaveLength(130);
     expect(paged.not_checked![0].ids).toHaveLength(75);
-    expect(paged.lists).toBeUndefined();
+    expect(paged.page.nextOffset).toBeUndefined();
+    expect(paged.page.totals.in_graph_only).toBe(130);
     expect(pager.nextOffset).toBeUndefined();
   });
 });

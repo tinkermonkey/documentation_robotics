@@ -6,8 +6,10 @@
  * Repeating the same call with that offset returns the rest, and the pages together are the whole
  * list. Counts, summaries, statuses and verdicts are computed over the whole list, never the page.
  *
- * The shape (`total`, `returned`, `offset`, `nextOffset`) is the one the read tools share
- * (`mcp/tools/paging.ts` on the model-reads branch); this copy lives in core because the verify
+ * The names are the ones the paged tools share (`mcp/tools/paging.ts` on the model-reads branch):
+ * `limit` and `offset` in; for one list `page: {total, returned, offset, nextOffset}`; for a result
+ * with several lists `page: {offset, totals: {<list>: n}, nextOffset}`, one offset paging every
+ * list; and a `more` sentence naming the next call. This copy lives in core because the verify
  * reports are shaped here, below the MCP layer.
  */
 
@@ -23,6 +25,17 @@ export interface ListPage {
   /** How many of them this result holds. */
   returned: number;
   offset: number;
+  nextOffset?: number;
+}
+
+/** Where a result with several lists sits in them: one window over all of them. */
+export interface MultiListPage {
+  /** Entries returned per list at most. */
+  limit: number;
+  offset: number;
+  /** Each list's true length, whatever part of it this result holds. */
+  totals: Record<string, number>;
+  /** Pass as `offset`, with the same arguments, for the next page. Absent when nothing is left. */
   nextOffset?: number;
 }
 
@@ -48,6 +61,8 @@ export function isWhole(page: ListPage): boolean {
 export class PagedLists {
   /** The lists that are not whole in this result, by name. */
   readonly pages: Record<string, ListPage> = {};
+  /** Every list's true length, by name, whole or not. */
+  readonly totals: Record<string, number> = {};
 
   constructor(
     private readonly args: PageArgs,
@@ -57,8 +72,19 @@ export class PagedLists {
   /** The page of `all`, recorded under `name` when it is not the whole list. */
   list<T>(name: string, all: readonly T[]): T[] {
     const { items, page } = pageOf(all, this.args, this.defaultLimit);
+    this.totals[name] = all.length;
     if (!isWhole(page)) this.pages[name] = page;
     return items;
+  }
+
+  /**
+   * The page of a result that carries several lists: one offset pages every list, `totals` holds
+   * each list's true length, and `nextOffset` is absent once every list has been returned to its
+   * end. The form the paged tools share for a multi-list response.
+   */
+  page(): MultiListPage {
+    const next = this.nextOffset;
+    return { limit: this.limit, offset: this.offset, totals: { ...this.totals }, ...(next !== undefined ? { nextOffset: next } : {}) };
   }
 
   get limit(): number {

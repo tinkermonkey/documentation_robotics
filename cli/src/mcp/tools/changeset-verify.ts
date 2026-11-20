@@ -108,14 +108,14 @@ const inputSchema = {
     .describe(
       `The most entries to return from each list: lines of the compact report (default ${VERIFY_LIST_LIMIT}) or items of a section ` +
         `(default ${VERIFY_SECTION_PAGE_SIZE}); any size is accepted. A page size, not a cut-off: the verdict and summary counts are ` +
-        "over everything, and pages names each list that is not whole with its total and nextOffset."
+        "over everything, and page.totals gives every list's true length."
     ),
   offset: z
     .number()
     .int()
     .min(0)
     .optional()
-    .describe("Skip this many entries of each list: repeat the call with the same arguments and the result's paging.nextOffset for the next page."),
+    .describe("Skip this many entries of each list: repeat the call with the same arguments and the result's page.nextOffset for the next page."),
 };
 
 export type ChangesetVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
@@ -201,8 +201,8 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "as candidates: confirm those the build has code for and pass them to changeset_adopt_source_references in " +
     "references. For more, pass sections: [...] for only some sections in full (unplanned " +
     "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
-    "for the whole report (large for a big build). Every list is a page (limit, offset): pages names each list that is " +
-    "not whole with its true total, and more gives the call for the next page. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    "for the whole report (large for a big build). Every list is a page (limit, offset): page.totals gives every list's " +
+    "true length, page.nextOffset the next offset (absent on the last page), and more the call for it. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

@@ -19,7 +19,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { splitVerifyLayers, VERIFIABLE_LAYERS } from "../../analyzers/active-analyzer.js";
 import { apiLayerReport } from "../../analyzers/verify-engine.js";
 import type { LayerVerifyReport } from "../../analyzers/types.js";
-import { PagedLists, type ListPage, type PageArgs } from "../../core/list-page.js";
+import { PagedLists, type MultiListPage, type PageArgs } from "../../core/list-page.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import type { Model } from "../../core/model.js";
 import {
@@ -60,15 +60,15 @@ const inputSchema = {
     .optional()
     .describe(
       `The most entries to return from each list (default ${VERIFY_PAGE_SIZE}, lowered when the lists together would pass about ` +
-        `${Math.round(VERIFY_SIZE_TARGET / 1000)} KB; paging.limit says what was used; any size is accepted). A page size, not a cut-off: ` +
-        "statuses, coverage and summary counts are over everything, and each list that is not whole gives its total and nextOffset."
+        `${Math.round(VERIFY_SIZE_TARGET / 1000)} KB; page.limit says what was used; any size is accepted). A page size, not a cut-off: ` +
+        "statuses, coverage and summary counts are over everything, and each layer's page.totals gives every list's true length."
     ),
   offset: z
     .number()
     .int()
     .min(0)
     .optional()
-    .describe("Skip this many entries of each list: repeat the call with the same arguments and the result's paging.nextOffset for the next page."),
+    .describe("Skip this many entries of each list: repeat the call with the same arguments and the result's page.nextOffset for the next page."),
   rootPath: rootPathSchema,
 };
 
@@ -98,8 +98,8 @@ export const IN_CODE_ONLY_HINT =
   "http_path). For a route that is not product code (a test fixture, an example), codebase_extract with reject records it, and " +
   "this check then leaves it out.";
 
-/** The lists of one layer's report, each a page; `lists` names the ones that are not whole. */
-type PagedLayer = LayerVerifyReport & { lists?: Record<string, ListPage> };
+/** One layer's report with each list a page; `page.totals` holds every list's true length. */
+type PagedLayer = LayerVerifyReport & { page: MultiListPage };
 
 /**
  * A layer's report with every list a page of it: its buckets, the ids of its not-checked groups
@@ -131,7 +131,7 @@ export function pageLayerReport(layer: LayerVerifyReport, args: PageArgs): { lay
       ...(notChecked ? { not_checked: notChecked } : {}),
       buckets,
       ...(relationships ? { relationships } : {}),
-      ...(Object.keys(pager.pages).length > 0 ? { lists: pager.pages } : {}),
+      page: pager.page(),
     },
   };
 }
@@ -209,13 +209,10 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       const { paged, top, buckets } = page;
       const shortened = paged.filter((p) => Object.keys(p.pager.pages).length > 0);
       const nextOffset = shortened.some((p) => p.pager.nextOffset !== undefined) ? top.offset + top.limit : undefined;
-      const paging = {
-        limit: top.limit,
-        offset: top.offset,
-        ...(nextOffset !== undefined ? { nextOffset } : {}),
-        ...(shortened.length > 0
-          ? {
-              more:
+      const pageInfo = { limit: top.limit, offset: top.offset, ...(nextOffset !== undefined ? { nextOffset } : {}) };
+      const more =
+        shortened.length > 0
+          ? (
                 `Lists are pages of ${top.limit} entries from ${top.offset}` +
                 (args.limit === undefined && top.limit < VERIFY_PAGE_SIZE
                   ? ` (the default of ${VERIFY_PAGE_SIZE}, lowered to keep this result near ${Math.round(VERIFY_SIZE_TARGET / 1000)} KB)`
@@ -228,10 +225,9 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
                       ? ` (layers: ${JSON.stringify(shortened.filter((p) => p.pager.nextOffset !== undefined).map((p) => p.layer.layer))} is enough)`
                       : "") +
                     "; limit takes any size, for more at once."
-                  : "This is the last page: call again with offset: 0 for the start."),
-            }
-          : {}),
-      };
+                  : "This is the last page: call again with offset: 0 for the start.")
+            )
+          : undefined;
       const status = [
         ...layers.map((l) => ({ layer: l.layer, status: l.status, text: l.status_text, coverage: l.coverage })),
         ...notVerifiedAll.map((n) => ({ layer: n.layer, status: "not_checked" as const, text: `Not checked: ${n.reason}.` })),
@@ -241,7 +237,8 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       const hints = report.buckets.in_graph_only.length > 0 ? [IN_CODE_ONLY_HINT] : [];
       return jsonResult({
         status,
-        paging,
+        page: pageInfo,
+        ...(more ? { more } : {}),
         ...rest,
         buckets,
         ...(report.layers ? { layers: paged.map((p) => p.layer) } : {}),
@@ -313,7 +310,8 @@ export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "code: drift, each with its reason) and not_indexed (a parse gap, not drift), a not_checked list by reason with what " +
     "would make each group checkable, and a summary; the top-level buckets are the API layer's. Every list is a page: " +
     `limit entries (default ${VERIFY_PAGE_SIZE}) from offset. Statuses, coverage and counts are always over everything; a layer's ` +
-    "lists names each list that is not whole with its total, and paging.more gives the call for the next page. Symbols " +
+    "page.totals gives every list's true length, page.nextOffset is the next offset (absent on the last page), and more " +
+    "names the call for the next page. Symbols " +
     "codebase_extract recorded as not elements (reject) are left out. It doesn't check other layers. Needs a fresh index: if there is none, " +
     "a run is in flight, or source files changed since, it says so; run codebase_index first. Read-only.",
   inputSchema,

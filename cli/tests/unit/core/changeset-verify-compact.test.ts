@@ -165,8 +165,8 @@ describe("compactVerifyReport", () => {
     expect(compact.missing).toHaveLength(VERIFY_LIST_LIMIT);
     expect(compact.counts).toEqual({ missing: VERIFY_LIST_LIMIT + 5 });
     // The limit is a page size: the list's true total, and the call for the rest.
-    expect(compact.pages).toEqual({ missing: { total: VERIFY_LIST_LIMIT + 5, returned: VERIFY_LIST_LIMIT, offset: 0, nextOffset: VERIFY_LIST_LIMIT } });
-    expect(compact.paging).toEqual({ limit: VERIFY_LIST_LIMIT, offset: 0, nextOffset: VERIFY_LIST_LIMIT });
+    expect(compact.page).toMatchObject({ limit: VERIFY_LIST_LIMIT, offset: 0, nextOffset: VERIFY_LIST_LIMIT });
+    expect(compact.page.totals).toMatchObject({ missing: VERIFY_LIST_LIMIT + 5, divergent: 0, probable: 0, unverifiable: 0 });
     expect(compact.more).toContain(`call changeset_verify again with the same arguments and offset: ${VERIFY_LIST_LIMIT}`);
     // The verdict and counts are over the whole plan, not the page.
     expect(compact.summary.elements.missing).toBe(VERIFY_LIST_LIMIT + 5);
@@ -192,13 +192,14 @@ describe("compactVerifyReport", () => {
       expect(page.summary.elements.missing).toBe(total);
       expect(page.verdict).toBe("incomplete");
       lines.push(...page.missing);
-      offset = page.paging?.nextOffset;
+      expect(page.page.totals.missing).toBe(total);
+      offset = page.page.nextOffset;
       calls++;
     }
     expect(calls).toBe(3);
     expect(lines).toEqual(whole);
     // A limit large enough returns everything, with nothing to page.
-    expect((compactVerifyReport(report, { limit: total }) as CompactVerifyReport).pages).toBeUndefined();
+    expect((compactVerifyReport(report, { limit: total }) as CompactVerifyReport).page.nextOffset).toBeUndefined();
   });
 
   it("pages a section's items with true totals, and the pages together are the whole section", () => {
@@ -207,9 +208,11 @@ describe("compactVerifyReport", () => {
     expect(all.relationships).toHaveLength(127);
     const first = compactVerifyReport(report, { sections: ["unplanned"] }) as VerifySectionsReport;
     expect(first.unplanned!.elements).toHaveLength(VERIFY_SECTION_PAGE_SIZE);
-    expect(first.pages).toEqual({
-      "unplanned.elements": { total: 129, returned: VERIFY_SECTION_PAGE_SIZE, offset: 0, nextOffset: VERIFY_SECTION_PAGE_SIZE },
-      "unplanned.relationships": { total: 127, returned: VERIFY_SECTION_PAGE_SIZE, offset: 0, nextOffset: VERIFY_SECTION_PAGE_SIZE },
+    expect(first.page).toEqual({
+      limit: VERIFY_SECTION_PAGE_SIZE,
+      offset: 0,
+      totals: { "unplanned.elements": 129, "unplanned.relationships": 127 },
+      nextOffset: VERIFY_SECTION_PAGE_SIZE,
     });
     expect(first.more).toContain(`call changeset_verify again with the same arguments and offset: ${VERIFY_SECTION_PAGE_SIZE}`);
     // The header's counts are the whole report's.
@@ -221,7 +224,7 @@ describe("compactVerifyReport", () => {
       const page = compactVerifyReport(report, { sections: ["unplanned"], offset }) as VerifySectionsReport;
       elements.push(...page.unplanned!.elements);
       relationships.push(...page.unplanned!.relationships);
-      offset = page.paging?.nextOffset;
+      offset = page.page.nextOffset;
     }
     expect(elements).toEqual(all.elements);
     expect(relationships).toEqual(all.relationships);

@@ -40,7 +40,7 @@ import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-ob
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
 import { readBuildFiles, registeredByName, sourceCandidates, SOURCE_CANDIDATES_SHOWN, type BuildFile, type SourceCandidate } from "./build-evidence.js";
-import { PagedLists, type ListPage } from "./list-page.js";
+import { PagedLists, type MultiListPage } from "./list-page.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
@@ -684,22 +684,15 @@ export interface CompactVerifyReport extends VerifyHeader {
   notes: string[];
   /** Set when a list is not whole here: each such list's full length. */
   counts?: Record<string, number>;
-  /** Each list that is not whole here: its total, how many lines came back, and the next offset. */
-  pages?: Record<string, ListPage>;
-  /** The page asked for, when a list is not whole; `nextOffset` when some list has more. */
-  paging?: VerifyPaging;
+  /**
+   * The page this result holds of its lists: one offset pages every list, `totals` gives each
+   * list's true length, and `nextOffset` is absent on the last page.
+   */
+  page: MultiListPage;
   /** Set when the call had arguments this form doesn't use (`layers` or `ids` without `sections`). */
   note?: string;
   /** How to get more. */
   more: string;
-}
-
-/** The page a verify result holds of its lists: one window over all of them. */
-export interface VerifyPaging {
-  limit: number;
-  offset: number;
-  /** Pass as `offset`, with the same arguments, for the next page. Absent when nothing is left. */
-  nextOffset?: number;
 }
 
 /** Items returned per section list by default (`sections`): each is a whole object, with its notes. */
@@ -731,10 +724,8 @@ export interface VerifySectionsReport extends VerifyHeader {
   extraction?: VerifyExtraction;
   acceptedGaps?: AcceptedGapsCheck;
   notes?: string[];
-  /** Each list that is not whole here (`unplanned.elements`, ...): its total, how many came back, the next offset. */
-  pages?: Record<string, ListPage>;
-  /** The page asked for, when a list is not whole; `nextOffset` when some list has more. */
-  paging?: VerifyPaging;
+  /** The page this result holds of its lists (`unplanned.elements`, ...): see CompactVerifyReport.page. */
+  page: MultiListPage;
   more: string;
 }
 
@@ -795,13 +786,6 @@ function cappedList(list: string[], name: string, counts: Record<string, number>
   const page = pager.list(name, list);
   if (pager.pages[name]) counts[name] = list.length;
   return page;
-}
-
-/** The paging fields of a result whose lists `pager` paged; nothing when every list came back whole. */
-function pagingOf(pager: PagedLists): { pages?: Record<string, ListPage>; paging?: VerifyPaging } {
-  if (Object.keys(pager.pages).length === 0) return {};
-  const nextOffset = pager.nextOffset;
-  return { pages: pager.pages, paging: { limit: pager.limit, offset: pager.offset, ...(nextOffset !== undefined ? { nextOffset } : {}) } };
 }
 
 /** The sentence naming the call for the next page, or that this is the last one. */
@@ -983,10 +967,11 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
         }
       : {}),
     notes: report.notes,
+    page: pager.page(),
     more: "",
   };
   if (Object.keys(counts).length > 0) out.counts = counts;
-  Object.assign(out, pagingOf(pager));
+  out.page = pager.page();
   if (filtered) {
     out.note =
       "layers and ids narrow sections output only, so the whole compact report is returned. Pass sections too, " +
@@ -1042,6 +1027,7 @@ export function verifySections(
     ...headerOf(report),
     sections: names,
     ...(filter && (ids || layers) ? { filter } : {}),
+    page: pager.page(),
     more: "",
   };
   const notes: string[] = [];
@@ -1135,7 +1121,7 @@ export function verifySections(
         break;
     }
   }
-  Object.assign(out, pagingOf(pager));
+  out.page = pager.page();
   out.more = [
     ...notes,
     nextPageSentence(pager).trim(),
