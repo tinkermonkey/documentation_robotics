@@ -2286,8 +2286,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 notApplied: {
                   total: rejectProblems.length,
                   of: args.reject!.length,
-                  items: rejectProblems.slice(0, MAX_LISTED),
-                  ...(rejectProblems.length > MAX_LISTED ? { truncated: true as const } : {}),
+                  // Never shortened: each one is an item the caller believes it sent and that did nothing.
+                  byStatus: Object.fromEntries(
+                    (["malformed", "no-match", "unknown", "ambiguous"] as const)
+                      .map((status) => [status, rejectProblems.filter((p) => p.status === status).map((p) => p.index)] as const)
+                      .filter(([, indexes]) => indexes.length)
+                  ),
+                  items: rejectProblems,
                   note: "These reject items named nothing, so they recorded nothing (index counts from 0). The other items were recorded.",
                 },
               }

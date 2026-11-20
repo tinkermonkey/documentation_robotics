@@ -2191,7 +2191,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(mixed.notElements).toMatchObject({ total: 26, recorded: { total: 26 } });
     expect(mixed.notRelationships).toBeUndefined();
     // The four that name nothing are listed by their place in the call, with why.
-    expect(mixed.notApplied).toMatchObject({ total: 4, of: 6 });
+    expect(mixed.notApplied).toMatchObject({ total: 4, of: 6, byStatus: { "no-match": [1, 3], unknown: [4, 5] } });
     expect(mixed.notApplied.items.map((p: any) => [p.index, p.status, p.item])).toEqual([
       [1, "no-match", "files: barcut.html"],
       [3, "no-match", "files: *.js"],
@@ -2206,6 +2206,18 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     const rerun = ok(await handler({ rootPath }));
     expect(rerun.notElements).toMatchObject({ total: 26, skipped: 26 });
     expect(rerun.notApplied).toBeUndefined();
+
+    // Items that did nothing are never shortened: every one of 150 is listed, with its index.
+    const many = ok(
+      await handler({
+        reject: [{ card: "OwnerService", reason: "wiring" }, ...Array.from({ length: 150 }, (_, i) => ({ files: `missing-${i}/**`, reason: "x" }))],
+        rootPath,
+      })
+    );
+    expect(many.notApplied.total).toBe(150);
+    expect(many.notApplied.items).toHaveLength(150);
+    expect(many.notApplied.byStatus["no-match"]).toEqual(Array.from({ length: 150 }, (_, i) => i + 1));
+    expect(many.notElements.recorded.total).toBe(1);
   }, SLOW);
 
   it("suggests .cbmignore for the few folders most undecided cards come from", async () => {
