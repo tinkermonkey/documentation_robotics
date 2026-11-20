@@ -8,14 +8,572 @@ description: codebase_extract answers with groups and a count of the decisions
   are measured before and after, and issues 1154, 1177, 1178, 1213, 1181, 1162
   and the reject part of 1182 are closed with tests.
 created: 2026-11-20T16:55:34.307Z
-modified: 2026-11-20T16:57:54.108Z
+modified: 2026-11-20T18:20:29.452Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 64
-  modifications: 2
+  additions: 53
+  modifications: 1
   deletions: 0
-lastSequence: 65
+lastSequence: 84
+unstaged:
+  - sequence: 9
+    removedAt: 66
+    change:
+      type: add
+      elementId: application.applicationfunction.plan-decisions
+      layerName: application
+      after:
+        id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+        path: application.applicationfunction.plan-decisions
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: planDecisions
+        description: Resolves decide items to the cards they cover and to what staging
+          or rejecting them would do, with a count and a sample per item for a
+          preview.
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 12
+    removedAt: 67
+    change:
+      type: add
+      elementId: application.applicationfunction.owner-of
+      layerName: application
+      after:
+        id: d1da7cbc-fd6d-4e5d-870c-7032d809c13b
+        path: application.applicationfunction.owner-of
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: ownerOf
+        description: "The element a symbol with no element of its own belongs to: its
+          class's element, else the one element that implements its file.
+          Relationships and test links of such a symbol go to its owner."
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 19
+    removedAt: 67
+    change:
+      type: add
+      elementId: data-model.objectschema.reject-problem
+      layerName: data-model
+      after:
+        id: 03c63fd0-93a6-4a15-9401-a11fe077628d
+        path: data-model.objectschema.reject-problem
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: RejectProblem
+        description: "A reject or decide item that was not applied: its index in the
+          call, what it named, a status and why."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.767Z
+          updated_at: 2026-11-20T16:56:25.767Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 49
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.plan-decisions::accesses::data-model.objectschema.reject-problem
+      layerName: application
+      after:
+        source: application.applicationfunction.plan-decisions
+        target: data-model.objectschema.reject-problem
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 53
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.plan-relationships::depends-on::application.applicationfunction.owner-of
+      layerName: application
+      after:
+        source: application.applicationfunction.plan-relationships
+        target: application.applicationfunction.owner-of
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 57
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.owner-of::realizes::application.applicationservice.create-codebase-extract-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.owner-of
+        target: application.applicationservice.create-codebase-extract-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:53.377Z
+  - sequence: 60
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.plan-coverage::depends-on::application.applicationfunction.owner-of
+      layerName: application
+      after:
+        source: application.applicationfunction.plan-coverage
+        target: application.applicationfunction.owner-of
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:53.377Z
+  - sequence: 8
+    removedAt: 68
+    change:
+      type: add
+      elementId: application.applicationfunction.apply-project-rules
+      layerName: application
+      after:
+        id: 5304abce-c958-4dc6-8fa9-76b66f6e5a24
+        path: application.applicationfunction.apply-project-rules
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: applyProjectRules
+        description: "Applies a project's rules to the extracted symbols before cards
+          are made: a rule that says none first, then Tier 0, then a rule that
+          names a type for what Tier 0 left open. Reports what each rule
+          decided."
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 69
+    change:
+      type: add
+      elementId: application.applicationfunction.card-facts
+      layerName: application
+      after:
+        id: f9fb261e-18f5-4ffd-94fb-2210f98a1c2f
+        path: application.applicationfunction.card-facts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: cardFacts
+        description: "Reads what a rule or a group needs to know about a card from its
+          declaration: visibility (exported, local, public, private, protected),
+          whether it is nested in another function, and the element its class or
+          file already has."
+        metadata:
+          created_at: 2026-11-20T16:56:25.763Z
+          updated_at: 2026-11-20T16:56:25.763Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 70
+    change:
+      type: add
+      elementId: application.applicationfunction.group-cards
+      layerName: application
+      after:
+        id: 169af3d8-d250-4951-bc2f-1f877f20aac0
+        path: application.applicationfunction.group-cards
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: groupCards
+        description: Groups a run's undecided cards by folder and file, kind and
+          visibility, flags folders no model element names, and counts the
+          decisions left for the caller.
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 71
+    change:
+      type: add
+      elementId: application.applicationfunction.load-project-rules
+      layerName: application
+      after:
+        id: 09383dc2-097f-45a2-8ba4-22f1c63d10f9
+        path: application.applicationfunction.load-project-rules
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: loadProjectRules
+        description: "Reads and validates documentation-robotics/extraction-rules.yaml:
+          the extraction rules a project keeps with its model."
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 72
+    change:
+      type: add
+      elementId: application.applicationfunction.plan-coverage
+      layerName: application
+      after:
+        id: 7ea4edc6-b093-4f7a-a6aa-75757904b952
+        path: application.applicationfunction.plan-coverage
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: planCoverage
+        description: In a verify run, lists each element the plan adds or changes that
+          has no as-built candidate staged, with the cards in its source file.
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 73
+    change:
+      type: add
+      elementId: application.applicationfunction.save-project-rule
+      layerName: application
+      after:
+        id: c96ef77a-0170-4df6-92ac-af5e8b3d7a08
+        path: application.applicationfunction.save-project-rule
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: saveProjectRule
+        description: Writes a kept rule to documentation-robotics/extraction-rules.yaml
+          with its reason, when it was decided and in which changeset.
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 10
+    removedAt: 74
+    change:
+      type: add
+      elementId: application.applicationfunction.shared-helper-groups
+      layerName: application
+      after:
+        id: e04edb55-242e-4a06-8c12-6f339eb6e2f5
+        path: application.applicationfunction.shared-helper-groups
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sharedHelperGroups
+        description: Finds the functions that more services call than a stated number,
+          with the links each makes and a suggested rule that removes them.
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 16
+    removedAt: 75
+    change:
+      type: add
+      elementId: data-model.objectschema.decide-item
+      layerName: data-model
+      after:
+        id: eea76ce0-6c96-41d7-9717-e58247531e66
+        path: data-model.objectschema.decide-item
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DecideItem
+        description: "One decision sent to codebase_extract: where or card, as, reason,
+          and keep to record it as a project rule."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.767Z
+          updated_at: 2026-11-20T16:56:25.767Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 18
+    removedAt: 76
+    change:
+      type: add
+      elementId: data-model.objectschema.plan-coverage-item
+      layerName: data-model
+      after:
+        id: cde36e3f-a2d3-43f9-adcb-ba07ea4a83f9
+        path: data-model.objectschema.plan-coverage-item
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: PlanCoverageItem
+        description: A planned element with no as-built candidate staged, and the cards
+          found in its source file.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.767Z
+          updated_at: 2026-11-20T16:56:25.767Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 13
+    removedAt: 77
+    change:
+      type: add
+      elementId: data-model.objectschema.project-rule
+      layerName: data-model
+      after:
+        id: 6f564ff2-8866-463e-af00-921fc1b51bbe
+        path: data-model.objectschema.project-rule
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ProjectRule
+        description: "One extraction rule a project keeps: a name, which cards or
+          relationships it covers (where), what they are (as: a layer.type or
+          none), the reason, and when and in which changeset it was decided."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.765Z
+          updated_at: 2026-11-20T16:56:25.765Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 14
+    removedAt: 78
+    change:
+      type: add
+      elementId: data-model.objectschema.project-rules-file
+      layerName: data-model
+      after:
+        id: 11c55d0f-2844-4c24-9b6b-71e1b64a79e9
+        path: data-model.objectschema.project-rules-file
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ProjectRulesFile
+        description: "documentation-robotics/extraction-rules.yaml: a version and the
+          project's extraction rules, in the order they apply."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.767Z
+          updated_at: 2026-11-20T16:56:25.767Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 17
+    removedAt: 79
+    change:
+      type: add
+      elementId: data-model.objectschema.shared-helper-group
+      layerName: data-model
+      after:
+        id: a676cc28-0ac6-4d36-a4f6-963208c0010f
+        path: data-model.objectschema.shared-helper-group
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SharedHelperGroup
+        description: "A function many services call: how many, the links it makes, and
+          the rule that would remove them."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.767Z
+          updated_at: 2026-11-20T16:56:25.767Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 15
+    removedAt: 80
+    change:
+      type: add
+      elementId: data-model.objectschema.triage-group
+      layerName: data-model
+      after:
+        id: 6c061ce1-c95a-4834-8cf1-7e5da40f8ee0
+        path: data-model.objectschema.triage-group
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: TriageGroup
+        description: A group of undecided cards (a folder or file, with counts by kind
+          and visibility), what the model has there, and a suggested decision.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:56:25.767Z
+          updated_at: 2026-11-20T16:56:25.767Z
+          version: 1
+      timestamp: 2026-11-20T16:56:25.802Z
+    rewritten: true
+  - sequence: 40
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.card-facts::accesses::data-model.objectschema.card-facts
+      layerName: application
+      after:
+        source: application.applicationfunction.card-facts
+        target: data-model.objectschema.card-facts
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 42
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.group-cards::accesses::data-model.objectschema.card-facts
+      layerName: application
+      after:
+        source: application.applicationfunction.group-cards
+        target: data-model.objectschema.card-facts
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 43
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.load-project-rules::accesses::data-model.objectschema.project-rules-file
+      layerName: application
+      after:
+        source: application.applicationfunction.load-project-rules
+        target: data-model.objectschema.project-rules-file
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 47
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.apply-project-rules::depends-on::application.applicationfunction.card-facts
+      layerName: application
+      after:
+        source: application.applicationfunction.apply-project-rules
+        target: application.applicationfunction.card-facts
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 50
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.plan-decisions::depends-on::application.applicationfunction.apply-project-rules
+      layerName: application
+      after:
+        source: application.applicationfunction.plan-decisions
+        target: application.applicationfunction.apply-project-rules
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 54
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.plan-elements::depends-on::application.applicationfunction.apply-project-rules
+      layerName: application
+      after:
+        source: application.applicationfunction.plan-elements
+        target: application.applicationfunction.apply-project-rules
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:25.802Z
+  - sequence: 55
+    removedAt: 81
+    change:
+      type: update
+      elementId: data-model.objectschema.card-facts
+      layerName: data-model
+      before:
+        id: 5b0f76d1-d637-4138-8d00-a1e5915302a1
+        path: data-model.objectschema.card-facts
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CardFacts
+        description: Structural facts for a card, read by the Tier-0 rules.
+        attributes: &a1
+          type: object
+        source_reference: &a2
+          provenance: extracted
+          locations:
+            - file: cli/src/analyzers/cards/types.ts
+              symbol: CardFacts
+        metadata: &a3
+          created_at: 2026-11-20T15:04:42.137Z
+          updated_at: 2026-11-20T15:04:42.137Z
+          version: 1
+      after:
+        id: 5b0f76d1-d637-4138-8d00-a1e5915302a1
+        path: data-model.objectschema.card-facts
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CardFacts
+        description: "Structural facts for a card, read by the Tier-0 rules, the
+          project's rules and the triage groups: its decorators, how many files
+          import and use it, the methods it defines, its visibility (exported,
+          local, public, private, protected, from the declaration) and whether
+          it is nested in another function."
+        attributes: *a1
+        source_reference: *a2
+        metadata: *a3
+      timestamp: 2026-11-20T16:56:40.176Z
+  - sequence: 58
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.group-cards::depends-on::application.applicationfunction.card-facts
+      layerName: application
+      after:
+        source: application.applicationfunction.group-cards
+        target: application.applicationfunction.card-facts
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:53.377Z
+  - sequence: 59
+    removedAt: 81
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.card-facts::depends-on::application.applicationfunction.declaration-of
+      layerName: application
+      after:
+        source: application.applicationfunction.card-facts
+        target: application.applicationfunction.declaration-of
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:56:53.377Z

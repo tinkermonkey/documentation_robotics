@@ -145,7 +145,12 @@
       created_at: 2026-11-20T16:56:25.763Z
       updated_at: 2026-11-20T16:56:25.763Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/visibility.ts
+          symbol: cardFacts
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 4
 - type: add
   elementId: application.applicationfunction.group-cards
@@ -164,7 +169,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: groupCards
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 5
 - type: add
   elementId: application.applicationfunction.load-project-rules
@@ -182,7 +192,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: loadProjectRules
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.save-project-rule
@@ -200,7 +215,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: saveProjectRule
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.apply-project-rules
@@ -219,7 +239,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: applyProjectRules
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 8
 - type: add
   elementId: application.applicationfunction.plan-decisions
@@ -230,7 +255,7 @@
     spec_node_id: application.applicationfunction
     type: applicationfunction
     layer_id: application
-    name: planDecisions
+    name: compileDecide
     description: Resolves decide items to the cards they cover and to what staging
       or rejecting them would do, with a count and a sample per item for a
       preview.
@@ -238,7 +263,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: compileDecide
+  timestamp: 2026-11-20T18:19:51.919Z
   sequenceNumber: 9
 - type: add
   elementId: application.applicationfunction.shared-helper-groups
@@ -256,7 +286,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: sharedHelperGroups
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 10
 - type: add
   elementId: application.applicationfunction.plan-coverage
@@ -274,27 +309,13 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: planCoverage
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 11
-- type: add
-  elementId: application.applicationfunction.owner-of
-  layerName: application
-  after:
-    id: d1da7cbc-fd6d-4e5d-870c-7032d809c13b
-    path: application.applicationfunction.owner-of
-    spec_node_id: application.applicationfunction
-    type: applicationfunction
-    layer_id: application
-    name: ownerOf
-    description: "The element a symbol with no element of its own belongs to: its
-      class's element, else the one element that implements its file.
-      Relationships and test links of such a symbol go to its owner."
-    metadata:
-      created_at: 2026-11-20T16:56:25.765Z
-      updated_at: 2026-11-20T16:56:25.765Z
-      version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 12
 - type: add
   elementId: data-model.objectschema.project-rule
   layerName: data-model
@@ -314,7 +335,12 @@
       created_at: 2026-11-20T16:56:25.765Z
       updated_at: 2026-11-20T16:56:25.765Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: ProjectRule
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 13
 - type: add
   elementId: data-model.objectschema.project-rules-file
@@ -334,7 +360,12 @@
       created_at: 2026-11-20T16:56:25.767Z
       updated_at: 2026-11-20T16:56:25.767Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: ProjectRulesFile
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 14
 - type: add
   elementId: data-model.objectschema.triage-group
@@ -354,7 +385,12 @@
       created_at: 2026-11-20T16:56:25.767Z
       updated_at: 2026-11-20T16:56:25.767Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: TriageGroup
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 15
 - type: add
   elementId: data-model.objectschema.decide-item
@@ -374,7 +410,12 @@
       created_at: 2026-11-20T16:56:25.767Z
       updated_at: 2026-11-20T16:56:25.767Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: DecideItem
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 16
 - type: add
   elementId: data-model.objectschema.shared-helper-group
@@ -394,7 +435,12 @@
       created_at: 2026-11-20T16:56:25.767Z
       updated_at: 2026-11-20T16:56:25.767Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: SharedHelperGroup
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 17
 - type: add
   elementId: data-model.objectschema.plan-coverage-item
@@ -414,28 +460,13 @@
       created_at: 2026-11-20T16:56:25.767Z
       updated_at: 2026-11-20T16:56:25.767Z
       version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: PlanCoverageItem
+  timestamp: 2026-11-20T18:20:01.254Z
   sequenceNumber: 18
-- type: add
-  elementId: data-model.objectschema.reject-problem
-  layerName: data-model
-  after:
-    id: 03c63fd0-93a6-4a15-9401-a11fe077628d
-    path: data-model.objectschema.reject-problem
-    spec_node_id: data-model.objectschema
-    type: objectschema
-    layer_id: data-model
-    name: RejectProblem
-    description: "A reject or decide item that was not applied: its index in the
-      call, what it named, a status and why."
-    attributes:
-      type: object
-    metadata:
-      created_at: 2026-11-20T16:56:25.767Z
-      updated_at: 2026-11-20T16:56:25.767Z
-      version: 1
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 19
 - type: relationship-add
   elementId: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model::realizes::motivation.outcome.every-mvp-project-has-an-as-built-model
   layerName: motivation
@@ -661,18 +692,6 @@
   timestamp: 2026-11-20T16:56:25.802Z
   sequenceNumber: 39
 - type: relationship-add
-  elementId: application.applicationfunction.card-facts::accesses::data-model.objectschema.card-facts
-  layerName: application
-  after:
-    source: application.applicationfunction.card-facts
-    target: data-model.objectschema.card-facts
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 40
-- type: relationship-add
   elementId: application.applicationfunction.group-cards::accesses::data-model.objectschema.triage-group
   layerName: application
   after:
@@ -684,30 +703,6 @@
     category: structural
   timestamp: 2026-11-20T16:56:25.802Z
   sequenceNumber: 41
-- type: relationship-add
-  elementId: application.applicationfunction.group-cards::accesses::data-model.objectschema.card-facts
-  layerName: application
-  after:
-    source: application.applicationfunction.group-cards
-    target: data-model.objectschema.card-facts
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 42
-- type: relationship-add
-  elementId: application.applicationfunction.load-project-rules::accesses::data-model.objectschema.project-rules-file
-  layerName: application
-  after:
-    source: application.applicationfunction.load-project-rules
-    target: data-model.objectschema.project-rules-file
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 43
 - type: relationship-add
   elementId: application.applicationfunction.save-project-rule::accesses::data-model.objectschema.project-rules-file
   layerName: application
@@ -745,17 +740,6 @@
   timestamp: 2026-11-20T16:56:25.802Z
   sequenceNumber: 46
 - type: relationship-add
-  elementId: application.applicationfunction.apply-project-rules::depends-on::application.applicationfunction.card-facts
-  layerName: application
-  after:
-    source: application.applicationfunction.apply-project-rules
-    target: application.applicationfunction.card-facts
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 47
-- type: relationship-add
   elementId: application.applicationfunction.plan-decisions::accesses::data-model.objectschema.decide-item
   layerName: application
   after:
@@ -767,29 +751,6 @@
     category: structural
   timestamp: 2026-11-20T16:56:25.802Z
   sequenceNumber: 48
-- type: relationship-add
-  elementId: application.applicationfunction.plan-decisions::accesses::data-model.objectschema.reject-problem
-  layerName: application
-  after:
-    source: application.applicationfunction.plan-decisions
-    target: data-model.objectschema.reject-problem
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 49
-- type: relationship-add
-  elementId: application.applicationfunction.plan-decisions::depends-on::application.applicationfunction.apply-project-rules
-  layerName: application
-  after:
-    source: application.applicationfunction.plan-decisions
-    target: application.applicationfunction.apply-project-rules
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 50
 - type: relationship-add
   elementId: application.applicationfunction.shared-helper-groups::accesses::data-model.objectschema.shared-helper-group
   layerName: application
@@ -814,67 +775,6 @@
     category: structural
   timestamp: 2026-11-20T16:56:25.802Z
   sequenceNumber: 52
-- type: relationship-add
-  elementId: application.applicationfunction.plan-relationships::depends-on::application.applicationfunction.owner-of
-  layerName: application
-  after:
-    source: application.applicationfunction.plan-relationships
-    target: application.applicationfunction.owner-of
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 53
-- type: relationship-add
-  elementId: application.applicationfunction.plan-elements::depends-on::application.applicationfunction.apply-project-rules
-  layerName: application
-  after:
-    source: application.applicationfunction.plan-elements
-    target: application.applicationfunction.apply-project-rules
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:25.802Z
-  sequenceNumber: 54
-- type: update
-  elementId: data-model.objectschema.card-facts
-  layerName: data-model
-  before:
-    id: 5b0f76d1-d637-4138-8d00-a1e5915302a1
-    path: data-model.objectschema.card-facts
-    spec_node_id: data-model.objectschema
-    type: objectschema
-    layer_id: data-model
-    name: CardFacts
-    description: Structural facts for a card, read by the Tier-0 rules.
-    attributes: &a1
-      type: object
-    source_reference: &a2
-      provenance: extracted
-      locations:
-        - file: cli/src/analyzers/cards/types.ts
-          symbol: CardFacts
-    metadata: &a3
-      created_at: 2026-11-20T15:04:42.137Z
-      updated_at: 2026-11-20T15:04:42.137Z
-      version: 1
-  after:
-    id: 5b0f76d1-d637-4138-8d00-a1e5915302a1
-    path: data-model.objectschema.card-facts
-    spec_node_id: data-model.objectschema
-    type: objectschema
-    layer_id: data-model
-    name: CardFacts
-    description: "Structural facts for a card, read by the Tier-0 rules, the
-      project's rules and the triage groups: its decorators, how many files
-      import and use it, the methods it defines, its visibility (exported,
-      local, public, private, protected, from the declaration) and whether it is
-      nested in another function."
-    attributes: *a1
-    source_reference: *a2
-    metadata: *a3
-  timestamp: 2026-11-20T16:56:40.176Z
-  sequenceNumber: 55
 - type: update
   elementId: product.feature.extraction-to-a-changeset
   layerName: product
@@ -906,11 +806,11 @@
         calling agent is the cascade's last tier, and it also models what the
         code graph reports no declaration for (entry points, file-based routes,
         top-level constants, buildable projects); no separate model API key."
-    source_reference: &a4
+    source_reference: &a1
       provenance: manual
       locations:
         - file: cli/src/mcp/tools/codebase-extract.ts
-    metadata: &a5
+    metadata: &a2
       created_at: 2026-11-09T22:04:38.299Z
       updated_at: 2026-11-09T22:04:38.299Z
       version: 1
@@ -954,54 +854,10 @@
         cascade's last tier, and it also models what the code graph reports no
         declaration for (entry points, file-based routes, top-level constants,
         buildable projects); no separate model API key."
-    source_reference: *a4
-    metadata: *a5
+    source_reference: *a1
+    metadata: *a2
   timestamp: 2026-11-20T16:56:40.664Z
   sequenceNumber: 56
-- type: relationship-add
-  elementId: application.applicationfunction.owner-of::realizes::application.applicationservice.create-codebase-extract-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.owner-of
-    target: application.applicationservice.create-codebase-extract-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:53.377Z
-  sequenceNumber: 57
-- type: relationship-add
-  elementId: application.applicationfunction.group-cards::depends-on::application.applicationfunction.card-facts
-  layerName: application
-  after:
-    source: application.applicationfunction.group-cards
-    target: application.applicationfunction.card-facts
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:53.377Z
-  sequenceNumber: 58
-- type: relationship-add
-  elementId: application.applicationfunction.card-facts::depends-on::application.applicationfunction.declaration-of
-  layerName: application
-  after:
-    source: application.applicationfunction.card-facts
-    target: application.applicationfunction.declaration-of
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:53.377Z
-  sequenceNumber: 59
-- type: relationship-add
-  elementId: application.applicationfunction.plan-coverage::depends-on::application.applicationfunction.owner-of
-  layerName: application
-  after:
-    source: application.applicationfunction.plan-coverage
-    target: application.applicationfunction.owner-of
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:56:53.377Z
-  sequenceNumber: 60
 - type: relationship-add
   elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest::uses::product.feature.extraction-triage-by-rule
   layerName: product
@@ -1070,3 +926,53 @@
     category: structural
   timestamp: 2026-11-20T16:57:54.100Z
   sequenceNumber: 65
+- type: add
+  elementId: data-model.objectschema.triage-facts
+  layerName: data-model
+  after:
+    id: e8f6b679-1064-4144-adc4-21c844b92e41
+    path: data-model.objectschema.triage-facts
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: TriageFacts
+    description: "What is read from a card's declaration for project rules and
+      triage groups: its visibility (exported, local, public, private,
+      protected) and whether it is nested in another function."
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cards/visibility.ts
+          symbol: TriageFacts
+    metadata:
+      created_at: 2026-11-20T18:20:29.385Z
+      updated_at: 2026-11-20T18:20:29.385Z
+      version: 1
+  timestamp: 2026-11-20T18:20:29.432Z
+  sequenceNumber: 82
+- type: relationship-add
+  elementId: application.applicationfunction.card-facts::accesses::data-model.objectschema.triage-facts
+  layerName: application
+  after:
+    source: application.applicationfunction.card-facts
+    target: data-model.objectschema.triage-facts
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:20:29.432Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.plan-decisions::accesses::data-model.objectschema.project-rule
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-decisions
+    target: data-model.objectschema.project-rule
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:20:29.432Z
+  sequenceNumber: 84
