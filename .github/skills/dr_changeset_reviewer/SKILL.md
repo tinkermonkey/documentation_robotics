@@ -134,6 +134,9 @@ For each addition, check:
 - [ ] Layer-appropriate properties used
 - [ ] References point to existing elements
 - [ ] Status is valid for the element type
+- [ ] Connections the spec models for its type (`dr schema relationship <layer>.<type>`) are present
+      where the change needs them; within reason every modeled connection is expected, though not
+      every one will exist
 
 For each modification, check:
 
