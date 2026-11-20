@@ -1,0 +1,475 @@
+- type: add
+  elementId: data-model.objectschema.json-error-position
+  layerName: data-model
+  after:
+    id: 332911df-872d-4954-b818-5895d7b4850d
+    path: data-model.objectschema.json-error-position
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: JsonErrorPosition
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/batch-file.ts
+          symbol: JsonErrorPosition
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 0
+- type: add
+  elementId: data-model.objectschema.batch-item-result
+  layerName: data-model
+  after:
+    id: 8bf24a1a-8293-4291-aa65-1409302164f5
+    path: data-model.objectschema.batch-item-result
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: BatchItemResult
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: BatchItemResult
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 1
+- type: add
+  elementId: data-model.objectschema.batch-report
+  layerName: data-model
+  after:
+    id: 00ea6443-9ca8-448d-b1d6-49ddc510d8ce
+    path: data-model.objectschema.batch-report
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: BatchReport
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: BatchReport
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 2
+- type: add
+  elementId: data-model.objectschema.derived-element-id
+  layerName: data-model
+  after:
+    id: cc31de4a-484c-4081-9d22-06dbf588b98c
+    path: data-model.objectschema.derived-element-id
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DerivedElementId
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: DerivedElementId
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.longest-shared-start
+  layerName: application
+  after:
+    id: 0362ab91-7a4a-4b64-9c8f-7219a85c3363
+    path: application.applicationfunction.longest-shared-start
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: longestSharedStart
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: longestSharedStart
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.locate-json-error
+  layerName: application
+  after:
+    id: fbaad826-f0d7-415a-83ad-7ffa3870055a
+    path: application.applicationfunction.locate-json-error
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: locateJsonError
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/batch-file.ts
+          symbol: locateJsonError
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.read-batch-file
+  layerName: application
+  after:
+    id: fd37d3ba-9537-43d8-9788-6adcbf58d76b
+    path: application.applicationfunction.read-batch-file
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readBatchFile
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/batch-file.ts
+          symbol: readBatchFile
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.batch-report
+  layerName: application
+  after:
+    id: 40ed461d-1990-4628-b7fa-c15b4e6a250d
+    path: application.applicationfunction.batch-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: batchReport
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: batchReport
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.compact-id
+  layerName: application
+  after:
+    id: a4594057-cecb-4f6d-9fcf-795c8b2d1edc
+    path: application.applicationfunction.compact-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compactId
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: compactId
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 8
+- type: add
+  elementId: application.applicationfunction.derive-element-id
+  layerName: application
+  after:
+    id: 6ee57f03-cd56-4653-8378-6cb835483e46
+    path: application.applicationfunction.derive-element-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: deriveElementId
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: deriveElementId
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 9
+- type: add
+  elementId: application.applicationfunction.element-under-earlier-id
+  layerName: application
+  after:
+    id: 8ca1a8f3-7af4-41e6-99c1-56a9a082cb23
+    path: application.applicationfunction.element-under-earlier-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: elementUnderEarlierId
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: elementUnderEarlierId
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 10
+- type: add
+  elementId: application.applicationfunction.near-duplicate-id
+  layerName: application
+  after:
+    id: ac72bec5-09e3-4290-afdf-4d94e75195ac
+    path: application.applicationfunction.near-duplicate-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: nearDuplicateId
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: nearDuplicateId
+    metadata:
+      created_at: 2026-11-20T16:42:30.959Z
+      updated_at: 2026-11-20T16:42:30.959Z
+      version: 1
+  timestamp: 2026-11-20T16:42:30.969Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.add-relationship-batch::depends-on::application.applicationfunction.batch-report
+  layerName: application
+  after:
+    source: application.applicationfunction.add-relationship-batch
+    target: application.applicationfunction.batch-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::accesses::data-model.objectschema.batch-item-result
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: data-model.objectschema.batch-item-result
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:USAGE
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::accesses::data-model.objectschema.batch-report
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: data-model.objectschema.batch-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:USAGE
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationfunction.derive-element-id::accesses::data-model.objectschema.derived-element-id
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-element-id
+    target: data-model.objectschema.derived-element-id
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:USAGE
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationfunction.derive-element-id::depends-on::application.applicationfunction.to-kebab-case
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-element-id
+    target: application.applicationfunction.to-kebab-case
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.element-under-earlier-id::depends-on::application.applicationfunction.compact-id
+  layerName: application
+  after:
+    source: application.applicationfunction.element-under-earlier-id
+    target: application.applicationfunction.compact-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.element-under-earlier-id::depends-on::application.applicationfunction.near-duplicate-id
+  layerName: application
+  after:
+    source: application.applicationfunction.element-under-earlier-id
+    target: application.applicationfunction.near-duplicate-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.extracted-element-id::depends-on::application.applicationfunction.derive-element-id
+  layerName: application
+  after:
+    source: application.applicationfunction.extracted-element-id
+    target: application.applicationfunction.derive-element-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationfunction.generate-element-id::depends-on::application.applicationfunction.derive-element-id
+  layerName: application
+  after:
+    source: application.applicationfunction.generate-element-id
+    target: application.applicationfunction.derive-element-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.locate-json-error::accesses::data-model.objectschema.json-error-position
+  layerName: application
+  after:
+    source: application.applicationfunction.locate-json-error
+    target: data-model.objectschema.json-error-position
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:USAGE
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.plan-elements::depends-on::application.applicationfunction.element-under-earlier-id
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-elements
+    target: application.applicationfunction.element-under-earlier-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::accesses::data-model.objectschema.json-error-position
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: data-model.objectschema.json-error-position
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:USAGE
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::depends-on::application.applicationfunction.get-error-message
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationfunction.get-error-message
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::depends-on::application.applicationfunction.locate-json-error
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationfunction.locate-json-error
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::depends-on::application.applicationfunction.unknown-arguments-message
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationfunction.unknown-arguments-message
+    predicate: depends-on
+    layer: application
+    category: structural
+  origin:
+    by: tier0
+    rule: edge:CALLS
+  timestamp: 2026-11-20T16:42:44.743Z
+  sequenceNumber: 26

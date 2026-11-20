@@ -244,7 +244,12 @@
       created_at: 2026-11-20T16:36:37.952Z
       updated_at: 2026-11-20T16:36:37.952Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: deriveElementId
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 5
 - type: add
   elementId: application.applicationfunction.compact-id
@@ -262,7 +267,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: compactId
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.near-duplicate-id
@@ -281,7 +291,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: nearDuplicateId
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.element-under-earlier-id
@@ -299,7 +314,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: elementUnderEarlierId
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 8
 - type: add
   elementId: application.applicationfunction.read-batch-file
@@ -317,7 +337,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/batch-file.ts
+          symbol: readBatchFile
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 9
 - type: add
   elementId: application.applicationfunction.locate-json-error
@@ -335,7 +360,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/batch-file.ts
+          symbol: locateJsonError
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 10
 - type: add
   elementId: application.applicationfunction.batch-report
@@ -353,7 +383,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: batchReport
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 11
 - type: add
   elementId: application.applicationfunction.longest-shared-start
@@ -371,7 +406,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: longestSharedStart
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 12
 - type: add
   elementId: data-model.objectschema.derived-element-id
@@ -391,7 +431,12 @@
       created_at: 2026-11-20T16:36:37.954Z
       updated_at: 2026-11-20T16:36:37.954Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: DerivedElementId
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 13
 - type: add
   elementId: data-model.objectschema.json-error-position
@@ -410,7 +455,12 @@
       created_at: 2026-11-20T16:36:37.956Z
       updated_at: 2026-11-20T16:36:37.956Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/batch-file.ts
+          symbol: JsonErrorPosition
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 14
 - type: add
   elementId: data-model.objectschema.batch-item-result
@@ -429,7 +479,12 @@
       created_at: 2026-11-20T16:36:37.956Z
       updated_at: 2026-11-20T16:36:37.956Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: BatchItemResult
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 15
 - type: add
   elementId: data-model.objectschema.batch-report
@@ -448,7 +503,12 @@
       created_at: 2026-11-20T16:36:37.956Z
       updated_at: 2026-11-20T16:36:37.956Z
       version: 1
-  timestamp: 2026-11-20T16:36:37.965Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: BatchReport
+  timestamp: 2026-11-20T16:43:09.279Z
   sequenceNumber: 16
 - type: relationship-add
   elementId: application.applicationfunction.generate-element-id::depends-on::application.applicationfunction.derive-element-id
@@ -771,3 +831,37 @@
     category: structural
   timestamp: 2026-11-20T16:37:04.885Z
   sequenceNumber: 45
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::accesses::data-model.objectschema.json-error-position
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: data-model.objectschema.json-error-position
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:43:12.789Z
+  sequenceNumber: 58
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::depends-on::application.applicationfunction.get-error-message
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationfunction.get-error-message
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:43:12.789Z
+  sequenceNumber: 59
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::depends-on::application.applicationfunction.unknown-arguments-message
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationfunction.unknown-arguments-message
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:43:12.789Z
+  sequenceNumber: 60
