@@ -492,12 +492,29 @@ describe("changeset_commit drift and edge cases", () => {
     expect(updated.rebaselined.baseSnapshot).not.toBe(updated.rebaselined.previousBaseSnapshot);
     expect(updated.rebaselined.next).toContain("still overlaps");
 
+    // The safety line for a re-baseline: an agent can't use it to clear what the person reads when
+    // confirming. The preview after it still states the overlap, and says the changeset was
+    // re-baselined; so does the dialog; and the landing reports it.
     const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
     const shown = parse(await preview(c));
     expect(shown.drifted).toBe(true);
     expect(shown.summary).toContain("Re-baselined ");
     expect(shown.summary).toContain("- changed-in-base, 1 element(s)");
+    expect(shown.summary).toContain(`      ${GOAL}`);
     expect(shown.overlaps).toEqual({ total: 1, named: 1 });
+    await c.close();
+
+    // A second re-baseline changes nothing about it.
+    const again = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any));
+    expect(again.rebaselined.overlapsRemaining).toMatchObject([{ element: GOAL, reason: "changed-in-base" }]);
+
+    const asked = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = parse(await commit(asked));
+    const message = (elicitations[0] as any).message as string;
+    expect(message).toContain("Re-baselined ");
+    expect(message).toContain("(2 times)");
+    expect(message).toContain("- changed-in-base, 1 element(s)");
+    expect(landed.drift.kinds[0]).toMatchObject({ reason: "changed-in-base", items: [GOAL] });
   });
 
   it("re-baselines a changeset the base overlaps nowhere to drift none", async () => {
@@ -914,14 +931,37 @@ describe("changeset_commit with a confirmation token from changeset_commit_previ
     expect(await baseModelText()).toContain("Checkout in one step");
   });
 
-  it("gives a token good for a day, so a relayed answer does not need a second preview", async () => {
+  it("gives a token good for an hour: long enough for a relayed answer, too short for yesterday's preview", async () => {
     const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
     const shown = parse(await preview(c));
     const lifetime = new Date(shown.expiresAt).getTime() - Date.now();
-    expect(lifetime).toBeGreaterThan(23 * 60 * 60_000);
-    expect(lifetime).toBeLessThanOrEqual(24 * 60 * 60_000);
+    expect(lifetime).toBeGreaterThan(59 * 60_000);
+    expect(lifetime).toBeLessThanOrEqual(60 * 60_000);
+    expect(CONFIRM_TOKEN_TTL_MS).toBe(60 * 60_000);
     expect(confirmationTiming.tokenTtlMs).toBe(CONFIRM_TOKEN_TTL_MS);
-    expect(shown.next).toContain("good for a day");
+    expect(shown.next).toContain("good for an hour");
+    const { tools } = await c.listTools();
+    expect(tools.find((t) => t.name === "changeset_commit_preview")!.description).toContain("good for an hour");
+  });
+
+  it("says an expired token expired and that a new preview is needed, not that the user declined", async () => {
+    const saved = confirmationTiming.tokenTtlMs;
+    try {
+      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+      // The lifetime is one setting: a token issued under it has passed it by the time it is used.
+      confirmationTiming.tokenTtlMs = -1;
+      const { confirmToken } = parse(await preview(c));
+      const before = await baseModelText();
+      const result = await commit(c, { confirmToken });
+      expect(result.isError).toBe(true);
+      expect(text(result)).toContain("the confirmToken expired");
+      expect(text(result)).toContain("the user did not decline");
+      expect(text(result)).toContain("changeset_commit_preview again");
+      expect(await changesetStatus()).toBe("staged");
+      expect(await baseModelText()).toBe(before);
+    } finally {
+      confirmationTiming.tokenTtlMs = saved;
+    }
   });
 
   it("refuses a token changeset_commit_preview did not issue", async () => {
@@ -953,9 +993,9 @@ describe("confirmation tokens", () => {
     expect(checkConfirmToken(token, "cs-1", "state-b", now)).toBe("mismatch");
     expect(checkConfirmToken(token, "cs-2", "state-a", now)).toBe("mismatch");
     expect(checkConfirmToken(token, "cs-1", "state-a", now + confirmationTiming.tokenTtlMs + 1)).toBe("expired");
-    // Still good an hour on: the answer may be relayed through another session.
-    expect(checkConfirmToken(token, "cs-1", "state-b", now + 60 * 60_000)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-1", "state-a", now + 60 * 60_000)).toBe("ok");
+    // Still good most of an hour on: the answer may be relayed through another session.
+    expect(checkConfirmToken(token, "cs-1", "state-b", now + 55 * 60_000)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-1", "state-a", now + 55 * 60_000)).toBe("ok");
     expect(checkConfirmToken(token, "cs-1", "state-a", now)).toBe("used");
     expect(checkConfirmToken("abc", "cs-1", "state-a", now)).toBe("malformed");
   });

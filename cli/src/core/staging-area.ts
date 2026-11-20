@@ -781,10 +781,13 @@ export class StagingAreaManager {
    *
    * It changes no staged change. An overlap that is true against the base as it is now stays one:
    * a change made on older content of an element (`changed-in-base`), an add of what the base has,
-   * a delete of what it lacks, a link to an element it removed. What it clears is what only the
-   * previous base could say: the list of base changes since, and `linked-in-base` (the plan's
-   * author has now seen the relationships the base gained on what the plan deletes). The base
-   * index records that it happened, so the landing summary can say so.
+   * a delete of what it lacks, a delete that would purge a relationship the plan stages no delete
+   * for (`linked-in-base`), a link to an element it removed. Every element overlap is read from the
+   * base as it is now and from what the staged change recorded, not from the base index, so no
+   * re-baseline clears one. What it clears is what only the previous base could say: the list of
+   * base changes since. It is a visible act: the base index records when it happened and from
+   * which base hash to which, the drift detail carries that (`rebaselined`), and the landing
+   * summary says so.
    *
    * What moved (`before.baseChanges`) cannot be read again once the re-baseline is applied, so
    * `preview` returns the same result and writes nothing, and `limit` and `offset` page its lists
@@ -846,6 +849,7 @@ export class StagingAreaManager {
         rebaselined: {
           at: base.index.captured,
           from: previousBaseSnapshot ?? "unknown",
+          to: base.contentSnapshot,
           times: (previous?.rebaselined?.times ?? 0) + 1,
         },
       };

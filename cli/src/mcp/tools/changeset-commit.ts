@@ -48,7 +48,13 @@ import { Model } from "../../core/model.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
-import { describeDrift, describedAsDrifted, type ChangesetDrift } from "../../core/changeset-base-index.js";
+import {
+  describeDrift,
+  describedAsDrifted,
+  overlapKinds,
+  type ChangesetDrift,
+  type OverlapKind,
+} from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
@@ -69,13 +75,15 @@ import { isExtractionChangeset } from "./codebase-extract.js";
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
 
 /**
- * How long a confirmation token from changeset_commit_preview is good for. A day: the person's
- * answer to the summary may be relayed through another session, or come the next morning, and ten
- * minutes made the agent preview again before each landing. The token is no weaker for it: it is
- * bound to the changeset and the base as previewed, so anything that changes meanwhile refuses it,
- * and the person still approves the commit call itself in the permission prompt.
+ * How long a confirmation token from changeset_commit_preview is good for by default: an hour.
+ * Long enough for the person's answer to come back through another session, which ten minutes was
+ * not (the agent had to preview again before each landing); short enough that a summary read
+ * yesterday can't land today. It is one setting (`confirmationTiming.tokenTtlMs`), and the tool
+ * descriptions state it. Whatever its length, the token is bound to the changeset and the base as
+ * previewed, so anything that changes meanwhile refuses it, and the person still approves the
+ * commit call itself in the permission prompt.
  */
-export const CONFIRM_TOKEN_TTL_MS = 24 * 60 * 60_000;
+export const CONFIRM_TOKEN_TTL_MS = 60 * 60_000;
 
 /**
  * How many overlaps of one kind the landing summary names by default. A display default, not a
@@ -115,7 +123,8 @@ const inputSchema = {
     .optional()
     .describe(
       "From Claude Code only: the confirmToken changeset_commit_preview returned, after the user read its summary. " +
-        "It replaces the confirmation dialog; the user approves this call in the permission prompt instead."
+        "It replaces the confirmation dialog; the user approves this call in the permission prompt instead. Good for " +
+        "an hour, and only for the changeset and base as previewed."
     ),
   rootPath: rootPathSchema,
 };
@@ -139,35 +148,6 @@ export function summarizeChangeset(changeset: Changeset): { byOperation: Record<
     if (change.layerName) layers.add(change.layerName);
   }
   return { byOperation, layers: [...layers].sort() };
-}
-
-/** The overlaps of one kind: one reason, one thing landing does about it. */
-export interface OverlapKind {
-  of: "element" | "relationship";
-  reason: string;
-  /** What landing does about every overlap of this kind. */
-  consequence: string;
-  /** Every overlap of this kind: an element's id, or a relationship as `source --predicate--> target`. */
-  items: string[];
-}
-
-/**
- * The staged changes the base overlaps, grouped by what landing does about them. Computed over
- * every overlap: nothing here is shortened.
- */
-export function overlapKinds(drift: ChangesetDrift): OverlapKind[] {
-  const kinds = new Map<string, OverlapKind>();
-  const add = (of: OverlapKind["of"], reason: string, consequence: string, item: string): void => {
-    const key = `${of}\u0000${reason}\u0000${consequence}`;
-    const kind = kinds.get(key);
-    if (kind) kind.items.push(item);
-    else kinds.set(key, { of, reason, consequence, items: [item] });
-  };
-  for (const e of drift.overlapping.elements) add("element", e.reason, e.consequence, e.id);
-  for (const r of drift.overlapping.relationships) {
-    add("relationship", r.reason, r.consequence, `${r.source} --${r.predicate}--> ${r.target}`);
-  }
-  return [...kinds.values()];
 }
 
 /** How the landing summary shows the overlaps: every kind, and how many of the overlaps it names. */
@@ -456,11 +436,20 @@ export function checkConfirmToken(
   return "ok";
 }
 
+/** The token's lifetime in words, from the setting, for the texts that state it. */
+function tokenLifetime(): string {
+  const minutes = Math.round(confirmationTiming.tokenTtlMs / 60_000);
+  if (minutes % 60 === 0) return minutes === 60 ? "an hour" : `${minutes / 60} hours`;
+  return `${minutes} minutes`;
+}
+
 /** Why a token was refused, for the agent to pass on. */
 function tokenRefusal(name: string, check: Exclude<TokenCheck, "ok">): CLIError {
   const why: Record<Exclude<TokenCheck, "ok">, string> = {
     malformed: "the confirmToken is not one changeset_commit_preview issued",
-    expired: "the confirmToken expired",
+    expired:
+      `the confirmToken expired (a token is good for ${tokenLifetime()}); the user did not decline, the preview they ` +
+      "read is too old to land on",
     used: "the confirmToken was already used",
     mismatch:
       "the changeset or the base model changed since the preview the user approved (or the token is from another " +
@@ -868,7 +857,7 @@ export async function changesetCommitPreviewHandler(
         "Show the user the summary above, in full, its drift lines included. If they want it landed, call " +
         "changeset_commit with this changeset and this confirmToken; they approve that call in the permission prompt. " +
         "The token lands this changeset only as previewed: any change to it or to the base refuses it, and then you " +
-        "preview again. Until then it is good for a day, so the user's answer can take its time.",
+        `preview again. Until then it is good for ${tokenLifetime()} (expiresAt); after that, preview again.`,
     });
   });
 }
@@ -880,7 +869,7 @@ export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSc
     "(intent, counts, layers, and drift: the true count of staged changes the base overlaps, and for every kind " +
     "of overlap what landing does about it; when a kind has many it names the first and says where the rest are). " +
     "Drift does not stop a landing. From Claude Code it also returns a confirmToken bound to the changeset and base " +
-    "as they are now, good for a day: show the user the summary, and if they want it landed, call changeset_commit " +
+    "as they are now, good for an hour: show the user the summary, and if they want it landed, call changeset_commit " +
     "with the token, which they approve in the permission prompt. Use it to land from a client that can't show the " +
     "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control).",
   inputSchema: previewInputSchema,

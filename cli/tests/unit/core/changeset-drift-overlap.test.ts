@@ -530,10 +530,14 @@ describe("the base hash covers content and relationships only, with a version pr
 
 describe("re-baselining a changeset (#1169)", () => {
   it.serial("returns what moved under it, and the base as it is now becomes its base", async () => {
-    const gained = { source: REQUIREMENT, predicate: "realizes", target: SPARE };
     const id = await plan("drop-spare", [await remove(SPARE)]);
-    await land(await plan("link-spare", [link("relationship-add", gained), await reword(CHEAPER, "Halve hosting costs")]));
-    expect((await drift(id)).report.isDrifted).toBe(true);
+    await land(
+      await plan("others", [
+        link("relationship-add", { source: REQUIREMENT, predicate: "realizes", target: CHEAPER }),
+        await reword(CHEAPER, "Halve hosting costs"),
+      ])
+    );
+    expect((await drift(id)).report).toMatchObject({ isDrifted: false, contentFree: true });
 
     const { manager } = await fresh();
     const previous = (await manager.load(id))!.baseSnapshot;
@@ -542,17 +546,38 @@ describe("re-baselining a changeset (#1169)", () => {
     expect(result.previousBaseSnapshot).toBe(previous);
     expect(result.baseSnapshot).not.toBe(previous);
     expect(result.before.baseChanges?.counts).toMatchObject({ elementsChanged: 1, relationshipsAdded: 1 });
-    expect(result.before.overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
     expect(result.after.overlapping).toEqual({ elements: [], relationships: [] });
     expect(result.after.baseChanges?.counts).toEqual({ elementsAdded: 0, elementsRemoved: 0, elementsChanged: 0, relationshipsAdded: 0, relationshipsRemoved: 0 });
 
     const after = await fresh();
     expect((await after.manager.load(id))!.baseSnapshot).toBe(result.baseSnapshot);
     expect(await after.manager.detectDrift(id)).toMatchObject({ isDrifted: false, baseSnapshotId: result.baseSnapshot });
-    expect((await readBaseIndex(rootPath, id))!.rebaselined).toMatchObject({ from: previous, times: 1 });
+    // A visible act: when, from which base and to which, and how many times.
+    expect((await readBaseIndex(rootPath, id))!.rebaselined).toMatchObject({ from: previous, to: result.baseSnapshot, times: 1 });
     // The staged change is as it was.
     expect((await after.manager.load(id))!.changes).toHaveLength(1);
     expect((await commit(id)).driftWarning).toBeUndefined();
+  });
+
+  it.serial("does not hide a delete that would take a relationship the plan never saw: only the plan can clear it", async () => {
+    const gained = { source: REQUIREMENT, predicate: "realizes", target: SPARE };
+    const id = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("link-spare", [link("relationship-add", gained)]));
+
+    const result = await (await fresh()).manager.rebaseline(id);
+    expect(result.before.overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
+    expect(result.after.overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
+    // The hash matches after the re-baseline, and the landing still warns about the relationship.
+    const { report, overlapping } = await drift(id);
+    expect(report.currentSnapshotId).toBe(report.baseSnapshotId);
+    expect(report.isDrifted).toBe(true);
+    expect(overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
+
+    // Staging the relationship's delete is the plan saying it goes too: that clears it.
+    await (await fresh()).manager.stage(id, link("relationship-delete", gained));
+    expect((await drift(id)).overlapping).toEqual({ elements: [], relationships: [] });
+    expect((await commit(id)).driftWarning).toBeUndefined();
+    expect(await linked(gained)).toBe(false);
   });
 
   it.serial("does not hide an update staged on older content: it stays changed-in-base until it is restaged", async () => {
@@ -596,7 +621,9 @@ describe("re-baselining a changeset (#1169)", () => {
     const preview = await (await fresh()).manager.rebaseline(id, { preview: true });
     expect(preview.applied).toBe(false);
     expect(preview.before.overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
-    expect(preview.after.overlapping).toEqual({ elements: [], relationships: [] });
+    expect(preview.before.baseChanges?.counts).toMatchObject({ relationshipsAdded: 1 });
+    expect(preview.after.overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
+    expect(preview.after.baseChanges?.counts).toMatchObject({ relationshipsAdded: 0 });
     expect((await (await fresh()).manager.load(id))!.baseSnapshot).toBe(previous);
     expect((await readBaseIndex(rootPath, id))!.rebaselined).toBeUndefined();
     expect((await drift(id)).report.isDrifted).toBe(true);

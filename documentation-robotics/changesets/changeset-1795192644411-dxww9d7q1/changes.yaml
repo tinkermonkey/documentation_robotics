@@ -379,26 +379,32 @@
     description: "A staged changeset whose base moved can take the base as it is now
       as its starting point: changeset_update with rebaseline records the
       current base hash and base index and returns what moved under the
-      changeset since the last one. Re-baselining never hides an overlap that is
-      still true against the current base: a staged update or delete made on
-      older content of an element stays an overlap until it is restaged, and the
-      landing summary says when the changeset was re-baselined."
+      changeset since the last one. A re-baseline is a visible act and clears
+      nothing a landing would act on: every element overlap is read from the
+      base as it is now and from what the staged change recorded, so an update
+      or delete made on older content, and a delete that would take a
+      relationship the plan never saw, stay overlaps until the plan resolves
+      them, and the landing summary still lists them and says when the changeset
+      was re-baselined."
     attributes:
       requirementType: functional
       priority: medium
       documentation: "Acceptance: after a re-baseline the changeset's drift state is
         none unless a staged change still overlaps the base as it is now; the
         response lists what was added, removed and changed in the base since the
-        previous base, the overlaps that were cleared and the ones that remain
-        with how to resolve each; the base index records when it was
-        re-baselined and from which base hash, and the confirmation dialog and
-        commit preview show it. A record (verification, upgrade) and a changeset
-        that is no longer staged are refused."
+        previous base (a page with true totals; a preview returns the same and
+        writes nothing, since what moved cannot be read again once applied), the
+        overlaps that were cleared and the ones that remain with how to resolve
+        each; the base index records when it was re-baselined, from which base
+        hash and to which, and how many times, and the confirmation dialog and
+        commit preview show it. A re-baseline followed by a preview still shows
+        every overlap that is true against the base. A record (verification,
+        upgrade) and a changeset that is no longer staged are refused."
     metadata:
       created_at: 2026-11-20T16:38:29.310Z
       updated_at: 2026-11-20T16:38:29.310Z
       version: 1
-  timestamp: 2026-11-20T16:38:29.336Z
+  timestamp: 2026-11-20T17:45:39.098Z
   sequenceNumber: 6
 - type: add
   elementId: product.feature.changeset-re-baseline
@@ -819,3 +825,216 @@
     metadata: *a21
   timestamp: 2026-11-20T17:28:51.921Z
   sequenceNumber: 35
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an
+      MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why and names the route that works: declined, no
+      confirmation came back, or the dialog could not be shown. Drift does not
+      refuse it: the confirmation and the result name each staged change the
+      base overlaps and what landing does about it, and force is accepted and
+      ignored. Viewer: Apply, which lands a drifted changeset too. CLI: dr
+      changeset commit, which prints the overlaps and exits 0."
+    attributes: &a22
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through
+        an MCP elicitation dialog, or takes a confirmation token from Claude
+        Code (see Commit confirmation token). It is refused when no person can
+        answer, and a refusal says why: declined, the dialog could not be shown,
+        or drift. Viewer: Apply. CLI: dr changeset commit. A landing clears the
+        active-changeset marker; if the marker cannot be cleared the landing
+        stands and the result warns that the marker is ignored, since a
+        committed changeset is never the active one (#1218)."
+    source_reference: &a23
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a24
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an
+      MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why and names the route that works: declined, no
+      confirmation came back, or the dialog could not be shown. Drift does not
+      refuse it: the confirmation and the result name each staged change the
+      base overlaps and what landing does about it, and force is accepted and
+      ignored. Viewer: Apply, which lands a drifted changeset too. CLI: dr
+      changeset commit, which lists the overlaps and asks at a terminal; with no
+      terminal it refuses a real overlap unless --force is passed, and lands
+      with no overlap."
+    attributes: *a22
+    source_reference: *a23
+    metadata: *a24
+  timestamp: 2026-11-20T17:45:37.874Z
+  sequenceNumber: 36
+- type: update
+  elementId: product.feature.commit-confirmation-token
+  layerName: product
+  before:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing
+      without writing anything and returns the landing summary (intent, counts,
+      layers, drift with what landing does about each overlap, validation) with
+      a token bound to the changeset's confirmed state. Claude Code shows the
+      summary, and the person approves the changeset_commit call carrying the
+      token in Claude Code's permission prompt, which
+      anthropic/requiresUserInteraction forces. changeset_commit accepts the
+      token only from Claude Code (v2.1.199 or later) and refuses it once used,
+      expired (24 hours, long enough for an answer relayed through another
+      session), or when the changeset or base model changed since the preview.
+      The token does not bind force, which is ignored. Other clients still
+      confirm in the elicitation dialog."
+    attributes: &a25
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id,
+        force, a 10-minute expiry and the confirmedState fingerprint (staged
+        changes and base model); good once. The preview tool is not flagged, so
+        landing takes one approval. Permission modes (checked 2026-11-17 against
+        the Claude Code docs): the prompt is forced in acceptEdits, auto and
+        bypassPermissions (so --dangerously-skip-permissions too), allow rules
+        and PreToolUse hooks don't skip it, and dontAsk,
+        --permission-prompt-tool and runs without a prompt callback deny the
+        call. The server can't see the mode and doesn't need to."
+    source_reference: &a26
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a27
+      created_at: 2026-11-17T20:42:52.469Z
+      updated_at: 2026-11-17T20:42:52.469Z
+      version: 1
+  after:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing
+      without writing anything and returns the landing summary (intent, counts,
+      layers, drift with the true count of overlaps and what landing does about
+      each kind, validation) with a token bound to the changeset's confirmed
+      state. Claude Code shows the summary, and the person approves the
+      changeset_commit call carrying the token in Claude Code's permission
+      prompt, which anthropic/requiresUserInteraction forces. changeset_commit
+      accepts the token only from Claude Code (v2.1.199 or later) and refuses it
+      once used, expired (one hour: long enough for an answer relayed through
+      another session, too short for yesterday's preview to land today), or when
+      the changeset or base model changed since the preview. An expired token is
+      reported as expired, not as a decline. The token does not bind force,
+      which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes: *a25
+    source_reference: *a26
+    metadata: *a27
+  timestamp: 2026-11-20T17:45:38.287Z
+  sequenceNumber: 37
+- type: update
+  elementId: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+  layerName: motivation
+  before:
+    id: 1214a779-73a8-463e-95cf-8ce4681faf4a
+    path: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Only an overlapping base change warns at a landing
+    description: "Drift never refuses a landing. A staged changeset lands with a
+      warning only when the base overlaps it in a way that could make the
+      landing wrong: an element it stages a change for changed in the base after
+      that change was staged, or was removed; an element it deletes gained a
+      relationship the delete would remove; an element at an end of a
+      relationship it adds or deletes was removed; the base already has what it
+      adds, or lacks what it deletes. Each overlap is named with what landing
+      does about it. Any other change to the base, a description, name or
+      attribute edit on a link's end included, is not an overlap."
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: a drifted changeset lands from the CLI,
+        changeset_commit and the viewer's Apply without force, and each shows
+        what overlapped and what landing did about it. A staged update or delete
+        is compared with the base through the element state it recorded when it
+        was staged, so an update restaged on the current base is not an overlap,
+        and one staged on an older base still is after a re-baseline. A change
+        to an element at a link's end that keeps its id is not an overlap (the
+        id carries its layer and type); a removed end is. Without a base index,
+        what changed cannot be listed and the landing says so. The CLI,
+        changeset_commit, the viewer's Apply, project_status and the viewer
+        API's drift field all read the one rule
+        (StagingAreaManager.detectDrift). Validation errors the changeset
+        introduces and records (verification, upgrade) are still refused. Not
+        covered, as before: fields outside the content hash (accepted gaps,
+        metadata, references)."
+    metadata: &a28
+      created_at: 2026-11-18T20:52:36.711Z
+      updated_at: 2026-11-18T20:52:36.711Z
+      version: 1
+  after:
+    id: 1214a779-73a8-463e-95cf-8ce4681faf4a
+    path: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Only an overlapping base change warns at a landing
+    description: "Drift never refuses a landing. A staged changeset lands with a
+      warning only when the base overlaps it in a way that could make the
+      landing wrong: an element it stages a change for changed in the base after
+      that change was staged, or was removed; an element it deletes gained a
+      relationship the delete would remove; an element at an end of a
+      relationship it adds or deletes was removed; the base already has what it
+      adds, or lacks what it deletes. Each overlap is named with what landing
+      does about it. Any other change to the base, a description, name or
+      attribute edit on a link's end included, is not an overlap."
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: a drifted changeset lands from changeset_commit and
+        the viewer's Apply without force, and each shows what overlapped and
+        what landing did about it. From the CLI it lands when a person at a
+        terminal says yes to the listed overlaps, or with --force; with no
+        terminal and a real overlap dr changeset commit refuses with a non-zero
+        exit and the list, and with no overlap it lands and exits 0. A staged
+        update or delete is compared with the base through the element state it
+        recorded when it was staged, so an update restaged on the current base
+        is not an overlap, and one staged on an older base still is after a
+        re-baseline. A staged delete of an element the base has a relationship
+        on that the plan stages no delete for is an overlap, read from the base
+        as it is now. A change to an element at a link's end that keeps its id
+        is not an overlap (the id carries its layer and type); a removed end is.
+        Without a base index, what changed cannot be listed and the landing says
+        so. The CLI, changeset_commit, the viewer's Apply, project_status and
+        the viewer API's drift field all read the one rule
+        (StagingAreaManager.detectDrift). Validation errors the changeset
+        introduces and records (verification, upgrade) are still refused. Not
+        covered, as before: fields outside the content hash (accepted gaps,
+        metadata, references)."
+    metadata: *a28
+  timestamp: 2026-11-20T17:45:38.692Z
+  sequenceNumber: 38

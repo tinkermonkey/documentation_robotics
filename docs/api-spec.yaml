@@ -125,6 +125,9 @@ components:
             from:
               type: string
               description: The base hash the changeset had before it
+            to:
+              type: string
+              description: The base hash it was re-baselined to
             times:
               type: integer
               description: How many times it was re-baselined
@@ -135,7 +138,8 @@ components:
           description:
             "Set when the changeset was re-baselined (changeset_update with
             rebaseline): baseChanges then counts from that base, not from its
-            creation"
+            creation. A re-baseline clears no overlap: overlapping is read from
+            the base as it is now"
         overlapping:
           type: object
           properties:

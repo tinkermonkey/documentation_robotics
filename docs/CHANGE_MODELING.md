@@ -183,8 +183,8 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
 - From Claude Code (v2.1.199 or later, by the `clientInfo` it sends), a confirmation token can stand
   in for the dialog. `changeset_commit_preview` runs the same checks, writes nothing, and returns
   the dialog's text as `summary` with a `confirmToken`: an HMAC, keyed per server process, over the
-  changeset id, an expiry (24 hours, so an answer relayed through another session still finds it
-  good) and the confirmed state (the staged changes and the base model). The agent shows the person
+  changeset id, an expiry (one hour: long enough for an answer relayed through another session, too
+  short for a summary read yesterday to land today) and the confirmed state (the staged changes and the base model). The agent shows the person
   the summary, and `changeset_commit` with the token is the call they approve in the permission
   prompt. The token is good once, and is refused from any other client, after it expires, or when
   the changeset or the base changed since the preview. This is how a changeset lands from the
@@ -207,16 +207,24 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
   in `overlaps` (`total`, `named`) and `more`. The token is bound to the whole changeset and base,
   whatever the summary names. The changeset lands when the person confirms, and the result names
   every overlap it landed over in `drift` (`total`, and `kinds` with their `items`). `force` is accepted and ignored
-  for one release. The viewer's Apply and `dr changeset commit` land a drifted changeset the same
-  way and report the same overlaps. The commit is `StagingAreaManager.commit`, the same
+  here and on the viewer API, since a person confirms there. The viewer's Apply lands a drifted
+  changeset the same way and reports the same overlaps. The commit is `StagingAreaManager.commit`, the same
   code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
   of the model. An active changeset is deactivated afterwards.
 - It commits only what the person saw. After they accept, it re-reads the changeset (its staged
   changes, modified time and status) and the base model (elements and relationships), and refuses
   if anything changed while the dialog was open.
 - `dr changeset commit [changeset]` takes the changeset's id or name too. A named changeset that
-  isn't active is activated for the commit, with the same drift report and validation handling,
-  and the changeset active before is active again afterwards (also when the commit fails).
+  isn't active is activated for the commit, with the same validation handling, and the changeset
+  active before is active again afterwards (also when the commit fails).
+- On the CLI someone still has to have read what landing does about an overlap, as a person does
+  in the dialog or the viewer. With a terminal attached, `dr changeset commit` lists the overlaps
+  (the true count, every one named, with what landing does about each kind) and asks. With no
+  terminal (a script, CI) and one or more overlaps it refuses with a non-zero exit and the same
+  list, unless `--force` is passed. With no overlap (the base is as it was, or changed elsewhere)
+  it lands and exits 0. So `--force` is not retired on the CLI: it means "land over the overlaps
+  without being asked". `dr changeset apply` follows the same rule. `force` on `changeset_commit`
+  and on the viewer API is the one that is ignored.
 - Land the plan, not the as-built changeset. After verify, the as-built changeset from
   `codebase_extract` is the plan's verification record, which is never landed (see
   [What a changeset is for](#what-a-changeset-is-for)): it is discarded or kept as a record. When
@@ -227,7 +235,11 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
 - A changeset whose base moved can be re-baselined: `changeset_update` with `rebaseline: true`
   records the base as it is now (its hash and base index) and returns what moved under the
   changeset (`moved`), the overlaps that cleared and the ones that remain, each with how the plan
-  resolves it. `rebaseline: "preview"` returns the same and writes nothing. The lists in `moved`
+  resolves it. A re-baseline clears the list of base changes and nothing a landing would do: every
+  element overlap is read from the base as it is now and from what the staged change recorded, so
+  the overlaps that remain are still in the landing summary, which also says the changeset was
+  re-baselined (the base index records when, from which base hash and to which). `rebaseline: "preview"`
+  returns the same and writes nothing. The lists in `moved`
   are a page (`limit`, default 50, and `offset`; `moved.page` has each list's true total and the
   `nextOffset`), and what moved can't be read again once a re-baseline is applied, so preview first
   when much has moved. It changes no staged change and never hides an overlap that is still true against

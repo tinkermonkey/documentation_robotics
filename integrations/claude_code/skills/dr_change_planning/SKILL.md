@@ -213,7 +213,7 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
    commits only if they confirm; if they decline, leave it staged. From Claude Code, call
    `changeset_commit_preview` with its name first and show them its `summary` in full; if they want it
-   landed, call `changeset_commit` with the preview's `confirmToken` (good for a day). They approve
+   landed, call `changeset_commit` with the preview's `confirmToken` (good for an hour). They approve
    that call in the permission prompt instead of a dialog, so it lands from the Claude desktop app,
    which can't show the dialog. A changed plan or base refuses the token: preview again. Drift doesn't refuse it: the summary lists each
    staged change the base overlaps and what landing does about it, so show them that (`force` is ignored;

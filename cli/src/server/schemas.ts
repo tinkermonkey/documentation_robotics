@@ -403,8 +403,9 @@ export const ChangesetDriftSchema = z.object({
   rebaselined: z.object({
     at: z.string().describe('ISO timestamp of the last re-baseline'),
     from: z.string().describe('The base hash the changeset had before it'),
+    to: z.string().optional().describe('The base hash it was re-baselined to'),
     times: z.number().int().describe('How many times it was re-baselined'),
-  }).optional().describe('Set when the changeset was re-baselined (changeset_update with rebaseline): baseChanges then counts from that base, not from its creation'),
+  }).optional().describe('Set when the changeset was re-baselined (changeset_update with rebaseline): baseChanges then counts from that base, not from its creation. A re-baseline clears no overlap: overlapping is read from the base as it is now'),
   overlapping: ChangesetOverlappingSchema(
     'The staged changes the base now overlaps, each with what landing does about it. Show them before Apply: a commit lands over them. A base change not listed here overlaps nothing the changeset stages'
   ).optional(),

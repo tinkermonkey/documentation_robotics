@@ -3,7 +3,7 @@
  * CLI reads YAML 1.2, where they are strings unquoted; a YAML 1.1 reader (PyYAML, Ruby, older
  * tooling) takes them for booleans, so they are written quoted.
  */
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,16 +11,6 @@ import yaml from "yaml";
 import { StagedChangesetStorage, stringifyStaged } from "../../../src/core/staged-changeset-storage.js";
 
 const AMBIGUOUS = { mode: "off", sync: "on", answer: "Yes", short: "n", real: true, text: "offline", count: 3 };
-
-let rootPath: string;
-
-beforeEach(async () => {
-  rootPath = await mkdtemp(join(tmpdir(), "dr-staged-yaml-"));
-});
-
-afterEach(async () => {
-  await rm(rootPath, { recursive: true, force: true });
-});
 
 describe("stringifyStaged", () => {
   it("quotes the string values a YAML 1.1 reader would take for booleans, and nothing else", () => {
@@ -44,7 +34,16 @@ describe("stringifyStaged", () => {
 
 describe("a staged changeset on disk", () => {
   it("writes such values quoted in changes.yaml and reads them back as strings", async () => {
-    const storage = new StagedChangesetStorage(rootPath);
+    // Its own directory, removed at the end: the unit suite runs this folder's tests concurrently.
+    const rootPath = await mkdtemp(join(tmpdir(), "dr-staged-yaml-"));
+    try {
+      await check(new StagedChangesetStorage(rootPath));
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  async function check(storage: StagedChangesetStorage): Promise<void> {
     const changeset = await storage.create("yaml-values", "YAML values", undefined, "v2:sha256:abc");
     changeset.changes = [
       {
@@ -62,5 +61,5 @@ describe("a staged changeset on disk", () => {
     expect(text).toContain('sync: "on"');
     expect(yaml.parse(text, { version: "1.1" })[0].after.attributes).toEqual(AMBIGUOUS);
     expect((await storage.load("yaml-values"))!.changes[0].after).toMatchObject({ attributes: AMBIGUOUS });
-  });
+  }
 });

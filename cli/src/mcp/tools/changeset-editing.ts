@@ -73,9 +73,9 @@ const updateInputSchema = {
       "true: make the base model as it is now this changeset's base, and return what moved under it since its " +
         "previous base. \"preview\": return the same and write nothing; do this first when much has moved, since " +
         "what moved can't be read again after a re-baseline. Use it once you have read what the base changed and the " +
-        "plan still stands. It clears the list of base changes and the overlaps only the old base could tell " +
-        "(linked-in-base). An overlap that is true against the base as it is now stays until the plan resolves it " +
-        "(each one's resolve says how): a re-baseline never hides what landing would do. Staged changes are untouched."
+        "plan still stands. It clears the list of base changes, and nothing a landing would do: an overlap that is " +
+        "true against the base as it is now stays until the plan resolves it (each one's resolve says how), and the " +
+        "landing summary still lists it and says the changeset was re-baselined. Staged changes are untouched."
     ),
   limit: z
     .number()

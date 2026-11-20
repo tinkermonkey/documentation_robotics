@@ -42,7 +42,7 @@ export interface BaseIndex {
    * the base hash it had before, and how many times. The landing summary shows it, so the person
    * confirming knows the base changes before then are no longer listed.
    */
-  rebaselined?: { at: string; from: string; times: number };
+  rebaselined?: { at: string; from: string; to?: string; times: number };
 }
 
 export interface RelationshipRef {
@@ -58,6 +58,36 @@ export type ElementOverlapReason =
   | "removed-in-base"
   | "linked-in-base";
 export type RelationshipOverlapReason = "already-in-base" | "already-removed" | "endpoint-removed-in-base";
+
+/** The overlaps of one kind: one reason, one thing landing does about it. */
+export interface OverlapKind {
+  of: "element" | "relationship";
+  reason: ElementOverlapReason | RelationshipOverlapReason;
+  /** What landing does about every overlap of this kind. */
+  consequence: string;
+  /** Every overlap of this kind: an element's id, or a relationship as `source --predicate--> target`. */
+  items: string[];
+}
+
+/**
+ * The staged changes the base overlaps, grouped by what landing does about them: how a person
+ * confirming a landing reads them (the MCP landing summary, the CLI's prompt). Computed over every
+ * overlap; nothing here is shortened.
+ */
+export function overlapKinds(drift: { overlapping: ChangesetDrift["overlapping"] }): OverlapKind[] {
+  const kinds = new Map<string, OverlapKind>();
+  const add = (of: OverlapKind["of"], reason: OverlapKind["reason"], consequence: string, item: string): void => {
+    const key = `${of}\u0000${reason}\u0000${consequence}`;
+    const kind = kinds.get(key);
+    if (kind) kind.items.push(item);
+    else kinds.set(key, { of, reason, consequence, items: [item] });
+  };
+  for (const e of drift.overlapping.elements) add("element", e.reason, e.consequence, e.id);
+  for (const r of drift.overlapping.relationships) {
+    add("relationship", r.reason, r.consequence, `${r.source} --${r.predicate}--> ${r.target}`);
+  }
+  return [...kinds.values()];
+}
 
 /**
  * What landing does about a staged change the base overlaps, as a sentence for the person
@@ -128,7 +158,8 @@ export function overlapConsequence(
           };
     case "linked-in-base":
       return {
-        consequence: "The base gained a relationship on this element; landing deletes the element and that relationship with it.",
+        consequence:
+          "The base has a relationship on this element that the plan stages no delete for; landing deletes the element and that relationship with it.",
         resolve: "Stage the relationship's delete too if it should go, or unstage the element's delete.",
       };
     default:
@@ -247,8 +278,10 @@ export interface ChangesetDrift {
    *   staged on older content still is after a re-baseline. A change that recorded no `before`
    *   falls back to the base index.
    * - `removed-in-base`: an update or recreate of an element the base removed.
-   * - `linked-in-base`: a delete of an element the base has since linked (base index needed): the
-   *   delete would purge a relationship the plan never saw.
+   * - `linked-in-base`: a delete of an element the base has a relationship on that the plan stages
+   *   no delete for (one the base gained after the delete was staged): landing the delete purges
+   *   it. Read from the base as it is now, so a re-baseline does not clear it; staging the
+   *   relationship's delete, or unstaging the element's, does.
    * - `endpoint-removed-in-base`: a relationship the plan adds or deletes with an end on a base
    *   element that was removed since (`endpoints` names those ends).
    *
@@ -538,6 +571,18 @@ export async function describeDrift(
     if (contentHash(elementFromRecord(on.before, on.layer, id)) !== now.elements[id]) flagElement(id, "changed-in-base");
   }
 
+  // A staged delete purges every relationship on its element when it lands. One the base has that
+  // the plan stages no delete for is one the plan never saw (staging a delete stages the removal of
+  // the element's relationships as they were then), so landing would take it without a word. Read
+  // from the base as it is now, not from the base index: a re-baseline must not clear it.
+  for (const key of now.relationships) {
+    if (net.get(key) === "delete") continue;
+    const ref = parseKey(key);
+    for (const id of new Set([ref.source, ref.target])) {
+      if (staged.deletes.has(id)) flagElement(id, "linked-in-base");
+    }
+  }
+
   const read: Awaited<ReturnType<typeof tryReadBaseIndex>> = options.since
     ? { index: options.since, status: "recorded" }
     : await tryReadBaseIndex(model.rootPath, changeset.id);
@@ -571,16 +616,6 @@ export async function describeDrift(
     for (const id of elementsAdded) {
       if (staged.adds.has(id)) flagElement(id, "already-in-base");
     }
-    // A staged delete purges every relationship on the element when it lands, also one the base
-    // gained since, which the changeset never saw (unless it stages that relationship's delete).
-    for (const key of relationshipsAdded) {
-      if (net.get(key) === "delete") continue;
-      const ref = parseKey(key);
-      for (const id of new Set([ref.source, ref.target])) {
-        if (staged.deletes.has(id)) flagElement(id, "linked-in-base");
-      }
-    }
-
     // A relationship the changeset stages a change for that the base removed since, whatever the
     // last op: re-adding it after a delete would put back what the base took out.
     for (const key of net.keys()) {
