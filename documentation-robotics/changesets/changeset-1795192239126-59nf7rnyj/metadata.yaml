@@ -1,25 +1,31 @@
 id: changeset-1795192239126-59nf7rnyj
 name: brief-sections-fit-one-response
-description: "changeset_brief's sections return compact forms that share a 40 KB
-  budget and say what was cut and how to get it; detail: \"full\" with sections
-  returns those sections in full. Intent traces a part through the whole that
-  composes it, counts types with no catalog route to intent apart from untraced,
-  and explains an empty intent. Done: on a 2,364-element changeset the default
-  brief and the filtered calls of #1183 and #1232 each come back under 40 KB,
-  and the acceptance criteria of #1183, #1221, #1231 and #1232 are met with
-  tests."
+description: "changeset_brief's sections return compact forms in which a long
+  list comes a page at a time: every list reports its true total, how many items
+  the answer holds and the call for the next page, so no limit leaves an answer
+  looking complete when it is not. Page sizes default to what keeps the answer
+  near a 40 KB target, which the caller can change (targetBytes) or replace with
+  a fixed limit; detail: \"full\" with sections returns those sections in full
+  at once. changeset_impact counts everything it reaches and pages what it
+  lists. Intent traces a part through the whole that composes it, counts types
+  with no catalog route to intent apart from untraced, and explains an empty
+  intent. Done: on a 2,364-element changeset the default brief and the filtered
+  calls of #1183 and #1232 each come back near 40 KB with true totals; for every
+  list that can be shortened, a test shows the total is right and the pages
+  together equal the whole set; and the acceptance criteria of #1183, #1221,
+  #1231 and #1232 are met."
 created: 2026-11-20T16:30:39.144Z
-modified: 2026-11-20T16:58:29.149Z
+modified: 2026-11-20T17:16:47.971Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 26
-  modifications: 4
+  additions: 28
+  modifications: 7
   deletions: 0
-lastSequence: 38
+lastSequence: 54
 unstaged:
   - sequence: 1
     removedAt: 28
@@ -233,3 +239,139 @@ unstaged:
           version: 1
       timestamp: 2026-11-20T16:47:09.815Z
     rewritten: true
+  - sequence: 4
+    removedAt: 39
+    change:
+      type: add
+      elementId: data-model.objectschema.section-cut
+      layerName: data-model
+      after:
+        id: f89c3804-d625-46d7-81ab-e1e97fa384a2
+        path: data-model.objectschema.section-cut
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionCut
+        description: "What a sections answer left out to stay within the size budget:
+          the section, how many items it shows of how many, and the call that
+          returns the rest."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.138Z
+          updated_at: 2026-11-20T16:31:14.138Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/changeset-brief-compact.ts
+              symbol: SectionCut
+      timestamp: 2026-11-20T16:58:06.102Z
+  - sequence: 14
+    removedAt: 40
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.section-cut
+      layerName: application
+      after:
+        source: application.applicationfunction.brief-sections
+        target: data-model.objectschema.section-cut
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:31:14.176Z
+  - sequence: 0
+    removedAt: 45
+    change:
+      type: add
+      elementId: motivation.requirement.a-brief-answer-fits-one-tool-result
+      layerName: motivation
+      after:
+        id: 95599476-9522-4b7a-9bdc-93ecc9ba57ca
+        path: motivation.requirement.a-brief-answer-fits-one-tool-result
+        spec_node_id: motivation.requirement
+        type: requirement
+        layer_id: motivation
+        name: A brief answer fits one tool result
+        description: "Every changeset_brief answer an agent asks for while
+          pressure-testing or building (the default brief, and any section
+          narrowed by layers or ids) comes back within one MCP tool result. Past
+          a size budget the answer summarises, says what it cut and names the
+          call that returns the rest. A filtered section costs in proportion to
+          what the filter keeps (#1183, #1232)."
+        attributes:
+          requirementType: non-functional
+          priority: high
+          documentation: "Every changeset_brief answer an agent asks for while
+            pressure-testing or building (the default brief, and any section
+            narrowed by layers or ids) comes back within one MCP tool result.
+            Past a size budget the answer summarises, says what it cut and names
+            the call that returns the rest. A filtered section costs in
+            proportion to what the filter keeps (#1183, #1232)."
+        metadata:
+          created_at: 2026-11-20T16:31:14.079Z
+          updated_at: 2026-11-20T16:31:14.079Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 49
+    change:
+      type: add
+      elementId: motivation.requirement.a-brief-answer-fits-one-tool-result
+      layerName: motivation
+      after:
+        id: 95599476-9522-4b7a-9bdc-93ecc9ba57ca
+        path: motivation.requirement.a-brief-answer-fits-one-tool-result
+        spec_node_id: motivation.requirement
+        type: requirement
+        layer_id: motivation
+        name: A limit never hides part of an answer
+        description: "A count or size limit in a changeset_brief or changeset_impact
+          answer is a default the caller can change, never a silent cut-off. A
+          list too long for one tool result comes a page at a time, with its
+          true total, how many items the answer holds and the call for the next
+          page; counts and summaries are over the whole list, not the page. No
+          answer reads as complete when it is not (#1183, #1232)."
+        attributes:
+          requirementType: non-functional
+          priority: high
+          documentation: "A count or size limit in a changeset_brief or changeset_impact
+            answer is a default the caller can change, never a silent cut-off. A
+            list too long for one tool result comes a page at a time, with its
+            true total, how many items the answer holds and the call for the
+            next page; counts and summaries are over the whole list, not the
+            page. No answer reads as complete when it is not (#1183, #1232)."
+        metadata:
+          created_at: 2026-11-20T16:31:14.079Z
+          updated_at: 2026-11-20T16:31:14.079Z
+          version: 1
+      timestamp: 2026-11-20T17:16:14.828Z
+  - sequence: 6
+    removedAt: 50
+    change:
+      type: relationship-add
+      elementId: motivation.requirement.a-brief-answer-fits-one-tool-result::realizes::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+      layerName: motivation
+      after:
+        source: motivation.requirement.a-brief-answer-fits-one-tool-result
+        target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+        predicate: realizes
+        layer: motivation
+        category: structural
+      timestamp: 2026-11-20T16:31:14.176Z
+  - sequence: 7
+    removedAt: 51
+    change:
+      type: relationship-add
+      elementId: product.feature.changeset-brief::satisfies::motivation.requirement.a-brief-answer-fits-one-tool-result
+      layerName: product
+      after:
+        source: product.feature.changeset-brief
+        target: motivation.requirement.a-brief-answer-fits-one-tool-result
+        predicate: satisfies
+        layer: product
+        targetLayer: motivation
+        category: structural
+      timestamp: 2026-11-20T16:31:14.176Z

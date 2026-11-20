@@ -129,8 +129,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `sections: ["changes"]`: each changed element's attributes and changed fields, and its
    connections as `predicate → id` lines. For a large plan, read one layer at a time with
    `sections: ["changes"], layers: ["<layer>"]`, taking the layers from the default brief's
-   `byLayer`. A sections answer stays within one tool result: when it has `cut`, the list was cut to
-   fit, so call again with `offset` set to its `nextOffset` until `cut` is gone. The default brief's "code touched" list is what you will edit or must not
+   `byLayer`. A long list comes a page at a time: `pages` gives each section's `total` and how many
+   it `returned`, so while a section has a `nextOffset`, make the `next` call it names until it has none. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
    with the code. Don't add the whole `changesets/` directory.

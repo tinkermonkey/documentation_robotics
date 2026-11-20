@@ -160,7 +160,7 @@ describe("changeset_brief compact (D2)", () => {
     }
 
     const gaps = await brief({ sections: ["gaps"] });
-    expect(Object.keys(gaps.json).sort()).toEqual(["changeset", "detail", "gaps", "more", "revision", "revisionToken", "sections", "summary"]);
+    expect(Object.keys(gaps.json).sort()).toEqual(["changeset", "detail", "gaps", "more", "pages", "revision", "revisionToken", "sections", "summary"]);
     expect(gaps.json.changeset).toEqual({ id: expect.any(String), name: "export-orders", status: "staged" });
     // Compact: one line per gap; the gap itself, with its examples, in full.
     expect(gaps.json.gaps.every((g: unknown) => typeof g === "string")).toBe(true);
@@ -255,18 +255,34 @@ describe("changeset_brief compact (D2)", () => {
     // Without sections they narrow nothing, and the result says so.
     const unnarrowed = (await brief({ layers: ["api"] })).json;
     expect(unnarrowed.changes).toHaveLength(4);
-    expect(unnarrowed.note).toContain("narrow sections output only");
+    expect(unnarrowed.note).toContain("shape sections output only");
     expect((await brief()).json.note).toBeUndefined();
   });
 
   it("summarises a large plan by type and cuts long id lists, under 30 KB (round 2: 56–66 KB bootstrap brief)", async () => {
     // A bootstrap-sized plan: 130 more elements, none tracing to intent.
-    for (let i = 0; i < 90; i++) {
-      await add({ layer: "testing", type: "testcasesketch", name: `owner-controller-tests-case-number-${i}`, attributes: { status: "automated", implementationFormat: "automated" }, description: `Case ${i}. `.repeat(8) });
-    }
-    for (let i = 0; i < 40; i++) {
-      await add({ layer: "application", type: "applicationfunction", name: `owner-controller-handler-number-${i}`, sourceFile: `src/main/java/owner/Handler${i}.java`, sourceProvenance: "manual" });
-    }
+    // Staged in one call: 130 separate writes took most of this test's 30 seconds on a busy machine.
+    text(
+      await modelAddHandler({
+        elements: [
+          ...Array.from({ length: 90 }, (_, i) => ({
+            layer: "testing",
+            type: "testcasesketch",
+            name: `owner-controller-tests-case-number-${i}`,
+            attributes: { status: "automated", implementationFormat: "automated" },
+            description: `Case ${i}. `.repeat(8),
+          })),
+          ...Array.from({ length: 40 }, (_, i) => ({
+            layer: "application",
+            type: "applicationfunction",
+            name: `owner-controller-handler-number-${i}`,
+            sourceFile: `src/main/java/owner/Handler${i}.java`,
+            sourceProvenance: "manual",
+          })),
+        ],
+        rootPath,
+      } as any)
+    );
     const compact = await brief();
     expect(compact.json.changes).toBeUndefined();
     const tests = compact.json.changesByType.find((g: any) => g.type === "testing.testcasesketch");
@@ -284,14 +300,14 @@ describe("changeset_brief compact (D2)", () => {
     expect(compact.json.gaps.some((g: string) => /^unconnected: .* \(1[0-9]{2} elements: .*, \+1[0-9]{2} more\)$/.test(g))).toBe(true);
     expect(compact.bytes).toBeLessThan(30_000);
 
-    // The build view of all 133 is past one result: it is cut, says so, and offset continues it.
+    // The build view of all 133 is past one result: the answer holds a page, says so, and offset continues it.
     const all = await brief({ sections: ["changes"] });
     expect(all.bytes).toBeLessThanOrEqual(40 * 1024);
-    const cut = all.json.cut.find((c: any) => c.section === "changes");
-    expect(cut).toMatchObject({ of: 133, shown: all.json.changes.length, unit: "elements", nextOffset: all.json.changes.length });
-    expect(cut.byType["testing.testcasesketch"]).toBe(90);
-    const rest = await brief({ sections: ["changes"], offset: cut.nextOffset });
-    expect(rest.json.cut).toBeUndefined();
+    const page = all.json.pages.changes;
+    expect(page).toMatchObject({ total: 133, returned: all.json.changes.length, unit: "elements", nextOffset: all.json.changes.length });
+    expect(page.summary.byType["testing.testcasesketch"]).toBe(90);
+    const rest = await brief({ sections: ["changes"], offset: page.nextOffset });
+    expect(rest.json.pages.changes.nextOffset).toBeUndefined();
     expect(new Set([...all.json.changes, ...rest.json.changes].map((c: any) => c.id)).size).toBe(133);
     expect((await brief({ sections: ["changes"], detail: "full" })).json.changes).toHaveLength(133);
 

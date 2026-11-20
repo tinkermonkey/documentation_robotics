@@ -14,7 +14,14 @@ import {
   type BriefDrift,
 } from "../../core/changeset-analysis.js";
 import { briefDelta } from "../../core/changeset-brief-delta.js";
-import { BRIEF_SECTIONS, briefSections, compactBrief, SECTIONS_BUDGET_BYTES } from "../../core/changeset-brief-compact.js";
+import {
+  BRIEF_SECTIONS,
+  briefSections,
+  compactBrief,
+  CONNECTIONS_PER_GROUP,
+  LIST_LIMIT,
+  SECTIONS_TARGET_BYTES,
+} from "../../core/changeset-brief-compact.js";
 import { describeDrift } from "../../core/changeset-base-index.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
@@ -30,7 +37,21 @@ const changesetFields = changesetArgFields("Changeset ID or name. Defaults to th
 const impactInputSchema = {
   ...changesetFields,
   depth: z.number().int().min(1).max(6).optional().describe("Hops to walk out from the changed elements (default 2)."),
-  maxElements: z.number().int().positive().optional().describe("Stop after this many reached elements (default 200)."),
+  maxElements: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "How many reached elements to list, nearest first (default 200). A page size: reached, perHop and hubs always " +
+        "count everything the walk reaches, and nextOffset is set when more are left."
+    ),
+  offset: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("Skip this many reached elements: pass a result's nextOffset to read the next page."),
   from: z
     .array(z.string())
     .optional()
@@ -60,12 +81,29 @@ export async function changesetImpactHandler(args: ChangesetImpactArgs): Promise
     const report = computeImpact(graph, {
       depth: args.depth,
       maxElements: args.maxElements,
+      offset: args.offset,
       from: args.from,
       hubThreshold: args.hubThreshold,
       expandHubs: args.expandHubs,
     });
-    return jsonResult({ changeset: { id: changeset.id, name: changeset.name }, ...report });
+    // When the page is not the whole list, say so and name the call that continues it.
+    const more =
+      report.nextOffset !== undefined
+        ? {
+            more:
+              `byLayer lists ${report.returned} of the ${report.reached} elements reached` +
+              `${report.offset ? ` (from ${report.offset})` : ""}; reached, perHop and hubs count them all. Next page: ` +
+              `changeset_impact ${JSON.stringify({ ...impactCallArgs(args), offset: report.nextOffset })}.`,
+          }
+        : {};
+    return jsonResult({ changeset: { id: changeset.id, name: changeset.name }, ...report, ...more });
   });
+}
+
+/** The caller's own arguments, for the call that returns the next page (rootPath left to the client's default when unset). */
+function impactCallArgs(args: ChangesetImpactArgs): Record<string, unknown> {
+  const { offset: _offset, ...rest } = args;
+  return Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== undefined));
 }
 
 export const changesetImpactTool: McpToolDefinition<typeof impactInputSchema> = {
@@ -74,7 +112,9 @@ export const changesetImpactTool: McpToolDefinition<typeof impactInputSchema> = 
     "Walk the model outward from everything a changeset adds, changes or removes (relationships included), or " +
     "from the elements named in `from`, and list the existing elements it reaches, by layer, with how each was " +
     "reached and its source files, plus how many each hop reached (perHop). These are what the change can break " +
-    "or must update. Hubs (elements with more than hubThreshold relationships) are listed with their degree and " +
+    "or must update. The walk is never cut short: reached, perHop and hubs count everything, byLayer lists the " +
+    "nearest maxElements (default 200), and when more are left the result has nextOffset and the call for the " +
+    "next page. Hubs (elements with more than hubThreshold relationships) are listed with their degree and " +
     "not walked through unless expandHubs is set.",
   inputSchema: impactInputSchema,
   handler: changesetImpactHandler,
@@ -113,16 +153,20 @@ const briefInputSchema = {
     .optional()
     .describe(
       "Return only these sections, with a small header (revision, the changeset's id, name and status, summary " +
-        `counts), each in a compact form and together within about ${SECTIONS_BUDGET_BYTES / 1024} KB. A section too large for that ` +
-        "falls back to a summary or is cut, and cut says what was left out and the call that returns it. " +
+        "counts), each in a compact form. Every list section reports in pages its true total, how many items this " +
+        "answer holds and, when more are left, nextOffset and the exact call for the next page: nothing is dropped, " +
+        `and counts and summaries are over the whole list. Without limit, pages are sized so the answer weighs about ${SECTIONS_TARGET_BYTES / 1024} KB ` +
+        "(targetBytes changes that); a list not returned whole also gets a summary of all of it. " +
         "[\"changes\"] is the build view: each changed element with its name, description, attributes, changed fields " +
         "(before and after), files and connections as `predicate → id` lines. [\"intent\"]: counts, the untraced ids " +
-        "(per type when there are many), the unanchored, and the traced with what each traces to when there are few. " +
-        "[\"gaps\"]: one line per gap. [\"layers\"]: each changed element with the connections the change adds or " +
-        "deletes as lines (8 per predicate and layer) and the rest counted. [\"unwired\"]: per element, or per type past " +
-        "25 elements. [\"codeTouched\"]: files with their changed ids. Others: drift, alreadyInBase, acceptedGaps, " +
-        "relationshipChanges, feedback, changeset. With since, the delta comes too. detail: \"full\" returns the " +
-        "named sections as the full brief has them, whatever their size."
+        "(the list that pages, with every untraced element counted per type beside a page), the unanchored, and the " +
+        "traced with what each traces to when there are at most limit of them. [\"gaps\"]: one line per gap. " +
+        "[\"layers\"]: each changed element with the connections the change adds or deletes as lines " +
+        "(maxConnections per predicate and layer) and the rest counted. [\"unwired\"]: per element. " +
+        "[\"codeTouched\"]: files with their changed ids. Others: drift, alreadyInBase, acceptedGaps, " +
+        "relationshipChanges, feedback, changeset. With since, the delta comes too, its lists paged the same way " +
+        "when delta is named. detail: \"full\" returns the named sections as the full brief has them, all at once, " +
+        "whatever their size."
     ),
   layers: z
     .array(z.string())
@@ -151,8 +195,36 @@ const briefInputSchema = {
     .min(0)
     .optional()
     .describe(
-      "With sections changes or layers: skip this many of the elements the filter keeps. When a list was cut to fit, " +
-        "cut gives the nextOffset that continues it."
+      "With sections: skip this many items of each list section named (elements, gaps, untraced ids, files). " +
+        "pages gives each section's nextOffset; page one section at a time."
+    ),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "With sections: items per list section, whatever their size. Default: as many as keep the answer near " +
+        `targetBytes. Also the most traced, unanchored and noCatalogRoute elements the intent section lists by id (default ${LIST_LIMIT}), ` +
+        `and the entries per delta list (default ${LIST_LIMIT}).`
+    ),
+  targetBytes: z
+    .number()
+    .int()
+    .min(2000)
+    .optional()
+    .describe(
+      `With sections and no limit: the size the answer aims for (default ${SECTIONS_TARGET_BYTES}, about ${SECTIONS_TARGET_BYTES / 1024} KB, which fits one tool ` +
+        "result). A target, not a cut-off: a page always holds at least one item."
+    ),
+  maxConnections: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      `With sections layers: connections listed per element for one direction, predicate and other layer (default ${CONNECTIONS_PER_GROUP}); ` +
+        "the rest are counted in connectionCounts."
     ),
   since: z
     .union([z.number().int().min(-1), z.string().regex(/^(-1|\d+):[0-9a-f]+$/, "a revisionToken from a brief")])
@@ -220,21 +292,28 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       // Only what was asked for; an unwired listing asked for by its own arguments counts as asked.
       const named = listUnwired && !sections.includes("unwired") && args.unwired !== "none" ? [...sections, "unwired" as const] : sections;
       const measure = (value: unknown) => Buffer.byteLength(compactJson(value), "utf-8");
+      // The caller's own arguments, repeated in each page's next call (sections and offset are set per page).
+      const { sections: _sections, offset: _offset, since: _since, ...own } = args;
+      const callArgs = Object.fromEntries(Object.entries(own).filter(([, value]) => value !== undefined));
       const result = briefSections(brief, named, {
         delta,
         filter: { layers: args.layers, ids: args.ids, otherLayers: args.otherLayers },
         full: args.detail === "full",
         offset: args.offset,
-        // The reviewer's verdicts ride along: they come out of the same budget.
-        budgetBytes: SECTIONS_BUDGET_BYTES - (review ? measure({ review }) : 0),
+        limit: args.limit,
+        // The reviewer's verdicts ride along: they come out of the same target.
+        targetBytes: (args.targetBytes ?? SECTIONS_TARGET_BYTES) - (review ? measure({ review }) : 0),
+        maxConnections: args.maxConnections,
         measure,
+        callArgs: { ...callArgs, ...(args.since !== undefined && named.includes("delta") ? { since: args.since } : {}) },
       });
       return jsonResult(withReview(result), { compact: true });
     }
     const compact = compactBrief(brief, { unwired: listUnwired ? undefined : computeUnwired(graph), delta });
-    if (args.layers?.length || args.ids?.length || args.otherLayers?.length || args.offset !== undefined) {
+    const sectionOnly = [args.otherLayers?.length, args.offset, args.limit, args.targetBytes, args.maxConnections];
+    if (args.layers?.length || args.ids?.length || sectionOnly.some((value) => value !== undefined && value !== 0)) {
       compact.note =
-        "layers, ids, otherLayers and offset narrow sections output only, so the whole compact brief is returned. Pass sections too, " +
+        "layers, ids, otherLayers, offset, limit, targetBytes and maxConnections shape sections output only, so the whole compact brief is returned. Pass sections too, " +
         'e.g. sections: ["changes"] with them for those elements\' build view.';
     }
     return jsonResult(withReview(compact), { compact: true });
@@ -257,9 +336,10 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "relationship for) counted per layer; the files of the changed elements; open review annotations; and each " +
     "changed element with its type, operation and connections as `predicate → id` lines (for a plan of more " +
     "than 60 elements, counts per type with the first ids of each, and long id lists counted per type). " +
-    "sections: [...] returns only the sections named, with a small header, in compact forms that together fit one " +
-    "tool result: narrow them with layers or ids, page changes and layers with offset, and read cut for what was " +
-    "left out. detail: \"full\" returns the whole brief (attributes, connection names, the unwired listing, code per " +
+    "sections: [...] returns only the sections named, with a small header, in compact forms. A long list comes a " +
+    "page at a time, sized to fit one tool result: pages gives each list's true total, how many items the answer " +
+    "holds and the exact call for the next page (offset, limit), so no answer reads as complete when it is not. " +
+    "Narrow with layers or ids. detail: \"full\" returns the whole brief (attributes, connection names, the unwired listing, code per " +
     "element), or with sections those sections in full. It returns a revision and a revisionToken: pass the token back as since on the " +
     "next pass to get what changed. Use it to pressure-test a plan and, at the start of a build, as its spec. When the " +
     "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes).",

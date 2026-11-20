@@ -42,8 +42,13 @@ export const DEFAULT_HUB_THRESHOLD = 15;
 export interface ImpactOptions {
   /** How many hops to walk out from the changed elements (default 2). */
   depth?: number;
-  /** Stop after this many reached elements (default 200). */
+  /**
+   * How many reached elements to list (default 200). A page size, not a stop: the walk always runs
+   * to its depth, so `reached`, `perHop` and `hubs` count everything it reaches.
+   */
   maxElements?: number;
+  /** Skip this many reached elements (nearest first), to read the next page. */
+  offset?: number;
   /**
    * Walk from these elements (ids or paths) instead of from everything the changeset changes.
    * Ids the projected graph does not have are reported in `unknownFrom`.
@@ -79,9 +84,17 @@ export interface ImpactReport {
   depth: number;
   /** Elements the changeset adds, updates or deletes. Without `from`, where the walk starts. */
   changed: number;
-  /** Existing elements the walk reached. */
+  /** Existing elements the walk reached: all of them, listed or not. */
   reached: number;
+  /** Reached elements listed in `byLayer`: a page of `maxElements`, nearest first. */
+  returned: number;
+  /** Where this page starts, when not at the first element. */
+  offset?: number;
+  /** Where the next page starts. Absent when `byLayer` ends the list. */
+  nextOffset?: number;
+  /** Whether `byLayer` lists fewer elements than the walk reached (`returned` + `offset` below `reached`, or a page past the first). */
   truncated: boolean;
+  /** The listed elements, by layer. The whole of what was reached only when `truncated` is false. */
   byLayer: Record<string, ImpactedElement[]>;
   /** Elements reached at each hop. */
   perHop: Array<{ depth: number; reached: number }>;
@@ -99,6 +112,7 @@ export interface ImpactReport {
 export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}): ImpactReport {
   const depth = options.depth ?? 2;
   const maxElements = options.maxElements ?? 200;
+  const offset = Math.max(0, options.offset ?? 0);
   const hubThreshold = options.hubThreshold ?? DEFAULT_HUB_THRESHOLD;
   const expandHubs = options.expandHubs ?? false;
 
@@ -122,7 +136,6 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
   const visited = new Set(start);
   const hubs: ImpactHub[] = [];
   const perHop = new Map<number, number>();
-  let truncated = false;
 
   /** Records a reached element; returns whether the walk should continue through it. */
   const reach = (from: string, neighbor: Neighbor, distance: number): boolean => {
@@ -130,10 +143,6 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
     const element = graph.getElement(neighbor.other);
     if (!element || element.status === "deleted") return false;
     visited.add(neighbor.other);
-    if (reached.size >= maxElements) {
-      truncated = true;
-      return false;
-    }
     reached.set(element.id, {
       id: element.id,
       layer: element.layer,
@@ -167,34 +176,39 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
   }
 
   let current = [...start];
-  for (let distance = 1; distance <= depth && current.length + frontier.length > 0 && !truncated; distance++) {
+  for (let distance = 1; distance <= depth && current.length + frontier.length > 0; distance++) {
     const next: string[] = [];
     for (const id of current) {
       // From a changed element, follow the relationships the change deletes too: their other
       // ends are exactly what a removal affects. Past that, walk only what will still exist.
       for (const neighbor of graph.neighbors(id, { includeDeleted: changed.has(id) })) {
         if (reach(id, neighbor, distance)) next.push(neighbor.other);
-        if (truncated) break;
       }
-      if (truncated) break;
     }
     current = [...frontier, ...next];
     frontier = [];
   }
 
+  // The page listed: nearest first, then in layer order, so the same call with the next offset continues it.
+  const layerRank = new Map(orderedLayers([...reached.values()].map((e) => e.layer)).map((layer, i) => [layer, i]));
+  const ordered = [...reached.values()].sort(
+    (a, b) => a.distance - b.distance || layerRank.get(a.layer)! - layerRank.get(b.layer)! || a.id.localeCompare(b.id)
+  );
+  const page = ordered.slice(offset, offset + maxElements);
   const byLayer: Record<string, ImpactedElement[]> = {};
-  for (const layer of orderedLayers([...reached.values()].map((e) => e.layer))) {
-    byLayer[layer] = [...reached.values()]
-      .filter((e) => e.layer === layer)
-      .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id))
-      .map(({ layer: _layer, ...rest }) => rest);
+  for (const layer of orderedLayers(page.map((e) => e.layer))) {
+    byLayer[layer] = page.filter((e) => e.layer === layer).map(({ layer: _layer, ...rest }) => rest);
   }
+  const nextOffset = offset + page.length < ordered.length ? offset + page.length : undefined;
 
   return {
     depth,
     changed: changed.size,
     reached: reached.size,
-    truncated,
+    returned: page.length,
+    ...(offset > 0 ? { offset } : {}),
+    ...(nextOffset !== undefined ? { nextOffset } : {}),
+    truncated: page.length < reached.size,
     byLayer,
     perHop: [...perHop.entries()].sort(([a], [b]) => a - b).map(([d, n]) => ({ depth: d, reached: n })),
     hubs: hubs.sort((a, b) => a.depth - b.depth || b.degree - a.degree || a.id.localeCompare(b.id)),
