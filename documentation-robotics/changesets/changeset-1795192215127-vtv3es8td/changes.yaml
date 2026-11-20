@@ -159,8 +159,8 @@
     layer_id: application
     name: dependencyEnds
     description: "Which end of a relationship depends on the other, by its
-      predicate: serves, realizes, satisfies and delivers run from what is
-      depended on to what depends on it, every other predicate from the
+      predicate: serves, realizes, satisfies, delivers and supports run from
+      what is depended on to what depends on it, every other predicate from the
       dependent to what it depends on. One rule for model_trace and dr trace."
     metadata:
       created_at: 2026-11-20T16:31:17.296Z
@@ -171,7 +171,7 @@
       locations:
         - file: cli/src/core/dependency-direction.ts
           symbol: dependencyEnds
-  timestamp: 2026-11-20T17:12:33.513Z
+  timestamp: 2026-11-20T17:29:50.683Z
   sequenceNumber: 5
 - type: add
   elementId: application.applicationfunction.warning-kind
@@ -1559,3 +1559,74 @@
     category: structural
   timestamp: 2026-11-20T17:22:12.373Z
   sequenceNumber: 112
+- type: update
+  elementId: product.feature.model-search-and-read
+  layerName: product
+  before:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only, and pages its compact and full listings. model_trace and dr trace
+      read which end depends on the other from the predicate, by one rule: an
+      element depends on what serves, realizes, satisfies or delivers it, as on
+      what it uses. model_trace reports only the changeset edges it walked and
+      pages long lists with their true totals. model_stats validates the same
+      view as model_validate, names it, and counts orphans by layer and type.
+      CLI: dr list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only, and pages its compact and full listings. model_trace and dr trace
+        read which end depends on the other from the predicate, by one rule: an
+        element depends on what serves, realizes, satisfies or delivers it, as
+        on what it uses. model_trace reports only the changeset edges it walked
+        and pages long lists with their true totals. model_stats validates the
+        same view as model_validate, names it, and counts orphans by layer and
+        type. CLI: dr list/show/search/trace/stats/info."
+    source_reference: &a15
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-search.ts
+    metadata: &a16
+      created_at: 2026-11-09T21:54:57.535Z
+      updated_at: 2026-11-09T21:54:57.535Z
+      version: 1
+  after:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only, and pages its compact and full listings. model_trace and dr trace
+      read which end depends on the other from the predicate, by one rule: an
+      element depends on what serves, realizes, satisfies, delivers or supports
+      it, as on what it uses. model_trace reports only the changeset edges it
+      walked and pages long lists with their true totals. model_stats validates
+      the same view as model_validate, names it, and counts orphans by layer and
+      type. CLI: dr list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only, and pages its compact and full listings. model_trace and dr trace
+        read which end depends on the other from the predicate, by one rule: an
+        element depends on what serves, realizes, satisfies, delivers or
+        supports it, as on what it uses. model_trace reports only the changeset
+        edges it walked and pages long lists with their true totals. model_stats
+        validates the same view as model_validate, names it, and counts orphans
+        by layer and type. CLI: dr list/show/search/trace/stats/info."
+    source_reference: *a15
+    metadata: *a16
+  timestamp: 2026-11-20T17:29:43.393Z
+  sequenceNumber: 115

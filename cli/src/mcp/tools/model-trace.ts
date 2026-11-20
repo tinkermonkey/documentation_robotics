@@ -41,8 +41,8 @@ const inputSchema = {
     .describe(
       "'up' = what depends on this element (dependents), 'down' = what this element depends on (dependencies), " +
         "'both' (default). A relationship's predicate says which end depends on the other: an element depends on " +
-        "what it uses, depends-on, accesses or composes, on what serves it, and on what realizes, satisfies or " +
-        "delivers it. So down from a component reaches the technology that serves it and the artifacts that realize " +
+        "what it uses, depends-on, accesses or composes, on what serves it, and on what realizes, satisfies, " +
+        "delivers or supports it. So down from a component reaches the technology that serves it and the artifacts that realize " +
         "it, down from a requirement reaches what satisfies it, and up from a function reaches the service, feature, " +
         "requirement and goal it stands under."
     ),
@@ -371,7 +371,7 @@ export const modelTraceTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Trace dependents and/or dependencies of an element across cross-layer references and relationships. Which " +
     "end depends on the other comes from the predicate: an element depends on what it uses, accesses or composes, " +
-    "on what serves it, and on what realizes, satisfies or delivers it. So direction down from a component reaches " +
+    "on what serves it, and on what realizes, satisfies, delivers or supports it. So direction down from a component reaches " +
     "the technology that serves it and whatever realizes it, down from a requirement or goal reaches what " +
     "implements it, and direction up from a function reaches the service, feature, requirement and goal it stands " +
     "under. With an active changeset (or changeset) it traces the changeset's projected graph: staged " +

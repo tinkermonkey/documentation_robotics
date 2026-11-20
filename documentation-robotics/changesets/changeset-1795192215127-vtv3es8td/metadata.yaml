@@ -7,15 +7,15 @@ description: "The MCP read tools give an agent one right, small answer about a
   validates the same view as model_validate and says which view. model_trace and
   dr trace read which end of a relationship depends on the other from its
   predicate, by one shared rule: an element depends on what serves, realizes,
-  satisfies or delivers it, as on what it uses. model_trace reports only the
-  changeset edges the trace walked. spec_type answers catalog queries across
-  types and shows required enums in a layer listing. model_list can list orphans
-  only. A limit is a page size, never a cut-off: lists page with limit and
-  offset and give their true total, and counts and verdicts are of the whole
+  satisfies, delivers or supports it, as on what it uses. model_trace reports
+  only the changeset edges the trace walked. spec_type answers catalog queries
+  across types and shows required enums in a layer listing. model_list can list
+  orphans only. A limit is a page size, never a cut-off: lists page with limit
+  and offset and give their true total, and counts and verdicts are of the whole
   set. Done: 1203, 1204, 1214, 1215, 1216 closed with tests, and before/after
   response sizes on the repo's own model in the PR."
 created: 2026-11-20T16:30:15.149Z
-modified: 2026-11-20T17:23:58.244Z
+modified: 2026-11-20T17:29:51.066Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
@@ -23,9 +23,9 @@ origin:
 purpose: plan
 stats:
   additions: 75
-  modifications: 7
+  modifications: 8
   deletions: 0
-lastSequence: 114
+lastSequence: 116
 unstaged:
   - sequence: 3
     removedAt: 36
@@ -826,4 +826,33 @@ unstaged:
           updated_at: 2026-11-20T17:22:12.339Z
           version: 1
       timestamp: 2026-11-20T17:22:12.373Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 116
+    change:
+      type: add
+      elementId: application.applicationfunction.dependency-ends
+      layerName: application
+      after:
+        id: cedd5dca-e496-424d-ab00-62042b7f049f
+        path: application.applicationfunction.dependency-ends
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: dependencyEnds
+        description: "Which end of a relationship depends on the other, by its
+          predicate: serves, realizes, satisfies and delivers run from what is
+          depended on to what depends on it, every other predicate from the
+          dependent to what it depends on. One rule for model_trace and dr
+          trace."
+        metadata:
+          created_at: 2026-11-20T16:31:17.296Z
+          updated_at: 2026-11-20T16:31:17.296Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/dependency-direction.ts
+              symbol: dependencyEnds
+      timestamp: 2026-11-20T17:12:33.513Z
     rewritten: true

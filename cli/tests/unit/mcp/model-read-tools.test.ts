@@ -182,7 +182,7 @@ describe("model_trace: which end depends on the other (#1204)", () => {
     });
   });
 
-  it("counts what satisfies or delivers an element among its dependencies, and leaves supports as it was", async () => {
+  it("counts what satisfies, delivers or supports an element among its dependencies", async () => {
     await withProject(async (rootPath) => {
       await recorderModel(rootPath);
       const FEATURE = "product.feature.one-click-record";
@@ -231,21 +231,67 @@ describe("model_trace: which end depends on the other (#1204)", () => {
         expect.arrayContaining([SERVICE, FEATURE, REQUIREMENT, VALUE])
       );
 
-      // supports is unchanged: the operation that supports the goal has the goal on its down side.
+      // supports runs the same way: the operation that supports the goal is on the goal's down
+      // side, and the goal on the operation's up side.
       const operation = parse(await modelTraceHandler({ id: "api.operation.start-recording", rootPath }));
-      expect(operation.dependencies.direct).toEqual([GOAL]);
-      expect(operation.dependents.direct).toEqual([]);
-      expect(parse(await modelTraceHandler({ id: GOAL, rootPath })).dependents.direct).toEqual(["api.operation.start-recording"]);
+      expect(operation.dependents.direct).toEqual([GOAL]);
+      expect(operation.dependencies.direct).toEqual([]);
+      const goal = parse(await modelTraceHandler({ id: GOAL, rootPath }));
+      expect(goal.dependencies.direct).toEqual(["api.operation.start-recording"]);
+      expect(goal.dependents.direct).toEqual([]);
+    });
+  });
+
+  it("a capability that supports a goal traces down to what realizes the capability, not to the goal's whole implementation", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      const CAPABILITY = "product.softwarecapability.recording";
+      const FEATURE = "product.feature.one-click-record";
+      const OTHER = "product.softwarecapability.sharing";
+      const OTHER_FEATURE = "product.feature.share-a-link";
+      const added = parse(
+        await modelAddHandler({
+          elements: [
+            { layer: "motivation", type: "goal", name: "record-a-session", attributes: { priority: "high" } },
+            { layer: "product", type: "softwarecapability", name: "recording", attributes: { status: "planned" } },
+            { layer: "product", type: "softwarecapability", name: "sharing", attributes: { status: "planned" } },
+            { layer: "product", type: "feature", name: "one-click-record", attributes: { priority: "high", status: "planned" } },
+            { layer: "product", type: "feature", name: "share-a-link", attributes: { priority: "low", status: "planned" } },
+          ],
+          relationships: [
+            // Two capabilities support the same goal; each is realized by its own feature.
+            { source: CAPABILITY, predicate: "supports", target: GOAL },
+            { source: OTHER, predicate: "supports", target: GOAL },
+            { source: FEATURE, predicate: "realizes", target: CAPABILITY },
+            { source: OTHER_FEATURE, predicate: "realizes", target: OTHER },
+          ],
+          rootPath,
+        })
+      );
+      expect(added.elements.results.every((r: any) => r.status === "added")).toBe(true);
+      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+
+      // Down from the capability: the feature that realizes it. Not the goal, and so not the other
+      // capability and its feature, which implement the same goal.
+      const down = parse(await modelTraceHandler({ id: CAPABILITY, direction: "down", rootPath }));
+      expect(down.dependencies).toEqual({ direct: [FEATURE], transitive: [] });
+      // The goal is what the capability stands under.
+      const up = parse(await modelTraceHandler({ id: CAPABILITY, direction: "up", rootPath }));
+      expect(up.dependents).toEqual({ direct: [GOAL], transitive: [] });
+      // Down from the goal is both capabilities and what realizes them.
+      const goal = parse(await modelTraceHandler({ id: GOAL, direction: "down", rootPath }));
+      expect(goal.dependencies.direct.sort()).toEqual([CAPABILITY, OTHER].sort());
+      expect(goal.dependencies.transitive.sort()).toEqual([FEATURE, OTHER_FEATURE].sort());
     });
   });
 
   it("puts each edge's ends on opposite sides: no element is both a dependency and a dependent through one edge", async () => {
-    expect([...SOURCE_IS_DEPENDENCY_PREDICATES].sort()).toEqual(["delivers", "realizes", "satisfies", "serves"]);
-    for (const predicate of ["serves", "realizes", "satisfies", "delivers"]) {
+    expect([...SOURCE_IS_DEPENDENCY_PREDICATES].sort()).toEqual(["delivers", "realizes", "satisfies", "serves", "supports"]);
+    for (const predicate of ["serves", "realizes", "satisfies", "delivers", "supports"]) {
       expect(dependencyEnds({ source: "a", predicate, target: "b" })).toEqual({ dependent: "b", dependency: "a" });
     }
-    // supports, the control and cause predicates, and the rest run from the dependent to what it depends on.
-    for (const predicate of ["uses", "depends-on", "accesses", "composes", "supports", "governs", "constrains", "protects", "triggers", "flows-to"]) {
+    // The control and cause predicates, and the rest, run from the dependent to what it depends on.
+    for (const predicate of ["uses", "depends-on", "accesses", "composes", "governs", "constrains", "protects", "triggers", "flows-to"]) {
       expect(dependencyEnds({ source: "a", predicate, target: "b" })).toEqual({ dependent: "a", dependency: "b" });
     }
     await withProject(async (rootPath) => {
@@ -324,16 +370,19 @@ describe("dr trace reads the same direction rule", () => {
     const tracker = new DependencyTracker(graph);
     // TraceDirection.UP is what the element depends on; DOWN is what depends on it (dr trace's naming).
     expect(tracker.traceDependencies("component", TraceDirection.UP, null).sort()).toEqual(["artifact", "library", "runtime"]);
-    expect(tracker.traceDependencies("component", TraceDirection.DOWN, null).sort()).toEqual(["requirement", "service", "value"]);
+    expect(tracker.traceDependencies("component", TraceDirection.DOWN, null).sort()).toEqual(["goal", "requirement", "service", "value"]);
     expect(tracker.traceDependencies("runtime", TraceDirection.DOWN, null).sort()).toEqual([
       "component",
+      "goal",
       "other",
       "requirement",
       "service",
       "value",
     ]);
-    // supports is not flipped: the goal is what the service depends on.
-    expect(tracker.traceDependencies("service", TraceDirection.UP, null).sort()).toEqual(["artifact", "component", "goal", "library", "runtime"]);
+    // supports runs the same way: the goal is among what depends on the service, not what it depends on.
+    expect(tracker.traceDependencies("service", TraceDirection.UP, null).sort()).toEqual(["artifact", "component", "library", "runtime"]);
+    expect(tracker.traceDependencies("service", TraceDirection.DOWN, null).sort()).toEqual(["goal", "requirement", "value"]);
+    expect(tracker.traceDependencies("goal", TraceDirection.UP, 1)).toEqual(["service"]);
     expect(tracker.traceDependencies("requirement", TraceDirection.UP, 1)).toEqual(["service"]);
   });
 });
