@@ -651,7 +651,8 @@ It holds:
 - gaps, one line each (`element: kind: detail`);
 - accepted gaps on the changed elements, one line each (`element: accepted: triple: reason`, marked
   `staged here` or `contradicted by` a relationship the plan wires anyway);
-- intent as ids: `traced`, `untraced`, `unanchored`;
+- intent: `counts` of the traced, untraced, unanchored and `noCatalogRoute` elements, the untraced
+  ids, and the traced ids when there are at most 30;
 - drift, with the overlap as lines and the base changes as counts plus the changed and removed ids;
 - unwired connections counted per layer (the listing is opt-in: pass `unwired`);
 - `codeTouched`, the files of the changed elements, and `neighborFiles`, the files that hold only
@@ -665,17 +666,46 @@ It holds:
 
 A large plan (more than 60 changed elements, such as a bootstrap) gets `changesByType` instead of
 `changes`: per `layer.type`, the counts by operation and the first 5 ids, with how many more.
-`sections: ["changes"]` lists every element. Past 30 entries, the
-intent lists and the delta's lists are cut, with their full lengths under `counts`, and gaps that
-say the same thing (a bootstrap's unconnected adds) share one line with the count and the first ids.
+`sections: ["changes"]` lists every element. Past 30 entries, the untraced ids are given per
+`layer.type` (`untracedByType`: the count and the first 5 ids of each), the delta's lists are cut
+with their full lengths under `counts`, and gaps that say the same thing (a bootstrap's unconnected
+adds, a peer pattern many elements of one type lack) share one line with the count and the first ids.
 
 `detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns only
-the sections named, each in full, under a small header: the revision and its token, the changeset's
+the sections named, under a small header: the revision and its token, the changeset's
 id, name and status, and the summary counts. The sections are `changes`, `changeset` (the
 description and the drift in full), `drift`, `layers`, `unwired`, `intent`, `gaps`, `acceptedGaps`, `codeTouched`,
 `feedback`, `relationshipChanges`, `alreadyInBase` and `delta`. With `since`, the delta comes too,
-compact unless `delta` is named; `unwired` or `unwiredLayers` count as naming `unwired`. With
+compact; `unwired` or `unwiredLayers` count as naming `unwired`. With
 `since` and no sections, the compact brief leaves out `changes`, since the delta says what changed.
+
+Each section comes in a compact form, and together they stay within 40 KB (`SECTIONS_BUDGET_BYTES`),
+so a sections answer fits one tool result whatever the plan's size:
+
+- `intent`: the counts, every untraced id, the unanchored as `element → added intent element`, and
+  the traced as `element → intent element` lines when there are at most 30.
+- `gaps`: one line per gap, as in the default brief, without the examples.
+- `layers`: each changed element with its type, name, description, attributes and changed fields.
+  The connections the change adds or deletes are `predicate → id` lines, up to 8 per direction,
+  predicate and other layer; every other connection is counted in `connectionCounts`
+  (`"tests ← testing": 40`, `"realizes ← application (base)": 5`). `otherLayers: [...]` lists only
+  the connections into those layers and counts the rest.
+- `unwired`: per element up to 25 elements; past that per `layer.type`, each connection with how
+  many elements lack it.
+- `codeTouched`: each file with its changed ids and a count of the neighbors in it.
+- `changes`: the build view, below.
+
+The budget is shared out smallest section first, so a short section keeps its list. A section too
+large for its share falls back to a summary (untraced ids per type, gaps that say the same thing on
+one line, files with counts), and a list that still does not fit is cut. `cut` then has one entry
+per section it touched: what the section was summarised to, or `shown` of how many, and `how`, the
+call that returns the rest. For `changes` and `layers` that is `offset`: pass the entry's
+`nextOffset` to continue the list (the entry also counts the filter's elements per type). Nothing
+is dropped silently, and a filter that keeps a few elements gets them whole.
+
+`detail: "full"` with `sections` returns the named sections as the full brief has them, whatever
+their size: every trace with its path, each gap with its examples, every connection with the other
+end's name and layer, the whole delta.
 
 `sections: ["changes"]` is the build view: each changed element with its name, its description in
 full, its attributes, for an update each changed field with its value before and after, its files,
@@ -685,7 +715,9 @@ is 38 KB), 58 KB for the 144-element petclinic bootstrap (`layers` is 165 KB). `
 `ids: [...]` narrow the element sections (`changes`, `layers`, `gaps`, `unwired`, `intent`,
 `feedback`) to the changed elements in those layers or with those ids: the bootstrap's `api` layer
 is 8 KB, its `testing` layer 32 KB. Without `sections` they narrow nothing, and the result's `note`
-says so.
+says so. On the 2,364-element bootstrap of this repository's own model, the `application` layer's
+build view is 692 KB: the answer holds the first 88 elements (39 KB) and `cut` gives the offset for
+the next.
 
 The full brief:
 
@@ -711,12 +743,22 @@ The full brief:
   is listed under the element's `accepted` in `unwired`, not counted. `contradictedBy` names a live
   relationship with the triple: the plan wires what the gap says is absent. See
   [Accepted gaps](#accepted-gaps).
-- **Intent.** Changed elements outside the motivation, business and product layers that reach no
-  element in those layers within four hops. A change that serves no stated intent is a question for
-  the human. Each trace carries its `path`. The trace doesn't walk through hubs (elements with more
-  than 15 relationships). An intent element the changeset adds counts only when it traces to an
-  existing one (`anchoredBy`); otherwise the elements that reach it are untraced and listed in
-  `intent.unanchored`.
+- **Intent.** Added and updated elements outside the motivation, business and product layers that
+  reach no element in those layers within four hops. A change that serves no stated intent is a
+  question for the human. Each trace carries its `path`. The trace doesn't walk through hubs
+  (elements with more than 15 relationships). An intent element the changeset adds counts only when
+  it traces to an existing one (`anchoredBy`); otherwise the elements that reach it are untraced and
+  listed in `intent.unanchored`.
+  - A part traces through its whole. An element the walk leaves untraced is traced when an element
+    that composes or aggregates it traces, at any depth and whether or not the whole is a hub: a
+    sub-view of a view that realizes a feature, a property of a schema that satisfies a requirement.
+    The trace names the whole in `through`. No other relationship is followed through a hub.
+  - `untraced` holds only elements that could be linked: their type has a catalog relationship to
+    some motivation, business or product type. An element of a type with none (a sub-view, a schema
+    composition, an application component) that does not trace is listed in `noCatalogRoute`
+    instead: it can trace only through the element that composes, uses or realizes it.
+  - Elements in the intent layers are not traced: they are what the others trace to. When a plan
+    changes nothing else, `intent.note` says so, so two empty lists are not read as a fault.
 - **Code touched.** Source files of the changed elements and of the existing elements one hop away.
   These are the files the build is likely to edit or must not break.
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.

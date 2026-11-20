@@ -144,13 +144,14 @@ describe("changeset_brief compact (D2)", () => {
     expect(json.changeset.description.length).toBeGreaterThan(400);
   });
 
-  it("returns only the named sections, in full, under a small header (round 2: sections didn't narrow)", async () => {
-    const { json } = await brief({ sections: ["layers", "unwired", "intent", "changeset"] });
-    expect(json.detail).toBe("compact");
+  it("returns only the named sections under a small header, in full with detail: full (round 2: sections didn't narrow)", async () => {
+    const { json } = await brief({ sections: ["layers", "unwired", "intent", "changeset"], detail: "full" });
+    expect(json.detail).toBe("full");
     expect(json.sections).toEqual(["layers", "unwired", "intent", "changeset"]);
     expect(json.layers[0].changes[0].connections[0].otherName).toBeDefined();
     expect(json.unwired.mode).toBe("summary");
     expect(json.intent.traced[0].path).toBeDefined();
+    expect(json.cut).toBeUndefined();
     expect(json.changeset.description.length).toBeGreaterThan(400);
     expect(json.changeset.drift.isDrifted).toBe(false);
     // Not named: left out.
@@ -161,7 +162,9 @@ describe("changeset_brief compact (D2)", () => {
     const gaps = await brief({ sections: ["gaps"] });
     expect(Object.keys(gaps.json).sort()).toEqual(["changeset", "detail", "gaps", "more", "revision", "revisionToken", "sections", "summary"]);
     expect(gaps.json.changeset).toEqual({ id: expect.any(String), name: "export-orders", status: "staged" });
-    expect(gaps.json.gaps[0].kind).toBeDefined();
+    // Compact: one line per gap; the gap itself, with its examples, in full.
+    expect(gaps.json.gaps.every((g: unknown) => typeof g === "string")).toBe(true);
+    expect((await brief({ sections: ["gaps"], detail: "full" })).json.gaps[0].kind).toBeDefined();
     expect(gaps.bytes).toBeLessThan(2_000);
 
     // changes alone: every changed element in the compact form.
@@ -188,9 +191,12 @@ describe("changeset_brief compact (D2)", () => {
     expect(json.changes).toBeUndefined();
     expect(json.more).toContain('sections: ["changes"]');
 
+    // The delta comes compact with sections too; in full only with detail: "full".
     const withChanges = (await brief({ since: first.revisionToken, sections: ["changes", "delta"] })).json;
     expect(withChanges.changes.map((c: any) => c.id)).toContain("application.dataobject.order-row");
-    expect(withChanges.delta.relationships.added[0].source).toBeDefined();
+    expect(withChanges.delta.relationships.added).toContain(`${FUNCTION} --accesses--> application.dataobject.order-row`);
+    const fullDelta = (await brief({ since: first.revisionToken, sections: ["delta"], detail: "full" })).json;
+    expect(fullDelta.delta.relationships.added[0].source).toBeDefined();
 
     const quiet = (await brief({ since: json.revisionToken })).json;
     expect(quiet.delta.elements).toEqual({ added: [], removed: [], updated: [] });
@@ -267,15 +273,27 @@ describe("changeset_brief compact (D2)", () => {
     expect(tests).toMatchObject({ added: 90, updated: 0, deleted: 0, more: 85 });
     expect(tests.ids).toHaveLength(5);
     expect(compact.json.changesByType.reduce((n: number, g: any) => n + g.added, 0)).toBe(133);
-    expect(compact.json.intent.untraced).toHaveLength(30);
+    // A long untraced list is counted per type with the first ids of each, not cut at an arbitrary id.
+    expect(compact.json.intent.untraced).toBeUndefined();
     expect(compact.json.intent.counts.untraced).toBeGreaterThan(130);
+    const untracedTests = compact.json.intent.untracedByType.find((g: any) => g.type === "testing.testcasesketch");
+    expect(untracedTests).toMatchObject({ count: 90, more: 85 });
+    expect(untracedTests.ids).toHaveLength(5);
     expect(compact.json.more).toContain('sections: ["changes"]');
     // A bootstrap's unconnected adds share one gap line.
     expect(compact.json.gaps.some((g: string) => /^unconnected: .* \(1[0-9]{2} elements: .*, \+1[0-9]{2} more\)$/.test(g))).toBe(true);
     expect(compact.bytes).toBeLessThan(30_000);
 
+    // The build view of all 133 is past one result: it is cut, says so, and offset continues it.
     const all = await brief({ sections: ["changes"] });
-    expect(all.json.changes).toHaveLength(133);
+    expect(all.bytes).toBeLessThanOrEqual(40 * 1024);
+    const cut = all.json.cut.find((c: any) => c.section === "changes");
+    expect(cut).toMatchObject({ of: 133, shown: all.json.changes.length, unit: "elements", nextOffset: all.json.changes.length });
+    expect(cut.byType["testing.testcasesketch"]).toBe(90);
+    const rest = await brief({ sections: ["changes"], offset: cut.nextOffset });
+    expect(rest.json.cut).toBeUndefined();
+    expect(new Set([...all.json.changes, ...rest.json.changes].map((c: any) => c.id)).size).toBe(133);
+    expect((await brief({ sections: ["changes"], detail: "full" })).json.changes).toHaveLength(133);
 
     // A delta from the start lists at most 30 of each, with the full counts.
     const first = await brief({ since: 0 });

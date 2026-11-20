@@ -14,11 +14,11 @@ import {
   type BriefDrift,
 } from "../../core/changeset-analysis.js";
 import { briefDelta } from "../../core/changeset-brief-delta.js";
-import { BRIEF_SECTIONS, briefSections, compactBrief } from "../../core/changeset-brief-compact.js";
+import { BRIEF_SECTIONS, briefSections, compactBrief, SECTIONS_BUDGET_BYTES } from "../../core/changeset-brief-compact.js";
 import { describeDrift } from "../../core/changeset-base-index.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { compactJson, jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { changesetArg, changesetArgFields, loadChangesetGraph } from "./changeset-shared.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
@@ -103,30 +103,57 @@ const briefInputSchema = {
     .enum(["compact", "full"])
     .optional()
     .describe(
-      "compact (default): counts by layer, reach, gaps one line each, intent as ids, drift, unwired counts per " +
-        "layer, and each changed element with its connections as `predicate → id` lines. full: the whole brief " +
-        "(attributes, connection names and layers, unwired listing, code per element)."
+      "compact (default): counts by layer, reach, gaps one line each, intent as counts and the untraced ids, drift, " +
+        "unwired counts per layer, and each changed element with its connections as `predicate → id` lines. full: " +
+        "the whole brief (attributes, connection names and layers, unwired listing, code per element), far past one " +
+        "tool result on a large plan; with sections, only those sections, in full."
     ),
   sections: z
     .array(z.enum(BRIEF_SECTIONS))
     .optional()
     .describe(
-      "Return only these sections, each in full, with a small header (revision, the changeset's id, name and status, " +
-        "summary counts). [\"changes\"] is the build view: each changed element with its name, description, attributes, " +
-        "changed fields (before and after), files and connections as `predicate → id` lines. Others: [\"drift\", " +
-        "\"alreadyInBase\"], [\"unwired\"], [\"layers\"] (the full brief's layers, large). With since, the delta comes too."
+      "Return only these sections, with a small header (revision, the changeset's id, name and status, summary " +
+        `counts), each in a compact form and together within about ${SECTIONS_BUDGET_BYTES / 1024} KB. A section too large for that ` +
+        "falls back to a summary or is cut, and cut says what was left out and the call that returns it. " +
+        "[\"changes\"] is the build view: each changed element with its name, description, attributes, changed fields " +
+        "(before and after), files and connections as `predicate → id` lines. [\"intent\"]: counts, the untraced ids " +
+        "(per type when there are many), the unanchored, and the traced with what each traces to when there are few. " +
+        "[\"gaps\"]: one line per gap. [\"layers\"]: each changed element with the connections the change adds or " +
+        "deletes as lines (8 per predicate and layer) and the rest counted. [\"unwired\"]: per element, or per type past " +
+        "25 elements. [\"codeTouched\"]: files with their changed ids. Others: drift, alreadyInBase, acceptedGaps, " +
+        "relationshipChanges, feedback, changeset. With since, the delta comes too. detail: \"full\" returns the " +
+        "named sections as the full brief has them, whatever their size."
     ),
   layers: z
     .array(z.string())
     .optional()
     .describe(
-      "With sections: only the elements in these layers (canonical layer names), in changes, layers, gaps, unwired, " +
-        "intent and feedback. Combines with ids (either keeps an element)."
+      "With sections: only the elements in these layers (canonical layer names), in changes, layers, gaps, " +
+        "acceptedGaps, unwired, intent, codeTouched and feedback. Combines with ids (either keeps an element)."
+    ),
+  otherLayers: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "With sections layers: list only the connections whose other end is in these layers and count the rest (e.g. " +
+        "leave out testing, so 40 test cases on a service are one count)."
     ),
   ids: z
     .array(z.string())
     .optional()
-    .describe("With sections: only these changed elements (ids), in changes, layers, gaps, unwired, intent and feedback."),
+    .describe(
+      "With sections: only these changed elements (ids), in changes, layers, gaps, acceptedGaps, unwired, intent, " +
+        "codeTouched and feedback."
+    ),
+  offset: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      "With sections changes or layers: skip this many of the elements the filter keeps. When a list was cut to fit, " +
+        "cut gives the nextOffset that continues it."
+    ),
   since: z
     .union([z.number().int().min(-1), z.string().regex(/^(-1|\d+):[0-9a-f]+$/, "a revisionToken from a brief")])
     .optional()
@@ -171,15 +198,15 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       }
     }
 
-    if (args.detail === "full") {
+    const sections = args.sections ?? [];
+    if (args.detail === "full" && sections.length === 0) {
       const brief = buildBrief({ graph, annotations, drift, unwired: args.unwired, unwiredLayers: args.unwiredLayers });
       // The full brief is the largest result: same JSON, short objects kept on one line.
       if (args.since === undefined) return jsonResult(withReview(brief), { compact: true });
       return jsonResult(withReview({ ...brief, delta: await briefDelta(model, { graph, brief }, args.since) }), { compact: true });
     }
 
-    // Compact: the unwired listing only when asked for; otherwise counted per layer.
-    const sections = args.sections ?? [];
+    // The unwired listing only when asked for; otherwise (compact) counted per layer.
     const listUnwired = args.unwired !== undefined || args.unwiredLayers !== undefined || sections.includes("unwired");
     const brief = buildBrief({
       graph,
@@ -192,12 +219,22 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     if (sections.length > 0) {
       // Only what was asked for; an unwired listing asked for by its own arguments counts as asked.
       const named = listUnwired && !sections.includes("unwired") && args.unwired !== "none" ? [...sections, "unwired" as const] : sections;
-      return jsonResult(withReview(briefSections(brief, named, { delta, filter: { layers: args.layers, ids: args.ids } })), { compact: true });
+      const measure = (value: unknown) => Buffer.byteLength(compactJson(value), "utf-8");
+      const result = briefSections(brief, named, {
+        delta,
+        filter: { layers: args.layers, ids: args.ids, otherLayers: args.otherLayers },
+        full: args.detail === "full",
+        offset: args.offset,
+        // The reviewer's verdicts ride along: they come out of the same budget.
+        budgetBytes: SECTIONS_BUDGET_BYTES - (review ? measure({ review }) : 0),
+        measure,
+      });
+      return jsonResult(withReview(result), { compact: true });
     }
     const compact = compactBrief(brief, { unwired: listUnwired ? undefined : computeUnwired(graph), delta });
-    if (args.layers?.length || args.ids?.length) {
+    if (args.layers?.length || args.ids?.length || args.otherLayers?.length || args.offset !== undefined) {
       compact.note =
-        "layers and ids narrow sections output only, so the whole compact brief is returned. Pass sections too, " +
+        "layers, ids, otherLayers and offset narrow sections output only, so the whole compact brief is returned. Pass sections too, " +
         'e.g. sections: ["changes"] with them for those elements\' build view.';
     }
     return jsonResult(withReview(compact), { compact: true });
@@ -210,14 +247,20 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "Render a changeset as the spec for its change. By default a compact summary: counts by layer and operation; " +
     "which layers the change reaches and which it does not; gaps, one line each (unconnected additions, missing " +
     "required relationships, connections its peers have); accepted gaps (connections an element decided against with " +
-    "gap_accept, with the reason: not open, and contradicted when the plan wires one anyway); intent as ids (traced, untraced, unanchored: changes " +
-    "that reach no goal, requirement or feature, or only an added one that itself traces to nothing); drift since " +
+    "gap_accept, with the reason: not open, and contradicted when the plan wires one anyway); intent, which covers the " +
+    "added and updated elements outside motivation, business and product (those layers are what the others trace to, " +
+    "so a plan made only of them has nothing to trace and says so): counts of traced, untraced and unanchored (changes " +
+    "that reach no goal, requirement or feature, or only an added one that itself traces to nothing) with the " +
+    "untraced ids, where a part traces through the whole that composes it and an element whose type the catalog gives " +
+    "no relationship to those layers is counted apart (noCatalogRoute), not as untraced; drift since " +
     "the changeset was created; unwired connections (catalog connections an added or updated element has no " +
     "relationship for) counted per layer; the files of the changed elements; open review annotations; and each " +
     "changed element with its type, operation and connections as `predicate → id` lines (for a plan of more " +
-    "than 60 elements, counts per type with the first ids of each, and long id lists cut with their counts). " +
-    "detail: \"full\" returns the whole brief (attributes, connection names, the unwired listing, code per " +
-    "element); sections: [...] returns only the sections named, in full, with a small header. It returns a revision and a revisionToken: pass the token back as since on the " +
+    "than 60 elements, counts per type with the first ids of each, and long id lists counted per type). " +
+    "sections: [...] returns only the sections named, with a small header, in compact forms that together fit one " +
+    "tool result: narrow them with layers or ids, page changes and layers with offset, and read cut for what was " +
+    "left out. detail: \"full\" returns the whole brief (attributes, connection names, the unwired listing, code per " +
+    "element), or with sections those sections in full. It returns a revision and a revisionToken: pass the token back as since on the " +
     "next pass to get what changed. Use it to pressure-test a plan and, at the start of a build, as its spec. When the " +
     "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes).",
   inputSchema: briefInputSchema,

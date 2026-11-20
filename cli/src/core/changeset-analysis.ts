@@ -253,6 +253,11 @@ export interface BriefGap {
   detail: string;
   /** For `peer-pattern`: up to three existing connections of this shape. */
   examples?: string[];
+  /**
+   * For `missing-required` and `peer-pattern`: the connection the gap is about, from the element's
+   * side. Gaps on elements of one type that lack the same connection can share a line.
+   */
+  connection?: { direction: "out" | "in"; predicate: string; otherType: string };
 }
 
 /** A connection the catalog defines for an element's type that the element does not have. */
@@ -370,6 +375,12 @@ export interface IntentTrace {
    * to, and the path there. An added intent element counts only when it has one.
    */
   anchoredBy?: { id: string; path: string[] };
+  /**
+   * Set when the element does not reach intent by its own walk and traces through its whole: the
+   * nearest element that composes or aggregates it (directly or through other wholes) and traces.
+   * `path` then runs up the wholes to it, and on along its own path.
+   */
+  through?: string;
 }
 
 /** A changed element whose only intent is an intent element the changeset adds, which traces to nothing. */
@@ -438,16 +449,29 @@ export interface ChangesetBrief {
    */
   unwired?: BriefUnwired;
   /**
-   * Whether each changed element outside the intent layers reaches an intent element (motivation,
-   * business, product) within a few hops, without walking through hubs. An intent element the
-   * changeset adds counts only when it itself traces to an existing one.
+   * Whether each added or updated element outside the intent layers (motivation, business, product)
+   * reaches an intent element within a few hops, without walking through hubs, or is a part of a
+   * whole that does (see `IntentTrace.through`). An intent element the changeset adds counts only
+   * when it itself traces to an existing one. Changed elements in the intent layers are not traced:
+   * they are what the others trace to.
    */
   intent: {
     traced: IntentTrace[];
-    /** Elements that trace to no intent (including the ones listed under `unanchored`). */
+    /**
+     * Elements that trace to no intent (including the ones listed under `unanchored`) and whose
+     * type the catalog relates to an intent type, so a relationship can be added.
+     */
     untraced: string[];
     /** Untraced elements that reach only added intent elements which trace to nothing. */
     unanchored?: UnanchoredTrace[];
+    /**
+     * Elements that trace to no intent and whose type the catalog gives no relationship to any
+     * motivation, business or product type (see `hasCatalogRouteToIntent`). They can trace only
+     * through a neighbour: the element that composes, uses or realizes them. Not in `untraced`.
+     */
+    noCatalogRoute?: string[];
+    /** Set when nothing was traced, to say why (every changed element is an intent element or a deletion). */
+    note?: string;
   };
   codeTouched: Array<{ file: string; elements: Array<{ id: string; role: "changed" | "neighbor" }> }>;
   feedback: Array<{
@@ -532,6 +556,7 @@ export function buildBrief({
           kind: "missing-required",
           element: element.id,
           detail: `The catalog requires ${required.sourceSpecNodeId} --${required.predicate}--> ${required.destinationSpecNodeId}.`,
+          connection: { direction: "out", predicate: required.predicate, otherType: required.destinationSpecNodeId },
         });
       }
     }
@@ -578,25 +603,39 @@ export function buildBrief({
   const traced: IntentTrace[] = [];
   const untraced: string[] = [];
   const unanchored: UnanchoredTrace[] = [];
+  const noCatalogRoute: string[] = [];
   const intentWalk = new IntentWalk(graph, hubThreshold);
+  let intentElements = 0;
+  let deletions = 0;
   for (const element of changed) {
-    if (element.status === "deleted" || INTENT_LAYERS.has(element.layer)) continue;
+    if (element.status === "deleted") {
+      deletions++;
+      continue;
+    }
+    if (INTENT_LAYERS.has(element.layer)) {
+      intentElements++;
+      continue;
+    }
     const result = intentWalk.trace(element.id);
     if (result.traced) {
       traced.push({ element: element.id, ...result.traced });
-    } else {
+    } else if (result.unanchored) {
       untraced.push(element.id);
-      if (result.unanchored) {
-        const { id, path } = result.unanchored;
-        unanchored.push({
-          element: element.id,
-          tracesTo: id,
-          path,
-          detail: `traces to added intent element ${id}, which traces to nothing`,
-        });
-      }
+      const { id, path } = result.unanchored;
+      unanchored.push({
+        element: element.id,
+        tracesTo: id,
+        path,
+        detail: `traces to added intent element ${id}, which traces to nothing`,
+      });
+    } else if (hasCatalogRouteToIntent(specNodeId(element))) {
+      untraced.push(element.id);
+    } else {
+      // No relationship of its own can reach intent: only a neighbour's can.
+      noCatalogRoute.push(element.id);
     }
   }
+  const intentNote = nothingToTraceNote(changed.length, intentElements, deletions);
 
   // Code touched: files of changed elements and of the existing elements next to them.
   const files = new Map<string, Map<string, "changed" | "neighbor">>();
@@ -672,7 +711,13 @@ export function buildBrief({
     gaps,
     acceptedGaps,
     ...(unwired ? { unwired } : {}),
-    intent: { traced, untraced, ...(unanchored.length > 0 ? { unanchored } : {}) },
+    intent: {
+      traced,
+      untraced,
+      ...(unanchored.length > 0 ? { unanchored } : {}),
+      ...(noCatalogRoute.length > 0 ? { noCatalogRoute } : {}),
+      ...(intentNote ? { note: intentNote } : {}),
+    },
     codeTouched,
     feedback,
   };
@@ -732,25 +777,105 @@ function diffFields(
   return fields;
 }
 
+/** Predicates from a whole to its part: a part exists for its whole, so it traces when the whole does. */
+const WHOLE_PREDICATES = new Set(["composes", "aggregates"]);
+
+type TraceResult = {
+  traced?: Omit<IntentTrace, "element">;
+  unanchored?: { id: string; path: string[] };
+};
+
 /**
  * The intent trace: a breadth-first walk from a changed element to the nearest intent element,
  * at most INTENT_TRACE_DEPTH hops, that does not walk through hubs (elements with more than
  * `hubThreshold` live relationships; a hub can still be reached). An existing intent element ends
  * the walk. An intent element the changeset adds ends it only when it is anchored, i.e. it traces
  * the same way to an existing intent element; an unanchored one is remembered and walked through.
+ *
+ * An element that walk leaves untraced still traces when it is a part of something that does: the
+ * wholes that compose or aggregate it are followed upward, at any depth and through hubs (a whole
+ * with many parts is a hub by nature), and the nearest one that traces by its own walk carries it.
+ * No other relationship is followed through a hub: a function that realizes a service with more
+ * than `hubThreshold` relationships does not trace through it.
  */
 class IntentWalk {
   private readonly anchors = new Map<string, { id: string; path: string[] } | null>();
+  private readonly own = new Map<string, TraceResult>();
 
   constructor(
     private readonly graph: ChangesetGraph,
     private readonly hubThreshold: number
   ) {}
 
-  trace(start: string): {
-    traced?: Omit<IntentTrace, "element">;
-    unanchored?: { id: string; path: string[] };
-  } {
+  trace(start: string): TraceResult {
+    const own = this.traceOwn(start);
+    if (own.traced) return own;
+    const viaWhole = this.traceThroughWhole(start);
+    if (viaWhole.traced) return viaWhole;
+    const unanchored = own.unanchored ?? viaWhole.unanchored;
+    return unanchored ? { unanchored } : {};
+  }
+
+  /** The nearest whole of `start` that traces by its own walk, with the path up to it and on. */
+  private traceThroughWhole(start: string): TraceResult {
+    const parent = new Map<string, string>();
+    const visited = new Set([start]);
+    const chainTo = (id: string): string[] => {
+      const chain = [id];
+      for (let at = parent.get(id); at !== undefined; at = parent.get(at)) chain.unshift(at);
+      return chain;
+    };
+    let unanchored: { id: string; path: string[] } | undefined;
+    let frontier = [start];
+    while (frontier.length > 0) {
+      const next: string[] = [];
+      for (const id of frontier) {
+        for (const n of this.graph.neighbors(id)) {
+          if (n.direction !== "in" || !WHOLE_PREDICATES.has(n.relationship.predicate) || visited.has(n.other)) continue;
+          visited.add(n.other);
+          const whole = this.graph.getElement(n.other);
+          if (!whole || whole.status === "deleted") continue;
+          parent.set(whole.id, id);
+          const chain = chainTo(whole.id);
+          // A whole in an intent layer is itself the intent: the bounded walk already found it
+          // unless it sits past a hub or deeper than the walk goes.
+          const result: TraceResult = INTENT_LAYERS.has(whole.layer)
+            ? this.intentHit(whole, [whole.id])
+            : this.traceOwn(whole.id);
+          if (result.traced) {
+            const path = [...chain.slice(0, -1), ...result.traced.path];
+            return { traced: { ...result.traced, distance: path.length - 1, path, through: whole.id } };
+          }
+          if (result.unanchored) {
+            unanchored ??= { id: result.unanchored.id, path: [...chain.slice(0, -1), ...result.unanchored.path] };
+          }
+          next.push(whole.id);
+        }
+      }
+      frontier = next;
+    }
+    return unanchored ? { unanchored } : {};
+  }
+
+  /** An intent element reached directly: traced when it exists or is anchored, else unanchored. */
+  private intentHit(element: GraphElement, path: string[]): TraceResult {
+    if (element.status !== "added") return { traced: { tracesTo: element.id, distance: path.length - 1, path } };
+    const anchor = this.anchorOf(element.id);
+    return anchor
+      ? { traced: { tracesTo: element.id, distance: path.length - 1, path, anchoredBy: anchor } }
+      : { unanchored: { id: element.id, path } };
+  }
+
+  /** The bounded walk from `start`, remembered: a whole is asked once for all its parts. */
+  private traceOwn(start: string): TraceResult {
+    const known = this.own.get(start);
+    if (known) return known;
+    const result = this.walkToIntent(start);
+    this.own.set(start, result);
+    return result;
+  }
+
+  private walkToIntent(start: string): TraceResult {
     let unanchored: { id: string; path: string[] } | undefined;
     const hit = this.walk(start, (element, path) => {
       if (element.status !== "added") return true;
@@ -884,6 +1009,7 @@ function peerPatternGaps(graph: ChangesetGraph, element: GraphElement, answered?
           element: element.id,
           detail: `${entry.peers.size} of ${peers.size} existing ${type} elements wired like this one have ${connection}; this one has none.`,
           examples: entry.examples,
+          connection: { direction: direction as "out" | "in", predicate, otherType },
         },
       };
     })
@@ -1010,6 +1136,43 @@ function presentUnwired(
 /** Key of one unwired entry of one element, for comparing two briefs. */
 export function unwiredKey(element: string, entry: Pick<UnwiredEntry, "direction" | "predicate" | "otherType">): string {
   return `${element}|${entry.direction}|${entry.predicate}|${entry.otherType}`;
+}
+
+let intentRouteTypes: Set<string> | undefined;
+
+/**
+ * Whether the relationship catalog defines any relationship, in either direction, between this node
+ * type (`layer.type`) and a motivation, business or product type. An element of a type without one
+ * (a sub-view, a schema composition, an application component) has no relationship of its own to
+ * add: it traces to intent only through a neighbour, so the brief does not count it as untraced.
+ */
+export function hasCatalogRouteToIntent(specNodeId: string): boolean {
+  if (!intentRouteTypes) {
+    const layerOf = (id: string) => id.split(".")[0];
+    intentRouteTypes = new Set();
+    for (const [source, specs] of RELATIONSHIPS_BY_SOURCE) {
+      for (const spec of specs) {
+        if (INTENT_LAYERS.has(layerOf(spec.destinationSpecNodeId))) intentRouteTypes.add(source);
+        if (INTENT_LAYERS.has(layerOf(source))) intentRouteTypes.add(spec.destinationSpecNodeId);
+      }
+    }
+  }
+  return intentRouteTypes.has(specNodeId);
+}
+
+/** Why the intent lists are empty, when no changed element was one the trace covers. */
+function nothingToTraceNote(changed: number, intentElements: number, deletions: number): string | undefined {
+  if (changed === 0 || intentElements + deletions < changed) return undefined;
+  const what =
+    deletions === 0
+      ? `all ${changed} changed elements are motivation, business or product elements`
+      : intentElements === 0
+        ? `all ${changed} changed elements are deletions`
+        : `${intentElements} of the ${changed} changed elements are motivation, business or product elements and the other ${deletions} are deletions`;
+  return (
+    `Nothing to trace: ${what}. Intent traces the added and updated elements of the other layers up to a ` +
+    "goal, requirement or feature; the intent elements themselves are what those trace to, and are not listed."
+  );
 }
 
 function requiredOutgoing(element: GraphElement) {

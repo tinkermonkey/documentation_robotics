@@ -1,0 +1,22 @@
+id: changeset-1795192239126-59nf7rnyj
+name: brief-sections-fit-one-response
+description: "changeset_brief's sections return compact forms that share a 40 KB
+  budget and say what was cut and how to get it; detail: \"full\" with sections
+  returns those sections in full. Intent traces a part through the whole that
+  composes it, counts types with no catalog route to intent apart from untraced,
+  and explains an empty intent. Done: on a 2,364-element changeset the default
+  brief and the filtered calls of #1183 and #1232 each come back under 40 KB,
+  and the acceptance criteria of #1183, #1221, #1231 and #1232 are met with
+  tests."
+created: 2026-11-20T16:30:39.144Z
+modified: 2026-11-20T16:47:09.821Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 24
+  modifications: 4
+  deletions: 0
+lastSequence: 27
