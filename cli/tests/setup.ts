@@ -81,13 +81,32 @@ if (!process.env.GIT_CONFIG_GLOBAL) {
   process.env.GIT_CONFIG_GLOBAL = "/dev/null";
 }
 
-// Initialize golden copy cache asynchronously
-// This runs once per worker and provides a shared model for cloning
-const initializeGoldenCopyAsync = async () => {
+// The cache layout this file expects of the GoldenCopyCacheManager it loads from cli/dist.
+// Keep it equal to CACHE_LAYOUT in src/core/golden-copy-cache.ts.
+const EXPECTED_CACHE_LAYOUT = 2;
+
+// Initialize the golden copy cache: load this checkout's entry in the shared cache directory, or
+// build it (and rebuild it when its files have gone missing - see GoldenCopyCacheManager).
+// This runs once per test process.
+const initializeGoldenCopy = async () => {
   if (process.env.DISABLE_GOLDEN_COPY === "true") {
     if (process.env.DEBUG_TEST_SETUP) {
       console.log(`[Setup] Golden copy disabled via DISABLE_GOLDEN_COPY environment variable`);
     }
+    return;
+  }
+
+  // The manager comes from cli/dist. After a pull or a rebase, dist is whatever was built last,
+  // and an older manager would build its cache the older way without a word. Say so instead.
+  // (npm test, test:integration, test:all and test:smoke check dist before they start; test:unit,
+  // test:compatibility and a direct `bun test` do not.)
+  const distLayout = (GoldenCopyCacheManager as { cacheLayout?: number }).cacheLayout;
+  if (distLayout !== EXPECTED_CACHE_LAYOUT) {
+    console.error(
+      `[Setup] cli/dist is out of date: its golden copy cache is layout ${distLayout ?? "1 or older"}, ` +
+        `and these tests expect layout ${EXPECTED_CACHE_LAYOUT}. Run \`npm run build\` in cli/. ` +
+        `The golden copy cache is not used in this run.`
+    );
     return;
   }
 
@@ -97,7 +116,6 @@ const initializeGoldenCopyAsync = async () => {
       eagerLoad: process.env.GOLDEN_COPY_EAGER === "true",
     });
 
-    // Initialize the golden copy cache (creates or loads shared model)
     const initStart = Date.now();
     await manager.init();
     const initTime = Date.now() - initStart;
@@ -117,38 +135,46 @@ const initializeGoldenCopyAsync = async () => {
   }
 };
 
-// Kick off initialization (don't wait, let it happen in background)
-initializeGoldenCopyAsync().catch((error) => {
-  console.error("[Setup] Unexpected error in golden copy initialization:", error);
-});
-
 // Log test environment setup
 if (process.env.DEBUG_TEST_SETUP) {
   console.log(`[Setup] Test worker initialized: ${globalThis.__TEST_ID__}`);
   console.log(`[Setup] Temp directory: ${process.env.TEST_TEMP_DIR}`);
-  console.log(`[Setup] Golden copy will initialize asynchronously`);
 }
 
-// Set up cleanup on process exit
-// The 'exit' event is synchronous, so we use 'beforeExit' for async cleanup
-// beforeExit is fired when the event loop drains with no pending work
-process.on("beforeExit", async () => {
-  if (globalThis.__GOLDEN_COPY_INITIALIZED__) {
-    try {
-      const manager = GoldenCopyCacheManager.getInstance();
-      await manager.cleanup();
-      if (process.env.DEBUG_TEST_SETUP) {
-        console.log(`[Setup] Golden copy cleaned up on process beforeExit`);
-      }
-    } catch (error) {
-      // Always log cleanup errors, not just in debug mode
+// Wait for it, so the cache is whole before the first test runs. It used to run in the
+// background, and a test file that finished within a few milliseconds ended the process partway
+// through the build: one of the ways the shared cache was left half built (#1220). Loading an
+// existing entry takes a few milliseconds and building one a few tens.
+//
+// The wait is capped, so a stuck filesystem delays a run instead of hanging it: after
+// DR_TEST_GOLDEN_COPY_INIT_WAIT_MS milliseconds (default 10000) the tests start without the
+// cache, and a line says so.
+const GOLDEN_COPY_INIT_WAIT_ENV = "DR_TEST_GOLDEN_COPY_INIT_WAIT_MS";
+const DEFAULT_GOLDEN_COPY_INIT_WAIT_MS = 10000;
+const configuredInitWait = Number(process.env[GOLDEN_COPY_INIT_WAIT_ENV]);
+const goldenCopyInitWaitMs =
+  Number.isFinite(configuredInitWait) && configuredInitWait > 0
+    ? configuredInitWait
+    : DEFAULT_GOLDEN_COPY_INIT_WAIT_MS;
+
+let initWaitTimer: ReturnType<typeof setTimeout> | undefined;
+await Promise.race([
+  initializeGoldenCopy(),
+  new Promise<void>((resolve) => {
+    initWaitTimer = setTimeout(() => {
       console.error(
-        `[Setup] ERROR: Failed to clean up golden copy cache. ` +
-          `This may cause disk space issues. ` +
-          `Error: ${error instanceof Error ? error.message : String(error)}`
+        `[Setup] Golden copy cache not ready after ${goldenCopyInitWaitMs / 1000}s ` +
+          `(${GOLDEN_COPY_INIT_WAIT_ENV}); starting the tests without waiting for it`
       );
-    }
-  }
-});
+      resolve();
+    }, goldenCopyInitWaitMs);
+  }),
+]);
+clearTimeout(initWaitTimer);
+
+// No cleanup of the cache when the process ends. The cache directory is shared by every test
+// process on the machine (other checkouts and worktrees included), so removing the entry here
+// would pull it out from under a run that is cloning from it. The entry is small, it is named for
+// what it depends on, and it is rebuilt when it goes missing.
 
 export {};
