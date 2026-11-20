@@ -477,13 +477,89 @@ describe("codebase_extract", () => {
     expect(report.against.kind).toBe("changeset");
     expect(report.summary.elements).toMatchObject({ planned: 2, matched: 2, missing: 0 });
     expect(report.elements.matched.map((m: any) => m.built)).toEqual([SCHEMA]);
-    // The operation matches by name; its summary differs (the plan wrote one, extraction defaults it).
+    // The operation matches by id: model_add and extraction derive the same one from the route's
+    // name (#1225). Its summary differs (the plan wrote one, extraction defaults it).
     expect(report.elements.divergent).toEqual([
-      expect.objectContaining({ built: OPERATION, match: "probable", fields: [{ field: "attributes.summary", planned: "Show an owner", built: "GET /owners/{ownerId}" }] }),
+      expect.objectContaining({ planned: OPERATION, built: OPERATION, match: "exact", fields: [{ field: "attributes.summary", planned: "Show an owner", built: "GET /owners/{ownerId}" }] }),
     ]);
     expect(report.verdict).toBe("diverges");
     // What the build has that the plan didn't: the handler, the interface and the test.
     expect(report.summary.elements.unplanned).toBe(3);
+  });
+
+  it("finds a hand-modelled element under the id an earlier rule gave its name, and adds no second copy", async () => {
+    // "OwnerController" derives application.applicationinterface.owner-controller today. An element
+    // of that name made under another rule keeps its id: extraction attaches the code to it.
+    const EARLIER = "application.applicationinterface.ownercontroller";
+    const { Model } = await import("../../../src/core/model.js");
+    const { Layer } = await import("../../../src/core/layer.js");
+    const { Element } = await import("../../../src/core/element.js");
+    const model = await Model.load(rootPath);
+    const layer = (await model.getLayer("application")) ?? new Layer("application");
+    if (!(await model.getLayer("application"))) model.addLayer(layer);
+    layer.addElement(
+      new Element({
+        id: "0b0f3c0e-5a55-4c58-9d8e-1a2b3c4d5e6f",
+        path: EARLIER,
+        spec_node_id: "application.applicationinterface",
+        layer_id: "application",
+        type: "applicationinterface",
+        name: "OwnerController",
+        attributes: {},
+        layer: "application",
+      })
+    );
+    await model.saveLayer("application");
+    await model.saveManifest();
+    clearModelCache();
+
+    await indexed();
+    const h = harness();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const changeset = await changesetOf(result.changeset.id);
+    const ids = changeset.changes.filter((c) => c.type === "add" || c.type === "update").map((c) => [c.type, c.elementId]);
+    expect(ids).toContainEqual(["update", EARLIER]);
+    expect(ids.map(([, id]) => id)).not.toContain(INTERFACE);
+    expect(result.staged.adds).toBe(4);
+  });
+
+  it("does not add a twin beside an element made under an earlier id rule that has code elsewhere", async () => {
+    // "OwnerController" derives …owner-controller today. An element of that name at the earlier
+    // id, tied to another file, is another declaration: the new one gets a qualified name and id,
+    // as it did when both names gave one id, not the id the old element's name maps to now.
+    const EARLIER = "application.applicationinterface.ownercontroller";
+    const { Model } = await import("../../../src/core/model.js");
+    const { Layer } = await import("../../../src/core/layer.js");
+    const { Element } = await import("../../../src/core/element.js");
+    const model = await Model.load(rootPath);
+    const layer = (await model.getLayer("application")) ?? new Layer("application");
+    if (!(await model.getLayer("application"))) model.addLayer(layer);
+    const element = new Element({
+      id: "1b0f3c0e-5a55-4c58-9d8e-1a2b3c4d5e6f",
+      path: EARLIER,
+      spec_node_id: "application.applicationinterface",
+      layer_id: "application",
+      type: "applicationinterface",
+      name: "OwnerController",
+      attributes: {},
+      layer: "application",
+    });
+    element.setSourceReference({ provenance: "extracted", locations: [{ file: "src/legacy/OwnerController.ts", symbol: "OwnerController" }] });
+    layer.addElement(element);
+    await model.saveLayer("application");
+    await model.saveManifest();
+    clearModelCache();
+
+    await indexed();
+    const h = harness();
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const changeset = await changesetOf(result.changeset.id);
+    const added = changeset.changes.filter((c) => c.type === "add").map((c) => ({ id: c.elementId, name: (c.after as any).name }));
+    expect(added.map((a) => a.id)).not.toContain(INTERFACE);
+    const controller = added.filter((a) => a.id.startsWith("application.applicationinterface."));
+    expect(controller).toHaveLength(1);
+    expect(controller[0].name).not.toBe("OwnerController");
+    expect(controller[0].name).toContain("OwnerController");
   });
 
   it("stages only the layers asked for", async () => {

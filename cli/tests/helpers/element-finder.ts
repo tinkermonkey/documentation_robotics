@@ -1,6 +1,6 @@
 import { Element } from "../../src/core/element.js";
 import { Layer } from "../../src/core/layer.js";
-import { toKebabCase } from "../../src/utils/id-generator.js";
+import { deriveElementId } from "../../src/utils/id-generator.js";
 
 /**
  * Find an element by semantic ID format.
@@ -30,7 +30,7 @@ export function findElementBySemanticId(
   // Search all nodes in the layer
   for (const candidate of layer.elements.values()) {
     // Build semantic IDs from element name, as element ids are generated
-    const kebabName = toKebabCase(candidate.name);
+    const kebabName = deriveElementId(candidate.layer_id || layer.name, candidate.type, candidate.name).slug;
 
     const semanticIds = [
       `${candidate.layer_id || layer.name}.${candidate.type}.${kebabName}`,

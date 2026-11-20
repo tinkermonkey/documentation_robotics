@@ -546,7 +546,8 @@ describe("codebase_extract shared helpers and relationship rules", () => {
     expect(decided.decide.results[0]).toMatchObject({ status: "kept", relationships: 7 });
     expect(decided.unstagedByRule).toMatchObject({ relationships: 7 });
     const left = (await changesetOf(first.changeset.id)).changes.filter((c) => c.type === "relationship-add").map((c) => c.elementId);
-    expect(left).toEqual(["application.applicationfunction.build-plan::realizes::application.applicationservice.tool1handler"]);
+    // "tool1Handler" breaks after the digit (#1184): tool1-handler.
+    expect(left).toEqual(["application.applicationfunction.build-plan::realizes::application.applicationservice.tool1-handler"]);
     clearModelCache();
     const again = ok(await handler({ changeset: first.changeset.name, rootPath }));
     expect(again.staged.relationships).toBe(0);

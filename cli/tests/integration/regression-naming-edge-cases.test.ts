@@ -3,9 +3,10 @@
  *
  * Verifies that element names with non-alphanumeric characters (dots, special chars,
  * all-special-char names) are handled correctly:
- * 1. Names with embedded dots are slugified correctly (dots removed, not kept as separators)
+ * 1. Names with embedded dots are slugified correctly (a dot is a word break, never an id separator)
  * 2. Names with special characters are stripped cleanly
  * 3. Names that collapse to empty produce user-friendly errors
+ * 4. Names that start with a digit get a valid id, and the command says how (#1212)
  *
  * Regression tests for:
  * - BUG-6072-001: Name slugification produces invalid element IDs for names with embedded dots (e.g. Node.js)
@@ -56,17 +57,17 @@ describe("regression: naming-edge-cases", () => {
       const layerObj = await model.getLayer("technology");
       expect(layerObj).toBeDefined();
 
-      // The dot should be stripped, so ID should be "nodejs" not "node.js"
+      // The dot is a word break, as it is in an extracted id (one id function, #1225), so the
+      // ID is "node-js", not "node.js": the dot never becomes a segment separator.
       const element = findElementBySemanticId(
         layerObj!,
-        "technology.technologyservice.nodejs"
+        "technology.technologyservice.node-js"
       );
       expect(element).toBeDefined();
       expect(element!.name).toBe("Node.js");
 
-      // Verify the generated ID matches pattern: technology.{type}.nodejs
-      // (dot is removed, not kept as a segment separator)
-      expect(element!.path).toMatch(/^technology\.[a-z]+\.nodejs$/);
+      // Verify the generated ID matches pattern: technology.{type}.node-js
+      expect(element!.path).toMatch(/^technology\.[a-z]+\.node-js$/);
     });
 
     it("dr validate should report 0 errors for element with dot in name", async () => {
@@ -330,12 +331,116 @@ describe("regression: naming-edge-cases", () => {
       const model = await Model.load(workdir.path);
       const layerObj = await model.getLayer("technology");
 
-      // Both dot and @ and $ should be stripped: "Node@.js$" → "nodejs"
+      // @ and $ are stripped and the dot is a word break: "Node@.js$" → "node-js"
       const element = findElementBySemanticId(
         layerObj!,
-        "technology.technologyservice.nodejs"
+        "technology.technologyservice.node-js"
       );
       expect(element).toBeDefined();
+    });
+  });
+
+  describe("name starting with a digit (#1212)", () => {
+    it("derives a valid id with the n- prefix and says so, instead of rejecting its own id", async () => {
+      const result = await runDr(
+        ["add", "application", "component", "3D Object Effect", "--attributes", JSON.stringify({ type: "internal" })],
+        { cwd: workdir.path }
+      );
+
+      expect(result.exitCode).toBe(0);
+      const output = result.stdout + result.stderr;
+      expect(output).toContain("prefixed with 'n-'");
+      expect(output).not.toContain("invalid attributes");
+
+      const model = await Model.load(workdir.path);
+      const layerObj = await model.getLayer("application");
+      const element = findElementBySemanticId(layerObj!, "application.applicationcomponent.n-3d-object-effect");
+      expect(element).toBeDefined();
+      expect(element!.name).toBe("3D Object Effect");
+    });
+
+    it("splits a digit from the capitalised word after it (Tier1Status → tier1-status)", async () => {
+      const result = await runDr(
+        ["add", "data-model", "objectschema", "Tier1Status", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+
+      expect(result.exitCode).toBe(0);
+      const model = await Model.load(workdir.path);
+      const layerObj = await model.getLayer("data-model");
+      expect(findElementBySemanticId(layerObj!, "data-model.objectschema.tier1-status")).toBeDefined();
+
+      // The same name again is refused under the id it has, as before.
+      const again = await runDr(
+        ["add", "data-model", "objectschema", "Tier1Status", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+      expect(again.exitCode).not.toBe(0);
+      expect(again.stdout + again.stderr).toContain("data-model.objectschema.tier1-status already exists");
+    });
+
+    it("refuses a name whose element an earlier release put at another id, naming that element", async () => {
+      // What CLI 0.6.0 made of these two names.
+      const { Layer } = await import("../../src/core/layer.js");
+      const { Element } = await import("../../src/core/element.js");
+      const seeded = await Model.load(workdir.path);
+      const put = async (layer: string, type: string, id: string, name: string, attributes: Record<string, unknown>) => {
+        let layerObj = await seeded.getLayer(layer);
+        if (!layerObj) {
+          layerObj = new Layer(layer);
+          seeded.addLayer(layerObj);
+        }
+        layerObj.addElement(
+          new Element({ id: crypto.randomUUID(), path: id, spec_node_id: `${layer}.${type}`, layer_id: layer, type, name, attributes, layer })
+        );
+        await seeded.saveLayer(layer);
+      };
+      await put("data-model", "objectschema", "data-model.objectschema.tier9status", "Tier9Status", { type: "object" });
+      await put("api", "operation", "api.operation.options", "OPTIONS /", { operationId: "options", summary: "OPTIONS /", tags: "x" });
+      // dr add through 0.3.x: every dot dropped, a long name left whole.
+      const steps = `Order.processPayment ${"Step ".repeat(20).trim()}`;
+      const { EARLIER_ID_RULES } = await import("../../src/utils/id-generator.js");
+      const oldSteps = `application.applicationfunction.${EARLIER_ID_RULES.find((r) => r.rule === "add-0.1")!.slug(steps)}`;
+      await put("application", "applicationfunction", oldSteps, steps, {});
+      await seeded.saveManifest();
+
+      const long = await runDr(["add", "application", "function", steps], { cwd: workdir.path });
+      expect(long.exitCode).not.toBe(0);
+      expect(long.stdout + long.stderr).toContain(`Element ${oldSteps} already exists with this name`);
+
+      // Differs only by hyphens (the digit rule).
+      const digit = await runDr(
+        ["add", "data-model", "objectschema", "Tier9Status", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+      expect(digit.exitCode).not.toBe(0);
+      expect(digit.stdout + digit.stderr).toContain("Element data-model.objectschema.tier9status already exists with this name");
+
+      // Differs by more (the root route): `options` then, `options-root` now.
+      const root = await runDr(
+        ["add", "api", "operation", "OPTIONS /", "--attributes", JSON.stringify({ operationId: "options", summary: "OPTIONS /", tags: "x" })],
+        { cwd: workdir.path }
+      );
+      expect(root.exitCode).not.toBe(0);
+      expect(root.stdout + root.stderr).toContain("Element api.operation.options already exists with this name");
+
+      // A name an earlier rule merged with an existing element's, which today's rule tells apart,
+      // is another element: "Version 1.2" beside "Version 12" (both `version-12` through 0.6.0).
+      await put("data-model", "objectschema", "data-model.objectschema.version-12", "Version 12", { type: "object" });
+      await seeded.saveManifest();
+      const other = await runDr(
+        ["add", "data-model", "objectschema", "Version 1.2", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+      expect(other.exitCode).toBe(0);
+      expect(other.stdout + other.stderr).toContain("differs only by hyphens from data-model.objectschema.version-12");
+
+      // Neither got a second copy.
+      const after = await Model.load(workdir.path);
+      expect((await after.getLayer("api"))!.getElement("api.operation.options-root")).toBeUndefined();
+      expect((await after.getLayer("api"))!.getElement("api.operation.options")).toBeDefined();
+      expect((await after.getLayer("data-model"))!.getElement("data-model.objectschema.tier9-status")).toBeUndefined();
+      expect((await after.getLayer("data-model"))!.getElement("data-model.objectschema.version-1-2")).toBeDefined();
     });
   });
 });

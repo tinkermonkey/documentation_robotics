@@ -179,6 +179,18 @@ Examples:
 
 **Important**: In CLI commands, element types use **lowercase** (e.g., `goal`, `service`, `endpoint`), while element names use **kebab-case** (e.g., `customer-satisfaction`). In generated element IDs, the type segment matches the CLI format (e.g., `motivation.goal.customer-satisfaction`).
 
+**How a name becomes an ID**: `dr add`, the MCP `model_add` tool and code extraction (`codebase_extract`) derive the last part of an ID from the element's name by one rule, so the same name gives the same ID in each. An ID is derived once, when the element is created; later versions of the rule never rename an element.
+
+| Name                       | ID ends in                 | Rule                                                                   |
+| -------------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| `Customer Management`      | `customer-management`      | Spaces and underscores are word breaks                                 |
+| `GraphLayoutSnapshot`      | `graph-layout-snapshot`    | camelCase is split                                                     |
+| `Tier1Status`              | `tier1-status`             | A digit ends a word when a capitalised word follows (`3D` stays `3d`)  |
+| `Node.js`                  | `node-js`                  | Dots, slashes and braces are word breaks                               |
+| `GET /`                    | `get-root`                 | A route on the root path                                               |
+| `3D Object Effect`         | `n-3d-object-effect`       | An ID starts with a letter, so a leading digit gets the prefix `n-`    |
+| a name over 100 characters | cut at a word, plus a hash | Long names (test titles) are cut and end with a hash of the whole name |
+
 See [Element Type Reference](../docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive documentation of all element types by layer.
 
 ### Source File Tracking

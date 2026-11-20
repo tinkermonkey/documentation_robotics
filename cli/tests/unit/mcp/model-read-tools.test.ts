@@ -109,8 +109,8 @@ async function recorderModel(rootPath: string): Promise<void> {
       rootPath,
     })
   );
-  expect(added.elements.results.every((r: any) => r.status === "added")).toBe(true);
-  expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+  expect(Object.keys(added.elements.counts).every((status) => status === "added")).toBe(true);
+  expect(Object.keys(added.relationships.counts).every((status) => status === "added")).toBe(true);
 }
 
 describe("model_trace: which end depends on the other (#1204)", () => {
@@ -158,7 +158,7 @@ describe("model_trace: which end depends on the other (#1204)", () => {
           rootPath,
         })
       );
-      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+      expect(Object.keys(added.relationships.counts).every((status) => status === "added")).toBe(true);
 
       // Down from the component: what it uses, what serves it, and the artifact that realizes it.
       // Not the service it realizes, nor the goal behind that.
@@ -208,7 +208,7 @@ describe("model_trace: which end depends on the other (#1204)", () => {
           rootPath,
         })
       );
-      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+      expect(Object.keys(added.relationships.counts).every((status) => status === "added")).toBe(true);
 
       // Down from the requirement, and from the value, is what meets it, through to the code and
       // the technology under it.
@@ -268,8 +268,8 @@ describe("model_trace: which end depends on the other (#1204)", () => {
           rootPath,
         })
       );
-      expect(added.elements.results.every((r: any) => r.status === "added")).toBe(true);
-      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+      expect(Object.keys(added.elements.counts).every((status) => status === "added")).toBe(true);
+      expect(Object.keys(added.relationships.counts).every((status) => status === "added")).toBe(true);
 
       // Down from the capability: the feature that realizes it. Not the goal, and so not the other
       // capability and its feature, which implement the same goal.
@@ -320,7 +320,7 @@ describe("model_trace: which end depends on the other (#1204)", () => {
           rootPath,
         })
       );
-      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+      expect(Object.keys(added.relationships.counts).every((status) => status === "added")).toBe(true);
 
       for (const direction of ["down", "up"] as const) {
         const trace = parse(await modelTraceHandler({ id: RECORDER, direction, rootPath }));
@@ -585,7 +585,7 @@ describe("model_validate: summary by default (#1215)", () => {
         rootPath,
       })
     );
-    expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+    expect(Object.keys(added.relationships.counts).every((status) => status === "added")).toBe(true);
   }
 
   it("does not ask motivation, business or product elements for a source reference", async () => {

@@ -23,7 +23,7 @@
  * are and what their keys are called. A path outside the root is refused before it is looked at.
  */
 
-import { readFile, realpath, stat } from "node:fs/promises";
+import { lstat, readFile, readlink, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { z, type ZodRawShape } from "zod";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
@@ -41,7 +41,54 @@ export const BATCH_FILE_DESCRIPTION =
 /** Whether `target` is `root` or a path under it (both absolute). */
 function isInside(root: string, target: string): boolean {
   const relative = path.relative(root, target);
-  return !relative.startsWith("..") && !path.isAbsolute(relative);
+  // Compare segments: a file named "..notes.json" is inside.
+  return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
+/**
+ * Where `relative` (a path under `realRoot`) really is, following links one segment at a time
+ * without ever looking at anything outside the root: each segment is examined only once the path
+ * so far is known to be inside it, and a link whose target leaves the root is not followed.
+ */
+async function locateInside(
+  realRoot: string,
+  relative: string,
+  /** The root as the caller spelled it, when that is itself reached through a link (macOS: /var is /private/var). */
+  root: string = realRoot
+): Promise<{ path: string } | "outside" | "missing"> {
+  const pending = relative.split(path.sep);
+  let current = realRoot;
+  let links = 0;
+  while (pending.length > 0) {
+    const segment = pending.shift()!;
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") {
+      current = path.dirname(current);
+      if (!isInside(realRoot, current)) return "outside";
+      continue;
+    }
+    const next = path.join(current, segment);
+    let info;
+    try {
+      info = await lstat(next);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ENOENT" || code === "ENOTDIR") return "missing";
+      throw error;
+    }
+    if (info.isSymbolicLink()) {
+      if (++links > 40) return "outside";
+      const target = await readlink(next);
+      const absolute = path.resolve(current, target);
+      const base = isInside(realRoot, absolute) ? realRoot : isInside(root, absolute) ? root : undefined;
+      if (base === undefined) return "outside";
+      pending.unshift(...path.relative(base, absolute).split(path.sep));
+      current = realRoot;
+      continue;
+    }
+    current = next;
+  }
+  return { path: current };
 }
 
 /** Where the first JSON syntax error is, for a message an agent can act on without the file's text. */
@@ -184,37 +231,43 @@ export async function readBatchFile<Shape extends ZodRawShape>(
   const resolved = path.resolve(root, file);
   const names = Object.keys(lists);
   const shapeHint = `The file is one JSON object: {${names.map((name) => `"${name}": [...]`).join(", ")}}`;
-  const outside = (what: string) =>
-    new CLIError(`${tool}: ${what} is outside the project root (${root}); a batch file must be inside it`, ErrorCategory.USER, [
+  // One answer for every path that leads outside the root, directly or through a link, whether or
+  // not anything is there: nothing outside the root is looked at.
+  const outside = () =>
+    new CLIError(`${tool}: ${file} is outside the project root (${root}); a batch file must be inside it`, ErrorCategory.USER, [
       `Write the file under the project root, for example ${path.join(root, ".dr", "batch.json")} (git ignores .dr/), and pass that path`,
     ]);
-  // Refused on the path alone, before anything is read: a path outside the root learns nothing
-  // about the file there, not even whether it exists.
-  if (!isInside(root, resolved)) throw outside(resolved);
+  if (!isInside(root, resolved)) throw outside();
+  let realRoot: string;
+  try {
+    realRoot = await realpath(root);
+  } catch (error) {
+    throw new CLIError(`${tool}: cannot read the project root ${root}: ${getErrorMessage(error)}`, ErrorCategory.USER);
+  }
+  let located: Awaited<ReturnType<typeof locateInside>>;
+  try {
+    located = await locateInside(realRoot, path.relative(root, resolved), root);
+  } catch (error) {
+    throw new CLIError(`${tool}: cannot read ${resolved}: ${getErrorMessage(error)}`, ErrorCategory.USER);
+  }
+  if (located === "outside") throw outside();
+  const missing = () =>
+    new CLIError(`${tool}: no file at ${resolved}`, ErrorCategory.USER, [
+      path.isAbsolute(file) ? "Check the path, or write the file first" : `A relative path is read from the project root (${root})`,
+    ]);
+  if (located === "missing") throw missing();
+  const real = located.path;
 
   let size: number;
   try {
-    const info = await stat(resolved);
+    const info = await stat(real);
     if (!info.isFile()) {
       throw new CLIError(`${tool}: ${resolved} is not a file`, ErrorCategory.USER, ["Pass the path of a JSON file"]);
     }
     size = info.size;
   } catch (error) {
     if (error instanceof CLIError) throw error;
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new CLIError(`${tool}: no file at ${resolved}`, ErrorCategory.USER, [
-        path.isAbsolute(file)
-          ? "Check the path, or write the file first"
-          : `A relative path is read from the project root (${root})`,
-      ]);
-    }
-    throw new CLIError(`${tool}: cannot read ${resolved}: ${getErrorMessage(error)}`, ErrorCategory.USER);
-  }
-  // A link inside the root may point out of it: compare where the file and the root really are.
-  try {
-    if (!isInside(await realpath(root), await realpath(resolved))) throw outside(`${resolved} is a link, and the file it points to`);
-  } catch (error) {
-    if (error instanceof CLIError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") throw missing();
     throw new CLIError(`${tool}: cannot read ${resolved}: ${getErrorMessage(error)}`, ErrorCategory.USER);
   }
   if (size > MAX_BATCH_FILE_BYTES) {
@@ -229,7 +282,7 @@ export async function readBatchFile<Shape extends ZodRawShape>(
 
   let text: string;
   try {
-    text = await readFile(resolved, "utf8");
+    text = await readFile(real, "utf8");
   } catch (error) {
     throw new CLIError(`${tool}: cannot read ${resolved}: ${getErrorMessage(error)}`, ErrorCategory.USER);
   }
