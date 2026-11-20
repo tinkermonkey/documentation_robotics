@@ -15,7 +15,6 @@ import yaml from "yaml";
 import { runDr } from "../helpers/cli-runner.js";
 import { getCliBundledSpecVersion, getCliVersion } from "../../src/utils/spec-version.js";
 import { MigrationRegistry } from "../../src/core/migration-registry.js";
-import { LANDING_WHEN_DRIFT_BLOCKS } from "../../src/mcp/tools/project-status-collectors.js";
 
 const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
@@ -423,9 +422,10 @@ describe("project_upgrade over MCP", () => {
 
 // Follows tranche 2 (#1200, drift warns and never refuses): today a drifted changeset's landing is
 // refused without force, and the status says so. When that lands, these three lines are the edit.
-const DRIFTED_LANDING = LANDING_WHEN_DRIFT_BLOCKS;
-const DRIFTED_LANDING_WORDS = "force: true";
-const DRIFT_REFUSES_LANDING = true;
+// Drift warns and never refuses a landing (#1200): the preview names the overlap and lands it.
+const DRIFTED_LANDING = "allowed-with-warning";
+const DRIFTED_LANDING_WORDS = "application.applicationfunction.audit";
+const DRIFT_REFUSES_LANDING = false;
 
 describe("project_status over MCP", () => {
   function git(cwd: string, ...args: string[]): string {
@@ -512,7 +512,7 @@ describe("project_status over MCP", () => {
       baseChanges: { elementsChanged: 1 },
       overlapping: { elements: 1, relationships: 0, first: ["application.applicationfunction.audit (changed-in-base)"] },
     });
-    // The landing is refused as the status said it would be (follows tranche 2: see DRIFTED_LANDING).
+    // The preview lands it with a warning, as the status said, and names the overlap.
     const preview = await callTool(state, "changeset_commit_preview", { changeset: "reword-audit" });
     expect(preview.isError).toBe(DRIFT_REFUSES_LANDING);
     expect(JSON.stringify(preview.body)).toContain(DRIFTED_LANDING_WORDS);

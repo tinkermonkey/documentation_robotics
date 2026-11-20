@@ -13,7 +13,7 @@ import { mkdir, mkdtemp, readFile, writeFile, rm } from "fs/promises";
 import { join } from "path";
 import { spawn, type ChildProcess } from "child_process";
 import { tmpdir } from "os";
-import { portAllocator, stopServerProcess } from "../helpers.ts";
+import { isProcessRunning, portAllocator, stopServerProcess } from "../helpers.ts";
 import { viewerRecordPath } from "../../src/server/viewer-registry.js";
 
 const CLI_PATH = join(import.meta.dir, "../../dist/cli.js");
@@ -199,14 +199,9 @@ describe.serial("Visualization Server - Custom Viewer", () => {
       stdio: ["ignore", "pipe", "inherit"],
     });
     let launcherPid = 0;
-    const isAlive = (pid: number) => {
-      try {
-        process.kill(pid, 0);
-        return true;
-      } catch {
-        return false;
-      }
-    };
+    // Not a signal-0 check alone: the orphaned launcher is handed to PID 1, and where PID 1 does
+    // not reap (the release gate's container) it stays a zombie once it has exited.
+    const isAlive = isProcessRunning;
     const healthy = async () => {
       try {
         return (await fetch(`http://localhost:${port}/health`)).ok;

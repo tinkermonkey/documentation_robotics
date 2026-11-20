@@ -19,7 +19,7 @@ import { Element } from "../../src/core/element.js";
 import { auditCommand } from "../../src/commands/audit.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { readFile, fileExists } from "../../src/utils/file-io.js";
-import { unlinkSync } from "node:fs";
+import { rmSync, unlinkSync } from "node:fs";
 import path from "path";
 
 describe("audit command with populated model", () => {
@@ -28,6 +28,9 @@ describe("audit command with populated model", () => {
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
+    // The golden copy's business layer has an actor file. A save keeps files of a layer it did not
+    // load, so clear the layer here: the business elements are the ones this suite builds below.
+    rmSync(path.join(workdir.path, "documentation-robotics/model/02_business"), { recursive: true, force: true });
 
     // Initialize model with eager loading
     model = await Model.init(
