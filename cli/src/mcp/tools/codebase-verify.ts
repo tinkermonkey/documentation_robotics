@@ -18,9 +18,9 @@ import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { splitVerifyLayers, VERIFIABLE_LAYERS } from "../../analyzers/active-analyzer.js";
 import { apiLayerReport } from "../../analyzers/verify-engine.js";
-import type { LayerVerifyReport } from "../../analyzers/types.js";
+import type { LayerVerifyEntry, LayerVerifyReport } from "../../analyzers/types.js";
 import { PagedLists, type MultiListPage, type PageArgs } from "../../core/list-page.js";
-import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { compactJson, jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import type { Model } from "../../core/model.js";
 import {
   routeHandlerContradictions,
@@ -41,12 +41,14 @@ import {
  */
 export const VERIFY_PAGE_SIZE = 50;
 /**
- * The size the default page aims at, in bytes of listed entries. When the lists together pass it
- * and the caller gave no limit, the page is halved (never below VERIFY_MIN_PAGE_SIZE): fewer
- * entries per call, all of them still reachable. An explicit limit is taken as given.
+ * The size the default page aims at, in bytes of the printed result. Without a limit the page is
+ * the most entries per list (VERIFY_MIN_PAGE_SIZE to VERIFY_MAX_PAGE_SIZE) that fit it: all of them
+ * still reachable. An explicit limit is taken as given.
  */
 export const VERIFY_SIZE_TARGET = 40_000;
 export const VERIFY_MIN_PAGE_SIZE = 10;
+/** The most entries per list a default page holds, however small they are. */
+export const VERIFY_MAX_PAGE_SIZE = 1_000;
 
 const inputSchema = {
   layers: z
@@ -59,8 +61,8 @@ const inputSchema = {
     .positive()
     .optional()
     .describe(
-      `The most entries to return from each list (default ${VERIFY_PAGE_SIZE}, lowered when the lists together would pass about ` +
-        `${Math.round(VERIFY_SIZE_TARGET / 1000)} KB; page.limit says what was used; any size is accepted). A page size, not a cut-off: ` +
+      `The most entries to return from each list (default: as many as fit about ${Math.round(VERIFY_SIZE_TARGET / 1000)} KB, ` +
+        `${VERIFY_MIN_PAGE_SIZE} to ${VERIFY_MAX_PAGE_SIZE}; page.limit says what was used; any size is accepted). A page size, not a cut-off: ` +
         "statuses, coverage and summary counts are over everything, and each layer's page.totals gives every list's true length."
     ),
   offset: z
@@ -109,12 +111,16 @@ type PagedLayer = LayerVerifyReport & { page: MultiListPage };
  */
 export function pageLayerReport(layer: LayerVerifyReport, args: PageArgs): { layer: PagedLayer; pager: PagedLists } {
   const pager = new PagedLists(args, VERIFY_PAGE_SIZE);
+  // An entry whose symbol is its name (a test case's title) says it once: on a layer of thousands
+  // that is a third of the page.
+  const lean = (entries: LayerVerifyEntry[]) =>
+    entries.map((e) => (e.symbol !== undefined && e.symbol === e.name ? (({ symbol: _symbol, ...rest }) => rest)(e) : e));
   const buckets = {
-    matched: pager.list("matched", layer.buckets.matched),
-    in_graph_only: pager.list("in_graph_only", layer.buckets.in_graph_only),
-    in_model_only: pager.list("in_model_only", layer.buckets.in_model_only),
-    not_indexed: pager.list("not_indexed", layer.buckets.not_indexed),
-    ...(layer.buckets.ignored ? { ignored: pager.list("ignored", layer.buckets.ignored) } : {}),
+    matched: lean(pager.list("matched", layer.buckets.matched)),
+    in_graph_only: lean(pager.list("in_graph_only", layer.buckets.in_graph_only)),
+    in_model_only: lean(pager.list("in_model_only", layer.buckets.in_model_only)),
+    not_indexed: lean(pager.list("not_indexed", layer.buckets.not_indexed)),
+    ...(layer.buckets.ignored ? { ignored: lean(pager.list("ignored", layer.buckets.ignored)) } : {}),
   };
   const notChecked = layer.not_checked?.map((group, i) => ({ ...group, ids: pager.list(`not_checked[${i}].ids`, group.ids) }));
   const relationships = layer.relationships
@@ -179,8 +185,6 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       // A backend that returns only the API buckets still gets the API layer's status.
       const layers = report.layers ?? (apiVerified ? [apiLayerReport(report)] : []);
       // Every list is a page (limit, offset); what is not whole is named, with the call for the rest.
-      // Without a limit the page is VERIFY_PAGE_SIZE entries per list, halved while the lists
-      // together pass the size target: the target shapes the default, and nothing is dropped.
       const pageAt = (pageArgs: PageArgs) => {
         const paged = layers.map((l) => pageLayerReport(l, pageArgs));
         const top = new PagedLists(pageArgs, VERIFY_PAGE_SIZE);
@@ -198,35 +202,56 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         };
         return { paged, top, buckets };
       };
-      let limit = args.limit ?? VERIFY_PAGE_SIZE;
-      let page = pageAt({ limit, offset: args.offset });
-      // Measured as the result is printed (indented), since that is what the caller receives: the
-      // lists, plus what the result carries whatever the page (the report's own fields, the scope,
-      // each layer's status line, the sentence naming the next call).
+      // Measured as the result is printed (compact JSON), since that is what the caller receives:
+      // the lists, plus what the result carries whatever the page (the report's own fields, the
+      // scope, each layer's status line, the sentence naming the next call).
       const fixed =
-        JSON.stringify({ ...report, buckets: undefined, layers: undefined, scope: VERIFY_SCOPE }, null, 2).length +
-        layers.reduce((n, l) => n + l.status_text.length + 200, 0) +
-        600;
-      const sizeOf = (p: typeof page) => fixed + JSON.stringify([p.paged.map((x) => x.layer), p.buckets], null, 2).length;
-      while (args.limit === undefined && limit > VERIFY_MIN_PAGE_SIZE && sizeOf(page) > VERIFY_SIZE_TARGET) {
-        limit = Math.max(Math.ceil(limit / 2), VERIFY_MIN_PAGE_SIZE);
-        page = pageAt({ limit, offset: args.offset });
+        compactJson({ ...report, buckets: undefined, layers: undefined, scope: VERIFY_SCOPE }).length +
+        layers.reduce((n, l) => n + l.status_text.length + 300, 0) +
+        800;
+      const sizeOf = (p: ReturnType<typeof pageAt>) => fixed + compactJson([p.paged.map((x) => x.layer), p.buckets]).length;
+      // Without a limit, the page is as large as fits the size target at this offset (a later page
+      // holds only the long lists, so it holds more of them: nextOffset follows whatever size was
+      // used, so the pages stay contiguous) (between VERIFY_MIN_PAGE_SIZE
+      // and VERIFY_MAX_PAGE_SIZE entries per list), so a layer of thousands pages in tens of calls,
+      // not hundreds. An explicit limit is taken as given.
+      let limit = args.limit ?? VERIFY_PAGE_SIZE;
+      if (args.limit === undefined) {
+        let low = VERIFY_MIN_PAGE_SIZE;
+        let high = VERIFY_MAX_PAGE_SIZE;
+        if (sizeOf(pageAt({ limit: high, offset: args.offset })) <= VERIFY_SIZE_TARGET) low = high;
+        while (low < high) {
+          const mid = Math.ceil((low + high) / 2);
+          if (sizeOf(pageAt({ limit: mid, offset: args.offset })) <= VERIFY_SIZE_TARGET) low = mid;
+          else high = mid - 1;
+        }
+        limit = low;
       }
+      const page = pageAt({ limit, offset: args.offset });
       const { paged, top, buckets } = page;
       const shortened = paged.filter((p) => Object.keys(p.pager.pages).length > 0);
       const nextOffset = shortened.some((p) => p.pager.nextOffset !== undefined) ? top.offset + top.limit : undefined;
-      const pageInfo = { limit: top.limit, offset: top.offset, ...(nextOffset !== undefined ? { nextOffset } : {}) };
+      // The multi-list page: one offset pages every list, and totals holds each list's true length
+      // (the top-level buckets as `api.<list>`, each layer's as `<layer>.<list>`).
+      const totals: Record<string, number> = {};
+      for (const [name, n] of Object.entries(top.totals)) totals[`api.${name}`] = n;
+      for (const p of paged) for (const [name, n] of Object.entries(p.pager.totals)) totals[`${p.layer.layer}.${name}`] = n;
+      const pageInfo = { limit: top.limit, offset: top.offset, totals, ...(nextOffset !== undefined ? { nextOffset } : {}) };
       const more =
         shortened.length > 0
           ? (
                 `Lists are pages of ${top.limit} entries from ${top.offset}` +
-                (args.limit === undefined && top.limit < VERIFY_PAGE_SIZE
-                  ? ` (the default of ${VERIFY_PAGE_SIZE}, lowered to keep this result near ${Math.round(VERIFY_SIZE_TARGET / 1000)} KB)`
-                  : "") +
+                (args.limit === undefined ? ` (sized to keep this result near ${Math.round(VERIFY_SIZE_TARGET / 1000)} KB)` : "") +
                 "; statuses, coverage and summary counts are over everything. " +
                 `Not whole here: ${shortened.map((p) => `${p.layer.layer} (${p.pager.describe()})`).join("; ")}. ` +
                 (nextOffset !== undefined
                   ? `For the next page call codebase_verify again with the same arguments and offset: ${nextOffset}` +
+                    (args.limit === undefined
+                      ? ` (later pages hold more, since the short lists are done; about ${Math.ceil(
+                          Math.max(...shortened.flatMap((p) => Object.values(p.pager.pages).map((g) => g.total - (g.offset + g.returned)))) /
+                            Math.max(top.limit, 1)
+                        )} calls at this size at most)`
+                      : "") +
                     (shortened.length < paged.length
                       ? ` (layers: ${JSON.stringify(shortened.filter((p) => p.pager.nextOffset !== undefined).map((p) => p.layer.layer))} is enough)`
                       : "") +
@@ -241,7 +266,8 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       // The engine's hints name no tool (the CLI prints them too): say which tools apply here.
       const { hints: _engineHints, ...rest } = report;
       const hints = report.buckets.in_graph_only.length > 0 ? [IN_CODE_ONLY_HINT] : [];
-      return jsonResult({
+      return jsonResult(
+        {
         status,
         page: pageInfo,
         ...(more ? { more } : {}),
@@ -261,7 +287,10 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         ...(index.state === "fresh-with-uncommitted-edits"
           ? { warning: `This report may miss uncommitted edits: ${index.reason}. Call codebase_index with wait: 30 to re-index them.` }
           : {}),
-      });
+        },
+        // Short objects on one line: a long list is the bulk of the result.
+        { compact: true }
+      );
     });
   };
 }
@@ -319,8 +348,8 @@ export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "layers has buckets: matched, in_graph_only (in the code, not the model), in_model_only (in the model, not found in the " +
     "code: drift, each with its reason) and not_indexed (a parse gap, not drift), a not_checked list by reason with what " +
     "would make each group checkable, and a summary; the top-level buckets are the API layer's. Every list is a page: " +
-    `limit entries (default ${VERIFY_PAGE_SIZE}) from offset. Statuses, coverage and counts are always over everything; a layer's ` +
-    "page.totals gives every list's true length, page.nextOffset is the next offset (absent on the last page), and more " +
+    "limit entries (default: as many as fit about 40 KB) from offset. Statuses, coverage and counts are always over everything; " +
+    "page.totals gives every list's true length (and each layer's page its own), page.nextOffset is the next offset (absent on the last page), and more " +
     "names the call for the next page. Symbols " +
     "codebase_extract recorded as not elements (reject) are left out of in_graph_only and listed under ignored; rejections " +
     "says where those decisions were read from, how many, and how many each layer applied (they are local to a checkout). It doesn't check other layers. Needs a fresh index: if there is none, " +

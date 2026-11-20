@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { nameSpellings, readBuildFiles, registeredByName, sourceCandidates, type BuildFile } from "../../../src/core/build-evidence.js";
+import { BUILD_FILE_LIMIT, nameSpellings, readBuildFiles, registeredByName, sourceCandidates, type BuildFile } from "../../../src/core/build-evidence.js";
 
 const SERVER: BuildFile = {
   file: "src/mcp/server.ts",
@@ -55,7 +55,7 @@ describe("registeredByName (#1226)", () => {
   });
 
   it("finds one named by a property of a definition object", () => {
-    const tool: BuildFile = { file: "src/tools/verify.ts", text: 'export const tool = {\n  name: "codebase_verify",\n  handler,\n};\n' };
+    const tool: BuildFile = { file: "src/tools/verify.ts", text: 'export const tool: McpToolDefinition = {\n  name: "codebase_verify",\n  handler,\n};\n' };
     expect(registeredByName(element("api.operation.codebase-verify", "codebase_verify"), [tool])).toEqual({
       file: "src/tools/verify.ts",
       string: "codebase_verify",
@@ -68,7 +68,7 @@ describe("registeredByName (#1226)", () => {
 
   it("never applies to a type that is declared, not registered: a planned class that was never written stays missing", () => {
     // The review's case: the plan adds component AuditLog; the build only has track("AuditLog").
-    const events: BuildFile = { file: "src/events.ts", text: 'export function record() {\n  track("AuditLog");\n}\n' };
+    const events: BuildFile = { file: "src/events.ts", text: 'export function record() {\n  bus.defineEvent("AuditLog");\n}\n' };
     expect(registeredByName(element("application.applicationcomponent.audit-log", "AuditLog", "src/events.ts"), [events])).toBeNull();
     expect(registeredByName(element("data-model.objectschema.audit-log", "AuditLog", "src/events.ts"), [events])).toBeNull();
     // The same text is evidence for a type that can be registered by name.
@@ -80,6 +80,24 @@ describe("registeredByName (#1226)", () => {
     const config: BuildFile = { file: "config/tools.json", text: '{ "name": "rate_limiter" }\n' };
     const yaml: BuildFile = { file: "deploy/jobs.yaml", text: 'name: "rate_limiter"\n' };
     expect(registeredByName(element("application.applicationservice.rate-limiter", "RateLimiter"), [readme, config, yaml])).toBeNull();
+  });
+
+  it("ignores the reviewer's non-registrations: lists, analytics, translations, assertions, storage, comments, templates, tests", () => {
+    const fn = element("application.applicationfunction.send-invoice", "sendInvoice");
+    const cases: BuildFile[] = [
+      { file: "src/config.ts", text: 'export const menu = [{ name: "sendInvoice", label: "Send invoice" }];\n' },
+      { file: "src/a.ts", text: '// see register("sendInvoice", h)\nexport const x = 1;\n' },
+      { file: "src/b.ts", text: '/* name: "sendInvoice" */\nexport const y = 2;\n' },
+      { file: "src/c.ts", text: "const label = `${'sendInvoice'}`;\nregister(`sendInvoice`, h);\n" },
+      { file: "src/d.ts", text: 'analytics.track("sendInvoice");\nconst s = t("sendInvoice");\n' },
+      { file: "src/e.ts", text: 'expect(names).toContain("sendInvoice");\nlocalStorage.getItem("sendInvoice");\n' },
+      { file: "src/f.ts", text: 'dispatch({ type: "sendInvoice" });\n' },
+      { file: "src/g.py", text: '# name="sendInvoice"\nx = 1\n' },
+      { file: "tests/invoice.test.ts", text: 'it("sendInvoice", () => {});\nregister("sendInvoice", h);\n' },
+    ];
+    for (const file of cases) expect(registeredByName(fn, [file])).toBeNull();
+    // And a quoted name is never offered as a place to adopt from.
+    expect(sourceCandidates(fn, cases)).toEqual([]);
   });
 
   it("takes only a string used as a registration: a call's argument or a name property", () => {
@@ -94,6 +112,10 @@ describe("registeredByName (#1226)", () => {
       expect(registeredByName(service, [{ file: "src/a.ts", text }])).toBeNull();
     }
     expect(registeredByName(service, [{ file: "src/a.ts", text: 'server.tool(\n  "diff_set",\n  handler\n);\n' }])).toMatchObject({ line: 2, how: "call-argument" });
+    // An object passed to a registering call.
+    expect(registeredByName(service, [{ file: "src/b.ts", text: 'server.registerTool({ name: "diff_set", handler });\n' }])).toMatchObject({ how: "name-property" });
+    // A registering call's second argument is not the name it registers.
+    expect(registeredByName(service, [{ file: "src/c.ts", text: 'register(handler, "diff_set");\n' }])).toBeNull();
   });
 
   it("is not one when a file declares or references the name as a symbol", () => {
@@ -108,7 +130,7 @@ describe("registeredByName (#1226)", () => {
   });
 
   it("takes a one-word name only from the element's own source file", () => {
-    const flags: BuildFile = { file: "src/flags.ts", text: 'enable("status");\n' };
+    const flags: BuildFile = { file: "src/flags.ts", text: 'registerFlag("status");\n' };
     expect(registeredByName(element("application.applicationservice.status", "status"), [flags])).toBeNull();
     expect(registeredByName(element("application.applicationservice.status", "status", "src/flags.ts"), [flags])).toMatchObject({ file: "src/flags.ts", string: "status" });
   });
@@ -129,19 +151,17 @@ describe("sourceCandidates (#1159)", () => {
     SERVER,
   ];
 
-  it("ranks the build's files by how they name the element: the code before its tests", () => {
+  it("ranks the build's files by how they name the element, and never offers a test", () => {
     const feature = element("product.feature.commit-confirmation-token", "Commit confirmation token");
     expect(sourceCandidates(feature, files)).toEqual([
       { file: "cli/src/core/commit-confirmation-token.ts", evidence: "file-name" },
       { file: "cli/src/mcp/tools/changeset-commit.ts", evidence: "mentions-words" },
-      { file: "cli/tests/unit/commit-confirmation-token.test.ts", evidence: "file-name" },
     ]);
   });
 
-  it("offers the string a tool is registered by as its symbol", () => {
-    expect(sourceCandidates(element("product.feature.diff-set", "Diff set"), files)).toEqual([
-      { file: "src/mcp/server.ts", symbol: "diff_set", evidence: "named-as-string" },
-    ]);
+  it("never offers a file that only quotes the name", () => {
+    // A name the file only quotes is no evidence of where the code is: nothing is offered.
+    expect(sourceCandidates(element("product.feature.diff-set", "Diff set"), files)).toEqual([]);
   });
 
   it("offers nothing for an element no file names", () => {
@@ -187,6 +207,22 @@ describe("readBuildFiles", () => {
       expect(withLarge.files.map((f) => f.file)).toEqual(["src/server.ts"]);
       expect(withLarge.note).toContain("1 file(s) over 512 KB were not searched");
       expect(withLarge.note).toContain("src/bundle.ts");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("names how many files were not searched when the build changed more than it reads", async () => {
+    const { root, git } = await repo();
+    try {
+      await mkdir(join(root, "src", "gen"), { recursive: true });
+      for (let i = 0; i < BUILD_FILE_LIMIT + 3; i++) await writeFile(join(root, "src", "gen", `f${String(i).padStart(4, "0")}.ts`), `export const v${i} = ${i};\n`);
+      git("add", ".");
+      git("commit", "-q", "-m", "many");
+      const read = await readBuildFiles(root, "main");
+      expect(read.files).toHaveLength(BUILD_FILE_LIMIT);
+      expect(read.note).toContain(`${BUILD_FILE_LIMIT + 3} files changed in the build; the first ${BUILD_FILE_LIMIT}`);
+      expect(read.note).toContain("the other 3 were not");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

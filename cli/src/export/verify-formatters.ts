@@ -85,6 +85,11 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
   // Changeset context
   formatChangesetContextMarkdown(lines, report);
   lines.push("");
+  const rejectionsMd = rejectionsLine(report);
+  if (rejectionsMd) {
+    lines.push(`**${escapeMarkdown(rejectionsMd)}**`);
+    lines.push("");
+  }
 
   if (api) {
     // Summary section
@@ -145,6 +150,20 @@ function noDriftLine(summary: VerifyReport["summary"]): string {
 const GAPS_TIP =
   "Extraction stages an operation for each of these, with its source reference. An operation added by hand is matched " +
   "only when it carries a source file and symbol, or http_method and http_path.";
+
+/**
+ * The recorded rejections a report applied, in one line: the file, how many were read and how many
+ * each layer applied, or why none was (no file, or a read error). Printed in every format, since a
+ * rejection changes what a layer reports.
+ */
+function rejectionsLine(report: VerifyReport): string | null {
+  const r = report.rejections;
+  if (!r) return null;
+  if (r.error) return `Recorded rejections: none applied, ${r.error}. Entries someone rejected may be listed as in the code only.`;
+  if (!r.found) return `Recorded rejections: none (${r.file} is not in this checkout).`;
+  const applied = Object.entries(r.applied).map(([layer, n]) => `${layer} ${n}`).join(", ");
+  return `Recorded rejections: ${r.recorded.elements} read from ${r.file}; applied ${applied || "none"} (listed under each layer's ignored). The file is not in git, so another checkout may report differently.`;
+}
 
 /** A layer's status sentence without the label it starts with ("Not checked: ..."), which the report prints itself. */
 function statusSentence(layer: NonNullable<VerifyReport["layers"]>[number]): string {
@@ -439,6 +458,11 @@ export function formatVerifyText(report: VerifyReport): string {
   // Changeset context
   formatChangesetContextText(lines, report);
   lines.push("");
+  const rejectionsText = rejectionsLine(report);
+  if (rejectionsText) {
+    lines.push(report.rejections?.error ? ansis.yellow(rejectionsText) : ansis.dim(rejectionsText));
+    lines.push("");
+  }
 
   // The API layer's sections, when it was asked for: an all-zero API summary would read as a result.
   if (api) {

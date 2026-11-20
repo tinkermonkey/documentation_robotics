@@ -299,6 +299,11 @@ export interface CategoryCounts {
   deletionsNotDone: number;
   /** Planned changes extraction can't see; not part of the verdict. */
   unverifiable: number;
+  /**
+   * Of `unverifiable`, the planned elements a code file may register by name: missing unless it
+   * does. Present only when there are some; the verdict text leads with them.
+   */
+  missingUnlessRegisteredByName?: number;
 }
 
 export type Verdict = "match" | "probable-match" | "diverges" | "incomplete" | "unverifiable" | "empty-plan";
@@ -1995,11 +2000,20 @@ export async function verifyChangesetInModel(
   const registered = report.elements.unverifiable.filter((u) => mayBeRegistered.has(u.planned));
   for (const u of registered) u.registeredByName = mayBeRegistered.get(u.planned);
   if (registered.length > 0) {
+    // Never a headline of "missing: 0" with these behind it: they are missing unless the code
+    // registers them by name, and the verdict leads with them.
+    report.summary.elements.missingUnlessRegisteredByName = registered.length;
     if (report.verdict === "match") report.verdict = "probable-match";
-    report.verdictText +=
-      ` ${registered.length} planned ${registered.length === 1 ? "element" : "elements"} may be registered by name, which the build's text suggests and ` +
-      `extraction can't show (${registered.map((u) => `${u.planned} at ${u.registeredByName!.file}:${u.registeredByName!.line}`).join(", ")}): ` +
-      "confirm each in its file before taking the build as matching the plan.";
+    const lead =
+      `${registered.length} planned ${registered.length === 1 ? "element is" : "elements are"} missing unless the code registers ` +
+      `${registered.length === 1 ? "it" : "them"} by name (${registered
+        .map((u) => `${u.planned}: "${u.registeredByName!.string}" at ${u.registeredByName!.file}:${u.registeredByName!.line}`)
+        .join("; ")}): confirm each in its file, since extraction can't show it.`;
+    const rest = report.verdictText
+      .replace(/^The build matches what extraction can see of the plan\./, "Apart from that, the build matches what extraction can see of the plan.")
+      .replace(/^Everything extraction can see was found\./, "Apart from that, everything extraction can see was found.")
+      .replace(/^Everything planned was found\./, "Apart from that, everything planned was found.");
+    report.verdictText = `${lead} ${rest}`;
   }
   // A missing element was looked for in the build's files too. When not all of them were searched,
   // "missing" may be "registered by name in a file that was not read": the verdict says so.

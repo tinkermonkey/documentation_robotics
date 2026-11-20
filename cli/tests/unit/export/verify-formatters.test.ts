@@ -791,6 +791,32 @@ describe("Verify Formatters", () => {
       expect(markdown.indexOf("**Not checked:**")).toBeLessThan(markdown.indexOf("| Matched | 0 |"));
     });
 
+    it("says which recorded rejections it applied, or why none, in text and markdown", () => {
+      const applied: VerifyReport = {
+        ...sampleReport,
+        rejections: {
+          file: ".dr/analyzers/extract/decisions.json",
+          found: true,
+          recorded: { elements: 2676, relationships: 0 },
+          applied: { api: 5, technology: 16 },
+          note: "",
+        },
+      };
+      for (const output of [formatVerifyText(applied), formatVerifyMarkdown(applied)]) {
+        expect(output).toContain("Recorded rejections: 2676 read from .dr/analyzers/extract/decisions.json; applied api 5, technology 16");
+      }
+      // A corrupt file: said, so a status that changed because of it doesn't change silently.
+      const broken: VerifyReport = {
+        ...sampleReport,
+        rejections: { ...applied.rejections!, recorded: { elements: 0, relationships: 0 }, applied: { api: 0 }, error: "decisions.json is not valid JSON" },
+      };
+      for (const output of [formatVerifyText(broken), formatVerifyMarkdown(broken)]) {
+        expect(output).toContain("Recorded rejections: none applied, decisions.json is not valid JSON");
+      }
+      const none: VerifyReport = { ...sampleReport, rejections: { ...applied.rejections!, found: false, recorded: { elements: 0, relationships: 0 }, applied: {} } };
+      expect(formatVerifyText(none)).toContain("Recorded rejections: none (.dr/analyzers/extract/decisions.json is not in this checkout)");
+    });
+
     it("keeps the no-drift line when every operation was checked, and names no deprecated command in the gaps tip", () => {
       const output = formatVerifyMarkdown(sampleReport);
       expect(output).not.toContain("/dr-map");

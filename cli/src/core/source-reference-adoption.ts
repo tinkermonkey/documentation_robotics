@@ -32,7 +32,7 @@ import type { SourceReferenceGap, VerifyReport } from "./changeset-verify.js";
 import type { SourceLocation, SourceReference } from "../types/source-reference.js";
 import { readStagedSourceReference } from "./staged-source-reference.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 
 export interface AdoptionResult {
@@ -220,8 +220,24 @@ export async function adoptConfirmedReferences(
     // is refused.
     const abs = path.resolve(root, file);
     const relative = path.relative(root, abs).split(path.sep).join("/");
-    const inside = !!file && !!relative && !relative.startsWith("../") && relative !== ".." && !path.isAbsolute(relative);
-    const kind = !inside || !existsSync(abs) ? "none" : statSync(abs).isFile() ? "file" : "other";
+    const within = (p: string) => !!p && !p.startsWith("../") && p !== ".." && !path.isAbsolute(p);
+    // A symbolic link is followed to where it points: that must be inside the root too, so a link
+    // to a file elsewhere (`src/link.ts` -> `/etc/hosts`) is refused like the file itself would be.
+    let real: string | null = null;
+    try {
+      real = existsSync(abs) ? realpathSync(abs) : null;
+    } catch {
+      real = null;
+    }
+    const realRoot = (() => {
+      try {
+        return realpathSync(root);
+      } catch {
+        return root;
+      }
+    })();
+    const inside = !!file && within(relative) && !!real && within(path.relative(realRoot, real).split(path.sep).join("/"));
+    const kind = !inside ? "none" : statSync(real!).isFile() ? "file" : "other";
     if (kind !== "file") {
       skipped.push({
         planned: id,
@@ -233,10 +249,13 @@ export async function adoptConfirmedReferences(
       continue;
     }
     seen.add(id);
+    // The element's reference as the plan has it now: a later call reads the copies an earlier one
+    // staged, so a location is never added twice.
     const current = readStagedSourceReference(latest.after).value;
     const location: SourceLocation = { file: relative, ...(ref.sourceSymbol ? { symbol: ref.sourceSymbol } : {}) };
     const locations = (current?.locations ?? []).filter((l) => typeof l?.file === "string");
-    if (locations.some((l) => l.file === location.file && (l.symbol ?? "") === (location.symbol ?? ""))) {
+    // Already there: the same file and symbol, or this file at all when no symbol is given.
+    if (locations.some((l) => l.file === location.file && (!location.symbol || l.symbol === location.symbol))) {
       skipped.push({ planned: id, reason: `it already names ${location.file}${location.symbol ? `#${location.symbol}` : ""}: nothing to set` });
       continue;
     }

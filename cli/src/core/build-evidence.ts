@@ -137,32 +137,129 @@ export const REGISTRABLE_BY_NAME: ReadonlySet<string> = new Set([
 /** Source code, where a registration is made. Documents and configuration quote names without registering anything. */
 const CODE_FILE = /\.(?:[cm]?[jt]sx?|py|go|rb|java|kt|kts|cs|rs|php|swift|scala|groovy|vue|svelte)$/i;
 
-/** A property or keyword a registration names its subject by: `name: "diff_set"`, `command = "export"`. */
-const NAME_PROPERTY = /(?:^|[^\w$])["']?(?:name|id|command|tool|event|method|key|type|action|topic|channel|job|task)["']?\s*[:=]\s*$/;
+/** A property or keyword a registration names its subject by: `name: "diff_set"`, `name="grid_lookup"`. */
+const NAME_PROPERTY = /(?:^|[^\w$])["']?(?:name|command|tool|event|method|topic|channel|job|task)["']?\s*[:=]\s*$/;
+
+/**
+ * A callee that registers what its first argument names: `register*`, `define*`, `tool`,
+ * `command`, `add*Tool`, `add*Command`, `add*Handler`, `add*Job` (`server.registerTool`,
+ * `program.command`, `mcp.tool`, `queue.defineJob`). A call to anything else (`track`, `t`,
+ * `expect`, `localStorage.getItem`, `it`) quotes a name without registering it.
+ */
+const REGISTERING_CALLEE = /^(?:register\w*|define\w*|tool|command|add\w*(?:Tool|Command|Handler|Job|Task|Route|Method))$/i;
+
+/** A declared type that marks an object as a registration: `const t: McpToolDefinition = { name: ... }`. */
+const REGISTRATION_TYPE = /:\s*[\w$.]*(?:Tool|Command|Handler|Job|Task|Route|Method)(?:Definition|Spec|Config|Registration)?\b[^=]*=\s*$/;
+
+/** The callee of the call whose `(` ends `text` (`server.registerTool(` gives `registerTool`), or null. */
+function calleeBefore(text: string): string | null {
+  const m = /([A-Za-z_$][\w$]*)\s*(?:<[^<>()]*>)?\s*\($/.exec(text);
+  return m ? m[1] : null;
+}
+
+/**
+ * The text before the bracket that encloses position `at` (the nearest `(` or `{` not closed
+ * before it), and which bracket it is; null at the top level.
+ */
+function enclosing(text: string, at: number): { bracket: "(" | "{"; before: string } | null {
+  let depth = 0;
+  for (let i = at - 1; i >= 0; i--) {
+    const ch = text[i];
+    if (ch === ")" || ch === "}" || ch === "]") depth++;
+    else if (ch === "(" || ch === "{" || ch === "[") {
+      if (depth > 0) depth--;
+      else if (ch === "[") return null;
+      else return { bracket: ch, before: text.slice(Math.max(0, i - 200), i + 1) };
+    }
+  }
+  return null;
+}
 
 /**
  * Whether the quoted string starting at `at` (the index of its first character, after the opening
- * quote) is used the way a registration uses one: an argument of a call (`register("x", h)`,
- * `on('x', h)`), or the value of a name-like property (`{ name: "x" }`, `name="x"`). A string in a
- * comparison, an assignment to something else, a message or a comment's prose is none of these.
+ * quote) is used the way a registration uses one:
+ * - the first argument of a call whose callee registers ({@link REGISTERING_CALLEE}):
+ *   `server.registerTool("diff_set", handler)`;
+ * - the value of a name-like property of an object passed to such a call, or of an object
+ *   declared with a registration type: `server.tool({ name: "x" })`, `@mcp.tool(name="x")`,
+ *   `const t: McpToolDefinition = { name: "x", ... }`.
+ * Anything else (a list of menu items, an analytics event, a translation key, an assertion, a
+ * storage key) quotes the name without registering it.
  */
 function registrationUse(text: string, at: number, length: number): RegisteredByName["how"] | null {
   const before = text.slice(Math.max(0, at - 1 - 80), at - 1);
   const after = text.slice(at + length + 1, at + length + 1 + 40);
-  if (NAME_PROPERTY.test(before)) return "name-property";
-  // The argument of a call: `(` or `,` before it, `,` or `)` after, and the `(` follows a callee.
+  if (NAME_PROPERTY.test(before)) {
+    const outer = enclosing(text, at - 1);
+    if (!outer) return null;
+    if (outer.bracket === "(") {
+      const callee = calleeBefore(outer.before);
+      return callee && REGISTERING_CALLEE.test(callee) ? "name-property" : null;
+    }
+    // An object: passed to a registering call, or declared with a registration type.
+    const lead = outer.before.slice(0, -1).replace(/\s+$/, "");
+    const call = /([A-Za-z_$][\w$]*)\s*\(\s*(?:[^()]*,\s*)?$/.exec(lead);
+    if (call && REGISTERING_CALLEE.test(call[1])) return "name-property";
+    return REGISTRATION_TYPE.test(lead) ? "name-property" : null;
+  }
+  // The first argument of a registering call.
   const lead = before.replace(/\s+$/, "");
   const trail = after.replace(/^\s+/, "");
-  if (!/^[,)]/.test(trail)) return null;
-  if (lead.endsWith("(")) return /[\w$\]>)]\s*\($/.test(lead) ? "call-argument" : null;
-  return lead.endsWith(",") ? "call-argument" : null;
+  if (!/^[,)]/.test(trail) || !lead.endsWith("(")) return null;
+  const callee = calleeBefore(lead);
+  return callee && REGISTERING_CALLEE.test(callee) ? "call-argument" : null;
 }
+
+/**
+ * The text with its comments blanked (same length, line breaks kept), so a name in a comment
+ * (`// see register("x")`, `/* name: "x" *\/`, `# name="x"`) is never read as code.
+ */
+export function withoutComments(file: string, text: string): string {
+  const hash = /\.(?:py|rb)$/i.test(file);
+  const blank = (s: string) => s.replace(/[^\n]/g, " ");
+  let out = "";
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      // A string: copied as is, up to its closing quote (escapes kept).
+      let j = i + 1;
+      while (j < text.length && text[j] !== ch && !(ch !== "`" && text[j] === "\n")) j += text[j] === "\\" ? 2 : 1;
+      out += text.slice(i, j + 1);
+      i = j + 1;
+    } else if (!hash && ch === "/" && next === "/") {
+      const end = text.indexOf("\n", i);
+      const stop = end === -1 ? text.length : end;
+      out += blank(text.slice(i, stop));
+      i = stop;
+    } else if (!hash && ch === "/" && next === "*") {
+      const end = text.indexOf("*/", i + 2);
+      const stop = end === -1 ? text.length : end + 2;
+      out += blank(text.slice(i, stop));
+      i = stop;
+    } else if (hash && ch === "#") {
+      const end = text.indexOf("\n", i);
+      const stop = end === -1 ? text.length : end;
+      out += blank(text.slice(i, stop));
+      i = stop;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
+/** A test file, by its path: a registration there is a test's, not the build's. */
+const TEST_FILE = /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*\.py$|_test\.(py|go)$/;
 
 /**
  * The code file that may register this element by a name string, when one does: the element is of
  * a type that can be registered that way ({@link REGISTRABLE_BY_NAME}); some spelling of its name
- * (or one of its source symbols) is a whole string in a code file, used as a call's argument or as
- * the value of a name-like property; and no spelling appears in that file outside quotes as an
+ * (or one of its source symbols) is a whole string in a code file that is not a test, outside
+ * comments, used as the first argument of a registering call or as a name property of an object
+ * registered that way (see {@link registrationUse}); and no spelling appears in that file outside quotes as an
  * identifier (which would be a declaration or a reference, something extraction can see). The
  * element's own source files are looked at first, then the build's.
  *
@@ -183,10 +280,11 @@ export function registeredByName(element: EvidenceElement, buildFiles: BuildFile
   const spellings = [...new Set([...symbols, ...nameSpellings(element)])];
   if (spellings.length === 0) return null;
   const oneWord = nameWords(element.name).length < 2 && symbols.length === 0;
-  const code = buildFiles.filter((f) => CODE_FILE.test(f.file));
+  const code = buildFiles.filter((f) => CODE_FILE.test(f.file) && !TEST_FILE.test(f.file));
   const ordered = [...code.filter((f) => own.has(f.file)), ...code.filter((f) => !own.has(f.file))];
-  for (const { file, text } of ordered) {
+  for (const { file, text: raw } of ordered) {
     if (oneWord && !own.has(file)) continue;
+    const text = withoutComments(file, raw);
     let found: Omit<RegisteredByName, "file"> | null = null;
     let declared = false;
     for (const spelling of spellings) {
@@ -194,7 +292,8 @@ export function registeredByName(element: EvidenceElement, buildFiles: BuildFile
       for (let at = text.indexOf(spelling); at !== -1; at = text.indexOf(spelling, at + spelling.length)) {
         const before = text[at - 1];
         const after = text[at + spelling.length];
-        if (before !== undefined && QUOTES.includes(before) && after === before) {
+        // A plain string: a template literal is built text, not a name.
+        if (before !== undefined && (before === '"' || before === "'") && after === before) {
           const how = registrationUse(text, at, spelling.length);
           if (how && !found) found = { string: spelling, line: text.slice(0, at).split("\n").length, how };
         } else if (identifier && !isWordChar(before) && !isWordChar(after)) declared = true;
@@ -211,11 +310,11 @@ export interface SourceCandidate {
   /** The symbol or string the file names it by, when it names it exactly. */
   symbol?: string;
   /**
-   * `names-it`: a spelling of the element's name is in the file as a word. `named-as-string`: only
-   * inside quotes (registered by name). `file-name`: the file is named after it. `mentions-words`:
+   * `names-it`: a spelling of the element's name is in the file as a word (a name it only quotes
+   * is never offered). `file-name`: the file is named after it. `mentions-words`:
    * the file's name or text has the words of its name, no more.
    */
-  evidence: "names-it" | "named-as-string" | "file-name" | "mentions-words";
+  evidence: "names-it" | "file-name" | "mentions-words";
 }
 
 /** Candidates shown per element on a compact line; the report itself holds every one, best first. */
@@ -233,7 +332,8 @@ export function sourceCandidates(element: EvidenceElement, buildFiles: BuildFile
   const words = [...new Set(nameWords(element.name).filter((w) => w.length >= 3))];
   if (spellings.length === 0 && words.length === 0) return [];
   const scored: Array<{ candidate: SourceCandidate; score: number }> = [];
-  for (const { file, text } of buildFiles) {
+  // A test holds no element's code: it is never offered (it names what it tests as often as the code does).
+  for (const { file, text } of buildFiles.filter((f) => !TEST_FILE.test(f.file))) {
     const base = path.basename(file).replace(/\.[^.]+$/, "").replace(/\.(test|spec)$/, "");
     const baseWords = new Set(nameWords(base));
     let exact: { spelling: string; quotedOnly: boolean } | null = null;
@@ -250,21 +350,18 @@ export function sourceCandidates(element: EvidenceElement, buildFiles: BuildFile
     const lower = text.toLowerCase();
     const inText = words.filter((w) => lower.includes(w)).length;
     const needed = words.length <= 3 ? words.length : Math.ceil(words.length * 0.75);
-    if (exact) {
-      scored.push({
-        candidate: { file, symbol: exact.spelling, evidence: exact.quotedOnly ? "named-as-string" : "names-it" },
-        score: 100 + (namedAfter ? 20 : 0) + inName,
-      });
+    // A name the file only quotes is not offered: it says nothing about where the element's code
+    // is (a menu label, an event name), and adopting it would tie the element to that string.
+    if (exact && !exact.quotedOnly) {
+      scored.push({ candidate: { file, symbol: exact.spelling, evidence: "names-it" }, score: 100 + (namedAfter ? 20 : 0) + inName });
     } else if (namedAfter) {
       scored.push({ candidate: { file, evidence: "file-name" }, score: 60 + inText });
     } else if (words.length >= 2 && inText >= needed && inName > 0) {
       scored.push({ candidate: { file, evidence: "mentions-words" }, score: 10 * inName + inText });
     }
   }
-  // A test names what it tests as often as the code does: the code first.
-  const isTest = (file: string) => /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/.test(file);
   return scored
-    .sort((a, b) => Number(isTest(a.candidate.file)) - Number(isTest(b.candidate.file)) || b.score - a.score || a.candidate.file.localeCompare(b.candidate.file))
+    .sort((a, b) => b.score - a.score || a.candidate.file.localeCompare(b.candidate.file))
     .map((s) => s.candidate);
 }
 

@@ -7,7 +7,8 @@
  * trace_path rows get their files.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import * as layerVerify from "@/analyzers/layer-verify.js";
 import { readFileSync } from "fs";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
@@ -202,6 +203,20 @@ describe("CbmAnalyzer with CBM 0.12.1 responses", () => {
         expect([...context.notElements]).toEqual(["fixtures/main.py#GET /todos"]);
         // And the report says which decisions it had.
         expect(report.rejections).toMatchObject({ found: true, recorded: { elements: 1, relationships: 0 } });
+
+        // The other layers get the same decisions: without them technology would list what someone
+        // rejected as in the code only.
+        let layerInput: any;
+        const spy = spyOn(layerVerify, "verifyLayers").mockImplementation(async (input: any) => {
+          layerInput = input;
+          return { reports: [], notVerified: [] };
+        });
+        try {
+          await analyzer.verify(projectRoot, { codebaseRoot: CODEBASE_ROOT, layers: ["api", "technology"] });
+        } finally {
+          spy.mockRestore();
+        }
+        expect([...layerInput.notElements]).toEqual(["fixtures/main.py#GET /todos"]);
         expect(report.rejections!.note).toContain("is not in git");
       } finally {
         await rm(projectRoot, { recursive: true, force: true });
