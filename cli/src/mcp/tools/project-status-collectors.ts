@@ -20,7 +20,8 @@ import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
 import { getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
 import { readActiveMarker } from "../../core/active-changeset-marker.js";
-import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
+import { probeViewer, viewerUrl, type SweepResult } from "../../server/viewer-registry.js";
+import { viewerSetting } from "../../server/viewer-settings.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
@@ -1582,26 +1583,52 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
 // ---------------------------------------------------------------------------------------------
 // viewer
 
-export type ViewerSection =
+/** What reading the viewer registry cleaned up or left unread, when it did either. */
+export interface ViewerRegistrySweep {
+  staleRemoved?: { records: number; startingMarkers: number; logs: number; tempFiles: number };
+  /** Records this CLI could not read whose process is alive (a newer CLI's viewer, perhaps): left in place. */
+  unreadableRecords?: number;
+}
+
+export type ViewerSection = (
   | { status: "none" }
   | { status: "running"; url: string; port: number; pid: number; startedAt: string; withChangesets: boolean }
-  | { status: "unreachable"; port: number; pid: number; note: string };
+  | { status: "unreachable"; port: number; pid: number; note: string }
+) &
+  ViewerRegistrySweep;
+
+function sweepPart(swept: SweepResult | undefined): ViewerRegistrySweep {
+  if (!swept) return {};
+  return {
+    ...(swept.removed.length > 0
+      ? { staleRemoved: { records: swept.records, startingMarkers: swept.markers, logs: swept.logs, tempFiles: swept.tempFiles } }
+      : {}),
+    ...(swept.unreadable.length > 0 ? { unreadableRecords: swept.unreadable.length } : {}),
+  };
+}
 
 /**
  * The viewer `dr visualize` (or review_open) runs for this project, from its record in the user's
- * state directory. The health probe is kept short so the call stays fast.
+ * state directory. The health probe is kept short so the call stays fast:
+ * DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS (500 ms, the retry twice that). Reading the registry removes
+ * records and logs of viewers that are gone; the section says so when it did.
  */
 export async function collectViewer(ctx: StatusContext): Promise<ViewerSection> {
   if (!ctx.projectRoot) return { status: "none" };
-  const probe = await probeViewer(ctx.projectRoot, { probeTimeoutMs: 500, retryTimeoutMs: 1000 });
-  if (probe.state === "none") return { status: "none" };
+  const timeoutMs = viewerSetting("statusHealthTimeoutMs");
+  const probe = await probeViewer(ctx.projectRoot, { probeTimeoutMs: timeoutMs, retryTimeoutMs: timeoutMs * 2 });
+  const swept = sweepPart(probe.swept);
+  if (probe.state === "none") return { status: "none", ...swept };
   const { record } = probe;
   if (probe.state === "unreachable") {
     return {
       status: "unreachable",
       port: record.port,
       pid: record.pid,
-      note: "The viewer's process is alive but it did not answer; it may still be loading.",
+      note:
+        `The viewer's process is alive but it did not answer within ${timeoutMs * 2} ms ` +
+        "(DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS); it may still be loading.",
+      ...swept,
     };
   }
   return {
@@ -1611,6 +1638,7 @@ export async function collectViewer(ctx: StatusContext): Promise<ViewerSection> 
     pid: record.pid,
     startedAt: record.startedAt,
     withChangesets: record.withChangesets,
+    ...swept,
   };
 }
 

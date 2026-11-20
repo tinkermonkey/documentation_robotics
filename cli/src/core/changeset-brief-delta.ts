@@ -72,6 +72,10 @@ export interface BriefDelta {
     newElements: Array<{ element: string; count: number }>;
   };
   reach: { newlyReached: string[]; noLongerReached: string[] };
+  /**
+   * `newlyUntraced` holds every element that does not trace now and was not listed so then, whether
+   * the brief lists it under `untraced` or `noCatalogRoute`.
+   */
   intent: { newlyTraced: string[]; newlyUntraced: string[] };
   /** How the earlier state was rebuilt, and when it is approximate. */
   note: string;
@@ -100,7 +104,9 @@ const NOTE =
 export async function briefDelta(
   model: Model,
   now: { graph: ChangesetGraph; brief: ChangesetBrief },
-  since: number | string
+  since: number | string,
+  /** The intent trace's bounds the brief now was built with, so the earlier one is traced the same way. */
+  walk: { hubThreshold?: number; maxHops?: number } = {}
 ): Promise<BriefDelta> {
   let revision: number;
   const warnings: string[] = [];
@@ -132,7 +138,7 @@ export async function briefDelta(
   }
   const earlier = await ChangesetGraph.build(model, changeset, { throughSequence: revision });
   const then: BriefSide = {
-    brief: buildBrief({ graph: earlier, unwired: "none" }),
+    brief: buildBrief({ graph: earlier, unwired: "none", ...walk }),
     unwired: computeUnwired(earlier),
     graph: earlier,
   };
@@ -181,7 +187,10 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
   const reopenedSince = new Set(acceptedGaps.reopened.map((e) => unwiredKey(e.element, e)));
 
   const traced = (brief: ChangesetBrief) => new Set(brief.intent.traced.map((t) => t.element));
-  const untraced = (brief: ChangesetBrief) => new Set(brief.intent.untraced);
+  // Everything that does not trace: the untraced, and the elements counted apart because their type
+  // has no catalog route to intent. One that stops tracing is newly untraced whichever list it is in.
+  const notTraced = (brief: ChangesetBrief) => [...brief.intent.untraced, ...(brief.intent.noCatalogRoute ?? [])];
+  const untraced = (brief: ChangesetBrief) => new Set(notTraced(brief));
   const thenTraced = traced(then.brief);
   const thenUntraced = untraced(then.brief);
   const thenReach = new Set(then.brief.reach.touched);
@@ -219,7 +228,7 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
     },
     intent: {
       newlyTraced: now.brief.intent.traced.map((t) => t.element).filter((id) => !thenTraced.has(id)),
-      newlyUntraced: now.brief.intent.untraced.filter((id) => !thenUntraced.has(id)),
+      newlyUntraced: notTraced(now.brief).filter((id) => !thenUntraced.has(id)),
     },
     note: NOTE,
     ...(warnings.length > 0 ? { warnings } : {}),

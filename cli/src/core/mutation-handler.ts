@@ -8,7 +8,7 @@
  * This fixes data corruption risk from divergent code paths in add/update/delete commands.
  */
 
-import { Model } from "./model.js";
+import { LayerFileConflictError, Model } from "./model.js";
 import { Element } from "./element.js";
 import { elementIdentifiers } from "./relationships.js";
 import { StagingAreaManager } from "./staging-area.js";
@@ -445,6 +445,8 @@ export class MutationHandler {
     } catch (error) {
       // A changeset-only refusal is not a disk failure: keep it recognisable for callers.
       if (error instanceof ChangesetOnlyError) throw error;
+      // A save refused to keep a layer file's content: its own message and suggestions say what to do
+      if (error instanceof LayerFileConflictError) throw error;
       throw new CLIError(
         `Failed to persist changes: ${getErrorMessage(error)}`,
         1,

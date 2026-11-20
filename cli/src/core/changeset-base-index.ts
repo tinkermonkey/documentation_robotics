@@ -724,11 +724,10 @@ export async function describeDrift(
         ...(more
           ? {
               nextOffset: offset + limit,
-              // A call that reads on from any reader, the brief's included: a preview writes nothing.
+              // The call that reads on (the viewer API takes the same two arguments).
               more:
-                `changeset_update with changeset: "${changeset.name}", rebaseline: "preview", limit: ${limit}, ` +
-                `offset: ${offset + limit} lists the next entries of each (moved, in its result); the viewer API ` +
-                `takes driftLimit and driftOffset.`,
+                `changeset_brief with changeset: "${changeset.name}", sections: ["drift"], driftLimit: ${limit}, ` +
+                `driftOffset: ${offset + limit} lists the next entries of each.`,
             }
           : {}),
       },

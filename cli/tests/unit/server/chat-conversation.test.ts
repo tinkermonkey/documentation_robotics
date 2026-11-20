@@ -13,6 +13,7 @@ import { randomUUID } from "node:crypto";
 import { Model } from "../../../src/core/model.js";
 import { VisualizationServer } from "../../../src/server/server.js";
 import { ClaudeCodeClient } from "../../../src/coding-agents/claude-code-client.js";
+import { CopilotClient } from "../../../src/coding-agents/copilot-client.js";
 import { createFakeWs, createServerWithoutChatDetection, waitFor } from "./helpers.js";
 
 const mockClaude = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
@@ -281,5 +282,34 @@ describe("a session Claude Code already has", () => {
     const second = await send(server, { message: "Again", conversation_id: "conv-on-disk" });
     expect(valueOf(second.args, "--resume")).toBe(sessionId);
     expect(second.args).not.toContain("--session-id");
+  });
+});
+
+describe("chat.status permission mode (#1241)", () => {
+  async function statusOf(
+    options: { withDanger?: boolean; withChangesets?: boolean },
+    client?: ClaudeCodeClient | CopilotClient
+  ): Promise<any> {
+    const dir = join(scratch, randomUUID());
+    mkdirSync(dir, { recursive: true });
+    const model = await Model.init(dir, { name: "Chat Status Test", version: "0.1.0" }, { lazyLoad: false });
+    const server = createServerWithoutChatDetection(model, { authEnabled: false, ...options });
+    if (client) (server as any).selectedChatClient = client;
+    servers.push(server);
+    const ws = createFakeWs();
+    const id = await request(server, ws, "chat.status", {});
+    return (await waitFor(() => ws.sent.find((m) => m.id === id && m.result))).result;
+  }
+
+  it("reports what the chat agent may do, fixed when the viewer started", async () => {
+    expect((await statusOf({})).permission_mode).toBe("read-safe");
+    expect((await statusOf({ withChangesets: true })).permission_mode).toBe("changesets");
+    expect((await statusOf({ withDanger: true, withChangesets: true })).permission_mode).toBe("danger");
+    expect((await statusOf({ withChangesets: true }, new ClaudeCodeClient())).permission_mode).toBe("changesets");
+  });
+
+  it("reports read-safe for Copilot, which has no changeset staging", async () => {
+    expect((await statusOf({ withChangesets: true }, new CopilotClient())).permission_mode).toBe("read-safe");
+    expect((await statusOf({ withDanger: true }, new CopilotClient())).permission_mode).toBe("danger");
   });
 });

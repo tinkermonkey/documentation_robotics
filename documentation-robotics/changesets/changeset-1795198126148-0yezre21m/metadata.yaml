@@ -1,0 +1,687 @@
+id: changeset-1795198126148-0yezre21m
+name: honest-verification
+description: "codebase_verify and changeset_verify never report \"in step\" or
+  \"missing\" for what they could not check (issues 1180, 1226, 1159, CLI 0.7.0
+  tranche 8, PR 1268). Each codebase_verify layer states one of: checked and in
+  step, checked and drifted (with what), or not checked (with why and what would
+  make it checkable), with coverage counts first. The API check reads the
+  OpenAPI document extraction reads and honours recorded rejections, reporting
+  how many it read and applied; the testing check reads JS/TS test cases;
+  technology checks dependency-based system software against its manifest.
+  changeset_verify reports a planned service or operation the code may register
+  by a name string as unverifiable, never as grounds for a clean match.
+  changeset_adopt_source_references takes confirmed {id, sourceFile,
+  sourceSymbol} for planned adds extraction can't see. Every list both tools
+  return is a page with true totals. Done: PR 1268 merged with this plan landed
+  after it."
+created: 2026-11-20T18:08:46.186Z
+modified: 2026-11-20T18:13:59.118Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 77
+  modifications: 2
+  deletions: 0
+lastSequence: 108
+unstaged:
+  - sequence: 2
+    removedAt: 69
+    change:
+      type: add
+      elementId: application.applicationfunction.group-not-checked
+      layerName: application
+      after:
+        id: 127fccfa-6be0-4b7f-a123-9aa5bea6403b
+        path: application.applicationfunction.group-not-checked
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: groupNotChecked
+        description: Elements a check could not compare, grouped by reason with what
+          would make each group checkable; every id kept.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 70
+    change:
+      type: add
+      elementId: application.applicationfunction.rejections-applied
+      layerName: application
+      after:
+        id: 50e99874-3424-4e27-9eaf-38944fc302d3
+        path: application.applicationfunction.rejections-applied
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: rejectionsApplied
+        description: "What a verification says about the recorded rejections it used:
+          the file, how many were read, how many each layer applied, and the
+          read error when there was one."
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 71
+    change:
+      type: add
+      elementId: application.applicationfunction.registered-by-name
+      layerName: application
+      after:
+        id: eeb7d931-b27b-43ac-9062-250c726cc520
+        path: application.applicationfunction.registered-by-name
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: registeredByName
+        description: The code file that may register a planned service or operation by a
+          name string (a call argument or a name property), with no declaration
+          of that name for extraction to stage.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 72
+    change:
+      type: add
+      elementId: application.applicationfunction.source-candidates
+      layerName: application
+      after:
+        id: 09c1c5e4-f00c-4ec5-ab91-d5e3b04a4c27
+        path: application.applicationfunction.source-candidates
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sourceCandidates
+        description: "The build's files that may hold a planned add's code, best first:
+          a file that names it, a file named after it, files carrying the words
+          of its name."
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 40
+    removedAt: 73
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.paged-lists-list::accesses::data-model.objectschema.multi-list-page
+      layerName: application
+      after:
+        source: application.applicationfunction.paged-lists-list
+        target: data-model.objectschema.multi-list-page
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T18:09:54.607Z
+  - sequence: 62
+    removedAt: 73
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.page-layer-report::accesses::data-model.objectschema.multi-list-page
+      layerName: application
+      after:
+        source: application.applicationfunction.page-layer-report
+        target: data-model.objectschema.multi-list-page
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T18:10:24.787Z
+  - sequence: 63
+    removedAt: 73
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.verified-adoption-report
+      layerName: application
+      after:
+        source: application.applicationfunction.adopt-confirmed-references
+        target: data-model.objectschema.verified-adoption-report
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T18:10:24.787Z
+  - sequence: 12
+    removedAt: 87
+    change:
+      type: add
+      elementId: application.applicationcomponent.paged-lists
+      layerName: application
+      after:
+        id: 324e8060-844e-46a6-b3fb-cba2fa62861a
+        path: application.applicationcomponent.paged-lists
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: PagedLists
+        description: Pages every list of a result through one window and records each
+          list's true length.
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 8
+    removedAt: 88
+    change:
+      type: add
+      elementId: application.applicationfunction.adopt-confirmed-references
+      layerName: application
+      after:
+        id: 44b36155-ca14-4dc8-a4dd-6355d1114372
+        path: application.applicationfunction.adopt-confirmed-references
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: adoptConfirmedReferences
+        description: Stage onto the plan the source references the agent confirmed in
+          the code for planned elements with no as-built match, as root-relative
+          file paths with provenance manual.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 10
+    removedAt: 89
+    change:
+      type: add
+      elementId: application.applicationfunction.adoption-result
+      layerName: application
+      after:
+        id: c089a063-612d-4f6e-a6a1-b9d3b699b601
+        path: application.applicationfunction.adoption-result
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: adoptionResult
+        description: "changeset_adopt_source_references' result: counts over everything,
+          lists in full up to limit, every item past it still named by id or
+          grouped by reason."
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 90
+    change:
+      type: add
+      elementId: application.applicationfunction.group-not-checked
+      layerName: application
+      after:
+        id: 127fccfa-6be0-4b7f-a123-9aa5bea6403b
+        path: application.applicationfunction.group-not-checked
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: groupNotChecked
+        description: Elements a check could not compare, grouped by reason with what
+          would make each group checkable; every id kept.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+        accepted_gaps:
+          - direction: incoming
+            predicate: assigned-to
+            other_spec_node_id: application.applicationcomponent
+            reason: A module-level function in verify-status.ts; no class owns it.
+            decided_by: agent
+            decided_at: 2026-11-20T18:10:48.601Z
+            changeset: changeset-1795198126148-0yezre21m
+      timestamp: 2026-11-20T18:10:48.613Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 91
+    change:
+      type: add
+      elementId: application.applicationfunction.layer-status
+      layerName: application
+      after:
+        id: 985e9b0c-2a8c-42f1-a474-87386a681948
+        path: application.applicationfunction.layer-status
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: layerStatus
+        description: The status (in step, drifted, not checked), its sentence and the
+          coverage of one layer's check; not checked is never folded into in
+          step.
+        metadata:
+          created_at: 2026-11-20T18:09:28.170Z
+          updated_at: 2026-11-20T18:09:28.170Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 92
+    change:
+      type: add
+      elementId: application.applicationfunction.manifest-lists
+      layerName: application
+      after:
+        id: ae3d2c4e-b55b-4fad-a4c1-1f3fdb15b21d
+        path: application.applicationfunction.manifest-lists
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: manifestLists
+        description: Whether a dependency manifest (package.json, requirements.txt,
+          go.mod, ...) lists the dependency a system software element's symbol
+          names.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 9
+    removedAt: 93
+    change:
+      type: add
+      elementId: application.applicationfunction.page-layer-report
+      layerName: application
+      after:
+        id: 8b486b3a-a156-432b-a9ff-cfdc8f67e6d3
+        path: application.applicationfunction.page-layer-report
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: pageLayerReport
+        description: A layer's report with every list a page of it; status, coverage and
+          summary stay over the whole layer.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 94
+    change:
+      type: add
+      elementId: application.applicationfunction.page-of
+      layerName: application
+      after:
+        id: 1c29d3f0-8772-4c84-a1f4-fbbff968f8e4
+        path: application.applicationfunction.page-of
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: pageOf
+        description: The page of a list the arguments ask for, with its true total, how
+          many came back and the next offset.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 25
+    removedAt: 95
+    change:
+      type: add
+      elementId: application.applicationfunction.paged-lists-list
+      layerName: application
+      after:
+        id: 3185a501-9032-445c-9058-2d2081adbc4c
+        path: application.applicationfunction.paged-lists-list
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: PagedLists list
+        description: The page of one list, recording its true length in the result's
+          page totals.
+        metadata:
+          created_at: 2026-11-20T18:09:54.574Z
+          updated_at: 2026-11-20T18:09:54.574Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 96
+    change:
+      type: add
+      elementId: application.applicationfunction.read-build-files
+      layerName: application
+      after:
+        id: 345bf8c4-25db-4587-8a0e-ad6cb014bb1c
+        path: application.applicationfunction.read-build-files
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: readBuildFiles
+        description: The text of the files the build changed since a ref and of the
+          planned elements' own files, with a note naming any file that was not
+          searched.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+      timestamp: 2026-11-20T18:09:28.190Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 97
+    change:
+      type: add
+      elementId: application.applicationfunction.registered-by-name
+      layerName: application
+      after:
+        id: eeb7d931-b27b-43ac-9062-250c726cc520
+        path: application.applicationfunction.registered-by-name
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: registeredByName
+        description: The code file that may register a planned service or operation by a
+          name string (a call argument or a name property), with no declaration
+          of that name for extraction to stage.
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+        accepted_gaps:
+          - direction: outgoing
+            predicate: accesses
+            other_spec_node_id: application.dataobject
+            reason: "Reads file text, not model elements or layers: it takes a planned
+              element's name and source reference only."
+            decided_by: agent
+            decided_at: 2026-11-20T18:10:50.195Z
+            changeset: changeset-1795198126148-0yezre21m
+      timestamp: 2026-11-20T18:10:50.206Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 98
+    change:
+      type: add
+      elementId: application.applicationfunction.rejections-applied
+      layerName: application
+      after:
+        id: 50e99874-3424-4e27-9eaf-38944fc302d3
+        path: application.applicationfunction.rejections-applied
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: rejectionsApplied
+        description: "What a verification says about the recorded rejections it used:
+          the file, how many were read, how many each layer applied, and the
+          read error when there was one."
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+        accepted_gaps:
+          - direction: incoming
+            predicate: assigned-to
+            other_spec_node_id: application.applicationcomponent
+            reason: A module-level function in layer-verify.ts; no class owns it.
+            decided_by: agent
+            decided_at: 2026-11-20T18:10:49.291Z
+            changeset: changeset-1795198126148-0yezre21m
+      timestamp: 2026-11-20T18:10:49.300Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 99
+    change:
+      type: add
+      elementId: application.applicationfunction.source-candidates
+      layerName: application
+      after:
+        id: 09c1c5e4-f00c-4ec5-ab91-d5e3b04a4c27
+        path: application.applicationfunction.source-candidates
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sourceCandidates
+        description: "The build's files that may hold a planned add's code, best first:
+          a file that names it, a file named after it, files carrying the words
+          of its name."
+        metadata:
+          created_at: 2026-11-20T18:09:28.172Z
+          updated_at: 2026-11-20T18:09:28.172Z
+          version: 1
+        accepted_gaps:
+          - direction: outgoing
+            predicate: accesses
+            other_spec_node_id: application.dataobject
+            reason: "Reads file text, not model elements or layers: it takes a planned
+              element's name only."
+            decided_by: agent
+            decided_at: 2026-11-20T18:10:50.998Z
+            changeset: changeset-1795198126148-0yezre21m
+      timestamp: 2026-11-20T18:10:51.010Z
+    rewritten: true
+  - sequence: 33
+    removedAt: 100
+    change:
+      type: add
+      elementId: data-model.objectschema.confirmed-reference
+      layerName: data-model
+      after:
+        id: f10624e0-b75f-46b7-a703-8387d1a30b21
+        path: data-model.objectschema.confirmed-reference
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ConfirmedReference
+        description: "A source reference the agent confirmed in the code: id,
+          sourceFile, sourceSymbol."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.577Z
+          updated_at: 2026-11-20T18:09:54.577Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 27
+    removedAt: 101
+    change:
+      type: add
+      elementId: data-model.objectschema.layer-verify-coverage
+      layerName: data-model
+      after:
+        id: 1dd566b0-41ad-47f3-81b2-0c2151361dd3
+        path: data-model.objectschema.layer-verify-coverage
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: LayerVerifyCoverage
+        description: "How much of a layer a check covered: model elements, checked, not
+          checked, code entries."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.576Z
+          updated_at: 2026-11-20T18:09:54.576Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 34
+    removedAt: 102
+    change:
+      type: add
+      elementId: data-model.objectschema.multi-list-page
+      layerName: data-model
+      after:
+        id: 8b7925ea-5e3d-4fed-8e33-aac8f6e6aaf3
+        path: data-model.objectschema.multi-list-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: MultiListPage
+        description: "Where a result with several lists sits in them: limit, offset,
+          each list's true length, next offset."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.577Z
+          updated_at: 2026-11-20T18:09:54.577Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 28
+    removedAt: 103
+    change:
+      type: add
+      elementId: data-model.objectschema.not-checked-group
+      layerName: data-model
+      after:
+        id: 4671349e-92c7-4b7f-8548-36e497ebd7e9
+        path: data-model.objectschema.not-checked-group
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: NotCheckedGroup
+        description: Model elements a check could not compare, for one reason, with what
+          would make them checkable.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.576Z
+          updated_at: 2026-11-20T18:09:54.576Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 30
+    removedAt: 104
+    change:
+      type: add
+      elementId: data-model.objectschema.recorded-decisions
+      layerName: data-model
+      after:
+        id: fcfb5f88-964f-414d-9ed1-2ab7dcf200d4
+        path: data-model.objectschema.recorded-decisions
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: RecordedDecisions
+        description: The not-an-element and not-a-relationship decisions read from
+          codebase_extract's decisions file, with whether it was found and any
+          read error.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.576Z
+          updated_at: 2026-11-20T18:09:54.576Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 31
+    removedAt: 105
+    change:
+      type: add
+      elementId: data-model.objectschema.registered-by-name
+      layerName: data-model
+      after:
+        id: 4ee09df5-a4ea-4e4e-bcbd-587b44e2d321
+        path: data-model.objectschema.registered-by-name
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: RegisteredByName
+        description: "Where the code may register an element by a name string: file,
+          string, line, and whether it is a call argument or a name property."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.577Z
+          updated_at: 2026-11-20T18:09:54.577Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 32
+    removedAt: 106
+    change:
+      type: add
+      elementId: data-model.objectschema.source-candidate
+      layerName: data-model
+      after:
+        id: adaad023-2a96-4431-9d30-13412c14a815
+        path: data-model.objectschema.source-candidate
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SourceCandidate
+        description: A file of the build that may hold a planned element's code, with
+          the symbol and the evidence.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.577Z
+          updated_at: 2026-11-20T18:09:54.577Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 29
+    removedAt: 107
+    change:
+      type: add
+      elementId: data-model.objectschema.verify-rejections
+      layerName: data-model
+      after:
+        id: 747899c9-26c2-4735-b583-0fd9d0d35a46
+        path: data-model.objectschema.verify-rejections
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: VerifyRejections
+        description: "The recorded rejections a verification used: file, found, recorded
+          counts, applied per layer, error, note."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:09:54.576Z
+          updated_at: 2026-11-20T18:09:54.576Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true
+  - sequence: 26
+    removedAt: 108
+    change:
+      type: add
+      elementId: data-model.schemadefinition.layer-verify-status
+      layerName: data-model
+      after:
+        id: f57955c2-afe1-4dcf-bbbc-83029788bb56
+        path: data-model.schemadefinition.layer-verify-status
+        spec_node_id: data-model.schemadefinition
+        type: schemadefinition
+        layer_id: data-model
+        name: LayerVerifyStatus
+        description: in_step, drifted or not_checked.
+        attributes:
+          title: LayerVerifyStatus
+          type: string
+          enum:
+            - in_step
+            - drifted
+            - not_checked
+        metadata:
+          created_at: 2026-11-20T18:09:54.576Z
+          updated_at: 2026-11-20T18:09:54.576Z
+          version: 1
+      timestamp: 2026-11-20T18:09:54.607Z
+    rewritten: true

@@ -444,7 +444,7 @@ describe("base drift on the changeset endpoints", () => {
       returned: { elementsAdded: DRIFT_LIST_LIMIT, elementsRemoved: 0, elementsChanged: 0, relationshipsAdded: 1, relationshipsRemoved: 0 },
       nextOffset: DRIFT_LIST_LIMIT,
       // The call that reads on from any reader, the brief's included.
-      more: expect.stringContaining(`rebaseline: "preview", limit: ${DRIFT_LIST_LIMIT}, offset: ${DRIFT_LIST_LIMIT}`),
+      more: expect.stringContaining(`sections: ["drift"], driftLimit: ${DRIFT_LIST_LIMIT}, driftOffset: ${DRIFT_LIST_LIMIT}`),
     });
 
     // The next page carries the rest, the feature that was cut included, and ends the lists.

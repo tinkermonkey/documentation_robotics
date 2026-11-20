@@ -740,9 +740,94 @@ describe("Verify Formatters", () => {
       };
       const output = formatVerifyMarkdown(report);
       expect(output).toContain("_No matched entries._");
-      expect(output).toContain("_No gaps detected");
-      expect(output).toContain("_No drift detected");
+      // Nothing on either side: nothing was compared, so neither "no gaps" nor "no drift" is claimed.
+      expect(output).toContain("_No routes were discovered in the code, so none could be missing from the model._");
+      expect(output).toContain("_The model has no API operations to compare._");
+      expect(output).not.toContain("No gaps detected");
+      expect(output).not.toContain("No drift detected");
       expect(output).toContain("_No ignored entries._");
+    });
+
+    it("never says no drift beside operations that could not be checked (#1180)", () => {
+      // Two operations sourced to a file the analyzer reads no route from: nothing matched, nothing
+      // in the model only, and nothing checked.
+      const unchecked: VerifyReport = {
+        ...sampleReport,
+        buckets: { matched: [], in_graph_only: [], in_model_only: [], ignored: [] },
+        summary: {
+          matched_count: 0,
+          gap_count: 0,
+          drift_count: 0,
+          ignored_count: 0,
+          total_graph_entries: 0,
+          total_model_entries: 2,
+          elements_without_source_ref: 0,
+          elements_not_checked: 2,
+        },
+        layers: [
+          {
+            layer: "api",
+            status: "not_checked",
+            status_text: "Not checked: none of the model's 2 API operations could be compared with the code, and the analyzer found no HTTP routes.",
+            coverage: { model_elements: 2, checked: 0, not_checked: 2, code_entries: 0 },
+            not_checked: [{ reason: "sourced to a code file the analyzer reads no HTTP route from", count: 2, ids: ["api.operation.a", "api.operation.b"] }],
+            checks: "HTTP routes against API operations",
+            buckets: { matched: [], in_graph_only: [], in_model_only: [], not_indexed: [] },
+            summary: { matched_count: 0, gap_count: 0, drift_count: 0, not_indexed_count: 0, elements_without_source_ref: 0, elements_not_checked: 2 },
+          },
+        ],
+      };
+      for (const output of [formatVerifyMarkdown(unchecked), formatVerifyText(unchecked)]) {
+        expect(output).not.toContain("No drift detected");
+        expect(output).not.toContain("No gaps detected");
+        expect(output).toContain("No operation is in the model only among the 0 checked. 2 of the model's 2 could not be checked");
+        expect(output).toContain("none of the model's 2 API operations could be compared");
+        // The label is printed once, not "Not checked: Not checked:".
+        expect(output).not.toMatch(/Not checked:\W*Not checked:/);
+        expect(output).toContain("api.operation.a, api.operation.b");
+      }
+      // The status leads the summary, ahead of the counts.
+      const markdown = formatVerifyMarkdown(unchecked);
+      expect(markdown.indexOf("**Not checked:**")).toBeLessThan(markdown.indexOf("| Matched | 0 |"));
+    });
+
+    it("says which recorded rejections it applied, or why none, in text and markdown", () => {
+      const applied: VerifyReport = {
+        ...sampleReport,
+        rejections: {
+          file: ".dr/analyzers/extract/decisions.json",
+          found: true,
+          recorded: { elements: 2676, relationships: 0 },
+          applied: { api: 5, technology: 16 },
+          note: "",
+        },
+      };
+      for (const output of [formatVerifyText(applied), formatVerifyMarkdown(applied)]) {
+        expect(output).toContain("Recorded rejections: 2676 read from .dr/analyzers/extract/decisions.json; applied api 5, technology 16");
+      }
+      // A corrupt file: said, so a status that changed because of it doesn't change silently.
+      const broken: VerifyReport = {
+        ...sampleReport,
+        rejections: { ...applied.rejections!, recorded: { elements: 0, relationships: 0 }, applied: { api: 0 }, error: "decisions.json is not valid JSON" },
+      };
+      for (const output of [formatVerifyText(broken), formatVerifyMarkdown(broken)]) {
+        expect(output).toContain("Recorded rejections: none applied, decisions.json is not valid JSON");
+      }
+      const none: VerifyReport = { ...sampleReport, rejections: { ...applied.rejections!, found: false, recorded: { elements: 0, relationships: 0 }, applied: {} } };
+      expect(formatVerifyText(none)).toContain("Recorded rejections: none (.dr/analyzers/extract/decisions.json is not in this checkout)");
+    });
+
+    it("keeps the no-drift line when every operation was checked, and names no deprecated command in the gaps tip", () => {
+      const output = formatVerifyMarkdown(sampleReport);
+      expect(output).not.toContain("/dr-map");
+      expect(output).not.toContain("dr analyzer endpoints");
+      expect(formatVerifyText(sampleReport)).not.toContain("/dr-map");
+      const clean: VerifyReport = {
+        ...sampleReport,
+        buckets: { ...sampleReport.buckets, in_model_only: [] },
+        summary: { ...sampleReport.summary, drift_count: 0, elements_without_source_ref: 0 },
+      };
+      expect(formatVerifyMarkdown(clean)).toContain("_No drift detected");
     });
 
     it("should have source column in matched entries table", () => {
@@ -794,6 +879,19 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
     layers: [
       {
         layer: "data-store",
+        status: "drifted",
+        status_text:
+          "Checked 2 of the model's 4 data-store collections: drifted, 1 SQL tables in the code only, 1 data-store collections in the model only. " +
+          "2 of the model's 4 data-store collections could not be checked (not_checked says why).",
+        coverage: { model_elements: 4, checked: 2, not_checked: 2, code_entries: 2 },
+        not_checked: [
+          {
+            reason: "sourced to a file that is not a SQL schema",
+            to_check: "source the collection to the .sql file that creates it",
+            count: 2,
+            ids: ["data-store.collection.sessions", "data-store.collection.cache"],
+          },
+        ],
         checks: "SQL tables against data-store collections",
         buckets: {
           matched: [{ id: "data-store.collection.owners", type: "data-store.collection", name: "owners", files: ["db/schema.sql"] }],
@@ -819,6 +917,12 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
     expect(output).toContain("data-store.collection.legacy");
     expect(output).toContain("## Layers Not Verified");
     expect(output).toContain("search_graph timed out");
+    // The layer's status leads its section, and what was not checked is listed with why.
+    expect(output).toContain("**Drifted:** Checked 2 of the model's 4 data-store collections");
+    expect(output).toContain(
+      "- Not checked (2): sourced to a file that is not a SQL schema. To check: source the collection to the .sql file that creates it: " +
+        "data-store.collection.sessions, data-store.collection.cache"
+    );
   });
 
   it("leaves out the all-zero API summary in text when the API layer wasn't asked for", () => {
@@ -827,6 +931,8 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
     expect(output).not.toContain("operations found in both graph and model");
     expect(output).toContain("Layer: data-store");
     expect(output).toContain("Layer: technology not verified");
+    expect(output).toContain("Drifted: Checked 2 of the model's 4 data-store collections");
+    expect(output).toContain("Not checked (2): sourced to a file that is not a SQL schema");
   });
 
   it("keeps the API sections when the API layer was asked for", () => {

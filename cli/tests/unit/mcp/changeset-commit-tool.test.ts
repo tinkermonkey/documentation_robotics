@@ -396,6 +396,25 @@ describe("changeset_commit drift and edge cases", () => {
       expect(landed.drift.kinds.find((kind: any) => kind.reason === "already-in-base").items).toEqual(["motivation.goal.shared-goal"]);
     });
 
+    it("changeset_brief pages what changed in the base to the end, by the call its more line names", async () => {
+      await overlapManyGoals();
+      const read = async (args: Record<string, unknown>) =>
+        parse(await changesetBriefHandler({ changeset: "reword-goals", sections: ["drift"], rootPath, ...args } as any)).drift;
+
+      const seen: string[] = [];
+      let drift = await read({ driftLimit: 5 });
+      expect(drift.overlapping.elements).toHaveLength(MANY + 1);
+      expect(drift.baseChanges.counts.elementsChanged).toBe(MANY);
+      for (;;) {
+        seen.push(...drift.baseChanges.elementsChanged);
+        const next = drift.baseChanges.page.nextOffset;
+        if (next === undefined) break;
+        expect(drift.baseChanges.page.more).toContain(`driftLimit: 5, driftOffset: ${next}`);
+        drift = await read({ driftLimit: 5, driftOffset: next });
+      }
+      expect(seen.sort()).toEqual([...goals].sort());
+    });
+
     it("the dialog says the same", async () => {
       await overlapManyGoals();
       const c = await connect({ elicitation: true, answer: ACCEPT });
