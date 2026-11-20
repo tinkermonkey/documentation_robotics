@@ -412,3 +412,285 @@
     category: structural
   timestamp: 2026-11-20T16:51:24.233Z
   sequenceNumber: 17
+- type: add
+  elementId: application.applicationfunction.assert-chat-command-allowed
+  layerName: application
+  after:
+    id: f883cdc4-eefd-45a7-888d-3f771436042b
+    path: application.applicationfunction.assert-chat-command-allowed
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: assertChatCommandAllowed
+    description: "dr's own check in a process the viewer's chat started
+      (DR_CHAT_MODE): refuses, before the command runs, a command outside the
+      chat's mode, a file-writing flag, or a model path outside the served
+      project."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/chat-guard.ts
+          symbol: assertChatCommandAllowed
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 18
+- type: add
+  elementId: application.applicationfunction.chat-bash-refusal
+  layerName: application
+  after:
+    id: b1b121f3-9943-4932-9068-a83abada38a5
+    path: application.applicationfunction.chat-bash-refusal
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: chatBashRefusal
+    description: Why a chat mode refuses a Bash command line, or null when it is one
+      plain dr command the mode allows. Used by the permission hook and by the
+      viewer's explanation.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/chat-guard.ts
+          symbol: chatBashRefusal
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 19
+- type: add
+  elementId: application.applicationfunction.chat-tool-refusal
+  layerName: application
+  after:
+    id: 4e6b9b3f-1860-4a28-823e-fbeb6199c8c5
+    path: application.applicationfunction.chat-tool-refusal
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: chatToolRefusal
+    description: "The dr MCP server's own refusal in a chat process: a tool outside
+      the chat's mode, or a rootPath other than the served project."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/chat-guard.ts
+          symbol: chatToolRefusal
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 20
+- type: add
+  elementId: application.applicationfunction.chat-permission-hook-decision
+  layerName: application
+  after:
+    id: 75e04c9d-a747-49eb-ab29-63c2d6439439
+    path: application.applicationfunction.chat-permission-hook-decision
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: chatPermissionHookDecision
+    description: "The answer of Claude Code's PreToolUse hook (dr
+      chat-permission-hook) for one tool call: the reason to deny a Bash call
+      with, which the agent reads, or nothing."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/chat-guard.ts
+          symbol: chatPermissionHookDecision
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 21
+- type: add
+  elementId: application.applicationfunction.dr-bot-disallowed-tools
+  layerName: application
+  after:
+    id: 0758d87d-668e-4027-9ecd-adacd5857547
+    path: application.applicationfunction.dr-bot-disallowed-tools
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: drBotDisallowedTools
+    description: "Claude Code deny rules for a chat mode: editing and network tools,
+      the person's steps (commit, apply, revert, discard, delete), file-writing
+      flags, and in a read-only viewer every staging command and tool."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: drBotDisallowedTools
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 22
+- type: add
+  elementId: application.applicationfunction.dr-bot-launch-settings
+  layerName: application
+  after:
+    id: 0572d3ea-6b80-4da7-ab66-4ce94579e8c5
+    path: application.applicationfunction.dr-bot-launch-settings
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: drBotLaunchSettings
+    description: "The one settings source a launch under an allowlist reads: the
+      permission hook on Bash and the user's sign-in settings, never
+      permissions."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: drBotLaunchSettings
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 23
+- type: add
+  elementId: data-model.objectschema.denied-tool-call
+  layerName: data-model
+  after:
+    id: 3d2df4d8-bf95-47e3-8148-bfd56e447d71
+    path: data-model.objectschema.denied-tool-call
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DeniedToolCall
+    description: A tool call as Claude Code's stream reports it.
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: DeniedToolCall
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 24
+- type: add
+  elementId: data-model.objectschema.dr-bot-session-options
+  layerName: data-model
+  after:
+    id: cdf9d2df-9853-4907-89fd-8fa29bfd5d48
+    path: data-model.objectschema.dr-bot-session-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DrBotSessionOptions
+    description: Whether the dr MCP server is connected for a launch.
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: DrBotSessionOptions
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 25
+- type: add
+  elementId: data-model.objectschema.chat-refusal
+  layerName: data-model
+  after:
+    id: 213aac2f-7a2e-4c91-b20e-cca783bca886
+    path: data-model.objectschema.chat-refusal
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ChatRefusal
+    description: Why a chat process may not do something, and what to do about it.
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/chat-guard.ts
+          symbol: ChatRefusal
+    metadata:
+      created_at: 2026-11-20T17:46:46.351Z
+      updated_at: 2026-11-20T17:46:46.351Z
+      version: 1
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: application.applicationfunction.assert-chat-command-allowed::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.assert-chat-command-allowed
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: application.applicationfunction.chat-bash-refusal::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.chat-bash-refusal
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: application.applicationfunction.chat-tool-refusal::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.chat-tool-refusal
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 29
+- type: relationship-add
+  elementId: application.applicationfunction.chat-permission-hook-decision::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.chat-permission-hook-decision
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 30
+- type: relationship-add
+  elementId: application.applicationfunction.dr-bot-disallowed-tools::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.dr-bot-disallowed-tools
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 31
+- type: relationship-add
+  elementId: application.applicationfunction.dr-bot-launch-settings::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.dr-bot-launch-settings
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:46:46.365Z
+  sequenceNumber: 32

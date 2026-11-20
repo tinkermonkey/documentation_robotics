@@ -4,23 +4,27 @@ description: "DrBot always reaches the dr MCP tools: an installed dr-architect
   that predates them gets the mode's tools added at launch, and only DrBot's own
   dr server is loaded. The Bash fallback allows every read-only dr command.
   DrBot is told its permission mode at the start of every launch, and a blocked
-  call says which rule blocked it and how the person allows it. Changeset
-  staging becomes the viewer's default mode, with --read-only to turn it off;
-  committing, applying and discarding stay with the person. Fixes #1240, #1238,
-  #1241. Done when a trace, a write staged into a changeset and a rightly
-  blocked command each behave that way in a real dr visualize chat."
+  call says which rule blocked it and how the person allows it, to the agent and
+  in the viewer. Changeset staging becomes the viewer's default mode, with
+  --read-only to turn it off; committing, applying and discarding stay with the
+  person. Three rules hold whatever a settings file says, each kept by the
+  launch, by a permission hook and by dr itself: DrBot writes only into a
+  changeset, never lands one, and runs no shell but one plain dr command inside
+  the served project. Fixes #1240, #1238, #1241. Done when a trace, a write
+  staged into a changeset and a rightly blocked command each behave that way in
+  a real dr visualize chat, including with settings that try to allow more."
 created: 2026-11-20T16:32:54.115Z
-modified: 2026-11-20T16:51:24.244Z
+modified: 2026-11-20T17:46:46.780Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 9
+  additions: 24
   modifications: 7
   deletions: 0
-lastSequence: 17
+lastSequence: 32
 unstaged:
   - sequence: 0
     removedAt: 12
