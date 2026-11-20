@@ -22,7 +22,8 @@
  * Each file is mode 0600 and the viewers directory 0700.
  *
  * Reading the registry sweeps it (sweepViewerRegistry): records of dead pids, markers of viewers
- * that never came up and old logs are removed.
+ * that never came up and old logs are removed. A sweep returns what it removed, with counts, and
+ * each reader passes that on (`dr visualize --list`, review_open's `staleRemoved`).
  *
  * Stable API (imported by MCP tools): ViewerRecord, writeViewerRecord, readViewerRecords,
  * removeViewerRecord, removeViewerRecordSync, findRunningViewer, probeViewer, viewerUrl,
@@ -37,6 +38,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { getCliVersion } from "../utils/spec-version.js";
 import { looksLikeViewer as processLooksLikeViewer } from "./viewer-processes.js";
+import { viewerSetting } from "./viewer-settings.js";
 
 /** Env var that points the user state directory somewhere else (tests). */
 export const DR_STATE_DIR_ENV = "DR_STATE_DIR";
@@ -189,10 +191,13 @@ export async function removeStaleTempFiles(
  */
 export async function writeViewerRecord(
   record: ViewerRecord,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  /** Told what the sweep removed, when it removed anything. */
+  onSwept?: (swept: SweepResult) => void
 ): Promise<string> {
   await ensureViewerRecordDir(env);
-  await sweepViewerRegistry({ env }).catch(() => {});
+  const swept = await sweepViewerRegistry({ env }).catch(() => null);
+  if (swept && swept.removed.length > 0) onSwept?.(swept);
   const path = viewerRecordPath(record.projectRoot, record.pid, env);
   const stored: ViewerRecord = { ...record, projectRoot: canonicalProjectRoot(record.projectRoot) };
   const temp = tempPathFor(path, process.pid);
@@ -320,20 +325,23 @@ function isRecordOf(file: RecordFile, pid: number | undefined): boolean {
   return pid === undefined || file.record?.pid === pid;
 }
 
-/** Removes a project's viewer records, or one viewer's. Missing is fine. */
+/** Removes a project's viewer records, or one viewer's. Missing is fine. Returns the paths removed. */
 export async function removeViewerRecord(
   projectRoot: string,
   options: RemoveViewerRecordOptions = {}
-): Promise<void> {
+): Promise<string[]> {
   const env = options.env ?? process.env;
+  const removed: string[] = [];
   for (const file of await readRecordFiles(env, projectRoot)) {
     if (!isRecordOf(file, options.pid)) continue;
     try {
       await unlink(file.path);
+      removed.push(file.path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   }
+  return removed;
 }
 
 /** Synchronous removeViewerRecord, for a process "exit" handler. Never throws. */
@@ -387,9 +395,6 @@ export async function viewerAnswers(port: number, timeoutMs = 1500): Promise<boo
   return (await viewerHealth(port, timeoutMs)) !== null;
 }
 
-/** A log is kept this long after its viewer is gone, for whoever asks why it died. */
-const LOG_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
-
 export interface SweepViewerRegistryOptions {
   env?: NodeJS.ProcessEnv;
   /** Injected for tests; defaults to isProcessAlive. */
@@ -397,22 +402,68 @@ export interface SweepViewerRegistryOptions {
   now?: number;
 }
 
+/** What a sweep of the viewers directory removed. */
+export interface SweepResult {
+  /** Every path removed. */
+  removed: string[];
+  /** Records of viewers that are gone (dead pid, a pid another program holds, or unreadable). */
+  records: number;
+  /** "Starting" markers of viewers that never came up. */
+  markers: number;
+  /** Logs of viewers gone longer than the keep period (DR_VIEWER_LOG_KEEP_DAYS). */
+  logs: number;
+  /** Half-written temp files a writer left when it was killed. */
+  tempFiles: number;
+}
+
+/** A sweep that removed nothing. */
+export function emptySweep(): SweepResult {
+  return { removed: [], records: 0, markers: 0, logs: 0, tempFiles: 0 };
+}
+
+/** Adds one sweep's removals to another's. */
+export function addSweep(into: SweepResult, more: SweepResult): SweepResult {
+  into.removed.push(...more.removed);
+  into.records += more.records;
+  into.markers += more.markers;
+  into.logs += more.logs;
+  into.tempFiles += more.tempFiles;
+  return into;
+}
+
+/** A sweep's removals in words ("2 stale records and 1 old log"), or "" when it removed nothing. */
+export function describeSweep(sweep: SweepResult): string {
+  const part = (count: number, one: string, many: string) => (count === 0 ? [] : [`${count} ${count === 1 ? one : many}`]);
+  const parts = [
+    ...part(sweep.records, "stale record", "stale records"),
+    ...part(sweep.markers, "marker of a viewer that never started", "markers of viewers that never started"),
+    ...part(sweep.logs, "old log", "old logs"),
+    ...part(sweep.tempFiles, "leftover temp file", "leftover temp files"),
+  ];
+  if (parts.length <= 1) return parts.join("");
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
 /**
  * Removes what dead viewers left in the viewers directory: records whose pid is dead or that
- * cannot be read, "starting" markers of dead pids, logs older than a week whose project has no
- * live viewer, and stale temp files. Run whenever the registry is read. Returns the paths it
- * removed; never throws.
+ * cannot be read, "starting" markers of dead pids, logs of viewers gone longer than the keep
+ * period (DR_VIEWER_LOG_KEEP_DAYS, default 7), and stale temp files. Run whenever the registry is
+ * read. Returns what it removed, with a count of each kind; never throws.
  */
-export async function sweepViewerRegistry(options: SweepViewerRegistryOptions = {}): Promise<string[]> {
+export async function sweepViewerRegistry(options: SweepViewerRegistryOptions = {}): Promise<SweepResult> {
   const env = options.env ?? process.env;
   const isAlive = options.isAlive ?? isProcessAlive;
   const now = options.now ?? Date.now();
   const dir = viewerRecordDir(env);
-  const removed = await removeStaleTempFiles(env, now);
-  const drop = async (path: string) => {
+  const logKeepMs = viewerSetting("logKeepDays", env) * 24 * 60 * 60 * 1000;
+  const result = emptySweep();
+  result.removed = await removeStaleTempFiles(env, now);
+  result.tempFiles = result.removed.length;
+  const drop = async (path: string, kind: "records" | "markers" | "logs") => {
     try {
       await unlink(path);
-      removed.push(path);
+      result.removed.push(path);
+      result[kind]++;
     } catch {
       // Gone already, or not ours to remove.
     }
@@ -422,7 +473,7 @@ export async function sweepViewerRegistry(options: SweepViewerRegistryOptions = 
   try {
     names = await readdir(dir);
   } catch {
-    return removed;
+    return result;
   }
 
   // Projects (by hash) that still have a viewer running or starting: their logs are kept.
@@ -435,7 +486,7 @@ export async function sweepViewerRegistry(options: SweepViewerRegistryOptions = 
       if (text === null) continue;
       const parsed = parseRecord(text);
       if (parsed && isAlive(parsed.pid)) live.add(record[1]);
-      else await drop(path);
+      else await drop(path, "records");
     } else if (name.endsWith(".starting")) {
       let pid: unknown;
       try {
@@ -444,31 +495,33 @@ export async function sweepViewerRegistry(options: SweepViewerRegistryOptions = 
         pid = undefined;
       }
       if (typeof pid === "number" && Number.isInteger(pid) && isAlive(pid)) live.add(name.slice(0, -".starting".length));
-      else await drop(path);
+      else await drop(path, "markers");
     }
   }
   for (const name of names) {
     if (!name.endsWith(".log") || live.has(name.slice(0, -".log".length))) continue;
     const path = join(dir, name);
     try {
-      if (now - (await stat(path)).mtimeMs > LOG_KEEP_MS) await drop(path);
+      if (now - (await stat(path)).mtimeMs > logKeepMs) await drop(path, "logs");
     } catch {
       // Gone already.
     }
   }
-  return removed;
+  return result;
 }
 
-/** Every viewer record whose process is alive, across projects, after a sweep. */
-export async function listViewerRecords(options: SweepViewerRegistryOptions = {}): Promise<ViewerRecord[]> {
+/** Every viewer record whose process is alive, across projects, after a sweep, and what the sweep removed. */
+export async function listViewerRecords(
+  options: SweepViewerRegistryOptions = {}
+): Promise<{ records: ViewerRecord[]; swept: SweepResult }> {
   const env = options.env ?? process.env;
   const isAlive = options.isAlive ?? isProcessAlive;
-  await sweepViewerRegistry(options);
+  const swept = await sweepViewerRegistry(options);
   const records: ViewerRecord[] = [];
   for (const file of await readRecordFiles(env)) {
     if (file.record && isAlive(file.record.pid)) records.push(file.record);
   }
-  return records;
+  return { records, swept };
 }
 
 export interface FindRunningViewerOptions {
@@ -486,9 +539,9 @@ export interface FindRunningViewerOptions {
   looksLikeViewer?: (pid: number) => boolean | null;
   /** The CLI version to prefer when several viewers run (default: this CLI's). */
   cliVersion?: string;
-  /** First health probe's timeout (default 1.5s). */
+  /** First health probe's timeout (default: DR_VIEWER_HEALTH_TIMEOUT_MS, 1.5s). */
   probeTimeoutMs?: number;
-  /** The retry's timeout when the first probe fails and the pid is alive (default 5s). */
+  /** The second probe's timeout, when no viewer answered the first (default: DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS, 5s). */
   retryTimeoutMs?: number;
 }
 
@@ -500,11 +553,14 @@ export interface FindRunningViewerOptions {
  *   `cliVersion` is what its health check reported (absent before 0.6.0).
  * - `unreachable`: a pid is alive but no server answered, twice. The record is kept: the viewer
  *   may only be busy, and a second viewer for the project would be wrong.
+ *
+ * `swept` is there when reading the registry removed something (any project's): what, and how many.
  */
-export type ViewerProbe =
+export type ViewerProbe = (
   | { state: "none" }
   | { state: "running"; record: ViewerRecord; cliVersion?: string }
-  | { state: "unreachable"; record: ViewerRecord };
+  | { state: "unreachable"; record: ViewerRecord }
+) & { swept?: SweepResult };
 
 /** Oldest first; a record with no start time sorts last. */
 function byStartedAt(a: ViewerRecord, b: ViewerRecord): number {
@@ -524,17 +580,18 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
     (answers ? async (port, timeoutMs) => ((await answers(port, timeoutMs)) ? { status: "ok" } : null) : viewerHealth);
   const preferred = options.cliVersion ?? getCliVersion();
 
-  await sweepViewerRegistry({ env, isAlive });
+  const swept = await sweepViewerRegistry({ env, isAlive });
+  const sweptPart = () => (swept.removed.length > 0 ? { swept } : {});
   const records = (await readViewerRecords(projectRoot, env)).filter((record) => isAlive(record.pid));
-  if (records.length === 0) return { state: "none" };
+  if (records.length === 0) return { state: "none", ...sweptPart() };
 
   const probe = (timeoutMs: number, candidates: ViewerRecord[]) =>
     Promise.all(candidates.map(async (record) => ({ record, health: await health(record.port, timeoutMs) })));
-  let probed = await probe(options.probeTimeoutMs ?? 1500, records);
+  let probed = await probe(options.probeTimeoutMs ?? viewerSetting("healthTimeoutMs", env), records);
   const silent = probed.filter((entry) => !entry.health).map((entry) => entry.record);
   if (silent.length === records.length) {
     // Nothing answered: give a busy viewer longer before calling it unreachable.
-    probed = await probe(options.retryTimeoutMs ?? 5000, silent);
+    probed = await probe(options.retryTimeoutMs ?? viewerSetting("healthRetryTimeoutMs", env), silent);
   }
 
   const running = probed.filter((entry) => entry.health);
@@ -547,6 +604,7 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
       state: "running",
       record: best.record,
       ...(best.health?.cliVersion ? { cliVersion: best.health.cliVersion } : {}),
+      ...sweptPart(),
     };
   }
 
@@ -555,11 +613,14 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
   const looksLikeViewer = options.looksLikeViewer ?? processLooksLikeViewer;
   const stuck: ViewerRecord[] = [];
   for (const record of silent) {
-    if (looksLikeViewer(record.pid) === false) await removeViewerRecord(projectRoot, { env, pid: record.pid });
-    else stuck.push(record);
+    if (looksLikeViewer(record.pid) === false) {
+      const removed = await removeViewerRecord(projectRoot, { env, pid: record.pid });
+      swept.removed.push(...removed);
+      swept.records += removed.length;
+    } else stuck.push(record);
   }
-  if (stuck.length === 0) return { state: "none" };
-  return { state: "unreachable", record: stuck.sort(byStartedAt)[0] };
+  if (stuck.length === 0) return { state: "none", ...sweptPart() };
+  return { state: "unreachable", record: stuck.sort(byStartedAt)[0], ...sweptPart() };
 }
 
 /**

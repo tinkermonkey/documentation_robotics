@@ -8,7 +8,7 @@
 import { Model } from "./core/model.js";
 import { VisualizationServer } from "./server/server.js";
 import { getErrorMessage } from "./utils/errors.js";
-import { LIFETIME_CHECK_INTERVAL_MS, watchViewerLifetime } from "./server/viewer-lifetime.js";
+import { watchViewerLifetime } from "./server/viewer-lifetime.js";
 import { watchParent } from "./utils/parent-watch.js";
 
 // Get configuration from environment variables
@@ -25,8 +25,6 @@ const withChangesets = process.env.DR_WITH_CHANGESETS === "true";
 const viewerPath = process.env.DR_VIEWER_PATH;
 // Hours without a browser tab or a request after which the server ends (dr visualize --idle-exit)
 const idleExitHours = Number(process.env.DR_VIEWER_IDLE_EXIT_HOURS);
-// How often the idle and project-folder checks run; tests shorten it
-const lifetimeCheckMs = Number(process.env.DR_VIEWER_LIFETIME_CHECK_MS) || LIFETIME_CHECK_INTERVAL_MS;
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -99,7 +97,6 @@ async function main() {
       projectRoot: model.rootPath,
       activity: () => server.getActivity(),
       idleExitMs: idleExitHours > 0 ? idleExitHours * 3_600_000 : undefined,
-      intervalMs: lifetimeCheckMs,
       onExit: (reason) => {
         console.log(`[viewer] Stopping: ${reason}`);
         void gracefulShutdown(0);

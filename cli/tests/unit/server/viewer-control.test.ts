@@ -16,6 +16,7 @@ import {
   listRunningViewers,
   stopRecordedViewer,
   stopViewer,
+  surveyViewers,
   type RunningViewer,
 } from "../../../src/server/viewer-control.js";
 import {
@@ -131,14 +132,17 @@ describe("listRunningViewers", () => {
   it("drops the record of a pid another program now holds, and does not list it", () =>
     withFixture(async ({ env, projectRoot, put }) => {
       await put({ pid: 400, port: 8080 });
-      const viewers = await listRunningViewers({
+      const survey = await surveyViewers({
         env,
         isAlive: () => true,
         processes: () => [{ pid: 400, ppid: 1, startedAt: "", command: "/usr/bin/some-daemon --serve" }],
         health: async () => ({ status: "ok", cliVersion: "0.7.0" }),
       });
-      expect(viewers).toEqual([]);
+      expect(survey.viewers).toEqual([]);
       expect(await readViewerRecords(projectRoot, env)).toEqual([]);
+      // Removed, and said so.
+      expect(survey.swept.records).toBe(1);
+      expect(survey.swept.removed).toEqual([viewerRecordPath(projectRoot, 400, env)]);
     }));
 
   it("lists a server whose launcher is gone only when it answers as a viewer", () =>
@@ -170,6 +174,31 @@ describe("listRunningViewers", () => {
         [600, true, true],
         [601, false, false],
       ]);
+    }));
+
+  it("says whether the process table could be read, so a registry-only list is not taken for the whole", () =>
+    withFixture(async ({ env, put }) => {
+      await put({ pid: 600, port: 8080 });
+      const deps = { env, isAlive: () => true, health: async () => null };
+      expect((await surveyViewers({ ...deps, processes: () => null })).processScan).toBe(false);
+      expect((await surveyViewers({ ...deps, processes: () => [launcher(600, 1), server(601, 600)] })).processScan).toBe(true);
+    }));
+
+  it("gives each viewer the health timeout that DR_VIEWER_HEALTH_TIMEOUT_MS sets", () =>
+    withFixture(async ({ env, put }) => {
+      await put({ pid: 600, port: 8080 });
+      const timeouts: number[] = [];
+      const deps = {
+        isAlive: () => true,
+        processes: () => null,
+        health: async (_port: number, timeoutMs: number) => {
+          timeouts.push(timeoutMs);
+          return null;
+        },
+      };
+      await surveyViewers({ ...deps, env });
+      await surveyViewers({ ...deps, env: { ...env, DR_VIEWER_HEALTH_TIMEOUT_MS: "250" } });
+      expect(timeouts).toEqual([1500, 250]);
     }));
 
   it("is empty when nothing runs", () =>
@@ -252,6 +281,22 @@ describe("stopViewer", () => {
     const table = processes([100, 101], () => {});
     expect(await stopViewer(viewer({ verified: false }), table.options)).toBe("unverified");
     expect(table.sent).toEqual([]);
+  });
+
+  it("waits as long as DR_VIEWER_STOP_TIMEOUT_MS says before it kills", async () => {
+    const table = processes([100], (pid, signal, die) => {
+      if (signal === "SIGKILL") die(pid);
+    });
+    const started = Date.now();
+    const outcome = await stopViewer(viewer({ serverPid: null }), {
+      isAlive: table.options.isAlive,
+      kill: table.options.kill,
+      pollMs: 5,
+      env: { DR_VIEWER_STOP_TIMEOUT_MS: "120" },
+    });
+    expect(outcome).toBe("force-killed");
+    expect(Date.now() - started).toBeGreaterThanOrEqual(110);
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 
   it("never signals pid 1 or itself, and says when the viewer is already gone", async () => {

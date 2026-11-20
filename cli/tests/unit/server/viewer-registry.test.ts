@@ -26,6 +26,7 @@ import {
   removeViewerRecord,
   removeViewerRecordSync,
   stateDir,
+  describeSweep,
   sweepViewerRegistry,
   viewerAnswers,
   viewerHealth,
@@ -266,6 +267,12 @@ describe("findRunningViewer", () => {
       expect(probe.state === "unreachable" && probe.record.pid).toBe(process.pid);
       // One probe, then one retry with a longer timeout, per lookup.
       expect(timeouts).toEqual([1500, 5000, 1500, 5000]);
+      // Both are settings, not constants.
+      timeouts.length = 0;
+      const tuned = { ...env, DR_VIEWER_HEALTH_TIMEOUT_MS: "200", DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS: "900" };
+      await writeViewerRecord(record(), tuned);
+      await probeViewer(projectRoot, { env: tuned, answers, looksLikeViewer });
+      expect(timeouts).toEqual([200, 900]);
     }));
 
   it("counts a viewer that answers the retry as running", () =>
@@ -291,6 +298,7 @@ describe("findRunningViewer", () => {
       await writeViewerRecord(record(), env);
       const probe = await probeViewer(projectRoot, { env, answers: async () => false });
       expect(probe.state).toBe("none");
+      expect(probe.swept?.records).toBe(1);
       expect(await readViewerRecords(projectRoot, env)).toEqual([]);
     }));
 
@@ -377,8 +385,11 @@ describe("sweepViewerRegistry", () => {
       const recentLog = viewerLogPath(third, env);
       await writeFile(recentLog, "it crashed");
 
-      const removed = await sweepViewerRegistry({ env });
-      expect(removed.sort()).toEqual([stale, gone, oldLog, marker].sort());
+      const swept = await sweepViewerRegistry({ env });
+      expect(swept.removed.sort()).toEqual([stale, gone, oldLog, marker].sort());
+      // It says what it removed, with a count of each kind.
+      expect(swept).toMatchObject({ records: 2, markers: 1, logs: 1, tempFiles: 0 });
+      expect(describeSweep(swept)).toBe("2 stale records, 1 marker of a viewer that never started and 1 old log");
       expect(existsSync(liveLog)).toBe(true);
       expect(existsSync(recentLog)).toBe(true);
       expect((await readViewerRecords(projectRoot, env)).map((r) => r.pid)).toEqual([process.pid]);
@@ -389,23 +400,43 @@ describe("sweepViewerRegistry", () => {
       const dead = await deadPid();
       await writeViewerRecord(record({ pid: process.pid, port: 8085 }), env);
       const stale = await putRecord(record({ pid: dead, port: 8099 }), env);
-      expect((await listViewerRecords({ env })).map((r) => r.port)).toEqual([8085]);
+      const listed = await listViewerRecords({ env });
+      expect(listed.records.map((r) => r.port)).toEqual([8085]);
+      expect(listed.swept).toMatchObject({ records: 1, removed: [stale] });
       expect(existsSync(stale)).toBe(false);
 
       await putRecord(record({ pid: dead, port: 8099 }), env);
-      await probeViewer(projectRoot, { env, answers: async () => true });
+      const probe = await probeViewer(projectRoot, { env, answers: async () => true });
       expect(existsSync(stale)).toBe(false);
+      // The probe passes on what its read removed; a read that removed nothing says nothing.
+      expect(probe.swept).toMatchObject({ records: 1, removed: [stale] });
+      expect((await probeViewer(projectRoot, { env, answers: async () => true })).swept).toBeUndefined();
 
-      // A viewer that starts clears what dead ones left, too.
+      // A viewer that starts clears what dead ones left, too, and is told what.
       await putRecord(record({ pid: dead, port: 8099 }), env);
-      await writeViewerRecord(record({ pid: process.pid, port: 8086 }), env);
+      const told: number[] = [];
+      await writeViewerRecord(record({ pid: process.pid, port: 8086 }), env, (swept) => told.push(swept.records));
       expect(existsSync(stale)).toBe(false);
+      expect(told).toEqual([1]);
     }));
 
   it("is fine when there is no viewers directory", () =>
     withFixture(async ({ env }) => {
-      expect(await sweepViewerRegistry({ env })).toEqual([]);
-      expect(await listViewerRecords({ env })).toEqual([]);
+      expect(await sweepViewerRegistry({ env })).toEqual({ removed: [], records: 0, markers: 0, logs: 0, tempFiles: 0 });
+      expect((await listViewerRecords({ env })).records).toEqual([]);
+      expect(describeSweep(await sweepViewerRegistry({ env }))).toBe("");
+    }));
+
+  it("keeps a gone viewer's log for DR_VIEWER_LOG_KEEP_DAYS", () =>
+    withFixture(async ({ env, projectRoot }) => {
+      await mkdir(viewerRecordDir(env), { recursive: true });
+      const log = viewerLogPath(projectRoot, env);
+      await writeFile(log, "output");
+      const threeDays = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      await utimes(log, threeDays, threeDays);
+      expect((await sweepViewerRegistry({ env })).logs).toBe(0);
+      expect((await sweepViewerRegistry({ env: { ...env, DR_VIEWER_LOG_KEEP_DAYS: "2" } })).logs).toBe(1);
+      expect(existsSync(log)).toBe(false);
     }));
 });
 

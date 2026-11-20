@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { mkdir, realpath, rm } from "node:fs/promises";
+import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -18,7 +18,7 @@ import {
   viewerNotes,
 } from "../../../src/commands/visualize-viewers.js";
 import type { RunningViewer } from "../../../src/server/viewer-control.js";
-import { DR_STATE_DIR_ENV } from "../../../src/server/viewer-registry.js";
+import { DR_STATE_DIR_ENV, viewerRecordDir, viewerRecordPath } from "../../../src/server/viewer-registry.js";
 import type { ProcessInfo } from "../../../src/server/viewer-processes.js";
 
 function viewer(overrides: Partial<RunningViewer> = {}): RunningViewer {
@@ -85,13 +85,22 @@ describe("formatViewerTable", () => {
     const table = formatViewerTable([
       viewer({ projectRoot: null, port: null, pid: null, serverPid: 301, cliVersion: null, startedAt: "", inRegistry: false, startedBy: null, idleExitHours: null }),
     ]);
-    expect(table.split("\n")[1]).toMatch(/^\(unknown project\)\s+\?\s+301\s+<0\.6\.0\s+\?\s+not in the registry; launcher gone, server pid 301$/);
+    expect(table.split("\n")[1]).toMatch(
+      /^\(unknown project\)\s+\?\s+301\s+<0\.6\.0\s+\?\s+not in the registry; launcher gone, server pid 301; port not found$/
+    );
   });
 });
 
 describe("viewerNotes", () => {
   it("marks a viewer that does not answer, rather than calling it old", () => {
     expect(viewerNotes(viewer({ answering: false, cliVersion: null, startedBy: "cli", idleExitHours: null }))).toEqual(["does not answer"]);
+  });
+
+  it("says when a viewer's port could not be found, rather than that it does not answer", () => {
+    expect(viewerNotes(viewer({ port: null, answering: false, cliVersion: null, startedBy: null, idleExitHours: null, inRegistry: false }))).toEqual([
+      "not in the registry",
+      "port not found",
+    ]);
   });
 });
 
@@ -161,6 +170,76 @@ describe("the commands", () => {
       expect(text).toContain("8083");
       expect(text).toContain("not in the registry; older than this CLI (0.7.0)");
       expect(text).toContain("dr visualize --stop");
+      // How many, and where they were found: over all of them, not a page of them.
+      expect(text).toContain("2 viewers running: 0 in the registry, 2 found only in the process table.");
+      expect(text).not.toContain("process scan was not possible");
+    }));
+
+  it("--list says the list may be incomplete when the process table cannot be read", () =>
+    withFixture(async (fx) => {
+      // One recorded viewer; a second, unrecorded one cannot be seen without ps.
+      const env = deps(fx).env;
+      await mkdir(viewerRecordDir(env), { recursive: true });
+      await writeFile(
+        viewerRecordPath(fx.projectA, 100, env),
+        JSON.stringify({ pid: 100, port: 8082, token: null, projectRoot: fx.projectA, startedAt: "", withChangesets: true })
+      );
+      const survey = await listViewersCommand({ ...deps(fx), processes: () => null });
+      expect(survey.processScan).toBe(false);
+      const text = fx.output.join("\n");
+      expect(text).toContain("8082");
+      expect(text).toContain(
+        "The registry lists 1 viewer. A process scan was not possible (ps is unavailable here or failed), so viewers the registry has lost are not shown."
+      );
+      expect(text).not.toContain("found only in the process table");
+
+      // The same in JSON, and with nothing recorded: never a bare "none".
+      fx.output.length = 0;
+      await listViewersCommand({ ...deps(fx, true), processes: () => null });
+      const parsed = JSON.parse(fx.output.join("\n"));
+      expect(parsed.complete).toBe(false);
+      expect(parsed.processScan).toMatchObject({ available: false });
+      expect(parsed.processScan.note).toContain("viewers the registry has lost are not shown");
+      fx.output.length = 0;
+      await listViewersCommand({ ...deps(fx), env: { [DR_STATE_DIR_ENV]: join(fx.scratch, "empty") }, processes: () => null });
+      expect(fx.output.join("\n")).toContain("The registry lists no viewers. A process scan was not possible");
+      expect(fx.output.join("\n")).not.toContain("No viewers are running.");
+    }));
+
+  it("--list says what reading the registry removed, with counts", () =>
+    withFixture(async (fx) => {
+      const env = deps(fx).env;
+      await mkdir(viewerRecordDir(env), { recursive: true });
+      // Two records of viewers that are gone.
+      for (const pid of [901, 902]) {
+        await writeFile(
+          viewerRecordPath(fx.projectA, pid, env),
+          JSON.stringify({ pid, port: 8099, token: null, projectRoot: fx.projectA, startedAt: "", withChangesets: false })
+        );
+      }
+      const survey = await listViewersCommand({ ...deps(fx), isAlive: (pid) => pid !== 901 && pid !== 902 });
+      expect(survey.swept.records).toBe(2);
+      expect(fx.output.join("\n")).toContain("Removed 2 stale records from the registry.");
+
+      fx.output.length = 0;
+      await listViewersCommand(deps(fx));
+      expect(fx.output.join("\n")).not.toContain("Removed");
+    }));
+
+  it("--list warns about a time-limit setting it could not use, and --json shows the values in effect", () =>
+    withFixture(async (fx) => {
+      const env = { ...deps(fx).env, DR_VIEWER_STOP_TIMEOUT_MS: "soon", DR_VIEWER_IDLE_HOURS: "72" };
+      await listViewersCommand({ ...deps(fx), env });
+      expect(fx.output.join("\n")).toContain("DR_VIEWER_STOP_TIMEOUT_MS=soon is not a usable value; using the default, 8000 ms.");
+
+      fx.output.length = 0;
+      await listViewersCommand({ ...deps(fx, true), env });
+      const { settings } = JSON.parse(fx.output.join("\n"));
+      expect(settings.idleHours).toEqual({ env: "DR_VIEWER_IDLE_HOURS", value: 72, unit: "hours", default: 24 });
+      expect(settings.stopTimeoutMs).toMatchObject({ value: 8000, ignored: "soon" });
+      expect(Object.keys(settings).sort()).toEqual(
+        ["healthRetryTimeoutMs", "healthTimeoutMs", "idleHours", "lifetimeCheckMs", "logKeepDays", "stopTimeoutMs"]
+      );
     }));
 
   it("--list --json gives the same list without tokens", () =>
@@ -168,6 +247,10 @@ describe("the commands", () => {
       await listViewersCommand(deps(fx, true));
       const parsed = JSON.parse(fx.output.join("\n"));
       expect(parsed.cliVersion).toBe("0.7.0");
+      expect(parsed.complete).toBe(true);
+      expect(parsed.processScan).toEqual({ available: true });
+      expect(parsed.counts).toEqual({ total: 2, inRegistry: 0, processOnly: 2 });
+      expect(parsed.swept).toEqual({ records: 0, startingMarkers: 0, logs: 0, tempFiles: 0, removed: [] });
       expect(parsed.viewers.map((v: { port: number }) => v.port)).toEqual([8082, 8083]);
       expect(parsed.viewers[0]).toMatchObject({
         projectRoot: fx.projectA,
@@ -190,7 +273,7 @@ describe("the commands", () => {
     withFixture(async (fx) => {
       const live = new Set([100, 101, 300, 301]);
       const signalled: number[] = [];
-      const results = await stopViewersCommand(
+      const summary = await stopViewersCommand(
         { project: fx.projectA },
         {
           ...deps(fx),
@@ -205,17 +288,66 @@ describe("the commands", () => {
           },
         }
       );
-      expect(results.map((r) => [r.viewer.pid, r.outcome])).toEqual([[100, "stopped"]]);
+      expect(summary.results.map((r) => [r.viewer.pid, r.outcome])).toEqual([[100, "stopped"]]);
+      expect(summary).toMatchObject({ found: 2, matched: 1, stopped: 1, notStopped: [], processScan: true });
       expect(signalled).toEqual([100]);
       expect(live.has(300)).toBe(true);
       expect(fx.output.join("\n")).toContain("Stopped the viewer for");
       expect(fx.output.join("\n")).toContain("port 8082, pid 100");
+      expect(fx.output.join("\n")).toContain("2 viewers were running; 1 matched; 1 stopped.");
+    }));
+
+  it("--stop --all says how many it found and stopped, names the ones it could not stop, and fails", () =>
+    withFixture(async (fx) => {
+      const live = new Set([100, 101, 300, 301]);
+      const stop = {
+        isAlive: (pid: number) => live.has(pid),
+        // The second viewer belongs to someone else.
+        kill: (pid: number) => {
+          if (pid === 300) throw Object.assign(new Error("operation not permitted"), { code: "EPERM" });
+          live.delete(pid);
+          if (pid === 100) live.delete(101);
+        },
+        pollMs: 5,
+      };
+      await expect(stopViewersCommand({ all: true }, { ...deps(fx), stop })).rejects.toThrow(
+        /1 viewer is still running: .*port 8083, pid 300\): belongs to another user/
+      );
+      const text = fx.output.join("\n");
+      expect(text).toContain("2 viewers were running; 2 matched; 1 stopped; 1 not stopped.");
+      expect(text).toContain("Could not stop (it belongs to another user):");
+      expect(text).toContain("port 8083, pid 300");
+
+      // The same as JSON: counts over the whole set, and each one not stopped with its pid.
+      fx.output.length = 0;
+      live.add(100).add(101);
+      await expect(stopViewersCommand({ all: true }, { ...deps(fx, true), stop })).rejects.toThrow(/still running/);
+      const parsed = JSON.parse(fx.output.join("\n"));
+      expect(parsed).toMatchObject({ found: 2, matched: 2, stopped: 1, complete: true });
+      expect(parsed.notStopped).toMatchObject([{ viewer: { pid: 300, port: 8083 }, outcome: "not-permitted" }]);
+    }));
+
+  it("--stop says when the process table could not be read, and when a viewer's project is unknown", () =>
+    withFixture(async (fx) => {
+      const noScan = await stopViewersCommand({ all: true }, { ...deps(fx), processes: () => null });
+      expect(noScan).toMatchObject({ found: 0, matched: 0, stopped: 0, processScan: false });
+      expect(fx.output.join("\n")).toContain("0 viewers were running; 0 matched; 0 stopped.");
+      expect(fx.output.join("\n")).toContain("viewers the registry has lost are not shown");
+
+      // A viewer whose folder could not be read cannot be matched by project: not skipped unseen.
+      fx.output.length = 0;
+      const summary = await stopViewersCommand(
+        { project: fx.projectA },
+        { ...deps(fx), cwdOf: (pid: number) => (pid === 100 ? fx.projectA : null), stop: { isAlive: () => false } }
+      );
+      expect(summary.unknownProject.map((viewer) => viewer.pid)).toEqual([300]);
+      expect(fx.output.join("\n")).toContain("1 running viewer has a project that could not be worked out (pid 300)");
     }));
 
   it("--stop says when nothing matches", () =>
     withFixture(async (fx) => {
-      const results = await stopViewersCommand({ project: join(fx.scratch, "plain") }, deps(fx));
-      expect(results).toEqual([]);
-      expect(fx.output.join("\n")).toContain("No running viewer matches");
+      const summary = await stopViewersCommand({ project: join(fx.scratch, "plain") }, deps(fx));
+      expect(summary.results).toEqual([]);
+      expect(fx.output.join("\n")).toContain("2 viewers were running; 0 matched; 0 stopped.");
     }));
 });

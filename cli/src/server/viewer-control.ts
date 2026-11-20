@@ -19,6 +19,7 @@ import {
   listViewerRecords,
   removeViewerRecord,
   viewerHealth,
+  type SweepResult,
   type ViewerHealth,
   type ViewerRecord,
   type ViewerStarter,
@@ -33,6 +34,7 @@ import {
   projectRootFromCwd,
   type ProcessInfo,
 } from "./viewer-processes.js";
+import { viewerSetting } from "./viewer-settings.js";
 
 /** One running viewer, as `dr visualize --list` reports it. */
 export interface RunningViewer {
@@ -101,24 +103,43 @@ export interface ListRunningViewersDeps {
   portOf?: (pid: number) => number | null;
   health?: (port: number, timeoutMs: number) => Promise<ViewerHealth | null>;
   cliVersion?: string;
+  /** How long each viewer gets to answer its health check (default: DR_VIEWER_HEALTH_TIMEOUT_MS, 1.5s). */
   healthTimeoutMs?: number;
+}
+
+/** Every running viewer that could be found, and how complete that answer is. */
+export interface ViewerSurvey {
+  viewers: RunningViewer[];
+  /**
+   * Whether the process table could be read. False: only the registry was consulted, so a viewer
+   * it has no record of is not in `viewers`. Whoever shows the list must say so.
+   */
+  processScan: boolean;
+  /** What reading the registry removed: stale records, markers of dead starts, old logs. */
+  swept: SweepResult;
+}
+
+/** Every running viewer on this machine (see surveyViewers, which also says how complete the list is). */
+export async function listRunningViewers(deps: ListRunningViewersDeps = {}): Promise<RunningViewer[]> {
+  return (await surveyViewers(deps)).viewers;
 }
 
 /**
  * Every running viewer on this machine: the registry's live records joined with the process
- * scan. A record whose pid is alive but runs something other than `dr visualize` is a reused
- * pid: it is removed, not listed.
+ * scan, with whether the scan was possible and what the registry sweep removed. A record whose
+ * pid is alive but runs something other than `dr visualize` is a reused pid: it is removed (and
+ * counted in `swept`), not listed.
  */
-export async function listRunningViewers(deps: ListRunningViewersDeps = {}): Promise<RunningViewer[]> {
+export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<ViewerSurvey> {
   const env = deps.env ?? process.env;
   const isAlive = deps.isAlive ?? isProcessAlive;
   const health = deps.health ?? viewerHealth;
   const cwdOf = deps.cwdOf ?? processCwd;
   const portOf = deps.portOf ?? listeningPort;
   const cliVersion = deps.cliVersion ?? getCliVersion();
-  const timeoutMs = deps.healthTimeoutMs ?? 1500;
+  const timeoutMs = deps.healthTimeoutMs ?? viewerSetting("healthTimeoutMs", env);
 
-  const records = await listViewerRecords({ env, isAlive });
+  const { records, swept } = await listViewerRecords({ env, isAlive });
   const table = (deps.processes ?? listProcesses)();
   const scanned = table ? findViewerProcesses(table, new Set(records.map((record) => record.pid))) : null;
 
@@ -146,7 +167,9 @@ export async function listRunningViewers(deps: ListRunningViewersDeps = {}): Pro
       if (isViewerProcess === false) {
         // The pid went to another program after the viewer died. If a viewer still answers on
         // the recorded port, the scan lists it under its own pids.
-        await removeViewerRecord(record.projectRoot, { env, pid: record.pid }).catch(() => {});
+        const removed = await removeViewerRecord(record.projectRoot, { env, pid: record.pid }).catch(() => [] as string[]);
+        swept.removed.push(...removed);
+        swept.records += removed.length;
         return;
       }
       const viewer = await describe({
@@ -188,12 +211,13 @@ export async function listRunningViewers(deps: ListRunningViewersDeps = {}): Pro
     })
   );
 
-  return viewers.sort(
+  viewers.sort(
     (a, b) =>
       (a.projectRoot ?? "~").localeCompare(b.projectRoot ?? "~") ||
       a.startedAt.localeCompare(b.startedAt) ||
       (a.port ?? 0) - (b.port ?? 0)
   );
+  return { viewers, processScan: table !== null, swept };
 }
 
 /** Whether the process table shows `pid` running something with a `visualize` argument. */
@@ -217,7 +241,7 @@ export type StopOutcome =
 
 export interface StopViewerOptions {
   env?: NodeJS.ProcessEnv;
-  /** How long the launcher gets to stop its server and exit before SIGKILL (default 8s). */
+  /** How long the launcher gets to stop its server and exit before SIGKILL (default: DR_VIEWER_STOP_TIMEOUT_MS, 8s). */
   timeoutMs?: number;
   isAlive?: (pid: number) => boolean;
   kill?: (pid: number, signal: NodeJS.Signals) => void;
@@ -225,10 +249,11 @@ export interface StopViewerOptions {
 }
 
 /**
- * Longer than the launcher's own wait for its server (3s to exit, then SIGKILL), so the launcher
- * gets to finish stopping the server and remove its record before it is force-killed itself.
+ * The stop timeout's default (DR_VIEWER_STOP_TIMEOUT_MS, 8s) is longer than the launcher's own
+ * wait for its server (3s to exit, then SIGKILL), so the launcher gets to finish stopping the
+ * server and remove its record before it is force-killed itself. A server that is left when its
+ * launcher is gone gets the same 3s the launcher would have given it.
  */
-const DEFAULT_STOP_TIMEOUT_MS = 8000;
 const SERVER_STOP_TIMEOUT_MS = 3000;
 const SIGKILL_WAIT_MS = 2000;
 
@@ -269,7 +294,9 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
 
   if (!viewer.verified) return "unverified";
   let outcome: StopOutcome = "not-running";
-  if (viewer.pid !== null) outcome = await stop(viewer.pid, options.timeoutMs ?? DEFAULT_STOP_TIMEOUT_MS);
+  if (viewer.pid !== null) {
+    outcome = await stop(viewer.pid, options.timeoutMs ?? viewerSetting("stopTimeoutMs", options.env));
+  }
   if (viewer.serverPid !== null && outcome !== "not-permitted") {
     // Left behind when the launcher was force-killed, or all there was.
     const server = await stop(viewer.serverPid, SERVER_STOP_TIMEOUT_MS);

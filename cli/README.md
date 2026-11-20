@@ -545,6 +545,28 @@ nothing on screen says it is there:
 - `--exit-with-parent` makes `dr visualize` exit when the process that started it is gone, for scripts and
   test runs that must not leave a server behind.
 
+Neither command gives a partial answer as if it were whole:
+
+- `--list` ends with how many viewers it found and where (the registry, the process table), and what reading
+  the registry removed (stale records, old logs), with counts. Where the process table cannot be read (no
+  `ps`), it says that viewers the registry has lost are not shown. `--json` carries the same as `complete`,
+  `processScan`, `counts` and `swept`.
+- `--stop` ends with how many viewers were running, how many matched and how many it stopped. It names each
+  one it could not stop, with its pid and why, and exits 1 when any is still running.
+
+**Time limits** are settings, each with a default and an environment variable. `dr visualize --list --json`
+prints the values in effect (`settings`), and a value that cannot be used is reported instead of being
+replaced quietly.
+
+| Variable                            | Default | What it sets                                                                              |
+| ----------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `DR_VIEWER_IDLE_HOURS`              | 24      | Idle time before a `review_open` viewer exits. `0` means never.                           |
+| `DR_VIEWER_HEALTH_TIMEOUT_MS`       | 1500    | How long a viewer gets to answer its health check.                                        |
+| `DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS` | 5000    | The second try, made when none answered, before `review_open` calls a viewer unreachable. |
+| `DR_VIEWER_STOP_TIMEOUT_MS`         | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
+| `DR_VIEWER_LOG_KEEP_DAYS`           | 7       | How long the log of a viewer that is gone is kept.                                        |
+| `DR_VIEWER_LIFETIME_CHECK_MS`       | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
+
 **Custom Viewer Path**:
 
 The `--viewer-path` option allows you to serve a custom web UI instead of the default embedded viewer:

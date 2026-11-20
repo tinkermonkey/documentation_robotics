@@ -16,6 +16,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { viewerSetting } from "./viewer-settings.js";
 
 /** What the server knows about its use. */
 export interface ViewerActivity {
@@ -32,7 +33,7 @@ export interface ViewerLifetimeOptions {
   idleExitMs?: number;
   /** Called once, with the reason in words, when the server should end. */
   onExit: (reason: string) => void;
-  /** How often to check (default 30s). */
+  /** How often to check (default: DR_VIEWER_LIFETIME_CHECK_MS, 30s, so a removed project ends its viewer within a minute). */
   intervalMs?: number;
   /** Injected for tests. */
   now?: () => number;
@@ -45,8 +46,6 @@ export interface ViewerLifetimeWatch {
   stop(): void;
 }
 
-/** The viewer lifetime check's default interval: a removed project ends its viewer within a minute. */
-export const LIFETIME_CHECK_INTERVAL_MS = 30_000;
 
 function describeDuration(ms: number): string {
   const hours = ms / 3_600_000;
@@ -85,7 +84,7 @@ export function watchViewerLifetime(options: ViewerLifetimeOptions): ViewerLifet
     done = true;
     stop();
     options.onExit(reason);
-  }, options.intervalMs ?? LIFETIME_CHECK_INTERVAL_MS);
+  }, options.intervalMs ?? viewerSetting("lifetimeCheckMs"));
   timer.unref?.();
   const stop = () => {
     if (timer) clearInterval(timer);

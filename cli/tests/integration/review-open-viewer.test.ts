@@ -206,6 +206,8 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     const list = (): Array<{ projectRoot: string; port: number; pid: number; inRegistry: boolean; answering: boolean }> => {
       const result = spawnSync("node", [CLI_PATH, "--json", "visualize", "--list"], { cwd: scratch, env, encoding: "utf8" });
       expect(result.status).toBe(0);
+      // The process table was read, so the list is not limited to what the registry records.
+      expect(JSON.parse(result.stdout)).toMatchObject({ complete: true, processScan: { available: true } });
       // Every viewer on the machine is listed; this test looks only at its own project's.
       return JSON.parse(result.stdout).viewers.filter((viewer: { projectRoot: string }) => viewer.projectRoot === root);
     };
@@ -241,7 +243,10 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
       // --stop <project> stops both and waits for them.
       const stop = spawnSync("node", [CLI_PATH, "--json", "visualize", "--stop", projectDir], { cwd: scratch, env, encoding: "utf8" });
       expect(stop.status).toBe(0);
-      const stopped = JSON.parse(stop.stdout).stopped as Array<{ viewer: { port: number; pid: number }; outcome: string }>;
+      const summary = JSON.parse(stop.stdout);
+      expect(summary).toMatchObject({ matched: 2, stopped: 2, notStopped: [], complete: true });
+      expect(summary.found).toBeGreaterThanOrEqual(2);
+      const stopped = summary.results as Array<{ viewer: { port: number; pid: number }; outcome: string }>;
       expect(stopped.map((entry) => entry.viewer.port).sort()).toEqual([opened.port, second.port].sort());
       expect(stopped.every((entry) => entry.outcome === "stopped")).toBe(true);
       // (The one this test started is collected once the event loop turns: spawnSync held it.)

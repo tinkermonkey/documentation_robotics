@@ -14,6 +14,7 @@ import { getErrorMessage } from "../utils/errors.js"
 import {
   EXIT_WITH_PARENT_ENV,
   VIEWER_STARTED_BY_ENV,
+  describeSweep,
   removeViewerRecord,
   removeViewerRecordSync,
   writeViewerRecord,
@@ -233,7 +234,9 @@ export async function visualizeCommand(
         ...(serverProcess.pid ? { serverPid: serverProcess.pid } : {}),
         startedBy,
         ...(idleExitHours > 0 ? { idleExitHours } : {}),
-      })
+      }, process.env, (swept) =>
+        logVerbose(`Removed ${describeSweep(swept)} that viewers no longer running left in the viewer registry`)
+      )
         .then((path) => logDebug(`Viewer record written: ${path}`))
         .catch((error) => logVerbose(`Could not write the viewer record: ${getErrorMessage(error)}`))
       return recordWrite

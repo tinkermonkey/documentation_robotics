@@ -185,6 +185,9 @@ describe("review_open", () => {
     const result = parse(await handler({ rootPath }));
     expect(result.reused).toBe(false);
     expect(result.url).toContain("token=new-token");
+    // The stale record went as the registry was read, and the result says so.
+    expect(result.staleRemoved).toEqual({ records: 1, startingMarkers: 0, logs: 0, tempFiles: 0 });
+    expect(parse(await handler({ rootPath }))).not.toHaveProperty("staleRemoved");
     expect(spawner.calls).toHaveLength(1);
     expect((await readViewerRecords(rootPath)).map((record) => record.pid)).toEqual([process.pid]);
   });
@@ -562,6 +565,7 @@ describe("viewerIdleHours", () => {
     expect(viewerIdleHours({ DR_VIEWER_IDLE_HOURS: "0" })).toBe(0);
     expect(viewerIdleHours({ DR_VIEWER_IDLE_HOURS: "" })).toBe(24);
     expect(viewerIdleHours({ DR_VIEWER_IDLE_HOURS: "soon" })).toBe(24);
+    expect(viewerIdleHours({ DR_VIEWER_IDLE_HOURS: "-3" })).toBe(24);
   });
 });
 

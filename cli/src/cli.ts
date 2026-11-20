@@ -700,6 +700,24 @@ Running viewers (--list, --stop):
     marks the ones that are older than this CLI.
   - Any viewer exits when its project's documentation-robotics/ folder is
     removed.
+  - --list says how many viewers it found and where. When the process table
+    cannot be read (no ps), it says that viewers the registry has lost are
+    not shown. --stop says how many were running, how many matched and how
+    many it stopped, names each one it could not stop, and exits 1 then.
+
+Time limits (environment variables, with their defaults):
+  DR_VIEWER_IDLE_HOURS=24               idle time before a review_open viewer
+                                        exits; 0 means never
+  DR_VIEWER_HEALTH_TIMEOUT_MS=1500      how long a viewer gets to answer its
+                                        health check
+  DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS=5000  the second try, before review_open
+                                        calls a viewer unreachable
+  DR_VIEWER_STOP_TIMEOUT_MS=8000        how long a viewer gets to exit before
+                                        --stop kills it
+  DR_VIEWER_LOG_KEEP_DAYS=7             how long a gone viewer's log is kept
+  DR_VIEWER_LIFETIME_CHECK_MS=30000     how often a viewer checks for idleness
+                                        and for its project folder
+  dr visualize --list --json prints the values in effect.
 
 Default mode (read-safe permissions) enables:
   - Running 'dr' CLI commands to query the architecture model

@@ -44,10 +44,12 @@ import {
   viewerUrl,
   writeViewerStarting,
   type ViewerProbe,
+  type SweepResult,
   type ViewerRecord,
   type ViewerStarting,
 } from "../../server/viewer-registry.js";
 import { isOlderViewer, stopRecordedViewer } from "../../server/viewer-control.js";
+import { viewerSetting } from "../../server/viewer-settings.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -110,16 +112,9 @@ export interface StartViewerOptions {
   token?: string;
 }
 
-/** Env var for how many hours a viewer review_open starts may sit idle before it exits (0: never). */
-export const VIEWER_IDLE_HOURS_ENV = "DR_VIEWER_IDLE_HOURS";
-const DEFAULT_IDLE_HOURS = 24;
-
-/** The idle limit, in hours, for a viewer review_open starts: DR_VIEWER_IDLE_HOURS, else 24. */
+/** The idle limit, in hours, for a viewer review_open starts: DR_VIEWER_IDLE_HOURS, else 24 (0: never). */
 export function viewerIdleHours(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = env[VIEWER_IDLE_HOURS_ENV];
-  if (raw === undefined || raw.trim() === "") return DEFAULT_IDLE_HOURS;
-  const hours = Number(raw);
-  return Number.isFinite(hours) && hours >= 0 ? hours : DEFAULT_IDLE_HOURS;
+  return viewerSetting("idleHours", env);
 }
 
 /**
@@ -321,6 +316,8 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
     /** The reused viewer is older than this CLI and was left running. */
     outdated?: boolean;
     replaced?: Replaced;
+    /** What reading the registry removed (stale records, old logs), when it removed anything. */
+    swept?: SweepResult;
   }
 
   /**
@@ -390,6 +387,11 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
     if (inFlight) return { record: await awaitReady(inFlight), reused: true };
 
     const probe = await deps.probeViewer(projectRoot);
+    const choice = await chooseViewer(projectRoot, restart, probe);
+    return probe.swept ? { ...choice, swept: probe.swept } : choice;
+  }
+
+  async function chooseViewer(projectRoot: string, restart: boolean, probe: ViewerProbe): Promise<ViewerChoice> {
     // A concurrent call may have registered a start (or a replacement) during the probe.
     const again = pending.get(projectRoot);
     if (again) return { record: await awaitReady(again), reused: true };
@@ -462,6 +464,17 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
           ? { outdated: true, cliVersion: deps.cliVersion, notice: outdatedNotice(choice.viewerCliVersion) }
           : {}),
         ...(choice.replaced ? { replaced: choice.replaced } : {}),
+        // Reading the registry cleans it; say so when it did, rather than do it unseen.
+        ...(choice.swept
+          ? {
+              staleRemoved: {
+                records: choice.swept.records,
+                startingMarkers: choice.swept.markers,
+                logs: choice.swept.logs,
+                tempFiles: choice.swept.tempFiles,
+              },
+            }
+          : {}),
       });
     });
   };
@@ -476,7 +489,8 @@ export const reviewOpenTool: McpToolDefinition<typeof inputSchema> = {
     "for the human to review. Reuses the viewer already running for this project, or starts one on a free " +
     "local port that keeps running after this session (it exits on its own after a day with no browser tab " +
     "connected). A viewer older than this CLI is replaced when review_open started it; otherwise the result " +
-    "has outdated: true and a notice to relay, and restart: true replaces it. " +
+    "has outdated: true and a notice to relay, and restart: true replaces it. staleRemoved counts what " +
+    "reading the viewer registry cleaned up (records and logs of viewers that are gone). " +
     "It returns a link, or says what holds the port; never " +
     "send the human to the CLI. Give the human the url; they comment on elements there, including ones the plan " +
     "adds (read them with annotation_list, answer with annotation_reply) and commit the changeset there when the " +
