@@ -193,6 +193,24 @@ const briefInputSchema = {
       "With sections: only these changed elements (ids), in changes, layers, gaps, acceptedGaps, unwired, intent, " +
         "codeTouched and feedback."
     ),
+  driftLimit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "The most entries of each of the drift's base-change lists (elements added, removed and changed, " +
+        "relationships added and removed) in one answer (default 50). baseChanges.counts always has the true totals."
+    ),
+  driftOffset: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      "Skip this many entries of each drift base-change list: pass the previous answer's " +
+        "drift.baseChanges.page.nextOffset. The overlapping list is always whole."
+    ),
   offset: z
     .number()
     .int()
@@ -297,7 +315,13 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
         hash = { isDrifted: false, warnings: [`Drift check failed: ${getErrorMessage(error)}`] };
       }
       try {
-        drift = await describeDrift(model, graph, hash);
+        // The drift's base-change lists page with driftLimit and driftOffset. describeDrift takes them
+        // as limit and offset once PR 1272 is on main; until then it ignores them and cuts at 50.
+        const driftPage: Parameters<typeof describeDrift>[3] & { limit?: number; offset?: number } = {
+          ...(args.driftLimit !== undefined ? { limit: args.driftLimit } : {}),
+          ...(args.driftOffset !== undefined ? { offset: args.driftOffset } : {}),
+        };
+        drift = await describeDrift(model, graph, hash, driftPage);
       } catch (error) {
         drift = {
           isDrifted: hash.isDrifted,

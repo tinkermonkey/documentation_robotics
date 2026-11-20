@@ -700,6 +700,48 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect((await brief({ since: start.revisionToken, sections: ["delta"], detail: "full" })).json.delta.elements.added).toHaveLength(45);
   });
 
+  it("names the call for the drift's next page, and says when its lists are cut without one", async () => {
+    await planLarge(5);
+    const base = await fullBrief();
+    const counts = { elementsAdded: 0, elementsRemoved: 0, elementsChanged: 120, relationshipsAdded: 0, relationshipsRemoved: 0 };
+    const changed = Array.from({ length: 50 }, (_, i) => `application.applicationfunction.moved-${i}`);
+    const withDrift = (baseChanges: Record<string, unknown>): ChangesetBrief =>
+      ({ ...base, changeset: { ...base.changeset, drift: { isDrifted: true, warnings: [], baseChanges } } }) as ChangesetBrief;
+
+    // With the drift paging of PR 1272: its page says where the next entries start, and more names the call.
+    const paged = briefSections(
+      withDrift({
+        counts,
+        elementsChanged: changed,
+        elementsRemoved: [],
+        truncated: true,
+        page: { offset: 0, limit: 50, totals: counts, returned: { ...counts, elementsChanged: 50 }, nextOffset: 50 },
+      }),
+      ["drift"],
+      { callArgs: { changeset: "large-plan" } }
+    );
+    expect(paged.drift).toBeDefined();
+    expect(paged.more).toContain(
+      `Next: changeset_brief ${JSON.stringify({ changeset: "large-plan", sections: ["drift"], driftOffset: 50 })}`
+    );
+
+    // Without it (main today): the lists are cut at 50 where they are built, and the answer says so.
+    const cut = briefSections(withDrift({ counts, elementsChanged: changed, elementsRemoved: [], truncated: true }), ["drift"]);
+    expect(cut.more).toContain("baseChanges.counts has the true totals");
+    expect(cut.more).toContain("PR 1272");
+
+    // Whole lists: nothing to say.
+    const whole = briefSections(withDrift({ counts: { ...counts, elementsChanged: 3 }, elementsChanged: changed.slice(0, 3), elementsRemoved: [], truncated: false }), ["drift"]);
+    expect(whole.more).not.toContain("base-change lists");
+
+    // The tool takes driftLimit and driftOffset today, and describes them.
+    const schema = changesetBriefTool.inputSchema as Record<string, any>;
+    expect(schema.driftLimit.description).toContain("default 50");
+    expect(schema.driftOffset.description).toContain("nextOffset");
+    const { json } = await brief({ sections: ["drift"], driftLimit: 10, driftOffset: 0 });
+    expect(json.drift.isDrifted).toBe(false);
+  });
+
   it("groups peer-pattern gaps of one type that lack the same connection", () => {
     const gap = (i: number) => ({
       kind: "peer-pattern" as const,

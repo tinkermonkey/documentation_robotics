@@ -1032,11 +1032,17 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           break;
         }
         out.drift = drift;
-        // The drift's own lists are cut where they are built, not here: say so, with the true counts beside them.
-        if (drift.baseChanges?.truncated) {
+        // The drift's base-change lists page with driftLimit and driftOffset, apart from the answer's other lists.
+        const driftPage = (drift.baseChanges as { page?: { nextOffset?: number } } | undefined)?.page;
+        if (driftPage?.nextOffset !== undefined) {
+          notes.push(
+            "The drift's base-change lists are a page (drift.baseChanges.page; baseChanges.counts has the true totals). " +
+              `Next: changeset_brief ${JSON.stringify({ ...options.callArgs, sections: names, driftOffset: driftPage.nextOffset })}.`
+          );
+        } else if (!driftPage && drift.baseChanges?.truncated) {
           notes.push(
             "The drift's base-change lists are cut where they are built (baseChanges.truncated): baseChanges.counts has " +
-              "the true totals, and this call cannot page them yet."
+              "the true totals. driftLimit and driftOffset page them once the drift paging change (PR 1272) is on main."
           );
         }
         break;
