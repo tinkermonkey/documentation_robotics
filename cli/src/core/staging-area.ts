@@ -724,7 +724,11 @@ export class StagingAreaManager {
           overlapWarning: false,
           base: options.base,
         });
-        overlaps = described.overlapping.elements.length + described.overlapping.relationships.length > 0;
+        // Something that could not be checked is never reported as no drift (review of PR 1272):
+        // every confirmation states it.
+        overlaps =
+          described.overlapping.elements.length + described.overlapping.relationships.length > 0 ||
+          described.notChecked !== undefined;
         if (hashChanged) contentFree = contentFreeSentence(described);
       }
     } catch (error) {
@@ -745,7 +749,9 @@ export class StagingAreaManager {
     const isDrifted = hashChanged || overlaps;
     if (isDrifted) {
       warnings.push(
-        overlaps
+        described?.notChecked && described.overlapping.elements.length + described.overlapping.relationships.length === 0
+          ? `Part of what this changeset stages could not be checked against the base. ${described.notChecked.sentence}`
+          : overlaps
           ? "The base model overlaps what this changeset stages"
           : "The base model changed since this changeset was created, and it has no base index to tell whether that overlaps what it stages"
       );
@@ -851,7 +857,11 @@ export class StagingAreaManager {
       const unchecked = new Set(previous?.unchecked ?? []);
       for (const id of elementsWithoutRecordedBase(changeset, (ref) => graph.resolve(ref))) {
         if (!(id in elements)) continue;
-        if (previous && id in previous.elements && !unchecked.has(id)) elements[id] = previous.elements[id];
+        // The earlier entry is kept whenever there is one, unchecked or not: it is the content seen
+        // at the first re-baseline, so a base edit after it reads as changed-in-base, however many
+        // re-baselines follow. With no earlier entry the content now is recorded, and the element is
+        // listed as unchecked, since what the change was made on is unknown.
+        if (previous && id in previous.elements) elements[id] = previous.elements[id];
         else unchecked.add(id);
       }
       const index = {

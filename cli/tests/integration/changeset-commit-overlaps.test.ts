@@ -12,6 +12,8 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
@@ -154,6 +156,26 @@ describe("dr changeset commit with no terminal attached", () => {
     const result = await runDr(["changeset", "commit", "reword-operation"], { cwd: dir });
     expect(result.exitCode).toBe(0);
     expect(await status(id)).toBe("committed");
+  });
+});
+
+describe("dr changeset commit after re-baselines of a change that records no before (review 2)", () => {
+  it("refuses with no terminal once the base edited it, and never lands it silently", async () => {
+    const change = await reword("The plan's wording");
+    delete (change as { before?: unknown }).before;
+    const id = await plan("reword-operation", [change]);
+    await rm(join(dir, "documentation-robotics", "changesets", id, "base-index.json"));
+    await (await fresh()).manager.rebaseline(id);
+
+    // Nothing moved yet: it lands nothing silently, it warns that part of it could not be checked.
+    await land(await plan("other-reword", [await reword("The base's wording")]));
+    await (await fresh()).manager.rebaseline(id);
+    await (await fresh()).manager.rebaseline(id);
+
+    const result = await runDr(["changeset", "commit", "reword-operation"], { cwd: dir });
+    expect(result.exitCode).toBe(1);
+    expect(`${result.stdout}\n${result.stderr}`).toContain("changed-in-base");
+    expect((await inBase()).description).toBe("The base's wording");
   });
 });
 

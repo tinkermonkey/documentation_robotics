@@ -190,7 +190,7 @@ export function driftLines(
           "base changes before then are not listed here.",
       ]
     : [];
-  if (!hash.isDrifted && !hash.contentFree && !drift?.isDrifted) {
+  if (!hash.isDrifted && !hash.contentFree && !drift?.isDrifted && !drift?.notChecked) {
     return ["Drift: none. The base model has not changed under this changeset.", ...rebaselined];
   }
   const lines = ["Drift: the base model changed under this changeset.", ...rebaselined];

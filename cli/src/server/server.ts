@@ -10,7 +10,7 @@ import { createAdaptorServer, type ServerType } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { existsSync, mkdirSync, realpathSync } from "fs";
 import { realpath } from "fs/promises";
 import { homedir } from "os";
@@ -653,7 +653,7 @@ export class VisualizationServer {
         return c.json({ error: "Authentication required. Please provide a valid token." }, 401);
       }
 
-      if (providedToken !== this.authToken) {
+      if (!this.isAuthToken(providedToken)) {
         return c.json({ error: "Invalid authentication token" }, 403);
       }
 
@@ -2003,7 +2003,7 @@ export class VisualizationServer {
               );
             }
 
-            if (token !== this.authToken) {
+            if (!this.isAuthToken(token)) {
               return c.json({ error: "Invalid authentication token" }, 403);
             }
 
@@ -4429,6 +4429,13 @@ export class VisualizationServer {
         console.warn(`[Watcher] Failed to send update: ${msg}`);
       }
     }
+  }
+
+  /** Whether a request's token is the server's, compared in constant time. */
+  private isAuthToken(provided: string): boolean {
+    const given = Buffer.from(provided);
+    const expected = Buffer.from(this.authToken);
+    return given.length === expected.length && timingSafeEqual(given, expected);
   }
 
   /**

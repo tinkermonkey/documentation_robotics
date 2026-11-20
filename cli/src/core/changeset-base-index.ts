@@ -818,6 +818,8 @@ export async function contentFreeDrift(model: Model, changeset: Changeset): Prom
 
 /** `contentFreeDrift`'s answer for a drift already described. */
 export function contentFreeSentence(drift: ChangesetDrift): string | undefined {
+  // What could not be checked can't be called content-free.
+  if (drift.notChecked) return undefined;
   if (drift.baseIndex !== "recorded" || !drift.baseChanges) return undefined;
   if (drift.overlapping.elements.length + drift.overlapping.relationships.length > 0) return undefined;
   const { counts } = drift.baseChanges;

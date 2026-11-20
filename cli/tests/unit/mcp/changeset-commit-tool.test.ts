@@ -422,6 +422,24 @@ describe("changeset_commit drift and edge cases", () => {
     expect(landed.drift.notChecked).toContain("Not checked:");
   });
 
+  it("never says Drift: none while something could not be checked, also with the base hash matching (review 2)", async () => {
+    // The plan's change to the goal with no `before`, no base index, then a re-baseline.
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in one step", rootPath } as any);
+    const dir = join(rootPath, "documentation-robotics", "changesets", await planId());
+    const changes = yaml.parse(await readFile(join(dir, "changes.yaml"), "utf-8"));
+    for (const change of changes) if (change.elementId === GOAL) delete change.before;
+    await writeFile(join(dir, "changes.yaml"), yaml.stringify(changes));
+    await rm(join(dir, "base-index.json"));
+    clearModelCache();
+    await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any);
+
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.summary).not.toContain("Drift: none");
+    expect(shown.summary).toContain("Not checked:");
+    expect(shown.summary).toContain(GOAL);
+  });
+
   it("accepts force, ignores it and says so", async () => {
     await overlapTheGoal();
     const c = await connect({ elicitation: true, answer: ACCEPT });

@@ -762,6 +762,34 @@ describe("a staged change that records no element it was made on (review of PR 1
     expect(described.notChecked?.sentence).toContain(FASTER);
   });
 
+  it.serial("an unchecked element is stated after every re-baseline, and a base edit after the first is caught (review 2)", async () => {
+    // The reviewer's repro: no `before`, no base index, re-baseline, edit in the base, re-baseline twice more.
+    const id = await plan("reword-faster", [await rewordWithout(FASTER, "Checkout in under a minute")]);
+    await rm(join(rootPath, "documentation-robotics", "changesets", id, BASE_INDEX_FILE));
+    await (await fresh()).manager.rebaseline(id);
+
+    // In step with the base, and still not reported as no drift: it says what it could not check.
+    let { report } = await drift(id);
+    expect(report.currentSnapshotId).toBe(report.baseSnapshotId);
+    expect(report.isDrifted).toBe(true);
+    expect(report.described?.notChecked?.elements).toEqual([FASTER]);
+    expect(report.warnings.join(" ")).toContain("could not be checked");
+
+    await land(await plan("other-reword", [await reword(FASTER, "Checkout in thirty seconds")]));
+    for (let i = 0; i < 2; i++) {
+      await (await fresh()).manager.rebaseline(id);
+      const now = await drift(id);
+      // The content recorded at the first re-baseline stays the comparison: the edit since is found.
+      expect(now.overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+      expect(now.report.isDrifted).toBe(true);
+    }
+    expect((await readBaseIndex(rootPath, id))!.unchecked).toEqual([FASTER]);
+
+    // The landing reports it.
+    const result = await commit(id);
+    expect(result.driftDetail?.overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+  });
+
   it.serial("a before that is not an element (farm sync's) is not read as a base edit", async () => {
     const id = await plan("sync", [await rewordWithout(CHEAPER, "Synced", { sourceFile: "src/costs.ts", syncSource: "codebase" })]);
     // Unedited in the base: no overlap (it used to read changed-in-base on every check).

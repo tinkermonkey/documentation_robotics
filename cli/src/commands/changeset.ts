@@ -329,12 +329,13 @@ export async function landsOverOverlaps(
   const decision = overlapDecision(total, { force: options.force, interactive });
   if (decision === "land") {
     // Nothing to ask about, but the base did move: say so, and what could not be checked.
-    if (!isJson() && (report.contentFree || report.isDrifted) && total === 0) {
-      const notChecked = report.described?.notChecked?.sentence;
+    const notChecked = report.described?.notChecked?.sentence;
+    if (!isJson() && (report.contentFree || report.isDrifted || notChecked) && total === 0) {
       console.log(
         ansis.yellow(
-          `⚠ The base model changed since this changeset was created; nothing it stages was found to overlap the change.` +
-            (notChecked ? ` ${notChecked}` : "")
+          (report.currentSnapshotId !== report.baseSnapshotId
+            ? "⚠ The base model changed since this changeset was created; nothing it stages was found to overlap the change."
+            : "⚠ Nothing this changeset stages was found to overlap the base.") + (notChecked ? ` ${notChecked}` : "")
         )
       );
     }
