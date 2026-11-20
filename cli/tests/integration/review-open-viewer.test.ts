@@ -84,7 +84,14 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     // The MCP server runs from the scratch dir, not the project.
     mcp = spawn("node", [CLI_PATH, "mcp"], {
       cwd: scratch,
-      env: { ...process.env, DR_STATE_DIR: stateDir, DR_CONFIG_PATH: join(scratch, ".dr-config.yaml") },
+      // No process scan: review_open's restart must confirm a viewer through its own /health, and
+      // nothing this test runs reads or signals the machine's other processes.
+      env: {
+        ...process.env,
+        DR_STATE_DIR: stateDir,
+        DR_CONFIG_PATH: join(scratch, ".dr-config.yaml"),
+        DR_VIEWER_PROCESS_SCAN: "off",
+      },
       stdio: ["pipe", "pipe", "pipe"],
     });
     mcp.stdout.on("data", (chunk) => (stdout += chunk.toString()));
@@ -185,7 +192,9 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
   }, 150000);
 
   it("keeps track of two viewers for one project when a third dies uncleanly (#1237)", async () => {
-    const env = { ...process.env, DR_STATE_DIR: stateDir };
+    // --list and --stop read this test's registry only, never the machine's process table: every
+    // viewer is confirmed by its own /health (its id and pids), as on a machine without ps.
+    const env = { ...process.env, DR_STATE_DIR: stateDir, DR_VIEWER_PROCESS_SCAN: "off" };
     const root = await realpath(projectDir);
     const started: ReturnType<typeof spawn>[] = [];
     /** A `dr visualize` run by hand in the project folder; resolves once it has recorded itself. */
@@ -203,11 +212,16 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
       expect(record.port).toBe(port);
       return { proc, port, serverPid: record.serverPid };
     };
-    const list = (): Array<{ projectRoot: string; port: number; pid: number; inRegistry: boolean; answering: boolean }> => {
+    const list = (): Array<{ projectRoot: string; port: number; pid: number; inRegistry: boolean; answering: boolean; confirmed: { by: string } | null }> => {
       const result = spawnSync("node", [CLI_PATH, "--json", "visualize", "--list"], { cwd: scratch, env, encoding: "utf8" });
       expect(result.status).toBe(0);
       // The process table was read, so the list is not limited to what the registry records.
-      expect(JSON.parse(result.stdout)).toMatchObject({ complete: true, processScan: { available: true } });
+      const listed = JSON.parse(result.stdout);
+      // It says what it leaves out, and claims nothing more.
+      expect(listed).not.toHaveProperty("complete");
+      expect(listed.processScan).toEqual({ available: false, why: "disabled" });
+      expect(listed.caveats).toHaveLength(1);
+      expect(listed.caveats[0]).toContain("The process scan is turned off (DR_VIEWER_PROCESS_SCAN)");
       // Every viewer on the machine is listed; this test looks only at its own project's.
       return JSON.parse(result.stdout).viewers.filter((viewer: { projectRoot: string }) => viewer.projectRoot === root);
     };
@@ -233,6 +247,8 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
       const listed = list();
       expect(listed.map((viewer) => viewer.port).sort()).toEqual([opened.port, second.port].sort());
       expect(listed.every((viewer) => viewer.inRegistry && viewer.answering)).toBe(true);
+      // Each viewer named itself on /health, which is what lets --stop signal it with no process table.
+      expect(listed.map((viewer: any) => viewer.confirmed?.by)).toEqual(["health", "health"]);
       expect(existsSync(viewerRecordPath(projectDir, third.proc.pid!, { DR_STATE_DIR: stateDir }))).toBe(false);
 
       // review_open still reuses its own viewer.
@@ -244,7 +260,7 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
       const stop = spawnSync("node", [CLI_PATH, "--json", "visualize", "--stop", projectDir], { cwd: scratch, env, encoding: "utf8" });
       expect(stop.status).toBe(0);
       const summary = JSON.parse(stop.stdout);
-      expect(summary).toMatchObject({ matched: 2, stopped: 2, notStopped: [], complete: true });
+      expect(summary).toMatchObject({ matched: 2, stopped: 2, notStopped: [], unrecordedLeft: [] });
       expect(summary.found).toBeGreaterThanOrEqual(2);
       const stopped = summary.results as Array<{ viewer: { port: number; pid: number }; outcome: string }>;
       expect(stopped.map((entry) => entry.viewer.port).sort()).toEqual([opened.port, second.port].sort());

@@ -7,9 +7,16 @@
  * them, including viewers the registry has no record of (see server/viewer-control.ts).
  *
  * Neither command passes off a partial answer as a whole one. The list says how many viewers it
- * found and where (the registry, the process table), and when the process table could not be
- * read it says that viewers the registry lost are not shown. A stop says how many viewers were
- * running, how many it was asked to stop, how many it stopped, and names each one it could not.
+ * found and where (the registry, the process table), and states what it leaves out: viewers the
+ * registry lost when the process table could not be read, processes it could not confirm to be
+ * dr's, other users' viewers, records it could not read. It never says "complete". A stop says
+ * how many viewers were running, how many it was asked to stop, how many it stopped, and names
+ * each one it did not, with why.
+ *
+ * A stop acts on the viewers this registry records. A viewer found only in the process table
+ * (another state directory's, or one whose record was lost) is stopped only with
+ * --include-unrecorded, so a session with its own state directory cannot stop the user's
+ * viewers by accident. Only pids confirmed to be a viewer's are signalled (viewer-control.ts).
  */
 
 import ansis from "ansis";
@@ -17,6 +24,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import {
   stopViewer,
+  surveyCaveats,
   surveyViewers,
   type ListRunningViewersDeps,
   type RunningViewer,
@@ -62,6 +70,7 @@ export function viewerNotes(viewer: RunningViewer, cliVersion: string = getCliVe
   else if (!viewer.answering) notes.push("does not answer");
   else if (viewer.outdated) notes.push(`older than this CLI (${cliVersion})`);
   if (viewer.idleExitHours) notes.push(`exits after ${viewer.idleExitHours}h idle`);
+  if (!viewer.confirmed) notes.push(`pid not confirmed: ${viewer.unconfirmed ?? "unknown"}`);
   return notes;
 }
 
@@ -101,19 +110,10 @@ export function surveyCounts(survey: ViewerSurvey): { total: number; inRegistry:
   return { total: survey.viewers.length, inRegistry, processOnly: survey.viewers.length - inRegistry };
 }
 
-/** Says that the list may be missing viewers, when the process table could not be read. */
-export function incompleteNote(survey: ViewerSurvey): string | null {
-  if (survey.processScan) return null;
-  return (
-    `The registry lists ${survey.viewers.length === 0 ? "no viewers" : plural(survey.viewers.length, "viewer", "viewers")}. ` +
-    "A process scan was not possible (ps is unavailable here or failed), so viewers the registry has lost are not shown."
-  );
-}
-
 /**
  * `dr visualize --list`: every running viewer, with its project, port, pid, CLI version and start
- * time; how many there are and where they were found; what reading the registry removed; and,
- * when the process table could not be read, that the list may be incomplete.
+ * time; how many there are and where they were found; what reading the registry removed; and
+ * what the list leaves out (its caveats), whenever there is something.
  */
 export async function listViewersCommand(deps: ListRunningViewersDeps & OutputDeps = {}): Promise<ViewerSurvey> {
   const log = deps.log ?? ((line: string) => console.log(line));
@@ -121,7 +121,7 @@ export async function listViewersCommand(deps: ListRunningViewersDeps & OutputDe
   const survey = await surveyViewers(deps);
   const { viewers } = survey;
   const counts = surveyCounts(survey);
-  const incomplete = incompleteNote(survey);
+  const caveats = surveyCaveats(survey);
   const ignored = ignoredViewerSettings(env);
 
   if (deps.json ?? isJson()) {
@@ -129,17 +129,18 @@ export async function listViewersCommand(deps: ListRunningViewersDeps & OutputDe
       JSON.stringify(
         {
           cliVersion: deps.cliVersion ?? getCliVersion(),
-          complete: survey.processScan,
-          processScan: survey.processScan
-            ? { available: true }
-            : { available: false, note: incomplete },
-          counts,
+          // What the list may be missing, in words; empty when nothing is known to be missing.
+          // (A viewer that is still starting and has not recorded itself is never shown.)
+          caveats,
+          processScan: survey.processScan ? { available: true } : { available: false, why: survey.processScanOff },
+          counts: { ...counts, unconfirmedCandidates: survey.candidates.length, otherUsers: survey.otherUsers },
           swept: {
             records: survey.swept.records,
             startingMarkers: survey.swept.markers,
             logs: survey.swept.logs,
             tempFiles: survey.swept.tempFiles,
             removed: survey.swept.removed,
+            unreadable: survey.swept.unreadable,
           },
           settings: viewerSettingsInEffect(env),
           viewers: viewers.map(withoutToken),
@@ -156,20 +157,24 @@ export async function listViewersCommand(deps: ListRunningViewersDeps & OutputDe
     log(formatViewerTable(viewers, deps.cliVersion));
     log("");
   }
-  if (incomplete) {
-    log(ansis.yellow(incomplete));
-  } else if (viewers.length === 0) {
-    log("No viewers are running.");
-  } else {
+  if (survey.processScan) {
     log(
-      `${plural(counts.total, "viewer", "viewers")} running: ${counts.inRegistry} in the registry, ` +
-        `${counts.processOnly} found only in the process table.`
+      viewers.length === 0
+        ? "No viewers are running."
+        : `${plural(counts.total, "viewer", "viewers")} running: ${counts.inRegistry} in the registry, ` +
+            `${counts.processOnly} found only in the process table.`
     );
   }
+  for (const caveat of caveats) log(ansis.yellow(caveat));
   const removed = describeSweep(survey.swept);
   if (removed) log(`Removed ${removed} from the registry.`);
   if (viewers.length > 0) {
-    log(ansis.dim("Stop one with `dr visualize --stop <project>` (or `--stop --port <n>`), all with `dr visualize --stop --all`."));
+    log(
+      ansis.dim(
+        "Stop one with `dr visualize --stop <project>` (or `--stop --port <n>`), all with `dr visualize --stop --all`. " +
+          "A viewer that is not in the registry is stopped only with `--include-unrecorded`."
+      )
+    );
   }
   return survey;
 }
@@ -180,6 +185,11 @@ export interface StopViewersOptions {
   all?: boolean;
   /** Only the viewer on this port. */
   port?: string | number;
+  /**
+   * Also stop viewers found only in the process table: ones this registry has no record of
+   * (another state directory's, or lost by an older CLI). Without it they are named and left.
+   */
+  includeUnrecorded?: boolean;
   /** Where to look for the current project (default: the working directory). */
   cwd?: string;
 }
@@ -197,14 +207,18 @@ export interface StopSummary {
   matched: number;
   /** Of those, how many were stopped (or had already exited). */
   stopped: number;
-  /** Each one that is still running, with why. */
+  /** Each one it signalled or tried to and that is still running, with why. */
   notStopped: StoppedViewer[];
-  /** Every matched viewer with what happened to it. */
+  /** Matched viewers that are not in this registry and were left because --include-unrecorded was not given. */
+  unrecordedLeft: ListedViewer[];
+  /** Every viewer it acted on, with what happened to it. */
   results: StoppedViewer[];
   /** Running viewers whose project could not be worked out, so a stop by project could not consider them. */
   unknownProject: ListedViewer[];
   /** Whether the process table could be read; false means viewers the registry lost were not seen. */
   processScan: boolean;
+  /** What the survey behind this stop leaves out, in words. */
+  caveats: string[];
 }
 
 const OUTCOME_TEXT: Record<StopOutcome, string> = {
@@ -212,7 +226,7 @@ const OUTCOME_TEXT: Record<StopOutcome, string> = {
   "force-killed": "Stopped (it did not exit in time and was killed)",
   "not-running": "Already gone:",
   "not-permitted": "Could not stop (it belongs to another user):",
-  unverified: "Left alone (its pid could not be confirmed to be a viewer):",
+  unverified: "Left alone (its pid could not be confirmed to be this viewer):",
 };
 
 const NOT_STOPPED: ReadonlySet<StopOutcome> = new Set<StopOutcome>(["not-permitted", "unverified"]);
@@ -254,10 +268,12 @@ function where(viewer: ListedViewer): string {
 }
 
 /**
- * `dr visualize --stop [project] [--all] [--port n]`: stops the viewers of the current or named
- * project, the one on a port, or all of them, and waits for each to exit. Says how many viewers
- * were running, how many it was asked to stop and how many it stopped, and names each one it
- * could not stop. Throws (exit 1) when any is still running.
+ * `dr visualize --stop [project] [--all] [--port n] [--include-unrecorded]`: stops the viewers of
+ * the current or named project, the one on a port, or all of them, and waits for each to exit.
+ * Acts on the viewers this registry records; ones found only in the process table are named and
+ * left unless --include-unrecorded is given. Says how many viewers were running, how many
+ * matched and how many it stopped, and names each one it did not stop, with why. Throws (exit 1)
+ * when a matched viewer is still running.
  */
 export async function stopViewersCommand(
   options: StopViewersOptions,
@@ -266,9 +282,12 @@ export async function stopViewersCommand(
   const log = deps.log ?? ((line: string) => console.log(line));
   const survey = await surveyViewers(deps);
   const { viewers } = survey;
-  const selected = await selectViewersToStop(viewers, options);
+  const matched = await selectViewersToStop(viewers, options);
+  const toStop = matched.filter((viewer) => viewer.inRegistry || options.includeUnrecorded);
+  const unrecordedLeft = matched.filter((viewer) => !viewer.inRegistry && !options.includeUnrecorded).map(withoutToken);
+
   const results: StoppedViewer[] = [];
-  for (const viewer of selected) {
+  for (const viewer of toStop) {
     const outcome = await stopViewer(viewer, { env: deps.env, ...deps.stop });
     results.push({ viewer: withoutToken(viewer), outcome });
   }
@@ -276,46 +295,64 @@ export async function stopViewersCommand(
   // A stop by project cannot match a viewer whose project is unknown: say so rather than skip it unseen.
   const byProject = !options.all && (options.project !== undefined || options.port === undefined);
   const unknownProject = byProject ? viewers.filter((viewer) => viewer.projectRoot === null).map(withoutToken) : [];
+  const caveats = surveyCaveats(survey);
   const summary: StopSummary = {
     found: viewers.length,
-    matched: selected.length,
+    matched: matched.length,
     stopped: results.length - notStopped.length,
     notStopped,
+    unrecordedLeft,
     results,
     unknownProject,
     processScan: survey.processScan,
+    caveats,
   };
-  const incomplete = incompleteNote(survey);
 
+  const pids = (list: ListedViewer[]) => list.map((viewer) => `pid ${viewer.pid ?? viewer.serverPid}, port ${viewer.port ?? "?"}`).join("; ");
   if (deps.json ?? isJson()) {
-    log(JSON.stringify({ ...summary, complete: survey.processScan, ...(incomplete ? { note: incomplete } : {}) }, null, 2));
+    log(JSON.stringify(summary, null, 2));
   } else {
     for (const { viewer, outcome } of results) {
       const done = outcome === "stopped" || outcome === "force-killed";
-      const text = `${OUTCOME_TEXT[outcome]} ${done ? "the viewer for " : ""}${where(viewer)}`;
+      const reason = outcome === "unverified" && viewer.unconfirmed ? ` (${viewer.unconfirmed})` : "";
+      const text = `${OUTCOME_TEXT[outcome]} ${done ? "the viewer for " : ""}${where(viewer)}${reason}`;
       log(done ? ansis.green(`✓ ${text}`) : ansis.yellow(text));
     }
+    const left = notStopped.length + unrecordedLeft.length;
     log(
       `${plural(summary.found, "viewer was", "viewers were")} running; ${summary.matched} matched; ${summary.stopped} stopped` +
-        (notStopped.length > 0 ? `; ${notStopped.length} not stopped.` : ".")
+        (left > 0 ? `; ${left} not stopped.` : ".")
     );
+    if (unrecordedLeft.length > 0) {
+      log(
+        ansis.yellow(
+          `${plural(unrecordedLeft.length, "matching viewer is", "matching viewers are")} not in this registry ` +
+            `(${pids(unrecordedLeft)}) and ${unrecordedLeft.length === 1 ? "was" : "were"} left running: ` +
+            "another state directory may have started them. Add `--include-unrecorded` to stop them too."
+        )
+      );
+    }
     if (unknownProject.length > 0) {
       log(
         ansis.yellow(
           `${plural(unknownProject.length, "running viewer has", "running viewers have")} a project that could not be worked out ` +
-            `(${unknownProject.map((viewer) => `pid ${viewer.pid ?? viewer.serverPid}`).join(", ")}) and ` +
-            "could not be matched by project. Stop by `--port <n>` or `--all`; `dr visualize --list` shows them."
+            `(${pids(unknownProject)}) and could not be matched by project. ` +
+            "Stop by `--port <n>` or `--all`; `dr visualize --list` shows them."
         )
       );
     }
-    if (incomplete) log(ansis.yellow(incomplete));
+    for (const caveat of caveats) log(ansis.yellow(caveat));
   }
 
-  if (notStopped.length > 0) {
-    throw new CLIError(
-      `${plural(notStopped.length, "viewer is", "viewers are")} still running: ` +
-        notStopped.map(({ viewer, outcome }) => `${where(viewer)}: ${outcome === "not-permitted" ? "belongs to another user" : "pid not confirmed to be a viewer"}`).join("; ")
-    );
+  if (notStopped.length + unrecordedLeft.length > 0) {
+    const parts = [
+      ...notStopped.map(
+        ({ viewer, outcome }) =>
+          `${where(viewer)}: ${outcome === "not-permitted" ? "belongs to another user" : `pid not confirmed to be this viewer${viewer.unconfirmed ? ` (${viewer.unconfirmed})` : ""}`}`
+      ),
+      ...unrecordedLeft.map((viewer) => `${where(viewer)}: not in this registry (add --include-unrecorded)`),
+    ];
+    throw new CLIError(`${plural(parts.length, "matching viewer is", "matching viewers are")} still running: ${parts.join("; ")}`);
   }
   return summary;
 }

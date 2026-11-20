@@ -660,6 +660,20 @@ paths:
                   cliVersion:
                     type: string
                     description: Version of the dr CLI that is serving this API, e.g. "0.5.0"
+                  pid:
+                    type: integer
+                    description: Process id of the server
+                  launcherPid:
+                    type: integer
+                    description: Process id of the `dr visualize` process that runs the server
+                  viewerId:
+                    type: string
+                    description:
+                      Id of this viewer, as its record in the user's viewer registry has
+                      it
+                  clients:
+                    type: integer
+                    description: Browser tabs connected now (WebSocket clients)
                 required:
                   - status
                   - version

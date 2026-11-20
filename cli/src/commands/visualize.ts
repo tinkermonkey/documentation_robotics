@@ -4,6 +4,7 @@
 
 import ansis from "ansis"
 import { spawn } from "child_process"
+import { randomUUID } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import { dirname } from "node:path"
 import { Model } from "../core/model.js"
@@ -15,6 +16,7 @@ import {
   EXIT_WITH_PARENT_ENV,
   VIEWER_STARTED_BY_ENV,
   describeSweep,
+  describeUnreadable,
   removeViewerRecord,
   removeViewerRecordSync,
   writeViewerRecord,
@@ -115,6 +117,9 @@ export async function visualizeCommand(
     const idleExitHours = parseIdleExitHours(options.idleExit)
     const exitWithParent = options.exitWithParent || process.env[EXIT_WITH_PARENT_ENV] === "1"
     const startedBy = process.env[VIEWER_STARTED_BY_ENV] === "review_open" ? "review_open" : "cli"
+    // This viewer's id: in its registry record and on its server's /health, so a reader can tell
+    // this viewer from another one that later holds its port or its pid.
+    const viewerId = randomUUID()
 
     // Find an available port starting from the requested port
     port = await findAvailablePort(port)
@@ -171,6 +176,7 @@ export async function visualizeCommand(
       DR_WITH_DANGER: String(withDanger),
       DR_WITH_CHANGESETS: String(withChangesets),
       DR_VIEWER_IDLE_EXIT_HOURS: String(idleExitHours),
+      DR_VIEWER_ID: viewerId,
     }
 
     // Pass debug/verbose flags to subprocess
@@ -230,12 +236,20 @@ export async function visualizeCommand(
         projectRoot,
         startedAt: new Date().toISOString(),
         withChangesets,
+        viewerId,
         cliVersion: getCliVersion(),
         ...(serverProcess.pid ? { serverPid: serverProcess.pid } : {}),
         startedBy,
         ...(idleExitHours > 0 ? { idleExitHours } : {}),
       }, process.env, (swept) =>
-        logVerbose(`Removed ${describeSweep(swept)} that viewers no longer running left in the viewer registry`)
+        logVerbose(
+          [
+            describeSweep(swept) && `Removed ${describeSweep(swept)} that viewers no longer running left in the viewer registry.`,
+            describeUnreadable(swept),
+          ]
+            .filter(Boolean)
+            .join(" ")
+        )
       )
         .then((path) => logDebug(`Viewer record written: ${path}`))
         .catch((error) => logVerbose(`Could not write the viewer record: ${getErrorMessage(error)}`))

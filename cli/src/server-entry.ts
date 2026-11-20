@@ -23,6 +23,10 @@ const authToken =
 const withDanger = process.env.DR_WITH_DANGER === "true";
 const withChangesets = process.env.DR_WITH_CHANGESETS === "true";
 const viewerPath = process.env.DR_VIEWER_PATH;
+// This viewer's id (the launcher puts the same one in its registry record)
+const viewerId = process.env.DR_VIEWER_ID || undefined;
+// The launcher: this process's parent when it starts
+const launcherPid = process.ppid > 1 ? process.ppid : undefined;
 // Hours without a browser tab or a request after which the server ends (dr visualize --idle-exit)
 const idleExitHours = Number(process.env.DR_VIEWER_IDLE_EXIT_HOURS);
 
@@ -79,6 +83,8 @@ async function main() {
       withDanger,
       withChangesets,
       viewerPath,
+      viewerId,
+      launcherPid,
     });
     serverInstance = server; // Store for signal handlers
     await server.start(port);

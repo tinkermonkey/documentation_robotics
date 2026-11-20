@@ -670,6 +670,10 @@ program
     "Stop the viewers of a project (default: the current one) and exit; with --port, the one on that port"
   )
   .option("--all", "With --stop: stop every running viewer")
+  .option(
+    "--include-unrecorded",
+    "With --stop: also stop viewers that are not in the registry (found only in the process table)"
+  )
   .addHelpText(
     "after",
     `
@@ -687,6 +691,7 @@ Examples:
   $ dr visualize --stop ../other-project
   $ dr visualize --stop --port 8084
   $ dr visualize --stop --all
+  $ dr visualize --stop --all --include-unrecorded
 
 Running viewers (--list, --stop):
   - A viewer keeps running until it is stopped: Ctrl-C in its terminal, or
@@ -700,10 +705,17 @@ Running viewers (--list, --stop):
     marks the ones that are older than this CLI.
   - Any viewer exits when its project's documentation-robotics/ folder is
     removed.
-  - --list says how many viewers it found and where. When the process table
-    cannot be read (no ps), it says that viewers the registry has lost are
-    not shown. --stop says how many were running, how many matched and how
-    many it stopped, names each one it could not stop, and exits 1 then.
+  - --list says how many viewers it found and where, and what it leaves out:
+    viewers the registry has lost when the process table cannot be read (no
+    ps, or DR_VIEWER_PROCESS_SCAN=off), processes it could not confirm to be
+    dr's, other users' viewers, records it could not read.
+  - --stop acts on the viewers this registry records. One that is found only
+    in the process table (its record was lost, or another state directory
+    started it) is named and left, unless --include-unrecorded is given.
+    Only your own viewers are ever stopped, and only a pid that is confirmed
+    to be the viewer's: by the viewer itself, or by the process table.
+  - --stop says how many were running, how many matched and how many it
+    stopped, names each one it did not stop with why, and exits 1 then.
 
 Time limits (environment variables, with their defaults):
   DR_VIEWER_IDLE_HOURS=24               idle time before a review_open viewer
@@ -717,7 +729,13 @@ Time limits (environment variables, with their defaults):
   DR_VIEWER_LOG_KEEP_DAYS=7             how long a gone viewer's log is kept
   DR_VIEWER_LIFETIME_CHECK_MS=30000     how often a viewer checks for idleness
                                         and for its project folder
-  dr visualize --list --json prints the values in effect.
+  DR_VIEWER_PROCESS_SCAN=on             off: --list and --stop use the registry
+                                        alone and never read the process table
+  dr visualize --list --json prints the values in effect. A number that
+  cannot be used (negative, not a plain decimal) is reported and the default
+  is used. DR_VIEWER_IDLE_HOURS is read by the dr mcp server when review_open
+  starts a viewer, not by a viewer that is already running. Idle time is
+  wall-clock time: hours the machine sleeps count for a viewer with no tab.
 
 Default mode (read-safe permissions) enables:
   - Running 'dr' CLI commands to query the architecture model
@@ -752,13 +770,16 @@ The --viewer-path option allows loading a local build of the web UI:
           project: typeof options.stop === "string" ? options.stop : undefined,
           all: options.all === true,
           port: options.port,
+          includeUnrecorded: options.includeUnrecorded === true,
         });
       }
       return;
     }
-    if (options.all) {
+    if (options.all || options.includeUnrecorded) {
       const { CLIError } = await import("./utils/errors.js");
-      throw new CLIError("--all goes with --stop: dr visualize --stop --all");
+      throw new CLIError(
+        `${options.all ? "--all" : "--include-unrecorded"} goes with --stop: dr visualize --stop ${options.all ? "--all" : "--include-unrecorded"}`
+      );
     }
     const { visualizeCommand } = await import("./commands/visualize.js");
     await visualizeCommand({

@@ -966,7 +966,8 @@ describe("project_status viewer and indexing sections", () => {
     await initModel(rootPath);
     server = createServer((req, res) => {
       res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify({ status: req.url === "/health" ? "ok" : "no" }));
+      // The viewer names itself on /health; its record carries the same id (#1237).
+      res.end(JSON.stringify({ status: req.url === "/health" ? "ok" : "no", viewerId: "viewer-1" }));
     });
     await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", () => resolve()));
     const port = (server.address() as { port: number }).port;
@@ -977,6 +978,7 @@ describe("project_status viewer and indexing sections", () => {
       projectRoot: realpathSync(rootPath),
       startedAt: "2026-11-10T00:00:00Z",
       withChangesets: true,
+      viewerId: "viewer-1",
     });
 
     const s = await status(rootPath);

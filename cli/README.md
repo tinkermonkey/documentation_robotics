@@ -537,22 +537,34 @@ nothing on screen says it is there:
 - `dr visualize --list` shows all of them, including viewers the registry has no record of (it also reads
   the process table). `--json` gives the list to a script. A viewer keeps the code it started with, so after a
   CLI upgrade the list marks the ones that are older than the installed CLI.
-- `dr visualize --stop` stops viewers and waits for each to exit.
-- A `review_open` viewer exits on its own after 24 hours with no browser tab connected and no request; an
-  open tab keeps it alive. `DR_VIEWER_IDLE_HOURS` changes the period, and `0` means never. `--idle-exit <hours>`
-  gives any `dr visualize` the same limit.
+- `dr visualize --stop` stops viewers and waits for each to exit. It acts on the viewers this registry
+  records. A viewer found only in the process table (its record was lost, or a session with another
+  `DR_STATE_DIR` started it) is named and left running unless you add `--include-unrecorded`.
+- `--stop` signals a process only when it is confirmed to be the viewer: the viewer names itself on
+  `/health` (its id, its pid and its launcher's), or the process table shows the recorded pid started before
+  its record, runs `visualize`, and has a server under it whose script is the dr CLI's. Anything else (a pid
+  that may have been reused, another program's `dist/server-entry.js`, another user's viewer) is reported
+  and left alone.
+- A `review_open` viewer exits on its own after 24 hours with no browser tab connected and no authenticated
+  API request; an open tab keeps it alive. Idle time is wall-clock time, so hours the machine sleeps count
+  for a viewer with no tab open. `DR_VIEWER_IDLE_HOURS` changes the period, and `0` means never; the `dr mcp`
+  server reads it when `review_open` starts a viewer, so a change applies to viewers started after it.
+  `--idle-exit <hours>` gives any `dr visualize` the same limit.
+- `review_open` replaces a viewer older than the CLI only when `review_open` started it and it reports no
+  browser tab connected. Otherwise it returns the link with a notice, and `restart: true` replaces it.
 - Any viewer exits when its project's `documentation-robotics/` folder is removed.
 - `--exit-with-parent` makes `dr visualize` exit when the process that started it is gone, for scripts and
   test runs that must not leave a server behind.
 
 Neither command gives a partial answer as if it were whole:
 
-- `--list` ends with how many viewers it found and where (the registry, the process table), and what reading
-  the registry removed (stale records, old logs), with counts. Where the process table cannot be read (no
-  `ps`), it says that viewers the registry has lost are not shown. `--json` carries the same as `complete`,
-  `processScan`, `counts` and `swept`.
+- `--list` ends with how many viewers it found and where (the registry, the process table), what reading the
+  registry removed (stale records, old logs), and what it leaves out: viewers the registry has lost when the
+  process table cannot be read (no `ps`, or `DR_VIEWER_PROCESS_SCAN=off`), processes it could not confirm to
+  be dr's, other users' viewers, and registry records it could not read (left in place). `--json` carries the
+  same as `caveats`, `processScan`, `counts` and `swept`. It never claims to be complete.
 - `--stop` ends with how many viewers were running, how many matched and how many it stopped. It names each
-  one it could not stop, with its pid and why, and exits 1 when any is still running.
+  one it did not stop, with its pid and why, and exits 1 when any matching viewer is still running.
 
 **Time limits** are settings, each with a default and an environment variable. `dr visualize --list --json`
 prints the values in effect (`settings`), and a value that cannot be used is reported instead of being
@@ -566,6 +578,9 @@ replaced quietly.
 | `DR_VIEWER_STOP_TIMEOUT_MS`         | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
 | `DR_VIEWER_LOG_KEEP_DAYS`           | 7       | How long the log of a viewer that is gone is kept.                                        |
 | `DR_VIEWER_LIFETIME_CHECK_MS`       | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
+
+`DR_VIEWER_PROCESS_SCAN=off` makes `--list` and `--stop` use the registry alone and never read the process
+table; they say so.
 
 **Custom Viewer Path**:
 

@@ -68,10 +68,14 @@ export const VIEWER_SETTINGS = {
 
 export type ViewerSettingName = keyof typeof VIEWER_SETTINGS;
 
+/** A plain decimal number: no sign, exponent, hex or "Infinity", which Number() would take. */
+const DECIMAL = /^\d+(?:\.\d+)?$/;
+
 function parse(spec: ViewerSettingSpec, raw: string | undefined): { value: number; valid: boolean } {
   if (raw === undefined || raw.trim() === "") return { value: spec.default, valid: true };
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < spec.min) return { value: spec.default, valid: false };
+  const text = raw.trim();
+  const value = Number(text);
+  if (!DECIMAL.test(text) || !Number.isFinite(value) || value < spec.min) return { value: spec.default, valid: false };
   return { value, valid: true };
 }
 

@@ -141,6 +141,53 @@ describe("VisualizationServer.getActivity", () => {
       await rm(rootPath, { recursive: true, force: true });
     }
   });
+
+  it("does not count a refused request, a page load or a health check as use; an authenticated one counts", async () => {
+    const dir = join(tmpdir(), `dr-viewer-activity-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    await mkdir(dir, { recursive: true });
+    const rootPath = await realpath(dir);
+    await Model.init(rootPath, { name: "Activity Test", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    const server = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
+      authEnabled: true,
+      authToken: "secret",
+    });
+    try {
+      const app = (server as any).app;
+      const started = server.getActivity().lastActivityAt;
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      // Anything polling the port: no token, a wrong token, the page, the health check.
+      expect((await app.request("/api/model")).status).toBe(401);
+      expect((await app.request("/api/model", { headers: { Authorization: "Bearer wrong" } })).status).toBe(403);
+      await app.request("/");
+      await app.request("/health");
+      expect(server.getActivity().lastActivityAt).toBe(started);
+
+      await app.request("/api/model", { headers: { Authorization: "Bearer secret" } });
+      expect(server.getActivity().lastActivityAt).toBeGreaterThan(started);
+    } finally {
+      server.stop();
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  it("names itself, its pids and its connected tabs on /health", async () => {
+    const dir = join(tmpdir(), `dr-viewer-health-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    await mkdir(dir, { recursive: true });
+    const rootPath = await realpath(dir);
+    await Model.init(rootPath, { name: "Health Test", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    const server = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
+      authEnabled: false,
+      viewerId: "viewer-xyz",
+      launcherPid: 4242,
+    });
+    try {
+      const body = await ((await (server as any).app.request("/health")) as Response).json();
+      expect(body).toMatchObject({ status: "ok", viewerId: "viewer-xyz", pid: process.pid, launcherPid: 4242, clients: 0 });
+    } finally {
+      server.stop();
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("watchParent", () => {

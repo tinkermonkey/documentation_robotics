@@ -31,6 +31,7 @@ import {
   type ViewerRecord,
 } from "../../../src/server/viewer-registry.js";
 import { getCliVersion } from "../../../src/utils/spec-version.js";
+import type { StopRecordedResult } from "../../../src/server/viewer-control.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -41,11 +42,29 @@ let rootPath: string;
 let savedStateDir: string | undefined;
 const servers: Server[] = [];
 
-/** A stand-in viewer: answers /health on a real port, as a viewer on this CLI's version unless told otherwise. */
-async function fakeViewerServer(cliVersion: string | null = getCliVersion()): Promise<number> {
+/** What a stand-in viewer says about itself on /health besides its version (since 0.7.0). */
+interface FakeIdentity {
+  viewerId?: string;
+  clients?: number;
+}
+
+/**
+ * A stand-in viewer: answers /health on a real port, as a viewer on this CLI's version unless told
+ * otherwise. It names itself (viewerId, its pid and its launcher's: this test process) as a 0.7.0
+ * viewer does; without a viewerId it answers as an older one, which names nothing.
+ */
+async function fakeViewerServer(cliVersion: string | null = getCliVersion(), identity: FakeIdentity = {}): Promise<number> {
   const server = createServer((req, res) => {
     res.writeHead(req.url === "/health" ? 200 : 404, { "content-type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", version: "0.1.0", ...(cliVersion ? { cliVersion } : {}) }));
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        version: "0.1.0",
+        ...(cliVersion ? { cliVersion } : {}),
+        ...(identity.viewerId ? { viewerId: identity.viewerId, pid: process.pid, launcherPid: process.pid } : {}),
+        ...(identity.clients !== undefined ? { clients: identity.clients } : {}),
+      })
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   servers.push(server);
@@ -61,7 +80,8 @@ function fakeSpawner(token: string | null = "tok-123") {
   const startViewer = async (projectRoot: string, startOptions: StartViewerOptions = {}): Promise<StartedViewer> => {
     calls.push(projectRoot);
     options.push(startOptions);
-    const port = await fakeViewerServer();
+    const viewerId = `started-${calls.length}`;
+    const port = await fakeViewerServer(getCliVersion(), { viewerId, clients: 0 });
     // dr visualize writes its record a little after it starts.
     setTimeout(() => {
       void writeViewerRecord({
@@ -71,6 +91,7 @@ function fakeSpawner(token: string | null = "tok-123") {
         projectRoot,
         startedAt: new Date().toISOString(),
         withChangesets: true,
+        viewerId,
         cliVersion: getCliVersion(),
         startedBy: "review_open",
       });
@@ -80,12 +101,17 @@ function fakeSpawner(token: string | null = "tok-123") {
   return { calls, options, startViewer };
 }
 
-/** A viewer already running for the project: a health server on `cliVersion` and its record. */
+/**
+ * A viewer already running for the project: a health server on `cliVersion` and its record. It
+ * names itself and says no tab is connected, as a 0.7.0 viewer does, unless `identity` says
+ * otherwise (`{}`: an older viewer, which reports neither, and a record without an id).
+ */
 async function runningViewer(
   cliVersion: string | null,
-  overrides: Partial<ViewerRecord> = {}
+  overrides: Partial<ViewerRecord> = {},
+  identity: FakeIdentity = { viewerId: "running-1", clients: 0 }
 ): Promise<{ record: ViewerRecord; server: Server }> {
-  const port = await fakeViewerServer(cliVersion);
+  const port = await fakeViewerServer(cliVersion, identity);
   const server = servers[servers.length - 1];
   const record: ViewerRecord = {
     pid: process.pid,
@@ -94,6 +120,7 @@ async function runningViewer(
     projectRoot: await realpath(rootPath),
     startedAt: new Date().toISOString(),
     withChangesets: true,
+    ...(identity.viewerId ? { viewerId: identity.viewerId } : {}),
     ...overrides,
   };
   await writeViewerRecord(record);
@@ -103,10 +130,11 @@ async function runningViewer(
 /** A stopViewer that ends the stand-in viewer: closes its server and removes its record. */
 function fakeStopper(server: Server) {
   const stopped: ViewerRecord[] = [];
-  const stopViewer = async (record: ViewerRecord): Promise<void> => {
+  const stopViewer = async (record: ViewerRecord): Promise<StopRecordedResult> => {
     stopped.push(record);
     await new Promise((resolve) => server.close(resolve));
     await removeViewerRecord(record.projectRoot, { pid: record.pid });
+    return { outcome: "stopped" };
   };
   return { stopped, stopViewer };
 }
@@ -362,7 +390,7 @@ describe("review_open", () => {
     expect(spawns).toBe(1);
 
     // Once it has loaded and recorded itself, the next call gets the link.
-    const port = await fakeViewerServer();
+    const port = await fakeViewerServer(getCliVersion(), { viewerId: "slow-1", clients: 0 });
     await writeViewerRecord({
       pid: process.pid,
       port,
@@ -370,6 +398,7 @@ describe("review_open", () => {
       projectRoot: rootPath,
       startedAt: new Date().toISOString(),
       withChangesets: true,
+      viewerId: "slow-1",
     });
     const ready = parse(await handler({ rootPath }));
     expect(ready).toMatchObject({ reused: true, port });
@@ -414,11 +443,15 @@ describe("review_open", () => {
       stopViewer: async (record) => {
         stopped.push(record);
         await removeViewerRecord(record.projectRoot, { pid: record.pid });
+        return { outcome: "stopped" as const };
       },
       pollMs: 10,
     });
     const replaced = parse(await restarting({ rootPath, restart: true }));
-    expect(replaced).toMatchObject({ reused: false, replaced: { pid: process.pid, port: closedPort, reason: "restart" } });
+    expect(replaced).toMatchObject({
+      reused: false,
+      replaced: { pid: process.pid, port: closedPort, reason: "restart", stopped: true },
+    });
     expect(stopped.map((record) => record.port)).toEqual([closedPort]);
     expect(spawner.options).toEqual([{ port: closedPort, token: "tok" }]);
   });
@@ -452,7 +485,7 @@ describe("review_open and a viewer older than this CLI (#1237)", () => {
 
     const result = parse(await handler({ rootPath }));
     expect(result.reused).toBe(false);
-    expect(result.replaced).toEqual({ pid: record.pid, port: record.port, cliVersion: "0.1.0", reason: "older" });
+    expect(result.replaced).toEqual({ pid: record.pid, port: record.port, cliVersion: "0.1.0", reason: "older", stopped: true });
     // The old one was stopped before the new one started, which was given its port and token.
     expect(stopper.stopped.map((stopped) => stopped.serverPid)).toEqual([4321]);
     expect(spawner.options).toEqual([{ port: record.port, token: "old-token" }]);
@@ -497,8 +530,10 @@ describe("review_open and a viewer older than this CLI (#1237)", () => {
 
   it("counts a viewer that reports no version (before 0.6.0) as older", async () => {
     await changesetCreateHandler({ name: "export-orders", rootPath });
-    await runningViewer(null);
-    const handler = createReviewOpenHandler({ startViewer: fakeSpawner().startViewer, cliVersion: "0.7.0", pollMs: 10 });
+    // A viewer that old names nothing about itself; its pid (this test process) is taken on trust for a link only.
+    const probe = (root: string) => probeViewer(root, { looksLikeViewer: () => true });
+    await runningViewer(null, {}, {});
+    const handler = createReviewOpenHandler({ startViewer: fakeSpawner().startViewer, probeViewer: probe, cliVersion: "0.7.0", pollMs: 10 });
     const result = parse(await handler({ rootPath }));
     expect(result.outdated).toBe(true);
     expect(result).not.toHaveProperty("viewerCliVersion");
@@ -555,6 +590,115 @@ describe("review_open and a viewer older than this CLI (#1237)", () => {
     expect(parse(a).port).toBe(parse(b).port);
     expect(stopper.stopped).toHaveLength(1);
     expect(spawner.calls).toHaveLength(1);
+  });
+});
+
+describe("review_open replaces only what it may (#1271 review)", () => {
+  it("leaves an older viewer it started when a browser tab is connected, and says so", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const { record, server } = await runningViewer("0.1.0", { startedBy: "review_open" }, { viewerId: "with-tab", clients: 1 });
+    const spawner = fakeSpawner();
+    const stopper = fakeStopper(server);
+    const handler = createReviewOpenHandler({ startViewer: spawner.startViewer, stopViewer: stopper.stopViewer, pollMs: 10 });
+    const result = parse(await handler({ rootPath }));
+    expect(result).toMatchObject({ reused: true, port: record.port, outdated: true, viewerClients: 1 });
+    expect(result.notice).toContain("A browser tab is connected to it.");
+    expect(stopper.stopped).toHaveLength(0);
+    expect(spawner.calls).toHaveLength(0);
+  });
+
+  it("leaves an older viewer it started that does not say how many tabs it has (before 0.7.0)", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const { server } = await runningViewer("0.6.0", { startedBy: "review_open" }, {});
+    const spawner = fakeSpawner();
+    const stopper = fakeStopper(server);
+    const probe = (root: string) => probeViewer(root, { looksLikeViewer: () => true });
+    const handler = createReviewOpenHandler({
+      startViewer: spawner.startViewer,
+      stopViewer: stopper.stopViewer,
+      probeViewer: probe,
+      cliVersion: "0.7.0",
+      pollMs: 10,
+    });
+    const result = parse(await handler({ rootPath }));
+    expect(result).toMatchObject({ reused: true, outdated: true });
+    expect(result).not.toHaveProperty("viewerClients");
+    expect(stopper.stopped).toHaveLength(0);
+  });
+
+  it("gives the link and the notice when an older viewer it would replace cannot be confirmed, and starts no second one", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const { record } = await runningViewer("0.1.0", { startedBy: "review_open" });
+    const spawner = fakeSpawner();
+    const handler = createReviewOpenHandler({
+      startViewer: spawner.startViewer,
+      stopViewer: async () => ({ outcome: "unverified", reason: "it does not answer, and there is no process table to check its pid against" }),
+      pollMs: 10,
+    });
+    const result = parse(await handler({ rootPath }));
+    expect(result).toMatchObject({ reused: true, port: record.port, outdated: true });
+    expect(spawner.calls).toHaveLength(0);
+  });
+
+  it("restart: true fails, signals nothing more and starts nothing, when the viewer cannot be confirmed or is another user's", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    await runningViewer("0.7.0", { startedBy: "cli" });
+    const spawner = fakeSpawner();
+    for (const stop of [
+      { outcome: "unverified" as const, reason: "its pid has no dr viewer server under it" },
+      { outcome: "not-permitted" as const },
+    ]) {
+      const handler = createReviewOpenHandler({ startViewer: spawner.startViewer, stopViewer: async () => stop, pollMs: 10 });
+      const result = await handler({ rootPath, restart: true });
+      expect(result.isError).toBe(true);
+      const error = parse(result).error as string;
+      expect(error).toContain("was not replaced");
+      if (stop.outcome === "unverified") expect(error).toContain("its pid has no dr viewer server under it");
+    }
+    expect(spawner.calls).toHaveLength(0);
+    // The viewer and its record are as they were.
+    expect(await readViewerRecords(rootPath)).toHaveLength(1);
+  });
+
+  it("restart: true on a viewer that does not answer and cannot be confirmed drops its record without signalling it", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const closedPort = await fakeViewerServer();
+    servers.pop()!.close();
+    await writeViewerRecord({
+      pid: process.pid,
+      port: closedPort,
+      token: "tok",
+      projectRoot: rootPath,
+      startedAt: new Date().toISOString(),
+      withChangesets: true,
+    });
+    const spawner = fakeSpawner();
+    const stuckViewer = (root: string) => probeViewer(root, { looksLikeViewer: () => true, retryTimeoutMs: 200 });
+    const handler = createReviewOpenHandler({
+      startViewer: spawner.startViewer,
+      probeViewer: stuckViewer,
+      stopViewer: async () => ({ outcome: "unverified", reason: "it does not answer, and there is no process table to check its pid against" }),
+      pollMs: 10,
+    });
+    const result = parse(await handler({ rootPath, restart: true }));
+    expect(result).toMatchObject({ reused: false, replaced: { pid: process.pid, port: closedPort, reason: "restart", stopped: false } });
+    expect(result.replaced.note).toContain("so it was not signalled");
+    expect(spawner.calls).toHaveLength(1);
+  });
+
+  it("says the idle limit of a viewer it starts, and when DR_VIEWER_IDLE_HOURS could not be used", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    const saved = process.env.DR_VIEWER_IDLE_HOURS;
+    process.env.DR_VIEWER_IDLE_HOURS = "-1";
+    try {
+      const handler = createReviewOpenHandler({ startViewer: fakeSpawner().startViewer, pollMs: 10 });
+      const result = parse(await handler({ rootPath }));
+      expect(result.idleExitHours).toBe(24);
+      expect(result.settingsIgnored).toEqual(["DR_VIEWER_IDLE_HOURS=-1 is not a usable value; using the default, 24 hours."]);
+    } finally {
+      if (saved === undefined) delete process.env.DR_VIEWER_IDLE_HOURS;
+      else process.env.DR_VIEWER_IDLE_HOURS = saved;
+    }
   });
 });
 

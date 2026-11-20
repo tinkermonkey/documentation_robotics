@@ -231,6 +231,10 @@ export interface VisualizationServerOptions {
    */
   withChangesets?: boolean;
   viewerPath?: string;
+  /** This viewer's id, as its registry record has it; GET /health reports it. */
+  viewerId?: string;
+  /** Pid of the `dr visualize` launcher that runs this server; GET /health reports it. */
+  launcherPid?: number;
 }
 
 /**
@@ -447,6 +451,8 @@ export class VisualizationServer {
   private watcher?: any;
   /** When the viewer was last used (see getActivity); the idle exit is measured from it. */
   private lastActivityAt = Date.now();
+  private viewerId?: string;
+  private launcherPid?: number;
   /**
    * Annotations live on disk (documentation-robotics/annotations/), shared with the MCP
    * annotation_* tools, which run in other processes.
@@ -603,6 +609,8 @@ export class VisualizationServer {
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
     this.withChangesets = options?.withChangesets || false;
+    this.viewerId = options?.viewerId;
+    this.launcherPid = options?.launcherPid;
     // Use explicit viewerPath if provided, otherwise fall back to the bundled viewer
     this.viewerPath = options?.viewerPath ||
       new URL("../viewer", import.meta.url).pathname;
@@ -621,12 +629,6 @@ export class VisualizationServer {
 
     // Add telemetry middleware to instrument all HTTP requests
     this.app.use("/*", telemetryMiddleware);
-
-    // Any request but the health check counts as use of the viewer (see getActivity)
-    this.app.use("/*", async (c, next) => {
-      if (c.req.path !== "/health") this.lastActivityAt = Date.now();
-      return next();
-    });
 
     // Add authentication middleware (except for health endpoint and root)
     this.app.use("/api/*", async (c, next) => {
@@ -654,6 +656,14 @@ export class VisualizationServer {
         return c.json({ error: "Invalid authentication token" }, 403);
       }
 
+      return next();
+    });
+
+    // An API request that got past the authentication above counts as use of the viewer (see
+    // getActivity). A refused request, a health check and a page or asset load do not: anything
+    // can make those, and they would keep an unused viewer alive.
+    this.app.use("/api/*", async (_c, next) => {
+      this.lastActivityAt = Date.now();
       return next();
     });
 
@@ -898,6 +908,13 @@ export class VisualizationServer {
         version: "0.1.0",
         // The dr CLI serving the API: the viewer shows it; `version` is the API's own.
         cliVersion: getCliVersion(),
+        // Which viewer this is (server/viewer-registry.ts): its registry record carries the same
+        // id, so a caller can tell it from another viewer that took its port, and learns its
+        // pids from the viewer itself.
+        pid: process.pid,
+        clients: this.clients.size,
+        ...(this.viewerId ? { viewerId: this.viewerId } : {}),
+        ...(this.launcherPid ? { launcherPid: this.launcherPid } : {}),
       };
 
       // Include warnings if any services failed to initialize
@@ -4940,8 +4957,8 @@ export class VisualizationServer {
 
   /**
    * How the viewer is being used, for the idle exit (server/viewer-lifetime.ts): the browser tabs
-   * connected now, and when it was last used (a request other than /health, or a tab's WebSocket
-   * opening or closing).
+   * connected now, and when it was last used (an API request that passed authentication, or a
+   * tab's WebSocket opening or closing).
    */
   getActivity(): { clients: number; lastActivityAt: number } {
     return { clients: this.clients.size, lastActivityAt: this.lastActivityAt };

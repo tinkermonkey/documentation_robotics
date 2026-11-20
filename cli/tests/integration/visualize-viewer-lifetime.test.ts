@@ -111,6 +111,24 @@ describe.skipIf(!ready).serial("a viewer that ends on its own", () => {
     expect(child.exitCode).toBe(0);
   }, 60000);
 
+  it("stays up past its limit while a browser tab's WebSocket is open, and exits once it closes", async () => {
+    const child = await start(["--idle-exit", "0.0005"]);
+    const socket = new WebSocket(`ws://localhost:${port}/ws`);
+    await new Promise<void>((resolve, reject) => {
+      socket.addEventListener("open", () => resolve(), { once: true });
+      socket.addEventListener("error", () => reject(new Error("the WebSocket did not open")), { once: true });
+    });
+    try {
+      // Twice the 1.8 s limit, with nothing but the open tab.
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      expect(exited(child)).toBe(false);
+    } finally {
+      socket.close();
+    }
+    expect(await waitFor(() => exited(child), 20000)).toBe(true);
+    expect(output).toContain("Stopping: no browser tab was connected");
+  }, 60000);
+
   it("never exits for idleness without a limit (a viewer run in a terminal)", async () => {
     const child = await start([]);
     await new Promise((resolve) => setTimeout(resolve, 3000));

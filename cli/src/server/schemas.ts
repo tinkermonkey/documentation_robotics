@@ -210,6 +210,10 @@ export const HealthResponseSchema = z.object({
   status: z.string().describe('Server health status'),
   version: z.string().describe('API version (the version of this HTTP API, not of the dr CLI or the spec)'),
   cliVersion: z.string().describe('Version of the dr CLI that is serving this API, e.g. "0.5.0"'),
+  pid: z.number().int().optional().describe('Process id of the server'),
+  launcherPid: z.number().int().optional().describe('Process id of the `dr visualize` process that runs the server'),
+  viewerId: z.string().optional().describe("Id of this viewer, as its record in the user's viewer registry has it"),
+  clients: z.number().int().optional().describe('Browser tabs connected now (WebSocket clients)'),
 });
 
 export const AnnotationSchema = z.object({

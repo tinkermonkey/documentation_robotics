@@ -10,10 +10,15 @@
  *
  * A running viewer keeps the code it started with, so after a CLI upgrade the viewer is older
  * than the CLI asking for it (#1237). review_open compares the viewer's cliVersion (from its
- * health check) with its own. An older viewer that review_open started is replaced, on the same
- * port and with the same token, so an open tab and links already given keep working. Any other
- * older viewer (one a person runs in a terminal, or one whose record does not say who started
- * it) is reused, with a notice; `restart: true` replaces it.
+ * health check) with its own. An older viewer is replaced without asking only when review_open
+ * started it and it reports that no browser tab is connected; the new one takes its port and
+ * token, so links already given keep working. Any other older viewer (a tab is open, a person
+ * runs it in a terminal, it does not say who started it or how many tabs it has) is reused, with
+ * a notice; `restart: true` replaces it.
+ *
+ * Replacing a viewer means stopping it, and a pid is signalled only once it is confirmed to be
+ * that viewer's (server/viewer-control.ts). A viewer that cannot be confirmed is never
+ * signalled: review_open says so and starts no second viewer beside one that still answers.
  *
  * Never two viewers for one project: a viewer whose process is alive but doesn't answer is
  * reported, not replaced, and one still loading its model (a `.starting` marker next to the
@@ -39,6 +44,7 @@ import {
   isProcessAlive,
   probeViewer,
   readViewerStarting,
+  removeViewerRecord,
   removeViewerStarting,
   viewerLogPath,
   viewerUrl,
@@ -48,8 +54,8 @@ import {
   type ViewerRecord,
   type ViewerStarting,
 } from "../../server/viewer-registry.js";
-import { isOlderViewer, stopRecordedViewer } from "../../server/viewer-control.js";
-import { viewerSetting } from "../../server/viewer-settings.js";
+import { isOlderViewer, stopRecordedViewer, type StopRecordedResult } from "../../server/viewer-control.js";
+import { ignoredViewerSettings, viewerSetting } from "../../server/viewer-settings.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
@@ -87,8 +93,13 @@ export interface ReviewOpenDeps {
   readStarting: (projectRoot: string) => Promise<ViewerStarting | null>;
   /** Starts a detached viewer for a project, from a port when given (default: from 8080). */
   startViewer: (projectRoot: string, options?: StartViewerOptions) => Promise<StartedViewer>;
-  /** Stops a running viewer and waits for it to be gone (to replace it). */
-  stopViewer: (record: ViewerRecord) => Promise<void>;
+  /**
+   * Stops a running viewer and waits for it to be gone (to replace it). Says what happened: a
+   * viewer whose pid could not be confirmed, or that belongs to someone else, is not signalled.
+   */
+  stopViewer: (record: ViewerRecord) => Promise<StopRecordedResult>;
+  /** Removes a viewer's record (one that was not stopped because it could not be confirmed, and does not answer). */
+  forgetViewer: (record: ViewerRecord) => Promise<void>;
   /** This CLI's version, compared with the running viewer's. */
   cliVersion: string;
   /** Says what holds a port, for the error when every port tried was taken. */
@@ -167,8 +178,9 @@ const DEFAULT_DEPS: ReviewOpenDeps = {
   probeViewer: (projectRoot) => probeViewer(projectRoot),
   readStarting: (projectRoot) => readViewerStarting(projectRoot),
   startViewer: spawnDetachedViewer,
-  stopViewer: async (record) => {
-    await stopRecordedViewer(record);
+  stopViewer: (record) => stopRecordedViewer(record),
+  forgetViewer: async (record) => {
+    await removeViewerRecord(record.projectRoot, { pid: record.pid });
   },
   cliVersion: getCliVersion(),
   describePortHolder: (port) => describePortHolder(port),
@@ -307,12 +319,24 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
   }
 
   /** Why a running viewer was replaced, for the result. */
-  type Replaced = { pid: number; port: number; cliVersion: string | null; reason: "older" | "restart" };
+  type Replaced = {
+    pid: number;
+    port: number;
+    cliVersion: string | null;
+    reason: "older" | "restart";
+    /** False when the old viewer was not signalled: its pid could not be confirmed, so only its record was dropped. */
+    stopped?: boolean;
+    note?: string;
+  };
+  /** What to do with a viewer to be replaced whose pid cannot be confirmed. */
+  type Unconfirmed = "refuse" | "forget";
   interface ViewerChoice {
     record: ViewerRecord;
     reused: boolean;
     /** The reused viewer's CLI version, when its health check gave one. */
     viewerCliVersion?: string;
+    /** Browser tabs connected to the reused viewer, when it reports them (since 0.7.0). */
+    viewerClients?: number;
     /** The reused viewer is older than this CLI and was left running. */
     outdated?: boolean;
     replaced?: Replaced;
@@ -323,9 +347,17 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
   /**
    * Starts a viewer and waits for it. Registered in `pending` before the first await, so a
    * concurrent call waits on this start. `replace` is stopped first; the new viewer then takes
-   * its port and token, so links to the old one keep working.
+   * its port and token, so links to the old one keep working. When `replace` could not be
+   * stopped, nothing is started beside it: the call fails and says why, unless the old viewer
+   * does not answer either (`unconfirmed: "forget"`), in which case its record is dropped, it is
+   * left unsignalled, and `replaced` says so.
    */
-  async function startNew(projectRoot: string, replace?: ViewerRecord): Promise<ViewerRecord> {
+  async function startNew(
+    projectRoot: string,
+    replace?: ViewerRecord,
+    unconfirmed: Unconfirmed = "refuse",
+    replaced?: Replaced
+  ): Promise<ViewerRecord> {
     const startOptions: StartViewerOptions = replace
       ? { port: replace.port, ...(replace.token ? { token: replace.token } : {}) }
       : {};
@@ -370,7 +402,35 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       .catch(() => {});
 
     try {
-      if (replace) await deps.stopViewer(replace);
+      if (replace) {
+        const stop = await deps.stopViewer(replace);
+        const which = `pid ${replace.pid}, port ${replace.port}`;
+        if (stop.outcome === "not-permitted") {
+          throw new CLIError(
+            `The viewer for this project (${which}) belongs to another user and could not be stopped, so it was not replaced.`,
+            ErrorCategory.SYSTEM
+          );
+        }
+        if (stop.outcome === "unverified") {
+          if (unconfirmed === "refuse") {
+            throw new CLIError(
+              `The viewer for this project (${which}) was not replaced: its pid could not be confirmed to be that viewer ` +
+                `(${stop.reason ?? "unknown"}), so nothing was signalled, and no second viewer was started beside it.`,
+              ErrorCategory.SYSTEM,
+              ["Its link still works. To replace it, the user stops it themselves (it is theirs to end) and calls review_open again"]
+            );
+          }
+          await deps.forgetViewer(replace);
+          if (replaced) {
+            replaced.stopped = false;
+            replaced.note =
+              `The old viewer (${which}) does not answer and its pid could not be confirmed to be that viewer ` +
+              `(${stop.reason ?? "unknown"}), so it was not signalled. Its record was dropped; if it is still running, it is left as it is.`;
+          }
+        } else if (replaced) {
+          replaced.stopped = true;
+        }
+      }
       const viewer = await deps.startViewer(projectRoot, startOptions);
       entry.pid = viewer.pid;
       entry.logPath = viewer.logPath;
@@ -398,28 +458,37 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
 
     if (probe.state === "running") {
       const older = isOlderViewer(probe.cliVersion, deps.cliVersion);
-      // Replaced without asking only when review_open started it: nobody's terminal is running
-      // it, and its port and token carry over. Anyone else's viewer is theirs to restart.
-      if (restart || (older && probe.record.startedBy === "review_open")) {
+      const clients = probe.health?.clients;
+      // Replaced without asking only when review_open started it (nobody's terminal runs it) and
+      // it says no browser tab is connected (nobody is looking at it). A viewer that does not
+      // report its tabs (before 0.7.0) may have one open, so it is left and the notice given.
+      const unattended = probe.record.startedBy === "review_open" && clients === 0;
+      if (restart || (older && unattended)) {
         const replaced: Replaced = {
           pid: probe.record.pid,
           port: probe.record.port,
           cliVersion: probe.cliVersion ?? null,
           reason: restart ? "restart" : "older",
         };
-        return { record: await startNew(projectRoot, probe.record), reused: false, replaced };
+        try {
+          return { record: await startNew(projectRoot, probe.record, "refuse", replaced), reused: false, replaced };
+        } catch (error) {
+          // Not asked for, and not possible: the viewer is still there, so give its link and the notice.
+          if (restart) throw error;
+        }
       }
       return {
         record: probe.record,
         reused: true,
         ...(probe.cliVersion ? { viewerCliVersion: probe.cliVersion } : {}),
+        ...(clients !== undefined ? { viewerClients: clients } : {}),
         ...(older ? { outdated: true } : {}),
       };
     }
     if (probe.state === "unreachable") {
       if (!restart) throw unreachable(probe.record, projectRoot);
       const replaced: Replaced = { pid: probe.record.pid, port: probe.record.port, cliVersion: null, reason: "restart" };
-      return { record: await startNew(projectRoot, probe.record), reused: false, replaced };
+      return { record: await startNew(projectRoot, probe.record, "forget", replaced), reused: false, replaced };
     }
 
     // Another session may have started one that is still loading.
@@ -435,10 +504,16 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
   }
 
   /** What to tell the human about a viewer that is older than this CLI and was left running. */
-  function outdatedNotice(viewerCliVersion: string | undefined): string {
+  function outdatedNotice(viewerCliVersion: string | undefined, clients: number | undefined): string {
     const theirs = viewerCliVersion ? `CLI ${viewerCliVersion}` : "a CLI older than 0.6.0";
+    const tabs =
+      clients === undefined
+        ? ""
+        : clients > 0
+          ? ` ${clients === 1 ? "A browser tab is" : `${clients} browser tabs are`} connected to it.`
+          : " No browser tab is connected to it.";
     return (
-      `This viewer runs ${theirs}; this CLI is ${deps.cliVersion}, so the viewer lacks its fixes. ` +
+      `This viewer runs ${theirs}; this CLI is ${deps.cliVersion}, so the viewer lacks its fixes.${tabs} ` +
       `To replace it, ask the user, then call review_open with restart: true. ` +
       `That ends any chat running in the viewer; the link stays the same when its port is still free.`
     );
@@ -460,9 +535,18 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
         changesetId: changeset.id,
         changesetName: changeset.name,
         ...(choice.viewerCliVersion ? { viewerCliVersion: choice.viewerCliVersion } : {}),
+        ...(choice.viewerClients !== undefined ? { viewerClients: choice.viewerClients } : {}),
         ...(choice.outdated
-          ? { outdated: true, cliVersion: deps.cliVersion, notice: outdatedNotice(choice.viewerCliVersion) }
+          ? {
+              outdated: true,
+              cliVersion: deps.cliVersion,
+              notice: outdatedNotice(choice.viewerCliVersion, choice.viewerClients),
+            }
           : {}),
+        // A viewer review_open starts has an idle limit: say what it is, and say when the
+        // setting for it held something that could not be used.
+        ...(reused ? {} : { idleExitHours: viewerIdleHours() }),
+        ...(ignoredViewerSettings().length > 0 ? { settingsIgnored: ignoredViewerSettings() } : {}),
         ...(choice.replaced ? { replaced: choice.replaced } : {}),
         // Reading the registry cleans it; say so when it did, rather than do it unseen.
         ...(choice.swept
@@ -488,8 +572,10 @@ export const reviewOpenTool: McpToolDefinition<typeof inputSchema> = {
     "Get a link that opens a changeset (by id or name; default the active one) on the graph in the DR viewer, " +
     "for the human to review. Reuses the viewer already running for this project, or starts one on a free " +
     "local port that keeps running after this session (it exits on its own after a day with no browser tab " +
-    "connected). A viewer older than this CLI is replaced when review_open started it; otherwise the result " +
-    "has outdated: true and a notice to relay, and restart: true replaces it. staleRemoved counts what " +
+    "connected). A viewer older than this CLI is replaced when review_open started it and no browser tab is " +
+    "connected to it; otherwise the result has outdated: true and a notice to relay, and restart: true " +
+    "replaces it. A viewer is stopped only when its pid is confirmed to be that viewer's; if it is not, " +
+    "the call says so and nothing is signalled. staleRemoved counts what " +
     "reading the viewer registry cleaned up (records and logs of viewers that are gone). " +
     "It returns a link, or says what holds the port; never " +
     "send the human to the CLI. Give the human the url; they comment on elements there, including ones the plan " +

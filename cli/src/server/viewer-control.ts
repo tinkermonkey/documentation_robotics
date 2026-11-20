@@ -7,13 +7,25 @@
  * record a CLI before 0.7.0 let a later `dr visualize` replace, or a server left behind by a
  * launcher that was killed (#1237).
  *
- * A pid is signalled only when it is known to be a viewer's: the process scan found it, or,
- * where there is no scan, its record's port answers as a viewer. A recorded pid that another
- * program now holds is never signalled.
+ * Stopping sends signals, so what may be signalled is decided here, once, and nowhere else. A
+ * pid is signalled only when it is confirmed to be the viewer in question, in one of two ways:
+ *
+ * - **By the viewer itself.** The server answering on the record's port reports the record's own
+ *   id, and names its pid and its launcher's, which must be the recorded pid (since 0.7.0).
+ * - **By the process table.** The recorded pid started no later than the record was written,
+ *   its command line has a `visualize` argument, and it has a server child whose script is the
+ *   dr CLI's. For a viewer with no record, the server's script being the dr CLI's is the
+ *   confirmation.
+ *
+ * Nothing else is enough: not that the pid is alive, not that some viewer answers on the port,
+ * not that the command line could not be read. A recorded `serverPid` is never signalled on the
+ * record's word. An unconfirmed viewer is listed as such and left running, and the caller is
+ * told why.
  */
 
 import { getCliVersion } from "../utils/spec-version.js";
 import {
+  answeringViewer,
   canonicalProjectRoot,
   isProcessAlive,
   listViewerRecords,
@@ -25,16 +37,26 @@ import {
   type ViewerStarter,
 } from "./viewer-registry.js";
 import {
-  findViewerProcesses,
+  hasVisualizeArgument,
   isZombie,
   listProcesses,
   listeningPort,
-  looksLikeViewer,
   processCwd,
+  processScanDisabled,
   projectRootFromCwd,
+  scanViewerProcesses,
   type ProcessInfo,
+  type ViewerProcessScan,
 } from "./viewer-processes.js";
 import { viewerSetting } from "./viewer-settings.js";
+
+/** The pids of a viewer that may be signalled, and what confirmed them. */
+export interface ConfirmedPids {
+  launcher: number | null;
+  server: number | null;
+  /** "health": the viewer named them itself. "process": the process table did. */
+  by: "health" | "process";
+}
 
 /** One running viewer, as `dr visualize --list` reports it. */
 export interface RunningViewer {
@@ -44,7 +66,7 @@ export interface RunningViewer {
   port: number | null;
   /** The `dr visualize` launcher's pid; null when only its server is left. */
   pid: number | null;
-  /** The server process's pid; null when unknown. */
+  /** The server process's pid; null when unknown. From the viewer itself or the process table, never from the record alone. */
   serverPid: number | null;
   /** CLI version from its health check; null when it does not answer or predates 0.6.0. */
   cliVersion: string | null;
@@ -58,15 +80,14 @@ export interface RunningViewer {
   withChangesets: boolean | null;
   /** Hours of idleness after which it exits on its own; null when it never does or it is unknown. */
   idleExitHours: number | null;
-  /** Whether the registry has a record of it. False: found by the process scan alone. */
+  /** Whether the registry (this state directory's) has a record of it. False: found by the process scan alone. */
   inRegistry: boolean;
-  /** Whether its server answered its health check. */
+  /** Whether its own server answered its health check (not merely some viewer on its port). */
   answering: boolean;
-  /**
-   * Whether its pids are known to be a viewer's: the process scan found them, or, where there is
-   * no scan, its recorded port answers as a viewer. Only a verified viewer is signalled.
-   */
-  verified: boolean;
+  /** The pids that may be signalled to stop it; null when they could not be confirmed (see `unconfirmed`). */
+  confirmed: ConfirmedPids | null;
+  /** Why its pids could not be confirmed, in words; absent when they were. */
+  unconfirmed?: string;
   /** The auth token from its record, for a link; null without a record or without auth. */
   token: string | null;
 }
@@ -103,12 +124,16 @@ export interface ListRunningViewersDeps {
   cwdOf?: (pid: number) => string | null;
   portOf?: (pid: number) => number | null;
   health?: (port: number, timeoutMs: number) => Promise<ViewerHealth | null>;
+  /** Whether a command line's `dist/server-entry.js` is the dr CLI's (default: its package.json). */
+  isDrServer?: (command: string) => boolean | null;
+  /** The current user's id (default: this process's); null counts every user's processes. */
+  uid?: number | null;
   cliVersion?: string;
   /** How long each viewer gets to answer its health check (default: DR_VIEWER_HEALTH_TIMEOUT_MS, 1.5s). */
   healthTimeoutMs?: number;
 }
 
-/** Every running viewer that could be found, and how complete that answer is. */
+/** Every running viewer that could be found, and what the answer leaves out. */
 export interface ViewerSurvey {
   viewers: RunningViewer[];
   /**
@@ -116,20 +141,80 @@ export interface ViewerSurvey {
    * it has no record of is not in `viewers`. Whoever shows the list must say so.
    */
   processScan: boolean;
-  /** What reading the registry removed: stale records, markers of dead starts, old logs. */
+  /** Why there was no process scan: turned off by the setting, or not possible here. */
+  processScanOff?: "disabled" | "unavailable";
+  /** Pids running a `dist/server-entry.js` that could not be confirmed to be the dr CLI's: not listed. */
+  candidates: number[];
+  /** How many viewers of other users are running: not listed, never signalled. */
+  otherUsers: number;
+  /** What reading the registry removed, and which records it could not read and left. */
   swept: SweepResult;
 }
 
-/** Every running viewer on this machine (see surveyViewers, which also says how complete the list is). */
+/** How long after its launcher started a record may have been written: ps reports whole seconds. */
+const START_SLACK_MS = 2000;
+
+/** What the process table and the viewer's own answer say about a recorded viewer. */
+type Confirmation =
+  | { kind: "confirmed"; pids: ConfirmedPids }
+  /** The recorded pid is certainly not this viewer any more: the record is stale. */
+  | { kind: "stale"; reason: string }
+  | { kind: "unconfirmed"; reason: string };
+
+/**
+ * Decides whether a record's pid may be signalled (see the module comment). `health` is what
+ * answered on the record's port, if anything did; `table` and `scan` are the process table and
+ * its viewers, or null where there is none.
+ */
+export function confirmRecordedViewer(
+  record: ViewerRecord,
+  health: ViewerHealth | null,
+  table: ProcessInfo[] | null,
+  scan: ViewerProcessScan | null
+): Confirmation {
+  // By the viewer itself.
+  if (health && answeringViewer(record, health) === "this" && health.pid && health.launcherPid === record.pid) {
+    return { kind: "confirmed", pids: { launcher: record.pid, server: health.pid, by: "health" } };
+  }
+
+  if (!table || !scan) {
+    return {
+      kind: "unconfirmed",
+      reason: health
+        ? "the viewer on its port does not identify itself as this one, and there is no process table to check its pid against"
+        : "it does not answer, and there is no process table to check its pid against",
+    };
+  }
+
+  // By the process table.
+  const info = table.find((candidate) => candidate.pid === record.pid);
+  if (!info) return { kind: "stale", reason: "its pid is gone" };
+  if (!hasVisualizeArgument(info.command)) return { kind: "stale", reason: "its pid now runs another program" };
+  const started = info.startedAt ? Date.parse(info.startedAt) : Number.NaN;
+  const recorded = record.startedAt ? Date.parse(record.startedAt) : Number.NaN;
+  if (!Number.isNaN(started) && !Number.isNaN(recorded) && started > recorded + START_SLACK_MS) {
+    return { kind: "stale", reason: "its pid now runs a process that started after the record was written" };
+  }
+  if (Number.isNaN(started) || Number.isNaN(recorded)) {
+    return { kind: "unconfirmed", reason: "the start time of its pid or of its record is unknown, so the pid may have been reused" };
+  }
+  const process_ = scan.viewers.find((viewer) => viewer.launcherPid === record.pid);
+  if (!process_ || process_.serverPid === null) {
+    return { kind: "unconfirmed", reason: "its pid has no dr viewer server under it" };
+  }
+  return { kind: "confirmed", pids: { launcher: record.pid, server: process_.serverPid, by: "process" } };
+}
+
+/** Every running viewer on this machine (see surveyViewers, which also says what the list leaves out). */
 export async function listRunningViewers(deps: ListRunningViewersDeps = {}): Promise<RunningViewer[]> {
   return (await surveyViewers(deps)).viewers;
 }
 
 /**
- * Every running viewer on this machine: the registry's live records joined with the process
- * scan, with whether the scan was possible and what the registry sweep removed. A record whose
- * pid is alive but runs something other than `dr visualize` is a reused pid: it is removed (and
- * counted in `swept`), not listed.
+ * Every running viewer of the current user: the registry's live records joined with the process
+ * scan, with what the answer leaves out (no process scan, unconfirmed candidates, other users'
+ * viewers, unreadable records) and what the registry sweep removed. A record whose pid certainly
+ * is not its viewer any more is removed (and counted in `swept`), not listed.
  */
 export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<ViewerSurvey> {
   const env = deps.env ?? process.env;
@@ -141,64 +226,69 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
   const timeoutMs = deps.healthTimeoutMs ?? viewerSetting("healthTimeoutMs", env);
 
   const { records, swept } = await listViewerRecords({ env, isAlive });
-  const table = (deps.processes ?? listProcesses)();
-  const scanned = table ? findViewerProcesses(table, new Set(records.map((record) => record.pid))) : null;
+  const table = deps.processes ? deps.processes() : listProcesses(env);
+  const scan = table
+    ? scanViewerProcesses(table, {
+        knownLaunchers: new Set(records.map((record) => record.pid)),
+        ...(deps.uid !== undefined ? { uid: deps.uid } : {}),
+        ...(deps.isDrServer ? { isDrServer: deps.isDrServer } : {}),
+      })
+    : null;
 
   const viewers: RunningViewer[] = [];
-  const describe = async (
-    base: Omit<RunningViewer, "cliVersion" | "outdated" | "answering" | "verified">,
-    scanned: boolean
-  ): Promise<RunningViewer> => {
-    const answer = base.port === null ? null : await health(base.port, timeoutMs);
-    const version = answer?.cliVersion ?? null;
-    return {
-      ...base,
-      cliVersion: version,
-      // A viewer that answers without a version predates 0.6.0; one that does not answer is unknown.
-      outdated: answer ? isOlderViewer(version, cliVersion) : false,
-      answering: answer !== null,
-      verified: scanned || (table === null && answer !== null),
-    };
-  };
+  const claimed = new Set<number>(); // launcher pids that a kept record accounts for
 
   await Promise.all(
     records.map(async (record: ViewerRecord) => {
-      const proc = scanned?.find((candidate) => candidate.launcherPid === record.pid);
-      const isViewerProcess = table ? isLauncherShaped(table, record.pid) : null;
-      if (isViewerProcess === false) {
-        // The pid went to another program after the viewer died. If a viewer still answers on
-        // the recorded port, the scan lists it under its own pids.
+      const answer = await health(record.port, timeoutMs);
+      const confirmation = confirmRecordedViewer(record, answer, table, scan);
+      if (confirmation.kind === "stale") {
+        // If a viewer still runs under that pid or on that port, the scan lists it as its own.
         const removed = await removeViewerRecord(record.projectRoot, { env, pid: record.pid }).catch(() => [] as string[]);
         swept.removed.push(...removed);
         swept.records += removed.length;
         return;
       }
-      const viewer = await describe({
+      claimed.add(record.pid);
+      // Its own server answered, not just some viewer on its port.
+      const own = answer && answeringViewer(record, answer) !== "other" ? answer : null;
+      const version = own?.cliVersion ?? null;
+      viewers.push({
         projectRoot: record.projectRoot,
         port: record.port,
         pid: record.pid,
-        serverPid: proc?.serverPid ?? record.serverPid ?? null,
-        startedAt: record.startedAt || proc?.startedAt || "",
+        serverPid: confirmation.kind === "confirmed" ? confirmation.pids.server : null,
+        cliVersion: version,
+        // A viewer that answers without a version predates 0.6.0; one that does not answer is unknown.
+        outdated: own ? isOlderViewer(version, cliVersion) : false,
+        startedAt: record.startedAt,
         startedBy: record.startedBy ?? null,
         withChangesets: record.withChangesets,
         idleExitHours: record.idleExitHours ?? null,
         inRegistry: true,
+        answering: own !== null,
+        confirmed: confirmation.kind === "confirmed" ? confirmation.pids : null,
+        ...(confirmation.kind === "unconfirmed" ? { unconfirmed: confirmation.reason } : {}),
         token: record.token,
-      }, isViewerProcess === true);
-      viewers.push(viewer);
+      });
     })
   );
 
   await Promise.all(
-    (scanned ?? []).map(async (proc) => {
-      // Recorded viewers are listed above (or were dropped as a reused pid).
-      if (proc.launcherPid !== null && records.some((record) => record.pid === proc.launcherPid)) return;
+    (scan?.viewers ?? []).map(async (proc) => {
+      // Recorded viewers are listed above; a launcher the registry named with no server is only there.
+      if (proc.launcherPid !== null && (claimed.has(proc.launcherPid) || proc.serverPid === null)) return;
       const cwd = cwdOf(proc.launcherPid ?? proc.serverPid!) ?? (proc.serverPid ? cwdOf(proc.serverPid) : null);
-      const viewer = await describe({
+      const port = proc.serverPid ? portOf(proc.serverPid) : null;
+      const answer = port === null ? null : await health(port, timeoutMs);
+      const version = answer?.cliVersion ?? null;
+      viewers.push({
         projectRoot: cwd ? canonicalProjectRoot(projectRootFromCwd(cwd)) : null,
-        port: proc.serverPid ? portOf(proc.serverPid) : null,
+        port,
         pid: proc.launcherPid,
         serverPid: proc.serverPid,
+        cliVersion: version,
+        outdated: answer ? isOlderViewer(version, cliVersion) : false,
         startedAt: proc.startedAt,
         startedBy: null,
         // Only what its command line says for certain: without either flag the mode is the
@@ -210,11 +300,11 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
             : null,
         idleExitHours: null,
         inRegistry: false,
+        answering: answer !== null,
+        // The scan lists a server only when its script is the dr CLI's.
+        confirmed: { launcher: proc.launcherPid, server: proc.serverPid, by: "process" },
         token: null,
-      }, true);
-      // A server with no launcher is taken for a viewer's only when it answers as one.
-      if (proc.launcherPid === null && !viewer.answering) return;
-      viewers.push(viewer);
+      });
     })
   );
 
@@ -224,14 +314,51 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
       a.startedAt.localeCompare(b.startedAt) ||
       (a.port ?? 0) - (b.port ?? 0)
   );
-  return { viewers, processScan: table !== null, swept };
+  return {
+    viewers,
+    processScan: table !== null,
+    ...(table === null ? { processScanOff: processScanDisabled(env) ? ("disabled" as const) : ("unavailable" as const) } : {}),
+    candidates: scan?.candidates ?? [],
+    otherUsers: scan?.otherUsers ?? 0,
+    swept,
+  };
 }
 
-/** Whether the process table shows `pid` running something with a `visualize` argument. */
-function isLauncherShaped(table: ProcessInfo[], pid: number): boolean | null {
-  const info = table.find((candidate) => candidate.pid === pid);
-  if (!info) return null; // Started or exited since the listing.
-  return /(?:^|\s)visualize(?:\s|$)/.test(info.command);
+/**
+ * What a survey leaves out, each as a sentence to show: a list is never shown without these.
+ * Empty when nothing is known to be missing.
+ */
+export function surveyCaveats(survey: ViewerSurvey): string[] {
+  const caveats: string[] = [];
+  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  if (!survey.processScan) {
+    const listed = survey.viewers.length === 0 ? "no viewers" : count(survey.viewers.length, "viewer", "viewers");
+    caveats.push(
+      `The registry lists ${listed}. ` +
+        (survey.processScanOff === "disabled"
+          ? "The process scan is turned off (DR_VIEWER_PROCESS_SCAN), "
+          : "A process scan was not possible (ps is unavailable here or failed), ") +
+        "so viewers the registry has lost are not shown."
+    );
+  }
+  if (survey.candidates.length > 0) {
+    caveats.push(
+      `${count(survey.candidates.length, "process runs", "processes run")} a dist/server-entry.js that could not be confirmed ` +
+        `to be the dr CLI's (pid ${survey.candidates.join(", ")}): not listed, and never stopped from here.`
+    );
+  }
+  if (survey.otherUsers > 0) {
+    caveats.push(`${count(survey.otherUsers, "viewer of another user is", "viewers of other users are")} running: not listed, and never stopped from here.`);
+  }
+  if (survey.swept.unreadable.length > 0) {
+    const n = survey.swept.unreadable.length;
+    caveats.push(
+      `${count(n, "record", "records")} in the registry could not be read by this CLI and ` +
+        `${n === 1 ? "belongs to a process that is" : "belong to processes that are"} still running (a newer CLI's viewer, perhaps): ` +
+        `left in place, and not listed (${survey.swept.unreadable.join(", ")}).`
+    );
+  }
+  return caveats;
 }
 
 export type StopOutcome =
@@ -267,9 +394,11 @@ const SIGKILL_WAIT_MS = 2000;
 /**
  * Stops one viewer and waits for it to be gone: SIGTERM to its launcher, which stops its server;
  * SIGKILL if it is still there after the wait; then the server itself, if it outlived the
- * launcher or had none. Its record is removed. Never signals pid 1 or this process.
+ * launcher or had none. Its record is removed. Only `viewer.confirmed` pids are signalled: a
+ * viewer without them is left alone ("unverified"). Never signals pid 1 or this process.
  */
 export async function stopViewer(viewer: RunningViewer, options: StopViewerOptions = {}): Promise<StopOutcome> {
+  if (!viewer.confirmed) return "unverified";
   // A process that has exited but that its parent has not collected yet still has a pid.
   const isAlive = options.isAlive ?? ((pid: number) => isProcessAlive(pid) && !isZombie(pid));
   const kill = options.kill ?? ((pid: number, signal: NodeJS.Signals) => void process.kill(pid, signal));
@@ -299,15 +428,15 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
     return "force-killed";
   };
 
-  if (!viewer.verified) return "unverified";
+  const { launcher, server } = viewer.confirmed;
   let outcome: StopOutcome = "not-running";
-  if (viewer.pid !== null) {
-    outcome = await stop(viewer.pid, options.timeoutMs ?? viewerSetting("stopTimeoutMs", options.env));
+  if (launcher !== null) {
+    outcome = await stop(launcher, options.timeoutMs ?? viewerSetting("stopTimeoutMs", options.env));
   }
-  if (viewer.serverPid !== null && outcome !== "not-permitted") {
+  if (server !== null && outcome !== "not-permitted") {
     // Left behind when the launcher was force-killed, or all there was.
-    const server = await stop(viewer.serverPid, SERVER_STOP_TIMEOUT_MS);
-    if (outcome === "not-running") outcome = server;
+    const serverOutcome = await stop(server, SERVER_STOP_TIMEOUT_MS);
+    if (outcome === "not-running") outcome = serverOutcome;
   }
   if (viewer.inRegistry && viewer.projectRoot && viewer.pid !== null && outcome !== "not-permitted") {
     await removeViewerRecord(viewer.projectRoot, { env: options.env, pid: viewer.pid }).catch(() => {});
@@ -315,24 +444,55 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
   return outcome;
 }
 
+export interface StopRecordedViewerOptions extends StopViewerOptions {
+  /** What answers on a port (default: the viewer's health check). */
+  health?: (port: number, timeoutMs: number) => Promise<ViewerHealth | null>;
+  /** The process table, or null where it cannot be read. */
+  processes?: () => ProcessInfo[] | null;
+  isDrServer?: (command: string) => boolean | null;
+  uid?: number | null;
+}
+
+/** What stopping a recorded viewer came to: the outcome, and why nothing was signalled when nothing was. */
+export interface StopRecordedResult {
+  outcome: StopOutcome;
+  /** Set with "unverified" (why the pid could not be confirmed) and with "not-running" for a stale record. */
+  reason?: string;
+}
+
 /**
- * Stops the viewer a registry record names (review_open replacing it). A pid that now runs
- * something other than `dr visualize` is not signalled; its record is just removed.
+ * Stops the viewer a registry record names (review_open replacing it), after confirming its
+ * pids as `--stop` does. A record whose pid certainly is not its viewer any more is removed and
+ * nothing is signalled ("not-running"). One that cannot be confirmed is left exactly as it is
+ * ("unverified", with the reason): the caller must not go on as if it had been stopped.
  */
 export async function stopRecordedViewer(
   record: ViewerRecord,
-  options: StopViewerOptions & { looksLikeViewer?: (pid: number) => boolean | null } = {}
-): Promise<StopOutcome> {
-  if ((options.looksLikeViewer ?? looksLikeViewer)(record.pid) === false) {
-    await removeViewerRecord(record.projectRoot, { env: options.env, pid: record.pid }).catch(() => {});
-    return "not-running";
+  options: StopRecordedViewerOptions = {}
+): Promise<StopRecordedResult> {
+  const env = options.env ?? process.env;
+  const health = options.health ?? viewerHealth;
+  const answer = await health(record.port, viewerSetting("healthTimeoutMs", env));
+  const table = options.processes ? options.processes() : listProcesses(env);
+  const scan = table
+    ? scanViewerProcesses(table, {
+        knownLaunchers: new Set([record.pid]),
+        ...(options.uid !== undefined ? { uid: options.uid } : {}),
+        ...(options.isDrServer ? { isDrServer: options.isDrServer } : {}),
+      })
+    : null;
+  const confirmation = confirmRecordedViewer(record, answer, table, scan);
+  if (confirmation.kind === "stale") {
+    await removeViewerRecord(record.projectRoot, { env, pid: record.pid }).catch(() => {});
+    return { outcome: "not-running", reason: confirmation.reason };
   }
-  return stopViewer(
+  if (confirmation.kind === "unconfirmed") return { outcome: "unverified", reason: confirmation.reason };
+  const outcome = await stopViewer(
     {
       projectRoot: record.projectRoot,
       port: record.port,
       pid: record.pid,
-      serverPid: record.serverPid ?? null,
+      serverPid: confirmation.pids.server,
       cliVersion: record.cliVersion ?? null,
       outdated: false,
       startedAt: record.startedAt,
@@ -340,10 +500,11 @@ export async function stopRecordedViewer(
       withChangesets: record.withChangesets,
       idleExitHours: record.idleExitHours ?? null,
       inRegistry: true,
-      answering: true,
-      verified: true,
+      answering: answer !== null,
+      confirmed: confirmation.pids,
       token: record.token,
     },
     options
   );
+  return { outcome };
 }
