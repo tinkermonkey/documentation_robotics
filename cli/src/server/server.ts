@@ -231,6 +231,10 @@ export interface VisualizationServerOptions {
    */
   withChangesets?: boolean;
   viewerPath?: string;
+  /** This viewer's id, as its registry record has it; GET /health reports it. */
+  viewerId?: string;
+  /** Pid of the `dr visualize` launcher that runs this server; GET /health reports it. */
+  launcherPid?: number;
 }
 
 /**
@@ -445,6 +449,10 @@ export class VisualizationServer {
   private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
+  /** When the viewer was last used (see getActivity); the idle exit is measured from it. */
+  private lastActivityAt = Date.now();
+  private viewerId?: string;
+  private launcherPid?: number;
   /**
    * Annotations live on disk (documentation-robotics/annotations/), shared with the MCP
    * annotation_* tools, which run in other processes.
@@ -601,6 +609,8 @@ export class VisualizationServer {
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
     this.withChangesets = options?.withChangesets || false;
+    this.viewerId = options?.viewerId;
+    this.launcherPid = options?.launcherPid;
     // Use explicit viewerPath if provided, otherwise fall back to the bundled viewer
     this.viewerPath = options?.viewerPath ||
       new URL("../viewer", import.meta.url).pathname;
@@ -646,6 +656,14 @@ export class VisualizationServer {
         return c.json({ error: "Invalid authentication token" }, 403);
       }
 
+      return next();
+    });
+
+    // An API request that got past the authentication above counts as use of the viewer (see
+    // getActivity). A refused request, a health check and a page or asset load do not: anything
+    // can make those, and they would keep an unused viewer alive.
+    this.app.use("/api/*", async (_c, next) => {
+      this.lastActivityAt = Date.now();
       return next();
     });
 
@@ -891,6 +909,17 @@ export class VisualizationServer {
         // The dr CLI serving the API: the viewer shows it; `version` is the API's own.
         cliVersion: getCliVersion(),
       };
+      // Which viewer this is (server/viewer-registry.ts), its pids and its open tabs: only to a
+      // caller with the token. Its registry record carries the same id and the token, so the CLI
+      // can tell this viewer from another that took its port; a web page cannot learn whether a
+      // review is open or what the process ids are. A viewer without auth has no token, so it
+      // tells nobody, and is identified from the process table instead.
+      if (this.authEnabled && this.requestHasToken(c)) {
+        response.pid = process.pid;
+        response.clients = this.clients.size;
+        if (this.viewerId) response.viewerId = this.viewerId;
+        if (this.launcherPid) response.launcherPid = this.launcherPid;
+      }
 
       // Include warnings if any services failed to initialize
       if (this.chatInitializationError) {
@@ -1996,6 +2025,7 @@ export class VisualizationServer {
           });
 
           this.clients.add(ws);
+          this.lastActivityAt = Date.now();
 
           // Send connected message per spec
           ws.send(
@@ -2018,6 +2048,7 @@ export class VisualizationServer {
           });
 
           this.clients.delete(ws);
+          this.lastActivityAt = Date.now();
           if (process.env.VERBOSE) {
             console.log(`[WebSocket] Client disconnected (total: ${this.clients.size})`);
           }
@@ -4926,6 +4957,22 @@ export class VisualizationServer {
         `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`
       );
     }
+  }
+
+  /**
+   * How the viewer is being used, for the idle exit (server/viewer-lifetime.ts): the browser tabs
+   * connected now, and when it was last used (an API request that passed authentication, or a
+   * tab's WebSocket opening or closing).
+   */
+  /** Whether a request carries this server's token (Authorization: Bearer, or ?token=). */
+  private requestHasToken(c: { req: { header(name: string): string | undefined; query(name: string): string | undefined } }): boolean {
+    const authHeader = c.req.header("Authorization");
+    const provided = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : c.req.query("token");
+    return !!provided && provided === this.authToken;
+  }
+
+  getActivity(): { clients: number; lastActivityAt: number } {
+    return { clients: this.clients.size, lastActivityAt: this.lastActivityAt };
   }
 
   /**

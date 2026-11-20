@@ -2,7 +2,12 @@ import { describe, it, expect } from 'bun:test';
 import { mkdir, rm, writeFile, readFile, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { installSpecReference, needsSpecReferenceInstall } from '../../../src/utils/spec-installer.js';
+import {
+  installSpecReference,
+  needsSpecReferenceInstall,
+  specReferenceNotice,
+  specReferenceStanding,
+} from '../../../src/utils/spec-installer.js';
 import { getCliBundledSpecVersion } from '../../../src/utils/spec-version.js';
 
 describe('spec-installer', () => {
@@ -190,6 +195,58 @@ describe('spec-installer', () => {
         expect(manifest.specVersion).toBe(getCliBundledSpecVersion());
       } finally {
         await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+  });
+  describe('specReferenceStanding (#1168)', () => {
+    const freshDir = () => path.join('/tmp', `spec-standing-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+
+    it('says a checkout without .dr/spec has no reference, in one line with the fix', async () => {
+      const testDir = freshDir();
+      // .dr/ with other per-checkout state only, as a worktree with a code index has
+      await mkdir(path.join(testDir, '.dr', 'analyzers'), { recursive: true });
+      try {
+        const standing = await specReferenceStanding(testDir);
+        expect(standing).toEqual({ state: 'missing' });
+        const notice = specReferenceNotice(standing)!;
+        expect(notice).toContain('Spec reference not installed in this checkout');
+        expect(notice).toContain(`dr validates against the spec it carries (v${getCliBundledSpecVersion()})`);
+        expect(notice).toContain('run "dr upgrade"');
+        expect(notice).not.toContain('\n');
+      } finally {
+        await rm(testDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+
+    it('is installed, with nothing to say, after an install', async () => {
+      const testDir = freshDir();
+      await mkdir(testDir, { recursive: true });
+      try {
+        await installSpecReference(testDir);
+        const standing = await specReferenceStanding(testDir);
+        expect(standing).toEqual({ state: 'installed', version: getCliBundledSpecVersion() });
+        expect(specReferenceNotice(standing)).toBeNull();
+      } finally {
+        await rm(testDir, { recursive: true, force: true }).catch(() => {});
+      }
+    });
+
+    it('is stale when it is for another spec version or its manifest is gone', async () => {
+      const testDir = freshDir();
+      await mkdir(testDir, { recursive: true });
+      try {
+        await installSpecReference(testDir);
+        await writeFile(path.join(testDir, '.dr', 'manifest.json'), JSON.stringify({ specVersion: '0.12.0' }));
+        const older = await specReferenceStanding(testDir);
+        expect(older).toEqual({ state: 'stale', version: '0.12.0' });
+        expect(specReferenceNotice(older)).toContain('The spec reference in .dr/ is for spec v0.12.0');
+
+        await rm(path.join(testDir, '.dr', 'manifest.json'));
+        const noManifest = await specReferenceStanding(testDir);
+        expect(noManifest).toEqual({ state: 'stale', version: null });
+        expect(specReferenceNotice(noManifest)).toContain('incomplete');
+      } finally {
+        await rm(testDir, { recursive: true, force: true }).catch(() => {});
       }
     });
   });

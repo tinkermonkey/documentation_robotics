@@ -8,6 +8,7 @@ import { parse as parseYaml } from "yaml";
 import { BaseIntegrationManager } from "@/integrations/base-manager";
 import { ComponentConfig, VersionData, validateVersionData } from "@/integrations/types";
 import { computeFileHash } from "@/integrations/hash-utils";
+import { createHash } from "node:crypto";
 
 /**
  * Test implementation of BaseIntegrationManager
@@ -54,6 +55,19 @@ class TestIntegrationManager extends BaseIntegrationManager {
   // Override getSourceRoot for testing to use injected path
   protected getSourceRoot(): string {
     return this.sourceRoot;
+  }
+
+  // What "earlier releases" of this test integration installed: target folder -> entry -> path
+  // inside it ("" for a file) -> the texts shipped there
+  public shipped: Record<string, Record<string, Record<string, string[]>>> = {};
+  protected hasShippedEntries(config: ComponentConfig): boolean {
+    return Object.keys(this.shipped[config.target] ?? {}).length > 0;
+  }
+  protected shippedVersions(config: ComponentConfig, entry: string) {
+    const versions = this.shipped[config.target]?.[entry];
+    if (!versions) return undefined;
+    const hash = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 16);
+    return Object.fromEntries(Object.entries(versions).map(([inner, texts]) => [inner, texts.map(hash)]));
   }
 
   public setSourceRoot(path: string): void {
@@ -772,6 +786,139 @@ components:
       await manager.testUpdateVersionFile("0.1.1");
       versionData = await manager.testLoadVersionFile();
       expect(versionData?.version).toBe("0.1.1");
+    });
+  });
+  describe("planUpgrade and stale entries (#1165)", () => {
+    async function install() {
+      await manager.testInstallComponent("commands");
+      await manager.testInstallComponent("agents");
+      await manager.testUpdateVersionFile("0.1.0");
+    }
+
+    it("returns null when the integration isn't installed", async () => {
+      expect(await manager.planUpgrade()).toBeNull();
+    });
+
+    it("lists every file an upgrade would add, update, overwrite or remove, and changes none", async () => {
+      await install();
+      // This dr changed one file, added one and dropped one; the project edited another
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Command 1, revised", "utf-8");
+      await writeFile(join(sourceDir, "commands", "cmd3.md"), "Command 3", "utf-8");
+      await rm(join(sourceDir, "commands", "cmd2.md"));
+      await writeFile(join(targetDir, "agents", "dr-agent1.md"), "Agent 1, edited here", "utf-8");
+
+      const plan = await manager.planUpgrade();
+      expect(plan).toMatchObject({ folder: "target", fromVersion: "0.1.0", versionFile: "target/.dr-test-version" });
+      expect(plan!.files).toEqual([
+        { path: "target/commands/cmd1.md", action: "update" },
+        { path: "target/commands/cmd2.md", action: "remove" },
+        { path: "target/commands/cmd3.md", action: "add" },
+      ]);
+      // Without force the edited file is kept; with it (as dr upgrade runs) it is overwritten
+      expect(plan!.kept).toEqual(["target/agents/dr-agent1.md"]);
+      const forced = await manager.planUpgrade({ force: true });
+      expect(forced!.files).toContainEqual({ path: "target/agents/dr-agent1.md", action: "overwrite" });
+      expect(forced!.kept).toEqual([]);
+
+      // Planning wrote nothing
+      expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1");
+      expect(await readFile(join(targetDir, "commands", "cmd2.md"), "utf-8")).toBe("Command 2");
+    });
+
+    /** Leftovers of an older layout beside the project's own files that happen to carry dr's prefix */
+    async function leftoversAndOwnFiles() {
+      await install();
+      manager.shipped = {
+        agents: {
+          "dr-agent1.md": { "": ["Agent 1"] },
+          "dr-old-agent.md": { "": ["old agent v1", "old agent v2"] },
+          "dr-helper.md": { "": ["helper as dr shipped it"] },
+        },
+        commands: {
+          "cmd1.md": { "": ["Command 1"] },
+          dr_layer_02_business: { "SKILL.md": ["old skill"], "notes/extra.md": ["extra"] },
+          dr_layer_04_app: { "SKILL.md": ["old app skill"] },
+          dr_layer_05_tech: { "SKILL.md": ["old tech skill"] },
+        },
+        templates: { "dr-template.md": { "": ["mine"] } },
+      };
+      // Installed by an earlier dr, before the version file recorded anything, as it shipped them
+      await writeFile(join(targetDir, "agents", "dr-old-agent.md"), "old agent v2", "utf-8");
+      await mkdir(join(targetDir, "commands", "dr_layer_02_business", "notes"), { recursive: true });
+      await writeFile(join(targetDir, "commands", "dr_layer_02_business", "SKILL.md"), "old skill", "utf-8");
+      await writeFile(join(targetDir, "commands", "dr_layer_02_business", "notes", "extra.md"), "extra", "utf-8");
+      await mkdir(join(targetDir, "commands", "dr_layer_04_app"), { recursive: true });
+      await writeFile(join(targetDir, "commands", "dr_layer_04_app", "SKILL.md"), "old app skill", "utf-8");
+      // A name dr once used, with the project's own contents: changed, never a leftover
+      await writeFile(join(targetDir, "agents", "dr-helper.md"), "our own helper", "utf-8");
+      // A shipped folder the project added a file to: changed too
+      await mkdir(join(targetDir, "commands", "dr_layer_05_tech"), { recursive: true });
+      await writeFile(join(targetDir, "commands", "dr_layer_05_tech", "SKILL.md"), "old tech skill", "utf-8");
+      await writeFile(join(targetDir, "commands", "dr_layer_05_tech", "ours.md"), "mine", "utf-8");
+      // The project's own, named like dr's: never an earlier dr's name, so never listed at all
+      await writeFile(join(targetDir, "agents", "dr-who.md"), "mine", "utf-8");
+      await writeFile(join(targetDir, "agents", "Dr-Strange.agent.md"), "mine", "utf-8");
+      await mkdir(join(targetDir, "commands", "dr_house_style", "nested"), { recursive: true });
+      await writeFile(join(targetDir, "commands", "dr_house_style", "nested", "rules.md"), "mine", "utf-8");
+      await writeFile(join(targetDir, "agents", "my-agent.md"), "mine", "utf-8");
+      // A shipped name in the untracked component: never looked at
+      await mkdir(join(targetDir, "templates"), { recursive: true });
+      await writeFile(join(targetDir, "templates", "dr-template.md"), "mine", "utf-8");
+      // Recorded and dropped from this dr: the upgrade removes it, so it is not a leftover
+      await rm(join(sourceDir, "commands", "cmd2.md"));
+    }
+
+    const ownFiles: Array<[string[], string]> = [
+      [["agents", "dr-who.md"], "mine"],
+      [["agents", "Dr-Strange.agent.md"], "mine"],
+      [["commands", "dr_house_style", "nested", "rules.md"], "mine"],
+      [["agents", "my-agent.md"], "mine"],
+      [["templates", "dr-template.md"], "mine"],
+      [["agents", "dr-helper.md"], "our own helper"],
+      [["commands", "dr_layer_05_tech", "ours.md"], "mine"],
+    ];
+
+    const stale = [
+      "target/agents/dr-old-agent.md",
+      "target/commands/dr_layer_02_business/",
+      "target/commands/dr_layer_04_app/",
+    ];
+    const changed = ["target/agents/dr-helper.md", "target/commands/dr_layer_05_tech/"];
+
+    it("offers as leftovers only entries whose contents are a version dr shipped; a name match alone is 'changed'", async () => {
+      await leftoversAndOwnFiles();
+      expect(await manager.findStaleEntries()).toEqual({ stale, changed });
+      expect((await manager.planUpgrade())!).toMatchObject({ stale, changed });
+
+      // With no shipped names known, nothing is listed: a name pattern is not enough
+      manager.shipped = {};
+      expect(await manager.findStaleEntries()).toEqual({ stale: [], changed: [] });
+    });
+
+    it("removes the leftovers chosen, and a changed entry only when its path is named", async () => {
+      await leftoversAndOwnFiles();
+
+      // "All the listed ones" (no names): only what dr shipped as it shipped it
+      const removed = await manager.removeStaleEntries([...stale, ...changed]);
+      expect(removed).toEqual(stale);
+      expect(await manager.findStaleEntries()).toEqual({ stale: [], changed });
+      for (const [parts, text] of ownFiles) {
+        expect(await readFile(join(targetDir, ...parts), "utf-8")).toBe(text);
+      }
+
+      // Paths that are not listed are refused, named or not
+      expect(
+        await manager.removeStaleEntries(["target/agents/dr-who.md", "target/commands/cmd1.md", "../outside.md"], {
+          named: ["target/agents/dr-who.md", "target/commands/cmd1.md", "../outside.md"],
+        })
+      ).toEqual([]);
+      expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1");
+
+      // A changed entry goes when the person names it
+      expect(await manager.removeStaleEntries(["target/agents/dr-helper.md"], { named: ["target/agents/dr-helper.md"] })).toEqual([
+        "target/agents/dr-helper.md",
+      ]);
+      expect(await manager.findStaleEntries()).toEqual({ stale: [], changed: ["target/commands/dr_layer_05_tech/"] });
     });
   });
 });

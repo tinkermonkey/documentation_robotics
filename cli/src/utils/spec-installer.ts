@@ -135,3 +135,53 @@ export async function needsSpecReferenceInstall(projectRoot: string): Promise<bo
     return true; // manifest missing or unreadable
   }
 }
+
+/**
+ * How the spec reference (.dr/spec) stands in a checkout. `.dr/` is per-checkout state that git
+ * ignores, so a fresh clone or worktree has none until `dr upgrade` (or `dr init`) installs it.
+ * dr itself validates against the spec it carries, never against `.dr/spec`: the reference is there
+ * for agents, skills and people who read the spec files directly.
+ */
+export type SpecReferenceStanding =
+  /** `.dr/spec` holds the spec this dr carries */
+  | { state: "installed"; version: string }
+  /** No `.dr/spec` here: never installed in this checkout */
+  | { state: "missing" }
+  /** `.dr/spec` is for another spec version (`version`), or its manifest is missing or unreadable (null) */
+  | { state: "stale"; version: string | null };
+
+export async function specReferenceStanding(projectRoot: string): Promise<SpecReferenceStanding> {
+  const drPath = join(projectRoot, ".dr");
+  if (!existsSync(join(drPath, "spec", "manifest.json"))) {
+    return { state: "missing" };
+  }
+  let version: string | null = null;
+  try {
+    const manifest = JSON.parse(await fs.readFile(join(drPath, "manifest.json"), "utf-8")) as { specVersion?: unknown };
+    version = typeof manifest.specVersion === "string" ? manifest.specVersion : null;
+  } catch {
+    // missing or unreadable: stale, with no version to name
+  }
+  return version === getCliBundledSpecVersion() ? { state: "installed", version } : { state: "stale", version };
+}
+
+/**
+ * One line for the user when the spec reference isn't the one this dr carries, with the step
+ * that fixes it; null when it is installed and current. Validation never depends on it, and the
+ * line says so, so its absence isn't read as the cause of validation errors (#1168).
+ */
+export function specReferenceNotice(standing: SpecReferenceStanding): string | null {
+  const bundled = getCliBundledSpecVersion();
+  if (standing.state === "installed") return null;
+  if (standing.state === "missing") {
+    return (
+      `Spec reference not installed in this checkout (.dr/spec is per-checkout and not committed). ` +
+      `dr validates against the spec it carries (v${bundled}), so validation is unaffected; ` +
+      `run "dr upgrade" to install the reference for tools that read .dr/spec.`
+    );
+  }
+  return (
+    `The spec reference in .dr/ is ${standing.version ? `for spec v${standing.version}` : "incomplete (no readable .dr/manifest.json)"}; ` +
+    `dr validates against the v${bundled} it carries, so validation is unaffected. Run "dr upgrade" to refresh the reference.`
+  );
+}

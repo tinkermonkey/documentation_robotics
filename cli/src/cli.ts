@@ -8,7 +8,7 @@
  * Telemetry is controlled by the TELEMETRY_ENABLED build-time constant.
  */
 
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, Option } from "commander";
 import { setGlobalOptions } from "./utils/globals.js";
 import { installAnsiSuppressor } from "./utils/ansi-suppressor.js";
 import { initCommand } from "./commands/init.js";
@@ -656,6 +656,24 @@ program
     "--viewer-path <path>",
     "Path to custom viewer build (e.g., ./dist/embedded/dr-viewer-bundle)"
   )
+  .option(
+    "--idle-exit <hours>",
+    "Exit after this many hours with no browser tab connected and no request (default: never)"
+  )
+  .option(
+    "--exit-with-parent",
+    "Exit when the process that started this viewer is gone (for scripts and test runs)"
+  )
+  .option("--list", "List the viewers running on this machine and exit")
+  .option(
+    "--stop [project]",
+    "Stop the viewers of a project (default: the current one) and exit; with --port, the one on that port"
+  )
+  .option("--all", "With --stop: stop every running viewer")
+  .option(
+    "--include-unrecorded",
+    "With --stop: also stop viewers that are not in the registry (found only in the process table)"
+  )
   .addHelpText(
     "after",
     `
@@ -668,6 +686,61 @@ Examples:
   $ dr visualize --with-danger
   $ dr visualize --with-changesets
   $ dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
+  $ dr visualize --list
+  $ dr visualize --stop
+  $ dr visualize --stop ../other-project
+  $ dr visualize --stop --port 8084
+  $ dr visualize --stop --all
+  $ dr visualize --stop --all --include-unrecorded
+
+Running viewers (--list, --stop):
+  - A viewer keeps running until it is stopped: Ctrl-C in its terminal, or
+    --stop. One that an agent's review_open started runs in the background
+    and exits on its own after 24 hours with no browser tab connected and no
+    request (DR_VIEWER_IDLE_HOURS changes that; 0 means never).
+  - --list shows every viewer on this machine: project, port, pid, the CLI
+    version it runs and when it started. It also finds viewers the registry
+    has no record of. Add --json for a machine-readable list.
+  - A viewer keeps the code it started with: after a CLI upgrade, --list
+    marks the ones that are older than this CLI.
+  - Any viewer exits when its project's documentation-robotics/ folder is
+    removed.
+  - --list says how many viewers it found and where, and what it leaves out:
+    viewers the registry has lost when the process table cannot be read (no
+    ps, or DR_VIEWER_PROCESS_SCAN=off), processes it could not confirm to be
+    dr's, other users' viewers, records it could not read.
+  - --stop acts on the viewers this registry records. One that is found only
+    in the process table (its record was lost, or another state directory
+    started it) is named and left, unless --include-unrecorded is given.
+    Only your own viewers are ever stopped, and only a pid that is confirmed
+    to be the viewer's: by the process table, or (without one) by the viewer
+    naming itself on /health, which it does only for a caller with its token.
+    A pid's start time is read again before each later signal; a reused pid
+    is never signalled.
+  - --stop says how many were running, how many matched and how many it
+    stopped, names each one it did not stop with why, and exits 1 then.
+
+Time limits (environment variables, with their defaults):
+  DR_VIEWER_IDLE_HOURS=24               idle time before a review_open viewer
+                                        exits; 0 means never
+  DR_VIEWER_HEALTH_TIMEOUT_MS=1500      how long a viewer gets to answer its
+                                        health check
+  DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS=5000  the second try, before review_open
+                                        calls a viewer unreachable
+  DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS=500  project_status's shorter health check
+                                        (the retry gets twice as long)
+  DR_VIEWER_STOP_TIMEOUT_MS=8000        how long a viewer gets to exit before
+                                        --stop kills it
+  DR_VIEWER_LOG_KEEP_DAYS=7             how long a gone viewer's log is kept
+  DR_VIEWER_LIFETIME_CHECK_MS=30000     how often a viewer checks for idleness
+                                        and for its project folder
+  DR_VIEWER_PROCESS_SCAN=on             off: --list and --stop use the registry
+                                        alone and never read the process table
+  dr visualize --list --json prints the values in effect. A number that
+  cannot be used (negative, not a plain decimal) is reported and the default
+  is used. DR_VIEWER_IDLE_HOURS is read by the dr mcp server when review_open
+  starts a viewer, not by a viewer that is already running. Idle time is
+  wall-clock time: hours the machine sleeps count for a viewer with no tab.
 
 Default mode (read-safe permissions) enables:
   - Running 'dr' CLI commands to query the architecture model
@@ -693,6 +766,26 @@ The --viewer-path option allows loading a local build of the web UI:
   - Useful for developing custom viewers or using bundled distributions`
   )
   .action(async (options) => {
+    if (options.list || options.stop !== undefined) {
+      const { listViewersCommand, stopViewersCommand } = await import("./commands/visualize-viewers.js");
+      if (options.list) {
+        await listViewersCommand();
+      } else {
+        await stopViewersCommand({
+          project: typeof options.stop === "string" ? options.stop : undefined,
+          all: options.all === true,
+          port: options.port,
+          includeUnrecorded: options.includeUnrecorded === true,
+        });
+      }
+      return;
+    }
+    if (options.all || options.includeUnrecorded) {
+      const { CLIError } = await import("./utils/errors.js");
+      throw new CLIError(
+        `${options.all ? "--all" : "--include-unrecorded"} goes with --stop: dr visualize --stop ${options.all ? "--all" : "--include-unrecorded"}`
+      );
+    }
     const { visualizeCommand } = await import("./commands/visualize.js");
     await visualizeCommand({
       port: options.port,
@@ -702,6 +795,8 @@ The --viewer-path option allows loading a local build of the web UI:
       withDanger: options.withDanger,
       withChangesets: options.withChangesets,
       viewerPath: options.viewerPath,
+      idleExit: options.idleExit,
+      exitWithParent: options.exitWithParent,
     });
   });
 
@@ -865,13 +960,30 @@ program
   .option("-y, --yes", "Automatically upgrade without prompting")
   .option("--dry-run", "Show what would be upgraded without making changes")
   .option("--force", "Force all upgrades regardless of current versions; skips migration validation")
+  .option(
+    "--model-only",
+    "Upgrade the model and the per-checkout spec reference only: no integration files, reports or ignore-file lines"
+  )
+  .addOption(
+    new Option(
+      "--dot-dr <choice>",
+      "What to do when git tracks files under .dr/: untrack them, keep them tracked (ignore the rest of .dr/), or skip"
+    ).choices(["untrack", "keep-tracked", "skip"])
+  )
+  .option(
+    "--remove-stale [paths...]",
+    "Remove leftovers of older integration layouts (names an earlier dr installed that this one no longer has): the paths given, as the plan lists them, or all of them when none is given"
+  )
+  .option("--full", "List every file, element and derived value; long lists otherwise show their first entries with the total")
   .addHelpText(
     "after",
     `
 Examples:
   $ dr upgrade              # Scan, show plan, and prompt for upgrades
-  $ dr upgrade --dry-run    # Preview available upgrades
+  $ dr upgrade --dry-run    # Preview: every file it would touch, in and outside the model
+  $ dr upgrade --dry-run --full  # The same, with no list shortened
   $ dr upgrade --yes        # Upgrade without prompting
+  $ dr upgrade --model-only # Migrate the model; leave integrations, reports and ignore files alone
   $ dr upgrade --force      # Force all upgrades, ignoring version checks`
   )
   .action(async (options) => {
@@ -879,6 +991,10 @@ Examples:
       yes: options.yes,
       dryRun: options.dryRun,
       force: options.force,
+      modelOnly: options.modelOnly,
+      dotDr: options.dotDr,
+      removeStale: options.removeStale,
+      full: options.full,
     });
   });
 

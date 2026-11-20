@@ -1,36 +1,56 @@
 /**
  * Viewer registry: which `dr visualize` is serving which project.
  *
- * `dr visualize` writes one record per project once its server is listening, and removes it on
- * exit. Tools that hand the human a link to the viewer (`review_open`, `project_status`) read it
- * with `findRunningViewer` and reuse a running viewer instead of starting another.
+ * `dr visualize` writes its own record once its server is listening, and removes it on exit.
+ * Tools that hand the human a link to the viewer (`review_open`, `project_status`) read the
+ * records with `probeViewer` and reuse a running viewer instead of starting another.
  *
- * The record holds the viewer's auth token, so it lives in the user's state directory, outside
+ * There is one record per running viewer, not one per project: two viewers can serve one project
+ * (a `review_open` viewer and a `dr visualize` in a terminal), and a record that the second one
+ * replaced would leave the first running with nothing pointing at it (#1237). A viewer writes
+ * and removes only its own record.
+ *
+ * A record holds the viewer's auth token, so it lives in the user's state directory, outside
  * any repository, where it can't be committed:
  *
- *   $DR_STATE_DIR/viewers/<hash>.json           (DR_STATE_DIR overrides, for tests)
- *   $XDG_STATE_HOME/dr/viewers/<hash>.json      (when XDG_STATE_HOME is set)
- *   ~/.local/state/dr/viewers/<hash>.json       (otherwise)
+ *   $DR_STATE_DIR/viewers/<hash>.<pid>.json           (DR_STATE_DIR overrides, for tests)
+ *   $XDG_STATE_HOME/dr/viewers/<hash>.<pid>.json      (when XDG_STATE_HOME is set)
+ *   ~/.local/state/dr/viewers/<hash>.<pid>.json       (otherwise)
  *
- * `<hash>` is a hash of the project root's real path. Each file is mode 0600 and the viewers
- * directory 0700.
+ * `<hash>` is a hash of the project root's real path and `<pid>` the launcher's pid. A CLI before
+ * 0.7.0 wrote `<hash>.json`, one per project; those are still read, for viewers it left running.
+ * Each file is mode 0600 and the viewers directory 0700.
  *
- * Stable API (imported by MCP tools): ViewerRecord, writeViewerRecord, readViewerRecord,
+ * Reading the registry sweeps it (sweepViewerRegistry): records of dead pids, markers of viewers
+ * that never came up and old logs are removed. A sweep returns what it removed, with counts, and
+ * each reader passes that on (`dr visualize --list`, review_open's `staleRemoved`).
+ *
+ * Stable API (imported by MCP tools): ViewerRecord, writeViewerRecord, readViewerRecords,
  * removeViewerRecord, removeViewerRecordSync, findRunningViewer, probeViewer, viewerUrl,
  * describePortHolder.
  */
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { chmod, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
+import { getCliVersion } from "../utils/spec-version.js";
+import { launcherServesPort, looksLikeViewer as processLooksLikeViewer } from "./viewer-processes.js";
+import { viewerSetting } from "./viewer-settings.js";
 
 /** Env var that points the user state directory somewhere else (tests). */
 export const DR_STATE_DIR_ENV = "DR_STATE_DIR";
+/** Set to "review_open" by review_open on the viewers it starts, so their records say who started them. */
+export const VIEWER_STARTED_BY_ENV = "DR_VIEWER_STARTED_BY";
+/** "1" has `dr visualize` exit when the process that started it is gone, like --exit-with-parent. */
+export const EXIT_WITH_PARENT_ENV = "DR_VISUALIZE_EXIT_WITH_PARENT";
 
-/** A running `dr visualize` for one project. */
+/** Who started a viewer: `review_open` (detached, nobody's terminal) or a person running the CLI. */
+export type ViewerStarter = "review_open" | "cli";
+
+/** One running `dr visualize`. A project can have several. */
 export interface ViewerRecord {
   /** Pid of the `dr visualize` process. */
   pid: number;
@@ -43,6 +63,20 @@ export interface ViewerRecord {
   startedAt: string;
   /** Whether the viewer runs with --with-changesets (DrBot may stage changes). */
   withChangesets: boolean;
+  /**
+   * This viewer's id, which its server also reports on GET /health: how a reader tells that the
+   * viewer answering on `port` is this one and not another that took the port. Absent in a
+   * record a CLI before 0.7.0 wrote.
+   */
+  viewerId?: string;
+  /** Version of the CLI running the viewer. Absent in a record a CLI before 0.7.0 wrote. */
+  cliVersion?: string;
+  /** Pid of the server process the launcher runs. */
+  serverPid?: number;
+  /** Who started it. Absent in a record a CLI before 0.7.0 wrote. */
+  startedBy?: ViewerStarter;
+  /** Hours without a browser tab or a request after which the viewer exits; absent when it never does. */
+  idleExitHours?: number;
 }
 
 /** The user's dr state directory (not the project's .dr/). */
@@ -72,10 +106,18 @@ function recordKey(projectRoot: string): string {
   return createHash("sha256").update(canonicalProjectRoot(projectRoot)).digest("hex").slice(0, 24);
 }
 
-/** Path of a project's viewer record. */
-export function viewerRecordPath(projectRoot: string, env: NodeJS.ProcessEnv = process.env): string {
+/** Path of the record of the viewer whose launcher is `pid`, for a project. */
+export function viewerRecordPath(projectRoot: string, pid: number, env: NodeJS.ProcessEnv = process.env): string {
+  return join(viewerRecordDir(env), `${recordKey(projectRoot)}.${pid}.json`);
+}
+
+/** Path of the one-per-project record a CLI before 0.7.0 wrote. Read, never written. */
+export function legacyViewerRecordPath(projectRoot: string, env: NodeJS.ProcessEnv = process.env): string {
   return join(viewerRecordDir(env), `${recordKey(projectRoot)}.json`);
 }
+
+/** A record file's name: `<hash>.<pid>.json`, or `<hash>.json` from a CLI before 0.7.0. */
+const RECORD_FILE = /^([0-9a-f]{24})(?:\.(\d+))?\.json$/;
 
 /** Path of the log a viewer started by `review_open` writes its output to. */
 export function viewerLogPath(projectRoot: string, env: NodeJS.ProcessEnv = process.env): string {
@@ -149,17 +191,20 @@ export async function removeStaleTempFiles(
 }
 
 /**
- * Writes a project's viewer record (0600), replacing any earlier one. The write is atomic (a
- * temp file renamed into place), so a reader never sees half a record; stale temp files from
- * earlier writers are cleaned up first. Returns the record's path.
+ * Writes a viewer's own record (0600), at a path that names its pid, so it never replaces
+ * another viewer's. The write is atomic (a temp file renamed into place), so a reader never
+ * sees half a record; what dead viewers left behind is swept first. Returns the record's path.
  */
 export async function writeViewerRecord(
   record: ViewerRecord,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  /** Told what the sweep removed, when it removed anything. */
+  onSwept?: (swept: SweepResult) => void
 ): Promise<string> {
   await ensureViewerRecordDir(env);
-  await removeStaleTempFiles(env);
-  const path = viewerRecordPath(record.projectRoot, env);
+  const swept = await sweepViewerRegistry({ env }).catch(() => null);
+  if (swept && (swept.removed.length > 0 || swept.unreadable.length > 0)) onSwept?.(swept);
+  const path = viewerRecordPath(record.projectRoot, record.pid, env);
   const stored: ViewerRecord = { ...record, projectRoot: canonicalProjectRoot(record.projectRoot) };
   const temp = tempPathFor(path, process.pid);
   try {
@@ -191,6 +236,13 @@ function parseRecord(text: string): ViewerRecord | null {
         projectRoot: data.projectRoot,
         startedAt: typeof data.startedAt === "string" ? data.startedAt : "",
         withChangesets: data.withChangesets === true,
+        ...(typeof data.viewerId === "string" && data.viewerId ? { viewerId: data.viewerId } : {}),
+        ...(typeof data.cliVersion === "string" ? { cliVersion: data.cliVersion } : {}),
+        ...(Number.isInteger(data.serverPid) ? { serverPid: data.serverPid } : {}),
+        ...(data.startedBy === "review_open" || data.startedBy === "cli" ? { startedBy: data.startedBy } : {}),
+        ...(typeof data.idleExitHours === "number" && data.idleExitHours > 0
+          ? { idleExitHours: data.idleExitHours }
+          : {}),
       };
     }
   } catch {
@@ -199,63 +251,118 @@ function parseRecord(text: string): ViewerRecord | null {
   return null;
 }
 
-/**
- * A project's viewer record as written, without checking that the viewer still runs. Undefined
- * when there is no record; null when the file is there but unreadable as a record.
- */
-export async function readViewerRecord(
-  projectRoot: string,
-  env: NodeJS.ProcessEnv = process.env
-): Promise<ViewerRecord | null | undefined> {
-  let text: string;
+/** A record file in the viewers directory: its path and what it holds (null when unreadable). */
+interface RecordFile {
+  path: string;
+  /** The project hash in the file's name. */
+  key: string;
+  record: ViewerRecord | null;
+}
+
+/** Every record file in the viewers directory, or only one project's. */
+async function readRecordFiles(env: NodeJS.ProcessEnv, projectRoot?: string): Promise<RecordFile[]> {
+  const dir = viewerRecordDir(env);
+  const key = projectRoot === undefined ? undefined : recordKey(projectRoot);
+  let names: string[];
   try {
-    text = await readFile(viewerRecordPath(projectRoot, env), "utf8");
+    names = await readdir(dir);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
   }
-  return parseRecord(text);
+  const files: RecordFile[] = [];
+  for (const name of names.sort()) {
+    const match = RECORD_FILE.exec(name);
+    if (!match || (key !== undefined && match[1] !== key)) continue;
+    const path = join(dir, name);
+    const text = await readFile(path, "utf8").catch(() => null);
+    if (text === null) continue; // Removed since the listing.
+    files.push({ path, key: match[1], record: parseRecord(text) });
+  }
+  return files;
+}
+
+function recordFilesSync(env: NodeJS.ProcessEnv, projectRoot: string): RecordFile[] {
+  const dir = viewerRecordDir(env);
+  const key = recordKey(projectRoot);
+  const files: RecordFile[] = [];
+  let names: string[];
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return files;
+  }
+  for (const name of names) {
+    const match = RECORD_FILE.exec(name);
+    if (!match || match[1] !== key) continue;
+    const path = join(dir, name);
+    try {
+      files.push({ path, key, record: parseRecord(readFileSync(path, "utf8")) });
+    } catch {
+      // Removed since the listing.
+    }
+  }
+  return files;
+}
+
+/**
+ * A project's viewer records as written (one per viewer, plus the single record a CLI before
+ * 0.7.0 wrote), without checking that the viewers still run. Unreadable files are left out.
+ */
+export async function readViewerRecords(
+  projectRoot: string,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<ViewerRecord[]> {
+  const root = canonicalProjectRoot(projectRoot);
+  const records: ViewerRecord[] = [];
+  for (const file of await readRecordFiles(env, projectRoot)) {
+    if (file.record && file.record.projectRoot === root) records.push(file.record);
+  }
+  return records;
 }
 
 export interface RemoveViewerRecordOptions {
-  /** Remove only if the record belongs to this pid (so a viewer never removes a newer one's). */
+  /** Remove only this viewer's record (so a viewer never removes another's). Without it, all of the project's. */
   pid?: number;
   env?: NodeJS.ProcessEnv;
 }
 
-/** Removes a project's viewer record. Missing is fine. */
+/** Whether a record file is the one to remove: any of the project's, or the given pid's. */
+function isRecordOf(file: RecordFile, pid: number | undefined): boolean {
+  return pid === undefined || file.record?.pid === pid;
+}
+
+/** Removes a project's viewer records, or one viewer's. Missing is fine. Returns the paths removed. */
 export async function removeViewerRecord(
   projectRoot: string,
   options: RemoveViewerRecordOptions = {}
-): Promise<void> {
+): Promise<string[]> {
   const env = options.env ?? process.env;
-  const path = viewerRecordPath(projectRoot, env);
-  if (options.pid !== undefined) {
-    const current = await readViewerRecord(projectRoot, env).catch(() => undefined);
-    if (current && current.pid !== options.pid) return;
+  const removed: string[] = [];
+  for (const file of await readRecordFiles(env, projectRoot)) {
+    if (!isRecordOf(file, options.pid)) continue;
+    try {
+      await unlink(file.path);
+      removed.push(file.path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
-  try {
-    await unlink(path);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  return removed;
 }
 
 /** Synchronous removeViewerRecord, for a process "exit" handler. Never throws. */
 export function removeViewerRecordSync(projectRoot: string, options: RemoveViewerRecordOptions = {}): void {
   const env = options.env ?? process.env;
-  const path = viewerRecordPath(projectRoot, env);
+  const pid = options.pid ?? process.pid;
   // A write this process had in flight when it exited.
-  removeTempFilesSync(path, options.pid ?? process.pid);
+  removeTempFilesSync(viewerRecordPath(projectRoot, pid, env), pid);
   try {
-    if (!existsSync(path)) return;
-    if (options.pid !== undefined) {
-      const current = parseRecord(readFileSync(path, "utf8"));
-      if (current && current.pid !== options.pid) return;
+    for (const file of recordFilesSync(env, projectRoot)) {
+      if (isRecordOf(file, options.pid)) unlinkSync(file.path);
     }
-    unlinkSync(path);
   } catch {
-    // Best effort at exit; findRunningViewer clears stale records anyway.
+    // Best effort at exit; the next read of the registry sweeps stale records anyway.
   }
 }
 
@@ -270,62 +377,364 @@ export function isProcessAlive(pid: number): boolean {
   }
 }
 
+/** What a viewer's health check says. */
+export interface ViewerHealth {
+  status: "ok" | "degraded";
+  /** Version of the CLI serving the viewer. Absent before 0.6.0, which did not report it. */
+  cliVersion?: string;
+  /** The viewer's id, as its registry record has it. Since 0.7.0. */
+  viewerId?: string;
+  /** The server's own pid. Since 0.7.0. */
+  pid?: number;
+  /** The pid of the launcher that runs the server. Since 0.7.0. */
+  launcherPid?: number;
+  /** Browser tabs connected now. Since 0.7.0. */
+  clients?: number;
+}
+
+/**
+ * Whether the viewer answering on a record's port is that record's viewer:
+ * - `this`: it reports the record's id.
+ * - `other`: it reports a different id, or reports one where the record (from an older CLI) has
+ *   none: another viewer holds the port.
+ * - `unknown`: neither has an id (an older viewer and an older record), so the answer alone
+ *   cannot tell.
+ */
+export function answeringViewer(record: ViewerRecord, health: ViewerHealth): "this" | "other" | "unknown" {
+  if (record.viewerId) return health.viewerId === record.viewerId ? "this" : "other";
+  return health.viewerId ? "other" : "unknown";
+}
+
+/** A dr viewer's answer to its health check on this port, or null when nothing answers as one. */
+export async function viewerHealth(port: number, timeoutMs = 1500, token?: string | null): Promise<ViewerHealth | null> {
+  try {
+    // With the viewer's token it also names itself (viewerId, pids, open tabs); without, only its status and version.
+    const response = await fetch(`http://127.0.0.1:${port}/health`, {
+      signal: AbortSignal.timeout(timeoutMs),
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as Record<string, unknown>;
+    if (body?.status !== "ok" && body?.status !== "degraded") return null;
+    const pid = (value: unknown) => (typeof value === "number" && Number.isInteger(value) && value > 1 ? value : undefined);
+    return {
+      status: body.status,
+      ...(typeof body.cliVersion === "string" ? { cliVersion: body.cliVersion } : {}),
+      ...(typeof body.viewerId === "string" && body.viewerId ? { viewerId: body.viewerId } : {}),
+      ...(pid(body.pid) ? { pid: pid(body.pid) } : {}),
+      ...(pid(body.launcherPid) ? { launcherPid: pid(body.launcherPid) } : {}),
+      ...(typeof body.clients === "number" && Number.isInteger(body.clients) && body.clients >= 0
+        ? { clients: body.clients }
+        : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Whether a dr viewer answers its health check on this port. */
 export async function viewerAnswers(port: number, timeoutMs = 1500): Promise<boolean> {
+  return (await viewerHealth(port, timeoutMs)) !== null;
+}
+
+export interface SweepViewerRegistryOptions {
+  env?: NodeJS.ProcessEnv;
+  /** Injected for tests; defaults to isProcessAlive. */
+  isAlive?: (pid: number) => boolean;
+  now?: number;
+}
+
+/** What a sweep of the viewers directory removed. */
+export interface SweepResult {
+  /** Every path removed. */
+  removed: string[];
+  /** Records of viewers that are gone (dead pid, a pid another program holds, or unreadable). */
+  records: number;
+  /** "Starting" markers of viewers that never came up. */
+  markers: number;
+  /** Logs of viewers gone longer than the keep period (DR_VIEWER_LOG_KEEP_DAYS). */
+  logs: number;
+  /** Half-written temp files a writer left when it was killed. */
+  tempFiles: number;
+  /**
+   * Records this CLI cannot read whose pid is alive: left in place (a later CLI's record of a
+   * running viewer, perhaps), and reported so that nothing reads their absence as "no viewer".
+   */
+  unreadable: string[];
+}
+
+/** A sweep that removed nothing. */
+export function emptySweep(): SweepResult {
+  return { removed: [], records: 0, markers: 0, logs: 0, tempFiles: 0, unreadable: [] };
+}
+
+/** A sweep's removals in words ("2 stale records and 1 old log"), or "" when it removed nothing. */
+export function describeSweep(sweep: SweepResult): string {
+  const part = (count: number, one: string, many: string) => (count === 0 ? [] : [`${count} ${count === 1 ? one : many}`]);
+  const parts = [
+    ...part(sweep.records, "stale record", "stale records"),
+    ...part(sweep.markers, "marker of a viewer that never started", "markers of viewers that never started"),
+    ...part(sweep.logs, "old log", "old logs"),
+    ...part(sweep.tempFiles, "leftover temp file", "leftover temp files"),
+  ];
+  if (parts.length <= 1) return parts.join("");
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+/** Says that records were left because this CLI cannot read them, or "" when there are none. */
+export function describeUnreadable(sweep: SweepResult): string {
+  const count = sweep.unreadable.length;
+  if (count === 0) return "";
+  return (
+    `${count} viewer ${count === 1 ? "record" : "records"} in the registry could not be read by this CLI and ` +
+    `${count === 1 ? "belongs to a process that is" : "belong to processes that are"} still running ` +
+    `(a newer CLI's viewer, perhaps): left in place, and not listed.`
+  );
+}
+
+/**
+ * Removes what dead viewers left in the viewers directory: records whose pid is dead or that
+ * cannot be read, "starting" markers of dead pids, logs of viewers gone longer than the keep
+ * period (DR_VIEWER_LOG_KEEP_DAYS, default 7), and stale temp files. Run whenever the registry is
+ * read. Returns what it removed, with a count of each kind; never throws.
+ */
+export async function sweepViewerRegistry(options: SweepViewerRegistryOptions = {}): Promise<SweepResult> {
+  const env = options.env ?? process.env;
+  const isAlive = options.isAlive ?? isProcessAlive;
+  const now = options.now ?? Date.now();
+  const dir = viewerRecordDir(env);
+  const logKeepMs = viewerSetting("logKeepDays", env) * 24 * 60 * 60 * 1000;
+  const result = emptySweep();
+  result.removed = await removeStaleTempFiles(env, now);
+  result.tempFiles = result.removed.length;
+  const drop = async (path: string, kind: "records" | "markers" | "logs") => {
+    try {
+      await unlink(path);
+      result.removed.push(path);
+      result[kind]++;
+    } catch {
+      // Gone already, or not ours to remove.
+    }
+  };
+
+  let names: string[];
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(timeoutMs) });
-    if (!response.ok) return false;
-    const body = (await response.json()) as { status?: unknown };
-    return body?.status === "ok" || body?.status === "degraded";
+    names = await readdir(dir);
   } catch {
-    return false;
+    return result;
   }
+
+  // Projects (by hash) that still have a viewer running or starting: their logs are kept.
+  const live = new Set<string>();
+  for (const name of names) {
+    const path = join(dir, name);
+    const record = RECORD_FILE.exec(name);
+    if (record) {
+      const text = await readFile(path, "utf8").catch(() => null);
+      if (text === null) continue;
+      const parsed = parseRecord(text);
+      if (parsed) {
+        if (isAlive(parsed.pid)) live.add(record[1]);
+        else await drop(path, "records");
+        continue;
+      }
+      // Not a record this CLI can read. Its file name says whose it is: while that pid is alive
+      // it may be a later CLI's record of a running viewer, so it stays and is reported.
+      const owner = record[2] === undefined ? null : Number(record[2]);
+      if (owner !== null && isAlive(owner)) {
+        live.add(record[1]);
+        result.unreadable.push(path);
+      } else await drop(path, "records");
+    } else if (name.endsWith(".starting")) {
+      let pid: unknown;
+      try {
+        pid = JSON.parse(await readFile(path, "utf8")).pid;
+      } catch {
+        pid = undefined;
+      }
+      if (typeof pid === "number" && Number.isInteger(pid) && isAlive(pid)) live.add(name.slice(0, -".starting".length));
+      else await drop(path, "markers");
+    }
+  }
+  for (const name of names) {
+    if (!name.endsWith(".log") || live.has(name.slice(0, -".log".length))) continue;
+    const path = join(dir, name);
+    try {
+      if (now - (await stat(path)).mtimeMs > logKeepMs) await drop(path, "logs");
+    } catch {
+      // Gone already.
+    }
+  }
+  return result;
+}
+
+/** Every viewer record whose process is alive, across projects, after a sweep, and what the sweep removed. */
+export async function listViewerRecords(
+  options: SweepViewerRegistryOptions = {}
+): Promise<{ records: ViewerRecord[]; swept: SweepResult }> {
+  const env = options.env ?? process.env;
+  const isAlive = options.isAlive ?? isProcessAlive;
+  const swept = await sweepViewerRegistry(options);
+  const records: ViewerRecord[] = [];
+  for (const file of await readRecordFiles(env)) {
+    if (file.record && isAlive(file.record.pid)) records.push(file.record);
+  }
+  return { records, swept };
 }
 
 export interface FindRunningViewerOptions {
   env?: NodeJS.ProcessEnv;
   /** Injected for tests; defaults to isProcessAlive. */
   isAlive?: (pid: number) => boolean;
-  /** Injected for tests; defaults to viewerAnswers. Called with the probe's timeout. */
+  /** Injected for tests; defaults to viewerHealth. Called with the probe's timeout. */
+  health?: (port: number, timeoutMs: number, token?: string | null) => Promise<ViewerHealth | null>;
+  /** Injected for tests, when the CLI version does not matter: whether a viewer answers on the port. */
   answers?: (port: number, timeoutMs: number) => Promise<boolean>;
-  /** First health probe's timeout (default 1.5s). */
+  /**
+   * Whether a live pid that does not answer is still a viewer (true), another program that got
+   * the pid after the viewer died (false), or unknown (null). Defaults to its command line.
+   */
+  looksLikeViewer?: (pid: number) => boolean | null;
+  /**
+   * For a record and viewer from before 0.7.0 (neither has an id): whether the record's launcher
+   * runs the server listening on its port. True, false, or null when that cannot be read.
+   * Defaults to the process table and lsof.
+   */
+  servesPort?: (pid: number, port: number) => boolean | null;
+  /** The CLI version to prefer when several viewers run (default: this CLI's). */
+  cliVersion?: string;
+  /** First health probe's timeout (default: DR_VIEWER_HEALTH_TIMEOUT_MS, 1.5s). */
   probeTimeoutMs?: number;
-  /** The retry's timeout when the first probe fails and the pid is alive (default 5s). */
+  /** The second probe's timeout, when no viewer answered the first (default: DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS, 5s). */
   retryTimeoutMs?: number;
 }
 
 /**
- * What the registry knows about a project's viewer:
- * - `none`: no record, or a stale one (its pid is dead), which is removed.
- * - `running`: the pid is alive and the server answers its health check.
- * - `unreachable`: the pid is alive but the server did not answer, twice. The record is kept: the
- *   viewer may only be busy, and a second viewer for the project would be wrong.
+ * What the registry knows about a project's viewers:
+ * - `none`: no record, or only stale ones (pid dead, or reused by another program), which are removed.
+ * - `running`: a viewer's pid is alive and its server answers its health check. With several, the
+ *   one to reuse: on the caller's CLI version first, then with changeset mode, then the oldest.
+ *   `cliVersion` is what its health check reported (absent before 0.6.0).
+ * - `unreachable`: a pid is alive but no server answered, twice. The record is kept: the viewer
+ *   may only be busy, and a second viewer for the project would be wrong.
+ *
+ * `swept` is there when reading the registry removed something (any project's): what, and how many.
+ *
+ * A running viewer's `health` is what its server said. `confirmed` is true when that answer
+ * carried the record's own id, so the server answering is known to be this record's; false for a
+ * viewer and record from before 0.7.0, where it is only that the pid is alive and looks like a
+ * viewer and something answers as one on its port.
  */
-export type ViewerProbe =
+export type ViewerProbe = (
   | { state: "none" }
-  | { state: "running"; record: ViewerRecord }
-  | { state: "unreachable"; record: ViewerRecord };
+  | { state: "running"; record: ViewerRecord; cliVersion?: string; health?: ViewerHealth; confirmed?: boolean }
+  | { state: "unreachable"; record: ViewerRecord }
+) & {
+  swept?: SweepResult;
+  /**
+   * Viewers from before 0.7.0 that answer on their recorded port but could not be tied to the
+   * record (the process table or the port could not be read, or another server holds the port):
+   * not reused, since the link could open another project. Their records are kept.
+   */
+  unconfirmed?: Array<{ pid: number; port: number; reason: string }>;
+};
 
-/** Checks a project's viewer record against its process and its health check. */
+/** Oldest first; a record with no start time sorts last. */
+function byStartedAt(a: ViewerRecord, b: ViewerRecord): number {
+  if (a.startedAt === b.startedAt) return a.pid - b.pid;
+  if (!a.startedAt) return 1;
+  if (!b.startedAt) return -1;
+  return a.startedAt < b.startedAt ? -1 : 1;
+}
+
+/** Checks a project's viewer records against their processes and health checks. */
 export async function probeViewer(projectRoot: string, options: FindRunningViewerOptions = {}): Promise<ViewerProbe> {
   const env = options.env ?? process.env;
   const isAlive = options.isAlive ?? isProcessAlive;
-  const answers = options.answers ?? viewerAnswers;
+  const answers = options.answers;
+  const health: (port: number, timeoutMs: number, token?: string | null) => Promise<ViewerHealth | null> =
+    options.health ??
+    (answers ? async (port, timeoutMs) => ((await answers(port, timeoutMs)) ? { status: "ok" } : null) : viewerHealth);
+  const preferred = options.cliVersion ?? getCliVersion();
 
-  const record = await readViewerRecord(projectRoot, env);
-  if (record === undefined) return { state: "none" };
-  if (record === null) {
-    await removeViewerRecord(projectRoot, { env });
-    return { state: "none" };
+  const swept = await sweepViewerRegistry({ env, isAlive });
+  const sweptPart = () => (swept.removed.length > 0 || swept.unreadable.length > 0 ? { swept } : {});
+  const records = (await readViewerRecords(projectRoot, env)).filter((record) => isAlive(record.pid));
+  if (records.length === 0) return { state: "none", ...sweptPart() };
+
+  const looksLikeViewer = options.looksLikeViewer ?? processLooksLikeViewer;
+  const servesPort = options.servesPort ?? ((pid: number, port: number) => launcherServesPort(pid, port, env));
+  const unconfirmed: Array<{ pid: number; port: number; reason: string }> = [];
+  const extra = () => ({ ...sweptPart(), ...(unconfirmed.length > 0 ? { unconfirmed } : {}) });
+  // "Answers" means the viewer on the record's port is this record's, not just that some viewer
+  // holds the port: a stale record whose port another project's viewer took must not yield a
+  // link to that project.
+  const probeOne = async (record: ViewerRecord, timeoutMs: number) => {
+    const answer = await health(record.port, timeoutMs, record.token);
+    if (!answer) return { record, health: null as ViewerHealth | null, confirmed: false };
+    const whose = answeringViewer(record, answer);
+    if (whose === "this") return { record, health: answer, confirmed: true };
+    // Neither side has an id (both from before 0.7.0): two such viewers cannot be told apart by
+    // what they answer, so the record's own launcher must be the one serving its port.
+    if (whose === "unknown" && looksLikeViewer(record.pid) !== false) {
+      const serves = servesPort(record.pid, record.port);
+      if (serves === true) return { record, health: answer, confirmed: false };
+      if (!unconfirmed.some((entry) => entry.pid === record.pid)) {
+        unconfirmed.push({
+          pid: record.pid,
+          port: record.port,
+          reason:
+            serves === null
+              ? "a viewer from before 0.7.0 answers on its port, and the process table or the port could not be read to tie it to this record"
+              : "a viewer from before 0.7.0 answers on its port, but it is not the one this record's process runs",
+        });
+      }
+      return { record, health: null as ViewerHealth | null, confirmed: false, legacy: true };
+    }
+    return { record, health: null as ViewerHealth | null, confirmed: false };
+  };
+  const probe = (timeoutMs: number, candidates: ViewerRecord[]) =>
+    Promise.all(candidates.map((record) => probeOne(record, timeoutMs)));
+  let probed = await probe(options.probeTimeoutMs ?? viewerSetting("healthTimeoutMs", env), records);
+  const silentOf = (entries: typeof probed) =>
+    entries.filter((entry) => !entry.health && !("legacy" in entry && entry.legacy)).map((entry) => entry.record);
+  let silent = silentOf(probed);
+  if (silent.length > 0 && probed.every((entry) => !entry.health)) {
+    // Nothing answered: give a busy viewer longer before calling it unreachable.
+    const retried = await probe(options.retryTimeoutMs ?? viewerSetting("healthRetryTimeoutMs", env), silent);
+    probed = [...probed.filter((entry) => !silent.includes(entry.record)), ...retried];
+    silent = silentOf(probed);
   }
-  if (record.projectRoot !== canonicalProjectRoot(projectRoot)) return { state: "none" };
-  if (!isAlive(record.pid)) {
-    await removeViewerRecord(projectRoot, { env, pid: record.pid });
-    return { state: "none" };
+
+  const running = probed.filter((entry) => entry.health);
+  if (running.length > 0) {
+    const rank = (entry: (typeof running)[number]) =>
+      (entry.health?.cliVersion === preferred ? 0 : 2) + (entry.record.withChangesets ? 0 : 1);
+    running.sort((a, b) => rank(a) - rank(b) || byStartedAt(a.record, b.record));
+    const best = running[0];
+    return {
+      state: "running",
+      record: best.record,
+      ...(best.health?.cliVersion ? { cliVersion: best.health.cliVersion } : {}),
+      health: best.health!,
+      confirmed: best.confirmed,
+      ...extra(),
+    };
   }
-  if (await answers(record.port, options.probeTimeoutMs ?? 1500)) return { state: "running", record };
-  if (await answers(record.port, options.retryTimeoutMs ?? 5000)) return { state: "running", record };
-  return { state: "unreachable", record };
+
+  // Alive and silent (or its port answers as another viewer). A pid that now belongs to another
+  // program is not a viewer that is busy: the viewer died and the pid was reused (every record
+  // after a reboot), so its record goes.
+  const stuck: ViewerRecord[] = [];
+  for (const record of silent) {
+    if (looksLikeViewer(record.pid) === false) {
+      const removed = await removeViewerRecord(projectRoot, { env, pid: record.pid });
+      swept.removed.push(...removed);
+      swept.records += removed.length;
+    } else stuck.push(record);
+  }
+  if (stuck.length === 0) return { state: "none", ...extra() };
+  return { state: "unreachable", record: stuck.sort(byStartedAt)[0], ...extra() };
 }
 
 /**
@@ -406,18 +815,9 @@ export async function viewersOnPort(
   env: NodeJS.ProcessEnv = process.env,
   isAlive: (pid: number) => boolean = isProcessAlive
 ): Promise<ViewerRecord[]> {
-  const dir = viewerRecordDir(env);
-  let names: string[];
-  try {
-    names = await readdir(dir);
-  } catch {
-    return [];
-  }
   const found: ViewerRecord[] = [];
-  for (const name of names) {
-    if (!name.endsWith(".json")) continue;
-    const record = parseRecord(await readFile(join(dir, name), "utf8").catch(() => ""));
-    if (record && record.port === port && isAlive(record.pid)) found.push(record);
+  for (const file of await readRecordFiles(env).catch(() => [])) {
+    if (file.record && file.record.port === port && isAlive(file.record.pid)) found.push(file.record);
   }
   return found;
 }
