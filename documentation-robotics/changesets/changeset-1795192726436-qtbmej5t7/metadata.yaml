@@ -9,17 +9,17 @@ description: "project_status says what drifted and what to do next:
   drift state, what changed, whether a landing will be refused and which tool to
   call next."
 created: 2026-11-20T16:38:46.457Z
-modified: 2026-11-20T16:41:29.320Z
+modified: 2026-11-20T16:56:23.221Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 20
-  modifications: 1
+  additions: 36
+  modifications: 2
   deletions: 1
-lastSequence: 34
+lastSequence: 58
 unstaged:
   - sequence: 16
     removedAt: 24
@@ -258,4 +258,169 @@ unstaged:
           updated_at: 2026-11-20T16:39:29.301Z
           version: 1
       timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 36
+    removedAt: 52
+    change:
+      type: add
+      elementId: application.applicationfunction.project-status-list
+      layerName: application
+      after:
+        id: 500e4412-5243-4339-a5a4-ff8bcfed8e7e
+        path: application.applicationfunction.project-status-list
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: projectStatusList
+        description: "One of the status's lists in full, paged: what project_status
+          returns with list. Only the collector that holds the list runs, and
+          limit has no upper bound."
+        metadata:
+          created_at: 2026-11-20T16:49:54.901Z
+          updated_at: 2026-11-20T16:49:54.901Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
+    rewritten: true
+  - sequence: 37
+    removedAt: 53
+    change:
+      type: add
+      elementId: application.applicationfunction.shorten-sections
+      layerName: application
+      after:
+        id: c925c8d9-3f95-41b8-a643-ca16b19c2ab7
+        path: application.applicationfunction.shorten-sections
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: shortenSections
+        description: "The sections as the default answer shows them: each list cut to
+          its default size, with its true count beside it and a more line naming
+          the call that returns the rest. Nothing but the lists changes."
+        metadata:
+          created_at: 2026-11-20T16:49:54.901Z
+          updated_at: 2026-11-20T16:49:54.901Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
+    rewritten: true
+  - sequence: 38
+    removedAt: 54
+    change:
+      type: add
+      elementId: application.applicationfunction.status-list-items
+      layerName: application
+      after:
+        id: c1e40d9d-ea84-4ea9-9f53-295dcd60d0c9
+        path: application.applicationfunction.status-list-items
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: statusListItems
+        description: The items of one of the status's lists, whole, from sections as the
+          collectors return them, or why the list can't be read.
+        metadata:
+          created_at: 2026-11-20T16:49:54.901Z
+          updated_at: 2026-11-20T16:49:54.901Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
+    rewritten: true
+  - sequence: 40
+    removedAt: 55
+    change:
+      type: add
+      elementId: data-model.objectschema.list-sections
+      layerName: data-model
+      after:
+        id: f7e4fced-b3dc-4af3-ba1c-d9725a7c37fd
+        path: data-model.objectschema.list-sections
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ListSections
+        description: "The project_status sections that hold lists the default answer
+          shortens: changesets, codeIndex and codeDrift."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:49:54.901Z
+          updated_at: 2026-11-20T16:49:54.901Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
+    rewritten: true
+  - sequence: 39
+    removedAt: 56
+    change:
+      type: add
+      elementId: data-model.objectschema.status-list-page
+      layerName: data-model
+      after:
+        id: 10e051d3-21db-446b-a094-61ddf00dbdc4
+        path: data-model.objectschema.status-list-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: StatusListPage
+        description: "One page of a list the status shortens: list, total, offset,
+          returned, items, and nextOffset and more when entries are left."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:49:54.901Z
+          updated_at: 2026-11-20T16:49:54.901Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
+    rewritten: true
+  - sequence: 41
+    removedAt: 57
+    change:
+      type: add
+      elementId: data-model.objectschema.unreferenced-file
+      layerName: data-model
+      after:
+        id: ff5a6b90-913f-40ff-9fbb-34b9b026bfc8
+        path: data-model.objectschema.unreferenced-file
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UnreferencedFile
+        description: "A changed file no element references: its path, whether it is a
+          source file and whether it was added since the baseline."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:49:54.902Z
+          updated_at: 2026-11-20T16:49:54.902Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
+    rewritten: true
+  - sequence: 42
+    removedAt: 58
+    change:
+      type: add
+      elementId: data-model.schemadefinition.status-list
+      layerName: data-model
+      after:
+        id: 8ace5744-be05-4bd6-8f25-7695a65e7c31
+        path: data-model.schemadefinition.status-list
+        spec_node_id: data-model.schemadefinition
+        type: schemadefinition
+        layer_id: data-model
+        name: StatusList
+        description: The lists project_status pages with list, limit and offset.
+        attributes:
+          title: StatusList
+          type: string
+          enum:
+            - stagedChangesets
+            - changedSourceFiles
+            - uncommittedSourceFiles
+            - unreferencedFiles
+            - landedSince
+            - changedSinceIndex
+            - uncommittedEdits
+        metadata:
+          created_at: 2026-11-20T16:49:54.902Z
+          updated_at: 2026-11-20T16:49:54.902Z
+          version: 1
+      timestamp: 2026-11-20T16:49:54.929Z
     rewritten: true
