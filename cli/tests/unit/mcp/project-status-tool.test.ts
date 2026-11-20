@@ -16,15 +16,25 @@ import { MigrationRegistry } from "../../../src/core/migration-registry.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
-import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import {
+  changesetActivateHandler,
+  changesetCreateHandler,
+  changesetDeactivateHandler,
+} from "../../../src/mcp/tools/changeset-lifecycle.js";
 import {
   projectStatus,
   projectStatusHandler,
   suggestNextStep,
 } from "../../../src/mcp/tools/project-status.js";
-import { changesSpecVersion, runGit, type GitRunner } from "../../../src/mcp/tools/project-status-collectors.js";
+import {
+  changesSpecVersion,
+  readInstalledCli,
+  runGit,
+  type GitRunner,
+} from "../../../src/mcp/tools/project-status-collectors.js";
+import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
-import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
+import { getCliBundledSpecVersion, getCliVersion } from "../../../src/utils/spec-version.js";
 
 const SERVICE = "application.applicationservice.checkout";
 
@@ -84,6 +94,48 @@ async function initModel(rootPath: string): Promise<void> {
       rootPath,
     })
   );
+}
+
+/** The manifest's `reconciled` block, as an as-built landing writes it. */
+async function stampReconciled(
+  rootPath: string,
+  stamp: { changeset: string; codeCommit?: string; landedAt?: string }
+): Promise<void> {
+  const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+  const text = await readFile(manifest, "utf-8");
+  expect(text).not.toMatch(/^reconciled:/m);
+  await writeFile(
+    manifest,
+    `${text.trimEnd()}\nreconciled:\n  changeset: ${stamp.changeset}\n  changeset_id: changeset-${stamp.changeset}\n` +
+      `  landed_at: ${stamp.landedAt ?? "2020-01-01T00:00:00.000Z"}\n` +
+      (stamp.codeCommit ? `  code_commit: "${stamp.codeCommit}"\n` : "")
+  );
+  clearModelCache();
+}
+
+/** Land a staged changeset the way changeset_commit, the viewer's Apply and the CLI all do. */
+async function land(rootPath: string, changesetId: string): Promise<void> {
+  clearModelCache();
+  const model = await Model.load(rootPath, { lazyLoad: false });
+  await new StagingAreaManager(model.rootPath, model).commit(model, changesetId, { validate: true });
+  clearModelCache();
+}
+
+/** A changeset made with changeset_create (a plan) that adds one service, left staged and inactive. */
+async function stagePlan(rootPath: string, name: string, element: string): Promise<string> {
+  clearModelCache();
+  const created = await ok(await changesetCreateHandler({ name, rootPath }));
+  await ok(
+    await modelAddHandler({
+      layer: "application",
+      type: "applicationservice",
+      name: element,
+      attributes: { serviceType: "synchronous" },
+      rootPath,
+    })
+  );
+  await ok(await changesetDeactivateHandler({ rootPath }));
+  return created.id;
 }
 
 let rootPath: string;
@@ -169,6 +221,112 @@ describe("project_status", () => {
     expect(data.spec.upgradeNeeded).toBe(false);
     expect(data.nextStep.tool).toBeNull();
     expect(data.nextStep.summary).toContain("Update the dr CLI");
+    // This server is the installed CLI, so the CLI itself is too old: an update, then a restart.
+    expect(data.server).toEqual({ status: "current", version: getCliVersion() });
+    expect(data.spec.reason).toContain("update the dr CLI");
+    expect(data.nextStep.summary).toContain("restart the session's dr server");
+  });
+
+  describe("a dr server older than the installed CLI", () => {
+    const installed = (version: string, spec: string | null) => ({ installedCli: async () => ({ version, spec }) });
+
+    it("says restart, not update, when the installed CLI already carries the model's spec", async () => {
+      await initModel(rootPath);
+      await setSpecVersion(rootPath, "99.0.0");
+
+      const data = await projectStatus({ rootPath }, installed("99.1.0", "99.0.0"));
+
+      expect(data.server).toMatchObject({ status: "stale", version: getCliVersion(), installed: { version: "99.1.0", spec: "99.0.0" } });
+      expect(data.spec.status).toBe("ahead");
+      expect(data.spec.reason).toContain("restart the session's dr server; the CLI needs no update");
+      expect(data.spec.reason).not.toContain("update the dr CLI");
+      expect(data.nextStep.tool).toBeNull();
+      expect(data.nextStep.summary).toContain("The dr CLI installed now is already 99.1.0 (spec 99.0.0)");
+      expect(data.nextStep.summary).toContain("Restart the session's dr server");
+      expect(data.nextStep.summary).toContain("the CLI needs no update");
+      expect(data.nextStep.summary).not.toContain("Update the dr CLI");
+      // The restart is said once.
+      expect(data.nextStep.summary.match(/restart the session's dr server/gi)).toHaveLength(1);
+    });
+
+    it("still says update when the installed CLI is too old for the model as well", async () => {
+      await initModel(rootPath);
+      await setSpecVersion(rootPath, "99.0.0");
+
+      const data = await projectStatus({ rootPath }, installed("98.0.0", "98.0.0"));
+
+      expect(data.server.status).toBe("stale");
+      expect(data.spec.reason).toContain("update the dr CLI");
+      expect(data.nextStep.summary).toContain("Update the dr CLI, then restart the session's dr server");
+      expect(data.nextStep.summary.match(/restart the session's dr server/gi)).toHaveLength(1);
+    });
+
+    it("sends the upgrade of an older model to the installed CLI: restart first", async () => {
+      await initModel(rootPath);
+      await setSpecVersion(rootPath, "0.10.0");
+
+      const data = await projectStatus({ rootPath }, installed("99.1.0", "99.0.0"));
+
+      expect(data.spec.status).toBe("behind");
+      expect(data.nextStep.tool).toBeNull();
+      expect(data.nextStep.summary).toContain("99.1.0 (spec 99.0.0) is installed now");
+      expect(data.nextStep.summary).toContain("then call project_status again");
+    });
+
+    it("keeps the step and adds the restart when the spec versions agree", async () => {
+      await initModel(rootPath);
+
+      const data = await projectStatus({ rootPath }, installed("99.1.0", getCliBundledSpecVersion()));
+
+      expect(data.server.status).toBe("stale");
+      expect((data.server as any).note).toContain("still runs the old code");
+      expect(data.nextStep.tool).toBe("codebase_index");
+      expect(data.nextStep.summary).toContain(`Also: This dr server process is CLI ${getCliVersion()}, and 99.1.0 is installed now`);
+      expect(data.nextStep.summary).toContain("Restart the session's dr server");
+    });
+
+    it("sees the same version installed or built again after the server started, by its files' time", async () => {
+      await initModel(rootPath);
+      const sameVersion = (modifiedAt: number) => ({
+        installedCli: async () => ({ version: getCliVersion(), spec: getCliBundledSpecVersion(), modifiedAt }),
+      });
+
+      const rebuilt = await projectStatus({ rootPath }, sameVersion(Date.now() + 60_000));
+      expect(rebuilt.server).toMatchObject({ status: "stale", version: getCliVersion(), installed: { version: getCliVersion() } });
+      expect((rebuilt.server as any).changedAt).toBeTruthy();
+      expect((rebuilt.server as any).note).toContain(`after this dr server process started (the version is still ${getCliVersion()})`);
+      expect(rebuilt.nextStep.tool).toBe("codebase_index");
+      expect(rebuilt.nextStep.summary).toContain("Restart the session's dr server");
+
+      // Files older than the process are the ones it was started from.
+      const asStarted = await projectStatus({ rootPath }, sameVersion(Date.now() - 24 * 60 * 60 * 1000));
+      expect(asStarted.server).toEqual({ status: "current", version: getCliVersion() });
+    });
+
+    it("says so when the installed CLI can't be read, and reports this server's version", async () => {
+      await initModel(rootPath);
+
+      const data = await projectStatus({ rootPath }, { installedCli: async () => null });
+
+      expect(data.server).toMatchObject({ status: "unknown", version: getCliVersion() });
+      expect(data.nextStep.summary).not.toContain("Restart");
+    });
+
+    it("reads the installed CLI's version and bundled spec from its package folder", async () => {
+      await writeFile(join(rootPath, "package.json"), JSON.stringify({ name: "@documentation-robotics/cli", version: "1.2.3" }));
+      expect(await readInstalledCli(rootPath)).toMatchObject({ version: "1.2.3", spec: null });
+
+      await mkdir(join(rootPath, "dist", "schemas", "bundled"), { recursive: true });
+      await writeFile(join(rootPath, "dist", "schemas", "bundled", "manifest.json"), JSON.stringify({ specVersion: "0.20.0" }));
+      const read = await readInstalledCli(rootPath);
+      expect(read).toMatchObject({ version: "1.2.3", spec: "0.20.0" });
+      // package.json was written a moment ago.
+      expect(Math.abs(read!.modifiedAt! - Date.now())).toBeLessThan(60_000);
+
+      expect(await readInstalledCli(join(rootPath, "gone"))).toBeNull();
+      // This checkout: the server under test is the CLI on disk.
+      expect(await readInstalledCli()).toMatchObject({ version: getCliVersion(), spec: getCliBundledSpecVersion() });
+    });
   });
 
   it("assumes 0.6.0 for a manifest without spec_version, as dr upgrade does, and says so", async () => {
@@ -254,6 +412,7 @@ describe("project_status", () => {
     expect(data.changesets.active.name).toBe("add-refunds");
     expect(data.changesets.active.changes).toEqual({ total: 1, add: 1 });
     expect(data.changesets.active.baseDrifted).toBe(false);
+    expect(data.changesets.active.drift).toBeUndefined();
     expect(data.changesets.staged.map((c: any) => c.id)).toEqual([data.changesets.active.id]);
     expect(JSON.stringify(created)).toContain(data.changesets.active.id);
     expect(data.nextStep.tool).toBe("changeset_brief");
@@ -281,6 +440,46 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(1);
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
+    // #1227: what moved under it, what overlaps, what a landing does and the call that lists it.
+    expect(data.changesets.staged[0].drift).toEqual({
+      state: "drifted",
+      landing: "refused-without-force",
+      baseChanges: { elementsChanged: 1 },
+      overlapping: { elements: 1, relationships: 0, first: ["application.applicationfunction.audit (changed-in-base)"] },
+      next: { tool: "changeset_brief", args: { changeset: data.changesets.staged[0].id, sections: ["drift"] } },
+    });
+
+    // Active, it is the next step: read the drift before building from the plan or landing it.
+    await ok(await changesetActivateHandler({ changeset: "parked-plan", rootPath }));
+    const active = await status(rootPath);
+    expect(active.nextStep.tool).toBe("changeset_brief");
+    expect(active.nextStep.args).toEqual({ sections: ["drift"], rootPath });
+    expect(active.nextStep.summary).toContain("1 element changed in the base");
+    expect(active.nextStep.summary).toContain("1 of its staged changes overlap (application.applicationfunction.audit (changed-in-base))");
+    expect(active.nextStep.summary).toContain("refuses to land it unless the user agrees to force: true");
+  });
+
+  it("says a drifted changeset with no base index can't name what changed, and still needs force (#1227)", async () => {
+    await initModel(rootPath);
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    const created = await ok(await changesetCreateHandler({ name: "old-plan", rootPath }));
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    // A changeset made before base indexes were recorded has only the hash to go on.
+    await rm(join(rootPath, "documentation-robotics", "changesets", created.id, "base-index.json"));
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
+    );
+    clearModelCache();
+
+    const entry = (await status(rootPath)).changesets.staged[0];
+
+    expect(entry.baseDrifted).toBe(true);
+    expect(entry.drift.state).toBe("drifted");
+    expect(entry.drift.landing).toBe("refused-without-force");
+    expect(entry.drift.baseIndex).toBe("not-recorded");
+    expect(entry.drift.baseChanges).toBeUndefined();
+    expect(entry.drift.reason).toBeTruthy();
+    expect(entry.drift.next.tool).toBe("changeset_brief");
   });
 
   it("doesn't flag a changeset when the base changed an element it neither edits nor links to", async () => {
@@ -302,6 +501,12 @@ describe("project_status", () => {
 
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(false);
+    // The base moved, and the entry says by how much and that landing is not blocked.
+    expect(data.changesets.staged[0].drift).toEqual({
+      state: "content-free",
+      landing: "allowed",
+      baseChanges: { elementsChanged: 1 },
+    });
   });
 
   it("doesn't flag a changeset whose base only gained elements since it opened (#1169)", async () => {
@@ -448,6 +653,187 @@ describe("project_status", () => {
       expect(data.codeDrift.uncommittedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
     });
 
+    it("counts changed files no element references apart, and says the check can't see them", async () => {
+      await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
+      await writeFile(join(rootPath, "src", "lighting.ts"), "export const lighting = 1;\n");
+      await writeFile(join(rootPath, "README.md"), "# Read me\n");
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "change the code");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.filesChangedSince).toBe(4);
+      expect(data.codeDrift.referencedFilesChanged).toBe(1);
+      // 3 files no element references: 2 are source, 1 of them new (listed first); the README is neither.
+      expect(data.codeDrift.unreferenced).toEqual({
+        files: 3,
+        sourceFiles: 2,
+        newSourceFiles: 1,
+        first: ["src/lighting.ts", "src/other.ts"],
+      });
+      expect(data.nextStep.summary).toContain("1 source file the model references changed");
+      expect(data.nextStep.summary).toContain("3 more changed files are referenced by no element (2 source, 1 new), so they can't show here");
+    });
+
+    it("lists the first changed files and counts them all", async () => {
+      const names = Array.from({ length: 17 }, (_, i) => `part-${String(i).padStart(2, "0")}`);
+      for (const name of names) {
+        await writeFile(join(rootPath, "src", `${name}.ts`), "export const part = 1;\n");
+        await ok(
+          await modelAddHandler({
+            layer: "application",
+            type: "applicationfunction",
+            name,
+            sourceFile: `src/${name}.ts`,
+            sourceProvenance: "manual",
+            rootPath,
+          })
+        );
+      }
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "model the parts");
+      for (const name of names) await writeFile(join(rootPath, "src", `${name}.ts`), "export const part = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "change the parts");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.referencedFilesChanged).toBe(17);
+      expect(data.codeDrift.changedSourceFiles).toHaveLength(15);
+      expect(data.codeDrift.truncated).toBe(true);
+      expect(data.codeDrift.unreferenced).toBeUndefined();
+      expect(data.nextStep.summary).toContain("17 source files the model references changed");
+    });
+
+    it("says which rule counts drift for a model with no as-built landing", async () => {
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.basis).toBe("last-non-migration-commit");
+      expect(data.codeDrift.countedFrom.sha).toBe(modelSha);
+      expect(data.codeDrift.rule).toContain(`No as-built landing is recorded, so drift is counted from the last model commit that is not a spec migration (${modelSha.slice(0, 7)})`);
+      expect(data.codeDrift.rule).toContain("Any commit to the model moves it");
+      expect(data.codeDrift.landedSince).toBeUndefined();
+    });
+
+    describe("after an as-built landing", () => {
+      /** Commit the model with its stamp, as the human does once the landing is reviewed. */
+      function commitModel(message = "land the as-built model"): string {
+        git(rootPath, "add", "-A", "--", "documentation-robotics");
+        git(rootPath, "commit", "-q", "-m", message);
+        return git(rootPath, "rev-parse", "HEAD");
+      }
+
+      it("counts drift from the code the extraction read, not from the model's later commit (#1195)", async () => {
+        // The extraction read the code at modelSha. While the landing was reviewed, other work merged.
+        await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+        await writeFile(join(rootPath, "src", "lighting.ts"), "export const lighting = 1;\n");
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "merge other work");
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+        const landingSha = commitModel();
+        await writeIndex(rootPath, landingSha);
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.basis).toBe("last-reconciling-commit");
+        expect(data.codeDrift.modelCommit.sha).toBe(landingSha);
+        expect(data.codeDrift.countedFrom).toMatchObject({ sha: modelSha, subject: "model and code" });
+        expect(data.codeDrift.rule).toContain(`Counted from ${modelSha.slice(0, 7)}, the code the as-built landing "extract-bootstrap" read`);
+        expect(data.codeDrift.rule).toContain(`the model was committed later, in ${landingSha.slice(0, 7)}`);
+        expect(data.codeDrift.commitsSince).toBe(1);
+        expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+        expect(data.codeDrift.unreferenced).toEqual({ files: 1, sourceFiles: 1, newSourceFiles: 1, first: ["src/lighting.ts"] });
+        // The catch-up reads from the extraction's commit.
+        expect(data.nextStep.tool).toBe("codebase_verify");
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+        expect(data.nextStep.summary).toContain(`since the code the as-built landing "extract-bootstrap" read (${modelSha.slice(0, 7)})`);
+        expect(data.nextStep.summary).toContain(`codebase_extract with since: "${modelSha.slice(0, 7)}" and no plan active`);
+        expect(data.nextStep.summary).not.toContain("in step");
+      });
+
+      it("offers the catch-up when only new, unreferenced source files merged in between (#1195)", async () => {
+        await writeFile(join(rootPath, "src", "lighting.ts"), "export const lighting = 1;\n");
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "merge a new subsystem");
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+        await writeIndex(rootPath, commitModel());
+
+        const data = await status(rootPath);
+
+        // Nothing the model references changed, so it is not drift; the new file is still named.
+        expect(data.codeDrift.status).toBe("in-step");
+        expect(data.codeDrift.unreferenced).toEqual({ files: 1, sourceFiles: 1, newSourceFiles: 1, first: ["src/lighting.ts"] });
+        expect(data.nextStep.tool).toBe("changeset_create");
+        expect(data.nextStep.summary).toContain("1 other changed source file is referenced by no element (1 new), so this check can't judge it");
+        expect(data.nextStep.also).toMatchObject({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+      });
+
+      it("is in step, with nothing unseen, when the model is committed right after the extraction", async () => {
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+        const landingSha = commitModel();
+        await writeIndex(rootPath, landingSha);
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift).toMatchObject({ status: "in-step", commitsSince: 0, filesChangedSince: 0, referencedFilesChanged: 0 });
+        expect(data.codeDrift.unreferenced).toBeUndefined();
+        expect(data.nextStep.also).toBeUndefined();
+        expect(data.nextStep.summary).toContain(`since the code the as-built landing "extract-bootstrap" read (${modelSha.slice(0, 7)})`);
+      });
+
+      it("falls back to the model's commit, and says so, when the repository doesn't have the extraction's commit", async () => {
+        const missing = "0123456789abcdef0123456789abcdef01234567";
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: missing });
+        const landingSha = commitModel();
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.countedFrom.sha).toBe(landingSha);
+        expect(data.codeDrift.reconciledBy.codeCommit).toBe(missing);
+        expect(data.codeDrift.rule).toContain(`the code commit it read (${missing.slice(0, 7)}) is not in this repository`);
+        expect(data.codeDrift.rule).toContain("code that merged between the two is not counted");
+      });
+
+      it("never hands git a stamp's code commit that isn't a commit id", async () => {
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: "--output=stolen" });
+        const landingSha = commitModel();
+        const seen: string[] = [];
+        const spy: GitRunner = async (args, cwd) => {
+          seen.push(...args);
+          return runGit(args, cwd);
+        };
+
+        const data = (await projectStatus({ rootPath }, { git: spy })) as any;
+
+        expect(seen.some((arg) => arg.includes("--output"))).toBe(false);
+        expect(data.codeDrift.countedFrom.sha).toBe(landingSha);
+      });
+
+      it("names the plans landed since, and says they did not move the baseline (#1228)", async () => {
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+        commitModel();
+        await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+        git(rootPath, "commit", "-q", "-am", "build the refunds plan");
+        // The plan lands after its build was verified; landing it writes no stamp.
+        await land(rootPath, await stagePlan(rootPath, "add-refunds", "refunds"));
+        await writeIndex(rootPath, commitModel("land the add-refunds plan"));
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.countedFrom.sha).toBe(modelSha);
+        expect(data.codeDrift.landedSince).toEqual({ count: 1, changesets: ["add-refunds"] });
+        expect(data.codeDrift.rule).toContain("a landed plan does not, verified or not");
+        // The model-only commits are not code drift.
+        expect(data.codeDrift.commitsSince).toBe(1);
+        expect(data.codeDrift.note).toBeUndefined();
+        expect(data.nextStep.summary).toContain('Landed plans don\'t reconcile it, verified or not: 1 landed since ("add-refunds") and the baseline did not move.');
+        expect(data.nextStep.summary).toContain("land the reconcile changeset it makes when the user asks");
+        expect(data.nextStep.summary).toContain("any other name makes a plan, which does not clear this");
+      });
+    });
+
     describe("with drift", () => {
       beforeEach(async () => {
         await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
@@ -516,7 +902,8 @@ describe("project_status", () => {
         expect(data.codeDrift.lastModelCommit).toMatchObject({ sha: upgradeSha, subject: "Upgrade DR model" });
         expect(data.codeDrift.note).toContain("migrated the model to a new spec version");
         expect(data.codeDrift.note).toContain("other model edits made in those commits");
-        expect(data.codeDrift.commitsSince).toBe(3);
+        // One commit changed code; the two that only rewrote the model are not code drift.
+        expect(data.codeDrift.commitsSince).toBe(1);
         expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
       });
@@ -944,6 +1331,85 @@ describe("suggestNextStep", () => {
         expect(step.also).toBeUndefined();
       }
     });
+  });
+});
+
+describe("suggestNextStep on base drift and a stale server", () => {
+  const fresh = {
+    model: { status: "present", path: "/p/documentation-robotics/model" },
+    spec: { status: "current", model: "0.14.0", cli: "0.14.0", upgradeNeeded: false },
+    server: { status: "current", version: "0.6.0" },
+    changesets: { status: "ok", active: null, staged: [], committed: 0, discarded: 0 },
+    codeIndex: { status: "fresh", analyzer: "cbm" },
+    codeDrift: { status: "in-step" },
+    indexing: { status: "none" },
+    viewer: { status: "none" },
+  } as any;
+  const plan = (drift?: Record<string, unknown>) => ({
+    id: "cs-1",
+    name: "parked",
+    changes: { total: 2, update: 2 },
+    baseDrifted: drift?.state === "drifted",
+    purpose: "plan",
+    actions: ["commit", "discard"],
+    ...(drift ? { drift } : {}),
+  });
+  const drifted = {
+    state: "drifted",
+    landing: "refused-without-force",
+    baseChanges: { elementsChanged: 2, relationshipsAdded: 1 },
+    overlapping: { elements: 4, relationships: 0, first: ["a.b.c (changed-in-base)", "a.b.d (removed-in-base)", "a.b.e (changed-in-base)"] },
+    next: { tool: "changeset_brief", args: { changeset: "cs-1", sections: ["drift"] } },
+  };
+
+  it("names a staged plan whose base drifted, what landing it takes and the call that lists what moved", () => {
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, staged: [plan(drifted)] } }, { root: "/p" });
+
+    expect(step.tool).toBe("changeset_activate");
+    expect(step.summary).toContain('The base model changed under "parked"');
+    expect(step.summary).toContain("unless the user agrees to force: true (the viewer's Apply has no force)");
+    expect(step.summary).toContain('changeset_brief with changeset: "parked" and sections: ["drift"] names what moved');
+  });
+
+  it("says what moved under the active plan and how many staged changes overlap, cut to the first few", () => {
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(drifted), staged: [plan(drifted)] } }, { root: "/p" });
+
+    expect(step.tool).toBe("changeset_brief");
+    expect(step.args).toEqual({ sections: ["drift"] });
+    expect(step.summary).toContain("2 elements changed, 1 relationship added in the base");
+    expect(step.summary).toContain("4 of its staged changes overlap (a.b.c (changed-in-base); a.b.d (removed-in-base); a.b.e (changed-in-base); ...)");
+  });
+
+  it("reports drift that only warns as allowed, from the core's answer (#1200)", () => {
+    const warns = { ...drifted, landing: "allowed-with-warning" };
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(warns), staged: [plan(warns)] } }, { root: "/p" });
+
+    expect(step.summary).toContain("Landing it is allowed, with a warning.");
+    expect(step.summary).not.toContain("force");
+  });
+
+  it("says a base that moved elsewhere doesn't block the active plan, and keeps the ordinary step", () => {
+    const elsewhere = { state: "content-free", landing: "allowed", baseChanges: { elementsAdded: 3 } };
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(elsewhere), staged: [plan(elsewhere)] } }, { root: "/p" });
+
+    expect(step.tool).toBe("changeset_brief");
+    expect(step.args).toBeUndefined();
+    expect(step.summary).toContain("The base model changed since it was created (3 elements added), but nothing it stages against. Landing it is not blocked.");
+    expect(step.summary).toContain("pick up the plan");
+  });
+
+  it("says nothing about drift for a plan whose base is as it was", () => {
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(), staged: [plan()] } }, { root: "/p" });
+
+    expect(step.summary).toBe('Changeset "parked" is active with 2 staged changes. Read its brief with changeset_brief to pick up the plan.');
+  });
+
+  it("adds the restart to any step when the server is older than the installed CLI", () => {
+    const stale = { status: "stale", version: "0.5.0", installed: { version: "0.6.0", spec: "0.14.0" }, note: "CLI 0.6.0 is installed now." };
+    const step = suggestNextStep({ ...fresh, server: stale }, { root: "/p" });
+
+    expect(step.tool).toBe("changeset_create");
+    expect(step.summary).toContain("To plan a change, start with changeset_create. Also: CLI 0.6.0 is installed now.");
   });
 });
 

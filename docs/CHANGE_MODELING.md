@@ -272,10 +272,20 @@ that fails reports `status: "error"` and the others still answer.
 - `model`: `present` or `absent`. No model is not an error. The model is reread when its files
   changed since the server cached it (a CLI command, a pull, a hand edit).
 - `spec`: the model's spec version against the CLI's: `current`, `behind` (with the migration
-  steps, and whether they reach the CLI's version) or `ahead` (update the CLI). A manifest without
-  `spec_version` is read as 0.6.0, as `dr upgrade` reads it, with `assumed: true`.
-- `changesets`: the active changeset and every staged one, with change counts by operation and
-  `baseDrifted` (the base model's hash against the one the changeset was opened on).
+  steps, and whether they reach the CLI's version) or `ahead` (update the CLI, or restart the
+  server when `server` is `stale`). A manifest without `spec_version` is read as 0.6.0, as
+  `dr upgrade` reads it, with `assumed: true`.
+- `server`: the CLI version of the process answering, against the one installed where it was
+  loaded from. `stale` when they differ: a `dr mcp` process started before an upgrade still runs
+  the old code and the old bundled spec, and the fix is to restart the session's dr server, not to
+  update the CLI.
+- `changesets`: the active changeset and every staged one, with change counts by operation,
+  `baseDrifted` and, when the base's hash changed since the changeset was created, `drift`: its
+  `state` and whether it blocks (`core/changeset-drift-status.ts`, the answer a commit acts on),
+  `landing` (`refused-without-force`, `allowed` or `allowed-with-warning`), how many base elements
+  and relationships changed (`baseChanges`), how many of the changeset's own changes they overlap
+  (`overlapping`, with the first few) and, for `drifted`, the `changeset_brief` call that lists
+  them (`next`).
 - `codeIndex`: what `dr analyzer status` reads in `.dr/analyzers/`, for the active analyzer (or,
   when none is active, the first with an index, and it says so). Its `status` follows the one
   freshness rule the codebase tools share (`judgeIndex` in `cli/src/mcp/tools/codebase-shared.ts`):
@@ -288,14 +298,21 @@ that fails reports `status: "error"` and the others still answer.
   plus files written after the index time (the time the run started); an mtime in the future is
   ignored. Vendored and built code doesn't count. `fresh` otherwise, `unknown` without git or without the codebase root,
   `absent` with no index.
-- `codeDrift`: the commit drift is counted from (`modelCommit`), the commits since, and the files
-  changed since that elements reference as source files, committed or not. Only an as-built landing
+- `codeDrift`: the commit drift is counted from (`countedFrom`), the commits since that changed
+  code, and the files changed since that elements reference as source files, committed or not
+  (`referencedFilesChanged`, the first of them in `changedSourceFiles`). `countedFrom` is the code
+  commit the last as-built landing's extraction read (`reconciledBy.codeCommit`) when the
+  repository has it, so code that merged between the extraction and the model's own commit
+  (`modelCommit`) counts; `rule` says which rule applies in a sentence. Changed files that no
+  element references can't show as drift: `unreferenced` counts them, the source files and the new
+  ones among them. `landedSince` names the changesets landed after the as-built landing, none of
+  which moved the baseline. Only an as-built landing
   reconciles the model with the code: a bootstrap, or a keep-as-built changeset staged by
   `codebase_extract` (see [Which landings reconcile](#which-landings-reconcile-the-model-with-the-code)).
-  So that commit is the one that brought in the manifest's current `reconciled` stamp
+  `modelCommit` is the commit that brought in the manifest's current `reconciled` stamp
   (`basis: "last-reconciling-commit"`, with the landing in `reconciledBy`). Landing a plan, a hand
-  edit or a spec migration doesn't reset drift; `lastModelCommit` names a newer model commit, with a
-  `note`. An as-built landing that isn't committed yet shows as `uncommittedReconciliation`, and
+  edit or a spec migration doesn't reset drift; `lastModelCommit` names a newer model commit. An
+  as-built landing that isn't committed yet shows as `uncommittedReconciliation`, and
   drift counts from it once `documentation-robotics/` is committed. A model with no stamp (from
   before this rule, or grown plan by plan) keeps the earlier rule: the last commit to
   `documentation-robotics/model/` that isn't a spec migration

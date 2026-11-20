@@ -6,23 +6,24 @@
  * Nothing here touches the network or starts the code analyzer.
  */
 
-import { readdir, realpath } from "node:fs/promises";
+import { readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
-import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
-import { contentFreeDrift } from "../../core/changeset-base-index.js";
+import { driftDetail, type DriftDetail } from "../../core/changeset-drift-status.js";
+import { StagingAreaManager } from "../../core/staging-area.js";
 import { MigrationRegistry } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
-import { getCliBundledSpecVersion, getModelSpecVersion } from "../../utils/spec-version.js";
+import { getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
 import { readActiveMarker } from "../../core/active-changeset-marker.js";
 import { probeViewer, viewerUrl } from "../../server/viewer-registry.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
-import { indexProbe, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
+import { indexProbe, isIndexedSource, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
 import { extractionOrigin, readReconciledStamp } from "../../core/reconciliation.js";
@@ -49,6 +50,8 @@ export interface StatusContext {
   analyzerVersion?: (analyzer: string) => Promise<string | null>;
   /** How Tier 1's state is read (default `process.env` and git); tests pass their own environment. */
   tier1?: Tier1StatusOptions;
+  /** The CLI on disk where this process was loaded from (default: its package.json, read now). */
+  installedCli?: () => Promise<InstalledCli | null>;
 }
 
 /** A section a collector could not produce. */
@@ -144,12 +147,19 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
   const order = compareVersions(modelVersion, cli);
   if (order === 0) return { status: "current", model: modelVersion, cli, upgradeNeeded: false, ...assumed };
   if (order > 0) {
+    // "Ahead" has two causes with different fixes: the CLI on disk is too old (update it), or it is
+    // new enough and this server process predates its upgrade (restart the server).
+    const stale = staleServer(await collectServer(ctx).catch(() => null));
+    const restart = stale?.installed.spec && compareVersions(stale.installed.spec, modelVersion) >= 0;
     return {
       status: "ahead",
       model: modelVersion,
       cli,
       upgradeNeeded: false,
-      reason: `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI`,
+      reason: restart
+        ? `the model is on spec ${modelVersion}, newer than the ${cli} this dr server is running, but the dr CLI installed ` +
+          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the session's dr server; the CLI needs no update`
+        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the session's dr server`,
       ...assumed,
     };
   }
@@ -186,15 +196,218 @@ export function compareVersions(a: string, b: string): number {
 }
 
 // ---------------------------------------------------------------------------------------------
+// the dr server answering this call
+
+/** The CLI found on disk: its version, the spec version it bundles (null when that can't be read) and when its files last changed. */
+export interface InstalledCli {
+  version: string;
+  spec: string | null;
+  /** When the installed files were last written (ms since the epoch); undefined when that can't be read. */
+  modifiedAt?: number;
+}
+
+export type ServerSection =
+  | {
+      /** The process answering is the CLI that is installed. */
+      status: "current";
+      version: string;
+    }
+  | {
+      /**
+       * The CLI on disk changed after this server process started (another version, or the same
+       * version installed or built again), so the session is still talking to the old code. Fixed
+       * by restarting the session's dr server, not by updating the CLI.
+       */
+      status: "stale";
+      version: string;
+      installed: { version: string; spec: string | null };
+      /** When the installed files changed, when that is what gave it away. */
+      changedAt?: string;
+      /** What happened and what to do, in a sentence: shown as it is. */
+      note: string;
+    }
+  | { status: "unknown"; version: string; reason: string };
+
+/** How a session gets the installed CLI's server: nothing the agent can call. */
+export const RESTART_SERVER = "Restart the session's dr server (reconnect the dr MCP server, or restart the session)";
+
+/** This module's file, and the package it was loaded from: `<package>/{src,dist}/mcp/tools/` → `<package>`. */
+const THIS_FILE = fileURLToPath(import.meta.url);
+const PACKAGE_ROOT = path.resolve(path.dirname(THIS_FILE), "..", "..", "..");
+
+/** A file's modification time in ms, or undefined when it can't be read. */
+async function modifiedAt(file: string): Promise<number | undefined> {
+  try {
+    return (await stat(file)).mtimeMs;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The CLI installed where this process was loaded from, read from disk now. A long-lived `dr mcp`
+ * process keeps the code it started with, so after an upgrade in place this differs from
+ * getCliVersion(), and after any install or build its files are newer than the process. Null when
+ * the package can't be read (its folder was removed or moved).
+ */
+export async function readInstalledCli(packageRoot: string = PACKAGE_ROOT): Promise<InstalledCli | null> {
+  let version: unknown;
+  try {
+    version = (JSON.parse(await readFile(path.join(packageRoot, "package.json"))) as { version?: unknown }).version;
+  } catch {
+    return null;
+  }
+  if (typeof version !== "string" || !version) return null;
+  let spec: string | null = null;
+  for (const dir of ["dist", "src"]) {
+    try {
+      const manifest = JSON.parse(await readFile(path.join(packageRoot, dir, "schemas", "bundled", "manifest.json"))) as {
+        specVersion?: unknown;
+      };
+      if (typeof manifest.specVersion === "string" && manifest.specVersion) {
+        spec = manifest.specVersion;
+        break;
+      }
+    } catch {
+      // Not built there; try the next.
+    }
+  }
+  // An install rewrites package.json; a build rewrites this module's file.
+  const times = (
+    await Promise.all([modifiedAt(path.join(packageRoot, "package.json")), modifiedAt(path.join(packageRoot, path.relative(PACKAGE_ROOT, THIS_FILE)))])
+  ).filter((time): time is number => time !== undefined);
+  return { version, spec, ...(times.length > 0 ? { modifiedAt: Math.max(...times) } : {}) };
+}
+
+/** Files written this long after the process started are a new install, not this process's own start-up. */
+const STARTUP_MARGIN_MS = 5_000;
+
+/**
+ * Whether this server process is the CLI that is installed. Two signs that it is not: the version
+ * on disk where it was loaded from differs from the one it was built with, or the installed files
+ * were written after it started (the same version installed or built again). Either way a `dr mcp`
+ * process started before the change answers with the old code, and the old bundled spec, until it
+ * is restarted.
+ */
+export async function collectServer(ctx: StatusContext): Promise<ServerSection> {
+  const version = getCliVersion();
+  const installed = await (ctx.installedCli ?? readInstalledCli)();
+  if (!installed) {
+    return { status: "unknown", version, reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}` };
+  }
+  const found = { version: installed.version, spec: installed.spec };
+  if (installed.version !== version) {
+    return {
+      status: "stale",
+      version,
+      installed: found,
+      note:
+        `This dr server process is CLI ${version}, and ${installed.version} is installed now: it started before the CLI ` +
+        `changed and still runs the old code. ${RESTART_SERVER} to use the installed one.`,
+    };
+  }
+  const startedAt = Date.now() - process.uptime() * 1000;
+  if (installed.modifiedAt !== undefined && installed.modifiedAt > startedAt + STARTUP_MARGIN_MS) {
+    const changedAt = new Date(installed.modifiedAt).toISOString();
+    return {
+      status: "stale",
+      version,
+      installed: found,
+      changedAt,
+      note:
+        `The dr CLI's files on disk changed at ${changedAt}, after this dr server process started (the version is still ` +
+        `${version}): the process runs the code it started with. ${RESTART_SERVER} to use what is installed.`,
+    };
+  }
+  return { status: "current", version };
+}
+
+/** The section when it says the server is stale, else undefined. */
+export function staleServer(section: ServerSection | ErrorSection | null | undefined): Extract<ServerSection, { status: "stale" }> | undefined {
+  return section?.status === "stale" ? section : undefined;
+}
+
+// ---------------------------------------------------------------------------------------------
 // changesets
+
+/**
+ * How the base model moved under a staged changeset, and what that does to landing it. The state
+ * and whether it blocks are changeset-drift-status.ts's answer, the one a commit acts on; nothing
+ * is decided here. Absent from an entry whose base is as it was (`none`) and from a record, which
+ * never lands (`not-applicable`).
+ */
+export interface ChangesetDriftEntry {
+  /**
+   * content-free: the base changed, but nothing this changeset stages against. drifted: the base
+   * overlaps a staged change, or there is no base index to tell. unknown: it could not be checked.
+   */
+  state: "content-free" | "drifted" | "unknown";
+  /**
+   * What a landing does about it. refused-without-force: changeset_commit refuses unless the user
+   * agrees to force: true, and the viewer's Apply, which has no force, refuses.
+   */
+  landing: "allowed" | "allowed-with-warning" | "refused-without-force";
+  /** Set when the changeset has no usable record of the base it was staged against: what changed can't be named. */
+  baseIndex?: "not-recorded" | "unreadable";
+  /** How many base elements and relationships changed since the changeset was created. Zero counts are left out. */
+  baseChanges?: Partial<Record<BaseChangeCount, number>>;
+  /** For `drifted`: how many of the changeset's own staged changes the base now overlaps, and the first few. */
+  overlapping?: { elements: number; relationships: number; first: string[] };
+  /** Why it could not be told (state unknown, or drifted with no base index). */
+  reason?: string;
+  /** For `drifted`: the call that lists what moved and what overlaps. */
+  next?: { tool: "changeset_brief"; args: { changeset: string; sections: ["drift"] } };
+}
+
+export type BaseChangeCount = "elementsAdded" | "elementsRemoved" | "elementsChanged" | "relationshipsAdded" | "relationshipsRemoved";
+
+/** How many overlapping changes an entry names; changeset_brief with sections: ["drift"] lists them all. */
+const MAX_OVERLAPS_NAMED = 3;
+
+/** The entry's `drift` from the core's detail, or undefined when there is nothing to say. */
+function driftEntry(changesetId: string, detail: DriftDetail): ChangesetDriftEntry | undefined {
+  if (detail.state === "none" || detail.state === "not-applicable") return undefined;
+  if (detail.state === "unknown") return { state: "unknown", landing: "allowed", reason: detail.message };
+  const counts = detail.baseChanges?.counts;
+  const baseChanges = counts
+    ? (Object.fromEntries(Object.entries(counts).filter(([, n]) => n > 0)) as Partial<Record<BaseChangeCount, number>>)
+    : undefined;
+  const common = {
+    ...(detail.baseIndex && detail.baseIndex !== "recorded" ? { baseIndex: detail.baseIndex } : {}),
+    ...(baseChanges ? { baseChanges } : {}),
+  };
+  if (detail.state === "content-free") return { state: "content-free", landing: "allowed", ...common };
+
+  const elements = detail.overlapping?.elements ?? [];
+  const relationships = detail.overlapping?.relationships ?? [];
+  const first = [
+    ...elements.map((e) => `${e.id} (${e.reason})`),
+    ...relationships.map((r) => `${r.source} ${r.predicate} ${r.target} (${r.reason})`),
+  ].slice(0, MAX_OVERLAPS_NAMED);
+  return {
+    state: "drifted",
+    // The core's answer, so a rule that stops refusing on drift (#1200) is reported as it lands.
+    landing: detail.blocksCommit ? "refused-without-force" : "allowed-with-warning",
+    ...common,
+    ...(detail.overlapping ? { overlapping: { elements: elements.length, relationships: relationships.length, first } } : {}),
+    // Only what could not be told: with a base index and overlaps named, the counts say it.
+    ...(detail.warnings?.length ? { reason: detail.warnings.join(" ") } : {}),
+    next: { tool: "changeset_brief", args: { changeset: changesetId, sections: ["drift"] } },
+  };
+}
 
 export interface ChangesetEntry {
   id: string;
   name: string;
   /** Staged changes by operation; `total` counts them all. */
   changes: Record<string, number> & { total: number };
-  /** Whether the base model changed since the changeset was opened; null when that can't be told. */
+  /**
+   * Whether the base model changed under what the changeset stages since it was created (drift
+   * state `drifted`); null when that can't be told. `drift` says what moved and what a landing does.
+   */
   baseDrifted: boolean | null;
+  /** Set when the base's hash changed since the changeset was created, or drift could not be checked. */
+  drift?: ChangesetDriftEntry;
   /** What it is for (changeset-purpose.ts): declared, or inferred for an older changeset. */
   purpose: ChangesetPurpose;
   /** For a verification record: the id of the plan it verifies. */
@@ -230,13 +443,14 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
   const activeId = await readActiveChangesetId(ctx.projectRoot);
   const staged = changesets.filter((changeset) => changeset.status === "staged");
 
-  // One snapshot of the base, compared with each changeset's: the hash drift check
-  // StagingAreaManager.detectDrift makes, without re-hashing the model per changeset.
-  let current: string | null = null;
+  // Drift is read through changeset-drift-status.ts, the answer a commit acts on, against the base
+  // model as loaded: one manager for the call.
+  let base: { model: Model; manager: StagingAreaManager } | undefined;
   let driftUnknown: string | undefined;
   if (staged.length > 0) {
     try {
-      current = await new BaseSnapshotManager().captureSnapshot(await ctx.model());
+      const model = await ctx.model();
+      base = { model, manager: new StagingAreaManager(model.rootPath, model) };
     } catch (error) {
       driftUnknown = `the model could not be loaded: ${getErrorMessage(error)}`;
     }
@@ -252,21 +466,24 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
       EXTRACTION_MARKER.test(changeset.description ?? "") ||
       (await isExtractionChangeset(projectRoot, changeset.id, changeset.name).catch(() => false));
     const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
-    let baseDrifted = current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null;
-    if (baseDrifted) {
-      // detectDrift's rule: a changed hash with nothing this changeset was staged against changed
-      // (another one landing rewrites the manifest) is not drift.
-      try {
-        if (await contentFreeDrift(await ctx.model(), changeset)) baseDrifted = false;
-      } catch {
-        // Keep the hash's answer.
-      }
+    let baseDrifted: boolean | null = null;
+    let drift: ChangesetDriftEntry | undefined;
+    if (base) {
+      const plan = verifies ? changesets.find((other) => other.id === verifies) : undefined;
+      const detail = await driftDetail(base.model, base.manager, {
+        changeset,
+        purpose,
+        ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}),
+      });
+      baseDrifted = detail.state === "unknown" ? null : detail.state === "drifted";
+      drift = driftEntry(changeset.id, detail);
     }
     return {
       id: changeset.id,
       name: changeset.name,
       changes: countChanges(changeset),
       baseDrifted,
+      ...(drift ? { drift } : {}),
       purpose,
       ...(verifies ? { verifies } : {}),
       actions: allowedActions(purpose, changeset.status),
@@ -449,9 +666,16 @@ async function codebaseRootOf(ctx: StatusContext): Promise<string> {
 // ---------------------------------------------------------------------------------------------
 // code drift (git only)
 
-/** How many changed source files, and elements per file, the section lists. */
-const MAX_FILES = 50;
-const MAX_ELEMENTS_PER_FILE = 5;
+/**
+ * How many changed source files, and elements per file, the section lists. The call opens every
+ * session, so the lists are short and the counts beside them are whole.
+ */
+const MAX_FILES = 15;
+const MAX_ELEMENTS_PER_FILE = 3;
+/** How many changed files no element references the section names. */
+const MAX_UNREFERENCED_NAMED = 5;
+/** How many changesets landed since the baseline the section names. */
+const MAX_LANDED_NAMED = 5;
 
 export interface ChangedSourceFile {
   file: string;
@@ -460,32 +684,63 @@ export interface ChangedSourceFile {
   elementCount: number;
 }
 
+/**
+ * Changed files this check cannot judge: no element's source reference names them, so they can
+ * never show in `changedSourceFiles`, whatever changed in them.
+ */
+export interface UnreferencedChanges {
+  /** Every changed file outside documentation-robotics/ that no element references. */
+  files: number;
+  /** Of those, source files the code analyzer reads (not docs, config, vendored or built code). */
+  sourceFiles: number;
+  /** Of those source files, the ones added since the baseline: code no extraction has read. */
+  newSourceFiles: number;
+  /** The first few source files, new ones first. Absent when none is a source file. */
+  first?: string[];
+}
+
 export type CodeDriftSection =
   | { status: "no-model" }
   | { status: "no-git" | "unknown"; reason: string }
   | {
       /**
-       * drift: files the model references changed since `modelCommit`. unlinked: no element
-       * has a source reference, so changed code can't be tied to the model.
+       * drift: files the model references changed since `countedFrom`. in-step: none did (files
+       * no element references may still have changed: `unreferenced`). unlinked: no element has a
+       * source reference, so changed code can't be tied to the model.
        */
       status: "drift" | "in-step" | "unlinked";
       /**
-       * The commit drift is counted from. Only an as-built landing reconciles the model with the
-       * code: the commit that brought in the manifest's `reconciled` stamp, which landing an
-       * as-built changeset from codebase_extract (a bootstrap or a keep-as-built catch-up) writes.
-       * A landed plan, a hand edit or a spec migration doesn't. A model with no stamp falls back to
+       * The commit that brought the model to its reconciled state. Only an as-built landing
+       * reconciles the model with the code: the commit that brought in the manifest's `reconciled`
+       * stamp, which landing a bootstrap or reconcile changeset from codebase_extract writes. A
+       * landed plan, a hand edit or a spec migration doesn't. A model with no stamp falls back to
        * the last commit to documentation-robotics/model/ that isn't a spec migration (one whose
        * manifest.yaml diff changes `spec_version`).
        */
       modelCommit: CommitInfo;
+      /**
+       * The commit drift is counted from, and the `since` for codebase_extract. With an as-built
+       * landing it is the code commit that landing's extraction read (`reconciledBy.codeCommit`),
+       * which is older than `modelCommit` when code merged between the extraction and the model's
+       * commit (#1195); `modelCommit` when the stamp names no code commit or the repository
+       * doesn't have it.
+       */
+      countedFrom: CommitInfo;
       /**
        * Which rule chose `modelCommit`: last-reconciling-commit (the last as-built landing),
        * else, for a model with no stamp, last-non-migration-commit, or last-model-commit when every
        * recent model commit is a migration or the migrations couldn't be told apart (`note` says).
        */
       basis: "last-reconciling-commit" | "last-non-migration-commit" | "last-model-commit";
+      /** The rule in a sentence: where drift is counted from, why, and what moves that baseline. */
+      rule: string;
       /** With basis last-reconciling-commit: the as-built landing, from the manifest's stamp. */
       reconciledBy?: { changeset: string; changesetId: string; landedAt: string; codeCommit?: string };
+      /**
+       * With basis last-reconciling-commit: how many changesets landed after that as-built landing,
+       * and the latest by name. None of them moved the baseline (one that had would be `reconciledBy`).
+       */
+      landedSince?: { count: number; changesets: string[] };
       /**
        * An as-built landing in the working tree that isn't committed yet (the manifest's stamp
        * differs from HEAD's): drift counts from it once documentation-robotics/ is committed.
@@ -494,11 +749,16 @@ export type CodeDriftSection =
       /** The last commit that touched documentation-robotics/model/, when newer than `modelCommit`. */
       lastModelCommit?: CommitInfo;
       note?: string;
+      /** Commits since `countedFrom` that changed files outside documentation-robotics/. */
       commitsSince: number;
-      /** Files changed in those commits, outside documentation-robotics/. */
+      /** Files changed since `countedFrom`, outside documentation-robotics/. */
       filesChangedSince: number;
-      /** Of those, the ones the model's elements reference as source files. */
+      /** How many of those the model's elements reference as source files; `changedSourceFiles` lists the first. */
+      referencedFilesChanged: number;
+      /** Referenced source files that changed (the first MAX_FILES). */
       changedSourceFiles: ChangedSourceFile[];
+      /** The rest: changed files no element references. Absent when there are none. */
+      unreferenced?: UnreferencedChanges;
       /** Referenced source files with uncommitted changes. */
       uncommittedSourceFiles: ChangedSourceFile[];
       /** Whether documentation-robotics/model/ itself has uncommitted changes. */
@@ -557,14 +817,9 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   let basis: "last-reconciling-commit" | "last-non-migration-commit" | "last-model-commit";
   let baselineNote: string | undefined;
   if (reconcilingCommit && headStamp) {
+    // What later model commits are (landed plans, by name) is in `landedSince` and `lastModelCommit`.
     baseline = reconcilingCommit;
     basis = "last-reconciling-commit";
-    baselineNote =
-      lastModelCommit.sha !== baseline.sha
-        ? `Later model commits (the last: ${lastModelCommit.sha.slice(0, 7)} "${lastModelCommit.subject}") don't reconcile the ` +
-          "model with the code (a landed plan, a hand edit or a spec migration); drift is counted from the last as-built " +
-          `landing, "${headStamp.changeset}".`
-        : undefined;
   } else {
     // No as-built landing recorded (an older model, or one that grew plan by plan): the last
     // model commit that isn't a spec migration. A failure here falls back to the last model commit
@@ -616,10 +871,57 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     };
   }
 
+  // Where drift is counted from. An as-built landing describes the code its extraction read, and
+  // the model is committed later: after a review, on a branch that is then rebased or merged. Code
+  // that merged in between is in the model's commit but not in the model (#1195), so the count
+  // starts at the extraction's commit when the repository has it. The trees are compared, so it
+  // need not be an ancestor of HEAD (a squash merge or a rebase leaves it off the branch).
+  const reconciled = basis === "last-reconciling-commit" ? headStamp : null;
+  const short = (commit: string) => commit.slice(0, 7);
+  let countedFrom: CommitInfo = baseline;
+  let rule: string;
+  if (reconciled) {
+    const moves =
+      "Only landing a bootstrap or reconcile changeset (one codebase_extract makes) moves it; a landed plan does not, verified or not.";
+    const code = reconciled.code_commit;
+    // A manifest value goes to git as a revision only when it looks like a commit id.
+    const codeCommit =
+      code && COMMIT_ID.test(code)
+        ? parseCommitLine((await ctx.git(["log", "-1", "--format=%H%x00%cI%x00%s", `${code}^{commit}`], repo.top).then((r) => (r.ok ? r.stdout.trim() : ""))))
+        : null;
+    if (codeCommit) {
+      countedFrom = codeCommit;
+      rule =
+        `Counted from ${short(codeCommit.sha)}, the code the as-built landing "${reconciled.changeset}" read` +
+        `${codeCommit.sha !== sha ? ` (the model was committed later, in ${short(sha)})` : ""}. ${moves}`;
+    } else {
+      const why = code
+        ? `: the code commit it read (${short(code)}) is not in this repository, so code that merged between the two is not counted`
+        : " (it recorded no code commit)";
+      rule = `Counted from ${short(sha)}, the commit that brought in the as-built landing "${reconciled.changeset}"${why}. ${moves}`;
+    }
+  } else if (basis === "last-non-migration-commit") {
+    rule =
+      `No as-built landing is recorded, so drift is counted from the last model commit that is not a spec migration (${short(sha)}). ` +
+      "Any commit to the model moves it, though none of them checks the model against the code; landing a bootstrap or " +
+      "reconcile changeset (one codebase_extract makes) records a baseline that only such a landing moves.";
+  } else {
+    rule =
+      `No as-built landing is recorded, so drift is counted from the last model commit (${short(sha)}), which may be a spec ` +
+      "migration (note says why). Any commit to the model moves it.";
+  }
+  const from = countedFrom.sha;
+
+  // Source references are relative to the codebase root; git names files from the top of the repo.
+  const toPosix = (p: string) => p.split(path.sep).join("/");
+  const prefix = toPosix(path.relative(repo.top, codebaseRoot));
+  const drDir = toPosix(path.relative(repo.top, path.join(projectRoot, "documentation-robotics")));
+
   const [countResult, diffResult, uncommittedResult, modelStatus] = await Promise.all([
-    ctx.git(["rev-list", "--count", `${sha}..HEAD`], repo.top),
+    // Commits that changed code: one that only lands or edits the model is not code drift.
+    ctx.git(["rev-list", "--count", `${from}..HEAD`, "--", ".", `:(exclude)${drDir}`], repo.top),
     // --no-renames: a rename lists both paths, so a reference to the old path still counts.
-    ctx.git(["diff", "--name-only", "--no-renames", "-z", sha, "HEAD"], repo.top),
+    ctx.git(["diff", "--name-status", "--no-renames", "-z", from, "HEAD"], repo.top),
     ctx.git(["diff", "--name-only", "--no-renames", "-z", "HEAD"], repo.top),
     ctx.git(["status", "--porcelain", "--", modelPathspec], repo.top),
   ]);
@@ -627,45 +929,107 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   if (!diffResult.ok) return { status: "unknown", reason: `git diff failed: ${diffResult.error}` };
   if (!uncommittedResult.ok) return { status: "unknown", reason: `git diff failed: ${uncommittedResult.error}` };
 
-  // Source references are relative to the codebase root; git names files from the top of the repo.
-  const toPosix = (p: string) => p.split(path.sep).join("/");
-  const prefix = toPosix(path.relative(repo.top, codebaseRoot));
   const referenced = referencedSourceFiles(model, prefix);
-  const drDir = toPosix(path.relative(repo.top, path.join(projectRoot, "documentation-robotics"))) + "/";
-  const outsideDr = (file: string) => !file.startsWith(drDir);
-  const changed = splitZ(diffResult.stdout).filter(outsideDr);
+  const outsideDr = (file: string) => !file.startsWith(`${drDir}/`);
+  const changedEntries = parseNameStatus(diffResult.stdout).filter((entry) => outsideDr(entry.file));
+  const changed = changedEntries.map((entry) => entry.file);
   const uncommitted = splitZ(uncommittedResult.stdout).filter(outsideDr);
 
   const matched = matchReferenced(changed, referenced);
   const matchedUncommitted = matchReferenced(uncommitted, referenced);
   const truncated = matched.length > MAX_FILES || matchedUncommitted.length > MAX_FILES;
+  const unreferenced = unreferencedChanges(changedEntries, referenced, prefix);
+  const landedSince = reconciled ? landedSinceReconciliation(model, reconciled, uncommittedReconciliation) : undefined;
 
   return {
     status:
       referenced.size === 0 ? "unlinked" : matched.length + matchedUncommitted.length > 0 ? "drift" : "in-step",
     modelCommit: { sha, date, subject },
+    countedFrom,
     basis,
-    ...(basis === "last-reconciling-commit" && headStamp
+    rule,
+    ...(reconciled
       ? {
           reconciledBy: {
-            changeset: headStamp.changeset,
-            changesetId: headStamp.changeset_id,
-            landedAt: headStamp.landed_at,
-            ...(headStamp.code_commit ? { codeCommit: headStamp.code_commit } : {}),
+            changeset: reconciled.changeset,
+            changesetId: reconciled.changeset_id,
+            landedAt: reconciled.landed_at,
+            ...(reconciled.code_commit ? { codeCommit: reconciled.code_commit } : {}),
           },
         }
       : {}),
+    ...(landedSince ? { landedSince } : {}),
     ...(uncommittedReconciliation ? { uncommittedReconciliation } : {}),
     ...(lastModelCommit.sha !== sha ? { lastModelCommit } : {}),
     ...(baselineNote ? { note: baselineNote } : {}),
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
     filesChangedSince: changed.length,
+    referencedFilesChanged: matched.length,
     changedSourceFiles: matched.slice(0, MAX_FILES),
+    ...(unreferenced ? { unreferenced } : {}),
     uncommittedSourceFiles: matchedUncommitted.slice(0, MAX_FILES),
     modelUncommitted: modelStatus.ok && modelStatus.stdout.trim().length > 0,
     referencedFiles: referenced.size,
     ...(truncated ? { truncated: true } : {}),
   };
+}
+
+/** A full or abbreviated commit id, and nothing git could read as an option or a range. */
+const COMMIT_ID = /^[0-9a-f]{7,64}$/i;
+
+/** `git diff --name-status -z` output (`M\0path\0A\0path\0`) as entries; `added` for a new file. */
+function parseNameStatus(stdout: string): Array<{ file: string; added: boolean }> {
+  const parts = splitZ(stdout);
+  const entries: Array<{ file: string; added: boolean }> = [];
+  for (let i = 0; i + 1 < parts.length; i += 2) entries.push({ file: parts[i + 1], added: parts[i].startsWith("A") });
+  return entries;
+}
+
+/**
+ * The changed files no element references, counted: the check ties code to the model through
+ * source references only, so these can't show as drift. Undefined when every changed file is
+ * referenced.
+ */
+function unreferencedChanges(
+  changed: Array<{ file: string; added: boolean }>,
+  referenced: Map<string, string[]>,
+  prefix: string
+): UnreferencedChanges | undefined {
+  const rest = changed.filter((entry) => !referenced.has(entry.file));
+  if (rest.length === 0) return undefined;
+  // isIndexedSource reads a path from the codebase root; a file outside it is not the model's code.
+  const source = rest.filter((entry) => {
+    if (!prefix) return isIndexedSource(entry.file);
+    return entry.file.startsWith(`${prefix}/`) && isIndexedSource(entry.file.slice(prefix.length + 1));
+  });
+  const added = source.filter((entry) => entry.added);
+  const first = [...added, ...source.filter((entry) => !entry.added)].slice(0, MAX_UNREFERENCED_NAMED).map((entry) => entry.file);
+  return { files: rest.length, sourceFiles: source.length, newSourceFiles: added.length, ...(first.length > 0 ? { first } : {}) };
+}
+
+/**
+ * The changesets landed after the as-built landing the manifest's stamp names, from the manifest's
+ * history (the working tree's, so a landing not committed yet is counted). None of them moved the
+ * baseline: a later bootstrap or reconcile landing would have replaced the stamp. Undefined when
+ * nothing landed since.
+ */
+function landedSinceReconciliation(
+  model: Model,
+  stamp: ReconciledStamp,
+  uncommitted: { changeset: string } | undefined
+): { count: number; changesets: string[] } | undefined {
+  const since = Date.parse(stamp.landed_at);
+  if (Number.isNaN(since)) return undefined;
+  const names = (model.manifest.changeset_history ?? [])
+    .filter((entry) => entry.action === "committed" && Date.parse(entry.committed_at) > since)
+    // Not the as-built landing itself, should its history entry be a moment later than its stamp.
+    .filter((entry) => !(entry.name === stamp.changeset && Date.parse(entry.committed_at) - since < 60_000))
+    // A later as-built landing waiting to be committed is reported as uncommittedReconciliation.
+    .filter((entry) => entry.name !== uncommitted?.changeset)
+    .map((entry) => entry.name);
+  if (names.length === 0) return undefined;
+  // The latest are the ones the reader just landed.
+  return { count: names.length, changesets: names.slice(-MAX_LANDED_NAMED) };
 }
 
 export interface CommitInfo {
