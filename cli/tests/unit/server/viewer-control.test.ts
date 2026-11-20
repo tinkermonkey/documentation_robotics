@@ -129,6 +129,31 @@ describe("listRunningViewers", () => {
       expect(viewers.find((viewer) => viewer.pid === 300)).toMatchObject({ outdated: true });
     }));
 
+  it("does not guess a lost viewer's chat mode when its command line does not say", () =>
+    withFixture(async ({ env, projectRoot }) => {
+      const viewers = await listRunningViewers({
+        env,
+        isAlive: () => true,
+        processes: () => [
+          launcher(100, 1, "--no-browser"),
+          server(101, 100),
+          launcher(200, 1, "--read-only --no-browser"),
+          server(201, 200),
+          launcher(300, 1, "--with-changesets --no-browser"),
+          server(301, 300),
+        ],
+        cwdOf: () => projectRoot,
+        portOf: (pid) => 8000 + pid,
+        health: async () => ({ status: "ok", cliVersion: "0.7.0" }),
+      });
+      // The default mode depends on the CLI running it (it changed in 0.7.0).
+      expect(viewers.map((viewer) => [viewer.pid, viewer.withChangesets]).sort()).toEqual([
+        [100, null],
+        [200, false],
+        [300, true],
+      ]);
+    }));
+
   it("drops the record of a pid another program now holds, and does not list it", () =>
     withFixture(async ({ env, projectRoot, put }) => {
       await put({ pid: 400, port: 8080 });

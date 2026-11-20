@@ -54,6 +54,7 @@ export interface RunningViewer {
   startedAt: string;
   /** Who started it; null when the registry has no record or an older CLI wrote it. */
   startedBy: ViewerStarter | null;
+  /** Whether its chat may stage changes; null when the registry has no record and its command line does not say. */
   withChangesets: boolean | null;
   /** Hours of idleness after which it exits on its own; null when it never does or it is unknown. */
   idleExitHours: number | null;
@@ -200,7 +201,13 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
         serverPid: proc.serverPid,
         startedAt: proc.startedAt,
         startedBy: null,
-        withChangesets: /\s--with-changesets(?:\s|$)/.test(proc.command) ? true : proc.launcherPid ? false : null,
+        // Only what its command line says for certain: without either flag the mode is the
+        // default of the CLI that runs it, which changed in 0.7.0, so it is not guessed.
+        withChangesets: /\s--with-changesets(?:\s|$)/.test(proc.command)
+          ? true
+          : /\s--read-only(?:\s|$)/.test(proc.command)
+            ? false
+            : null,
         idleExitHours: null,
         inRegistry: false,
         token: null,
