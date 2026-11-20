@@ -15,17 +15,17 @@ description: "The MCP read tools give an agent one right, small answer about a
   set. Done: 1203, 1204, 1214, 1215, 1216 closed with tests, and before/after
   response sizes on the repo's own model in the PR."
 created: 2026-11-20T16:30:15.149Z
-modified: 2026-11-20T17:12:34.579Z
+modified: 2026-11-20T17:23:58.244Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 69
+  additions: 75
   modifications: 7
   deletions: 0
-lastSequence: 100
+lastSequence: 114
 unstaged:
   - sequence: 3
     removedAt: 36
@@ -623,4 +623,207 @@ unstaged:
             - file: cli/src/core/dependency-direction.ts
               symbol: dependencyEnds
       timestamp: 2026-11-20T16:41:27.462Z
+    rewritten: true
+  - sequence: 72
+    removedAt: 101
+    change:
+      type: add
+      elementId: application.applicationfunction.page-of
+      layerName: application
+      after:
+        id: ed57750d-58df-45e5-9ae4-794f3e1238a0
+        path: application.applicationfunction.page-of
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: pageOf
+        description: The page of a list the limit and offset arguments ask for, with the
+          list's true total, how many came back, and the offset of the next
+          page. A limit is a page size, never a cut-off.
+        metadata:
+          created_at: 2026-11-20T17:02:56.267Z
+          updated_at: 2026-11-20T17:02:56.267Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/paging.ts
+              symbol: pageOf
+      timestamp: 2026-11-20T17:03:36.309Z
+    rewritten: true
+  - sequence: 73
+    removedAt: 102
+    change:
+      type: add
+      elementId: application.applicationfunction.paging-fields
+      layerName: application
+      after:
+        id: 9ee71201-3e6c-4d1e-8228-993ead2fb01d
+        path: application.applicationfunction.paging-fields
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: pagingFields
+        description: The limit and offset arguments of a tool that pages a list, with
+          the default stated in their descriptions.
+        metadata:
+          created_at: 2026-11-20T17:02:56.267Z
+          updated_at: 2026-11-20T17:02:56.267Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/paging.ts
+              symbol: pagingFields
+      timestamp: 2026-11-20T17:03:36.309Z
+    rewritten: true
+  - sequence: 74
+    removedAt: 103
+    change:
+      type: add
+      elementId: application.applicationfunction.next-page-hint
+      layerName: application
+      after:
+        id: f7a7ead7-d673-45d8-9871-087d50187e91
+        path: application.applicationfunction.next-page-hint
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: nextPageHint
+        description: One line naming the call that returns the next page of a list, or
+          nothing when the page is the last.
+        metadata:
+          created_at: 2026-11-20T17:02:56.267Z
+          updated_at: 2026-11-20T17:02:56.267Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/paging.ts
+              symbol: nextPageHint
+      timestamp: 2026-11-20T17:03:36.309Z
+    rewritten: true
+  - sequence: 75
+    removedAt: 104
+    change:
+      type: add
+      elementId: application.applicationfunction.whole-page
+      layerName: application
+      after:
+        id: 02b0bcb4-8e48-400b-af64-f80f658b6d26
+        path: application.applicationfunction.whole-page
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: wholePage
+        description: A whole list as one page, for a caller that asked for everything.
+        metadata:
+          created_at: 2026-11-20T17:02:56.267Z
+          updated_at: 2026-11-20T17:02:56.267Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/paging.ts
+              symbol: wholePage
+      timestamp: 2026-11-20T17:03:36.309Z
+    rewritten: true
+  - sequence: 76
+    removedAt: 105
+    change:
+      type: add
+      elementId: data-model.objectschema.page
+      layerName: data-model
+      after:
+        id: 9568c395-0e01-4017-9e24-84535a804284
+        path: data-model.objectschema.page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: Page
+        description: "Where a page sits in its list: total, returned, offset, and
+          nextOffset when more is left."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T17:02:56.267Z
+          updated_at: 2026-11-20T17:02:56.267Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/paging.ts
+              symbol: Page
+      timestamp: 2026-11-20T17:03:36.309Z
+    rewritten: true
+  - sequence: 77
+    removedAt: 106
+    change:
+      type: add
+      elementId: data-model.objectschema.page-args
+      layerName: data-model
+      after:
+        id: c8196836-16fc-4c69-961d-974d854f7eb0
+        path: data-model.objectschema.page-args
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: PageArgs
+        description: The limit and offset a caller passes to page a list.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T17:02:56.267Z
+          updated_at: 2026-11-20T17:02:56.267Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/paging.ts
+              symbol: PageArgs
+      timestamp: 2026-11-20T17:03:36.309Z
+    rewritten: true
+  - sequence: 107
+    removedAt: 113
+    change:
+      type: add
+      elementId: application.applicationfunction.lists-pager
+      layerName: application
+      after:
+        id: 385554f8-44cb-4d2c-a66c-90a96e5f98e5
+        path: application.applicationfunction.lists-pager
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: listsPager
+        description: Pages several lists of one result with the same limit and offset,
+          keeping each list's true total, so repeating the call pages them all.
+        metadata:
+          created_at: 2026-11-20T17:22:12.339Z
+          updated_at: 2026-11-20T17:22:12.339Z
+          version: 1
+      timestamp: 2026-11-20T17:22:12.373Z
+    rewritten: true
+  - sequence: 108
+    removedAt: 114
+    change:
+      type: add
+      elementId: data-model.objectschema.lists-page
+      layerName: data-model
+      after:
+        id: dd4f5946-acc8-4462-9d4b-0113d80eaebc
+        path: data-model.objectschema.lists-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ListsPage
+        description: "Where a page sits in several lists paged together: the offset,
+          each list's true length by name, and nextOffset while any has more."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T17:22:12.339Z
+          updated_at: 2026-11-20T17:22:12.339Z
+          version: 1
+      timestamp: 2026-11-20T17:22:12.373Z
     rewritten: true

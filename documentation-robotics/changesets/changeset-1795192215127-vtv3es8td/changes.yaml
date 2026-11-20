@@ -1064,9 +1064,9 @@
     source_reference:
       provenance: extracted
       locations:
-        - file: cli/src/mcp/tools/paging.ts
+        - file: cli/src/core/paging.ts
           symbol: pageOf
-  timestamp: 2026-11-20T17:03:36.309Z
+  timestamp: 2026-11-20T17:22:07.277Z
   sequenceNumber: 72
 - type: add
   elementId: application.applicationfunction.paging-fields
@@ -1087,9 +1087,9 @@
     source_reference:
       provenance: extracted
       locations:
-        - file: cli/src/mcp/tools/paging.ts
+        - file: cli/src/core/paging.ts
           symbol: pagingFields
-  timestamp: 2026-11-20T17:03:36.309Z
+  timestamp: 2026-11-20T17:22:08.137Z
   sequenceNumber: 73
 - type: add
   elementId: application.applicationfunction.next-page-hint
@@ -1110,9 +1110,9 @@
     source_reference:
       provenance: extracted
       locations:
-        - file: cli/src/mcp/tools/paging.ts
+        - file: cli/src/core/paging.ts
           symbol: nextPageHint
-  timestamp: 2026-11-20T17:03:36.309Z
+  timestamp: 2026-11-20T17:22:09.023Z
   sequenceNumber: 74
 - type: add
   elementId: application.applicationfunction.whole-page
@@ -1132,9 +1132,9 @@
     source_reference:
       provenance: extracted
       locations:
-        - file: cli/src/mcp/tools/paging.ts
+        - file: cli/src/core/paging.ts
           symbol: wholePage
-  timestamp: 2026-11-20T17:03:36.309Z
+  timestamp: 2026-11-20T17:22:09.888Z
   sequenceNumber: 75
 - type: add
   elementId: data-model.objectschema.page
@@ -1157,9 +1157,9 @@
     source_reference:
       provenance: extracted
       locations:
-        - file: cli/src/mcp/tools/paging.ts
+        - file: cli/src/core/paging.ts
           symbol: Page
-  timestamp: 2026-11-20T17:03:36.309Z
+  timestamp: 2026-11-20T17:22:10.801Z
   sequenceNumber: 76
 - type: add
   elementId: data-model.objectschema.page-args
@@ -1181,9 +1181,9 @@
     source_reference:
       provenance: extracted
       locations:
-        - file: cli/src/mcp/tools/paging.ts
+        - file: cli/src/core/paging.ts
           symbol: PageArgs
-  timestamp: 2026-11-20T17:03:36.309Z
+  timestamp: 2026-11-20T17:22:11.636Z
   sequenceNumber: 77
 - type: relationship-add
   elementId: application.applicationfunction.page-of::accesses::data-model.objectschema.page
@@ -1465,3 +1465,97 @@
     metadata: *a14
   timestamp: 2026-11-20T17:12:34.549Z
   sequenceNumber: 100
+- type: add
+  elementId: application.applicationfunction.lists-pager
+  layerName: application
+  after:
+    id: 385554f8-44cb-4d2c-a66c-90a96e5f98e5
+    path: application.applicationfunction.lists-pager
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: listsPager
+    description: Pages several lists of one result with the same limit and offset,
+      keeping each list's true total, so repeating the call pages them all.
+    metadata:
+      created_at: 2026-11-20T17:22:12.339Z
+      updated_at: 2026-11-20T17:22:12.339Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/paging.ts
+          symbol: listsPager
+  timestamp: 2026-11-20T17:23:56.851Z
+  sequenceNumber: 107
+- type: add
+  elementId: data-model.objectschema.lists-page
+  layerName: data-model
+  after:
+    id: dd4f5946-acc8-4462-9d4b-0113d80eaebc
+    path: data-model.objectschema.lists-page
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ListsPage
+    description: "Where a page sits in several lists paged together: the offset,
+      each list's true length by name, and nextOffset while any has more."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T17:22:12.339Z
+      updated_at: 2026-11-20T17:22:12.339Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/paging.ts
+          symbol: ListsPage
+  timestamp: 2026-11-20T17:23:58.188Z
+  sequenceNumber: 108
+- type: relationship-add
+  elementId: application.applicationfunction.lists-pager::depends-on::application.applicationfunction.page-of
+  layerName: application
+  after:
+    source: application.applicationfunction.lists-pager
+    target: application.applicationfunction.page-of
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:22:12.373Z
+  sequenceNumber: 109
+- type: relationship-add
+  elementId: application.applicationfunction.lists-pager::accesses::data-model.objectschema.lists-page
+  layerName: application
+  after:
+    source: application.applicationfunction.lists-pager
+    target: data-model.objectschema.lists-page
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:22:12.373Z
+  sequenceNumber: 110
+- type: relationship-add
+  elementId: application.applicationfunction.lists-pager::accesses::data-model.objectschema.page-args
+  layerName: application
+  after:
+    source: application.applicationfunction.lists-pager
+    target: data-model.objectschema.page-args
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:22:12.373Z
+  sequenceNumber: 111
+- type: relationship-add
+  elementId: application.applicationfunction.lists-pager::realizes::application.applicationservice.model-trace-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.lists-pager
+    target: application.applicationservice.model-trace-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:22:12.373Z
+  sequenceNumber: 112
