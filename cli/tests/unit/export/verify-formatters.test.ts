@@ -8,6 +8,9 @@ import { describe, it, expect } from "bun:test";
 import { formatVerifyJSON, formatVerifyText, formatVerifyReport, formatVerifyMarkdown } from "@/export/verify-formatters.js";
 import type { VerifyReport } from "@/analyzers/types.js";
 
+// Text output is coloured when the environment asks for it (CI=true does); compare the words.
+const plain = (text: string): string => text.replace(/\u001b\[[0-9;]*m/g, "");
+
 // Sample VerifyReport for testing
 const sampleReport: VerifyReport = {
   generated_at: "2024-01-15T10:30:00Z",
@@ -926,7 +929,7 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
   });
 
   it("leaves out the all-zero API summary in text when the API layer wasn't asked for", () => {
-    const output = formatVerifyText(dataStoreOnly);
+    const output = plain(formatVerifyText(dataStoreOnly));
     expect(output).not.toContain("SUMMARY");
     expect(output).not.toContain("operations found in both graph and model");
     expect(output).toContain("Layer: data-store");
