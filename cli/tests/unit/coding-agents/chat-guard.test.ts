@@ -293,7 +293,14 @@ describe("dr's own preAction guard (assertChatCommandAllowed)", () => {
     program.command("list [layer]").option("--model <path>").action((layer, options, cmd) => record(layer, options, cmd));
     program.command("stats").option("--output <path>").action((options, cmd) => record(null, options, cmd));
     program.command("add <layer> <type> <name>").action((a, b, c, options, cmd) => record(a, options, cmd));
-    program.command("mcp").action((options, cmd) => record(null, options, cmd));
+    program
+      .command("mcp")
+      .option("--regenerate-key")
+      .option("--transport <kind>", "transport", "stdio")
+      .option("--host <host>")
+      .option("--port <port>")
+      .action((options, cmd) => record(null, options, cmd));
+    program.command("chat-permission-hook").action((options, cmd) => record(null, options, cmd));
     const changeset = program.command("changeset");
     changeset.command("commit [name]").action((name, options, cmd) => record(name, options, cmd));
     changeset.command("create <name>").action((name, options, cmd) => record(name, options, cmd));
@@ -322,6 +329,19 @@ describe("dr's own preAction guard (assertChatCommandAllowed)", () => {
     expect(guard(["changeset", "create", "plan"], "changesets")).not.toThrow();
     expect(guard(["add", "motivation", "goal", "g"], "changesets")).not.toThrow();
     expect(guard(["mcp"], "read-safe")).not.toThrow();
+    expect(guard(["chat-permission-hook"], "changesets")).not.toThrow();
+  });
+
+  it("lets the launcher commands through only as the launch runs them, with no option (second review, finding 1)", () => {
+    for (const mode of ["read-safe", "changesets"]) {
+      expect(guard(["mcp", "--regenerate-key"], mode)).toThrow(/`dr mcp` runs only as the viewer starts it, with no options, and `--regenerate-key` was given/);
+      expect(guard(["mcp", "--transport", "http", "--host", "0.0.0.0"], mode)).toThrow(/`--transport`, `--host` was given/);
+      expect(guard(["mcp", "--port", "9000"], mode)).toThrow(/`--port`/);
+      // Its default transport is not "given".
+      expect(guard(["mcp"], mode)).not.toThrow();
+      // A global option counts too: --codebase-path would otherwise go unchecked.
+      expect(guard(["--codebase-path", "/other", "mcp"], mode)).toThrow(/`--codebase-path` was given/);
+    }
   });
 });
 

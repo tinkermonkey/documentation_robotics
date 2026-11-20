@@ -34,7 +34,11 @@ export type ChatMode = "read-safe" | "changesets";
 /** The hidden `dr` command the launch registers as Claude Code's PreToolUse hook. */
 export const CHAT_PERMISSION_HOOK_COMMAND = "chat-permission-hook";
 
-/** `dr` commands a chat launch itself runs, which the agent's own lists don't name. */
+/**
+ * `dr` commands a chat launch itself runs, which the agent's own lists don't name. The launch
+ * runs each with no option at all, so only that form is let through: `dr mcp --regenerate-key`
+ * writes a key file, and `dr mcp --transport http --host 0.0.0.0` opens a listener.
+ */
 const LAUNCHER_COMMANDS: readonly string[] = ["dr mcp", `dr ${CHAT_PERMISSION_HOOK_COMMAND}`];
 
 /** How every refusal starts, so the server can tell one from a command's own failure. */
@@ -178,15 +182,27 @@ function optionsRefusal(mode: ChatMode, risky: RiskyOptions, projectRoot: string
 /**
  * Why this chat mode refuses a `dr` command, or null when it may run. `path` is the command as
  * commander resolved it (`dr changeset commit`), `options` its parsed options (global ones
- * included), `projectRoot` the served project.
+ * included), `projectRoot` the served project, `given` the options given on the command line or
+ * through the environment rather than left at their defaults (as `--regenerate-key`).
  */
 export function chatCommandRefusal(
   mode: ChatMode,
   path: string,
   options: Readonly<Record<string, unknown>>,
-  projectRoot: string
+  projectRoot: string,
+  given: readonly string[] = []
 ): ChatRefusal | null {
-  if (matchDrCommand(path, LAUNCHER_COMMANDS)) return null;
+  const launcher = matchDrCommand(path, LAUNCHER_COMMANDS);
+  if (launcher) {
+    return given.length === 0
+      ? null
+      : {
+          reason:
+            `\`${launcher}\` runs only as the viewer starts it, with no options, and ` +
+            `${given.map((flag) => `\`${flag}\``).join(", ")} was given.`,
+          remedy: "DrBot never needs to run it: the viewer has already started it for this chat.",
+        };
+  }
   const notAllowed = commandNotAllowed(mode, path, path);
   if (notAllowed) return notAllowed;
   const set = (key: string) => options[key] !== undefined && options[key] !== false;
@@ -212,6 +228,13 @@ export interface CommandLike {
   name(): string;
   parent?: CommandLike | null;
   opts(): Record<string, unknown>;
+  /** Where an option's value came from ("default", "cli", "env", ...). */
+  getOptionValueSource?(key: string): string | undefined;
+}
+
+/** `--regenerate-key` from the option key `regenerateKey`. */
+function flagName(key: string): string {
+  return "--" + key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 }
 
 /** `dr changeset commit`, from the command commander is about to run. */
@@ -236,13 +259,19 @@ export function assertChatCommandAllowed(
   const mode = chatMode(env);
   if (!mode) return;
   const options: Record<string, unknown> = {};
+  const given: string[] = [];
   for (let current: CommandLike | null | undefined = actionCommand; current; current = current.parent) {
     for (const [key, value] of Object.entries(current.opts())) {
       if (!(key in options)) options[key] = value;
+      const source = current.getOptionValueSource?.(key);
+      // An option with no recorded source but a value set counts as given, so nothing slips by.
+      if (source !== undefined ? source !== "default" && source !== "implied" : value !== undefined && value !== false) {
+        given.push(flagName(key));
+      }
     }
   }
   const path = commandPath(actionCommand);
-  const refusal = chatCommandRefusal(mode, path, options, projectRoot);
+  const refusal = chatCommandRefusal(mode, path, options, projectRoot, given);
   if (refusal) {
     throw new CLIError(formatChatRefusal(mode, refusal), ErrorCategory.USER, ["Don't retry it."], {
       operation: path,
