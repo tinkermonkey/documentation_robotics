@@ -415,9 +415,18 @@ function pickNextStep(s: Sections, root: string): NextStep {
 
   if (codeDrift.status === "drift") {
     const from = (codeDrift.countedFrom ?? codeDrift.modelCommit).sha;
-    const drift = codeDriftSentence(codeDrift);
-    const clear =
-      codeDrift.basis === "last-reconciling-commit"
+    // The count could not start where it should: a since run from where it did start would leave
+    // the earlier code unchecked and still end in "in step". Read the whole codebase instead.
+    const partial = codeDrift.incompleteHistory !== undefined;
+    const drift = `${codeDriftSentence(codeDrift)}${
+      partial
+        ? ` That is only what can be seen: the count should start earlier, at a commit this repository doesn't have${codeDrift.shallow ? " (it is a shallow clone)" : ""}.`
+        : ""
+    }`;
+    const clear = partial
+      ? "run codebase_extract with no since and no plan active, so code that changed before the commits this repository has is " +
+        "read too, and land the changeset it makes when the user asks. A since run would leave that code unchecked."
+      : codeDrift.basis === "last-reconciling-commit"
         ? `run codebase_extract with since: "${from.slice(0, 7)}" and no plan active, and land the reconcile changeset it makes when ` +
           "the user asks. If it stages nothing, create the changeset under the name it gives: any other name makes a plan, " +
           "which does not clear this."
@@ -440,7 +449,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
     return {
       summary: `${drift} To clear it, check the model against the code with codebase_verify, then ${clear}`,
       tool: "codebase_verify",
-      then: { tool: "codebase_extract", args: { since: from } },
+      then: { tool: "codebase_extract", ...(partial ? {} : { args: { since: from } }) },
     };
   }
 
@@ -560,8 +569,10 @@ function baseChangeCounts(counts: NonNullable<ChangesetDriftEntry["baseChanges"]
 }
 
 /**
- * What landing a changeset takes while its drift blocks a commit. With LANDING_WHEN_DRIFT_BLOCKS,
- * the one place that says so: #1200 (drift warns, never refuses) retires both.
+ * What landing a changeset takes while its drift blocks a commit: with LANDING_WHEN_DRIFT_BLOCKS,
+ * the one place that says so. After #1200 a landing through changeset_commit or the viewer warns
+ * and proceeds (force is accepted and ignored there), and only an unattended `dr changeset commit`
+ * still refuses without --force: this sentence is the one to reword then.
  */
 const BLOCKED_LANDING = "changeset_commit refuses to land it unless the user agrees to force: true (the viewer's Apply has no force).";
 
@@ -575,7 +586,8 @@ function landingSentence(drift: ChangesetDriftEntry): string {
 /** A changeset's base drift in a sentence or two: what moved, what overlaps, what a landing does. */
 function changesetDriftSentence(drift: ChangesetDriftEntry): string {
   if (drift.state === "unknown") {
-    return `Its base drift could not be checked (${drift.reason ?? "no reason given"}). ${landingSentence(drift)}`;
+    // With no base snapshot the reason itself says a commit is not blocked.
+    return `Its base drift could not be checked: ${drift.reason ?? "no reason given"}${drift.landing === "unknown" ? ` ${landingSentence(drift)}` : ""}`;
   }
   const moved = drift.baseChanges ? baseChangeCounts(drift.baseChanges) : "";
   if (drift.state === "content-free") {

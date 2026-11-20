@@ -276,7 +276,8 @@ has its true count beside it (`stagedTotal`, `referencedFilesChanged`,
 `referencedFilesUncommitted`, `unreferenced.files`, `landedSince.count`,
 `changedSinceIndexCount`, `uncommittedEditsCount`, `elementCount`, `overlapping.elements` and
 `.relationships`) and, when it is shortened, its page under the section's `pages` (`total`, `returned`, `offset`,
-`nextOffset`) and a `more` line naming the call that returns the rest. `project_status` with
+`nextOffset`; `pages.<list>.total` is the one name for a list's true count in every section) and
+a `more` string naming the call that returns the rest of each. `project_status` with
 `list` returns any of them in full: `stagedChangesets`, `changedSourceFiles`,
 `uncommittedSourceFiles`, `unreferencedFiles`, `landedSince`, `changedSinceIndex` or
 `uncommittedEdits`, paged with `limit` (default 50, no upper bound) and `offset`. The answer is
@@ -301,8 +302,8 @@ computed over the whole lists before anything is shortened.
 - `changesets`: the active changeset and the staged ones, with change counts by operation,
   `baseDrifted` and, when the base's hash changed since the changeset was created, `drift`: its
   `state` and whether it blocks (`core/changeset-drift-status.ts`, the answer a commit acts on),
-  `landing` (`refused-without-force`, `allowed`, `allowed-with-warning`, or `unknown` when drift
-  could not be checked) and, for `drifted`, the `changeset_brief` call that lists what moved
+  `landing` (`refused-without-force`, `allowed`, `allowed-with-warning`, or `unknown` when the
+  drift check failed) and, for `drifted`, the `changeset_brief` call that lists what moved
   (`next`). The active changeset's `drift` also says how many base elements and relationships
   changed (`baseChanges`) and how many of its own changes they overlap (`overlapping`, with the
   first few); describing that costs a pass over the model per changeset, so the others get it from
@@ -330,8 +331,9 @@ computed over the whole lists before anything is shortened.
   which moved the baseline. When the code commit the landing read is not in the repository (a
   shallow clone, a branch never fetched, a commit squashed away), or a shallow clone's history
   stops at the commit the count would start from, the status is `drift` if changed files are seen
-  from the later baseline and `unknown` otherwise (`incompleteHistory` says which case): never
-  `in-step`. Files committed between the extraction's commit and the model's count as changed,
+  from the later baseline and `unknown` otherwise: never `in-step`. Both carry `incompleteHistory`
+  (which case), and `nextStep` then sends the catch-up to `codebase_extract` with no `since`,
+  because a `since` run from a baseline that is too late would leave the earlier code unchecked. Files committed between the extraction's commit and the model's count as changed,
   including any the extraction read before they were committed; `rule` says so. Only an as-built landing
   reconciles the model with the code: a bootstrap, or a keep-as-built changeset staged by
   `codebase_extract` (see [Which landings reconcile](#which-landings-reconcile-the-model-with-the-code)).

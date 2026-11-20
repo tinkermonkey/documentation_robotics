@@ -351,9 +351,11 @@ export function staleServer(section: ServerSection | ErrorSection | null | undef
 // changesets
 
 /**
- * `landing` for a changeset whose drift blocks a commit. One of the places that say what a blocked
- * landing takes; #1200 (drift warns, never refuses) retires it, and the core's `blocksCommit`
- * then never selects it.
+ * `landing` for a changeset whose drift blocks a commit (the core's `blocksCommit`). One of the
+ * places that say what a blocked landing takes. #1200 narrows it: a landing through changeset_commit
+ * or the viewer then warns and proceeds, and only an unattended `dr changeset commit` with real
+ * overlaps still refuses without --force. Whatever the core then reports as blocking still reads
+ * this value; the sentence that explains it is BLOCKED_LANDING in project-status.ts.
  */
 export const LANDING_WHEN_DRIFT_BLOCKS = "refused-without-force";
 
@@ -372,7 +374,8 @@ export interface ChangesetDriftEntry {
   /**
    * What a landing does about it, from the core's `blocksCommit`. refused-without-force:
    * changeset_commit refuses unless the user agrees to force: true, and the viewer's Apply, which
-   * has no force, refuses. unknown: drift could not be checked, so neither could this.
+   * has no force, refuses. unknown: the drift check failed, so this could not be told either (a
+   * changeset with no base snapshot has nothing to check and reads allowed, as the core says).
    */
   landing: "allowed" | "allowed-with-warning" | typeof LANDING_WHEN_DRIFT_BLOCKS | "unknown";
   /** Set when the changeset has no usable record of the base it was staged against: what changed can't be named. */
@@ -401,11 +404,14 @@ const MAX_OVERLAPS_NAMED = 3;
  * summary alone (DriftStatus), it carries the state, what a landing does and the call for the
  * rest; given the detail, the counts and the overlaps too.
  */
-function driftEntry(changesetId: string, detail: DriftDetail): ChangesetDriftEntry | undefined {
+function driftEntry(changeset: Changeset, detail: DriftDetail): ChangesetDriftEntry | undefined {
   if (detail.state === "none" || detail.state === "not-applicable") return undefined;
-  const next = { tool: "changeset_brief" as const, args: { changeset: changesetId, sections: ["drift"] as ["drift"] } };
-  // Not "allowed": a commit makes the same check, and what failed here may fail there.
-  if (detail.state === "unknown") return { state: "unknown", landing: "unknown", reason: detail.message, next };
+  const next = { tool: "changeset_brief" as const, args: { changeset: changeset.id, sections: ["drift"] as ["drift"] } };
+  if (detail.state === "unknown") {
+    // Two unknowns. With no base snapshot there is nothing to compare, and the core says a commit
+    // is not blocked. A check that failed may fail the same way in a commit: not "allowed".
+    return { state: "unknown", landing: changeset.baseSnapshot ? "unknown" : "allowed", reason: detail.message, next };
+  }
   const counts = detail.baseChanges?.counts;
   const baseChanges = counts
     ? (Object.fromEntries(Object.entries(counts).filter(([, n]) => n > 0)) as Partial<Record<BaseChangeCount, number>>)
@@ -473,7 +479,7 @@ export type ChangesetsSection =
       /** Set when `staged` shows only its first entries: where the part shown sits in the whole list. */
       pages?: ShortenedPages;
       /** With `pages`: what is shown, of how many, and the call for the rest. */
-      more?: string[];
+      more?: string;
       committed: number;
       discarded: number;
       /** Set when base drift could not be checked. */
@@ -530,7 +536,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
         ? await driftDetail(base.model, base.manager, subject)
         : await driftStatus(base.manager, subject);
       baseDrifted = detail.state === "unknown" ? null : detail.state === "drifted";
-      drift = driftEntry(changeset.id, detail);
+      drift = driftEntry(changeset, detail);
     }
     return {
       id: changeset.id,
@@ -626,8 +632,8 @@ export type CodeIndexSection =
       uncommittedEditsCount?: number;
       /** For each list shortened here: where the part shown sits in the whole list. */
       pages?: ShortenedPages;
-      /** One line per shortened list: what is shown, of how many, and the call that returns the rest. */
-      more?: string[];
+      /** For each shortened list, in one string: what is shown, of how many, and the call that returns the rest. */
+      more?: string;
       note?: string;
     };
 
@@ -877,6 +883,14 @@ export type CodeDriftSection =
       basis: "last-reconciling-commit" | "last-non-migration-commit" | "last-model-commit";
       /** The rule in a sentence: where drift is counted from, why, and what moves that baseline. */
       rule: string;
+      /**
+       * Set when the count could not start where it should (see the unknown variant): what is
+       * listed changed for certain, but code that changed before `countedFrom` is not counted, so
+       * a `since` run from `countedFrom` would leave it unchecked.
+       */
+      incompleteHistory?: "missing-code-commit" | "shallow-clone";
+      /** Whether this repository is a shallow clone. */
+      shallow?: true;
       /** With basis last-reconciling-commit: the as-built landing, from the manifest's stamp. */
       reconciledBy?: { changeset: string; changesetId: string; landedAt: string; codeCommit?: string };
       /**
@@ -914,8 +928,8 @@ export type CodeDriftSection =
       truncated?: boolean;
       /** For each list shortened here: where the part shown sits in the whole list. */
       pages?: ShortenedPages;
-      /** One line per shortened list: what is shown, of how many, and the call that returns the rest. */
-      more?: string[];
+      /** For each shortened list, in one string: what is shown, of how many, and the call that returns the rest. */
+      more?: string;
     };
 
 export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSection> {
@@ -1147,6 +1161,8 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     countedFrom,
     basis,
     rule,
+    ...(incomplete ? { incompleteHistory: incomplete } : {}),
+    ...(shallow ? { shallow: true as const } : {}),
     ...(reconciledBy ? { reconciledBy } : {}),
     ...(landedSince ? { landedSince } : {}),
     ...(uncommittedReconciliation ? { uncommittedReconciliation } : {}),
@@ -1488,7 +1504,9 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     }
     return items;
   };
-  const said = (pages: ShortenedPages, more: string[]) => (more.length > 0 ? { ...(Object.keys(pages).length > 0 ? { pages } : {}), more } : {});
+  // `more` is one string in every paged dr tool: here it names the call for each shortened list.
+  const said = (pages: ShortenedPages, more: string[]) =>
+    more.length > 0 ? { ...(Object.keys(pages).length > 0 ? { pages } : {}), more: more.join(" ") } : {};
 
   if (out.changesets?.status === "ok") {
     const pages: ShortenedPages = {};

@@ -528,8 +528,8 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(10);
     // The page the shown part is, in the shape every paged tool uses.
     expect(data.changesets.pages).toEqual({ stagedChangesets: { total: 22, returned: 10, offset: 0, nextOffset: 10 } });
-    expect(data.changesets.more).toHaveLength(1);
-    expect(data.changesets.more[0]).toContain(
+    // `more` is one string, as in every paged tool.
+    expect(data.changesets.more).toContain(
       `stagedChangesets shows 10 of 22: project_status with list: "stagedChangesets", offset: 10, rootPath: "${rootPath}" returns the rest.`
     );
 
@@ -543,7 +543,7 @@ describe("project_status", () => {
     const drifted = [...data.changesets.staged, ...rest.items].filter((entry: any) => entry.baseDrifted);
     expect(drifted.map((entry: any) => entry.name)).toEqual(["plan-00"]);
     const hidden = rest.items.some((entry: any) => entry.name === "plan-00");
-    expect(data.changesets.more[0].includes("1 of those not shown has a drifted base.")).toBe(hidden);
+    expect(data.changesets.more.includes("1 of those not shown has a drifted base.")).toBe(hidden);
     expect(data.nextStep.tool).toBe("changeset_activate");
     expect(data.nextStep.summary).toContain("No changeset is active; 22 staged:");
     expect(data.nextStep.summary).toContain("and 17 more");
@@ -848,9 +848,9 @@ describe("project_status", () => {
       expect(data.codeIndex.status).toBe("stale");
       expect(data.codeIndex.changedSinceIndexCount).toBe(17);
       expect(data.codeIndex.changedSinceIndex).toHaveLength(15);
-      expect(data.codeIndex.more).toEqual([
-        `changedSinceIndex shows 15 of 17: project_status with list: "changedSinceIndex", offset: 15, rootPath: "${rootPath}" returns the rest.`,
-      ]);
+      expect(data.codeIndex.more).toBe(
+        `changedSinceIndex shows 15 of 17: project_status with list: "changedSinceIndex", offset: 15, rootPath: "${rootPath}" returns the rest.`
+      );
       const sinceIndex = await page(rootPath, "changedSinceIndex", { offset: 15 });
       expect(sinceIndex.page).toEqual({ total: 17, returned: 2, offset: 15 });
       expect(data.codeIndex.pages).toEqual({ changedSinceIndex: { total: 17, returned: 15, offset: 0, nextOffset: 15 } });
@@ -880,7 +880,7 @@ describe("project_status", () => {
       expect(data.codeDrift.changedSourceFiles).toHaveLength(1);
       expect(data.codeDrift.changedSourceFiles[0].elements).toHaveLength(3);
       expect(data.codeDrift.changedSourceFiles[0].elementCount).toBe(5);
-      expect(data.codeDrift.more.join(" ")).toContain("elements shows 3 per file (elementCount is the whole count)");
+      expect(data.codeDrift.more).toContain("elements shows 3 per file (elementCount is the whole count)");
       const all = await page(rootPath, "changedSourceFiles");
       expect(all.items[0].elements).toHaveLength(5);
     });
@@ -909,9 +909,9 @@ describe("project_status", () => {
       expect(data.codeDrift.status).toBe("drift");
       expect(data.codeDrift.referencedFilesUncommitted).toBe(18);
       expect(data.codeDrift.uncommittedSourceFiles).toHaveLength(15);
-      expect(data.codeDrift.more).toEqual([
-        `uncommittedSourceFiles shows 15 of 18: project_status with list: "uncommittedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`,
-      ]);
+      expect(data.codeDrift.more).toBe(
+        `uncommittedSourceFiles shows 15 of 18: project_status with list: "uncommittedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`
+      );
       expect(data.nextStep.summary).toContain("18 source files the model references have uncommitted edits");
       expect((await page(rootPath, "uncommittedSourceFiles", { offset: 15 })).page).toEqual({ total: 18, returned: 3, offset: 15 });
     });
@@ -933,9 +933,9 @@ describe("project_status", () => {
         newSourceFiles: 7,
         first: ["src/new-0.ts", "src/new-1.ts", "src/new-2.ts", "src/new-3.ts", "src/new-4.ts"],
       });
-      expect(data.codeDrift.more).toEqual([
-        `unreferencedFiles shows 5 of 9: project_status with list: "unreferencedFiles", offset: 5, rootPath: "${rootPath}" returns the rest.`,
-      ]);
+      expect(data.codeDrift.more).toBe(
+        `unreferencedFiles shows 5 of 9: project_status with list: "unreferencedFiles", offset: 5, rootPath: "${rootPath}" returns the rest.`
+      );
 
       const rest = await page(rootPath, "unreferencedFiles", { offset: 5 });
       expect(rest.page).toEqual({ total: 9, returned: 4, offset: 5 });
@@ -1052,13 +1052,22 @@ describe("project_status", () => {
         const landingSha = commitModel();
         await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
         git(rootPath, "commit", "-q", "-am", "change checkout");
+        await writeIndex(rootPath, git(rootPath, "rev-parse", "HEAD"));
 
         const data = await status(rootPath);
 
         expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.incompleteHistory).toBe("missing-code-commit");
         expect(data.codeDrift.countedFrom.sha).toBe(landingSha);
         expect(data.codeDrift.rule).toContain(`the code commit it read (${missing.slice(0, 7)}) is not in this repository`);
         expect(data.codeDrift.rule).toContain("code that merged between the two is not counted");
+        // A since run from the commit it can reach would leave the earlier code unchecked and then
+        // read in step: the step is the whole codebase, with no since.
+        expect(data.nextStep.tool).toBe("codebase_verify");
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { rootPath } });
+        expect(data.nextStep.summary).toContain("That is only what can be seen");
+        expect(data.nextStep.summary).toContain("run codebase_extract with no since and no plan active");
+        expect(data.nextStep.summary).not.toContain("since: \"");
       });
 
       it("never hands git a stamp's code commit that isn't a commit id", async () => {
@@ -1134,6 +1143,27 @@ describe("project_status", () => {
           expect(data.nextStep.summary).not.toContain("in step");
         });
 
+        it("reports the drift a deeper clone can see, and sends the catch-up to the whole codebase, not a since", async () => {
+          // Two commits deep: the last code change is visible, and the commit before it, where the
+          // history was cut, passes for the one that brought the model in.
+          await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
+          git(rootPath, "commit", "-q", "-am", "change other");
+          await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+          git(rootPath, "commit", "-q", "-am", "change checkout");
+          git(rootPath, "clone", "-q", "--depth", "2", `file://${rootPath}`, clone);
+          clearModelCache();
+          await writeIndex(clone, git(clone, "rev-parse", "HEAD"));
+
+          const data = await status(clone);
+
+          expect(data.codeDrift).toMatchObject({ status: "drift", incompleteHistory: "shallow-clone", shallow: true });
+          expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
+          expect(data.codeDrift.rule).toContain("This repository is a shallow clone whose history stops at");
+          expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { rootPath: clone } });
+          expect(data.nextStep.summary).toContain("(it is a shallow clone)");
+          expect(data.nextStep.summary).toContain("run codebase_extract with no since and no plan active");
+        });
+
         it("says unknown for a model with no as-built landing when history stops at the baseline", async () => {
           git(rootPath, "clone", "-q", "--depth", "1", `file://${rootPath}`, clone);
           clearModelCache();
@@ -1164,9 +1194,9 @@ describe("project_status", () => {
         const data = await status(rootPath);
 
         expect(data.codeDrift.landedSince).toEqual({ count: 7, changesets: ["plan-6", "plan-5", "plan-4", "plan-3", "plan-2"] });
-        expect(data.codeDrift.more).toEqual([
-          `landedSince shows 5 of 7: project_status with list: "landedSince", offset: 5, rootPath: "${rootPath}" returns the rest.`,
-        ]);
+        expect(data.codeDrift.more).toBe(
+          `landedSince shows 5 of 7: project_status with list: "landedSince", offset: 5, rootPath: "${rootPath}" returns the rest.`
+        );
         // The sentence gives the whole count and says how many it did not name.
         expect(data.nextStep.summary).toContain('7 landed since ("plan-6", "plan-5", "plan-4", "plan-3", "plan-2" and 2 more)');
         expect(await page(rootPath, "landedSince", { offset: 5 })).toMatchObject({
@@ -1763,11 +1793,23 @@ describe("suggestNextStep on base drift and a stale server", () => {
     expect(step.summary).toContain("pick up the plan");
   });
 
+  it("agrees with its own reason for a changeset that has no base snapshot: a commit is not blocked", () => {
+    const noSnapshot = {
+      state: "unknown",
+      landing: "allowed",
+      reason: "No base snapshot was recorded for this changeset, so drift cannot be checked. A commit is not blocked by drift.",
+    };
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(noSnapshot), staged: [plan(noSnapshot)] } }, { root: "/p" });
+
+    expect(step.summary).toContain("Its base drift could not be checked: No base snapshot was recorded");
+    expect(step.summary).not.toContain("Whether it can land can't be told");
+  });
+
   it("doesn't say a landing is allowed when drift could not be checked", () => {
     const unchecked = { state: "unknown", landing: "unknown", reason: "Drift could not be checked: boom" };
     const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(unchecked), staged: [plan(unchecked)] } }, { root: "/p" });
 
-    expect(step.summary).toContain("Its base drift could not be checked (Drift could not be checked: boom).");
+    expect(step.summary).toContain("Its base drift could not be checked: Drift could not be checked: boom");
     expect(step.summary).toContain("Whether it can land can't be told until its drift can be checked.");
     expect(step.summary).not.toContain("not blocked");
   });
