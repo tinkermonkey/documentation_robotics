@@ -294,8 +294,10 @@ describe("golden copy cache repair (#1220)", () => {
 
       await freshManager().init();
 
+      // The hollow build is gone. Its key's folder stays, empty: a process on that key may be
+      // about to rename a build into it.
+      expect(await buildsOf(hollowed)).toEqual([]);
       const { keys } = await cacheContents();
-      expect(keys).not.toContain(hollowed.slice(cacheDir.length + 1));
       expect(keys).toContain(kept.slice(cacheDir.length + 1));
       expect(await isWhole((await buildsOf(kept))[0])).toBe(true);
       expect(await readdir(legacy)).toEqual([]);
@@ -307,9 +309,49 @@ describe("golden copy cache repair (#1220)", () => {
   it.serial("removes its build on cleanup", async () => {
     const manager = freshManager();
     await manager.init();
+    const keyDir = await onlyKey();
     await manager.cleanup();
 
-    expect(await cacheContents()).toEqual({ keys: [], temporary: [] });
+    expect(await buildsOf(keyDir)).toEqual([]);
+    expect((await cacheContents()).temporary).toEqual([]);
+  });
+
+  // Ten sessions on ten branches are on ten keys, because the key hashes the builder's source.
+  // A sweep used to remove another key's folder while it was still empty, between that key's
+  // process making the folder and renaming its build into it, and the rename failed (EINVAL on
+  // macOS): about 1 init in 150 with eight keys building at once.
+  it.serial("leaves another key's folder alone while it is still empty", async () => {
+    // What a process on another key has on disk between its mkdir and its rename
+    const otherKey = join(cacheDir, "cli9.9.9-spec9.9.9-0123456789ab");
+    await mkdir(otherKey, { recursive: true });
+
+    await freshManager().init();
+
+    expect(await readdir(otherKey)).toEqual([]);
+  });
+
+  it.serial("lets builds under different keys run at once", async () => {
+    // Its own folder, by value: this test must not follow `cacheDir` into the next test
+    const base = cacheDir;
+    for (let round = 0; round < 10; round++) {
+      const roundCache = join(base, `round-${round}`);
+      const managers = Array.from({ length: 8 }, (_, key) => {
+        GoldenCopyCacheManager.resetInstance();
+        return GoldenCopyCacheManager.getInstance({
+          cacheDir: roundCache,
+          modelOptions: { name: `Model ${key}` },
+        });
+      });
+
+      const results = await Promise.allSettled(managers.map((manager) => manager.init()));
+
+      expect(
+        results
+          .filter((result) => result.status === "rejected")
+          .map((result) => String((result as PromiseRejectedResult).reason?.message))
+      ).toEqual([]);
+      expect((await cacheContents(roundCache)).keys).toHaveLength(8);
+    }
   });
 
   it.serial("has the cache layout that tests/setup.ts expects of cli/dist", async () => {

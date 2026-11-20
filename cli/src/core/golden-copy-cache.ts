@@ -28,6 +28,8 @@
  *   never coming back, and removing it is safe whoever does it and whenever. A build that is
  *   whole is never moved or removed by another process. No lock is needed.
  * - A process uses the oldest whole build under its key, and makes one when there is none.
+ * - A key's folder is never removed once made, even when empty: a process on that key may be
+ *   between making the folder and renaming its build into it.
  */
 
 import { Model } from "./model.js";
@@ -37,7 +39,6 @@ import {
   mkdir,
   cp,
   rm,
-  rmdir,
   access,
   rename,
   readdir,
@@ -59,7 +60,14 @@ const GOLDEN_MODEL_DIR = "golden-model";
 /** File inside a build that lists the model's files, relative to the model folder. */
 const FILE_LIST = "files.json";
 
-/** Bumped when the layout of the cache changes, so older layouts are not read as this one. */
+/**
+ * Bumped when the layout of the cache changes, so older layouts are not read as this one.
+ *
+ * A new layout must also change how key folders are named (KEY_NAME below), not only this
+ * number. The sweep judges every folder that matches KEY_NAME by this layout's `files.json`,
+ * whatever key it is, so code on this layout would take a later layout's builds under
+ * same-shaped names for builds that have lost their files, and remove them.
+ */
 const CACHE_LAYOUT = 2;
 
 /** Infix of the temporary folders a build is made in. */
@@ -86,7 +94,15 @@ function staleTempMs(): number {
 }
 
 /** The modules that write a model to disk. Their source is part of the cache key. */
-const BUILDER_MODULES = ["golden-copy-cache", "model", "manifest", "layer", "element"];
+const BUILDER_MODULES = [
+  "golden-copy-cache",
+  "model",
+  "manifest",
+  "layer",
+  "layers",
+  "element",
+  "relationships",
+];
 
 let builderFingerprintCache: string | undefined;
 
@@ -549,18 +565,9 @@ export class GoldenCopyCacheManager {
         JSON.stringify({ files: await listFiles(stagedRoot) }, null, 2)
       );
 
-      const buildDir = join(keyDir, `${Date.now()}-${randomUUID().slice(0, 8)}`);
-      for (let attempt = 1; ; attempt++) {
-        try {
-          await mkdir(keyDir, { recursive: true });
-          await rename(staging, buildDir);
-          break;
-        } catch (error) {
-          // Another run's sweep removed the key's folder while it was empty, between the two
-          // calls above. Anything else is a real failure.
-          if (!isMissing(error) || attempt === 3) throw error;
-        }
-      }
+      // Nothing removes a key's folder, so it is still there for the rename
+      await mkdir(keyDir, { recursive: true });
+      await rename(staging, join(keyDir, `${Date.now()}-${randomUUID().slice(0, 8)}`));
     } finally {
       // Gone already when the rename worked.
       await rm(staging, { recursive: true, force: true });
@@ -572,7 +579,10 @@ export class GoldenCopyCacheManager {
 
   /**
    * Remove what is of no use to anyone in the cache directory: builds that have lost files
-   * (under any key), key folders left empty, and temporary folders that killed runs left.
+   * (under any key) and temporary folders that killed runs left.
+   *
+   * Key folders stay, empty or not. Removing an empty one took it from under a process on that
+   * key that had just made it and was about to rename its build in; that rename then failed.
    *
    * Whole builds are never touched, whatever their key: another checkout may be using them.
    * Names that are not this cache's (an older layout's `golden-model`, say) are left alone.
@@ -596,11 +606,9 @@ export class GoldenCopyCacheManager {
                 await rm(buildDir, { recursive: true, force: true });
               }
             }
-            // Only succeeds when the folder is empty
-            await rmdir(path);
           }
         } catch {
-          // Not empty, or another run got there first.
+          // Another run got there first.
         }
       }
     } catch {
@@ -893,11 +901,8 @@ export class GoldenCopyCacheManager {
 
     try {
       if (this.goldenRootPath) {
-        // The whole build (the model and its file list), and its key's folder when that leaves
-        // it empty.
-        const buildDir = dirname(this.goldenRootPath);
-        await rm(buildDir, { recursive: true, force: true });
-        await rmdir(dirname(buildDir)).catch(() => {});
+        // The whole build: the model and its file list. The key's folder stays.
+        await rm(dirname(this.goldenRootPath), { recursive: true, force: true });
       }
       this.goldenModel = null;
       this.goldenRootPath = null;

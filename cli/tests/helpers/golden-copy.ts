@@ -27,7 +27,6 @@ interface GoldenCopy {
 // waits on initializationPromise; it must never be handed a folder that is still filling up.
 let goldenCopy: GoldenCopy | null = null;
 let initializationPromise: Promise<GoldenCopy> | null = null;
-let initializationError: Error | null = null;
 // Goes up on every cleanupGoldenCopy(), so a copy that was being made at that moment is not kept.
 let goldenCopyGeneration = 0;
 
@@ -173,11 +172,6 @@ async function ensureGoldenCopy(): Promise<GoldenCopy> {
   // Return the finished copy if there is one
   if (goldenCopy) return goldenCopy;
 
-  // If there was a previous error, throw it again
-  if (initializationError) {
-    throw initializationError;
-  }
-
   // If initialization is in progress, wait for it to complete
   if (initializationPromise) return initializationPromise;
 
@@ -229,13 +223,12 @@ async function ensureGoldenCopy(): Promise<GoldenCopy> {
         initializationPromise = null;
       }
       await rm(path, { recursive: true, force: true }).catch(() => {});
-      const err = new Error(
+      // The failure is not kept. The next caller tries again, so one failed copy of the baseline
+      // cannot fail every set-up that comes after it in the process; a cause that lasts fails
+      // each of them with its own message.
+      throw new Error(
         `Failed to initialize golden copy: ${error instanceof Error ? error.message : String(error)}`
       );
-      if (generation === goldenCopyGeneration) {
-        initializationError = err;
-      }
-      throw err;
     }
   })();
 
@@ -332,6 +325,7 @@ export async function createTestWorkdir(options: CreateTestWorkdirOptions = {}):
         } catch {
           // Ignore cleanup errors during retry
         }
+        await dropGoldenCopyIfDamaged();
         await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
       }
     }
@@ -407,6 +401,24 @@ export async function createTestWorkdir(options: CreateTestWorkdirOptions = {}):
 }
 
 /**
+ * Forget the golden copy when it is no longer the folder that was checked: gone, or short of
+ * files, because something other than cleanupGoldenCopy() removed them. No copy made from it can
+ * be whole however often it is tried, so the next attempt makes a new golden copy instead.
+ * @private
+ */
+async function dropGoldenCopyIfDamaged(): Promise<void> {
+  const current = goldenCopy;
+  if (!current) return;
+
+  const entries = await countEntries(current.path).catch(() => -1);
+  if (entries !== current.entries && goldenCopy === current) {
+    goldenCopy = null;
+    initializationPromise = null;
+    goldenCopyGeneration++;
+  }
+}
+
+/**
  * Clean up the golden copy at test suite shutdown.
  * Call this in global afterAll hook.
  *
@@ -430,7 +442,6 @@ export async function cleanupGoldenCopy(): Promise<void> {
   // Reset first, so nothing started from here on is handed the folder being removed
   goldenCopy = null;
   initializationPromise = null;
-  initializationError = null;
   goldenCopyGeneration++;
 
   if (finished) {

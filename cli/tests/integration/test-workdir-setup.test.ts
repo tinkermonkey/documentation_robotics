@@ -10,7 +10,8 @@
  */
 
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
-import { access, cp, mkdir, readdir, readFile, unlink } from "node:fs/promises";
+import { access, cp, mkdir, readdir, readFile, rm, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Model } from "../../src/core/model.js";
@@ -240,16 +241,29 @@ describe("createTestWorkdir (#1244)", () => {
     const baselineFiles = await countFiles(BASELINE);
 
     const initializing = initGoldenCopy();
+    // Watch for the path from the side. The loop ends with the initialization, whichever way
+    // that goes, so a slow or failed copy cannot leave it running into the tests that follow.
+    let settled = false;
+    initializing.then(
+      () => (settled = true),
+      () => (settled = true)
+    );
     let announced: string | null = null;
     let filesWhenAnnounced = -1;
-    while (announced === null) {
+    while (announced === null && !settled) {
       announced = getGoldenCopyPath();
       if (announced !== null) filesWhenAnnounced = await countFiles(announced);
       else await new Promise((resolvePromise) => setImmediate(resolvePromise));
     }
 
-    expect(filesWhenAnnounced).toBe(baselineFiles);
-    expect(await initializing).toBe(announced);
+    const made = await initializing;
+    if (announced !== null) {
+      // Seen while the initialization was still running: it must already have been whole
+      expect(announced).toBe(made);
+      expect(filesWhenAnnounced).toBe(baselineFiles);
+    }
+    expect(getGoldenCopyPath()).toBe(made);
+    expect(await countFiles(made)).toBe(baselineFiles);
   });
 
   it.serial("gives callers that overlap at first use whole folders", async () => {
@@ -302,6 +316,58 @@ describe("createTestWorkdir (#1244)", () => {
 
     expect(attempts).toBe(2);
     await Model.load(workdir.path);
+  });
+
+  it.serial("makes a new golden copy when the folder was removed behind its back", async () => {
+    const before = await createTestWorkdir();
+    cleanups.push(before.cleanup);
+    const firstGolden = getGoldenCopyPath()!;
+
+    // Not cleanupGoldenCopy(): the helper still believes it has a golden copy
+    await rm(firstGolden, { recursive: true, force: true });
+    const after = await createTestWorkdir();
+    cleanups.push(after.cleanup);
+
+    expect(getGoldenCopyPath()).not.toBe(firstGolden);
+    expect(await countFiles(after.path)).toBe(await countFiles(BASELINE));
+  });
+
+  it.serial("makes a new golden copy when the folder lost a file behind its back", async () => {
+    const before = await createTestWorkdir();
+    cleanups.push(before.cleanup);
+    const firstGolden = getGoldenCopyPath()!;
+
+    await unlink(join(firstGolden, ORDINARY_FILE));
+    const after = await createTestWorkdir();
+    cleanups.push(after.cleanup);
+
+    expect(getGoldenCopyPath()).not.toBe(firstGolden);
+    expect(await exists(join(after.path, ORDINARY_FILE))).toBe(true);
+  });
+
+  it.serial("is not failed for good by one golden copy that could not be made", async () => {
+    // The baseline is found relative to the working directory (unless the machine has it at
+    // /workspace, where this test has nothing to show), so from elsewhere the copy fails
+    const home = process.cwd();
+    await cleanupGoldenCopy();
+    process.chdir(tmpdir());
+    let failed: Error | null = null;
+    try {
+      await createTestWorkdir().then(
+        (workdir) => cleanups.push(workdir.cleanup),
+        (error) => (failed = error as Error)
+      );
+    } finally {
+      process.chdir(home);
+    }
+    if (failed) {
+      expect((failed as Error).message).toMatch(/the golden copy step failed after \d+\.\ds: /);
+    }
+
+    const workdir = await createTestWorkdir();
+    cleanups.push(workdir.cleanup);
+
+    expect(await countFiles(workdir.path)).toBe(await countFiles(BASELINE));
   });
 
   it.serial("makes a new golden copy when another test file cleaned it up", async () => {
