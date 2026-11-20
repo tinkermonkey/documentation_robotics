@@ -182,13 +182,70 @@ describe("model_trace: which end depends on the other (#1204)", () => {
     });
   });
 
+  it("counts what satisfies or delivers an element among its dependencies, and leaves supports as it was", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      const FEATURE = "product.feature.one-click-record";
+      const VALUE = "motivation.value.less-friction";
+      const SERVICE = "application.applicationservice.recording";
+      const added = parse(
+        await modelAddHandler({
+          elements: [
+            { layer: "motivation", type: "goal", name: "record-a-session", attributes: { priority: "high" } },
+            { layer: "motivation", type: "requirement", name: "record-in-one-click", attributes: { requirementType: "functional", priority: "high" } },
+            { layer: "motivation", type: "value", name: "less-friction", attributes: { valueType: "operational" } },
+            { layer: "product", type: "feature", name: "one-click-record", attributes: { priority: "high", status: "planned" } },
+            { layer: "application", type: "applicationservice", name: "recording", attributes: { serviceType: "synchronous" } },
+            { layer: "api", type: "operation", name: "start-recording", attributes: { operationId: "startRecording", summary: "Start", tags: "recording" } },
+          ],
+          relationships: [
+            { source: FEATURE, predicate: "satisfies", target: REQUIREMENT },
+            { source: FEATURE, predicate: "delivers", target: VALUE },
+            { source: SERVICE, predicate: "realizes", target: FEATURE },
+            { source: RECORDER, predicate: "realizes", target: SERVICE },
+            { source: "api.operation.start-recording", predicate: "supports", target: GOAL },
+          ],
+          rootPath,
+        })
+      );
+      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+
+      // Down from the requirement, and from the value, is what meets it, through to the code and
+      // the technology under it.
+      for (const intent of [REQUIREMENT, VALUE]) {
+        const down = parse(await modelTraceHandler({ id: intent, rootPath }));
+        expect(down.dependents).toEqual({ direct: [], transitive: [] });
+        expect(down.dependencies.direct).toEqual([FEATURE]);
+        expect(down.dependencies.transitive).toEqual(expect.arrayContaining([SERVICE, RECORDER, ENCODER, ELECTRON, FFMPEG]));
+      }
+
+      // Up from the feature is the requirement it satisfies and the value it delivers; down is
+      // what realizes it. Neither is on both sides.
+      const feature = parse(await modelTraceHandler({ id: FEATURE, depth: 1, rootPath }));
+      expect(feature.dependents.direct.sort()).toEqual([REQUIREMENT, VALUE].sort());
+      expect(feature.dependencies.direct).toEqual([SERVICE]);
+
+      // Up from the code reaches the intent it stands under.
+      const up = parse(await modelTraceHandler({ id: RECORDER, direction: "up", rootPath }));
+      expect([...up.dependents.direct, ...up.dependents.transitive]).toEqual(
+        expect.arrayContaining([SERVICE, FEATURE, REQUIREMENT, VALUE])
+      );
+
+      // supports is unchanged: the operation that supports the goal has the goal on its down side.
+      const operation = parse(await modelTraceHandler({ id: "api.operation.start-recording", rootPath }));
+      expect(operation.dependencies.direct).toEqual([GOAL]);
+      expect(operation.dependents.direct).toEqual([]);
+      expect(parse(await modelTraceHandler({ id: GOAL, rootPath })).dependents.direct).toEqual(["api.operation.start-recording"]);
+    });
+  });
+
   it("puts each edge's ends on opposite sides: no element is both a dependency and a dependent through one edge", async () => {
-    expect([...SOURCE_IS_DEPENDENCY_PREDICATES].sort()).toEqual(["realizes", "serves"]);
-    for (const predicate of ["serves", "realizes"]) {
+    expect([...SOURCE_IS_DEPENDENCY_PREDICATES].sort()).toEqual(["delivers", "realizes", "satisfies", "serves"]);
+    for (const predicate of ["serves", "realizes", "satisfies", "delivers"]) {
       expect(dependencyEnds({ source: "a", predicate, target: "b" })).toEqual({ dependent: "b", dependency: "a" });
     }
-    // The control and cause predicates, and the rest, run from the dependent to what it depends on.
-    for (const predicate of ["uses", "depends-on", "accesses", "composes", "satisfies", "supports", "governs", "constrains", "protects", "triggers", "flows-to"]) {
+    // supports, the control and cause predicates, and the rest run from the dependent to what it depends on.
+    for (const predicate of ["uses", "depends-on", "accesses", "composes", "supports", "governs", "constrains", "protects", "triggers", "flows-to"]) {
       expect(dependencyEnds({ source: "a", predicate, target: "b" })).toEqual({ dependent: "a", dependency: "b" });
     }
     await withProject(async (rootPath) => {
@@ -260,12 +317,24 @@ describe("dr trace reads the same direction rule", () => {
       { source: "artifact", predicate: "realizes", target: "component" },
       { source: "component", predicate: "realizes", target: "service" },
       { source: "runtime", predicate: "serves", target: "other" },
+      { source: "service", predicate: "satisfies", target: "requirement" },
+      { source: "service", predicate: "delivers", target: "value" },
+      { source: "service", predicate: "supports", target: "goal" },
     ]);
     const tracker = new DependencyTracker(graph);
     // TraceDirection.UP is what the element depends on; DOWN is what depends on it (dr trace's naming).
     expect(tracker.traceDependencies("component", TraceDirection.UP, null).sort()).toEqual(["artifact", "library", "runtime"]);
-    expect(tracker.traceDependencies("component", TraceDirection.DOWN, null)).toEqual(["service"]);
-    expect(tracker.traceDependencies("runtime", TraceDirection.DOWN, null).sort()).toEqual(["component", "other", "service"]);
+    expect(tracker.traceDependencies("component", TraceDirection.DOWN, null).sort()).toEqual(["requirement", "service", "value"]);
+    expect(tracker.traceDependencies("runtime", TraceDirection.DOWN, null).sort()).toEqual([
+      "component",
+      "other",
+      "requirement",
+      "service",
+      "value",
+    ]);
+    // supports is not flipped: the goal is what the service depends on.
+    expect(tracker.traceDependencies("service", TraceDirection.UP, null).sort()).toEqual(["artifact", "component", "goal", "library", "runtime"]);
+    expect(tracker.traceDependencies("requirement", TraceDirection.UP, 1)).toEqual(["service"]);
   });
 });
 

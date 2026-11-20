@@ -41,9 +41,10 @@ const inputSchema = {
     .describe(
       "'up' = what depends on this element (dependents), 'down' = what this element depends on (dependencies), " +
         "'both' (default). A relationship's predicate says which end depends on the other: an element depends on " +
-        "what it uses, depends-on, accesses or composes, on what serves it and on what realizes it. So down from a " +
-        "component reaches the technology that serves it and the artifacts that realize it, and up from a function " +
-        "reaches the service, feature and goal it realizes."
+        "what it uses, depends-on, accesses or composes, on what serves it, and on what realizes, satisfies or " +
+        "delivers it. So down from a component reaches the technology that serves it and the artifacts that realize " +
+        "it, down from a requirement reaches what satisfies it, and up from a function reaches the service, feature, " +
+        "requirement and goal it stands under."
     ),
   depth: z.number().int().positive().optional().describe("Maximum trace depth. Omit for unlimited."),
   ...pagingFields(
@@ -376,9 +377,10 @@ export const modelTraceTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Trace dependents and/or dependencies of an element across cross-layer references and relationships. Which " +
     "end depends on the other comes from the predicate: an element depends on what it uses, accesses or composes, " +
-    "on what serves it and on what realizes it. So direction down from a component reaches the technology that " +
-    "serves it and whatever realizes it, and direction up from a function reaches the service, feature and goal " +
-    "it realizes. With an active changeset (or changeset) it traces the changeset's projected graph: staged " +
+    "on what serves it, and on what realizes, satisfies or delivers it. So direction down from a component reaches " +
+    "the technology that serves it and whatever realizes it, down from a requirement or goal reaches what " +
+    "implements it, and direction up from a function reaches the service, feature, requirement and goal it stands " +
+    "under. With an active changeset (or changeset) it traces the changeset's projected graph: staged " +
     "relationships are followed, staged removals are not, and changedEdges / changedElements mark what the " +
     "changeset adds or deletes among the edges walked and the elements reached. The walk is always whole; each " +
     `list is returned ${TRACE_LIST_LIMIT} ids a page (limit, offset), with page.totals the true length of every list and ` +
