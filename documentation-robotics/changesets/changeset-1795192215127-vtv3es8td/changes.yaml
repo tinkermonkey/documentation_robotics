@@ -1,0 +1,1467 @@
+- type: add
+  elementId: motivation.requirement.model-reads-fit-one-result-and-agree
+  layerName: motivation
+  after:
+    id: 4c878843-c1f6-413a-81a9-0d310a9c4bb9
+    path: motivation.requirement.model-reads-fit-one-result-and-agree
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Model reads fit one result and agree
+    description: "A read tool's default answer fits one tool result however large
+      the model, puts errors and the few items that matter ahead of bulk
+      listings, and two tools asked the same thing about the same view give the
+      same answer and say which view it was. A limit is a page size, never a
+      cut-off: a longer list is paged with its true total, and every count and
+      verdict is of the whole set."
+    attributes:
+      requirementType: quality
+      priority: high
+      documentation: "Found by sister projects' agents (issues 1203, 1204, 1214, 1215,
+        1216), with the maintainer's rule on limits of 2026-11-20: limits are
+        flexible boundaries, paged or pageable, and an answer never portrays
+        completeness it does not have. The default of model_validate,
+        model_stats, model_list and model_trace does not grow with the model:
+        bulk is counted by kind, layer and type, and listed on request a page at
+        a time (limit, offset, the true total, nextOffset, and the exact next
+        call). Counts, summaries and verdicts are computed over the whole set,
+        never the page. model_stats and model_validate report the same validity
+        for the same view (the base model, or the active changeset's projection)
+        and name the view. A trace answers what an element depends on by the
+        predicate's meaning, and reports only the changeset edges it walked.
+        Verified by the before and after response sizes on DR's own model in the
+        pull request, and by tests that the pages together equal the whole
+        list."
+    metadata:
+      created_at: 2026-11-20T16:31:17.277Z
+      updated_at: 2026-11-20T16:31:17.277Z
+      version: 1
+  timestamp: 2026-11-20T17:02:56.965Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.model-view
+  layerName: application
+  after:
+    id: a7770dcd-34c6-470c-bde4-cc068172501a
+    path: application.applicationfunction.model-view
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: modelView
+    description: "The view of the model a read tool validates and measures: the base
+      model, or the base with the active changeset projected onto it, with the
+      view's name."
+    metadata:
+      created_at: 2026-11-20T16:31:17.295Z
+      updated_at: 2026-11-20T16:31:17.295Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: modelView
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.validate-view
+  layerName: application
+  after:
+    id: fb5b7e6e-8dc0-4e26-b968-6c756354f7a3
+    path: application.applicationfunction.validate-view
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: validateView
+    description: "The validation pipeline over a view, plus the warnings the
+      pipeline does not raise: orphaned elements and, outside the intent layers,
+      elements with no source reference."
+    metadata:
+      created_at: 2026-11-20T16:31:17.296Z
+      updated_at: 2026-11-20T16:31:17.296Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: validateView
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.orphan-ids
+  layerName: application
+  after:
+    id: 3ee8cd8a-7a18-4a2d-8a73-00efada9b271
+    path: application.applicationfunction.orphan-ids
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: orphanIds
+    description: Elements with no relationship and no cross-layer reference, in
+      either direction.
+    metadata:
+      created_at: 2026-11-20T16:31:17.296Z
+      updated_at: 2026-11-20T16:31:17.296Z
+      version: 1
+    accepted_gaps:
+      - direction: outgoing
+        predicate: accesses
+        other_spec_node_id: application.dataobject
+        reason: orphanIds reads a model view and returns element ids; it reads or writes
+          no data object the model has.
+        decided_by: agent
+        decided_at: 2026-11-20T16:32:23.056Z
+        changeset: changeset-1795192215127-vtv3es8td
+      - direction: incoming
+        predicate: assigned-to
+        other_spec_node_id: application.applicationcomponent
+        reason: orphanIds is a module-level function in model-view.ts, not a method of a
+          class the model has as a component.
+        decided_by: agent
+        decided_at: 2026-11-20T16:32:23.518Z
+        changeset: changeset-1795192215127-vtv3es8td
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: orphanIds
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.count-by-layer-and-type
+  layerName: application
+  after:
+    id: 87bbb560-6bac-488a-8544-0464effb245c
+    path: application.applicationfunction.count-by-layer-and-type
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: countByLayerAndType
+    description: Ids counted by layer and then type.
+    metadata:
+      created_at: 2026-11-20T16:31:17.296Z
+      updated_at: 2026-11-20T16:31:17.296Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: countByLayerAndType
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.dependency-ends
+  layerName: application
+  after:
+    id: cedd5dca-e496-424d-ab00-62042b7f049f
+    path: application.applicationfunction.dependency-ends
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: dependencyEnds
+    description: "Which end of a relationship depends on the other, by its
+      predicate: serves, realizes, satisfies and delivers run from what is
+      depended on to what depends on it, every other predicate from the
+      dependent to what it depends on. One rule for model_trace and dr trace."
+    metadata:
+      created_at: 2026-11-20T16:31:17.296Z
+      updated_at: 2026-11-20T16:31:17.296Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/dependency-direction.ts
+          symbol: dependencyEnds
+  timestamp: 2026-11-20T17:12:33.513Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.warning-kind
+  layerName: application
+  after:
+    id: 32de4acc-4a64-43a3-9cc4-2a2c835e0807
+    path: application.applicationfunction.warning-kind
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: warningKind
+    description: What a validation warning is about, for counting and listing
+      warnings by kind.
+    metadata:
+      created_at: 2026-11-20T16:31:17.296Z
+      updated_at: 2026-11-20T16:31:17.296Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/validators/model-warnings.ts
+          symbol: warningKind
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: motivation.requirement.model-reads-fit-one-result-and-agree::realizes::motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.model-reads-fit-one-result-and-agree
+    target: motivation.principle.the-mcp-server-is-the-gateway-to-the-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:31:17.306Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: product.feature.model-validation::satisfies::motivation.requirement.model-reads-fit-one-result-and-agree
+  layerName: product
+  after:
+    source: product.feature.model-validation
+    target: motivation.requirement.model-reads-fit-one-result-and-agree
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:31:17.306Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: product.feature.model-search-and-read::satisfies::motivation.requirement.model-reads-fit-one-result-and-agree
+  layerName: product
+  after:
+    source: product.feature.model-search-and-read
+    target: motivation.requirement.model-reads-fit-one-result-and-agree
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:31:17.306Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: product.feature.spec-type-lookup::satisfies::motivation.requirement.model-reads-fit-one-result-and-agree
+  layerName: product
+  after:
+    source: product.feature.spec-type-lookup
+    target: motivation.requirement.model-reads-fit-one-result-and-agree
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:31:17.306Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.validate-view::depends-on::application.applicationfunction.add-model-warnings
+  layerName: application
+  after:
+    source: application.applicationfunction.validate-view
+    target: application.applicationfunction.add-model-warnings
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:17.306Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.orphan-ids::depends-on::application.applicationfunction.validation-formatter-calculate-stats
+  layerName: application
+  after:
+    source: application.applicationfunction.orphan-ids
+    target: application.applicationfunction.validation-formatter-calculate-stats
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:17.306Z
+  sequenceNumber: 12
+- type: add
+  elementId: data-model.objectschema.model-warning-options
+  layerName: data-model
+  after:
+    id: ba505f17-8ffc-4ee6-bf17-3415e969747f
+    path: data-model.objectschema.model-warning-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ModelWarningOptions
+    description: "Options for the warnings added after the validation pipeline:
+      exempt the intent layers from the source-reference check, and strict."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:56.608Z
+      updated_at: 2026-11-20T16:31:56.608Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/validators/model-warnings.ts
+          symbol: ModelWarningOptions
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 13
+- type: add
+  elementId: data-model.objectschema.model-view
+  layerName: data-model
+  after:
+    id: 9528e177-cbe4-4103-b1c1-6a19a54c446b
+    path: data-model.objectschema.model-view
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ModelView
+    description: "A model as a read tool sees it (layers and relationships) with the
+      name of the view: base, or a changeset's projection."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:56.609Z
+      updated_at: 2026-11-20T16:31:56.609Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: ModelView
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 14
+- type: add
+  elementId: data-model.objectschema.layer-type-counts
+  layerName: data-model
+  after:
+    id: 77c440df-b376-452d-ae54-23c683a253f9
+    path: data-model.objectschema.layer-type-counts
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: LayerTypeCounts
+    description: Counts of element ids by layer and type.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:56.609Z
+      updated_at: 2026-11-20T16:31:56.609Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: LayerTypeCounts
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationfunction.add-model-warnings::accesses::data-model.objectschema.model-warning-options
+  layerName: application
+  after:
+    source: application.applicationfunction.add-model-warnings
+    target: data-model.objectschema.model-warning-options
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.model-view::accesses::data-model.objectschema.model-view
+  layerName: application
+  after:
+    source: application.applicationfunction.model-view
+    target: data-model.objectschema.model-view
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.count-by-layer-and-type::accesses::data-model.objectschema.layer-type-counts
+  layerName: application
+  after:
+    source: application.applicationfunction.count-by-layer-and-type
+    target: data-model.objectschema.layer-type-counts
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.model-view::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.model-view
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationfunction.model-view::realizes::application.applicationservice.model-stats-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.model-view
+    target: application.applicationservice.model-stats-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.model-view::realizes::application.applicationservice.model-list-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.model-view
+    target: application.applicationservice.model-list-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.validate-view::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.validate-view
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: application.applicationfunction.validate-view::realizes::application.applicationservice.model-stats-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.validate-view
+    target: application.applicationservice.model-stats-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: application.applicationfunction.orphan-ids::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.orphan-ids
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: application.applicationfunction.orphan-ids::realizes::application.applicationservice.model-stats-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.orphan-ids
+    target: application.applicationservice.model-stats-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: application.applicationfunction.orphan-ids::realizes::application.applicationservice.model-list-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.orphan-ids
+    target: application.applicationservice.model-list-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: application.applicationfunction.count-by-layer-and-type::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.count-by-layer-and-type
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: application.applicationfunction.count-by-layer-and-type::realizes::application.applicationservice.model-stats-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.count-by-layer-and-type
+    target: application.applicationservice.model-stats-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: application.applicationfunction.dependency-ends::realizes::application.applicationservice.model-trace-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.dependency-ends
+    target: application.applicationservice.model-trace-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 29
+- type: relationship-add
+  elementId: application.applicationfunction.warning-kind::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.warning-kind
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:56.633Z
+  sequenceNumber: 30
+- type: update
+  elementId: product.feature.model-validation
+  layerName: product
+  before:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: "MCP: model_validate (base + active changeset). CLI: dr validate,
+      dr conformance."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_validate (base + active changeset). CLI: dr validate,
+        dr conformance."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-validate.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:57.405Z
+      updated_at: 2026-11-09T21:54:57.405Z
+      version: 1
+  after:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: "MCP: model_validate over the base model or the active changeset's
+      projection, naming the view. The default is a summary: validity, the
+      errors whole, and warnings counted by kind, layer and type; warnings:
+      [...] lists a kind, orphans: true reports orphans alone, detail: \"full\"
+      returns every warning. Motivation, business and product elements are not
+      asked for a source reference. CLI: dr validate, dr conformance."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_validate over the base model or the active
+        changeset's projection, naming the view. The default is a summary:
+        validity, the errors whole, and warnings counted by kind, layer and
+        type; warnings: [...] lists a kind, orphans: true reports orphans alone,
+        detail: \"full\" returns every warning. Motivation, business and product
+        elements are not asked for a source reference. CLI: dr validate, dr
+        conformance."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T16:31:59.257Z
+  sequenceNumber: 31
+- type: update
+  elementId: product.feature.model-search-and-read
+  layerName: product
+  before:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). CLI: dr
+      list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). CLI: dr
+        list/show/search/trace/stats/info."
+    source_reference: &a3
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-search.ts
+    metadata: &a4
+      created_at: 2026-11-09T21:54:57.535Z
+      updated_at: 2026-11-09T21:54:57.535Z
+      version: 1
+  after:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only. model_trace reads which end depends on the other from the predicate
+      (serves runs provider to consumer) and reports only the changeset edges it
+      walked. model_stats validates the same view as model_validate, names it,
+      and counts orphans by layer and type. CLI: dr
+      list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only. model_trace reads which end depends on the other from the
+        predicate (serves runs provider to consumer) and reports only the
+        changeset edges it walked. model_stats validates the same view as
+        model_validate, names it, and counts orphans by layer and type. CLI: dr
+        list/show/search/trace/stats/info."
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T16:32:01.470Z
+  sequenceNumber: 32
+- type: update
+  elementId: product.feature.spec-type-lookup
+  layerName: product
+  before:
+    id: cee58eed-72b8-4812-a3bc-33536000d393
+    path: product.feature.spec-type-lookup
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Spec type lookup
+    description: "MCP: spec_type (definition, attributes, allowed relationships).
+      CLI: dr schema, dr catalog."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: spec_type (definition, attributes, allowed relationships).
+        CLI: dr schema, dr catalog."
+    source_reference: &a5
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/spec-type.ts
+    metadata: &a6
+      created_at: 2026-11-09T21:54:57.242Z
+      updated_at: 2026-11-09T21:54:57.242Z
+      version: 1
+  after:
+    id: cee58eed-72b8-4812-a3bc-33536000d393
+    path: product.feature.spec-type-lookup
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Spec type lookup
+    description: "MCP: spec_type (a type's definition, attributes and allowed
+      relationships; a layer's types with their required attributes and enum
+      values; and, without a type, the relationships the catalog allows across
+      the layer's types, filtered by other layers, other type, predicate and
+      direction). CLI: dr schema, dr catalog."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: spec_type (a type's definition, attributes and allowed
+        relationships; a layer's types with their required attributes and enum
+        values; and, without a type, the relationships the catalog allows across
+        the layer's types, filtered by other layers, other type, predicate and
+        direction). CLI: dr schema, dr catalog."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T16:32:02.070Z
+  sequenceNumber: 33
+- type: update
+  elementId: application.applicationfunction.stats-collector-collect
+  layerName: application
+  before:
+    id: 810d3c9e-ee07-4b79-b957-ab94c169487a
+    path: application.applicationfunction.stats-collector-collect
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StatsCollector collect
+    description: Collect all statistics from the model
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/core/stats-collector.ts
+          symbol: StatsCollector.collect
+    metadata: &a8
+      created_at: 2026-11-20T15:05:20.101Z
+      updated_at: 2026-11-20T15:05:20.101Z
+      version: 1
+  after:
+    id: 810d3c9e-ee07-4b79-b957-ab94c169487a
+    path: application.applicationfunction.stats-collector-collect
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StatsCollector collect
+    description: Collect all statistics from the model. Validates the model as the
+      active changeset leaves it, or takes the caller's validation result so the
+      pipeline runs once.
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T16:32:02.580Z
+  sequenceNumber: 34
+- type: relationship-add
+  elementId: application.applicationfunction.validate-view::accesses::application.dataobject.validation-result
+  layerName: application
+  after:
+    source: application.applicationfunction.validate-view
+    target: application.dataobject.validation-result
+    predicate: accesses
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:32:17.552Z
+  sequenceNumber: 35
+- type: add
+  elementId: data-model.schemadefinition.warning-kind
+  layerName: data-model
+  after:
+    id: fecb119c-1adc-4490-b4dd-a245c2b38c27
+    path: data-model.schemadefinition.warning-kind
+    spec_node_id: data-model.schemadefinition
+    type: schemadefinition
+    layer_id: data-model
+    name: WarningKind
+    description: "The kinds of validation warning: orphan, no-source-reference,
+      no-document-reference, no-description, the validator's categories, and
+      other."
+    attributes:
+      title: WarningKind
+      type: string
+    metadata:
+      created_at: 2026-11-20T16:35:55.331Z
+      updated_at: 2026-11-20T16:35:55.331Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/validators/model-warnings.ts
+          symbol: WarningKind
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 38
+- type: add
+  elementId: data-model.schemacomposition.model-view-name
+  layerName: data-model
+  after:
+    id: 0c4b909f-d053-4a0e-b129-75995042ed6d
+    path: data-model.schemacomposition.model-view-name
+    spec_node_id: data-model.schemacomposition
+    type: schemacomposition
+    layer_id: data-model
+    name: ModelViewName
+    description: "Which model a result describes: the base model, or a changeset's
+      projection with the changeset's id and name."
+    metadata:
+      created_at: 2026-11-20T16:35:55.332Z
+      updated_at: 2026-11-20T16:35:55.332Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-view.ts
+          symbol: ModelViewName
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 39
+- type: add
+  elementId: application.dataobject.dependency-graph
+  layerName: application
+  after:
+    id: 7055418d-f375-4612-b8d0-a0c121671239
+    path: application.dataobject.dependency-graph
+    spec_node_id: application.dataobject
+    type: dataobject
+    layer_id: application
+    name: DependencyGraph
+    description: "The model's relationships as dependencies: each edge filed under
+      the element that depends and under the element depended on, by its
+      predicate."
+    metadata:
+      created_at: 2026-11-20T16:35:55.332Z
+      updated_at: 2026-11-20T16:35:55.332Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-trace.ts
+          symbol: DependencyGraph
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 40
+- type: add
+  elementId: data-model.objectschema.model-trace-trace-edge
+  layerName: data-model
+  after:
+    id: 153c8bcb-ebab-4799-a8b1-97c37c0004b6
+    path: data-model.objectschema.model-trace-trace-edge
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: model-trace TraceEdge
+    description: A relationship or cross-layer reference as a trace meets it, with
+      its standing in the changeset and whether the trace follows it.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:35:55.332Z
+      updated_at: 2026-11-20T16:35:55.332Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-trace.ts
+          symbol: TraceEdge
+  timestamp: 2026-11-20T16:36:03.045Z
+  sequenceNumber: 41
+- type: relationship-add
+  elementId: application.applicationcomponent.stats-collector::uses::application.applicationcomponent.model
+  layerName: application
+  after:
+    source: application.applicationcomponent.stats-collector
+    target: application.applicationcomponent.model
+    predicate: uses
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 42
+- type: relationship-add
+  elementId: application.applicationfunction.stats-collector-collect::accesses::data-model.objectschema.validation-info
+  layerName: application
+  after:
+    source: application.applicationfunction.stats-collector-collect
+    target: data-model.objectschema.validation-info
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 43
+- type: relationship-add
+  elementId: application.applicationservice.model-stats-handler::accesses::application.dataobject.validation-result
+  layerName: application
+  after:
+    source: application.applicationservice.model-stats-handler
+    target: application.dataobject.validation-result
+    predicate: accesses
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: application.applicationfunction.model-view::depends-on::application.applicationfunction.model-get-virtual-projection-engine
+  layerName: application
+  after:
+    source: application.applicationfunction.model-view
+    target: application.applicationfunction.model-get-virtual-projection-engine
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 45
+- type: relationship-add
+  elementId: application.applicationfunction.model-view::depends-on::application.applicationfunction.staging-area-manager-load
+  layerName: application
+  after:
+    source: application.applicationfunction.model-view
+    target: application.applicationfunction.staging-area-manager-load
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 46
+- type: relationship-add
+  elementId: application.applicationfunction.validate-view::depends-on::application.applicationfunction.validator-validate-model
+  layerName: application
+  after:
+    source: application.applicationfunction.validate-view
+    target: application.applicationfunction.validator-validate-model
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 47
+- type: relationship-add
+  elementId: application.applicationfunction.warning-kind::accesses::data-model.objectschema.validation-issue
+  layerName: application
+  after:
+    source: application.applicationfunction.warning-kind
+    target: data-model.objectschema.validation-issue
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 48
+- type: relationship-add
+  elementId: application.applicationfunction.warning-kind::accesses::data-model.schemadefinition.warning-kind
+  layerName: application
+  after:
+    source: application.applicationfunction.warning-kind
+    target: data-model.schemadefinition.warning-kind
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 49
+- type: relationship-add
+  elementId: application.applicationservice.model-trace-handler::accesses::application.dataobject.dependency-graph
+  layerName: application
+  after:
+    source: application.applicationservice.model-trace-handler
+    target: application.dataobject.dependency-graph
+    predicate: accesses
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 50
+- type: relationship-add
+  elementId: application.applicationservice.model-trace-handler::accesses::data-model.objectschema.model-trace-trace-edge
+  layerName: application
+  after:
+    source: application.applicationservice.model-trace-handler
+    target: data-model.objectschema.model-trace-trace-edge
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:35:55.360Z
+  sequenceNumber: 51
+- type: update
+  elementId: product.feature.model-search-and-read
+  layerName: product
+  before:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only. model_trace reads which end depends on the other from the predicate
+      (serves runs provider to consumer) and reports only the changeset edges it
+      walked. model_stats validates the same view as model_validate, names it,
+      and counts orphans by layer and type. CLI: dr
+      list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only. model_trace reads which end depends on the other from the
+        predicate (serves runs provider to consumer) and reports only the
+        changeset edges it walked. model_stats validates the same view as
+        model_validate, names it, and counts orphans by layer and type. CLI: dr
+        list/show/search/trace/stats/info."
+    source_reference: &a9
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-search.ts
+    metadata: &a10
+      created_at: 2026-11-09T21:54:57.535Z
+      updated_at: 2026-11-09T21:54:57.535Z
+      version: 1
+  after:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only. model_trace and dr trace read which end depends on the other from
+      the predicate, by one rule: an element depends on what serves it and on
+      what realizes it, as on what it uses. model_trace reports only the
+      changeset edges it walked. model_stats validates the same view as
+      model_validate, names it, and counts orphans by layer and type. CLI: dr
+      list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only. model_trace and dr trace read which end depends on the other from
+        the predicate, by one rule: an element depends on what serves it and on
+        what realizes it, as on what it uses. model_trace reports only the
+        changeset edges it walked. model_stats validates the same view as
+        model_validate, names it, and counts orphans by layer and type. CLI: dr
+        list/show/search/trace/stats/info."
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-20T16:41:26.980Z
+  sequenceNumber: 65
+- type: add
+  elementId: application.applicationfunction.build-dependency-graph
+  layerName: application
+  after:
+    id: 56e6ff27-c986-4b2c-bbf8-fab3cfe95daa
+    path: application.applicationfunction.build-dependency-graph
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: buildDependencyGraph
+    description: A directed graph with an edge from each dependent to what it
+      depends on, by each relationship's predicate, for the dependency tracker
+      that dr trace walks.
+    metadata:
+      created_at: 2026-11-20T16:41:32.314Z
+      updated_at: 2026-11-20T16:41:32.314Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/dependency-direction.ts
+          symbol: buildDependencyGraph
+  timestamp: 2026-11-20T16:48:19.102Z
+  sequenceNumber: 67
+- type: relationship-add
+  elementId: application.applicationfunction.build-dependency-graph::depends-on::application.applicationfunction.dependency-ends
+  layerName: application
+  after:
+    source: application.applicationfunction.build-dependency-graph
+    target: application.applicationfunction.dependency-ends
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:41:32.336Z
+  sequenceNumber: 68
+- type: relationship-add
+  elementId: application.applicationfunction.build-dependency-graph::realizes::application.applicationservice.trace-command
+  layerName: application
+  after:
+    source: application.applicationfunction.build-dependency-graph
+    target: application.applicationservice.trace-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:41:32.336Z
+  sequenceNumber: 69
+- type: relationship-add
+  elementId: application.applicationservice.model-stats-handler::accesses::data-model.objectschema.validation-info
+  layerName: application
+  after:
+    source: application.applicationservice.model-stats-handler
+    target: data-model.objectschema.validation-info
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:48:16.787Z
+  sequenceNumber: 70
+- type: add
+  elementId: application.applicationfunction.page-of
+  layerName: application
+  after:
+    id: ed57750d-58df-45e5-9ae4-794f3e1238a0
+    path: application.applicationfunction.page-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: pageOf
+    description: The page of a list the limit and offset arguments ask for, with the
+      list's true total, how many came back, and the offset of the next page. A
+      limit is a page size, never a cut-off.
+    metadata:
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/paging.ts
+          symbol: pageOf
+  timestamp: 2026-11-20T17:03:36.309Z
+  sequenceNumber: 72
+- type: add
+  elementId: application.applicationfunction.paging-fields
+  layerName: application
+  after:
+    id: 9ee71201-3e6c-4d1e-8228-993ead2fb01d
+    path: application.applicationfunction.paging-fields
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: pagingFields
+    description: The limit and offset arguments of a tool that pages a list, with
+      the default stated in their descriptions.
+    metadata:
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/paging.ts
+          symbol: pagingFields
+  timestamp: 2026-11-20T17:03:36.309Z
+  sequenceNumber: 73
+- type: add
+  elementId: application.applicationfunction.next-page-hint
+  layerName: application
+  after:
+    id: f7a7ead7-d673-45d8-9871-087d50187e91
+    path: application.applicationfunction.next-page-hint
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: nextPageHint
+    description: One line naming the call that returns the next page of a list, or
+      nothing when the page is the last.
+    metadata:
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/paging.ts
+          symbol: nextPageHint
+  timestamp: 2026-11-20T17:03:36.309Z
+  sequenceNumber: 74
+- type: add
+  elementId: application.applicationfunction.whole-page
+  layerName: application
+  after:
+    id: 02b0bcb4-8e48-400b-af64-f80f658b6d26
+    path: application.applicationfunction.whole-page
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: wholePage
+    description: A whole list as one page, for a caller that asked for everything.
+    metadata:
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/paging.ts
+          symbol: wholePage
+  timestamp: 2026-11-20T17:03:36.309Z
+  sequenceNumber: 75
+- type: add
+  elementId: data-model.objectschema.page
+  layerName: data-model
+  after:
+    id: 9568c395-0e01-4017-9e24-84535a804284
+    path: data-model.objectschema.page
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: Page
+    description: "Where a page sits in its list: total, returned, offset, and
+      nextOffset when more is left."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/paging.ts
+          symbol: Page
+  timestamp: 2026-11-20T17:03:36.309Z
+  sequenceNumber: 76
+- type: add
+  elementId: data-model.objectschema.page-args
+  layerName: data-model
+  after:
+    id: c8196836-16fc-4c69-961d-974d854f7eb0
+    path: data-model.objectschema.page-args
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: PageArgs
+    description: The limit and offset a caller passes to page a list.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/paging.ts
+          symbol: PageArgs
+  timestamp: 2026-11-20T17:03:36.309Z
+  sequenceNumber: 77
+- type: relationship-add
+  elementId: application.applicationfunction.page-of::accesses::data-model.objectschema.page
+  layerName: application
+  after:
+    source: application.applicationfunction.page-of
+    target: data-model.objectschema.page
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 78
+- type: relationship-add
+  elementId: application.applicationfunction.page-of::accesses::data-model.objectschema.page-args
+  layerName: application
+  after:
+    source: application.applicationfunction.page-of
+    target: data-model.objectschema.page-args
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 79
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-hint::accesses::data-model.objectschema.page
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-hint
+    target: data-model.objectschema.page
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 80
+- type: relationship-add
+  elementId: application.applicationfunction.whole-page::accesses::data-model.objectschema.page
+  layerName: application
+  after:
+    source: application.applicationfunction.whole-page
+    target: data-model.objectschema.page
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 81
+- type: relationship-add
+  elementId: application.applicationfunction.page-of::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.page-of
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 82
+- type: relationship-add
+  elementId: application.applicationfunction.page-of::realizes::application.applicationservice.model-list-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.page-of
+    target: application.applicationservice.model-list-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.page-of::realizes::application.applicationservice.model-trace-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.page-of
+    target: application.applicationservice.model-trace-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-hint::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-hint
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-hint::realizes::application.applicationservice.model-list-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-hint
+    target: application.applicationservice.model-list-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 86
+- type: relationship-add
+  elementId: application.applicationfunction.whole-page::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.whole-page
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 87
+- type: relationship-add
+  elementId: application.applicationfunction.paging-fields::realizes::application.applicationservice.model-validate-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.paging-fields
+    target: application.applicationservice.model-validate-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 88
+- type: relationship-add
+  elementId: application.applicationfunction.paging-fields::realizes::application.applicationservice.model-list-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.paging-fields
+    target: application.applicationservice.model-list-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 89
+- type: relationship-add
+  elementId: application.applicationfunction.paging-fields::realizes::application.applicationservice.model-trace-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.paging-fields
+    target: application.applicationservice.model-trace-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:02:56.306Z
+  sequenceNumber: 90
+- type: update
+  elementId: product.feature.model-search-and-read
+  layerName: product
+  before:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only. model_trace and dr trace read which end depends on the other from
+      the predicate, by one rule: an element depends on what serves it and on
+      what realizes it, as on what it uses. model_trace reports only the
+      changeset edges it walked. model_stats validates the same view as
+      model_validate, names it, and counts orphans by layer and type. CLI: dr
+      list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only. model_trace and dr trace read which end depends on the other from
+        the predicate, by one rule: an element depends on what serves it and on
+        what realizes it, as on what it uses. model_trace reports only the
+        changeset edges it walked. model_stats validates the same view as
+        model_validate, names it, and counts orphans by layer and type. CLI: dr
+        list/show/search/trace/stats/info."
+    source_reference: &a11
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-search.ts
+    metadata: &a12
+      created_at: 2026-11-09T21:54:57.535Z
+      updated_at: 2026-11-09T21:54:57.535Z
+      version: 1
+  after:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace,
+      model_stats, model_info (changeset-aware). model_list can list orphans
+      only, and pages its compact and full listings. model_trace and dr trace
+      read which end depends on the other from the predicate, by one rule: an
+      element depends on what serves, realizes, satisfies or delivers it, as on
+      what it uses. model_trace reports only the changeset edges it walked and
+      pages long lists with their true totals. model_stats validates the same
+      view as model_validate, names it, and counts orphans by layer and type.
+      CLI: dr list/show/search/trace/stats/info."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace,
+        model_stats, model_info (changeset-aware). model_list can list orphans
+        only, and pages its compact and full listings. model_trace and dr trace
+        read which end depends on the other from the predicate, by one rule: an
+        element depends on what serves, realizes, satisfies or delivers it, as
+        on what it uses. model_trace reports only the changeset edges it walked
+        and pages long lists with their true totals. model_stats validates the
+        same view as model_validate, names it, and counts orphans by layer and
+        type. CLI: dr list/show/search/trace/stats/info."
+    source_reference: *a11
+    metadata: *a12
+  timestamp: 2026-11-20T17:12:32.185Z
+  sequenceNumber: 98
+- type: update
+  elementId: product.feature.model-validation
+  layerName: product
+  before:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: "MCP: model_validate over the base model or the active changeset's
+      projection, naming the view. The default is a summary: validity, the
+      errors whole, and warnings counted by kind, layer and type; warnings:
+      [...] lists a kind, orphans: true reports orphans alone, detail: \"full\"
+      returns every warning. Motivation, business and product elements are not
+      asked for a source reference. CLI: dr validate, dr conformance."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_validate over the base model or the active
+        changeset's projection, naming the view. The default is a summary:
+        validity, the errors whole, and warnings counted by kind, layer and
+        type; warnings: [...] lists a kind, orphans: true reports orphans alone,
+        detail: \"full\" returns every warning. Motivation, business and product
+        elements are not asked for a source reference. CLI: dr validate, dr
+        conformance."
+    source_reference: &a13
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-validate.ts
+    metadata: &a14
+      created_at: 2026-11-09T21:54:57.405Z
+      updated_at: 2026-11-09T21:54:57.405Z
+      version: 1
+  after:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: "MCP: model_validate over the base model or the active changeset's
+      projection, naming the view. The default is a summary: validity, a page of
+      errors whole, and warnings counted by kind, layer and type; warnings:
+      [...] lists a kind, orphans: true reports orphans alone, detail: \"full\"
+      returns every warning. The list a call returns is paged with limit and
+      offset, and the verdict and counts are of the whole model. Motivation,
+      business and product elements are not asked for a source reference. CLI:
+      dr validate, dr conformance."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: model_validate over the base model or the active
+        changeset's projection, naming the view. The default is a summary:
+        validity, a page of errors whole, and warnings counted by kind, layer
+        and type; warnings: [...] lists a kind, orphans: true reports orphans
+        alone, detail: \"full\" returns every warning. The list a call returns
+        is paged with limit and offset, and the verdict and counts are of the
+        whole model. Motivation, business and product elements are not asked for
+        a source reference. CLI: dr validate, dr conformance."
+    source_reference: *a13
+    metadata: *a14
+  timestamp: 2026-11-20T17:12:34.549Z
+  sequenceNumber: 100
