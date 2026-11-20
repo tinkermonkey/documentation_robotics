@@ -1630,3 +1630,61 @@
     metadata: *a16
   timestamp: 2026-11-20T17:29:43.393Z
   sequenceNumber: 115
+- type: add
+  elementId: application.applicationfunction.checked-page-args
+  layerName: application
+  after:
+    id: f3f4679e-7d42-47eb-a799-ef8800f8c25f
+    path: application.applicationfunction.checked-page-args
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: checkedPageArgs
+    description: "The limit and offset a caller asks for, checked: a limit is an
+      integer of at least 1 and an offset an integer of at least 0, else a
+      RangeError naming the argument, so no caller can loop or skip."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/paging.ts
+          symbol: checkedPageArgs
+    metadata:
+      created_at: 2026-11-20T18:42:44.744Z
+      updated_at: 2026-11-20T18:42:44.744Z
+      version: 1
+  timestamp: 2026-11-20T18:42:44.787Z
+  sequenceNumber: 117
+- type: relationship-add
+  elementId: application.applicationfunction.page-of::depends-on::application.applicationfunction.checked-page-args
+  layerName: application
+  after:
+    source: application.applicationfunction.page-of
+    target: application.applicationfunction.checked-page-args
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:42:44.787Z
+  sequenceNumber: 118
+- type: relationship-add
+  elementId: application.applicationfunction.lists-pager::depends-on::application.applicationfunction.checked-page-args
+  layerName: application
+  after:
+    source: application.applicationfunction.lists-pager
+    target: application.applicationfunction.checked-page-args
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:42:44.787Z
+  sequenceNumber: 119
+- type: relationship-add
+  elementId: application.applicationfunction.checked-page-args::accesses::data-model.objectschema.page-args
+  layerName: application
+  after:
+    source: application.applicationfunction.checked-page-args
+    target: data-model.objectschema.page-args
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:42:44.787Z
+  sequenceNumber: 120

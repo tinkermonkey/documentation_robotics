@@ -15,17 +15,17 @@ description: "The MCP read tools give an agent one right, small answer about a
   set. Done: 1203, 1204, 1214, 1215, 1216 closed with tests, and before/after
   response sizes on the repo's own model in the PR."
 created: 2026-11-20T16:30:15.149Z
-modified: 2026-11-20T17:29:51.066Z
+modified: 2026-11-20T18:42:44.804Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 75
+  additions: 79
   modifications: 8
   deletions: 0
-lastSequence: 116
+lastSequence: 120
 unstaged:
   - sequence: 3
     removedAt: 36
