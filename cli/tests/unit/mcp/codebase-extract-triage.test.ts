@@ -294,6 +294,47 @@ describe("codebase_extract decide: bulk decisions by a stated rule", () => {
     expect(fail(await handler({ list: "ruleDecided", rootPath })).error).toContain("needs rule");
   }, SLOW);
 
+  it("a typed rule sent in a call never stages what a none rule kept in the file excludes", async () => {
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    // The design folder is decided not product code, and kept.
+    ok(await handler({ decide: [{ ...NOT_PRODUCT, keep: true, name: "not-product" }], rootPath }));
+    // A later call sends a typed rule that also matches the design folder's functions.
+    const run = ok(
+      await handler({
+        changeset: "later",
+        decide: [{ where: { label: "Function" }, as: "application.applicationfunction", reason: "every function", name: "all-functions" }],
+        verbose: true,
+        rootPath,
+      })
+    );
+    const staged = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId);
+    expect(staged.some((id) => id.includes("draw"))).toBe(false);
+    // The 6 functions of src/ and nothing of design/.
+    expect(run.decide.results[0]).toMatchObject({ status: "applied", staged: 6 });
+    expect(run.rules.decided.items.find((r: any) => r.rule === "not-product")).toMatchObject({ notElements: 30 });
+  }, SLOW);
+
+  it("a decision on one card wins over every rule, and stages", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    const card = ok(await handler({ view: { label: "Interface" }, rootPath })).undecided.items.find((c: any) => c.symbol === "PlanOptions");
+    const run = ok(
+      await handler({
+        decide: [
+          { card: card.cardId, as: "data-model.objectschema", reason: "the planner's options" },
+          { where: { label: "Interface" }, as: "none", reason: "interfaces are decided one by one" },
+        ],
+        verbose: true,
+        rootPath,
+      })
+    );
+    expect(run.decide.results[0]).toMatchObject({ status: "applied", id: "data-model.objectschema.plan-options" });
+    expect(run.decide.results[1]).toMatchObject({ status: "applied", notElements: 1 });
+    const staged = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId);
+    expect(staged).toContain("data-model.objectschema.plan-options");
+  }, SLOW);
+
   it("decides one card, and reports an item that cannot be applied without refusing the others", async () => {
     const handler = createCodebaseExtractHandler(harness().deps);
     ok(await handler({ decide: [NOT_PRODUCT, LOCAL_FUNCTIONS, EXPORTED_FUNCTIONS], rootPath }));

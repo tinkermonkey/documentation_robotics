@@ -2863,6 +2863,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         let ruleUntouched = new Map<string, number>();
         const planFrom = (graph: ExtractionGraph) => {
           const applied = applyProjectRules(withCardDecisions(graph, decided.byCard), rules, {
+            decidedCards: new Set(decided.byCard.keys()),
             ownerTypeOf,
             ...(rangeChanged ? { changed: (s) => symbolChangedInRange(s, rangeChanged.hunks, rangeChanged) } : {}),
           });

@@ -147,6 +147,27 @@ describe("project rules", () => {
     ]);
   });
 
+  it("applies every none rule before any typed rule, whatever their order", () => {
+    const inFixture = symbol("Function", "seed", "fixtures/seed.ts", "export function seed() {}");
+    const inSrc = symbol("Function", "plan", "src/plan.ts", "export function plan() {}");
+    // A typed rule listed above a none rule that also matches: the none rule still wins.
+    const rules = compileRules([
+      { name: "exported-functions", where: { label: "Function", visibility: "exported" }, as: "application.applicationfunction", reason: "public behaviour" },
+      { name: "fixtures", where: { files: "fixtures/**" }, as: "none", reason: "not product code" },
+    ]);
+    const out = applyProjectRules(graphOf([inFixture, inSrc]), rules).extraction.symbols;
+    expect(out.map((s) => (s.tier0 as { rule?: string } | null)?.rule)).toEqual(["project:fixtures", "project:exported-functions"]);
+  });
+
+  it("leaves a card someone decided one at a time to that decision, whatever the rules say", () => {
+    const decided = symbol("Class", "CardBuilder", "src/cards/build.ts", "export class CardBuilder {", {
+      tier0: { kind: "decide", layer: "application", type: "applicationcomponent", rule: "project:decide-card-0", confidence: "high" },
+    });
+    const rules = compileRules([{ name: "no-classes", where: { label: "Class" }, as: "none", reason: "classes are decided one by one" }]);
+    const out = applyProjectRules(graphOf([decided]), rules, { decidedCards: new Set([decided.card.id]) }).extraction.symbols;
+    expect(out[0].tier0).toEqual(decided.tier0);
+  });
+
   it("in a since run, a typed rule leaves symbols the range did not change, and counts them", () => {
     const changed = symbol("Function", "added", "src/plan.ts", "export function added() {}");
     const untouched = symbol("Function", "old", "src/plan.ts", "export function old() {}");

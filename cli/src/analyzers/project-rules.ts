@@ -15,7 +15,10 @@
  * 3. a project rule that says `none`, whatever Tier 0 says (a fixture folder's routes included);
  * 4. Tier 0;
  * 5. a project rule that names a type, only for a symbol Tier 0 left open or narrowed.
- * Among project rules the first that matches wins, in file order.
+ * Every rule that says `none` is applied before any rule that names a type, whatever their order
+ * and wherever they come from (the call's `decide` or the file): a typed rule never stages a symbol
+ * some `none` rule excludes. Among `none` rules, and among typed rules, the first that matches wins
+ * (the call's items first, then the file's, in order). A decision on one card (2) wins over every rule.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -354,6 +357,8 @@ export function projectRuleName(rule: string): string {
 }
 
 export interface ApplyRulesContext {
+  /** Card ids someone decided one at a time (`decide: [{card}]`): no rule touches them. */
+  decidedCards?: ReadonlySet<string>;
   /** The `layer.type` of the element a member's class is, `none` when it has none; undefined for a non-member. */
   ownerTypeOf?: (s: ExtractedSymbol) => string | undefined;
   /**
@@ -393,25 +398,29 @@ export function subjectOf(s: ExtractedSymbol, ownerType?: string): RuleSubject {
  */
 export function applyProjectRules(extraction: ExtractionGraph, rules: readonly CompiledRule[], context: ApplyRulesContext = {}): AppliedRules {
   const symbolRules = rules.filter((r) => r.rule.where);
+  const noneRules = symbolRules.filter((r) => r.decision.kind === "none");
+  const typedRules = symbolRules.filter((r) => r.decision.kind === "type");
   const untouched = new Map<string, number>();
   if (!symbolRules.length) return { extraction, untouched };
   const symbols = extraction.symbols.map((s) => {
+    // A decision on this one card wins over every rule.
+    if (context.decidedCards?.has(s.card.id)) return s;
     const subject = subjectOf(s, context.ownerTypeOf?.(s));
-    for (const r of symbolRules) {
-      if (!r.matches(subject)) continue;
-      const rule = `${PROJECT_RULE_PREFIX}${r.rule.name}`;
-      if (r.decision.kind === "none") {
-        return { ...s, tier0: { kind: "reject", rule, confidence: "high" } satisfies Tier0Outcome };
-      }
-      // A typed rule decides only what Tier 0 left open; a route nothing handles is never typed by rule.
-      if ((s.tier0 && s.tier0.kind !== "narrow") || s.unhandled) continue;
-      if (context.changed && !context.changed(s)) {
-        untouched.set(r.rule.name, (untouched.get(r.rule.name) ?? 0) + 1);
-        return s;
-      }
-      return { ...s, tier0: { kind: "decide", layer: r.decision.layer, type: r.decision.type, rule, confidence: "high" } satisfies Tier0Outcome };
+    // Any none rule, ahead of Tier 0 and of every typed rule.
+    const none = noneRules.find((r) => r.matches(subject));
+    if (none) return { ...s, tier0: { kind: "reject", rule: `${PROJECT_RULE_PREFIX}${none.rule.name}`, confidence: "high" } satisfies Tier0Outcome };
+    // A typed rule decides only what Tier 0 left open; a route nothing handles is never typed by rule.
+    if ((s.tier0 && s.tier0.kind !== "narrow") || s.unhandled) return s;
+    const typed = typedRules.find((r) => r.matches(subject));
+    if (!typed || typed.decision.kind !== "type") return s;
+    if (context.changed && !context.changed(s)) {
+      untouched.set(typed.rule.name, (untouched.get(typed.rule.name) ?? 0) + 1);
+      return s;
     }
-    return s;
+    return {
+      ...s,
+      tier0: { kind: "decide", layer: typed.decision.layer, type: typed.decision.type, rule: `${PROJECT_RULE_PREFIX}${typed.rule.name}`, confidence: "high" } satisfies Tier0Outcome,
+    };
   });
   return { extraction: { ...extraction, symbols }, untouched };
 }
