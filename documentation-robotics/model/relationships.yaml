@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-19T14:46:07.724Z
+# Last updated: 2026-11-20T14:42:46.847Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -1768,5 +1768,10 @@
 - source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
   target: product.feature.upgrade-drop-record
   predicate: uses
+  layer: product
+  category: structural
+- source: product.feature.change-planning-workflow
+  target: product.feature.dr-plugin-for-claude-code
+  predicate: depends-on
   layer: product
   category: structural

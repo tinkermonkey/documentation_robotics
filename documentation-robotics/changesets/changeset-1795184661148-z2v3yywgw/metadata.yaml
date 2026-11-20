@@ -1,0 +1,17 @@
+id: changeset-1795184661148-z2v3yywgw
+name: reconcile-cli-0-6-0
+description: "Bring dr-codebase in line with the code at 419c1a32 (CLI 0.6.0):
+  the 21 commits since a034b5eb. Done: the model validates and project_status
+  reports no code drift."
+created: 2026-11-20T14:24:21.150Z
+modified: 2026-11-20T14:42:46.854Z
+status: committed
+baseSnapshot: sha256:dad5762b2c39526b16f38533ad9efe0d92e0b72b528db37a04b17b9b0fdc9e3c
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 1
+  modifications: 17
+  deletions: 0
+lastSequence: 17
