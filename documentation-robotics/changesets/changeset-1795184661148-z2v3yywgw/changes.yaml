@@ -1,0 +1,868 @@
+- type: update
+  elementId: product.feature.changeset-lifecycle
+  layerName: product
+  before:
+    id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+    path: product.feature.changeset-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset lifecycle
+    description: "MCP: changeset_create, changeset_activate, changeset_deactivate,
+      changeset_update, changeset_list, changeset_show. CLI: dr changeset
+      create/activate/deactivate/list/show/status."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_create, changeset_activate, changeset_deactivate,
+        changeset_update, changeset_list, changeset_show. CLI: dr changeset
+        create/activate/deactivate/list/show/status."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-lifecycle.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:57.018Z
+      updated_at: 2026-11-09T21:54:57.018Z
+      version: 1
+  after:
+    id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+    path: product.feature.changeset-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset lifecycle
+    description: "MCP: changeset_create, changeset_activate, changeset_deactivate,
+      changeset_update, changeset_list, changeset_show. CLI: dr changeset
+      create/activate/deactivate/list/show/status. Which changeset is active is
+      per-checkout state, kept in .dr/active-changeset, and it counts only while
+      it names a staged changeset."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "The active changeset is named by one file, .dr/active-changeset
+        (the changeset's id), read and written by
+        cli/src/core/active-changeset-marker.ts. It is per-checkout state, so it
+        sits in .dr/ with the spec reference and the analyzer state, out of git
+        (#1218). The older documentation-robotics/changesets/.active is still
+        read when .dr/ has no marker, and the next activate or deactivate writes
+        .dr/ and deletes it. The marker counts only while it names a staged
+        changeset: one that names a changeset committed, discarded or deleted
+        since is no active changeset on any surface (Model.load, the CLI, the
+        MCP tools, the viewer), and writes then go to the base model. dr
+        changeset status says when such a marker is being ignored; dr changeset
+        deactivate and changeset_deactivate remove it (the tool reports
+        clearedLeftoverMarker)."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T14:24:28.630Z
+  sequenceNumber: 0
+- type: update
+  elementId: product.feature.stage-element-changes
+  layerName: product
+  before:
+    id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+    path: product.feature.stage-element-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage element changes
+    description: "MCP: model_add, model_update (attributePatch), model_delete; stage
+      into the active changeset. CLI: dr add/update/delete."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: model_add, model_update (attributePatch), model_delete;
+        stage into the active changeset. CLI: dr add/update/delete."
+    source_reference: &a3
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-update.ts
+    metadata: &a4
+      created_at: 2026-11-09T21:54:57.057Z
+      updated_at: 2026-11-09T21:54:57.057Z
+      version: 1
+  after:
+    id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+    path: product.feature.stage-element-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage element changes
+    description: "MCP: model_add, model_update (attributePatch), model_delete; stage
+      into the active changeset. CLI: dr add/update/delete."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: 'MCP: model_add, model_update (attributePatch), model_delete;
+        stage into the active changeset. CLI: dr add/update/delete. With no
+        changeset active the write goes to the base model. A base write from a
+        model that was loaded while a changeset was active, when that changeset
+        has since stopped being staged, fails with "The change was not saved"
+        instead of reporting success and storing nothing (#1218,
+        cli/src/core/mutation-handler.ts).'
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T14:24:28.675Z
+  sequenceNumber: 1
+- type: update
+  elementId: product.feature.changeset-overlay-in-the-viewer
+  layerName: product
+  before:
+    id: f510b30d-52dc-4dad-87da-13c6568452fc
+    path: product.feature.changeset-overlay-in-the-viewer
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset overlay in the viewer
+    description: "MCP (planned): review_open starts or reuses the viewer and returns
+      a link to the changeset. Viewer: changeset overlay with Apply and Discard.
+      CLI: dr visualize."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP (planned): review_open starts or reuses the viewer and
+        returns a link to the changeset. Viewer: changeset overlay with Apply
+        and Discard. CLI: dr visualize."
+    source_reference: &a5
+      provenance: manual
+      locations:
+        - file: cli/src/commands/visualize.ts
+    metadata: &a6
+      created_at: 2026-11-09T21:54:57.607Z
+      updated_at: 2026-11-09T21:54:57.607Z
+      version: 1
+  after:
+    id: f510b30d-52dc-4dad-87da-13c6568452fc
+    path: product.feature.changeset-overlay-in-the-viewer
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset overlay in the viewer
+    description: "MCP: review_open starts or reuses the viewer and returns a link to
+      the changeset. Viewer: changeset overlay with Apply and Discard, offered
+      only where the server's actions allow them, with base drift shown before
+      review and before Apply. CLI: dr visualize."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: review_open (cli/src/mcp/tools/review-open.ts) reuses the
+        dr visualize already serving the project or starts one, and returns a
+        link that opens the changeset on the graph. CLI: dr visualize. The CLI
+        bundles viewer 0.12.0, which follows what the changeset API reports: it
+        treats a changeset by its purpose and offers only the server's actions
+        (a verification record or an upgrade record shows as a record with
+        Discard only), and it shows base drift before review and before Apply.
+        GET /health carries cliVersion, the dr CLI serving the API, beside the
+        API's own version; the viewer shows it in its status bar. The server
+        watches .dr/active-changeset, so the viewer learns of an activation made
+        elsewhere. Stopping dr visualize stops its server for certain: the
+        launcher signals the server process and sends SIGKILL if it has not
+        exited after 3 seconds (cli/src/utils/stop-child-process.ts), and the
+        server leaves its file watcher to the process exit instead of closing it
+        (#1235)."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T14:24:47.752Z
+  sequenceNumber: 2
+- type: update
+  elementId: product.feature.change-planning-workflow
+  layerName: product
+  before:
+    id: 5852ac40-5ff6-4b1e-abc6-5a9559f09792
+    path: product.feature.change-planning-workflow
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Change planning workflow
+    description: "Claude Code: /dr-plan command and dr_change_planning skill,
+      installed per project by dr claude install; walks Frame to Land over the
+      MCP tools."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "Claude Code: /dr-plan command and dr_change_planning skill,
+        installed per project by dr claude install; walks Frame to Land over the
+        MCP tools."
+    source_reference: &a7
+      provenance: manual
+      locations:
+        - file: integrations/claude_code/skills/dr_change_planning/SKILL.md
+    metadata: &a8
+      created_at: 2026-11-09T21:54:57.494Z
+      updated_at: 2026-11-09T21:54:57.494Z
+      version: 1
+  after:
+    id: 5852ac40-5ff6-4b1e-abc6-5a9559f09792
+    path: product.feature.change-planning-workflow
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Change planning workflow
+    description: "Claude Code: /dr-plan command and dr_change_planning skill,
+      shipped in the DR plugin; GitHub Copilot gets the skill from dr copilot
+      install. Walks Frame to Land over the MCP tools."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "Claude Code: /dr-plan
+        (integrations/claude_code/commands/dr-plan.md) and the
+        dr_change_planning skill, shipped in the DR plugin for Claude Code; dr
+        claude install still copies them into a project. GitHub Copilot: the
+        same skill under integrations/github_copilot, installed by dr copilot
+        install and brought up to date by dr upgrade. The loop is Frame, Orient,
+        Draft, Pressure-test, Review, Build, Verify, Land, over the MCP tools.
+        Build commits only the plan's own changeset directory with the code;
+        which changeset is active is no longer a file under changesets/, so
+        there is no marker to keep out of the commit (#1218). The as-built
+        verification record is made in Verify, after the build commit. The human
+        then chooses: discard it (changeset_discard), or keep it, in which case
+        it stays staged and its directory is committed beside the plan's in the
+        same PR. It is never landed (#1197)."
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T14:24:47.797Z
+  sequenceNumber: 3
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an
+      MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why: declined, the dialog could not be shown, or drift.
+      Viewer: Apply. CLI: dr changeset commit."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through
+        an MCP elicitation dialog, or takes a confirmation token from Claude
+        Code (see Commit confirmation token). It is refused when no person can
+        answer, and a refusal says why: declined, the dialog could not be shown,
+        or drift. Viewer: Apply. CLI: dr changeset commit."
+    source_reference: &a9
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a10
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an
+      MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why: declined, the dialog could not be shown, or drift.
+      Viewer: Apply. CLI: dr changeset commit."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through
+        an MCP elicitation dialog, or takes a confirmation token from Claude
+        Code (see Commit confirmation token). It is refused when no person can
+        answer, and a refusal says why: declined, the dialog could not be shown,
+        or drift. Viewer: Apply. CLI: dr changeset commit. A landing clears the
+        active-changeset marker; if the marker cannot be cleared the landing
+        stands and the result warns that the marker is ignored, since a
+        committed changeset is never the active one (#1218)."
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-20T14:25:15.263Z
+  sequenceNumber: 4
+- type: update
+  elementId: product.feature.code-indexing
+  layerName: product
+  before:
+    id: 4e519bff-9914-4c34-a9af-5ac306a68390
+    path: product.feature.code-indexing
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code indexing
+    description: "MCP (planned): codebase_index, runs in the background when long
+      and reports progress. CLI: dr analyzer discover/status/index (drives
+      codebase-memory-mcp as a client)."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP (planned): codebase_index, runs in the background when long
+        and reports progress. CLI: dr analyzer discover/status/index (drives
+        codebase-memory-mcp as a client)."
+    source_reference: &a11
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+    metadata: &a12
+      created_at: 2026-11-09T21:54:57.929Z
+      updated_at: 2026-11-09T21:54:57.929Z
+      version: 1
+  after:
+    id: 4e519bff-9914-4c34-a9af-5ac306a68390
+    path: product.feature.code-indexing
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code indexing
+    description: "MCP: codebase_index, runs in the background and reports progress.
+      CLI: dr analyzer discover/status/index (drives codebase-memory-mcp as a
+      client)."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_index (cli/src/mcp/tools/codebase-index.ts), runs
+        in the background and reports the job and the index's freshness; a call
+        can wait up to 50 seconds for it. CLI: dr analyzer discover/status/index
+        (drives codebase-memory-mcp as a client)."
+    source_reference: *a11
+    metadata: *a12
+  timestamp: 2026-11-20T14:25:15.313Z
+  sequenceNumber: 5
+- type: update
+  elementId: product.feature.model-init
+  layerName: product
+  before:
+    id: 3f5b76d9-431e-49e0-9de6-f04484bc4b31
+    path: product.feature.model-init
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model init
+    description: "MCP (planned): project_init, no prompts; name and description are
+      arguments. CLI: dr init."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP (planned): project_init, no prompts; name and description
+        are arguments. CLI: dr init."
+    source_reference: &a13
+      provenance: manual
+      locations:
+        - file: cli/src/commands/init.ts
+    metadata: &a14
+      created_at: 2026-11-09T21:54:58.254Z
+      updated_at: 2026-11-09T21:54:58.254Z
+      version: 1
+  after:
+    id: 3f5b76d9-431e-49e0-9de6-f04484bc4b31
+    path: product.feature.model-init
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model init
+    description: "MCP: project_init, no prompts; name and description are arguments.
+      CLI: dr init."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: project_init (cli/src/mcp/tools/project-tools.ts), no
+        prompts; name and description are arguments, and it installs no
+        integration files. CLI: dr init."
+    source_reference: *a13
+    metadata: *a14
+  timestamp: 2026-11-20T14:25:15.359Z
+  sequenceNumber: 6
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP (planned): project_upgrade, previews the migration unless
+      apply is set; leaves installed integrations alone. CLI: dr upgrade."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP (planned): project_upgrade, previews the migration unless
+        apply is set; leaves installed integrations alone. CLI: dr upgrade."
+    source_reference: &a15
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a16
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set;
+      leaves installed integrations alone. CLI: dr upgrade."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts),
+        previews the migration unless apply is set; leaves installed
+        integrations alone and says when a project still has them. CLI: dr
+        upgrade, which also brings installed integration files up to date."
+    source_reference: *a15
+    metadata: *a16
+  timestamp: 2026-11-20T14:25:15.400Z
+  sequenceNumber: 7
+- type: update
+  elementId: product.feature.mcp-server
+  layerName: product
+  before:
+    id: 8cd6dd37-04c8-497d-994a-226d7e5d03ce
+    path: product.feature.mcp-server
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: MCP server
+    description: "dr mcp (stdio or HTTP). Planned: finds the project through MCP
+      roots (rootPath still accepted), no API key over stdio (kept for HTTP),
+      and server instructions that map the workflows."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "dr mcp (stdio or HTTP). Planned: finds the project through MCP
+        roots (rootPath still accepted), no API key over stdio (kept for HTTP),
+        and server instructions that map the workflows."
+    source_reference: &a17
+      provenance: manual
+      locations:
+        - file: cli/src/commands/mcp.ts
+    metadata: &a18
+      created_at: 2026-11-09T21:54:58.447Z
+      updated_at: 2026-11-09T21:54:58.447Z
+      version: 1
+  after:
+    id: 8cd6dd37-04c8-497d-994a-226d7e5d03ce
+    path: product.feature.mcp-server
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: MCP server
+    description: dr mcp (stdio or HTTP). Finds the project through MCP roots
+      (rootPath still accepted), needs no API key over stdio (kept for HTTP),
+      and sends server instructions that map the workflows.
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: dr mcp (stdio or HTTP). Over stdio it serves the project the
+        client has open, asked for through MCP roots and again when they change
+        (rootPath still accepted on every tool), and needs no API key, since the
+        client starts it as the same user. HTTP clients authenticate with the
+        API key as a bearer token. The server instructions map the workflows and
+        tell the agent to call project_status first.
+    source_reference: *a17
+    metadata: *a18
+  timestamp: 2026-11-20T14:25:25.806Z
+  sequenceNumber: 8
+- type: update
+  elementId: product.feature.project-status
+  layerName: product
+  before:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status. Where this repo stands with DR: model
+      present, spec version against the CLI, active and staged changesets, code
+      index present and fresh, viewer running, and the suggested next step. The
+      server instructions tell the agent to call it first."
+    attributes:
+      priority: critical
+      status: planned
+      documentation: "MCP: project_status. Where this repo stands with DR: model
+        present, spec version against the CLI, active and staged changesets,
+        code index present and fresh, viewer running, and the suggested next
+        step. The server instructions tell the agent to call it first."
+    metadata: &a19
+      created_at: 2026-11-09T22:04:38.150Z
+      updated_at: 2026-11-09T22:04:38.150Z
+      version: 1
+  after:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status. Where this repo stands with DR: model
+      present, spec version against the CLI, active and staged changesets, code
+      index present and fresh, code changed since the model was last reconciled
+      with it, viewer running, Tier 1 state, and the suggested next step. The
+      server instructions tell the agent to call it first."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: project_status (cli/src/mcp/tools/project-status.ts,
+        sections in project-status-collectors.ts). Where this repo stands with
+        DR: model present, spec version against the CLI, active and staged
+        changesets, code index present and fresh (and any indexing run in
+        flight), code drift, viewer running, Tier 1 state, and nextStep, a
+        sentence and the tool to call. Code drift is counted from the last
+        as-built landing; a model with none counts from its last commit that is
+        not a spec migration. Reads local files and git only. The server
+        instructions tell the agent to call it first."
+    metadata: *a19
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/project-status.ts
+  timestamp: 2026-11-20T14:25:25.861Z
+  sequenceNumber: 9
+- type: update
+  elementId: product.feature.extraction-to-a-changeset
+  layerName: product
+  before:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description: "MCP: codebase_extract. Builds cards from the declarations the code
+      index reports (classes, interfaces, functions, methods, routes, types),
+      never from a file, stages what the Tier-0 rules decide into a changeset,
+      and returns the narrowed and undecided symbols to the calling agent, which
+      stages its own decisions. Import and test-file relationships are joined to
+      declarations, not to a file's element. The calling agent is the cascade's
+      last tier, and it also models what the code graph reports no declaration
+      for; no separate model API key."
+    attributes:
+      priority: high
+      status: planned
+      documentation: "MCP: codebase_extract. Builds cards from the declarations the
+        code index reports (classes, interfaces, functions, methods, routes,
+        types), never from a file, stages what the Tier-0 rules decide into a
+        changeset, and returns the narrowed and undecided symbols to the calling
+        agent, which stages its own decisions. Import and test-file
+        relationships are joined to declarations, not to a file's element; where
+        a file has no single declaration to take them they are dropped. The
+        calling agent is the cascade's last tier, and it also models what the
+        code graph reports no declaration for (entry points, file-based routes,
+        top-level constants, buildable projects); no separate model API key."
+    metadata: &a20
+      created_at: 2026-11-09T22:04:38.299Z
+      updated_at: 2026-11-09T22:04:38.299Z
+      version: 1
+  after:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description: "MCP: codebase_extract. Builds cards from the declarations the code
+      index reports (classes, interfaces, functions, methods, routes, types),
+      never from a file, stages what the Tier-0 rules decide into a changeset,
+      and returns the narrowed and undecided symbols to the calling agent, which
+      stages its own decisions. Import and test-file relationships are joined to
+      declarations, not to a file's element. The calling agent is the cascade's
+      last tier, and it also models what the code graph reports no declaration
+      for; no separate model API key."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Builds cards from the declarations the
+        code index reports (classes, interfaces, functions, methods, routes,
+        types), never from a file, stages what the Tier-0 rules decide into a
+        changeset, and returns the narrowed and undecided symbols to the calling
+        agent, which stages its own decisions. Import and test-file
+        relationships are joined to declarations, not to a file's element; where
+        a file has no single declaration to take them they are dropped. The
+        calling agent is the cascade's last tier, and it also models what the
+        code graph reports no declaration for (entry points, file-based routes,
+        top-level constants, buildable projects); no separate model API key."
+    metadata: *a20
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract.ts
+  timestamp: 2026-11-20T14:25:25.912Z
+  sequenceNumber: 10
+- type: update
+  elementId: product.feature.dr-plugin-for-claude-code
+  layerName: product
+  before:
+    id: 6b58dba3-d603-462b-ba67-cacc48c60eb1
+    path: product.feature.dr-plugin-for-claude-code
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DR plugin for Claude Code
+    description: A Claude Code plugin bundling the dr MCP server, the layer and
+      planning skills and the agents, installed once at user scope. Replaces
+      per-project dr claude install and .mcp.json edits. The dr binary still
+      comes from npm. Its skills tell the agent what extraction by rule cannot
+      see and where to look for it.
+    attributes:
+      priority: high
+      status: planned
+      documentation: "A Claude Code plugin bundling the dr MCP server, the layer and
+        planning skills and the agents, installed once at user scope. Replaces
+        per-project dr claude install and .mcp.json edits. The dr binary still
+        comes from npm. Its skills tell the agent what extraction by rule cannot
+        see and where to look for it: entry points made of top-level statements,
+        file-based routes, top-level constants such as stores and schemas, and
+        buildable projects. They never tell the agent to model a file as an
+        element; an element names its file and, where there is one, its symbol."
+    metadata: &a21
+      created_at: 2026-11-09T22:04:38.547Z
+      updated_at: 2026-11-09T22:04:38.547Z
+      version: 1
+  after:
+    id: 6b58dba3-d603-462b-ba67-cacc48c60eb1
+    path: product.feature.dr-plugin-for-claude-code
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DR plugin for Claude Code
+    description: A Claude Code plugin bundling the dr MCP server, the layer and
+      planning skills and the agents, installed once at user scope. Replaces
+      per-project dr claude install and .mcp.json edits. The dr binary still
+      comes from npm. Its skills tell the agent what extraction by rule cannot
+      see and where to look for it.
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "A Claude Code plugin bundling the dr MCP server, the layer and
+        planning skills and the agents, installed once at user scope. Replaces
+        per-project dr claude install and .mcp.json edits. The dr binary still
+        comes from npm. Its skills tell the agent what extraction by rule cannot
+        see and where to look for it: entry points made of top-level statements,
+        file-based routes, top-level constants such as stores and schemas, and
+        buildable projects. They never tell the agent to model a file as an
+        element; an element names its file and, where there is one, its symbol."
+    metadata: *a21
+    source_reference:
+      provenance: manual
+      locations:
+        - file: integrations/claude_code/.claude-plugin/plugin.json
+  timestamp: 2026-11-20T14:25:25.965Z
+  sequenceNumber: 11
+- type: update
+  elementId: product.feature.accepted-gaps
+  layerName: product
+  before:
+    id: dd5a9cfd-295d-4106-af82-6814e4ad0ee2
+    path: product.feature.accepted-gaps
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Accepted gaps
+    description: "MCP: accept a gap with a reason and reopen it. changeset_brief
+      lists accepted gaps as accepted, not open; verification reports one the
+      code contradicts. Needs a spec decision on where gaps live (#1026)."
+    attributes:
+      priority: medium
+      status: planned
+      documentation: "MCP: accept a gap with a reason and reopen it. changeset_brief
+        lists accepted gaps as accepted, not open; verification reports one the
+        code contradicts. Needs a spec decision on where gaps live (#1026)."
+    metadata: &a22
+      created_at: 2026-11-09T22:04:38.761Z
+      updated_at: 2026-11-09T22:04:38.761Z
+      version: 1
+  after:
+    id: dd5a9cfd-295d-4106-af82-6814e4ad0ee2
+    path: product.feature.accepted-gaps
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Accepted gaps
+    description: "MCP: gap_accept records a gap with its reason and gap_reopen takes
+      it back, both staged in the active changeset. changeset_brief lists
+      accepted gaps as accepted, not open; verification reports one the code
+      contradicts."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: gap_accept and gap_reopen (cli/src/mcp/tools/gap-tools.ts).
+        An accepted gap records that a connection the catalog allows for an
+        element's type is deliberately absent, with the reason; it lives on the
+        element (accepted_gaps in the spec's base node schema, #1026). Both
+        tools stage into the active changeset and refuse without one, so the
+        human approves the gap when the changeset lands. gap_accept refuses a
+        triple the catalog doesn't define, one it marks required, and one the
+        element already has. changeset_brief lists accepted gaps as accepted,
+        not open; extraction and verification report one the code contradicts."
+    metadata: *a22
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/gap-tools.ts
+  timestamp: 2026-11-20T14:25:37.130Z
+  sequenceNumber: 12
+- type: update
+  elementId: product.softwarecapability.change-verification
+  layerName: product
+  before:
+    id: 0dab84a2-0985-44ad-a648-d7b3e8c3786f
+    path: product.softwarecapability.change-verification
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Change verification
+    description: Compare a plan with what was built and land the change. The
+      as-built side is written by hand until extraction writes changesets.
+    attributes:
+      status: developing
+      documentation: Compare a plan with what was built and land the change. The
+        as-built side is written by hand until extraction writes changesets.
+    metadata: &a23
+      created_at: 2026-11-09T21:54:56.784Z
+      updated_at: 2026-11-09T21:54:56.784Z
+      version: 1
+  after:
+    id: 0dab84a2-0985-44ad-a648-d7b3e8c3786f
+    path: product.softwarecapability.change-verification
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Change verification
+    description: Compare a plan with what was built and land the change. The
+      as-built side is staged by extraction from the code, not written by hand.
+    attributes:
+      status: developing
+      documentation: Compare a plan with what was built and land the change. The
+        as-built side is staged by extraction from the code (codebase_extract
+        with since, while the plan is active), not written by hand; it is the
+        plan's verification record and never lands.
+    metadata: *a23
+  timestamp: 2026-11-20T14:25:37.198Z
+  sequenceNumber: 13
+- type: update
+  elementId: product.softwarecapability.model-extraction
+  layerName: product
+  before:
+    id: 2428f780-a675-48f0-920e-07a56290f194
+    path: product.softwarecapability.model-extraction
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Model extraction
+    description: "Read a codebase and record what it is: CBM indexing and Tier-0
+      rules exist; Tier 1, Tier 2 and changeset output are not built."
+    attributes:
+      status: developing
+      documentation: "Read a codebase and record what it is: CBM indexing and Tier-0
+        rules exist; Tier 1, Tier 2 and changeset output are not built."
+    metadata: &a24
+      created_at: 2026-11-09T21:54:56.841Z
+      updated_at: 2026-11-09T21:54:56.841Z
+      version: 1
+  after:
+    id: 2428f780-a675-48f0-920e-07a56290f194
+    path: product.softwarecapability.model-extraction
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Model extraction
+    description: "Read a codebase and record what it is, as a changeset: CBM
+      indexing, Tier-0 rules, an opt-in Tier 1 decision model, and the calling
+      agent as the last tier."
+    attributes:
+      status: developing
+      documentation: "Read a codebase and record what it is, as a changeset: CBM
+        indexing, Tier-0 rules that stage what they can decide, an opt-in Tier 1
+        decision model that suggests or stages the cards the rules leave open,
+        and the calling agent as the last tier for the rest."
+    metadata: *a24
+  timestamp: 2026-11-20T14:25:37.251Z
+  sequenceNumber: 14
+- type: update
+  elementId: product.softwarecapability.project-setup
+  layerName: product
+  before:
+    id: 3c105a04-3d0a-4a1e-9788-75d61aa350ed
+    path: product.softwarecapability.project-setup
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Project setup
+    description: Create a model for a project and connect agents to it. CLI only today.
+    attributes:
+      status: delivered
+      documentation: Create a model for a project and connect agents to it. CLI only today.
+    metadata: &a25
+      created_at: 2026-11-09T21:54:56.909Z
+      updated_at: 2026-11-09T21:54:56.909Z
+      version: 1
+  after:
+    id: 3c105a04-3d0a-4a1e-9788-75d61aa350ed
+    path: product.softwarecapability.project-setup
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Project setup
+    description: Create a model for a project and connect agents to it, from the
+      conversation (project_init, the DR plugin) or the CLI.
+    attributes:
+      status: delivered
+      documentation: Create a model for a project and connect agents to it, from the
+        conversation (project_init, the DR plugin) or the CLI (dr init).
+    metadata: *a25
+  timestamp: 2026-11-20T14:25:37.305Z
+  sequenceNumber: 15
+- type: update
+  elementId: product.softwarecapability.spec-migration
+  layerName: product
+  before:
+    id: 33c84480-4e21-4412-9528-f450bb3256ff
+    path: product.softwarecapability.spec-migration
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Spec migration
+    description: Move a model to a new spec version with the migration registry. CLI
+      only today.
+    attributes:
+      status: delivered
+      documentation: Move a model to a new spec version with the migration registry.
+        CLI only today.
+    metadata: &a26
+      created_at: 2026-11-09T21:54:56.959Z
+      updated_at: 2026-11-09T21:54:56.959Z
+      version: 1
+  after:
+    id: 33c84480-4e21-4412-9528-f450bb3256ff
+    path: product.softwarecapability.spec-migration
+    spec_node_id: product.softwarecapability
+    type: softwarecapability
+    layer_id: product
+    name: Spec migration
+    description: Move a model to a new spec version with the migration registry,
+      from the conversation (project_upgrade) or the CLI (dr upgrade).
+    attributes:
+      status: delivered
+      documentation: Move a model to a new spec version with the migration registry,
+        from the conversation (project_upgrade) or the CLI (dr upgrade). The
+        registry's chain runs to the spec version the installed CLI bundles.
+    metadata: *a26
+  timestamp: 2026-11-20T14:25:37.362Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: product.feature.change-planning-workflow::depends-on::product.feature.dr-plugin-for-claude-code
+  layerName: product
+  after:
+    source: product.feature.change-planning-workflow
+    target: product.feature.dr-plugin-for-claude-code
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T14:25:57.105Z
+  sequenceNumber: 17
