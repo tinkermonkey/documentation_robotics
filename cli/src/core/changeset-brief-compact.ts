@@ -436,7 +436,7 @@ export function compactIntent(
             note:
               `The trace walks ${intent.walk.maxHops} hops and does not go through an element with more than ` +
               `${intent.walk.hubThreshold} relationships. ${blocked} of the elements that do not trace would, within ` +
-              "the same hops, if it did: pass a larger hubThreshold to trace them.",
+              "the same hops and by a route the trace allows, if it did: a larger hubThreshold traces them.",
           }
         : {}),
     },
@@ -1236,14 +1236,15 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           ? ""
           : short.length === 0
             ? " Every list is whole (page.totals)."
-            : ` Not everything is here: ${short.map((l) => `${l.key} holds ${page.returned[l.key]} of ${l.total}`).join("; ")}` +
-              `${offset > 0 ? ` (from ${offset})` : ""}; counts and summaries are over the whole lists.` +
-              (page.nextOffset !== undefined
-                ? ` Next page: changeset_brief ${JSON.stringify({ ...options.callArgs, sections: names, offset: page.nextOffset })}.`
-                : " This is the last page.") +
-              (options.limit === undefined && page.nextOffset !== undefined
-                ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass limit for a fixed page size, or targetBytes for another target.`
-                : "")) +
+            : page.nextOffset === undefined
+              ? ` This is the last page (from ${offset}); page.totals has each list's length, and counts and summaries are over the whole lists.`
+              : ` Not everything is here: ${short.map((l) => `${l.key} holds ${page.returned[l.key]} of ${l.total}`).join("; ")}` +
+                `${offset > 0 ? ` (from ${offset})` : ""}; counts and summaries are over the whole lists.` +
+                ` Next page: changeset_brief ${JSON.stringify({ ...options.callArgs, sections: names, offset: page.nextOffset })}.` +
+                (options.limit === undefined
+                  ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass limit for a fixed page size, ` +
+                    "targetBytes for another target, or narrow with layers or ids."
+                  : "")) +
         ` Add detail: "full" for these sections in full at once, or call without sections for the compact brief.`,
     ].join(" ");
     return out;

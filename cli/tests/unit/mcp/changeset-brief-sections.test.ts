@@ -197,6 +197,8 @@ function readAll(full: ChangesetBrief, sections: BriefSection[], options: Sectio
       expect(result.more).toContain(`Next page: changeset_brief ${JSON.stringify({ sections, offset: page.nextOffset })}`);
     } else if (pages > 0) {
       expect(result.more).toContain("This is the last page");
+      // Re-review of PR 1269: the last page does not read as incomplete.
+      expect(result.more).not.toContain("Not everything is here");
     }
     offset = page.nextOffset;
   }
@@ -332,7 +334,8 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect(ten.changes!.map((c) => c.id)).toEqual(whole.slice(40));
     expect(ten.page).toMatchObject({ offset: 40, totals: { changes: 44 }, returned: { changes: 4 } });
     expect(ten.page!.nextOffset).toBeUndefined();
-    expect(ten.more).toContain("This is the last page");
+    expect(ten.more).toContain("This is the last page (from 40)");
+    expect(ten.more).not.toContain("Not everything is here");
 
     // A target too small for one element still returns one: a target, not a cut-off.
     const tiny = briefSections(full, ["changes"], { filter, targetBytes: 200 });
@@ -937,15 +940,14 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     expect(intent.untraced).toHaveLength(16);
     expect(intent.untraced).not.toContain("application.dataobject.part-0");
 
-    // The hub rule is what leaves them untraced, and the answer says so, with the threshold.
-    expect(intent.walk).toEqual({ maxHops: 4, hubThreshold: 15, blockedByHub: intent.untraced });
+    // Their only hub-free route runs up to the bundle and down to part-0: the route the carrier rule
+    // forbids a sibling, so the hub note does not count them (re-review of PR 1269).
+    expect(intent.walk).toEqual({ maxHops: 4, hubThreshold: 15, blockedByHub: [] });
     const compact = (await brief({ sections: ["intent"] })).json.intent;
-    expect(compact.walk).toMatchObject({ maxHops: 4, hubThreshold: 15, blockedByHub: 16 });
-    expect(compact.walk.note).toContain("does not go through an element with more than 15 relationships");
-    expect(compact.walk.note).toContain("16 of the elements that do not trace would");
-    expect((await brief()).json.intent.walk).toMatchObject({ hubThreshold: 15, blockedByHub: 16 });
+    expect(compact.walk).toEqual({ maxHops: 4, hubThreshold: 15 });
 
-    // The threshold is the caller's to change: with the bundle no longer a hub, the siblings trace.
+    // The threshold is still the caller's to change: with the bundle no longer a hub, a sibling's own
+    // bounded walk goes through it (that walk follows any link), and they trace.
     const raised = (await brief({ sections: ["intent"], hubThreshold: 20 })).json.intent;
     expect(raised.counts).toEqual({ traced: 18, untraced: 0 });
     expect(raised.walk).toEqual({ maxHops: 4, hubThreshold: 20 });
@@ -985,6 +987,9 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     // carries none of the other 16 functions that realize it.
     expect(traced.has("application.applicationfunction.import-step-0")).toBe(true);
     expect(intent.untraced.filter((id: string) => id.startsWith("application.applicationfunction.import-"))).toHaveLength(16);
+    // Re-review of PR 1269: a larger hubThreshold would trace them only down through import-step-0, the
+    // route the carrier rule forbids, so the hub note does not count them or promise to trace them.
+    expect(intent.walk.blockedByHub.filter((id: string) => id.startsWith("application.applicationfunction.import-"))).toEqual([]);
   });
 
   it("reports in the delta an element that stops tracing, whichever list it lands in (review of PR 1269)", async () => {

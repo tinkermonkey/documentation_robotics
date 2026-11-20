@@ -660,7 +660,13 @@ export function buildBrief({
   // What the hub rule costs: the elements it leaves untraced that reach intent once hubs are walked through.
   const withoutHubRule = new IntentWalk(graph, Number.POSITIVE_INFINITY, maxHops);
   const anchoredElsewhere = new Set(unanchored.map((u) => u.element));
-  const blockedByHub = [...untraced, ...noCatalogRoute].filter((id) => !anchoredElsewhere.has(id) && !!withoutHubRule.trace(id).traced);
+  // Only routes the carrier rule allows: one that climbs to a carrier and then runs down to another of
+  // its parts or realizers would trace a sibling through that sibling, which no hubThreshold should do.
+  const blockedByHub = [...untraced, ...noCatalogRoute].filter((id) => {
+    if (anchoredElsewhere.has(id)) return false;
+    const traced = withoutHubRule.trace(id).traced;
+    return !!traced && !climbsThenDescends(graph, traced.path);
+  });
 
   // Code touched: files of changed elements and of the existing elements next to them.
   const files = new Map<string, Map<string, "changed" | "neighbor">>();
@@ -1199,6 +1205,20 @@ function presentUnwired(
 /** Key of one unwired entry of one element, for comparing two briefs. */
 export function unwiredKey(element: string, entry: Pick<UnwiredEntry, "direction" | "predicate" | "otherType">): string {
   return `${element}|${entry.direction}|${entry.predicate}|${entry.otherType}`;
+}
+
+/**
+ * Whether a trace path goes up to a carrier (a whole, or what an element realizes) and later down to
+ * one of a carrier's own parts or realizers: the route the carrier rule does not let a sibling take.
+ */
+function climbsThenDescends(graph: ChangesetGraph, path: string[]): boolean {
+  let climbed = false;
+  for (let i = 0; i + 1 < path.length; i++) {
+    const steps = graph.neighbors(path[i]).filter((n) => n.other === path[i + 1]);
+    if (steps.some(carries)) climbed = true;
+    else if (climbed && steps.some(hangsFrom)) return true;
+  }
+  return false;
 }
 
 let intentRouteTypes: Set<string> | undefined;
