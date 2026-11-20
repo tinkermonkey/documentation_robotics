@@ -142,21 +142,32 @@ describe("ensurePrettierIgnoresDrFiles", () => {
       "utf-8"
     );
 
+    // The dry run names what the entry takes the place of, as the run does
     const dry = await ensurePrettierIgnoresDrFiles(dir, { dryRun: true });
-    expect(dry).toMatchObject({ status: "missing", entries: ["documentation-robotics/"] });
+    expect(dry).toMatchObject({
+      status: "missing",
+      entries: ["documentation-robotics/"],
+      replaced: [
+        "# Documentation Robotics: dr writes its changeset files in its own layout",
+        "documentation-robotics/changesets/",
+      ],
+    });
 
     const result = await ensurePrettierIgnoresDrFiles(dir);
     expect(result).toMatchObject({
       status: "added",
       entries: ["documentation-robotics/"],
-      replaced: ["documentation-robotics/changesets/"],
+      replaced: [
+        "# Documentation Robotics: dr writes its changeset files in its own layout",
+        "documentation-robotics/changesets/",
+      ],
     });
     // dr's own heading and line are replaced; the developer's lines around them are untouched
     expect(await readFile(ignoreFile, "utf-8")).toBe(
       "dist\n\n# Documentation Robotics: dr writes the files in this folder in its own layout\ndocumentation-robotics/\n\n# mine\ncoverage\n"
     );
     expect(prettierIgnoreNote(result, dir)).toContain(
-      "Added documentation-robotics/ to .prettierignore, in place of documentation-robotics/changesets/"
+      "Added documentation-robotics/ to .prettierignore, in place of # Documentation Robotics: dr writes its changeset files in its own layout and documentation-robotics/changesets/"
     );
     expect((await ensurePrettierIgnoresDrFiles(dir)).status).toBe("present");
   });

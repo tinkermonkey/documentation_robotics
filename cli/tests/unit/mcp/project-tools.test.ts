@@ -627,6 +627,12 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
     expect(preview.gitignore).toMatchObject({ wouldIgnoreTracked: tracked, alreadyIgnored: false });
     expect(preview.gitignore.options.map((option: any) => option.choice)).toEqual(["untrack", "keep-tracked", "skip"]);
+    // More tracked files than the list holds by default: the rest are in git, and the hint says how to list them
+    expect(preview.gitignore.trackedFiles).toHaveLength(10);
+    expect(preview.gitignore).toMatchObject({ shown: 10, omitted: tracked - 10 });
+    expect(preview.gitignore.more).toContain("git ls-files .dr lists them all");
+    const full = parse(await projectUpgradeHandler({ rootPath: dir, detail: "full" }));
+    expect(full.gitignore.trackedFiles).toHaveLength(tracked);
     expect(preview.outsideModel.gitignore).toBeUndefined();
 
     // Apply without a choice: the model moves, .gitignore and the index don't

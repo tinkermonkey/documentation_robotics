@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { SHIPPED_ENTRIES, shippedEntries } from "@/integrations/shipped-entries";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { SHIPPED_ENTRIES, shippedEntries, shippedVersions } from "@/integrations/shipped-entries";
+import { shippedSkill } from "../../fixtures/shipped-integration";
 
 const INTEGRATIONS = join(import.meta.dir, "..", "..", "..", "..", "integrations");
 
@@ -43,8 +46,20 @@ describe("shipped integration entries", () => {
       } catch {
         // a component without a source folder ships nothing
       }
-      const table = SHIPPED_ENTRIES[integration]?.[target] ?? [];
+      const table = Object.keys(SHIPPED_ENTRIES[integration]?.[target] ?? {});
       expect(current.filter((name) => !table.includes(name))).toEqual([]);
     }
+  });
+
+  it("holds the content of every version, including what the current integration ships", () => {
+    const hash = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+    // The two leftovers that started this, as an older dr shipped them
+    for (const name of ["dr_layer_02_business", "dr_layer_04_app"]) {
+      expect(shippedVersions("github_copilot", "skills", name)!["SKILL.md"]).toContain(hash(shippedSkill(name)));
+    }
+    // A file this dr ships today
+    const current = readFileSync(join(INTEGRATIONS, "github_copilot", "agents", "dr-advisor.md"));
+    expect(shippedVersions("github_copilot", "agents", "dr-advisor.md")![""]).toContain(hash(current));
+    expect(shippedVersions("github_copilot", "agents", "dr-who.md")).toBeUndefined();
   });
 });

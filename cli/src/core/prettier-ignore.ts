@@ -54,8 +54,8 @@ export interface PrettierIgnoreResult {
    */
   entries?: string[];
   /**
-   * DR's own narrower entries that the folder entry replaced: the changesets line dr 0.6.0 wrote
-   * under its heading. Never a line the developer wrote.
+   * DR's own lines that the folder entry replaced (with `dryRun`, would replace): the heading and
+   * changesets line dr 0.6.0 wrote. Never a line the developer wrote.
    */
   replaced?: string[];
   /** What showed prettier is in use, e.g. `.prettierrc.json`, `package.json devDependencies`. */
@@ -204,17 +204,26 @@ export async function ensurePrettierIgnoresDrFiles(
   if (lines.map((line) => line.trim()).some((line) => isPattern(line) && covers(line, folder))) {
     return { status: "present", path: file, entries, signals };
   }
-  if (options.dryRun) return { status: "missing", path: file, entries, signals };
-
   // The block an earlier dr wrote: its heading, then its entries for folders inside this one.
   // Those lines are dr's own, so the folder entry takes their place.
   const heading = lines.findIndex((line) => line.trim() === EARLIER_HEADING || line.trim() === HEADING);
+  let end = heading + 1;
+  while (heading !== -1 && end < lines.length && isPattern(lines[end].trim()) && patternFolder(lines[end].trim()).startsWith(`${folder}/`)) {
+    end++;
+  }
+  // What the entry takes the place of: the old heading (when it differs) and its entries
+  const replaced =
+    heading === -1
+      ? []
+      : [
+          ...(lines[heading].trim() !== HEADING ? [lines[heading].trim()] : []),
+          ...lines.slice(heading + 1, end).map((line) => line.trim()),
+        ];
+  if (options.dryRun) {
+    return { status: "missing", path: file, entries, ...(replaced.length > 0 ? { replaced } : {}), signals };
+  }
+
   if (heading !== -1) {
-    let end = heading + 1;
-    while (end < lines.length && isPattern(lines[end].trim()) && patternFolder(lines[end].trim()).startsWith(`${folder}/`)) {
-      end++;
-    }
-    const replaced = lines.slice(heading + 1, end).map((line) => line.trim());
     lines.splice(heading, end - heading, HEADING, ...entries);
     await writeFile(file, lines.join(eol), "utf-8");
     return { status: "added", path: file, entries, ...(replaced.length > 0 ? { replaced } : {}), signals };

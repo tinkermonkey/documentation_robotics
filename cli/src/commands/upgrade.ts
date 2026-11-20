@@ -98,6 +98,17 @@ export interface UpgradeOptions {
   full?: boolean;
 }
 
+/** -1, 0 or 1 as version a is older than, the same as, or newer than b (numeric dotted parts) */
+function compareVersions(a: string, b: string): number {
+  const as = a.split(/[.-]/).map((part) => Number.parseInt(part, 10) || 0);
+  const bs = b.split(/[.-]/).map((part) => Number.parseInt(part, 10) || 0);
+  for (let i = 0; i < Math.max(as.length, bs.length); i++) {
+    const d = (as[i] ?? 0) - (bs[i] ?? 0);
+    if (d !== 0) return d < 0 ? -1 : 1;
+  }
+  return 0;
+}
+
 /** The managers of the per-project integrations, by name */
 const INTEGRATIONS = [
   { name: "claude" as const, label: "Claude Code", create: () => new ClaudeIntegrationManager() },
@@ -121,17 +132,28 @@ async function buildIntegrationActions(
     if (!(await manager.isInstalled())) continue;
 
     const installedVersion = (await manager.loadVersionFile())?.version;
-    const needsUpgrade = Boolean(installedVersion && installedVersion !== cliVersion);
+    // A newer dr installed it: replacing its files with this dr's older ones is a downgrade, so
+    // it happens only with --force, and says so
+    const newer = Boolean(installedVersion && compareVersions(installedVersion, cliVersion) > 0);
+    const needsUpgrade = Boolean(installedVersion && installedVersion !== cliVersion && !newer);
     const upgrade = force || needsUpgrade;
 
     if (upgrade) {
       actions.push({
         type: "integration",
-        description: force ? `Reinstall ${label} integration (forced)` : `Upgrade ${label} integration`,
+        description: newer
+          ? `Downgrade ${label} integration to this dr's files (forced; a newer dr installed it)`
+          : force
+            ? `Reinstall ${label} integration (forced)`
+            : `Upgrade ${label} integration`,
         fromVersion: installedVersion,
         toVersion: cliVersion,
         integrationName: name,
       });
+    } else if (newer) {
+      upToDate.push(
+        `  ${ansis.yellow("⚠")} ${label} integration was installed by a newer dr (v${installedVersion}); this dr (v${cliVersion}) leaves it alone. dr upgrade --force would replace it with this dr's older files.`
+      );
     } else if (installedVersion) {
       upToDate.push(`  ${ansis.green("✓")} ${label} integration up to date (v${installedVersion})`);
     }
@@ -653,7 +675,11 @@ async function keepDotDrOutOfGit(projectRoot: string, options: UpgradeOptions): 
     for (const note of dotDrIgnoreNotes(ignore)) console.log(ansis.dim(note));
     for (const warning of dotDrIgnoreWarnings(ignore)) console.warn(ansis.yellow(`⚠ Warning: ${warning}`));
   } catch (error) {
-    console.warn(ansis.yellow(`⚠ Warning: could not update .gitignore: ${getErrorMessage(error)}. Add /.dr/ to it by hand.`));
+    console.warn(
+      ansis.yellow(
+        `⚠ Warning: could not update .gitignore: ${getErrorMessage(error)}. Before adding /.dr/ to it by hand, run git ls-files .dr: if git tracks files there, decide first whether to untrack them (git rm -r --cached .dr), or the rule leaves them tracked and unstageable.`
+      )
+    );
   }
 }
 
@@ -676,15 +702,18 @@ async function keepPrettierOffDrFiles(projectRoot: string): Promise<void> {
 const withoutSlash = (entry: string) => entry.replace(/\/+$/, "");
 
 /**
- * Leftovers of older integration layouts (see BaseIntegrationManager.findStaleEntries): names an
- * earlier dr installed that this dr's integration no longer has. Each is the person's to keep or
- * remove: --remove-stale removes them all, --remove-stale <path>... the ones named, a terminal
- * offers a pick-list, and otherwise they are listed with how to remove them.
+ * Leftovers of older integration layouts (see BaseIntegrationManager.findStaleEntries), each the
+ * person's to keep or remove:
+ * - an entry whose contents are a version dr shipped is a leftover: --remove-stale removes all of
+ *   them, --remove-stale <path>... the ones named, a terminal offers a pick-list;
+ * - an entry with a name dr once used but other contents (edited, or the project's own) is listed
+ *   apart and removed only when its path is named, or picked in a terminal.
+ * Otherwise they are listed with how to remove them.
  */
 async function offerStaleRemoval(options: UpgradeOptions, integrations: IntegrationPlan[]): Promise<void> {
-  const listed = integrations.flatMap((plan) => plan.stale);
+  const listed = integrations.flatMap((plan) => [...plan.stale, ...plan.changed]);
   const asked = Array.isArray(options.removeStale) ? options.removeStale.map(withoutSlash) : [];
-  // A path that is not a listed leftover is never removed: say so, and remove nothing in its place
+  // A path that is not listed is never removed: say so, and remove nothing in its place
   const unknown = asked.filter((entry) => !listed.some((stale) => withoutSlash(stale) === entry));
   for (const entry of unknown) {
     console.warn(
@@ -693,35 +722,54 @@ async function offerStaleRemoval(options: UpgradeOptions, integrations: Integrat
   }
 
   for (const plan of integrations) {
-    if (plan.stale.length === 0) continue;
+    if (plan.stale.length === 0 && plan.changed.length === 0) continue;
     const manager = INTEGRATIONS.find((integration) => integration.name === plan.name)!.create();
-    const one = plan.stale.length === 1;
 
-    console.log(
-      ansis.yellow(
-        `\n⚠ ${plan.stale.length} entr${one ? "y" : "ies"} in ${plan.folder}/ ${one ? "is" : "are"} left over from an earlier dr's ${plan.label} integration: dr installed ${one ? "it" : "them"} under ${one ? "that name" : "those names"}, this dr's integration has no such entry, and no upgrade updates or removes ${one ? "it" : "them"}:`
-      )
-    );
-    plan.stale.forEach((entry) => console.log(ansis.dim(`   ${entry}`)));
+    if (plan.stale.length > 0) {
+      const one = plan.stale.length === 1;
+      console.log(
+        ansis.yellow(
+          `\n⚠ ${plan.stale.length} entr${one ? "y" : "ies"} in ${plan.folder}/ ${one ? "is" : "are"} left over from an earlier dr's ${plan.label} integration: dr shipped ${one ? "it" : "them"} with exactly these contents, this dr's integration has no such entry, and no upgrade updates or removes ${one ? "it" : "them"}:`
+        )
+      );
+      plan.stale.forEach((entry) => console.log(ansis.dim(`   ${entry}`)));
+    }
+    if (plan.changed.length > 0) {
+      const one = plan.changed.length === 1;
+      console.log(
+        ansis.yellow(
+          `\n⚠ ${plan.changed.length} entr${one ? "y" : "ies"} in ${plan.folder}/ ${one ? "has" : "have"} a name an earlier dr used, but ${one ? "its" : "their"} contents are not what dr shipped (edited since, or the project's own file). ${one ? "It is" : "They are"} kept unless you name ${one ? "it" : "them"}:`
+        )
+      );
+      plan.changed.forEach((entry) => console.log(ansis.dim(`   ${entry}`)));
+    }
 
     let chosen: string[] = [];
+    let named: string[] = [];
     if (options.removeStale === true) {
+      // "All" means the leftovers dr shipped, never a changed file
       chosen = plan.stale;
     } else if (Array.isArray(options.removeStale)) {
-      chosen = plan.stale.filter((entry) => asked.includes(withoutSlash(entry)));
+      chosen = [...plan.stale, ...plan.changed].filter((entry) => asked.includes(withoutSlash(entry)));
+      named = chosen;
     } else if (!options.yes && process.stdin.isTTY && process.stdout.isTTY) {
       const picked = await multiselect({
         message: "Remove which? (space to pick, enter to confirm; none picked keeps them all)",
-        options: plan.stale.map((entry) => ({ value: entry, label: entry })),
+        options: [
+          ...plan.stale.map((entry) => ({ value: entry, label: entry, hint: "as dr shipped it" })),
+          ...plan.changed.map((entry) => ({ value: entry, label: entry, hint: "contents differ from what dr shipped" })),
+        ],
         required: false,
       });
       chosen = isCancel(picked) ? [] : (picked as string[]);
+      named = chosen;
     }
 
-    const kept = plan.stale.filter((entry) => !chosen.includes(entry));
+    const all = [...plan.stale, ...plan.changed];
+    const kept = all.filter((entry) => !chosen.includes(entry));
     if (chosen.length > 0) {
       try {
-        const removed = await manager.removeStaleEntries(chosen);
+        const removed = await manager.removeStaleEntries(chosen, { named });
         console.log(
           ansis.green(`✓ Removed ${removed.length} of them from ${plan.folder}/: ${removed.join(", ")}`)
         );
@@ -730,9 +778,11 @@ async function offerStaleRemoval(options: UpgradeOptions, integrations: Integrat
       }
     }
     if (kept.length > 0) {
+      const keptStale = kept.filter((entry) => plan.stale.includes(entry));
       console.log(
         ansis.dim(
-          `   Kept ${kept.length}. Remove ${kept.length === 1 ? "it" : "any of them"} with: dr upgrade --remove-stale ${kept.length === 1 ? kept[0] : "<path>..."} (or --remove-stale alone for all)`
+          `   Kept ${kept.length}. Remove ${kept.length === 1 ? "it" : "any of them"} with: dr upgrade --remove-stale ${kept.length === 1 ? kept[0] : "<path>..."}` +
+            (keptStale.length > 0 ? " (--remove-stale alone removes only the ones dr shipped as they are)" : "")
         )
       );
     }

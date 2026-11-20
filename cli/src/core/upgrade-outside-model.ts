@@ -42,8 +42,8 @@ export interface OutsideModel {
    * the index (`untrack`), or the decision it needs before it does any of that.
    */
   gitignore?: { path: string; add?: string[]; replace?: string[]; untrack?: number; decision?: DotDrDecision };
-  /** `.prettierignore`: the entries the upgrade would add */
-  prettierignore?: { path: string; add: string[] };
+  /** `.prettierignore`: the entries the upgrade would add, and dr's earlier lines they replace */
+  prettierignore?: { path: string; add: string[]; replace?: string[] };
   /** What the project's commit hooks would do to a commit of the files dr writes; dr changes nothing */
   commitHooks?: string[];
   /** Checks that failed; the upgrade goes on without them */
@@ -107,7 +107,11 @@ export async function scanOutsideModel(
   try {
     const ignore = await ensurePrettierIgnoresDrFiles(projectRoot, { dryRun: true });
     if (ignore.status === "missing" && ignore.path && ignore.entries?.length) {
-      outside.prettierignore = { path: inProject(projectRoot, ignore.path), add: ignore.entries };
+      outside.prettierignore = {
+        path: inProject(projectRoot, ignore.path),
+        add: ignore.entries,
+        ...(ignore.replaced?.length ? { replace: ignore.replaced } : {}),
+      };
     }
   } catch (error) {
     outside.errors.push(`Could not check .prettierignore: ${getErrorMessage(error)}`);
@@ -126,7 +130,7 @@ export function touchesOutsideModel(outside: OutsideModel, integrations: Integra
       outside.reports ||
       outside.gitignore ||
       outside.prettierignore ||
-      integrations.some((plan) => plan.upgrade || plan.stale.length > 0)
+      integrations.some((plan) => plan.upgrade || plan.stale.length > 0 || plan.changed.length > 0)
   );
 }
 
@@ -185,7 +189,15 @@ export function outsideModelLines(
     }
     if (plan.stale.length > 0) {
       entries.push(
-"(stale: installed by an earlier dr under that name, absent from this dr's integration and from the version file, so no upgrade updates or removes it; kept unless you remove it: --remove-stale [path...])"
+        "(stale: an earlier dr shipped it with exactly these contents; absent from this dr's integration and the version file, so no upgrade updates or removes it; kept unless you remove it: --remove-stale [path...])"
+      );
+    }
+    for (const entry of plan.changed) {
+      entries.push(`${"changed".padEnd(9)} ${entry}`);
+    }
+    if (plan.changed.length > 0) {
+      entries.push(
+        "(changed: a name an earlier dr used, but not the contents it shipped; kept, and removed only by naming it: --remove-stale <path>)"
       );
     }
     const counts = plan.upgrade
@@ -219,6 +231,11 @@ export function outsideModelLines(
   }
   if (outside.prettierignore) {
     ignoreFiles.push(`${"add".padEnd(9)} ${outside.prettierignore.add.join(" and ")} to ${outside.prettierignore.path}`);
+    if (outside.prettierignore.replace) {
+      ignoreFiles.push(
+        `${"remove".padEnd(9)} ${outside.prettierignore.replace.length} line(s) an earlier dr wrote to ${outside.prettierignore.path}: ${outside.prettierignore.replace.join(" | ")}`
+      );
+    }
   }
   group("Ignore files and git's index", ignoreFiles);
 

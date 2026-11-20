@@ -96,22 +96,40 @@ function limitFrom(args: unknown): number {
   return DEFAULT_LIMIT_KB;
 }
 
-/** Every file under a folder with its size, by path relative to `root`; empty when the folder is missing. */
+/**
+ * Every file under a folder that a commit could add, with its size, by path relative to `root`.
+ * In a git repository that is what git tracks or would add (`git ls-files --cached --others
+ * --exclude-standard`): a git-ignored file (generated layer reports, say) never reaches the hook.
+ * Outside git, every file. Empty when the folder is missing.
+ */
 async function fileSizes(root: string, folder: string): Promise<Array<{ path: string; bytes: number }>> {
-  let entries;
-  try {
-    entries = await readdir(path.join(root, folder), { recursive: true, withFileTypes: true });
-  } catch {
-    return [];
+  let files: string[];
+  const listed = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", folder], {
+    cwd: root,
+    encoding: "utf-8",
+    timeout: 10_000,
+    maxBuffer: 1 << 28,
+  });
+  if (!listed.error && listed.status === 0) {
+    files = listed.stdout.split("\0").filter(Boolean);
+  } else {
+    let entries;
+    try {
+      entries = await readdir(path.join(root, folder), { recursive: true, withFileTypes: true });
+    } catch {
+      return [];
+    }
+    files = entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => path.relative(root, path.join(entry.parentPath, entry.name)).split(path.sep).join("/"));
   }
   const sizes: Array<{ path: string; bytes: number }> = [];
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    const file = path.join(entry.parentPath, entry.name);
+  for (const file of files) {
     try {
-      sizes.push({ path: path.relative(root, file).split(path.sep).join("/"), bytes: (await stat(file)).size });
+      const info = await stat(path.join(root, file));
+      if (info.isFile()) sizes.push({ path: file, bytes: info.size });
     } catch {
-      // gone since the listing
+      // gone since the listing (or a tracked file deleted in the working tree)
     }
   }
   return sizes;
@@ -226,17 +244,36 @@ export function largeFileHookNote(hook: LargeFileHook | null, options: { full?: 
     hook.overLimit.length > 0
       ? ` ${hook.overLimit.length} file(s) over the limit now, largest first: ${named
           .map((file) => `${file.path} (${file.kb} KB)`)
-          .join(", ")}${hook.overLimit.length > named.length ? `, and ${hook.overLimit.length - named.length} more` : ""}.`
+          .join(", ")}${
+          hook.overLimit.length > named.length
+            ? `, and ${hook.overLimit.length - named.length} more (dr upgrade --full, or detail: "full", names them all)`
+            : ""
+        }.`
       : "";
-  const folder = hook.excludesChangesets ? `${hook.folder}/model/` : `${hook.folder}/changesets/`;
+  // The folders to exclude: where the files over the limit are now, by their folder under the DR
+  // folder; with none over it yet, the changesets, whose files grow largest
+  const overFolders = [
+    ...new Set(
+      hook.overLimit.map((file) => {
+        const rest = file.path.slice(hook.folder.length + 1).split("/");
+        return rest.length > 1 ? `${hook.folder}/${rest[0]}/` : file.path;
+      })
+    ),
+  ].sort();
+  const folders = overFolders.length > 0 ? overFolders : [`${hook.folder}/changesets/`];
+  const folder = folders.join(" and ");
+  const pattern =
+    folders.length === 1
+      ? `^${folders[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`
+      : `^(${folders.map((entry) => entry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`;
   return (
     `This repository's ${HOOK_ID} pre-commit hook refuses a new file over ${hook.limitKb} KB. ` +
-    (hook.excludesChangesets
-      ? "dr writes each element type's file whole, and a large model's can pass that."
+    (hook.overLimit.length > 0 && overFolders.every((entry) => !entry.startsWith(`${hook.folder}/changesets/`))
+      ? "dr writes each of these files whole."
       : "dr writes a changeset's changes.yaml whole, and a bootstrap's runs to several MB, so the commit that adds one can be refused.") +
     now +
     ` dr does not edit hook configuration: to let these files through, add an exclude for ${folder} to that hook in ${hook.configPath} ` +
-    `(exclude: ^${folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}), or raise --maxkb.`
+    `(exclude: ${pattern}), joined with any pattern it already has, or raise --maxkb.`
   );
 }
 

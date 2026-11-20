@@ -255,7 +255,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
           ]
         : []),
       ...(result.gitignoreError !== undefined
-        ? [`.gitignore was not updated: ${result.gitignoreError}. Ask the user to add /.dr/ to it.`]
+        ? [`.gitignore was not updated: ${result.gitignoreError}. Before adding /.dr/ to it by hand, check git ls-files .dr: if git tracks files there, ask the user whether to untrack them first, or the rule leaves them tracked and unstageable.`]
         : []),
       ...(result.prettierignoreError !== undefined
         ? [`.prettierignore was not updated: ${result.prettierignoreError}. Ask the user to add ${PRETTIER_IGNORE_BY_HAND} to it.`]
@@ -513,7 +513,11 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
 /** The choices for files git tracks under .dr/, as the preview and an apply without a choice return them. */
 function gitignoreDecision(ignore: DotDrIgnoreResult, projectRoot: string) {
   const decision = ignore.decision!;
-  const { items, rest } = capped(decision.files, DOT_DR_FILES_SHOWN);
+  const { items, rest: shortened } = capped(decision.files, DOT_DR_FILES_SHOWN);
+  // The rest of this list is in git, not in a diff: name the command that lists it
+  const rest = shortened.omitted
+    ? { ...shortened, more: 'git ls-files .dr lists them all; project_upgrade with detail: "full" returns them all here.' }
+    : shortened;
   return {
     path: join(projectRoot, ".gitignore"),
     wouldIgnoreTracked: decision.wouldIgnoreTracked,
@@ -548,7 +552,9 @@ async function applyGitignore(projectRoot: string, choice: ProjectUpgradeArgs["g
       },
     };
   } catch (error) {
-    warnings.push(`.gitignore was not updated: ${getErrorMessage(error)}. Ask the user to add /.dr/ to it.`);
+    warnings.push(
+      `.gitignore was not updated: ${getErrorMessage(error)}. Before adding /.dr/ to it by hand, check git ls-files .dr: if git tracks files there, ask the user whether to untrack them first, or the rule leaves them tracked and unstageable.`
+    );
     return {};
   }
 }
@@ -862,7 +868,15 @@ async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
           },
         }
       : {}),
-    ...(outside.prettierignore ? { prettierignore: { path: outside.prettierignore.path, add: outside.prettierignore.add } } : {}),
+    ...(outside.prettierignore
+      ? {
+          prettierignore: {
+            path: outside.prettierignore.path,
+            add: outside.prettierignore.add,
+            ...(outside.prettierignore.replace ? { replace: outside.prettierignore.replace } : {}),
+          },
+        }
+      : {}),
   };
   return {
     ...(Object.keys(groups).length > 0

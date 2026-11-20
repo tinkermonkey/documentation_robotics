@@ -17,6 +17,7 @@ import { join } from "path";
 import yaml from "yaml";
 import { createTempWorkdir, runDr, assertOutputContains } from "../helpers/cli-runner.js";
 import { fileExists } from "../../src/utils/file-io.js";
+import { shippedSkill } from "../fixtures/shipped-integration.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -1398,10 +1399,14 @@ describe("upgrade command - unified flow", () => {
       delete version.components.agents["dr-advisor.md"];
       await writeFile(versionFile, yaml.stringify(version));
       await rm(join(tempDir.path, ".github/agents/dr-advisor.md"));
-      await mkdir(join(tempDir.path, ".github/skills/dr_layer_02_business"), { recursive: true });
-      await writeFile(join(tempDir.path, ".github/skills/dr_layer_02_business/SKILL.md"), "old layout\n");
-      await mkdir(join(tempDir.path, ".github/skills/dr_layer_04_app"), { recursive: true });
-      await writeFile(join(tempDir.path, ".github/skills/dr_layer_04_app/SKILL.md"), "old layout\n");
+      // Two skills of an older layout, as an earlier dr shipped them
+      for (const name of ["dr_layer_02_business", "dr_layer_04_app"]) {
+        await mkdir(join(tempDir.path, `.github/skills/${name}`), { recursive: true });
+        await writeFile(join(tempDir.path, `.github/skills/${name}/SKILL.md`), shippedSkill(name));
+      }
+      // A name an earlier dr used, holding the project's own text
+      await mkdir(join(tempDir.path, ".github/skills/dr_03_security_layer"), { recursive: true });
+      await writeFile(join(tempDir.path, ".github/skills/dr_03_security_layer/SKILL.md"), "our rewrite\n");
       // The project's own files, named like dr's: no dr ever installed these names
       await mkdir(join(tempDir.path, ".github/skills/dr_house_style"), { recursive: true });
       await writeFile(join(tempDir.path, ".github/skills/dr_house_style/SKILL.md"), "ours\n");
@@ -1419,6 +1424,7 @@ describe("upgrade command - unified flow", () => {
       assertOutputContains(dryRun, "update    .github/.dr-copilot-version");
       assertOutputContains(dryRun, "stale     .github/skills/dr_layer_02_business/");
       assertOutputContains(dryRun, "stale     .github/skills/dr_layer_04_app/");
+      assertOutputContains(dryRun, "changed   .github/skills/dr_03_security_layer/");
       expect(dryRun.stdout).not.toContain("dr_house_style");
       expect(dryRun.stdout).not.toContain("dr-who.md");
       assertOutputContains(dryRun, "Reports (none yet)");
@@ -1439,7 +1445,8 @@ describe("upgrade command - unified flow", () => {
       const rest = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(rest.exitCode).toBe(0);
       assertOutputContains(rest, "2 entries in .github/ are left over from an earlier dr's GitHub Copilot integration");
-      assertOutputContains(rest, "Kept 2. Remove any of them with: dr upgrade --remove-stale <path>...");
+      assertOutputContains(rest, "1 entry in .github/ has a name an earlier dr used, but its contents are not what dr shipped");
+      assertOutputContains(rest, "Kept 3. Remove any of them with: dr upgrade --remove-stale <path>...");
       expect(await fileExists(join(tempDir.path, ".github/agents/dr-advisor.md"))).toBe(true);
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business/SKILL.md"))).toBe(true);
       expect(await fileExists(join(tempDir.path, ".prettierignore"))).toBe(true);
@@ -1452,7 +1459,7 @@ describe("upgrade command - unified flow", () => {
       expect(one.exitCode).toBe(0);
       assertOutputContains(one, "Everything is up to date");
       assertOutputContains(one, "Removed 1 of them from .github/: .github/skills/dr_layer_02_business/");
-      assertOutputContains(one, "Kept 1. Remove it with: dr upgrade --remove-stale .github/skills/dr_layer_04_app/");
+      assertOutputContains(one, "Kept 2.");
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business"))).toBe(false);
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_04_app/SKILL.md"))).toBe(true);
 
@@ -1463,10 +1470,19 @@ describe("upgrade command - unified flow", () => {
       );
       expect(own.exitCode).toBe(0);
       assertOutputContains(own, "--remove-stale .github/skills/dr_house_style: not a leftover of an earlier dr's integration");
+
+      // "All" removes what dr shipped as it shipped it, and leaves the changed one
       const all = await runDr(["upgrade", "--yes", "--remove-stale"], { cwd: tempDir.path });
       expect(all.exitCode).toBe(0);
       assertOutputContains(all, "Removed 1 of them from .github/: .github/skills/dr_layer_04_app/");
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_04_app"))).toBe(false);
+      expect(await readFile(join(tempDir.path, ".github/skills/dr_03_security_layer/SKILL.md"), "utf-8")).toBe("our rewrite\n");
+
+      // The changed one goes only when its path is named
+      const changed = await runDr(["upgrade", "--yes", "--remove-stale", ".github/skills/dr_03_security_layer/"], {
+        cwd: tempDir.path,
+      });
+      assertOutputContains(changed, "Removed 1 of them from .github/: .github/skills/dr_03_security_layer/");
       expect(await readFile(join(tempDir.path, ".github/skills/dr_house_style/SKILL.md"), "utf-8")).toBe("ours\n");
       expect(await readFile(join(tempDir.path, ".github/agents/dr-who.md"), "utf-8")).toBe("ours\n");
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_change_planning/SKILL.md"))).toBe(true);
@@ -1603,6 +1619,29 @@ describe("upgrade command - unified flow", () => {
 
       const unknown = await runDr(["upgrade", "--yes", "--dot-dr", "delete"], { cwd: tempDir.path });
       expect(unknown.exitCode).not.toBe(0);
+    });
+
+    it("leaves alone an integration a newer dr installed, unless forced, and says so", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await runDr(["copilot", "install", "--force"], { cwd: tempDir.path });
+      const versionFile = join(tempDir.path, ".github/.dr-copilot-version");
+      const version = yaml.parse(await readFile(versionFile, "utf-8"));
+      version.version = "9.9.9";
+      await writeFile(versionFile, yaml.stringify(version));
+      const advisor = join(tempDir.path, ".github/agents/dr-advisor.md");
+      await writeFile(advisor, "from a newer dr\n");
+
+      const dry = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dry.exitCode).toBe(0);
+      expect(dry.stdout).not.toContain("Upgrade GitHub Copilot integration");
+      const run = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(run.exitCode).toBe(0);
+      expect(run.stdout).not.toContain("Upgrade GitHub Copilot integration...");
+      expect(await readFile(advisor, "utf-8")).toBe("from a newer dr\n");
+      expect(yaml.parse(await readFile(versionFile, "utf-8")).version).toBe("9.9.9");
+
+      const forced = await runDr(["upgrade", "--dry-run", "--force"], { cwd: tempDir.path });
+      assertOutputContains(forced, "Downgrade GitHub Copilot integration to this dr's files (forced; a newer dr installed it)");
     });
 
     it("says when a large-file commit hook would refuse a changeset, and doesn't touch the hook config", async () => {

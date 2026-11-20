@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -264,5 +264,158 @@ describe("a layer file named in another letter case is never deleted by a save (
       const reloaded = await Model.load(root, { lazyLoad: false });
       expect(reloaded.layers.get("motivation")!.listElements()).toHaveLength(2);
     });
+  });
+});
+
+describe("a save removes or replaces only files whose every entry the model loaded (PR 1266 re-review)", () => {
+  const motivationDir = (root: string) => join(root, "documentation-robotics", "model", "01_motivation");
+
+  /** Change the goal's description and save, as `dr update` does */
+  async function editGoalAndSave(root: string): Promise<void> {
+    const model = await Model.load(root, { lazyLoad: false });
+    const layer = model.layers.get("motivation")!;
+    const goal = layer.listElements().find((element) => element.path === "motivation.goal.fewer-refusals")!;
+    goal.description = "Edited";
+    layer.updateElement(goal);
+    await model.saveDirtyLayers();
+  }
+
+  it.serial("keeps a file that holds something other than elements, and says so", async () => {
+    await withModel(async (root) => {
+      await writeFile(join(motivationDir(root), "notes.yaml"), "Just a note the team keeps here\n");
+      await writeFile(join(motivationDir(root), "mixed.yaml"), "owner: platform-team\n");
+      const warn = spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        await editGoalAndSave(root);
+        expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
+          "kept 01_motivation/notes.yaml: it holds content that is not a model element"
+        );
+      } finally {
+        warn.mockRestore();
+      }
+      expect(await readFile(join(motivationDir(root), "notes.yaml"), "utf-8")).toBe("Just a note the team keeps here\n");
+      expect(await readFile(join(motivationDir(root), "mixed.yaml"), "utf-8")).toBe("owner: platform-team\n");
+    }, getCliBundledSpecVersion());
+  });
+
+  it.serial("keeps a file that did not parse when the model was loaded", async () => {
+    await withModel(async (root) => {
+      const broken =
+        "motivation.goal.hand-added:\n  id: 00000000-0000-4000-8000-000000000009\n  path: motivation.goal.hand-added\n  name: [unclosed\n";
+      await writeFile(join(motivationDir(root), "hand-added.yaml"), broken);
+      const error = spyOn(console, "error").mockImplementation(() => {});
+      const warn = spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        await editGoalAndSave(root);
+        expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
+          "kept 01_motivation/hand-added.yaml: it did not parse when the model was loaded"
+        );
+      } finally {
+        error.mockRestore();
+        warn.mockRestore();
+      }
+      expect(await readFile(join(motivationDir(root), "hand-added.yaml"), "utf-8")).toBe(broken);
+      const goals = YAML.parse(await readFile(layerFile(root, "goal.yaml"), "utf-8"));
+      expect(goals["motivation.goal.fewer-refusals"].description).toBe("Edited");
+    }, getCliBundledSpecVersion());
+  });
+
+  it.serial("refuses to write over a file that did not parse, rather than lose what it holds", async () => {
+    await withModel(async (root) => {
+      // goal.yaml itself is broken: its goal was never loaded, and the save would replace the file
+      const broken = "motivation.goal.lost-one:\n  name: [unclosed\n";
+      await writeFile(layerFile(root, "goal.yaml"), broken);
+      await writeFile(
+        join(motivationDir(root), "goal-extra.yaml"),
+        YAML.stringify({
+          "motivation.goal.other": {
+            id: "00000000-0000-4000-8000-000000000008",
+            path: "motivation.goal.other",
+            spec_node_id: "motivation.goal",
+            type: "goal",
+            layer_id: "motivation",
+            name: "other",
+            attributes: { priority: "low" },
+          },
+        })
+      );
+      const error = spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const model = await Model.load(root, { lazyLoad: false });
+        const layer = model.layers.get("motivation")!;
+        const goal = layer.listElements().find((element) => element.path === "motivation.goal.other")!;
+        goal.description = "Edited";
+        layer.updateElement(goal);
+        await expect(model.saveDirtyLayers()).rejects.toThrow(
+          "writing 01_motivation/goal.yaml would lose data, because it did not parse"
+        );
+      } finally {
+        error.mockRestore();
+      }
+      expect(await readFile(layerFile(root, "goal.yaml"), "utf-8")).toBe(broken);
+    }, getCliBundledSpecVersion());
+  });
+
+  it.serial("keeps a file added after the model was loaded", async () => {
+    await withModel(async (root) => {
+      const model = await Model.load(root, { lazyLoad: false });
+      const later = YAML.stringify({ "motivation.goal.later": { id: "x", path: "motivation.goal.later", name: "later" } });
+      await writeFile(join(motivationDir(root), "added-later.yaml"), later);
+      const layer = model.layers.get("motivation")!;
+      const goal = layer.listElements().find((element) => element.path === "motivation.goal.fewer-refusals")!;
+      goal.description = "Edited";
+      layer.updateElement(goal);
+      const warn = spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        await model.saveDirtyLayers();
+      } finally {
+        warn.mockRestore();
+      }
+      expect(await readFile(join(motivationDir(root), "added-later.yaml"), "utf-8")).toBe(later);
+    }, getCliBundledSpecVersion());
+  });
+
+  it("loads a file with an upper-case extension, and a save keeps every element it held", async () => {
+    await withModel(async (root, files) => {
+      const goals: Record<string, unknown> = YAML.parse(files.goal);
+      for (const name of ["second", "third"]) {
+        const path = `motivation.goal.${name}`;
+        goals[path] = {
+          id: `00000000-0000-4000-8000-00000000001${name.length}`,
+          path,
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name,
+          attributes: { priority: "low" },
+        };
+      }
+      await rm(layerFile(root, "goal.yaml"));
+      await writeFile(join(motivationDir(root), "GOAL.YAML"), YAML.stringify(goals));
+
+      const model = await Model.load(root, { lazyLoad: false });
+      expect(model.layers.get("motivation")!.listElements().filter((element) => element.type === "goal")).toHaveLength(3);
+      await editGoalAndSave(root);
+
+      const names = (await readdir(motivationDir(root))).filter((file) => file.toLowerCase() === "goal.yaml");
+      expect(names).toEqual(["goal.yaml"]);
+      const saved = YAML.parse(await readFile(layerFile(root, "goal.yaml"), "utf-8"));
+      expect(Object.keys(saved).sort()).toEqual([
+        "motivation.goal.fewer-refusals",
+        "motivation.goal.second",
+        "motivation.goal.third",
+      ]);
+      expect(saved["motivation.goal.fewer-refusals"].description).toBe("Edited");
+    }, getCliBundledSpecVersion());
+  });
+
+  it("still removes a type's file when its last element is deleted", async () => {
+    await withModel(async (root) => {
+      const model = await Model.load(root, { lazyLoad: false });
+      const layer = model.layers.get("motivation")!;
+      layer.deleteElement(layer.listElements().find((element) => element.type === "requirement")!.id);
+      await model.saveDirtyLayers();
+      expect((await readdir(motivationDir(root))).sort()).toEqual(["goal.yaml"]);
+    }, getCliBundledSpecVersion());
   });
 });

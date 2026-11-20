@@ -122,7 +122,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
     }
     for (const warning of [
       ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
-      ...(result.gitignoreError !== undefined ? [`Could not update .gitignore: ${result.gitignoreError}. Add /.dr/ to it by hand.`] : []),
+      ...(result.gitignoreError !== undefined ? [`Could not update .gitignore: ${result.gitignoreError}. Before adding /.dr/ to it by hand, run git ls-files .dr: if git tracks files there, decide first whether to untrack them (git rm -r --cached .dr).`] : []),
       ...(result.prettierignoreError !== undefined
         ? [`Could not update .prettierignore: ${result.prettierignoreError}. Add ${PRETTIER_IGNORE_BY_HAND} to it by hand.`]
         : []),

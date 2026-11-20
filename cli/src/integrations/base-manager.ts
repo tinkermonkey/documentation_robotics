@@ -34,7 +34,8 @@ import {
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCliVersion as getCliVersionFromUtils } from "../utils/spec-version.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { shippedEntries } from "./shipped-entries.js";
+import { shippedVersions, SHIPPED_ENTRIES, type ShippedVersions } from "./shipped-entries.js";
+import { createHash } from "node:crypto";
 
 /** One file an integration upgrade would write or remove, by path relative to the project root */
 export interface IntegrationFileChange {
@@ -64,6 +65,12 @@ export interface IntegrationUpgradePlan {
    * See {@link BaseIntegrationManager.findStaleEntries}.
    */
   stale: string[];
+  /**
+   * Files and folders with a name an earlier dr installed there whose contents are not a version
+   * dr shipped: edited since, or the project's own file under that name. Listed, and removed only
+   * when the person names the path.
+   */
+  changed: string[];
 }
 
 /**
@@ -615,30 +622,57 @@ export abstract class BaseIntegrationManager {
         .sort((a, b) => a.path.localeCompare(b.path)),
       kept: kept.sort(),
       versionFile: `${folder}/${this.versionFileName}`,
-      stale: await this.findStaleEntries(),
+      ...(await this.findStaleEntries()),
     };
   }
 
   /**
-   * The names dr has ever installed in a component's target folder (shipped-entries.ts). Only an
-   * entry with one of these names can be a leftover: a name pattern would also match the
-   * project's own `dr-…` files.
+   * The versions dr has shipped of an entry in a component's target folder (shipped-entries.ts),
+   * or undefined when dr never installed that name there.
    */
-  protected shippedEntries(config: ComponentConfig): readonly string[] {
-    return shippedEntries(this.integrationSourceDir, config.target);
+  protected shippedVersions(config: ComponentConfig, entry: string): ShippedVersions | undefined {
+    return shippedVersions(this.integrationSourceDir, config.target, entry);
+  }
+
+  /** Whether any entry name in a component's target folder was ever installed by dr */
+  protected hasShippedEntries(config: ComponentConfig): boolean {
+    return Object.keys(SHIPPED_ENTRIES[this.integrationSourceDir]?.[config.target] ?? {}).length > 0;
   }
 
   /**
-   * Leftovers of older integration layouts: files and folders directly inside the installed
-   * components' folders whose name an earlier dr installed there (see {@link shippedEntries}),
-   * that this dr's integration doesn't have and the version file doesn't record. No upgrade
-   * touches them, and the agent keeps loading them (a Copilot skill folder from an old layer
-   * numbering, say). Anything else in those folders is the project's own and is never listed,
-   * whatever it is called. Paths are relative to the project root; folders end in a slash.
+   * Whether an entry on disk is, file for file, a version dr shipped: a file whose content hash is
+   * one of the versions, or a folder whose every file is one of the versions of that path in it.
    */
-  public async findStaleEntries(): Promise<string[]> {
+  private async isShippedContent(path: string, isFolder: boolean, versions: ShippedVersions): Promise<boolean> {
+    const hashOf = async (file: string) =>
+      createHash("sha256").update(await fsReadFile(file)).digest("hex").slice(0, 16);
+    if (!isFolder) return (versions[""] ?? []).includes(await hashOf(path));
+    const files = (await readdir(path, { recursive: true, withFileTypes: true })).filter((entry) => entry.isFile());
+    if (files.length === 0) return false;
+    for (const file of files) {
+      const full = join(file.parentPath, file.name);
+      const inner = full.slice(path.length + 1).split(sep).join("/");
+      if (!(versions[inner] ?? []).includes(await hashOf(full))) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Leftovers of older integration layouts, in the installed components' folders, that this dr's
+   * integration doesn't have and the version file doesn't record, so no upgrade touches them while
+   * the agent keeps loading them (a Copilot skill folder from an old layer numbering, say).
+   *
+   * - `stale`: entries whose name an earlier dr installed there and whose contents are a version
+   *   it shipped, file for file (shipped-entries.ts). These are dr's own leftovers.
+   * - `changed`: entries with such a name whose contents are not a shipped version: edited since,
+   *   or the project's own file under a name dr once used. Listed, never removed unless named.
+   *
+   * Anything else in those folders is the project's own and is never listed. Paths are relative
+   * to the project root; folders end in a slash.
+   */
+  public async findStaleEntries(): Promise<{ stale: string[]; changed: string[] }> {
     const versionData = await this.loadVersionFile();
-    if (!versionData) return [];
+    if (!versionData) return { stale: [], changed: [] };
 
     const sourceRoot = this.getSourceRoot();
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
@@ -646,40 +680,46 @@ export abstract class BaseIntegrationManager {
     const first = (filePath: string) => filePath.split(sep)[0].split("/")[0];
 
     const stale: string[] = [];
+    const changed: string[] = [];
     for (const [componentName, recorded] of Object.entries(versionData.components || {})) {
       const config = this.components[componentName];
       if (!config || !this.isTrackedComponent(componentName)) continue;
       const targetPath = join(absoluteTargetDir, config.target);
-      if (!existsSync(targetPath)) continue;
+      if (!existsSync(targetPath) || !this.hasShippedEntries(config)) continue;
 
-      const shipped = new Set(this.shippedEntries(config));
-      if (shipped.size === 0) continue;
       const current = new Set(
         [...(await computeDirectoryHashes(join(sourceRoot, config.source), config.prefix)).keys()].map(first)
       );
       // What the version file records is the upgrade's to update or remove
       const tracked = new Set(Object.keys(recorded || {}).map(first));
       for (const entry of await readdir(targetPath, { withFileTypes: true })) {
-        if (!shipped.has(entry.name) || current.has(entry.name) || tracked.has(entry.name)) continue;
+        if (current.has(entry.name) || tracked.has(entry.name)) continue;
         if (!entry.isFile() && !entry.isDirectory()) continue;
-        stale.push(`${folder}/${config.target}/${entry.name}${entry.isDirectory() ? "/" : ""}`);
+        const versions = this.shippedVersions(config, entry.name);
+        if (!versions) continue;
+        const path = `${folder}/${config.target}/${entry.name}${entry.isDirectory() ? "/" : ""}`;
+        const shipped = await this.isShippedContent(join(targetPath, entry.name), entry.isDirectory(), versions);
+        (shipped ? stale : changed).push(path);
       }
     }
-    return stale.sort();
+    return { stale: stale.sort(), changed: changed.sort() };
   }
 
   /**
-   * Remove the stale entries the caller names (see {@link findStaleEntries}): the ones the person
-   * chose, one path each. A path that is not a stale entry now is skipped, whatever it is.
+   * Remove the leftovers the caller names (see {@link findStaleEntries}), one path each: a `stale`
+   * entry, or a `changed` one when `named` says the person typed or picked that path. Any other
+   * path is skipped, whatever it is.
    *
+   * @param options.named - the paths the person named themselves: only these may be `changed` ones
    * @returns the paths removed
    */
-  public async removeStaleEntries(paths: string[]): Promise<string[]> {
-    const stale = new Set(await this.findStaleEntries());
+  public async removeStaleEntries(paths: string[], options: { named?: string[] } = {}): Promise<string[]> {
+    const { stale, changed } = await this.findStaleEntries();
+    const removable = new Set([...stale, ...changed.filter((path) => options.named?.includes(path))]);
     const projectRoot = dirname(await this.getAbsoluteTargetDir());
     const removed: string[] = [];
     for (const path of paths) {
-      if (!stale.has(path)) continue;
+      if (!removable.has(path)) continue;
       await rm(join(projectRoot, ...path.split("/").filter(Boolean)), { recursive: true, force: true });
       removed.push(path);
     }

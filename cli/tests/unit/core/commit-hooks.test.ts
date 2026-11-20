@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -87,12 +88,12 @@ describe("largeFileHook", () => {
 
       const note = largeFileHookNote(hook)!;
       expect(note).toContain("5 file(s) over the limit now, largest first:");
-      expect(note).toContain("changeset-3/changes.yaml (530 KB), and 2 more.");
+      expect(note).toContain('changeset-3/changes.yaml (530 KB), and 2 more (dr upgrade --full, or detail: "full", names them all).');
       expect(note).not.toContain("changeset-1/changes.yaml");
 
       const full = largeFileHookNote(hook, { full: true })!;
       expect(full).toContain("changeset-1/changes.yaml (510 KB).");
-      expect(full).not.toContain("more.");
+      expect(full).not.toContain("more (");
     });
   });
 
@@ -138,6 +139,47 @@ describe("largeFileHook", () => {
     expect(excludePattern("^docs/")!.test("src/docs/x")).toBe(false);
     expect(excludePattern("(?P<name>x")).toBeNull();
     expect(excludePattern(undefined)).toBeNull();
+  });
+});
+
+describe("largeFileHook in a git repository (PR 1266 re-review)", () => {
+  function git(cwd: string, ...args: string[]): void {
+    const result = spawnSync("git", args, { cwd, stdio: "pipe", encoding: "utf-8" });
+    if (result.status !== 0) throw new Error(`git ${args.join(" ")}: ${result.stderr}`);
+  }
+
+  it("sizes only files a commit could add, and names the folder that holds the large ones", async () => {
+    await withProject(async (dir) => {
+      git(dir, "init", "-q");
+      git(dir, "config", "core.excludesFile", path.join(dir, ".no-global-excludes"));
+      await writeFile(
+        path.join(dir, ".pre-commit-config.yaml"),
+        config("      - id: check-added-large-files\n        args: [--maxkb=1000]\n        exclude: ^documentation-robotics/changesets/\n"),
+        "utf-8"
+      );
+      // Generated reports, git-ignored: never committed, so never refused
+      await writeFile(path.join(dir, ".gitignore"), "documentation-robotics/reports/\n", "utf-8");
+      await mkdir(path.join(dir, "documentation-robotics", "reports"), { recursive: true });
+      await writeFile(
+        path.join(dir, "documentation-robotics", "reports", "05-application-layer-report.md"),
+        "x".repeat(1900 * 1024),
+        "utf-8"
+      );
+      let hook = await largeFileHook(dir);
+      expect(hook!.overLimit).toEqual([]);
+      expect(largeFileHookNote(hook)).toBeNull();
+
+      // Not ignored: now it would be refused, and the note names its own folder, not model/
+      await writeFile(path.join(dir, ".gitignore"), "", "utf-8");
+      hook = await largeFileHook(dir);
+      expect(hook!.overLimit).toEqual([
+        { path: "documentation-robotics/reports/05-application-layer-report.md", kb: 1900 },
+      ]);
+      const note = largeFileHookNote(hook)!;
+      expect(note).toContain("add an exclude for documentation-robotics/reports/");
+      expect(note).toContain("(exclude: ^documentation-robotics/reports/)");
+      expect(note).not.toContain("documentation-robotics/model/");
+    });
   });
 });
 

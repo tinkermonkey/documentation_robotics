@@ -65,6 +65,31 @@ export function sameYamlData(a: string, b: string, parse: (text: string) => unkn
   }
 }
 
+/** A file of a layer folder, relative to the model folder, for messages */
+function filePath(layerPath: string, file: string): string {
+  return `${path.basename(layerPath)}/${file}`;
+}
+
+/** A model file name: YAML by its extension, whatever its letter case (`goal.yaml`, `GOAL.YML`) */
+export const YAML_FILE = /\.ya?ml$/i;
+
+/**
+ * What loading made of one YAML file in a layer folder, which decides what a later save of the
+ * layer may do to it.
+ *
+ * - `loaded`: it parsed to a mapping whose every entry became an element. A save may replace or
+ *   remove it, as long as its text is still what was loaded.
+ * - `failed`: it did not parse. Its elements were never loaded, so writing over it or removing it
+ *   would lose them.
+ * - `partial`: it parsed, but holds something that is not an element (a plain value, a list, an
+ *   empty or comment-only file). That part was never loaded either.
+ */
+export interface LayerFileRecord {
+  state: "loaded" | "failed" | "partial";
+  /** The file's text when it was loaded */
+  text: string;
+}
+
 /**
  * What a layer save does to the YAML files already in its folder, given the names it will write.
  *
@@ -222,6 +247,12 @@ export class Model {
    * relationship changes are merged into `relationships`. Null when no changeset was active.
    */
   private _baseRelationships: Relationship[] | null = null;
+  /**
+   * Per loaded layer, what loading made of each YAML file in its folder (LayerFileRecord). A save
+   * reads it to decide which files it may replace or remove; a layer with no entry was not loaded
+   * from disk.
+   */
+  private layerFiles: Map<string, Map<string, LayerFileRecord>> = new Map();
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
@@ -383,19 +414,26 @@ export class Model {
 
       const layer = new Layer(name, this.graph);
       let parseErrorCount = 0;
+      const fileRecords = new Map<string, LayerFileRecord>();
 
-      // Load all YAML files in the layer directory
+      // Load all YAML files in the layer directory (any letter case of the extension)
       const files = await fs.readdir(layerPath);
       for (const file of files) {
-        if (file.endsWith(".yaml") || file.endsWith(".yml")) {
+        if (YAML_FILE.test(file)) {
           const filePath = `${layerPath}/${file}`;
+          let yamlContent = "";
           try {
-            const yamlContent = await fs.readFile(filePath, "utf-8");
+            yamlContent = await fs.readFile(filePath, "utf-8");
             const elements = yaml.parse(yamlContent);
+            // Anything in the file that does not become an element makes it partial
+            let complete = elements !== null && typeof elements === "object" && !Array.isArray(elements);
 
             // Add each element from the YAML file
             if (elements && typeof elements === "object") {
               for (const [key, element] of Object.entries(elements)) {
+                if (!element || typeof element !== "object" || Array.isArray(element)) {
+                  complete = false;
+                }
                 if (element && typeof element === "object") {
                   const el: any = element;
 
@@ -476,15 +514,18 @@ export class Model {
                 }
               }
             }
+            fileRecords.set(file, { state: complete ? "loaded" : "partial", text: yamlContent });
           } catch (fileError) {
             // Log YAML parsing errors but continue loading other files
             const errorMsg = fileError instanceof Error ? fileError.message : String(fileError);
             console.error(`Warning: Failed to parse ${filePath}: ${errorMsg}`);
             parseErrorCount++;
+            fileRecords.set(file, { state: "failed", text: yamlContent });
             // Continue with next file
           }
         }
       }
+      this.layerFiles.set(name, fileRecords);
 
       // If we had parse errors, add a note to the layer
       if (parseErrorCount > 0) {
@@ -636,7 +677,7 @@ export class Model {
     const existingFiles = new Map<string, string>();
     try {
       for (const file of await fs.readdir(layerPath)) {
-        if (file.endsWith(".yaml") || file.endsWith(".yml")) {
+        if (YAML_FILE.test(file)) {
           existingFiles.set(file, await fs.readFile(`${layerPath}/${file}`, "utf-8"));
         }
       }
@@ -709,6 +750,64 @@ export class Model {
     // case-insensitive filesystem it is the same file, and removing it as stale after the write
     // would delete what was just written (planLayerFiles).
     const { renames, stale } = planLayerFiles([...existingFiles.keys()], [...outputs.keys()]);
+
+    // Which files this save may replace or remove: only one whose every entry loading made an
+    // element of, still as it was loaded. Anything else holds data the model doesn't have (a file
+    // that didn't parse, a plain value or comment-only file, a file added or edited since the
+    // load), and replacing or removing it would lose that data. A layer not loaded from disk (a new
+    // model's, an imported one) has no records and keeps the earlier behaviour: its files are
+    // written over, and none is removed.
+    const records = this.layerFiles.get(name);
+    const why = (file: string): string | null => {
+      const record = records?.get(file);
+      if (!record) return "dr did not read it when it loaded the model (added since?)";
+      if (record.state === "failed") return "it did not parse when the model was loaded, so its elements were never read";
+      if (record.state === "partial") return "it holds content that is not a model element, which the model never loaded";
+      const now = existingFiles.get(file);
+      // Changed since the load (a migration may rewrite a file itself): still safe when every
+      // entry it holds now is an element this model holds
+      if (record.text !== now && !holdsOnlyLayerElements(now)) return "it changed on disk since the model was loaded";
+      return null;
+    };
+    function holdsOnlyLayerElements(text: string | undefined): boolean {
+      if (text === undefined) return false;
+      let doc: unknown;
+      try {
+        doc = yaml.parse(text);
+      } catch {
+        return false;
+      }
+      if (!doc || typeof doc !== "object" || Array.isArray(doc)) return false;
+      const held = new Set<string>();
+      for (const element of layer!.elements.values()) {
+        held.add(element.id);
+        if (element.path) held.add(element.path);
+      }
+      return Object.entries(doc as Record<string, unknown>).every(([key, value]) => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+        const { id, path: elementPath } = value as { id?: unknown; path?: unknown };
+        return [elementPath, id, key].some((candidate) => typeof candidate === "string" && held.has(candidate));
+      });
+    }
+    if (records) {
+      // A file the save would overwrite (by its exact name, or by letter case on macOS and Windows)
+      const overwritten = [
+        ...[...outputs.keys()].filter((file) => existingFiles.has(file)),
+        ...renames.map(([from]) => from),
+      ];
+      for (const file of overwritten) {
+        const reason = why(file);
+        // An exact-name file that changed since the load is written over, as dr always has; one
+        // that holds what the model never loaded is not
+        if (reason && !(reason.startsWith("it changed") && outputs.has(file))) {
+          throw new Error(
+            `Not saving layer '${name}': writing ${filePath(layerPath, file)} would lose data, because ${reason}. ` +
+              `Fix or move that file, then retry.`
+          );
+        }
+      }
+    }
+
     for (const [from, to] of renames) {
       await fs.rename(`${layerPath}/${from}`, `${layerPath}/${to}`);
       existingFiles.set(to, existingFiles.get(from)!);
@@ -723,12 +822,33 @@ export class Model {
       await writeFile(`${layerPath}/${filename}`, text);
     }
 
-    // Remove the files of types the layer no longer has, so no stale file outlives a deletion.
+    // Remove the files of types the layer no longer has, so no stale file outlives a deletion,
+    // but only files whose every element the model loaded (and now writes elsewhere or deleted).
     // None of them is a file just written: a case variant of a written name was renamed above,
     // unless the folder also listed the exact name, which only a case-sensitive filesystem allows.
     for (const file of stale) {
+      const reason = records ? why(file) : "the layer was not loaded from disk";
+      if (reason) {
+        console.warn(`Warning: kept ${filePath(layerPath, file)}: ${reason}.`);
+        continue;
+      }
       await fs.unlink(`${layerPath}/${file}`);
     }
+
+    // What is on disk now is what this model holds
+    const after = new Map<string, LayerFileRecord>();
+    for (const [file, record] of records ?? []) {
+      if (!stale.includes(file) || why(file) !== null) after.set(file, record);
+    }
+    for (const [from] of renames) after.delete(from);
+    for (const [filename, text] of outputs) {
+      const onDisk = existingFiles.get(filename);
+      after.set(filename, {
+        state: "loaded",
+        text: onDisk !== undefined && sameYamlData(onDisk, text, yaml.parse) ? onDisk : text,
+      });
+    }
+    this.layerFiles.set(name, after);
 
     layer.markClean();
   }

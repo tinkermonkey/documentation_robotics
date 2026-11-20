@@ -37,6 +37,7 @@ const copilot = (overrides: Partial<IntegrationPlan> = {}): IntegrationPlan => (
   kept: [],
   versionFile: ".github/.dr-copilot-version",
   stale: [".github/skills/dr_layer_02_business/"],
+  changed: [],
   ...overrides,
 });
 
@@ -143,6 +144,9 @@ describe("outsideModelLines (#1165)", () => {
     expect(lines.join("\n")).not.toContain(".dr-copilot-version");
     expect(lines.join("\n")).toContain("stale     .github/skills/dr_layer_02_business/");
     expect(touchesOutsideModel({ errors: [] }, [copilot({ upgrade: false, files: [], stale: [] })])).toBe(false);
+    const changed = outsideModelLines({ errors: [] }, [copilot({ upgrade: false, files: [], stale: [], changed: [".github/agents/dr-helper.md"] })]).join("\n");
+    expect(changed).toContain("changed   .github/agents/dr-helper.md");
+    expect(changed).toContain("removed only by naming it");
   });
 
   it("names a pending decision about files git tracks under .dr/ instead of a line to add", () => {
@@ -185,6 +189,22 @@ describe("outsideModelLines (#1165)", () => {
     ).join("\n");
     expect(keep).toContain("    add       /.dr/*, !/.dr/manifest.json, !/.dr/spec/ to .gitignore");
     expect(keep).not.toContain("untrack");
+  });
+
+  it("names the lines an earlier dr wrote to .prettierignore that the entry replaces", () => {
+    const text = outsideModelLines(
+      {
+        errors: [],
+        prettierignore: {
+          path: ".prettierignore",
+          add: ["documentation-robotics/"],
+          replace: ["# Documentation Robotics: dr writes its changeset files in its own layout", "documentation-robotics/changesets/"],
+        },
+      },
+      []
+    ).join("\n");
+    expect(text).toContain("    add       documentation-robotics/ to .prettierignore");
+    expect(text).toContain("    remove    2 line(s) an earlier dr wrote to .prettierignore:");
   });
 
   it("leaves the spec reference out of what --model-only skips", () => {
