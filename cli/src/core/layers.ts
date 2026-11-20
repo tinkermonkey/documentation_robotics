@@ -22,6 +22,12 @@ export const CANONICAL_LAYER_NAMES = [
 export type CanonicalLayerName = (typeof CANONICAL_LAYER_NAMES)[number];
 
 /**
+ * Layers that state why the system exists; every change should trace to one of them, and their
+ * elements have no implementation to point a source reference at.
+ */
+export const INTENT_LAYERS: ReadonlySet<string> = new Set(["motivation", "business", "product"]);
+
+/**
  * Get the numeric order of a layer (1-13)
  */
 export function getLayerOrder(layerName: string): number {

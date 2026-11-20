@@ -62,12 +62,13 @@ export class StatsCollector {
   constructor(private model: Model) {}
 
   /**
-   * Collect all statistics from the model
+   * Collect all statistics from the model. A caller that validates the model itself passes its
+   * result as `validation`, so the pipeline runs once.
    */
-  async collect(): Promise<ModelStats> {
+  async collect(options: { validation?: ValidationInfo } = {}): Promise<ModelStats> {
     const layerStats = await this.collectLayerStats();
     const relationshipStats = this.collectRelationshipStats();
-    const validationInfo = await this.collectValidationInfo();
+    const validationInfo = options.validation ?? (await this.collectValidationInfo());
     const orphanedElements = await this.findOrphanedElements();
 
     const totalElements = layerStats.reduce((sum, l) => sum + l.totalElements, 0);
@@ -221,7 +222,17 @@ export class StatsCollector {
   private async collectValidationInfo(): Promise<ValidationInfo> {
     try {
       const validator = new Validator();
-      const result = await validator.validateModel(this.model);
+      // With a changeset active, `relationships` already holds its staged relationships while
+      // `layers` holds the base elements; validating that mix reports every staged relationship
+      // to a staged element as an error (#1214). Validate the projection, as `dr validate` does.
+      const activeChangesetId = this.model.getActiveChangesetId();
+      const view = activeChangesetId
+        ? ({
+            ...(await this.model.getVirtualProjectionEngine().projectModel(this.model, activeChangesetId)),
+            rootPath: this.model.rootPath,
+          } as unknown as Model)
+        : this.model;
+      const result = await validator.validateModel(view);
 
       return {
         isValid: result.isValid(),
