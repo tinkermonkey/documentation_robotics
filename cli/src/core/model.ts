@@ -13,7 +13,7 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import { getNodeType } from "../generated/node-types.js";
@@ -81,13 +81,33 @@ export const YAML_FILE = /\.ya?ml$/i;
  *   remove it, as long as its text is still what was loaded.
  * - `failed`: it did not parse. Its elements were never loaded, so writing over it or removing it
  *   would lose them.
- * - `partial`: it parsed, but holds something that is not an element (a plain value, a list, an
- *   empty or comment-only file). That part was never loaded either.
+ * - `partial`: it parsed, but holds something that is not an element (a plain value, a list).
+ *   That part was never loaded either. A file with no YAML document (empty, whitespace or only
+ *   comments) is `loaded` with no elements; a comment-only one is marked `commentsOnly`.
  */
 export interface LayerFileRecord {
   state: "loaded" | "failed" | "partial";
   /** The file's text when it was loaded */
   text: string;
+  /**
+   * The file held no YAML document but comments (it parsed to nothing). A save may write the
+   * type's elements into it, losing the comments, and says so; it doesn't remove such a file.
+   */
+  commentsOnly?: boolean;
+}
+
+/**
+ * A layer save refused because writing a file would lose content the model never loaded. Its
+ * message names the file and why; its suggestions say what to do with that file.
+ */
+export class LayerFileConflictError extends CLIError {
+  constructor(message: string, file: string) {
+    super(message, ErrorCategory.USER, [
+      `Move what is not a model element out of ${file}, or fix it so it parses, then retry`,
+      `Or delete ${file} if nothing in it is needed`,
+    ]);
+    this.name = "LayerFileConflictError";
+  }
 }
 
 /**
@@ -426,7 +446,9 @@ export class Model {
             yamlContent = await fs.readFile(filePath, "utf-8");
             const elements = yaml.parse(yamlContent);
             // Anything in the file that does not become an element makes it partial
-            let complete = elements !== null && typeof elements === "object" && !Array.isArray(elements);
+            // No document at all (empty, whitespace, comments): nothing to lose but comments
+            const noDocument = elements === null || elements === undefined;
+            let complete = noDocument || (typeof elements === "object" && !Array.isArray(elements));
 
             // Add each element from the YAML file
             if (elements && typeof elements === "object") {
@@ -514,7 +536,11 @@ export class Model {
                 }
               }
             }
-            fileRecords.set(file, { state: complete ? "loaded" : "partial", text: yamlContent });
+            fileRecords.set(file, {
+              state: complete ? "loaded" : "partial",
+              text: yamlContent,
+              ...(noDocument && /^\s*#/m.test(yamlContent) ? { commentsOnly: true } : {}),
+            });
           } catch (fileError) {
             // Log YAML parsing errors but continue loading other files
             const errorMsg = fileError instanceof Error ? fileError.message : String(fileError);
@@ -800,9 +826,9 @@ export class Model {
         // An exact-name file that changed since the load is written over, as dr always has; one
         // that holds what the model never loaded is not
         if (reason && !(reason.startsWith("it changed") && outputs.has(file))) {
-          throw new Error(
-            `Not saving layer '${name}': writing ${filePath(layerPath, file)} would lose data, because ${reason}. ` +
-              `Fix or move that file, then retry.`
+          throw new LayerFileConflictError(
+            `Not saving layer '${name}': writing ${filePath(layerPath, file)} would lose data, because ${reason}.`,
+            filePath(layerPath, file)
           );
         }
       }
@@ -819,6 +845,11 @@ export class Model {
       if (onDisk !== undefined && sameYamlData(onDisk, text, yaml.parse)) {
         continue;
       }
+      if (onDisk !== undefined && records?.get(filename)?.commentsOnly) {
+        console.warn(
+          `Warning: ${filePath(layerPath, filename)} held only comments; dr writes the layer's elements into it and does not keep them.`
+        );
+      }
       await writeFile(`${layerPath}/${filename}`, text);
     }
 
@@ -827,7 +858,9 @@ export class Model {
     // None of them is a file just written: a case variant of a written name was renamed above,
     // unless the folder also listed the exact name, which only a case-sensitive filesystem allows.
     for (const file of stale) {
-      const reason = records ? why(file) : "the layer was not loaded from disk";
+      const reason = records
+        ? why(file) ?? (records.get(file)?.commentsOnly ? "it holds only comments, which the model does not keep" : null)
+        : "the layer was not loaded from disk";
       if (reason) {
         console.warn(`Warning: kept ${filePath(layerPath, file)}: ${reason}.`);
         continue;

@@ -3,7 +3,8 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import YAML from "yaml";
-import { Model, planLayerFiles, sameYamlData } from "../../../src/core/model.js";
+import { LayerFileConflictError, Model, planLayerFiles, sameYamlData } from "../../../src/core/model.js";
+import { Element } from "../../../src/core/element.js";
 import { upgradeModel } from "../../../src/core/model-upgrade.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
@@ -416,6 +417,94 @@ describe("a save removes or replaces only files whose every entry the model load
       layer.deleteElement(layer.listElements().find((element) => element.type === "requirement")!.id);
       await model.saveDirtyLayers();
       expect((await readdir(motivationDir(root))).sort()).toEqual(["goal.yaml"]);
+    }, getCliBundledSpecVersion());
+  });
+
+  it.serial("writes a type's elements into an empty file, and into a comment-only one with a warning", async () => {
+    await withModel(async (root) => {
+      const dir = motivationDir(root);
+      await writeFile(join(dir, "principle.yaml"), "");
+      await writeFile(join(dir, "outcome.yaml"), "# outcomes go here\n");
+      const warn = spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const model = await Model.load(root, { lazyLoad: false });
+        const layer = model.layers.get("motivation")!;
+        for (const [type, name, attributes] of [
+          ["principle", "keep-simple", { category: "architecture" }],
+          ["outcome", "fewer-refusals-seen", {}],
+        ] as const) {
+          layer.addElement(
+            new Element({
+              id: `00000000-0000-4000-8000-0000000000${type === "principle" ? "21" : "22"}`,
+              path: `motivation.${type}.${name}`,
+              spec_node_id: `motivation.${type}`,
+              type,
+              layer_id: "motivation",
+              name,
+              attributes,
+            } as any)
+          );
+        }
+        await model.saveDirtyLayers();
+        const warnings = warn.mock.calls.map((call) => String(call[0])).join("\n");
+        expect(warnings).toContain("01_motivation/outcome.yaml held only comments; dr writes the layer's elements into it and does not keep them");
+        expect(warnings).not.toContain("principle.yaml");
+      } finally {
+        warn.mockRestore();
+      }
+      expect(Object.keys(YAML.parse(await readFile(join(dir, "principle.yaml"), "utf-8")))).toEqual([
+        "motivation.principle.keep-simple",
+      ]);
+      expect(Object.keys(YAML.parse(await readFile(join(dir, "outcome.yaml"), "utf-8")))).toEqual([
+        "motivation.outcome.fewer-refusals-seen",
+      ]);
+    }, getCliBundledSpecVersion());
+  });
+
+  it.serial("removes an empty file of a type the layer doesn't have, and keeps a comment-only one", async () => {
+    await withModel(async (root, files) => {
+      const dir = motivationDir(root);
+      await writeFile(join(dir, "driver.yaml"), "\n  \n");
+      await writeFile(join(dir, "stakeholder.yaml"), "# who cares about this\n");
+      const warn = spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        await editGoalAndSave(root);
+        expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
+          "kept 01_motivation/stakeholder.yaml: it holds only comments, which the model does not keep"
+        );
+      } finally {
+        warn.mockRestore();
+      }
+      expect((await readdir(dir)).sort()).toEqual(["goal.yaml", "requirement.yaml", "stakeholder.yaml"]);
+      expect(await readFile(join(dir, "requirement.yaml"), "utf-8")).toBe(files.requirement);
+    }, getCliBundledSpecVersion());
+  });
+
+  it.serial("a refused save says what to do with the file", async () => {
+    await withModel(async (root) => {
+      await writeFile(layerFile(root, "goal.yaml"), "- just a list\n");
+      const model = await Model.load(root, { lazyLoad: false });
+      const layer = model.layers.get("motivation")!;
+      const requirement = layer.listElements().find((element) => element.type === "requirement")!;
+      layer.addElement(
+        new Element({
+          id: "00000000-0000-4000-8000-000000000031",
+          path: "motivation.goal.new-goal",
+          spec_node_id: "motivation.goal",
+          type: "goal",
+          layer_id: "motivation",
+          name: "new-goal",
+          attributes: { priority: "low" },
+        } as any)
+      );
+      expect(requirement).toBeDefined();
+      const error = await model.saveDirtyLayers().catch((caught) => caught);
+      expect(error).toBeInstanceOf(LayerFileConflictError);
+      expect(error.message).toContain("writing 01_motivation/goal.yaml would lose data, because it holds content that is not a model element");
+      expect(error.suggestions).toEqual([
+        "Move what is not a model element out of 01_motivation/goal.yaml, or fix it so it parses, then retry",
+        "Or delete 01_motivation/goal.yaml if nothing in it is needed",
+      ]);
     }, getCliBundledSpecVersion());
   });
 });
