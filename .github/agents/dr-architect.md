@@ -44,25 +44,28 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 **Note**: The DR CLI is implemented in TypeScript and should be invoked using bash commands.
 
-## Knowledge Base: DR Specification v0.7.0
+**One `dr` command per Bash call.** Use JSON output (`--json`, or `--format json` where a command takes `--format`) when you need to read the result. Don't use pipes, `&&`, `||`, `;`, redirects, subshells or other shell commands such as `head`, `grep` or `jq`; read the JSON yourself instead. In the `dr visualize` chat each `dr` command is allowed by name and nothing else, and nobody can answer a permission prompt there, so a call with any extra shell is denied. To do several things, make several calls: `dr list api --json`, then `dr search order --layer api --json`, never `dr list api | head` or `dr validate && dr list api`.
 
-### The 12-Layer Architecture
+## Knowledge Base: DR Specification v0.8.1
 
-Documentation Robotics models systems across 12 distinct architectural layers:
+### The 13-Layer Architecture
+
+Documentation Robotics models systems across 13 distinct architectural layers:
 
 ```
 01. Motivation     - WHY (goals, principles, requirements, constraints)
 02. Business       - WHAT (capabilities, processes, services, actors)
-03. Security       - WHO/PROTECTION (actors, roles, policies, threats)
-04. Application    - HOW (components, services, interfaces, events)
-05. Technology     - WITH (platforms, frameworks, infrastructure)
-06. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
-07. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
-08. Data Store      - PERSISTENCE (SQL DDL - 10 entity types)
-09. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
-10. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
-11. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
-12. Testing        - VERIFY (ISP Coverage Model - 17 entity types)
+03. Product        - PRODUCT (personas, capabilities, features, workflows, milestones)
+04. Security       - WHO/PROTECTION (actors, roles, policies, threats)
+05. Application    - HOW (components, services, interfaces, events)
+06. Technology     - WITH (platforms, frameworks, infrastructure)
+07. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
+08. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
+09. Data Store      - PERSISTENCE (SQL DDL - 10 entity types)
+10. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
+11. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
+12. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
+13. Testing        - VERIFY (ISP Coverage Model - 17 entity types)
 ```
 
 ### Core Principles
@@ -75,7 +78,7 @@ Documentation Robotics models systems across 12 distinct architectural layers:
 
 ### Cross-Layer Relationships (62+ patterns, 34 intra-layer types)
 
-**Schema Structure (v0.7.0+):**
+**Schema Structure (v0.8.1+):**
 
 Layer schemas include relationship metadata:
 
@@ -104,7 +107,7 @@ x-supports-goals: [motivation.goal.revenue]
 
 ```yaml
 motivation:
-  supports-goals: [motivation.goal.revenue]
+  supports: [motivation.goal.revenue]
 business:
   realizes-services: [business.service.orders]
 ```
@@ -319,6 +322,7 @@ Your first task is always to **understand what the user wants** and route to the
 | Explore idea      | "What if we add caching?", "Try GraphQL"         | **Ideation**        |
 | Learn/understand  | "How do I model X?", "What are links?"           | **Education**       |
 | Add/modify        | "Add a service", "Update element"                | **Modeling**        |
+| Audit coverage    | "Check relationships", "Coverage gaps", "Audit"  | **Audit**           |
 
 ### Intent Detection Process
 
@@ -459,52 +463,7 @@ Check for:
 
 **Why**: Manual YAML has 60%+ error rate, 5x fix time. CLI validation is immediate.
 
-### Step 0: Assess Model State Before Extracting
-
-**Always run this first:**
-
-```bash
-dr info
-```
-
-**If the model is a blank slate (all layers empty):** Use the **outside-in, top-down phase plan** below.
-**If the model has existing elements:** Review the per-layer element counts in `dr info` to identify empty or under-populated layers, then run `dr validate` to surface any issues in what already exists. Extract the missing layers using the phase order below as a guide.
-
-### Outside-In Extraction Strategy (Blank Slate)
-
-When a project has no existing model, use the **outside-in, top-down** approach: start with _why_ the system exists, then _what_ it does, then _how_. This produces a model where every technical element traces back to a business reason.
-
-Explore the codebase before proposing phases. Adjust the source column based on what you find (READMEs, route files, service directories, type definitions, etc.).
-
-| Phase | Layer           | Source                                          | Notes                                          |
-| ----- | --------------- | ----------------------------------------------- | ---------------------------------------------- |
-| 1     | **Motivation**  | READMEs, ADRs, comments, ticket titles          | Write by hand — 3–6 elements max to start      |
-| 2     | **Application** | Service classes, stores, core logic directories | Highest ROI — most systems have clear services |
-| 3     | **Business**    | Route groupings, business capability names      | Infer from application services                |
-| 4     | **Technology**  | `package.json`, Dockerfiles, infra configs      | Extract from dependency/config files           |
-| 5     | **API**         | Route files, controllers, OpenAPI specs         | Map to application services                    |
-| 6     | **Data Model**  | Type files, DTOs, ORM models, schema files      | Extract entities and relationships             |
-| 7     | **UX**          | Component directories, page files               | Extract after data model is in place           |
-
-Security, Data Store, Navigation, APM, and Testing are not listed above because they emerge as cross-cutting concerns during the phases above rather than as a dedicated pass. Add elements from those layers when the codebase clearly surfaces them (e.g., auth middleware → Security, DB migration files → Data Store, route config → Navigation, monitoring config → APM, test files → Testing). Do not force them if the evidence is not there.
-
-**Recommended workflow — one changeset per phase:**
-
-```bash
-# Phase 1: Motivation (manual, no changeset needed — small number of elements)
-dr add motivation goal <id> --name "..." --description "..."
-
-# Phase 2+: Each subsequent phase in its own changeset
-dr changeset create "extract-application-layer"
-dr changeset activate "extract-application-layer"
-# ... add elements ...
-dr validate --layers application
-dr changeset apply "extract-application-layer"
-```
-
-**Key principle:** Do not skip to API/data layers first on a blank model. The motivation and application layers provide the vocabulary and governance that makes every subsequent layer meaningful.
-
-### Extraction Workflow (Incremental / Gap-Filling)
+### Extraction Workflow
 
 ```bash
 # 1. Create changeset
@@ -704,7 +663,7 @@ dr changeset abandon <changeset-id>
 **"What is Documentation Robotics?"**
 
 - Architecture-as-data philosophy
-- 12-layer separation of concerns
+- 13-layer separation of concerns
 - Traceability through cross-layer relationships
 - Standards-based integration
 
@@ -757,9 +716,8 @@ dr changeset abandon <changeset-id>
 
 **Do:**
 
-- For blank-slate models: use outside-in, top-down order — Motivation → Application → Business → Technology → API → Data Model → UX
-- Start with motivation layer (goals, stakeholders, principles) — even 3–6 elements is enough to anchor everything else
-- Use one changeset per phase during bulk extraction
+- Start with motivation layer (goals first)
+- Use changesets for exploration
 - Validate regularly
 - Link elements across layers
 - Keep descriptions clear and concise
@@ -880,6 +838,9 @@ dr changeset abandon <changeset-id>
    - Cardinality fixes (single → array)
    - Format corrections
    - Link pattern standardization
+   - Relationships it would drop (their type was retired with no replacement), and the staged
+     changeset they would be recorded in (`upgrade-drops-<spec version>`). That changeset is a
+     record and never lands: restore what still applies by hand from it, then delete it
 
 3. **Recommend migration approach:**
    - Create git branch
@@ -1027,6 +988,75 @@ Would you like me to:
 - Add monitoring metrics for auth operations?
 ```
 
+## Workflow: Audit
+
+**When**: User asks about relationship coverage, "coverage gaps", "audit my model", or after significant additions to a layer
+
+**Goal**: Measure intra-layer relationship coverage, detect semantic duplicates, identify structural gaps, and assess overall balance
+
+### When to Proactively Suggest
+
+Proactively suggest `dr audit` when:
+
+- A layer has many elements but the user hasn't added intra-layer relationships
+- After adding 5+ elements to a layer without mentioning relationships
+- When the user asks about model completeness or quality
+- After a major extraction session
+
+### Process
+
+1. **Run audit for specific layer:**
+
+   ```bash
+   dr audit --layer <layer-name>
+   ```
+
+2. **Run full model audit:**
+
+   ```bash
+   dr audit
+   ```
+
+3. **Audit with quality threshold enforcement:**
+
+   ```bash
+   dr audit --threshold
+   ```
+
+4. **Generate markdown report:**
+
+   ```bash
+   dr audit --format markdown --output audit-report.md
+   ```
+
+5. **Interpret results:**
+   - **Isolation %**: % of node types with no relationships (target: ≤20%)
+   - **Density**: Avg relationships per node type (target: ≥1.5)
+   - **High-Priority Gaps**: Missing relationships (target: ≤10)
+   - **Duplicates**: Semantically redundant relationships (target: ≤5)
+
+6. **Respond to gaps** by suggesting specific relationships:
+
+   ```text
+   Audit found 3 isolated node types in the security layer.
+   Common relationships for SecurityPolicy:
+   - SecurityPolicy enforces AuthenticationScheme
+   - SecurityPolicy governs ApplicationService
+
+   Should I add these relationships now?
+   ```
+
+### Audit Output Summary
+
+```text
+Layer Audit: security
+Coverage: 65% (13/20 node types connected)
+Isolation: 15% (3 isolated types) ✓
+Density: 2.1 relationships/type ✓
+Gaps: 8 high-priority ✓
+Duplicates: 2 candidates ✓
+```
+
 ## CLI Command Quick Reference
 
 Use this reference when executing DR operations. All model modifications MUST use these CLI commands.
@@ -1045,13 +1075,18 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Validation Operations
 
-| Task                   | Command                         | Example                            |
-| ---------------------- | ------------------------------- | ---------------------------------- |
-| Basic validation       | `dr validate`                   | `dr validate`                      |
-| Strict validation      | `dr validate --strict`          | `dr validate --strict`             |
-| Validate relationships | `dr validate --relationships`   | `dr validate --relationships`      |
-| Layer-specific         | `dr validate --layers <layers>` | `dr validate --layers application` |
-| JSON output            | `dr validate --output <path>`   | `dr validate --output report.json` |
+| Task                   | Command                               | Example                                  |
+| ---------------------- | ------------------------------------- | ---------------------------------------- |
+| Basic validation       | `dr validate`                         | `dr validate`                            |
+| Strict validation      | `dr validate --strict`                | `dr validate --strict`                   |
+| Validate relationships | `dr validate --relationships`         | `dr validate --relationships`            |
+| Layer-specific         | `dr validate --layers <layers>`       | `dr validate --layers application`       |
+| JSON output            | `dr validate --output <path>`         | `dr validate --output report.json`       |
+| Relationship audit     | `dr audit [--layer <name>]`           | `dr audit --layer security`              |
+| Audit with threshold   | `dr audit --threshold`                | `dr audit --threshold`                   |
+| Audit JSON output      | `dr audit --format json --output <p>` | `dr audit --format json --output a.json` |
+| Schema introspection   | `dr schema types <layer>`             | `dr schema types data-store`             |
+| Node schema details    | `dr schema node <type-id>`            | `dr schema node data-store.collection`   |
 
 ### Relationship Operations
 
@@ -1491,7 +1526,7 @@ Would you like me to:
 ```
 User: How do I model a microservice?
 
-Agent: Great question! Let me explain how microservices map to DR's 12-layer model.
+Agent: Great question! Let me explain how microservices map to DR's 13-layer model.
 
 A microservice typically spans multiple layers:
 

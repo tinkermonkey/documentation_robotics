@@ -1,50 +1,56 @@
-version: 0.1.0
-installed_at: 2026-02-20T21:10:30.258Z
+version: 0.6.0
+installed_at: 2026-11-20T13:52:20.107Z
 components:
   agents:
     dr-advisor.md:
-      hash: 75de1048
+      hash: 8d32c44b
       modified: false
     dr-architect.md:
-      hash: 479fb731
+      hash: 31f73198
       modified: false
   skills:
     dr_01_motivation_layer/SKILL.md:
-      hash: 956e6a8e
+      hash: ade9f349
       modified: false
     dr_02_business_layer/SKILL.md:
-      hash: b35fae46
+      hash: b9f8620f
       modified: false
-    dr_03_security_layer/SKILL.md:
-      hash: 36ccffb7
+    dr_03_product_layer/SKILL.md:
+      hash: f4cb826d
       modified: false
-    dr_04_application_layer/SKILL.md:
-      hash: feddd1d7
+    dr_04_security_layer/SKILL.md:
+      hash: 65f4b6d4
       modified: false
-    dr_05_technology_layer/SKILL.md:
-      hash: e62fd9d8
+    dr_05_application_layer/SKILL.md:
+      hash: 7f386581
       modified: false
-    dr_06_api_layer/SKILL.md:
-      hash: 4e73ab69
+    dr_06_technology_layer/SKILL.md:
+      hash: 242521f4
       modified: false
-    dr_07_data_model_layer/SKILL.md:
-      hash: f12a5198
+    dr_07_api_layer/SKILL.md:
+      hash: c5b2892d
       modified: false
-    dr_08_dataset_layer/SKILL.md:
-      hash: 21468d3d
+    dr_08_data_model_layer/SKILL.md:
+      hash: e72eb495
       modified: false
-    dr_09_ux_layer/SKILL.md:
-      hash: 3843173e
+    dr_09_dataset_layer/SKILL.md:
+      hash: 11564db0
       modified: false
-    dr_10_navigation_layer/SKILL.md:
-      hash: 0f5e2a66
+    dr_10_ux_layer/SKILL.md:
+      hash: 31c18b1c
       modified: false
-    dr_11_apm_layer/SKILL.md:
-      hash: 075cb381
+    dr_11_navigation_layer/SKILL.md:
+      hash: aeaa9f36
       modified: false
-    dr_12_testing_layer/SKILL.md:
-      hash: 899b60e6
+    dr_12_apm_layer/SKILL.md:
+      hash: 7870c2a6
+      modified: false
+    dr_13_testing_layer/SKILL.md:
+      hash: 6ab6377f
+      modified: false
+    dr_change_planning/SKILL.md:
+      hash: d8c30750
       modified: false
     dr_changeset_reviewer/SKILL.md:
-      hash: 88c2ff5e
+      hash: "78519395"
       modified: false
