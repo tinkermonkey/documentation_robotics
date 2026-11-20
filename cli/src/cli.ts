@@ -724,6 +724,8 @@ Time limits (environment variables, with their defaults):
                                         health check
   DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS=5000  the second try, before review_open
                                         calls a viewer unreachable
+  DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS=500  project_status's shorter health check
+                                        (the retry gets twice as long)
   DR_VIEWER_STOP_TIMEOUT_MS=8000        how long a viewer gets to exit before
                                         --stop kills it
   DR_VIEWER_LOG_KEEP_DAYS=7             how long a gone viewer's log is kept

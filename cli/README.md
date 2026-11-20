@@ -570,14 +570,15 @@ Neither command gives a partial answer as if it were whole:
 prints the values in effect (`settings`), and a value that cannot be used is reported instead of being
 replaced quietly.
 
-| Variable                            | Default | What it sets                                                                              |
-| ----------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
-| `DR_VIEWER_IDLE_HOURS`              | 24      | Idle time before a `review_open` viewer exits. `0` means never.                           |
-| `DR_VIEWER_HEALTH_TIMEOUT_MS`       | 1500    | How long a viewer gets to answer its health check.                                        |
-| `DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS` | 5000    | The second try, made when none answered, before `review_open` calls a viewer unreachable. |
-| `DR_VIEWER_STOP_TIMEOUT_MS`         | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
-| `DR_VIEWER_LOG_KEEP_DAYS`           | 7       | How long the log of a viewer that is gone is kept.                                        |
-| `DR_VIEWER_LIFETIME_CHECK_MS`       | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
+| Variable                             | Default | What it sets                                                                              |
+| ------------------------------------ | ------- | ----------------------------------------------------------------------------------------- |
+| `DR_VIEWER_IDLE_HOURS`               | 24      | Idle time before a `review_open` viewer exits. `0` means never.                           |
+| `DR_VIEWER_HEALTH_TIMEOUT_MS`        | 1500    | How long a viewer gets to answer its health check.                                        |
+| `DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS`  | 5000    | The second try, made when none answered, before `review_open` calls a viewer unreachable. |
+| `DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS` | 500     | How long `project_status` gives a viewer to answer (the retry twice that), to stay fast.  |
+| `DR_VIEWER_STOP_TIMEOUT_MS`          | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
+| `DR_VIEWER_LOG_KEEP_DAYS`            | 7       | How long the log of a viewer that is gone is kept.                                        |
+| `DR_VIEWER_LIFETIME_CHECK_MS`        | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
 
 `DR_VIEWER_PROCESS_SCAN=off` makes `--list` and `--stop` use the registry alone and never read the process
 table; they say so.

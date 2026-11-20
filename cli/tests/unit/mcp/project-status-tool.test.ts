@@ -1885,6 +1885,26 @@ describe("project_status viewer and indexing sections", () => {
     expect(s.viewer.status).toBe("running");
     expect(s.viewer.url).toBe(`http://localhost:${port}/?token=tok`);
     expect(s.viewer.withChangesets).toBe(true);
+    expect(s.viewer).not.toHaveProperty("staleRemoved");
+  });
+
+  it("says when reading the viewer registry removed a dead viewer's record", async () => {
+    await initModel(rootPath);
+    const child = spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" });
+    const deadPid = Number(child.stdout);
+    await mkdir(join(process.env.DR_STATE_DIR!, "viewers"), { recursive: true });
+    const recordFile = join(
+      process.env.DR_STATE_DIR!,
+      "viewers",
+      `${createHash("sha256").update(realpathSync(rootPath)).digest("hex").slice(0, 24)}.${deadPid}.json`
+    );
+    await writeFile(
+      recordFile,
+      JSON.stringify({ pid: deadPid, port: 8099, token: null, projectRoot: realpathSync(rootPath), startedAt: "", withChangesets: false })
+    );
+
+    const s = await status(rootPath);
+    expect(s.viewer).toEqual({ status: "none", staleRemoved: { records: 1, startingMarkers: 0, logs: 0, tempFiles: 0 } });
   });
 
   it("reports an index run in progress and tells the agent to poll it", async () => {

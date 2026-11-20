@@ -42,6 +42,14 @@ export const VIEWER_SETTINGS = {
     description:
       "How long a project's viewers get on a second health check, made when none answered the first, before review_open calls one unreachable.",
   },
+  statusHealthTimeoutMs: {
+    env: "DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS",
+    default: 500,
+    unit: "ms",
+    min: 1,
+    description:
+      "How long project_status gives a viewer to answer its health check (the second try gets twice as long). Shorter than DR_VIEWER_HEALTH_TIMEOUT_MS so the status call stays fast; a viewer slower than that is reported unreachable, with this setting named.",
+  },
   stopTimeoutMs: {
     env: "DR_VIEWER_STOP_TIMEOUT_MS",
     default: 8000,

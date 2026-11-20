@@ -255,7 +255,7 @@ describe("the commands", () => {
       expect(settings.idleHours).toEqual({ env: "DR_VIEWER_IDLE_HOURS", value: 72, unit: "hours", default: 24 });
       expect(settings.stopTimeoutMs).toMatchObject({ value: 8000, ignored: "soon" });
       expect(Object.keys(settings).sort()).toEqual(
-        ["healthRetryTimeoutMs", "healthTimeoutMs", "idleHours", "lifetimeCheckMs", "logKeepDays", "stopTimeoutMs"]
+        ["healthRetryTimeoutMs", "healthTimeoutMs", "idleHours", "lifetimeCheckMs", "logKeepDays", "statusHealthTimeoutMs", "stopTimeoutMs"]
       );
     }));
 
