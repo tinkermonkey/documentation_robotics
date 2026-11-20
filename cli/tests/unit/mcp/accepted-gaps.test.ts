@@ -529,12 +529,12 @@ describe("changeset_brief", () => {
       await relate(`api.operation.${name}`, "realizes", `application.applicationfunction.${name}`);
     }
     await planExport();
-    const open = parse(await changesetBriefHandler({ sections: ["gaps"], rootPath }));
+    const open = parse(await changesetBriefHandler({ sections: ["gaps"], detail: "full", rootPath }));
     const peer = (gaps: any[]) => gaps.filter((g) => g.kind === "peer-pattern" && g.element === FUNCTION);
     expect(peer(open.gaps)).toHaveLength(1);
 
     await accept();
-    const answered = parse(await changesetBriefHandler({ sections: ["gaps", "acceptedGaps"], rootPath }));
+    const answered = parse(await changesetBriefHandler({ sections: ["gaps", "acceptedGaps"], detail: "full", rootPath }));
     expect(peer(answered.gaps)).toHaveLength(0);
     expect(answered.acceptedGaps[0].answersPeerPattern).toContain("api.operation");
 

@@ -704,7 +704,9 @@ It holds:
 - gaps, one line each (`element: kind: detail`);
 - accepted gaps on the changed elements, one line each (`element: accepted: triple: reason`, marked
   `staged here` or `contradicted by` a relationship the plan wires anyway);
-- intent as ids: `traced`, `untraced`, `unanchored`;
+- intent: `counts` of the traced, untraced, unanchored and `noCatalogRoute` elements, the first 30
+  ids of each list (`limit` changes the 30, and `intent.more` says which lists are not whole), and
+  `walk`: the trace's `maxHops` and `hubThreshold`, and how many elements the hub rule leaves untraced;
 - drift, with the overlap as lines and the base changes as counts plus the changed and removed ids;
 - unwired connections counted per layer (the listing is opt-in: pass `unwired`);
 - `codeTouched`, the files of the changed elements, and `neighborFiles`, the files that hold only
@@ -718,17 +720,66 @@ It holds:
 
 A large plan (more than 60 changed elements, such as a bootstrap) gets `changesByType` instead of
 `changes`: per `layer.type`, the counts by operation and the first 5 ids, with how many more.
-`sections: ["changes"]` lists every element. Past 30 entries, the
-intent lists and the delta's lists are cut, with their full lengths under `counts`, and gaps that
-say the same thing (a bootstrap's unconnected adds) share one line with the count and the first ids.
+`sections: ["changes"]` lists every element. Past 30 entries, the untraced ids are also counted per
+`layer.type` (`untracedByType`), the delta's lists hold their first 30 entries with their full
+lengths under `counts`, and gaps that say the same thing (a bootstrap's unconnected adds, a peer
+pattern many elements of one type lack) share one line with the count and the first ids. Each of
+these is a summary of the whole list, and `more` names the `sections` call that pages through the
+items. The 30 is `limit` and the 5 ids per type is `idsPerType`: both are the caller's to change.
 
 `detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns only
-the sections named, each in full, under a small header: the revision and its token, the changeset's
+the sections named, under a small header: the revision and its token, the changeset's
 id, name and status, and the summary counts. The sections are `changes`, `changeset` (the
 description and the drift in full), `drift`, `layers`, `unwired`, `intent`, `gaps`, `acceptedGaps`, `codeTouched`,
 `feedback`, `relationshipChanges`, `alreadyInBase` and `delta`. With `since`, the delta comes too,
-compact unless `delta` is named; `unwired` or `unwiredLayers` count as naming `unwired`. With
+compact; `unwired` or `unwiredLayers` count as naming `unwired`. With
 `since` and no sections, the compact brief leaves out `changes`, since the delta says what changed.
+
+Each section comes in a compact form:
+
+- `intent`: the counts, the untraced ids, the unanchored as `element → added intent element`, the
+  `noCatalogRoute` ids, and `walk` (the trace's `maxHops` and `hubThreshold`, and how many elements
+  the hub rule leaves untraced). The traced are counted; `traced: true` lists them, each as
+  `element → intent element`.
+- `gaps`: one line per gap, as in the default brief, without the examples.
+- `layers`: each changed element with its type, name, description, attributes and changed fields.
+  The connections the change adds or deletes are `predicate → id` lines, up to `maxConnections`
+  (default 8) per direction, predicate and other layer; every other connection is counted in
+  `connectionCounts` (`"tests ← testing": 40`, `"realizes ← application (base)": 5`), so lines and
+  counts together are all of them. `otherLayers: [...]` lists only the connections into those layers.
+- `unwired`: each element's unwired connections.
+- `codeTouched`: each file with its changed ids and a count of the neighbors in it.
+- `changes`: the build view, below.
+
+**Long lists page; nothing is dropped.** A limit here is a default, never a cut-off that leaves an
+answer looking complete. Every list in a sections answer is the same page: `limit` items from
+`offset`. The answer's `page` says where it sits, in the form the MCP tools share for several lists
+paged together:
+
+| Field        | Meaning                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `offset`     | Where the page starts, in every list.                                                            |
+| `totals`     | Each list's true length, by name (`changes`, `gaps`, `intent.untraced`, `delta.elements.added`). |
+| `returned`   | How many items of each list this answer holds.                                                   |
+| `nextOffset` | Where the next page starts. Absent when no list has more.                                        |
+| `summaries`  | For each section the answer holds only part of: counts over the whole of it.                     |
+
+Repeating the same call with `offset` set to `nextOffset` continues every list, and the pages
+together are every item, once; `more` names that call with its arguments. With no `limit`, the page
+is as long as keeps the answer near `targetBytes` (default 40 KB, `SECTIONS_TARGET_BYTES`, which
+fits one tool result), every list whole when they fit, and never shorter than one item. With a
+`limit`, the page is that many items whatever they weigh. Counts are always over the whole list: the
+intent section's `counts` and `untracedByType`, a section's entry in `summaries`, the header's
+`summary`.
+
+The delta's lists (elements, relationships, accepted gaps, intent) are lists of the answer when
+`delta` is named with `since`, under `delta.<list>` in `page.totals`. When it is not named, the
+delta comes with its first 30 entries per list and `delta.counts` gives the full length of every
+list that is not whole.
+
+`detail: "full"` with `sections` returns the named sections as the full brief has them, all at once
+and whatever their size: every trace with its path, each gap with its examples, every connection
+with the other end's name and layer, the whole delta.
 
 `sections: ["changes"]` is the build view: each changed element with its name, its description in
 full, its attributes, for an update each changed field with its value before and after, its files,
@@ -738,7 +789,9 @@ is 38 KB), 58 KB for the 144-element petclinic bootstrap (`layers` is 165 KB). `
 `ids: [...]` narrow the element sections (`changes`, `layers`, `gaps`, `unwired`, `intent`,
 `feedback`) to the changed elements in those layers or with those ids: the bootstrap's `api` layer
 is 8 KB, its `testing` layer 32 KB. Without `sections` they narrow nothing, and the result's `note`
-says so.
+says so. On the 2,364-element bootstrap of this repository's own model, the `application` layer's
+build view is 692 KB: the answer holds the first 89 of its 1,454 elements (40 KB), counts all of
+them by type, and `more` names the call for the next page.
 
 The full brief:
 
@@ -764,12 +817,29 @@ The full brief:
   is listed under the element's `accepted` in `unwired`, not counted. `contradictedBy` names a live
   relationship with the triple: the plan wires what the gap says is absent. See
   [Accepted gaps](#accepted-gaps).
-- **Intent.** Changed elements outside the motivation, business and product layers that reach no
-  element in those layers within four hops. A change that serves no stated intent is a question for
-  the human. Each trace carries its `path`. The trace doesn't walk through hubs (elements with more
-  than 15 relationships). An intent element the changeset adds counts only when it traces to an
-  existing one (`anchoredBy`); otherwise the elements that reach it are untraced and listed in
-  `intent.unanchored`.
+- **Intent.** Added and updated elements outside the motivation, business and product layers that
+  reach no element in those layers within four hops. A change that serves no stated intent is a
+  question for the human. Each trace carries its `path`. The trace doesn't walk through hubs
+  (elements with more than 15 relationships). Both numbers are arguments (`maxHops`,
+  `hubThreshold`), and `intent.walk` names the values used and lists in `blockedByHub` the elements
+  that do not trace but would, within the same hops, if hubs were walked through: the hub rule
+  changes the answer, so the answer says where. An intent element the changeset adds counts only when
+  it traces to an existing one (`anchoredBy`); otherwise the elements that reach it are untraced and
+  listed in `intent.unanchored`.
+  - A part traces through its whole, and an element through what it realizes. An element the walk
+    leaves untraced is traced when an element that composes or aggregates it, or that it realizes,
+    traces, at any depth and whether or not that element is a hub: a sub-view of a view that
+    realizes a feature, a function that realizes a service with forty other functions. The trace
+    names the carrier in `through`. The carrier must trace in its own right: a route down through
+    one of its own parts, or through another element that realizes it, does not count, so a service
+    that reaches intent only through one of its functions does not carry the others. No other
+    relationship is followed through a hub.
+  - `untraced` holds only elements that could be linked: their type has a catalog relationship to
+    some motivation, business or product type. An element of a type with none (a sub-view, a schema
+    composition, an application component) that does not trace is listed in `noCatalogRoute`
+    instead: it can trace only through the element that composes, uses or realizes it.
+  - Elements in the intent layers are not traced: they are what the others trace to. When a plan
+    changes nothing else, `intent.note` says so, so two empty lists are not read as a fault.
 - **Code touched.** Source files of the changed elements and of the existing elements one hop away.
   These are the files the build is likely to edit or must not break.
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
@@ -958,7 +1028,7 @@ The tools make each pass cheap:
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | What is left to wire              | `changeset_brief` lists **unwired** connections: for each added or updated element, the triples the catalog defines for its type, in either direction, that the element has no relationship for. They are grouped by the other end's layer, each with `existingCount` (elements of the other type outside this changeset) and `addedCount` (ones this changeset adds), so the planner knows whether to link one or add one. `unwired: "summary"` (the full brief's default; the compact brief only counts them per layer unless `unwired` is set) lists entries only for layers the change reaches and only for types the model has, and counts the rest per layer as `typesNotInModel`; `"full"` lists all; `"none"` leaves it out. `unwiredLayers` lists the entries for chosen layers. |
 | What changed since the last pass  | `changeset_brief` returns `revision` and `revisionToken`. Passing the token back as `since` adds a `delta`: elements added, removed and updated (with the fields), relationships added and removed, changes unstaged since, gaps opened and closed, accepted gaps accepted or reopened, unwired connections wired or new, layers newly reached or no longer reached, intent newly traced or untraced. Sequence numbers are never reused: each stage, unstage and in-place rewrite takes the next one, and an unstaged or rewritten change leaves a tombstone in the changeset's metadata (the last 200), so the earlier plan is rebuilt exactly. The token warns if `changes.yaml` was edited by hand.                                                                                    |
-| What one element touches          | `changeset_impact` with `from` (element ids) walks from those elements instead of every changed one. `perHop` counts what each hop adds. A hub, an element with more relationships than `hubThreshold` (default 15), is listed in `hubs` with its degree and not walked through, unless `expandHubs` is set.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| What one element touches          | `changeset_impact` with `from` (element ids) walks from those elements instead of every changed one. `perHop` counts what each hop adds. A hub, an element with more relationships than `hubThreshold` (default 15), is listed in `hubs` with its degree and not walked through, unless `expandHubs` is set. The walk is never cut short: `reached`, `perHop` and `hubs` count everything it reaches, `byLayer` lists the nearest `maxElements` (default 200), `page` says where that list sits (`total`, `returned`, `offset`, and `nextOffset` when more are left: pass it as `offset`), and `more` names the call.                                                                                                                                                                     |
 | A short view of the plan          | `changeset_show` with `detail: "summary"`: one entry per change (sequence, operation, element or relationship, changed fields) and totals per operation, without the before and after snapshots.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Change one attribute              | `model_update` with `attributePatch` (`dr update --attribute-patch`): merged shallowly into the element's attributes, over staged values in a changeset; `null` removes a key. Required attributes need not be repeated. `attributes` still replaces them all.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Drop everything staged at one end | `changeset_unstage` with `source` alone or `target` alone, optionally with `predicate`, drops every staged relationship add and delete at that end. Relationship removals cascaded by a staged element delete are kept.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
