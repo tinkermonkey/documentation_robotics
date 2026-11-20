@@ -1,0 +1,657 @@
+id: changeset-1795198153780-t3533vwb7
+name: upgrade-says-what-it-touches
+description: "dr upgrade and project_upgrade change only what they say. A model
+  file whose data is unchanged is never rewritten, and documentation-robotics/
+  is listed in .prettierignore (#1246). The plan and dry run list every file
+  outside the model, grouped (integrations, reports, ignore files); --model-only
+  skips them; leftovers of older integration layouts are listed and removed only
+  when chosen (#1165). Clear derivations for newly required attributes
+  (operationId from the name, and the like) are staged in a changeset,
+  upgrade-fills-<spec version>, for review, never written to the base model
+  (#1166). dr validate says in one line when the spec reference is not installed
+  (#1168). Files git tracks under .dr/ become a decision (untrack, keep tracked,
+  skip): asked in the CLI, returned by project_upgrade (#1185). init and upgrade
+  say when a commit hook would get in the way of committing dr's files. Long
+  lists give their totals and a way to see all. Done when an upgrade that only
+  stamps the version changes only the manifest."
+created: 2026-11-20T18:09:13.834Z
+modified: 2026-11-20T18:41:39.485Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 124
+  modifications: 4
+  deletions: 4
+lastSequence: 160
+unstaged:
+  - sequence: 46
+    removedAt: 107
+    change:
+      type: add
+      elementId: application.applicationfunction.base-integration-manager-find-stale-entries
+      layerName: application
+      after:
+        id: 3dba90cc-e740-4de1-bea5-33ac30d56c37
+        path: application.applicationfunction.base-integration-manager-find-stale-entries
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: BaseIntegrationManager findStaleEntries
+        description: "Leftovers of older integration layouts: names a released dr
+          installed in a component folder that this dr's integration no longer
+          has and the version file does not record."
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 45
+    removedAt: 108
+    change:
+      type: add
+      elementId: application.applicationfunction.base-integration-manager-plan-upgrade
+      layerName: application
+      after:
+        id: 58793e8a-af9c-47fd-bccc-0fc6b4258f44
+        path: application.applicationfunction.base-integration-manager-plan-upgrade
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: BaseIntegrationManager planUpgrade
+        description: What an integration upgrade would add, update, overwrite or remove,
+          the edited files it would keep, and the leftovers of older layouts.
+          Changes nothing.
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 47
+    removedAt: 109
+    change:
+      type: add
+      elementId: application.applicationfunction.base-integration-manager-remove-stale-entries
+      layerName: application
+      after:
+        id: b8db47c7-dd57-4678-8555-194bf5100acb
+        path: application.applicationfunction.base-integration-manager-remove-stale-entries
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: BaseIntegrationManager removeStaleEntries
+        description: Remove the leftovers the caller names, one path each; a path that
+          is not a leftover now is skipped.
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 42
+    removedAt: 110
+    change:
+      type: add
+      elementId: application.applicationfunction.commit-hook-notes
+      layerName: application
+      after:
+        id: 83c2c7e6-40a9-4cbc-af98-fcf7d72c1bba
+        path: application.applicationfunction.commit-hook-notes
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: commitHookNotes
+        description: "Notes about pre-commit hooks that would get in the way of
+          committing dr's files: a prettier hook that still receives the DR
+          folder, a large-file hook that would refuse a file."
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 36
+    removedAt: 111
+    change:
+      type: add
+      elementId: application.applicationfunction.derive-fills
+      layerName: application
+      after:
+        id: 7d1894f0-2b55-41b9-8101-9e12d69eff80
+        path: application.applicationfunction.derive-fills
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: deriveFills
+        description: Derive values for the required attributes the model's elements
+          leave empty, only where the element itself gives them; returns the
+          fills and what is still empty.
+        metadata:
+          created_at: 2026-11-20T18:10:42.341Z
+          updated_at: 2026-11-20T18:10:42.341Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 38
+    removedAt: 112
+    change:
+      type: add
+      elementId: application.applicationfunction.fills-staged-earlier
+      layerName: application
+      after:
+        id: 08976ae0-829e-4a1e-abd2-a6180c4b5d00
+        path: application.applicationfunction.fills-staged-earlier
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: fillsStagedEarlier
+        description: The values unlanded upgrade-fills changesets already stage, so a
+          later run does not stage them again.
+        metadata:
+          created_at: 2026-11-20T18:10:42.350Z
+          updated_at: 2026-11-20T18:10:42.350Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 41
+    removedAt: 113
+    change:
+      type: add
+      elementId: application.applicationfunction.outside-model-lines
+      layerName: application
+      after:
+        id: ff48b877-fb60-48e9-8418-4ba91a07684b
+        path: application.applicationfunction.outside-model-lines
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: outsideModelLines
+        description: The outside-the-model plan as terminal lines, one group per kind of
+          file, shortened lists with their totals.
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 43
+    removedAt: 114
+    change:
+      type: add
+      elementId: application.applicationfunction.plan-layer-files
+      layerName: application
+      after:
+        id: 4442990b-70b7-4b78-b572-966c4e7e532f
+        path: application.applicationfunction.plan-layer-files
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: planLayerFiles
+        description: "What a layer save does to the YAML files already in its folder:
+          case variants of wanted names to rename first, stale files to remove
+          after."
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 39
+    removedAt: 115
+    change:
+      type: add
+      elementId: application.applicationfunction.rehearse-model-upgrade
+      layerName: application
+      after:
+        id: 16c83269-60c0-4e1d-b03c-a03a029e689b
+        path: application.applicationfunction.rehearse-model-upgrade
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: rehearseModelUpgrade
+        description: Run the model upgrade on a temporary copy of
+          documentation-robotics/ and report the files it wrote and what it
+          returned; the project is not written.
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 44
+    removedAt: 116
+    change:
+      type: add
+      elementId: application.applicationfunction.same-yaml-data
+      layerName: application
+      after:
+        id: 09877381-a9df-4dc4-b607-aea04e360478
+        path: application.applicationfunction.same-yaml-data
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sameYamlData
+        description: Whether two YAML texts hold the same data whatever their layout;
+          key order is not data, list order is.
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 40
+    removedAt: 117
+    change:
+      type: add
+      elementId: application.applicationfunction.scan-outside-model
+      layerName: application
+      after:
+        id: 2a869482-da08-4bf0-a2cd-d836df940434
+        path: application.applicationfunction.scan-outside-model
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: scanOutsideModel
+        description: "What an upgrade would touch outside the model, apart from
+          integrations: spec reference, reports, .gitignore and git's index,
+          .prettierignore, commit hook notes. Reads only."
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 49
+    removedAt: 118
+    change:
+      type: add
+      elementId: application.applicationfunction.spec-reference-notice
+      layerName: application
+      after:
+        id: 2617e684-f8c2-4ee6-8993-6026ac14f7ec
+        path: application.applicationfunction.spec-reference-notice
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: specReferenceNotice
+        description: One line when the spec reference isn't the one this dr carries,
+          saying validation is unaffected and how to install it.
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 48
+    removedAt: 119
+    change:
+      type: add
+      elementId: application.applicationfunction.spec-reference-standing
+      layerName: application
+      after:
+        id: ff543a3c-6151-4ac0-a6d5-349e612e2616
+        path: application.applicationfunction.spec-reference-standing
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: specReferenceStanding
+        description: "How the spec reference (.dr/spec) stands in a checkout: installed,
+          missing or stale."
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 37
+    removedAt: 120
+    change:
+      type: add
+      elementId: application.applicationfunction.stage-fills
+      layerName: application
+      after:
+        id: 96347f4c-f8fb-49f6-aeed-30a5d89b3136
+        path: application.applicationfunction.stage-fills
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: stageFills
+        description: Stage the derived values in a new plan changeset,
+          upgrade-fills-<spec version>, one update per element; never writes the
+          base model.
+        metadata:
+          created_at: 2026-11-20T18:10:42.350Z
+          updated_at: 2026-11-20T18:10:42.350Z
+          version: 1
+      timestamp: 2026-11-20T18:10:42.374Z
+    rewritten: true
+  - sequence: 79
+    removedAt: 121
+    change:
+      type: add
+      elementId: data-model.objectschema.derived-fill
+      layerName: data-model
+      after:
+        id: 7f4e28f8-b7c4-46c8-b720-700b0aa92479
+        path: data-model.objectschema.derived-fill
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DerivedFill
+        description: A value derived for one required attribute an element leaves empty,
+          with its rule
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:10:52.413Z
+          updated_at: 2026-11-20T18:10:52.413Z
+          version: 1
+      timestamp: 2026-11-20T18:10:52.440Z
+    rewritten: true
+  - sequence: 83
+    removedAt: 122
+    change:
+      type: add
+      elementId: data-model.objectschema.dot-dr-decision
+      layerName: data-model
+      after:
+        id: bcee3ad5-a198-49ef-b653-20f7dace170d
+        path: data-model.objectschema.dot-dr-decision
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DotDrDecision
+        description: "A choice for the user: git tracks files under .dr/; each option
+          with what it writes, removes and untracks"
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:10:52.414Z
+          updated_at: 2026-11-20T18:10:52.414Z
+          version: 1
+      timestamp: 2026-11-20T18:10:52.440Z
+    rewritten: true
+  - sequence: 82
+    removedAt: 123
+    change:
+      type: add
+      elementId: data-model.objectschema.integration-upgrade-plan
+      layerName: data-model
+      after:
+        id: 5560031e-fe0f-4eef-bc1c-31f66a7ad309
+        path: data-model.objectschema.integration-upgrade-plan
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IntegrationUpgradePlan
+        description: What an integration upgrade would change, without changing it
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:10:52.414Z
+          updated_at: 2026-11-20T18:10:52.414Z
+          version: 1
+      timestamp: 2026-11-20T18:10:52.440Z
+    rewritten: true
+  - sequence: 81
+    removedAt: 124
+    change:
+      type: add
+      elementId: data-model.objectschema.outside-model
+      layerName: data-model
+      after:
+        id: be33b879-1bc7-4a8e-8f8b-75898b809405
+        path: data-model.objectschema.outside-model
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: OutsideModel
+        description: What an upgrade touches outside the model, by group
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:10:52.413Z
+          updated_at: 2026-11-20T18:10:52.413Z
+          version: 1
+      timestamp: 2026-11-20T18:10:52.440Z
+    rewritten: true
+  - sequence: 78
+    removedAt: 125
+    change:
+      type: add
+      elementId: data-model.objectschema.upgrade-fills
+      layerName: data-model
+      after:
+        id: dabedeef-43ff-44d7-9482-9c128c9a0036
+        path: data-model.objectschema.upgrade-fills
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UpgradeFills
+        description: The values an upgrade derived and the changeset it staged them in
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:10:52.413Z
+          updated_at: 2026-11-20T18:10:52.413Z
+          version: 1
+      timestamp: 2026-11-20T18:10:52.440Z
+    rewritten: true
+  - sequence: 80
+    removedAt: 126
+    change:
+      type: add
+      elementId: data-model.objectschema.upgrade-rehearsal
+      layerName: data-model
+      after:
+        id: 6163e955-16cc-483a-bfe4-68b0db63c0d8
+        path: data-model.objectschema.upgrade-rehearsal
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UpgradeRehearsal
+        description: "What the model upgrade did on a copy: its result and the files it
+          wrote"
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:10:52.413Z
+          updated_at: 2026-11-20T18:10:52.413Z
+          version: 1
+      timestamp: 2026-11-20T18:10:52.440Z
+    rewritten: true
+  - sequence: 34
+    removedAt: 127
+    change:
+      type: update
+      elementId: application.applicationfunction.ensure-prettier-ignores-changesets
+      layerName: application
+      before:
+        id: bcd54183-b6ef-4a45-a228-a94f3fefea26
+        path: application.applicationfunction.ensure-prettier-ignores-changesets
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: ensurePrettierIgnoresChangesets
+        description: List the project's changeset folder in `.prettierignore` when the
+          project uses prettier.
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/prettier-ignore.ts
+              symbol: ensurePrettierIgnoresChangesets
+        metadata: &a1
+          created_at: 2026-11-20T15:04:10.839Z
+          updated_at: 2026-11-20T15:04:10.839Z
+          version: 1
+      after:
+        id: bcd54183-b6ef-4a45-a228-a94f3fefea26
+        path: application.applicationfunction.ensure-prettier-ignores-changesets
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: ensurePrettierIgnoresDrFiles
+        description: List the folder dr writes (documentation-robotics/) in
+          `.prettierignore` when the project uses prettier.
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/prettier-ignore.ts
+              symbol: ensurePrettierIgnoresDrFiles
+        metadata: *a1
+      timestamp: 2026-11-20T18:10:11.174Z
+  - sequence: 61
+    removedAt: 127
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.scan-outside-model::depends-on::application.applicationfunction.ensure-prettier-ignores-changesets
+      layerName: application
+      after:
+        source: application.applicationfunction.scan-outside-model
+        target: application.applicationfunction.ensure-prettier-ignores-changesets
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T18:10:42.374Z
+  - sequence: 46
+    removedAt: 155
+    change:
+      type: add
+      elementId: application.applicationfunction.base-integration-manager-find-stale-entries
+      layerName: application
+      after:
+        id: 3dba90cc-e740-4de1-bea5-33ac30d56c37
+        path: application.applicationfunction.base-integration-manager-find-stale-entries
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: BaseIntegrationManager findStaleEntries
+        description: "Leftovers of older integration layouts: names a released dr
+          installed in a component folder that this dr's integration no longer
+          has and the version file does not record."
+        metadata:
+          created_at: 2026-11-20T18:10:42.351Z
+          updated_at: 2026-11-20T18:10:42.351Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/integrations/base-manager.ts
+              symbol: BaseIntegrationManager.findStaleEntries
+      timestamp: 2026-11-20T18:13:06.911Z
+    rewritten: true
+  - sequence: 142
+    removedAt: 156
+    change:
+      type: add
+      elementId: application.applicationfunction.large-file-hook
+      layerName: application
+      after:
+        id: f7bc5467-8ffe-413e-b2e0-0a3b8c25c1fe
+        path: application.applicationfunction.large-file-hook
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: largeFileHook
+        description: The project's check-added-large-files hook and the files dr wrote
+          that a commit could add and the hook would refuse.
+        metadata:
+          created_at: 2026-11-20T18:39:26.256Z
+          updated_at: 2026-11-20T18:39:26.256Z
+          version: 1
+      timestamp: 2026-11-20T18:39:26.307Z
+    rewritten: true
+  - sequence: 141
+    removedAt: 157
+    change:
+      type: add
+      elementId: application.applicationfunction.prettier-hook
+      layerName: application
+      after:
+        id: d8164515-6e35-4a7b-8588-88ecf601bb90
+        path: application.applicationfunction.prettier-hook
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: prettierHook
+        description: The project's prettier pre-commit hook and whether pre-commit keeps
+          the files dr writes away from it.
+        metadata:
+          created_at: 2026-11-20T18:39:26.256Z
+          updated_at: 2026-11-20T18:39:26.256Z
+          version: 1
+      timestamp: 2026-11-20T18:39:26.307Z
+    rewritten: true
+  - sequence: 140
+    removedAt: 158
+    change:
+      type: add
+      elementId: application.applicationfunction.shipped-versions
+      layerName: application
+      after:
+        id: 59f72a71-e34c-4888-a4d4-c14685b5db23
+        path: application.applicationfunction.shipped-versions
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: shippedVersions
+        description: The versions dr shipped of one entry of an integration folder, from
+          the table generated from git history; undefined when dr never
+          installed that name there.
+        metadata:
+          created_at: 2026-11-20T18:39:26.256Z
+          updated_at: 2026-11-20T18:39:26.256Z
+          version: 1
+      timestamp: 2026-11-20T18:39:26.307Z
+    rewritten: true
+  - sequence: 138
+    removedAt: 159
+    change:
+      type: add
+      elementId: data-model.objectschema.layer-file-record
+      layerName: data-model
+      after:
+        id: b82cdf07-e026-4c56-9195-cb64f177d7c2
+        path: data-model.objectschema.layer-file-record
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: LayerFileRecord
+        description: What loading made of one YAML file in a layer folder (loaded,
+          failed, partial) and its text then; decides what a later save may
+          replace or remove
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:39:26.255Z
+          updated_at: 2026-11-20T18:39:26.255Z
+          version: 1
+      timestamp: 2026-11-20T18:39:26.307Z
+    rewritten: true
+  - sequence: 139
+    removedAt: 160
+    change:
+      type: add
+      elementId: data-model.objectschema.shipped-versions
+      layerName: data-model
+      after:
+        id: b04264fd-7ae8-418e-a3c6-27a9625476f2
+        path: data-model.objectschema.shipped-versions
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ShippedVersions
+        description: Content hashes of every version dr shipped of one integration
+          entry, by path inside it
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T18:39:26.256Z
+          updated_at: 2026-11-20T18:39:26.256Z
+          version: 1
+      timestamp: 2026-11-20T18:39:26.307Z
+    rewritten: true

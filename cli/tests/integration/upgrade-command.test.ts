@@ -11,11 +11,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { spawnSync } from "child_process";
 import { mkdir, rm, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import yaml from "yaml";
 import { createTempWorkdir, runDr, assertOutputContains } from "../helpers/cli-runner.js";
 import { fileExists } from "../../src/utils/file-io.js";
+import { shippedSkill } from "../fixtures/shipped-integration.js";
 
 let tempDir: { path: string; cleanup: () => Promise<void> } = { path: "", cleanup: async () => {} };
 
@@ -446,7 +448,7 @@ describe("upgrade command - unified flow", () => {
       expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
-    it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
+    it("adds the documentation-robotics folder to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
       await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
       // A project that adopted prettier after its model was created.
       await writeFile(join(tempDir.path, ".prettierrc"), "{}\n");
@@ -454,13 +456,15 @@ describe("upgrade command - unified flow", () => {
 
       const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
       expect(dryRun.exitCode).toBe(0);
+      // The dry run says it would, and doesn't
+      assertOutputContains(dryRun, "documentation-robotics/ to .prettierignore");
       expect(await fileExists(join(tempDir.path, ".prettierignore"))).toBe(false);
 
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(result.exitCode).toBe(0);
-      assertOutputContains(result, "Added documentation-robotics/changesets/ to");
+      assertOutputContains(result, "Added documentation-robotics/ to .prettierignore");
       expect(await readFile(join(tempDir.path, ".prettierignore"), "utf-8")).toContain(
-        "documentation-robotics/changesets/\n"
+        "documentation-robotics/\n"
       );
 
       // Already listed: the next run neither adds it again nor reports it.
@@ -1259,6 +1263,40 @@ describe("upgrade command - unified flow", () => {
     });
   });
 
+  describe("A checkout without the spec reference (#1168)", () => {
+    it("dr validate says so in one line with the fix, and validates all the same", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      // A fresh clone or worktree: .dr/ is git-ignored, so it isn't there
+      await rm(join(tempDir.path, ".dr"), { recursive: true, force: true });
+
+      const fresh = await runDr(["validate"], { cwd: tempDir.path });
+      expect(fresh.exitCode).toBe(0);
+      assertOutputContains(fresh, "Spec reference not installed in this checkout");
+      assertOutputContains(fresh, 'run "dr upgrade" to install the reference');
+      assertOutputContains(fresh, "0 error(s)");
+      expect(await fileExists(join(tempDir.path, ".dr"))).toBe(false);
+
+      // --quiet keeps it out, as it keeps the other notices out
+      const quiet = await runDr(["validate", "--quiet"], { cwd: tempDir.path });
+      expect(quiet.stdout).not.toContain("Spec reference not installed");
+
+      const upgrade = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(upgrade.exitCode).toBe(0);
+      const after = await runDr(["validate"], { cwd: tempDir.path });
+      expect(after.exitCode).toBe(0);
+      expect(after.stdout).not.toContain("Spec reference");
+    });
+
+    it("dr validate says when the reference is for another spec version", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await writeFile(join(tempDir.path, ".dr", "manifest.json"), JSON.stringify({ specVersion: "0.12.0" }));
+      const result = await runDr(["validate"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "The spec reference in .dr/ is for spec v0.12.0");
+      assertOutputContains(result, "validation is unaffected");
+    });
+  });
+
   describe("A .dr/ folder that only holds other per-checkout state (#1168)", () => {
     it("offers to install the spec reference, not to repair it", async () => {
       await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
@@ -1271,6 +1309,388 @@ describe("upgrade command - unified flow", () => {
       expect(plan.exitCode).toBe(0);
       assertOutputContains(plan, "Install spec reference");
       expect(plan.stdout).not.toContain("manifest missing");
+    });
+  });
+  describe("What the upgrade touches, and says it touches (#1165, #1166, #1185, #1246)", () => {
+    function git(cwd: string, ...args: string[]): string {
+      const result = spawnSync("git", args, { cwd, stdio: "pipe", encoding: "utf-8" });
+      if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+      return result.stdout;
+    }
+
+    function gitInit(cwd: string): void {
+      git(cwd, "init", "-q");
+      git(cwd, "config", "user.email", "test@example.com");
+      git(cwd, "config", "user.name", "Test");
+      // A global excludes file on the machine running the tests must not decide the outcome.
+      git(cwd, "config", "core.excludesFile", join(cwd, ".no-global-excludes"));
+    }
+
+    const LONG =
+      "A commit refuses a changeset for drift whenever any element in the base changed, which is far more often than the plan and the base actually disagree";
+
+    /** A goal whose long description is laid out as prettier lays it out: on the lines after the key */
+    async function writePrettierLaidOutGoal(workdir: string): Promise<string> {
+      const dir = join(workdir, "documentation-robotics/model/01_motivation");
+      const path = "motivation.goal.fewer-refusals";
+      const text =
+        `${path}:\n  id: 00000000-0000-4000-8000-000000000001\n  path: ${path}\n  spec_node_id: motivation.goal\n` +
+        `  type: goal\n  layer_id: motivation\n  name: Fewer refusals\n  description:\n    ${LONG.slice(0, 72)}\n    ${LONG.slice(73)}\n` +
+        `  attributes:\n    priority: high\n`;
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, "goal.yaml"), text);
+      return text;
+    }
+
+    /** An operation without the attributes the spec requires, in the file dr itself would write */
+    async function writeBareOperation(workdir: string): Promise<string> {
+      const dir = join(workdir, "documentation-robotics/model/07_api");
+      const path = "api.operation.create-order";
+      const text = yaml.stringify({
+        [path]: {
+          id: "00000000-0000-4000-8000-000000000002",
+          path,
+          spec_node_id: "api.operation",
+          type: "operation",
+          layer_id: "api",
+          name: "Create order",
+          description: "Creates an order. Reserves stock first.",
+        },
+      });
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, "operation.yaml"), text);
+      return text;
+    }
+
+    it("a version stamp changes the manifest and nothing else in the model, whatever layout its files are in (#1246)", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const goal = await writePrettierLaidOutGoal(tempDir.path);
+      await setModelSpecVersion(tempDir.path, "0.13.0");
+      gitInit(tempDir.path);
+      git(tempDir.path, "add", "-A");
+      git(tempDir.path, "commit", "-q", "-m", "model at 0.13.0");
+
+      const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dryRun.exitCode).toBe(0);
+      assertOutputContains(dryRun, "Rehearsed on a copy of the model:");
+      assertOutputContains(dryRun, "Model files it would write (1):");
+      assertOutputContains(dryRun, "write   documentation-robotics/model/manifest.yaml");
+      expect(git(tempDir.path, "status", "--short").trim()).toBe("");
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "Model files written (1):");
+      expect(await getModelSpecVersion(tempDir.path)).toBe("0.14.0");
+      expect(git(tempDir.path, "status", "--short", "--", "documentation-robotics/model").trim()).toBe(
+        "M documentation-robotics/model/manifest.yaml"
+      );
+      expect(await readFile(join(tempDir.path, "documentation-robotics/model/01_motivation/goal.yaml"), "utf-8")).toBe(goal);
+    });
+
+    it("lists every file outside the model by group before it writes, and --model-only leaves them alone (#1165)", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await runDr(["copilot", "install", "--force"], { cwd: tempDir.path });
+      await writeFile(join(tempDir.path, ".prettierrc"), "{}\n");
+      await setModelSpecVersion(tempDir.path, "0.13.0");
+      // An integration from an older dr, missing a file this dr ships, with an entry no dr tracks
+      const versionFile = join(tempDir.path, ".github/.dr-copilot-version");
+      const version = yaml.parse(await readFile(versionFile, "utf-8"));
+      version.version = "0.5.0";
+      delete version.components.agents["dr-advisor.md"];
+      await writeFile(versionFile, yaml.stringify(version));
+      await rm(join(tempDir.path, ".github/agents/dr-advisor.md"));
+      // Two skills of an older layout, as an earlier dr shipped them
+      for (const name of ["dr_layer_02_business", "dr_layer_04_app"]) {
+        await mkdir(join(tempDir.path, `.github/skills/${name}`), { recursive: true });
+        await writeFile(join(tempDir.path, `.github/skills/${name}/SKILL.md`), shippedSkill(name));
+      }
+      // A name an earlier dr used, holding the project's own text
+      await mkdir(join(tempDir.path, ".github/skills/dr_03_security_layer"), { recursive: true });
+      await writeFile(join(tempDir.path, ".github/skills/dr_03_security_layer/SKILL.md"), "our rewrite\n");
+      // The project's own files, named like dr's: no dr ever installed these names
+      await mkdir(join(tempDir.path, ".github/skills/dr_house_style"), { recursive: true });
+      await writeFile(join(tempDir.path, ".github/skills/dr_house_style/SKILL.md"), "ours\n");
+      await writeFile(join(tempDir.path, ".github/agents/dr-who.md"), "ours\n");
+      await rm(join(tempDir.path, "documentation-robotics/reports"), { recursive: true, force: true });
+      gitInit(tempDir.path);
+      git(tempDir.path, "add", "-A");
+      git(tempDir.path, "commit", "-q", "-m", "before upgrade");
+
+      const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dryRun.exitCode).toBe(0);
+      assertOutputContains(dryRun, "Outside the model (documentation-robotics/model/), this upgrade also changes:");
+      assertOutputContains(dryRun, "GitHub Copilot integration (.github/): 0.5.0 →");
+      assertOutputContains(dryRun, "add       .github/agents/dr-advisor.md");
+      assertOutputContains(dryRun, "update    .github/.dr-copilot-version");
+      assertOutputContains(dryRun, "stale     .github/skills/dr_layer_02_business/");
+      assertOutputContains(dryRun, "stale     .github/skills/dr_layer_04_app/");
+      assertOutputContains(dryRun, "changed   .github/skills/dr_03_security_layer/");
+      expect(dryRun.stdout).not.toContain("dr_house_style");
+      expect(dryRun.stdout).not.toContain("dr-who.md");
+      assertOutputContains(dryRun, "Reports (none yet)");
+      assertOutputContains(dryRun, "generate  documentation-robotics/README.md");
+      assertOutputContains(dryRun, "documentation-robotics/ to .prettierignore");
+      assertOutputContains(dryRun, "--model-only leaves all of these alone");
+      expect(git(tempDir.path, "status", "--short").trim()).toBe("");
+
+      // --model-only: the model and nothing else git can see
+      const modelOnly = await runDr(["upgrade", "--yes", "--model-only"], { cwd: tempDir.path });
+      expect(modelOnly.exitCode).toBe(0);
+      assertOutputContains(modelOnly, "Left alone (--model-only)");
+      expect(modelOnly.stdout).not.toContain("Upgrade GitHub Copilot integration...");
+      expect(await getModelSpecVersion(tempDir.path)).toBe("0.14.0");
+      expect(git(tempDir.path, "status", "--short").trim()).toBe("M documentation-robotics/model/manifest.yaml");
+
+      // Without it the rest follows, and the leftovers are listed but kept
+      const rest = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(rest.exitCode).toBe(0);
+      assertOutputContains(rest, "2 entries in .github/ are left over from an earlier dr's GitHub Copilot integration");
+      assertOutputContains(rest, "1 entry in .github/ has a name an earlier dr used, but its contents are not what dr shipped");
+      assertOutputContains(rest, "Kept 3. Remove any of them with: dr upgrade --remove-stale <path>...");
+      expect(await fileExists(join(tempDir.path, ".github/agents/dr-advisor.md"))).toBe(true);
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business/SKILL.md"))).toBe(true);
+      expect(await fileExists(join(tempDir.path, ".prettierignore"))).toBe(true);
+      expect(await fileExists(join(tempDir.path, "documentation-robotics/README.md"))).toBe(true);
+
+      // Everything is up to date now; the leftovers are still offered, and one goes when it is named
+      const one = await runDr(["upgrade", "--yes", "--remove-stale", ".github/skills/dr_layer_02_business"], {
+        cwd: tempDir.path,
+      });
+      expect(one.exitCode).toBe(0);
+      assertOutputContains(one, "Everything is up to date");
+      assertOutputContains(one, "Removed 1 of them from .github/: .github/skills/dr_layer_02_business/");
+      assertOutputContains(one, "Kept 2.");
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business"))).toBe(false);
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_04_app/SKILL.md"))).toBe(true);
+
+      // The project's own dr-named files can't be removed this way, by name or by "all"
+      const own = await runDr(
+        ["upgrade", "--yes", "--remove-stale", ".github/skills/dr_house_style", ".github/agents/dr-who.md"],
+        { cwd: tempDir.path }
+      );
+      expect(own.exitCode).toBe(0);
+      assertOutputContains(own, "--remove-stale .github/skills/dr_house_style: not a leftover of an earlier dr's integration");
+
+      // "All" removes what dr shipped as it shipped it, and leaves the changed one
+      const all = await runDr(["upgrade", "--yes", "--remove-stale"], { cwd: tempDir.path });
+      expect(all.exitCode).toBe(0);
+      assertOutputContains(all, "Removed 1 of them from .github/: .github/skills/dr_layer_04_app/");
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_04_app"))).toBe(false);
+      expect(await readFile(join(tempDir.path, ".github/skills/dr_03_security_layer/SKILL.md"), "utf-8")).toBe("our rewrite\n");
+
+      // The changed one goes only when its path is named
+      const changed = await runDr(["upgrade", "--yes", "--remove-stale", ".github/skills/dr_03_security_layer/"], {
+        cwd: tempDir.path,
+      });
+      assertOutputContains(changed, "Removed 1 of them from .github/: .github/skills/dr_03_security_layer/");
+      expect(await readFile(join(tempDir.path, ".github/skills/dr_house_style/SKILL.md"), "utf-8")).toBe("ours\n");
+      expect(await readFile(join(tempDir.path, ".github/agents/dr-who.md"), "utf-8")).toBe("ours\n");
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_change_planning/SKILL.md"))).toBe(true);
+    });
+
+    it("stages derived values for newly required attributes in a changeset and leaves the base model alone (#1166)", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const operation = await writeBareOperation(tempDir.path);
+      await setModelSpecVersion(tempDir.path, "0.13.0");
+      const operationFile = join(tempDir.path, "documentation-robotics/model/07_api/operation.yaml");
+
+      const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dryRun.exitCode).toBe(0);
+      assertOutputContains(dryRun, "would have 3 validation error(s) on 1 element(s)");
+      assertOutputContains(dryRun, "required, left empty: tags");
+      assertOutputContains(dryRun, "required, value would be staged for review: operationId, summary");
+      assertOutputContains(dryRun, "would be derived and staged in the changeset 'upgrade-fills-0.14.0'");
+      assertOutputContains(dryRun, 'api.operation.create-order: operationId = "createOrder"');
+      expect(await fileExists(join(tempDir.path, "documentation-robotics/changesets"))).toBe(false);
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "Staged 2 derived value(s) for required attributes on 1 element(s) in the changeset 'upgrade-fills-0.14.0'");
+      assertOutputContains(result, "Nothing was written to the base model");
+      assertOutputContains(result, 'api.operation.create-order: summary = "Creates an order."');
+      assertOutputContains(result, "required, left empty: tags");
+      assertOutputContains(result, "required, value staged for review: operationId, summary");
+      // The base model: stamped, not filled in
+      expect(await readFile(operationFile, "utf-8")).toBe(operation);
+
+      // The review path the output names: activate it, then diff
+      assertOutputContains(result, "dr changeset activate upgrade-fills-0.14.0 then dr changeset diff");
+      expect((await runDr(["changeset", "activate", "upgrade-fills-0.14.0"], { cwd: tempDir.path })).exitCode).toBe(0);
+      const diff = await runDr(["changeset", "diff"], { cwd: tempDir.path });
+      expect(diff.exitCode).toBe(0);
+      assertOutputContains(diff, "api.operation.create-order");
+
+      // It lands like any plan; the error it doesn't fix (tags) was the base model's already
+      const commit = await runDr(["changeset", "commit", "upgrade-fills-0.14.0"], { cwd: tempDir.path });
+      expect(commit.exitCode).toBe(0);
+      const landed = yaml.parse(await readFile(operationFile, "utf-8"))["api.operation.create-order"];
+      expect(landed.attributes).toEqual({ operationId: "createOrder", summary: "Creates an order." });
+    });
+
+    it("shortens a long list with its total and the way to see it all, and --full lists every item", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      // 30 operations with nothing the spec requires: 60 values to derive, 30 elements to list
+      const operations: Record<string, unknown> = {};
+      for (let i = 1; i <= 30; i++) {
+        const path = `api.operation.get-item-${String(i).padStart(2, "0")}`;
+        operations[path] = {
+          id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+          path,
+          spec_node_id: "api.operation",
+          type: "operation",
+          layer_id: "api",
+          name: `Get item ${i}`,
+        };
+      }
+      await mkdir(join(tempDir.path, "documentation-robotics/model/07_api"), { recursive: true });
+      await writeFile(join(tempDir.path, "documentation-robotics/model/07_api/operation.yaml"), yaml.stringify(operations));
+      await setModelSpecVersion(tempDir.path, "0.13.0");
+
+      const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dryRun.exitCode).toBe(0);
+      // The counts are of everything; the list is the first 20 and says so
+      assertOutputContains(dryRun, "would have 90 validation error(s) on 30 element(s)");
+      assertOutputContains(dryRun, "60 value(s) for required attributes on 30 element(s) would be derived");
+      assertOutputContains(dryRun, "...and 40 more of 60; dr upgrade --dry-run --full lists them all");
+      expect(dryRun.stdout).not.toContain('api.operation.get-item-30: operationId = "getItem30"');
+
+      const full = await runDr(["upgrade", "--dry-run", "--full"], { cwd: tempDir.path });
+      expect(full.exitCode).toBe(0);
+      assertOutputContains(full, 'api.operation.get-item-30: operationId = "getItem30"');
+      assertOutputContains(full, 'api.operation.get-item-30: summary = "Get item 30"');
+      expect(full.stdout).not.toContain("more of 60");
+
+      // The run itself: shortened the same way, pointing at the changeset, which holds all 60
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "...and 40 more of 60; the changeset 'upgrade-fills-0.14.0' holds them all");
+      const dir = join(tempDir.path, "documentation-robotics/changesets");
+      const [id] = (await readdir(dir, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory() && !entry.name.endsWith(".lock"))
+        .map((entry) => entry.name);
+      const changes = yaml.parse(await readFile(join(dir, id, "changes.yaml"), "utf-8"));
+      expect(changes).toHaveLength(30);
+      expect(changes.every((change: any) => change.after.attributes.operationId && change.after.attributes.summary)).toBe(true);
+    });
+
+    it("leaves .gitignore and the index alone while git tracks files under .dr/, until --dot-dr says what to do (#1185)", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await setModelSpecVersion(tempDir.path, "0.13.0");
+      // A project from before .dr/ was ignored: its spec reference is committed
+      await rm(join(tempDir.path, ".gitignore"), { force: true });
+      gitInit(tempDir.path);
+      git(tempDir.path, "add", "-A");
+      git(tempDir.path, "commit", "-q", "-m", "model with .dr tracked");
+      const tracked = git(tempDir.path, "ls-files", "--", ".dr").trim().split("\n").length;
+      expect(tracked).toBeGreaterThan(2);
+
+      const dryRun = await runDr(["upgrade", "--dry-run", "--force"], { cwd: tempDir.path });
+      assertOutputContains(dryRun, `git tracks ${tracked} file(s) under .dr/`);
+      assertOutputContains(dryRun, "untrack:");
+      assertOutputContains(dryRun, "keep-tracked:");
+
+      // No one to ask, no choice given: the upgrade runs and the decision is left open
+      const result = await runDr(["upgrade", "--yes", "--force"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, `git tracks ${tracked} file(s) under .dr/`);
+      assertOutputContains(result, "Nothing was changed. Choose with: dr upgrade --dot-dr <untrack|keep-tracked|skip>");
+      expect(await fileExists(join(tempDir.path, ".gitignore"))).toBe(false);
+      expect(git(tempDir.path, "ls-files", "--", ".dr").trim().split("\n")).toHaveLength(tracked);
+
+      // With a choice, the dry run names what that choice does, down to the index
+      const plan = await runDr(["upgrade", "--dry-run", "--dot-dr", "untrack"], { cwd: tempDir.path });
+      assertOutputContains(plan, "add       /.dr/ to .gitignore");
+      assertOutputContains(plan, `untrack   ${tracked} file(s) under .dr/ from git's index`);
+      const keepPlan = await runDr(["upgrade", "--dry-run", "--dot-dr", "keep-tracked"], { cwd: tempDir.path });
+      assertOutputContains(keepPlan, "add       /.dr/*, !/.dr/");
+      expect(keepPlan.stdout).not.toContain("untrack   ");
+      expect(await fileExists(join(tempDir.path, ".gitignore"))).toBe(false);
+
+      const chosen = await runDr(["upgrade", "--yes", "--dot-dr", "untrack"], { cwd: tempDir.path });
+      expect(chosen.exitCode).toBe(0);
+      assertOutputContains(chosen, `Removed ${tracked} file(s) under .dr/ from git's index`);
+      expect(git(tempDir.path, "ls-files", "--", ".dr").trim()).toBe("");
+      expect(await readFile(join(tempDir.path, ".gitignore"), "utf-8")).toContain("/.dr/\n");
+      expect(await fileExists(join(tempDir.path, ".dr/manifest.json"))).toBe(true);
+      // The next git add of the upgrade just works
+      git(tempDir.path, "add", "-A");
+      git(tempDir.path, "commit", "-q", "-m", "upgrade");
+      expect(git(tempDir.path, "status", "--short").trim()).toBe("");
+
+      const unknown = await runDr(["upgrade", "--yes", "--dot-dr", "delete"], { cwd: tempDir.path });
+      expect(unknown.exitCode).not.toBe(0);
+    });
+
+    it("leaves alone an integration a newer dr installed, unless forced, and says so", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      await runDr(["copilot", "install", "--force"], { cwd: tempDir.path });
+      const versionFile = join(tempDir.path, ".github/.dr-copilot-version");
+      const version = yaml.parse(await readFile(versionFile, "utf-8"));
+      version.version = "9.9.9";
+      await writeFile(versionFile, yaml.stringify(version));
+      const advisor = join(tempDir.path, ".github/agents/dr-advisor.md");
+      await writeFile(advisor, "from a newer dr\n");
+
+      const dry = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dry.exitCode).toBe(0);
+      expect(dry.stdout).not.toContain("Upgrade GitHub Copilot integration");
+      const run = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(run.exitCode).toBe(0);
+      expect(run.stdout).not.toContain("Upgrade GitHub Copilot integration...");
+      expect(await readFile(advisor, "utf-8")).toBe("from a newer dr\n");
+      expect(yaml.parse(await readFile(versionFile, "utf-8")).version).toBe("9.9.9");
+
+      const forced = await runDr(["upgrade", "--dry-run", "--force"], { cwd: tempDir.path });
+      assertOutputContains(forced, "Downgrade GitHub Copilot integration to this dr's files (forced; a newer dr installed it)");
+    });
+
+    it("says when a large-file commit hook would refuse a changeset, and doesn't touch the hook config", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const config =
+        "repos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks\n    hooks:\n      - id: check-added-large-files\n        args: [--maxkb=1000]\n";
+      await writeFile(join(tempDir.path, ".pre-commit-config.yaml"), config);
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "check-added-large-files pre-commit hook refuses a new file over 1000 KB");
+      assertOutputContains(result, "exclude: ^documentation-robotics/changesets/");
+      expect(await readFile(join(tempDir.path, ".pre-commit-config.yaml"), "utf-8")).toBe(config);
+
+      // Excluded: nothing more to say
+      await writeFile(
+        join(tempDir.path, ".pre-commit-config.yaml"),
+        `${config}        exclude: ^documentation-robotics/changesets/\n`
+      );
+      const quiet = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(quiet.stdout).not.toContain("check-added-large-files");
+    });
+
+    it("says when a prettier commit hook still receives dr's files, and is quiet once the hook excludes the folder", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const hook =
+        "repos:\n  - repo: https://github.com/pre-commit/mirrors-prettier\n    rev: v4.0.0-alpha.8\n    hooks:\n      - id: prettier\n        types_or: [markdown, yaml, json]\n";
+      await writeFile(join(tempDir.path, ".pre-commit-config.yaml"), hook);
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      // The hook is the sign of prettier, so the folder is ignored...
+      assertOutputContains(result, "Added documentation-robotics/ to .prettierignore");
+      // ...and the hook itself still needs the exclude, which dr names and does not write
+      assertOutputContains(result, "prettier pre-commit hook is passed the files dr writes under documentation-robotics/");
+      assertOutputContains(result, "exclude: ^documentation-robotics/");
+      expect(await readFile(join(tempDir.path, ".pre-commit-config.yaml"), "utf-8")).toBe(hook);
+
+      // As this repository has it: the hook excludes the folder and .prettierignore lists it
+      await writeFile(
+        join(tempDir.path, ".pre-commit-config.yaml"),
+        `${hook}        exclude: ^(CHANGELOG\\.md|documentation-robotics/)\n`
+      );
+      const before = await readFile(join(tempDir.path, ".prettierignore"), "utf-8");
+      const quiet = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(quiet.exitCode).toBe(0);
+      expect(quiet.stdout).not.toContain("pre-commit hook");
+      expect(quiet.stdout).not.toContain(".prettierignore");
+      expect(await readFile(join(tempDir.path, ".prettierignore"), "utf-8")).toBe(before);
     });
   });
 });

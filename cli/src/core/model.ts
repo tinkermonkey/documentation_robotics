@@ -13,7 +13,7 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import { getNodeType } from "../generated/node-types.js";
@@ -23,6 +23,7 @@ import { readReconciledStamp } from "./reconciliation.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 /**
  * The `changeset_history` value of the manifest on disk, or undefined when there is no manifest
@@ -44,6 +45,106 @@ async function readChangesetHistoryOnDisk(
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Whether two YAML texts hold the same data, whatever their layout: line folding, quoting,
+ * comments, and the order of a mapping's keys. Key order is not data here on purpose. The model
+ * reads elements and their attributes by name, and the writer emits an element's own fields in a
+ * fixed order, so a file that differs from what the writer would produce only in the order of its
+ * keys (elements in the file, or the keys inside `attributes`) loads to the same model and is left
+ * as it is. The order of a list's items is data and does count. Text that doesn't parse is never
+ * the same, so the writer replaces it.
+ */
+export function sameYamlData(a: string, b: string, parse: (text: string) => unknown): boolean {
+  if (a === b) return true;
+  try {
+    return isDeepStrictEqual(parse(a), parse(b));
+  } catch {
+    return false;
+  }
+}
+
+/** A file of a layer folder, relative to the model folder, for messages */
+function filePath(layerPath: string, file: string): string {
+  return `${path.basename(layerPath)}/${file}`;
+}
+
+/** A model file name: YAML by its extension, whatever its letter case (`goal.yaml`, `GOAL.YML`) */
+export const YAML_FILE = /\.ya?ml$/i;
+
+/**
+ * What loading made of one YAML file in a layer folder, which decides what a later save of the
+ * layer may do to it.
+ *
+ * - `loaded`: it parsed to a mapping whose every entry became an element. A save may replace or
+ *   remove it, as long as its text is still what was loaded.
+ * - `failed`: it did not parse. Its elements were never loaded, so writing over it or removing it
+ *   would lose them.
+ * - `partial`: it parsed, but holds something that is not an element (a plain value, a list).
+ *   That part was never loaded either. A file with no YAML document (empty, whitespace or only
+ *   comments) is `loaded` with no elements; a comment-only one is marked `commentsOnly`.
+ */
+export interface LayerFileRecord {
+  state: "loaded" | "failed" | "partial";
+  /** The file's text when it was loaded */
+  text: string;
+  /**
+   * The file held no YAML document but comments (it parsed to nothing). A save may write the
+   * type's elements into it, losing the comments, and says so; it doesn't remove such a file.
+   */
+  commentsOnly?: boolean;
+}
+
+/**
+ * A layer save refused because writing a file would lose content the model never loaded. Its
+ * message names the file and why; its suggestions say what to do with that file.
+ */
+export class LayerFileConflictError extends CLIError {
+  constructor(message: string, file: string) {
+    super(message, ErrorCategory.USER, [
+      `Move what is not a model element out of ${file}, or fix it so it parses, then retry`,
+      `Or delete ${file} if nothing in it is needed`,
+    ]);
+    this.name = "LayerFileConflictError";
+  }
+}
+
+/**
+ * What a layer save does to the YAML files already in its folder, given the names it will write.
+ *
+ * A file whose name differs from a wanted name only in letter case (`Goal.yaml` for `goal.yaml`)
+ * is the same file as the wanted one on a case-insensitive filesystem (macOS, Windows), where
+ * unlinking it as "stale" after the write would delete the data just written. So such a file is
+ * renamed to the wanted name before anything is written, and is never stale. When the folder also
+ * holds the exactly named file, the filesystem tells the two apart and the variant is an ordinary
+ * stale file.
+ *
+ * @param existing - the YAML file names in the layer folder
+ * @param wanted - the file names the save will write
+ * @returns `renames`: [from, to] pairs to apply first; `stale`: files to remove after the writes
+ */
+export function planLayerFiles(
+  existing: string[],
+  wanted: string[]
+): { renames: Array<[string, string]>; stale: string[] } {
+  const present = new Set(existing);
+  const wantedNames = new Set(wanted);
+  const wantedByLowerCase = new Map(wanted.map((name) => [name.toLowerCase(), name]));
+  const renames: Array<[string, string]> = [];
+  const claimed = new Set<string>();
+  const stale: string[] = [];
+  for (const name of existing) {
+    if (wantedNames.has(name)) continue;
+    const target = wantedByLowerCase.get(name.toLowerCase());
+    if (target !== undefined && !present.has(target) && !claimed.has(target)) {
+      renames.push([name, target]);
+      claimed.add(target);
+    } else {
+      stale.push(name);
+    }
+  }
+  return { renames, stale };
 }
 
 /**
@@ -166,6 +267,12 @@ export class Model {
    * relationship changes are merged into `relationships`. Null when no changeset was active.
    */
   private _baseRelationships: Relationship[] | null = null;
+  /**
+   * Per loaded layer, what loading made of each YAML file in its folder (LayerFileRecord). A save
+   * reads it to decide which files it may replace or remove; a layer with no entry was not loaded
+   * from disk.
+   */
+  private layerFiles: Map<string, Map<string, LayerFileRecord>> = new Map();
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
@@ -327,19 +434,28 @@ export class Model {
 
       const layer = new Layer(name, this.graph);
       let parseErrorCount = 0;
+      const fileRecords = new Map<string, LayerFileRecord>();
 
-      // Load all YAML files in the layer directory
+      // Load all YAML files in the layer directory (any letter case of the extension)
       const files = await fs.readdir(layerPath);
       for (const file of files) {
-        if (file.endsWith(".yaml") || file.endsWith(".yml")) {
+        if (YAML_FILE.test(file)) {
           const filePath = `${layerPath}/${file}`;
+          let yamlContent = "";
           try {
-            const yamlContent = await fs.readFile(filePath, "utf-8");
+            yamlContent = await fs.readFile(filePath, "utf-8");
             const elements = yaml.parse(yamlContent);
+            // Anything in the file that does not become an element makes it partial
+            // No document at all (empty, whitespace, comments): nothing to lose but comments
+            const noDocument = elements === null || elements === undefined;
+            let complete = noDocument || (typeof elements === "object" && !Array.isArray(elements));
 
             // Add each element from the YAML file
             if (elements && typeof elements === "object") {
               for (const [key, element] of Object.entries(elements)) {
+                if (!element || typeof element !== "object" || Array.isArray(element)) {
+                  complete = false;
+                }
                 if (element && typeof element === "object") {
                   const el: any = element;
 
@@ -420,15 +536,22 @@ export class Model {
                 }
               }
             }
+            fileRecords.set(file, {
+              state: complete ? "loaded" : "partial",
+              text: yamlContent,
+              ...(noDocument && /^\s*#/m.test(yamlContent) ? { commentsOnly: true } : {}),
+            });
           } catch (fileError) {
             // Log YAML parsing errors but continue loading other files
             const errorMsg = fileError instanceof Error ? fileError.message : String(fileError);
             console.error(`Warning: Failed to parse ${filePath}: ${errorMsg}`);
             parseErrorCount++;
+            fileRecords.set(file, { state: "failed", text: yamlContent });
             // Continue with next file
           }
         }
       }
+      this.layerFiles.set(name, fileRecords);
 
       // If we had parse errors, add a note to the layer
       if (parseErrorCount > 0) {
@@ -574,13 +697,14 @@ export class Model {
       }
     }
 
-    // Delete all existing YAML files in the layer directory to ensure
-    // we don't keep stale files after element deletion
+    // What is on disk now. A file whose data would not change keeps its bytes (#1246): loading
+    // leaves every layer dirty, and a rewrite in dr's layout of a file prettier or a person laid
+    // out differently shows up as a diff with no data change.
+    const existingFiles = new Map<string, string>();
     try {
-      const existingFiles = await fs.readdir(layerPath);
-      for (const file of existingFiles) {
-        if (file.endsWith(".yaml") || file.endsWith(".yml")) {
-          await fs.unlink(`${layerPath}/${file}`);
+      for (const file of await fs.readdir(layerPath)) {
+        if (YAML_FILE.test(file)) {
+          existingFiles.set(file, await fs.readFile(`${layerPath}/${file}`, "utf-8"));
         }
       }
     } catch (err) {
@@ -588,7 +712,7 @@ export class Model {
       const isNotFoundError = (err as any)?.code === "ENOENT";
       if (!isNotFoundError) {
         throw new Error(
-          `Failed to clean existing YAML files: ${err instanceof Error ? err.message : String(err)}`
+          `Failed to read existing YAML files: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }
@@ -604,10 +728,11 @@ export class Model {
       elementsByType.get(typeKey)!.elements.push(element);
     }
 
-    // Write each type to its own YAML file
+    // Each type's elements as the text of its own YAML file. Nothing on disk changes until every
+    // file's text exists.
+    const outputs = new Map<string, string>();
     for (const [, { stem, elements }] of elementsByType) {
       const filename = `${stem}.yaml`;
-      const filePath = `${layerPath}/${filename}`;
 
       // Convert elements to spec-node format YAML
       const yamlData: any = {};
@@ -644,8 +769,119 @@ export class Model {
         };
       }
 
-      await writeFile(filePath, yaml.stringify(yamlData));
+      outputs.set(filename, yaml.stringify(yamlData));
     }
+
+    // A file named like a wanted one but for letter case is renamed to it first: on a
+    // case-insensitive filesystem it is the same file, and removing it as stale after the write
+    // would delete what was just written (planLayerFiles).
+    const { renames, stale } = planLayerFiles([...existingFiles.keys()], [...outputs.keys()]);
+
+    // Which files this save may replace or remove: only one whose every entry loading made an
+    // element of, still as it was loaded. Anything else holds data the model doesn't have (a file
+    // that didn't parse, a plain value or comment-only file, a file added or edited since the
+    // load), and replacing or removing it would lose that data. A layer not loaded from disk (a new
+    // model's, an imported one) has no records and keeps the earlier behaviour: its files are
+    // written over, and none is removed.
+    const records = this.layerFiles.get(name);
+    const why = (file: string): string | null => {
+      const record = records?.get(file);
+      if (!record) return "dr did not read it when it loaded the model (added since?)";
+      if (record.state === "failed") return "it did not parse when the model was loaded, so its elements were never read";
+      if (record.state === "partial") return "it holds content that is not a model element, which the model never loaded";
+      const now = existingFiles.get(file);
+      // Changed since the load (a migration may rewrite a file itself): still safe when every
+      // entry it holds now is an element this model holds
+      if (record.text !== now && !holdsOnlyLayerElements(now)) return "it changed on disk since the model was loaded";
+      return null;
+    };
+    function holdsOnlyLayerElements(text: string | undefined): boolean {
+      if (text === undefined) return false;
+      let doc: unknown;
+      try {
+        doc = yaml.parse(text);
+      } catch {
+        return false;
+      }
+      if (!doc || typeof doc !== "object" || Array.isArray(doc)) return false;
+      const held = new Set<string>();
+      for (const element of layer!.elements.values()) {
+        held.add(element.id);
+        if (element.path) held.add(element.path);
+      }
+      return Object.entries(doc as Record<string, unknown>).every(([key, value]) => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+        const { id, path: elementPath } = value as { id?: unknown; path?: unknown };
+        return [elementPath, id, key].some((candidate) => typeof candidate === "string" && held.has(candidate));
+      });
+    }
+    if (records) {
+      // A file the save would overwrite (by its exact name, or by letter case on macOS and Windows)
+      const overwritten = [
+        ...[...outputs.keys()].filter((file) => existingFiles.has(file)),
+        ...renames.map(([from]) => from),
+      ];
+      for (const file of overwritten) {
+        const reason = why(file);
+        // An exact-name file that changed since the load is written over, as dr always has; one
+        // that holds what the model never loaded is not
+        if (reason && !(reason.startsWith("it changed") && outputs.has(file))) {
+          throw new LayerFileConflictError(
+            `Not saving layer '${name}': writing ${filePath(layerPath, file)} would lose data, because ${reason}.`,
+            filePath(layerPath, file)
+          );
+        }
+      }
+    }
+
+    for (const [from, to] of renames) {
+      await fs.rename(`${layerPath}/${from}`, `${layerPath}/${to}`);
+      existingFiles.set(to, existingFiles.get(from)!);
+      existingFiles.delete(from);
+    }
+
+    for (const [filename, text] of outputs) {
+      const onDisk = existingFiles.get(filename);
+      if (onDisk !== undefined && sameYamlData(onDisk, text, yaml.parse)) {
+        continue;
+      }
+      if (onDisk !== undefined && records?.get(filename)?.commentsOnly) {
+        console.warn(
+          `Warning: ${filePath(layerPath, filename)} held only comments; dr writes the layer's elements into it and does not keep them.`
+        );
+      }
+      await writeFile(`${layerPath}/${filename}`, text);
+    }
+
+    // Remove the files of types the layer no longer has, so no stale file outlives a deletion,
+    // but only files whose every element the model loaded (and now writes elsewhere or deleted).
+    // None of them is a file just written: a case variant of a written name was renamed above,
+    // unless the folder also listed the exact name, which only a case-sensitive filesystem allows.
+    for (const file of stale) {
+      const reason = records
+        ? why(file) ?? (records.get(file)?.commentsOnly ? "it holds only comments, which the model does not keep" : null)
+        : "the layer was not loaded from disk";
+      if (reason) {
+        console.warn(`Warning: kept ${filePath(layerPath, file)}: ${reason}.`);
+        continue;
+      }
+      await fs.unlink(`${layerPath}/${file}`);
+    }
+
+    // What is on disk now is what this model holds
+    const after = new Map<string, LayerFileRecord>();
+    for (const [file, record] of records ?? []) {
+      if (!stale.includes(file) || why(file) !== null) after.set(file, record);
+    }
+    for (const [from] of renames) after.delete(from);
+    for (const [filename, text] of outputs) {
+      const onDisk = existingFiles.get(filename);
+      after.set(filename, {
+        state: "loaded",
+        text: onDisk !== undefined && sameYamlData(onDisk, text, yaml.parse) ? onDisk : text,
+      });
+    }
+    this.layerFiles.set(name, after);
 
     layer.markClean();
   }
