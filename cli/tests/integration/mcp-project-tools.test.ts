@@ -536,10 +536,8 @@ describe("project_status over MCP", () => {
     const unreferenced = await call("project_status", { list: "unreferencedFiles", limit: 1 });
     expect(unreferenced).toEqual({
       list: "unreferencedFiles",
-      total: 1,
-      offset: 0,
-      returned: 1,
       items: [{ file: "src/lighting.ts", source: true, added: true }],
+      page: { total: 1, returned: 1, offset: 0 },
     });
     const refused = await callTool(state, "project_status", { offset: 3 });
     expect(refused.isError).toBe(true);

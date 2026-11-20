@@ -526,6 +526,8 @@ describe("project_status", () => {
 
     expect(data.changesets.stagedTotal).toBe(22);
     expect(data.changesets.staged).toHaveLength(10);
+    // The page the shown part is, in the shape every paged tool uses.
+    expect(data.changesets.pages).toEqual({ stagedChangesets: { total: 22, returned: 10, offset: 0, nextOffset: 10 } });
     expect(data.changesets.more).toHaveLength(1);
     expect(data.changesets.more[0]).toContain(
       `stagedChangesets shows 10 of 22: project_status with list: "stagedChangesets", offset: 10, rootPath: "${rootPath}" returns the rest.`
@@ -533,8 +535,7 @@ describe("project_status", () => {
 
     // Every staged changeset is reachable, each exactly once, across the status and the call it names.
     const rest = await page(rootPath, "stagedChangesets", { offset: 10 });
-    expect(rest).toMatchObject({ total: 22, returned: 12 });
-    expect(rest.nextOffset).toBeUndefined();
+    expect(rest.page).toEqual({ total: 22, returned: 12, offset: 10 });
     const names = [...data.changesets.staged, ...rest.items].map((entry: any) => entry.name).sort();
     expect(names).toEqual(Array.from({ length: 22 }, (_, i) => `plan-${String(i).padStart(2, "0")}`));
 
@@ -566,10 +567,8 @@ describe("project_status", () => {
     // No model at all.
     expect(await page(rootPath, "changedSourceFiles")).toEqual({
       list: "changedSourceFiles",
-      total: 0,
-      offset: 0,
-      returned: 0,
       items: [],
+      page: { total: 0, returned: 0, offset: 0 },
       note: "codeDrift is no-model",
     });
     expect((await page(rootPath, "stagedChangesets")).note).toBe("changesets is no-model");
@@ -821,8 +820,9 @@ describe("project_status", () => {
 
       // The call it names returns the rest, each file with every element that references it.
       const rest = await page(rootPath, "changedSourceFiles", { offset: 15 });
-      expect(rest).toMatchObject({ list: "changedSourceFiles", total: 17, offset: 15, returned: 2 });
-      expect(rest.nextOffset).toBeUndefined();
+      expect(rest.list).toBe("changedSourceFiles");
+      // The last page: no nextOffset and no more line.
+      expect(rest.page).toEqual({ total: 17, returned: 2, offset: 15 });
       expect(rest.more).toBeUndefined();
       expect(rest.items.map((f: any) => f.file)).toEqual(["src/part-15.ts", "src/part-16.ts"]);
       expect(rest.items[1].elementCount).toBe(5);
@@ -833,14 +833,16 @@ describe("project_status", () => {
       let offset: number | undefined = 0;
       while (offset !== undefined) {
         const next: any = await page(rootPath, "changedSourceFiles", { limit: 7, offset });
-        expect(next.total).toBe(17);
+        expect(next.page.total).toBe(17);
         seen.push(...next.items.map((f: any) => f.file));
-        if (next.nextOffset !== undefined) expect(next.more).toContain(`list: "changedSourceFiles", offset: ${next.nextOffset}, limit: 7`);
-        offset = next.nextOffset;
+        if (next.page.nextOffset !== undefined) {
+          expect(next.more).toContain(`list: "changedSourceFiles", offset: ${next.page.nextOffset}, limit: 7`);
+        }
+        offset = next.page.nextOffset;
       }
       expect(seen).toEqual(names.map((name) => `src/${name}.ts`));
       // limit has no upper bound: the total returns everything in one call.
-      expect((await page(rootPath, "changedSourceFiles", { limit: 17 })).returned).toBe(17);
+      expect((await page(rootPath, "changedSourceFiles", { limit: 17 })).page).toEqual({ total: 17, returned: 17, offset: 0 });
 
       // The same holds for the index's own list of files changed since it was taken.
       expect(data.codeIndex.status).toBe("stale");
@@ -850,7 +852,9 @@ describe("project_status", () => {
         `changedSinceIndex shows 15 of 17: project_status with list: "changedSinceIndex", offset: 15, rootPath: "${rootPath}" returns the rest.`,
       ]);
       const sinceIndex = await page(rootPath, "changedSinceIndex", { offset: 15 });
-      expect(sinceIndex).toMatchObject({ total: 17, returned: 2 });
+      expect(sinceIndex.page).toEqual({ total: 17, returned: 2, offset: 15 });
+      expect(data.codeIndex.pages).toEqual({ changedSinceIndex: { total: 17, returned: 15, offset: 0, nextOffset: 15 } });
+      expect(data.codeDrift.pages).toEqual({ changedSourceFiles: { total: 17, returned: 15, offset: 0, nextOffset: 15 } });
     });
 
     it("shows three elements per file, with the whole count and the call that lists them all", async () => {
@@ -909,7 +913,7 @@ describe("project_status", () => {
         `uncommittedSourceFiles shows 15 of 18: project_status with list: "uncommittedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`,
       ]);
       expect(data.nextStep.summary).toContain("18 source files the model references have uncommitted edits");
-      expect(await page(rootPath, "uncommittedSourceFiles", { offset: 15 })).toMatchObject({ total: 18, returned: 3 });
+      expect((await page(rootPath, "uncommittedSourceFiles", { offset: 15 })).page).toEqual({ total: 18, returned: 3, offset: 15 });
     });
 
     it("names five unreferenced files, counts them all, and returns every one through list", async () => {
@@ -934,7 +938,8 @@ describe("project_status", () => {
       ]);
 
       const rest = await page(rootPath, "unreferencedFiles", { offset: 5 });
-      expect(rest).toMatchObject({ total: 9, returned: 4 });
+      expect(rest.page).toEqual({ total: 9, returned: 4, offset: 5 });
+      expect(data.codeDrift.pages).toEqual({ unreferencedFiles: { total: 9, returned: 5, offset: 0, nextOffset: 5 } });
       // New source files first, then other source files, then files that are not source.
       expect(rest.items).toEqual([
         { file: "src/new-5.ts", source: true, added: true },
@@ -1164,7 +1169,10 @@ describe("project_status", () => {
         ]);
         // The sentence gives the whole count and says how many it did not name.
         expect(data.nextStep.summary).toContain('7 landed since ("plan-6", "plan-5", "plan-4", "plan-3", "plan-2" and 2 more)');
-        expect(await page(rootPath, "landedSince", { offset: 5 })).toMatchObject({ total: 7, returned: 2, items: ["plan-1", "plan-0"] });
+        expect(await page(rootPath, "landedSince", { offset: 5 })).toMatchObject({
+          items: ["plan-1", "plan-0"],
+          page: { total: 7, returned: 2, offset: 5 },
+        });
       });
 
       it("names the plans landed since, and says they did not move the baseline (#1228)", async () => {

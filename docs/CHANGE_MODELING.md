@@ -275,11 +275,13 @@ overlapping changes per drifted changeset. These are defaults, not cut-offs. Eac
 has its true count beside it (`stagedTotal`, `referencedFilesChanged`,
 `referencedFilesUncommitted`, `unreferenced.files`, `landedSince.count`,
 `changedSinceIndexCount`, `uncommittedEditsCount`, `elementCount`, `overlapping.elements` and
-`.relationships`) and a `more` line naming the call that returns the rest. `project_status` with
+`.relationships`) and, when it is shortened, its page under the section's `pages` (`total`, `returned`, `offset`,
+`nextOffset`) and a `more` line naming the call that returns the rest. `project_status` with
 `list` returns any of them in full: `stagedChangesets`, `changedSourceFiles`,
 `uncommittedSourceFiles`, `unreferencedFiles`, `landedSince`, `changedSinceIndex` or
-`uncommittedEdits`, paged with `limit` (default 50, no upper bound) and `offset`, with `total`,
-`returned` and `nextOffset` (absent when nothing is left). A changeset's overlapping changes are
+`uncommittedEdits`, paged with `limit` (default 50, no upper bound) and `offset`. The answer is
+`items` and `page: {total, returned, offset, nextOffset}`, the shape every paged dr tool uses,
+with `nextOffset` absent on the last page. A changeset's overlapping changes are
 listed by `changeset_brief` with `sections: ["drift"]`. Every status, count and `nextStep` is
 computed over the whole lists before anything is shortened.
 

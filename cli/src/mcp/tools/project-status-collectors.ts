@@ -470,7 +470,9 @@ export type ChangesetsSection =
       stagedTotal: number;
       /** The changesets still staged, the active one included. */
       staged: ChangesetEntry[];
-      /** Set when `staged` shows only its first entries: what is shown, of how many, and the call for the rest. */
+      /** Set when `staged` shows only its first entries: where the part shown sits in the whole list. */
+      pages?: ShortenedPages;
+      /** With `pages`: what is shown, of how many, and the call for the rest. */
       more?: string[];
       committed: number;
       discarded: number;
@@ -622,6 +624,8 @@ export type CodeIndexSection =
       uncommittedEdits?: string[];
       /** How many there are; `uncommittedEdits` lists the first. */
       uncommittedEditsCount?: number;
+      /** For each list shortened here: where the part shown sits in the whole list. */
+      pages?: ShortenedPages;
       /** One line per shortened list: what is shown, of how many, and the call that returns the rest. */
       more?: string[];
       note?: string;
@@ -760,6 +764,30 @@ export const STATUS_LISTS = [
 ] as const;
 export type StatusList = (typeof STATUS_LISTS)[number];
 
+/**
+ * Where a page sits in its list: the shape every paged dr tool answers with (cli/src/mcp/tools/
+ * paging.ts, once that helper is on main). `nextOffset` is absent when nothing is left.
+ */
+export interface ListPage {
+  /** How many items the whole list has. */
+  total: number;
+  /** How many of them this result holds. */
+  returned: number;
+  offset: number;
+  nextOffset?: number;
+}
+
+/** The page of `all` that `offset` and `limit` ask for. */
+export function pageOf<T>(all: readonly T[], offset: number, limit: number): { items: T[]; page: ListPage } {
+  const start = Math.min(offset, all.length);
+  const items = all.slice(start, start + limit);
+  const end = start + items.length;
+  return { items, page: { total: all.length, returned: items.length, offset: start, ...(end < all.length ? { nextOffset: end } : {}) } };
+}
+
+/** `page` for each list a section shortened, by list name. */
+export type ShortenedPages = Partial<Record<StatusList, ListPage>>;
+
 export interface ChangedSourceFile {
   file: string;
   /** Elements whose source reference names the file (the first few). */
@@ -884,6 +912,8 @@ export type CodeDriftSection =
       referencedFiles: number;
       /** Set when a list here shows only its first entries; `more` names the call for the rest of each. */
       truncated?: boolean;
+      /** For each list shortened here: where the part shown sits in the whole list. */
+      pages?: ShortenedPages;
       /** One line per shortened list: what is shown, of how many, and the call that returns the rest. */
       more?: string[];
     };
@@ -1449,55 +1479,56 @@ export function statusListItems(list: StatusList, s: Partial<ListSections>): { i
  */
 export function shortenSections<S extends Partial<ListSections>>(sections: S, rootPath?: string): S {
   const out: S = { ...sections };
+  /** The first `LIST_DEFAULTS` entries of a list, recording its page and `more` line when that is not all of it. */
+  const cut = <T>(list: StatusList, all: readonly T[], pages: ShortenedPages, more: string[], shown: number = LIST_DEFAULTS[list]): T[] => {
+    const { items, page } = pageOf(all, 0, shown);
+    if (page.nextOffset !== undefined) {
+      pages[list] = page;
+      more.push(moreLine(list, page.returned, page.total, rootPath));
+    }
+    return items;
+  };
+  const said = (pages: ShortenedPages, more: string[]) => (more.length > 0 ? { ...(Object.keys(pages).length > 0 ? { pages } : {}), more } : {});
 
-  if (out.changesets?.status === "ok" && out.changesets.staged.length > LIST_DEFAULTS.stagedChangesets) {
+  if (out.changesets?.status === "ok") {
+    const pages: ShortenedPages = {};
+    const more: string[] = [];
     const all = out.changesets.staged;
-    const shown = all.slice(0, LIST_DEFAULTS.stagedChangesets);
-    const hiddenDrifted = all.slice(shown.length).filter((entry) => entry.drift?.state === "drifted").length;
-    out.changesets = {
-      ...out.changesets,
-      staged: shown,
-      more: [
-        `${moreLine("stagedChangesets", shown.length, all.length, rootPath)}` +
-          `${hiddenDrifted > 0 ? ` ${hiddenDrifted} of those not shown ${hiddenDrifted === 1 ? "has" : "have"} a drifted base.` : ""}`,
-      ],
-    };
+    const staged = cut("stagedChangesets", all, pages, more);
+    if (more.length > 0) {
+      const hiddenDrifted = all.slice(staged.length).filter((entry) => entry.drift?.state === "drifted").length;
+      if (hiddenDrifted > 0) more[0] += ` ${hiddenDrifted} of those not shown ${hiddenDrifted === 1 ? "has" : "have"} a drifted base.`;
+      out.changesets = { ...out.changesets, staged, ...said(pages, more) };
+    }
   }
 
   const index = out.codeIndex;
   if (index && index.status !== "error" && index.status !== "absent") {
+    const pages: ShortenedPages = {};
     const more: string[] = [];
-    const cut = (list: "changedSinceIndex" | "uncommittedEdits"): string[] | undefined => {
-      const all = index[list];
-      if (!all || all.length <= LIST_DEFAULTS[list]) return all;
-      more.push(moreLine(list, LIST_DEFAULTS[list], all.length, rootPath));
-      return all.slice(0, LIST_DEFAULTS[list]);
-    };
-    const changedSinceIndex = cut("changedSinceIndex");
-    const uncommittedEdits = cut("uncommittedEdits");
+    const changedSinceIndex = index.changedSinceIndex && cut("changedSinceIndex", index.changedSinceIndex, pages, more);
+    const uncommittedEdits = index.uncommittedEdits && cut("uncommittedEdits", index.uncommittedEdits, pages, more);
     if (more.length > 0) {
       out.codeIndex = {
         ...index,
         ...(changedSinceIndex ? { changedSinceIndex } : {}),
         ...(uncommittedEdits ? { uncommittedEdits } : {}),
-        more,
+        ...said(pages, more),
       };
     }
   }
 
   const drift = out.codeDrift;
   if (drift && (drift.status === "drift" || drift.status === "in-step" || drift.status === "unlinked")) {
+    const pages: ShortenedPages = {};
     const more: string[] = [];
     let elementsCut = false;
-    const cutFiles = (list: "changedSourceFiles" | "uncommittedSourceFiles"): ChangedSourceFile[] => {
-      const all = drift[list];
-      if (all.length > LIST_DEFAULTS[list]) more.push(moreLine(list, LIST_DEFAULTS[list], all.length, rootPath));
-      return all.slice(0, LIST_DEFAULTS[list]).map((entry) => {
+    const cutFiles = (list: "changedSourceFiles" | "uncommittedSourceFiles"): ChangedSourceFile[] =>
+      cut(list, drift[list], pages, more).map((entry) => {
         if (entry.elements.length <= LIST_DEFAULTS.elementsPerFile) return entry;
         elementsCut = true;
         return { ...entry, elements: entry.elements.slice(0, LIST_DEFAULTS.elementsPerFile) };
       });
-    };
     const changedSourceFiles = cutFiles("changedSourceFiles");
     const uncommittedSourceFiles = cutFiles("uncommittedSourceFiles");
     if (elementsCut) {
@@ -1511,16 +1542,13 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     if (unreferenced) {
       const { all = [], ...counts } = unreferenced;
       // The source files lead `all`, new ones first, so the names shown are its first entries.
-      const first = all.filter((entry) => entry.source).slice(0, LIST_DEFAULTS.unreferencedFiles).map((entry) => entry.file);
+      const named = all.filter((entry) => entry.source).slice(0, LIST_DEFAULTS.unreferencedFiles).length;
+      const first = cut("unreferencedFiles", all, pages, more, named).map((entry) => entry.file);
       unreferenced = { ...counts, ...(first.length > 0 ? { first } : {}) };
-      if (all.length > first.length) more.push(moreLine("unreferencedFiles", first.length, all.length, rootPath));
     }
 
     let landedSince = drift.landedSince;
-    if (landedSince && landedSince.changesets.length > LIST_DEFAULTS.landedSince) {
-      more.push(moreLine("landedSince", LIST_DEFAULTS.landedSince, landedSince.count, rootPath));
-      landedSince = { ...landedSince, changesets: landedSince.changesets.slice(0, LIST_DEFAULTS.landedSince) };
-    }
+    if (landedSince) landedSince = { ...landedSince, changesets: cut("landedSince", landedSince.changesets, pages, more) };
 
     out.codeDrift = {
       ...drift,
@@ -1528,7 +1556,7 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
       uncommittedSourceFiles,
       ...(unreferenced ? { unreferenced } : {}),
       ...(landedSince ? { landedSince } : {}),
-      ...(more.length > 0 ? { truncated: true, more } : {}),
+      ...(more.length > 0 ? { truncated: true, ...said(pages, more) } : {}),
     };
   }
   return out;

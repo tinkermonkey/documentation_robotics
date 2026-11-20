@@ -29,6 +29,7 @@ import {
   compareVersions,
   LANDING_WHEN_DRIFT_BLOCKS,
   LIST_DEFAULTS,
+  pageOf,
   RESTART_SERVER,
   runGit,
   shortenSections,
@@ -40,6 +41,7 @@ import {
   type CodeDriftSection,
   type ErrorSection,
   type GitRunner,
+  type ListPage,
   type RootResolution,
   type StatusContext,
   type StatusList,
@@ -64,7 +66,7 @@ const inputSchema = {
     .min(1)
     .optional()
     .describe(`With list: how many entries to return (default ${LIST_PAGE_DEFAULT}). No upper bound: pass the list's total for all of it.`),
-  offset: z.number().int().min(0).optional().describe("With list: how many entries to skip (default 0). A page's nextOffset is the next one."),
+  offset: z.number().int().min(0).optional().describe("With list: how many entries to skip (default 0). The result's page.nextOffset is the next one."),
 };
 
 export type ProjectStatusArgs = z.infer<z.ZodObject<typeof inputSchema>>;
@@ -178,16 +180,12 @@ export async function projectStatus(args: ProjectStatusArgs, options: StatusOpti
   };
 }
 
-/** One page of a list the status shortens. */
+/** One page of a list the status shortens, in the shape every paged dr tool answers with. */
 export interface StatusListPage {
   list: StatusList;
-  /** How many entries the list has in all. */
-  total: number;
-  offset: number;
-  returned: number;
   items: unknown[];
-  /** The offset of the next page; absent when nothing is left. */
-  nextOffset?: number;
+  /** Where the page sits in the list: total, returned, offset, and nextOffset while entries are left. */
+  page: ListPage;
   /** The call that returns the next page; absent when nothing is left. */
   more?: string;
   /** Set when the list could not be read: why. */
@@ -222,25 +220,19 @@ export async function projectStatusList(
   } catch (error) {
     section = { status: "error", error: getErrorMessage(error) };
   }
-  const offset = args.offset ?? 0;
   const read = statusListItems(args.list, { [key]: section });
   if ("unavailable" in read) {
-    return { list: args.list, total: 0, offset, returned: 0, items: [], note: read.unavailable };
+    return { list: args.list, items: [], page: { total: 0, returned: 0, offset: 0 }, note: read.unavailable };
   }
-  const items = read.items.slice(offset, offset + (args.limit ?? LIST_PAGE_DEFAULT));
-  const next = offset + items.length;
-  const left = read.items.length - next;
+  const { items, page } = pageOf(read.items, args.offset ?? 0, args.limit ?? LIST_PAGE_DEFAULT);
   return {
     list: args.list,
-    total: read.items.length,
-    offset,
-    returned: items.length,
     items,
-    ...(left > 0
+    page,
+    ...(page.nextOffset !== undefined
       ? {
-          nextOffset: next,
           more:
-            `${left} more: project_status with list: "${args.list}", offset: ${next}` +
+            `${page.total - page.nextOffset} more: project_status with list: "${args.list}", offset: ${page.nextOffset}` +
             `${args.limit ? `, limit: ${args.limit}` : ""}${args.rootPath ? `, rootPath: "${args.rootPath}"` : ""} returns the next page.`,
         }
       : {}),
@@ -739,8 +731,8 @@ export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
     "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
     `${LIST_DEFAULTS.stagedChangesets} staged changesets, ${LIST_DEFAULTS.changedSourceFiles} changed source files with ${LIST_DEFAULTS.elementsPerFile} elements each, ` +
     `${LIST_DEFAULTS.unreferencedFiles} unreferenced files, the ${LIST_DEFAULTS.landedSince} latest changesets landed since, ${LIST_DEFAULTS.changedSinceIndex} files changed since the index, ` +
-    "and 3 overlapping changes per drifted changeset (changeset_brief with sections: [\"drift\"] lists those). Each shortened list has its true count beside it and a more line naming the call for the rest: " +
-    `list returns any of them in full, paged with limit (default ${LIST_PAGE_DEFAULT}, no upper bound) and offset. Every status, count and nextStep is computed over the whole lists, never over what is shown. ` +
+    "and 3 overlapping changes per drifted changeset (changeset_brief with sections: [\"drift\"] lists those). Each shortened list has its true count beside it, its page (total, returned, offset, nextOffset) under pages, and a more line naming the call for the rest: " +
+    `list returns any of them in full, paged with limit (default ${LIST_PAGE_DEFAULT}, no upper bound) and offset, as items and page. Every status, count and nextStep is computed over the whole lists, never over what is shown. ` +
     "Reads local files and git only. Call it first in a session.",
   inputSchema,
   handler: projectStatusHandler,
