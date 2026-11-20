@@ -30,7 +30,8 @@ import { acceptedGapView, findAcceptedGap, toShortDirection, type AcceptedGapVie
 /** Layers that state why the system exists; every change should trace to one of them. */
 export const INTENT_LAYERS = new Set(["motivation", "business", "product"]);
 
-const INTENT_TRACE_DEPTH = 4;
+/** How many hops the intent trace walks from an element by default. */
+export const INTENT_TRACE_DEPTH = 4;
 
 // ---------------------------------------------------------------------------
 // Impact
@@ -86,13 +87,12 @@ export interface ImpactReport {
   changed: number;
   /** Existing elements the walk reached: all of them, listed or not. */
   reached: number;
-  /** Reached elements listed in `byLayer`: a page of `maxElements`, nearest first. */
-  returned: number;
-  /** Where this page starts, when not at the first element. */
-  offset?: number;
-  /** Where the next page starts. Absent when `byLayer` ends the list. */
-  nextOffset?: number;
-  /** Whether `byLayer` lists fewer elements than the walk reached (`returned` + `offset` below `reached`, or a page past the first). */
+  /**
+   * Where `byLayer` sits in the reached elements (nearest first): `total` is `reached`, `returned`
+   * the elements listed, and `nextOffset` where the next page starts, absent when nothing is left.
+   */
+  page: { total: number; returned: number; offset: number; nextOffset?: number };
+  /** Whether `byLayer` lists fewer elements than the walk reached. */
   truncated: boolean;
   /** The listed elements, by layer. The whole of what was reached only when `truncated` is false. */
   byLayer: Record<string, ImpactedElement[]>;
@@ -205,9 +205,7 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
     depth,
     changed: changed.size,
     reached: reached.size,
-    returned: page.length,
-    ...(offset > 0 ? { offset } : {}),
-    ...(nextOffset !== undefined ? { nextOffset } : {}),
+    page: { total: reached.size, returned: page.length, offset, ...(nextOffset !== undefined ? { nextOffset } : {}) },
     truncated: page.length < reached.size,
     byLayer,
     perHop: [...perHop.entries()].sort(([a], [b]) => a - b).map(([d, n]) => ({ depth: d, reached: n })),
@@ -374,6 +372,8 @@ export interface BriefInput {
   unwiredLayers?: string[];
   /** The intent trace does not walk through elements with more relationships than this (default 15, as impact). */
   hubThreshold?: number;
+  /** How many hops the intent trace walks from an element (default INTENT_TRACE_DEPTH). */
+  maxHops?: number;
 }
 
 /** A changed element that reaches intent, and how. */
@@ -390,9 +390,9 @@ export interface IntentTrace {
    */
   anchoredBy?: { id: string; path: string[] };
   /**
-   * Set when the element does not reach intent by its own walk and traces through its whole: the
-   * nearest element that composes or aggregates it (directly or through other wholes) and traces.
-   * `path` then runs up the wholes to it, and on along its own path.
+   * Set when the element does not reach intent by its own walk and is carried by another: the
+   * nearest element that composes or aggregates it, or that it realizes (directly or through others
+   * of the kind), and that traces in its own right. `path` then runs up to it, and on along its own path.
    */
   through?: string;
 }
@@ -486,6 +486,12 @@ export interface ChangesetBrief {
     noCatalogRoute?: string[];
     /** Set when nothing was traced, to say why (every changed element is an intent element or a deletion). */
     note?: string;
+    /**
+     * The two numbers that bound the trace, and what they cost: `blockedByHub` lists the elements
+     * in `untraced` or `noCatalogRoute` that do reach intent within `maxHops` once hubs are walked
+     * through. They are not traced under the rule; a larger `hubThreshold` traces them.
+     */
+    walk: { maxHops: number; hubThreshold: number; blockedByHub: string[] };
   };
   codeTouched: Array<{ file: string; elements: Array<{ id: string; role: "changed" | "neighbor" }> }>;
   feedback: Array<{
@@ -505,6 +511,7 @@ export function buildBrief({
   unwired: unwiredMode = "summary",
   unwiredLayers,
   hubThreshold = DEFAULT_HUB_THRESHOLD,
+  maxHops = INTENT_TRACE_DEPTH,
 }: BriefInput): ChangesetBrief {
   const changeset = graph.changeset;
   const changed = graph.changedElements();
@@ -618,7 +625,7 @@ export function buildBrief({
   const untraced: string[] = [];
   const unanchored: UnanchoredTrace[] = [];
   const noCatalogRoute: string[] = [];
-  const intentWalk = new IntentWalk(graph, hubThreshold);
+  const intentWalk = new IntentWalk(graph, hubThreshold, maxHops);
   let intentElements = 0;
   let deletions = 0;
   for (const element of changed) {
@@ -650,6 +657,10 @@ export function buildBrief({
     }
   }
   const intentNote = nothingToTraceNote(changed.length, intentElements, deletions);
+  // What the hub rule costs: the elements it leaves untraced that reach intent once hubs are walked through.
+  const withoutHubRule = new IntentWalk(graph, Number.POSITIVE_INFINITY, maxHops);
+  const anchoredElsewhere = new Set(unanchored.map((u) => u.element));
+  const blockedByHub = [...untraced, ...noCatalogRoute].filter((id) => !anchoredElsewhere.has(id) && !!withoutHubRule.trace(id).traced);
 
   // Code touched: files of changed elements and of the existing elements next to them.
   const files = new Map<string, Map<string, "changed" | "neighbor">>();
@@ -731,6 +742,7 @@ export function buildBrief({
       ...(unanchored.length > 0 ? { unanchored } : {}),
       ...(noCatalogRoute.length > 0 ? { noCatalogRoute } : {}),
       ...(intentNote ? { note: intentNote } : {}),
+      walk: { maxHops, hubThreshold, blockedByHub },
     },
     codeTouched,
     feedback,
@@ -794,6 +806,20 @@ function diffFields(
 /** Predicates from a whole to its part: a part exists for its whole, so it traces when the whole does. */
 const WHOLE_PREDICATES = new Set(["composes", "aggregates"]);
 
+/**
+ * Whether a neighbour carries an element's trace: a whole that composes or aggregates it, or what it
+ * realizes. An element exists to make concrete what it realizes, so it traces when that does.
+ */
+const carries = (n: Neighbor): boolean =>
+  n.direction === "in" ? WHOLE_PREDICATES.has(n.relationship.predicate) : n.relationship.predicate === "realizes";
+
+/**
+ * The opposite: a neighbour that hangs from the element (its part, or what realizes it). A carrier's
+ * own trace must not run down to one of these, or one part (one function) would carry all the others.
+ */
+const hangsFrom = (n: Neighbor): boolean =>
+  n.direction === "out" ? WHOLE_PREDICATES.has(n.relationship.predicate) : n.relationship.predicate === "realizes";
+
 type TraceResult = {
   traced?: Omit<IntentTrace, "element">;
   unanchored?: { id: string; path: string[] };
@@ -801,37 +827,40 @@ type TraceResult = {
 
 /**
  * The intent trace: a breadth-first walk from a changed element to the nearest intent element,
- * at most INTENT_TRACE_DEPTH hops, that does not walk through hubs (elements with more than
+ * at most `maxHops` hops (default INTENT_TRACE_DEPTH), that does not walk through hubs (elements with more than
  * `hubThreshold` live relationships; a hub can still be reached). An existing intent element ends
  * the walk. An intent element the changeset adds ends it only when it is anchored, i.e. it traces
  * the same way to an existing intent element; an unanchored one is remembered and walked through.
  *
- * An element that walk leaves untraced still traces when it is a part of something that does: the
- * wholes that compose or aggregate it are followed upward, at any depth and through hubs (a whole
- * with many parts is a hub by nature), and the nearest one that traces by its own walk carries it.
- * No other relationship is followed through a hub: a function that realizes a service with more
- * than `hubThreshold` relationships does not trace through it.
+ * An element that walk leaves untraced still traces when something that does carries it: the
+ * wholes that compose or aggregate it, and what it realizes, are followed upward at any depth and
+ * through hubs (a whole with many parts, or a service many functions realize, is a hub by nature).
+ * The nearest one that traces in its own right carries it: by its walk, not counting a route down
+ * through one of its own parts or of the elements that realize it. No other relationship is followed
+ * through a hub.
  */
 class IntentWalk {
   private readonly anchors = new Map<string, { id: string; path: string[] } | null>();
   private readonly own = new Map<string, TraceResult>();
+  private readonly asWhole = new Map<string, TraceResult>();
 
   constructor(
     private readonly graph: ChangesetGraph,
-    private readonly hubThreshold: number
+    private readonly hubThreshold: number,
+    private readonly maxHops: number = INTENT_TRACE_DEPTH
   ) {}
 
   trace(start: string): TraceResult {
     const own = this.traceOwn(start);
     if (own.traced) return own;
-    const viaWhole = this.traceThroughWhole(start);
-    if (viaWhole.traced) return viaWhole;
-    const unanchored = own.unanchored ?? viaWhole.unanchored;
+    const carried = this.traceThroughCarrier(start);
+    if (carried.traced) return carried;
+    const unanchored = own.unanchored ?? carried.unanchored;
     return unanchored ? { unanchored } : {};
   }
 
-  /** The nearest whole of `start` that traces by its own walk, with the path up to it and on. */
-  private traceThroughWhole(start: string): TraceResult {
+  /** The nearest carrier of `start` (a whole, or what it realizes) that traces in its own right, with the path up to it and on. */
+  private traceThroughCarrier(start: string): TraceResult {
     const parent = new Map<string, string>();
     const visited = new Set([start]);
     const chainTo = (id: string): string[] => {
@@ -845,17 +874,17 @@ class IntentWalk {
       const next: string[] = [];
       for (const id of frontier) {
         for (const n of this.graph.neighbors(id)) {
-          if (n.direction !== "in" || !WHOLE_PREDICATES.has(n.relationship.predicate) || visited.has(n.other)) continue;
+          if (!carries(n) || visited.has(n.other)) continue;
           visited.add(n.other);
           const whole = this.graph.getElement(n.other);
           if (!whole || whole.status === "deleted") continue;
           parent.set(whole.id, id);
           const chain = chainTo(whole.id);
-          // A whole in an intent layer is itself the intent: the bounded walk already found it
+          // A carrier in an intent layer is itself the intent: the bounded walk already found it
           // unless it sits past a hub or deeper than the walk goes.
           const result: TraceResult = INTENT_LAYERS.has(whole.layer)
             ? this.intentHit(whole, [whole.id])
-            : this.traceOwn(whole.id);
+            : this.traceAsWhole(whole.id);
           if (result.traced) {
             const path = [...chain.slice(0, -1), ...result.traced.path];
             return { traced: { ...result.traced, distance: path.length - 1, path, through: whole.id } };
@@ -880,23 +909,41 @@ class IntentWalk {
       : { unanchored: { id: element.id, path } };
   }
 
-  /** The bounded walk from `start`, remembered: a whole is asked once for all its parts. */
+  /** The bounded walk from `start`, remembered. */
   private traceOwn(start: string): TraceResult {
     const known = this.own.get(start);
     if (known) return known;
-    const result = this.walkToIntent(start);
+    const result = this.walkToIntent(start, false);
     this.own.set(start, result);
     return result;
   }
 
-  private walkToIntent(start: string): TraceResult {
+  /**
+   * Whether a carrier traces in its own right, remembered (it is asked once for all it carries): its
+   * bounded walk, but not down to its own parts or to what realizes it. A whole that reaches intent
+   * only through one part (a part a service accesses) does not carry the other parts there, nor a
+   * service that reaches it only through one function the others that realize it.
+   */
+  private traceAsWhole(start: string): TraceResult {
+    const known = this.asWhole.get(start);
+    if (known) return known;
+    const result = this.walkToIntent(start, true);
+    this.asWhole.set(start, result);
+    return result;
+  }
+
+  private walkToIntent(start: string, skipOwnParts: boolean): TraceResult {
     let unanchored: { id: string; path: string[] } | undefined;
-    const hit = this.walk(start, (element, path) => {
-      if (element.status !== "added") return true;
-      if (this.anchorOf(element.id)) return true;
-      unanchored ??= { id: element.id, path };
-      return false;
-    });
+    const hit = this.walk(
+      start,
+      (element, path) => {
+        if (element.status !== "added") return true;
+        if (this.anchorOf(element.id)) return true;
+        unanchored ??= { id: element.id, path };
+        return false;
+      },
+      skipOwnParts
+    );
     if (!hit) return unanchored ? { unanchored } : {};
     const anchor = this.graph.getElement(hit.id)?.status === "added" ? this.anchorOf(hit.id) : null;
     return {
@@ -924,7 +971,8 @@ class IntentWalk {
    */
   private walk(
     start: string,
-    accept: (element: GraphElement, path: string[]) => boolean
+    accept: (element: GraphElement, path: string[]) => boolean,
+    skipOwnParts = false
   ): { id: string; path: string[] } | null {
     const parent = new Map<string, string>();
     const visited = new Set([start]);
@@ -934,12 +982,13 @@ class IntentWalk {
       return path;
     };
     let frontier = [start];
-    for (let distance = 1; distance <= INTENT_TRACE_DEPTH && frontier.length > 0; distance++) {
+    for (let distance = 1; distance <= this.maxHops && frontier.length > 0; distance++) {
       const next: string[] = [];
       for (const id of frontier) {
         if (id !== start && this.graph.neighbors(id).length > this.hubThreshold) continue;
         for (const n of this.graph.neighbors(id)) {
           if (visited.has(n.other)) continue;
+          if (skipOwnParts && id === start && hangsFrom(n)) continue;
           visited.add(n.other);
           const element = this.graph.getElement(n.other);
           if (!element || element.status === "deleted") continue;
@@ -1178,11 +1227,13 @@ export function hasCatalogRouteToIntent(specNodeId: string): boolean {
 function nothingToTraceNote(changed: number, intentElements: number, deletions: number): string | undefined {
   if (changed === 0 || intentElements + deletions < changed) return undefined;
   const what =
-    deletions === 0
-      ? `all ${changed} changed elements are motivation, business or product elements`
-      : intentElements === 0
-        ? `all ${changed} changed elements are deletions`
-        : `${intentElements} of the ${changed} changed elements are motivation, business or product elements and the other ${deletions} are deletions`;
+    changed === 1
+      ? `the one changed element is ${deletions === 1 ? "a deletion" : "a motivation, business or product element"}`
+      : deletions === 0
+        ? `all ${changed} changed elements are motivation, business or product elements`
+        : intentElements === 0
+          ? `all ${changed} changed elements are deletions`
+          : `${intentElements} of the ${changed} changed elements are motivation, business or product elements and the other ${deletions} are deletions`;
   return (
     `Nothing to trace: ${what}. Intent traces the added and updated elements of the other layers up to a ` +
     "goal, requirement or feature; the intent elements themselves are what those trace to, and are not listed."

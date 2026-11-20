@@ -160,7 +160,7 @@ describe("changeset_brief compact (D2)", () => {
     }
 
     const gaps = await brief({ sections: ["gaps"] });
-    expect(Object.keys(gaps.json).sort()).toEqual(["changeset", "detail", "gaps", "more", "pages", "revision", "revisionToken", "sections", "summary"]);
+    expect(Object.keys(gaps.json).sort()).toEqual(["changeset", "detail", "gaps", "more", "page", "revision", "revisionToken", "sections", "summary"]);
     expect(gaps.json.changeset).toEqual({ id: expect.any(String), name: "export-orders", status: "staged" });
     // Compact: one line per gap; the gap itself, with its examples, in full.
     expect(gaps.json.gaps.every((g: unknown) => typeof g === "string")).toBe(true);
@@ -289,12 +289,16 @@ describe("changeset_brief compact (D2)", () => {
     expect(tests).toMatchObject({ added: 90, updated: 0, deleted: 0, more: 85 });
     expect(tests.ids).toHaveLength(5);
     expect(compact.json.changesByType.reduce((n: number, g: any) => n + g.added, 0)).toBe(133);
-    // A long untraced list is counted per type with the first ids of each, not cut at an arbitrary id.
-    expect(compact.json.intent.untraced).toBeUndefined();
+    // A long untraced list: its first 30 ids, the true count, every one counted per type, and a line saying so.
+    expect(compact.json.intent.untraced).toHaveLength(30);
     expect(compact.json.intent.counts.untraced).toBeGreaterThan(130);
-    const untracedTests = compact.json.intent.untracedByType.find((g: any) => g.type === "testing.testcasesketch");
-    expect(untracedTests).toMatchObject({ count: 90, more: 85 });
-    expect(untracedTests.ids).toHaveLength(5);
+    expect(compact.json.intent.untracedByType.find((g: any) => g.type === "testing.testcasesketch")).toEqual({ type: "testing.testcasesketch", count: 90 });
+    expect(compact.json.intent.more).toContain(`30 of ${compact.json.intent.counts.untraced} untraced`);
+    // limit and idsPerType are the caller's: 200 lists every untraced id, 2 shows two ids per type.
+    const wide = (await brief({ limit: 200, idsPerType: 2 })).json;
+    expect(wide.intent.untraced).toHaveLength(wide.intent.counts.untraced);
+    expect(wide.intent.more).toBeUndefined();
+    expect(wide.changesByType.find((g: any) => g.type === "testing.testcasesketch")).toMatchObject({ added: 90, more: 88 });
     expect(compact.json.more).toContain('sections: ["changes"]');
     // A bootstrap's unconnected adds share one gap line.
     expect(compact.json.gaps.some((g: string) => /^unconnected: .* \(1[0-9]{2} elements: .*, \+1[0-9]{2} more\)$/.test(g))).toBe(true);
@@ -303,11 +307,11 @@ describe("changeset_brief compact (D2)", () => {
     // The build view of all 133 is past one result: the answer holds a page, says so, and offset continues it.
     const all = await brief({ sections: ["changes"] });
     expect(all.bytes).toBeLessThanOrEqual(40 * 1024);
-    const page = all.json.pages.changes;
-    expect(page).toMatchObject({ total: 133, returned: all.json.changes.length, unit: "elements", nextOffset: all.json.changes.length });
-    expect(page.summary.byType["testing.testcasesketch"]).toBe(90);
+    const page = all.json.page;
+    expect(page).toMatchObject({ offset: 0, totals: { changes: 133 }, returned: { changes: all.json.changes.length }, nextOffset: all.json.changes.length });
+    expect(page.summaries.changes.byType["testing.testcasesketch"]).toBe(90);
     const rest = await brief({ sections: ["changes"], offset: page.nextOffset });
-    expect(rest.json.pages.changes.nextOffset).toBeUndefined();
+    expect(rest.json.page.nextOffset).toBeUndefined();
     expect(new Set([...all.json.changes, ...rest.json.changes].map((c: any) => c.id)).size).toBe(133);
     expect((await brief({ sections: ["changes"], detail: "full" })).json.changes).toHaveLength(133);
 

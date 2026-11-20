@@ -21,10 +21,10 @@ import {
   briefSections,
   compactDelta,
   compactIntent,
+  deltaLists,
   gapLines,
   SECTIONS_TARGET_BYTES,
   type BriefSection,
-  type DeltaPage,
   type SectionsOptions,
 } from "../../../src/core/changeset-brief-compact.js";
 import type { BriefDelta } from "../../../src/core/changeset-brief-delta.js";
@@ -170,25 +170,37 @@ function itemsOf(section: BriefSection, result: any): unknown[] {
   }
 }
 
-/** Reads a section page by page, following nextOffset, and returns every item with the pages' totals. */
-function readAll(full: ChangesetBrief, section: BriefSection, options: SectionsOptions) {
-  const items: unknown[] = [];
-  const totals = new Set<number>();
+/** The name a section's list has in `page.totals`. */
+const listKey = (section: BriefSection) => (section === "intent" ? "intent.untraced" : section);
+
+/**
+ * Reads sections page by page: the same call again with the previous answer's nextOffset, until it
+ * has none. Returns every item of each section and the totals each page reported.
+ */
+function readAll(full: ChangesetBrief, sections: BriefSection[], options: SectionsOptions) {
+  const items: Record<string, unknown[]> = Object.fromEntries(sections.map((s) => [s, []]));
+  const totals: Record<string, Set<number>> = Object.fromEntries(sections.map((s) => [s, new Set<number>()]));
   let pages = 0;
   for (let offset: number | undefined = 0; offset !== undefined && pages < 500; pages++) {
-    const result = briefSections(full, [section], { ...options, offset });
-    const page = result.pages![section]!;
-    const got = itemsOf(section, result);
-    expect(page.returned).toBe(got.length);
-    expect(got.length).toBeGreaterThan(0);
-    // The next call is this call's arguments with the next offset.
-    if (page.nextOffset !== undefined) expect(page.next).toBe(`changeset_brief ${JSON.stringify({ sections: [section], offset: page.nextOffset })}`);
-    else expect(page.next).toBeUndefined();
-    items.push(...got);
-    totals.add(page.total);
+    const result = briefSections(full, sections, { ...options, offset });
+    const page = result.page!;
+    expect(page.offset).toBe(offset);
+    for (const section of sections) {
+      const got = itemsOf(section, result);
+      expect(page.returned[listKey(section)]).toBe(got.length);
+      items[section].push(...got);
+      totals[section].add(page.totals[listKey(section)]);
+    }
+    // The next call is this call with the next offset, and the answer says so in words.
+    if (page.nextOffset !== undefined) {
+      expect(page.nextOffset).toBeGreaterThan(offset);
+      expect(result.more).toContain(`Next page: changeset_brief ${JSON.stringify({ sections, offset: page.nextOffset })}`);
+    } else if (pages > 0) {
+      expect(result.more).toContain("This is the last page");
+    }
     offset = page.nextOffset;
   }
-  return { items, totals: [...totals], pages };
+  return { items, totals: Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, [...v]])), pages };
 }
 
 describe("changeset_brief sections: long lists page, nothing is dropped (#1183, #1232)", () => {
@@ -197,19 +209,21 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     const { json, bytes } = await brief({ sections: ["intent"] });
     // 4 services and their 40 functions trace to the feature; 40 schemas are connected to nothing.
     expect(json.intent.counts).toEqual({ traced: 44, untraced: 40 });
-    // More than 30 traced: counted. The untraced are what the agent acts on: every id.
+    // The traced are counted. The untraced are what the agent acts on: every id.
     expect(json.intent.traced).toBeUndefined();
     expect(json.intent.untraced).toHaveLength(40);
     expect(json.intent.untraced[0]).toBe("data-model.objectschema.export-row-shape-0");
     // The list is whole, and the answer says so.
-    expect(json.pages).toEqual({ intent: { total: 40, returned: 40, unit: "untraced elements" } });
+    expect(json.page).toEqual({ offset: 0, totals: { "intent.untraced": 40 }, returned: { "intent.untraced": 40 } });
     expect(json.intent.untracedByType).toBeUndefined();
     expect(json.more).toContain("Every list is whole");
     expect(bytes).toBeLessThan(4_500);
 
-    // A larger limit lists the traced too: the default of 30 is the caller's to change.
-    const listed = (await brief({ sections: ["intent"], limit: 100 })).json.intent;
-    expect(listed.traced).toHaveLength(44);
+    // traced: true lists them too, each with what it traces to, as one more paged list.
+    const listed = (await brief({ sections: ["intent"], traced: true })).json;
+    expect(listed.intent.traced).toHaveLength(44);
+    expect(listed.intent.traced).toContain(`application.applicationfunction.export-step-number-3 → ${FEATURE}`);
+    expect(listed.page.totals).toEqual({ "intent.untraced": 40, "intent.traced": 44 });
 
     // The traces, each with its path, are a call away.
     const full = await brief({ sections: ["intent"], detail: "full" });
@@ -225,58 +239,57 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect(full.json.layers).toBeUndefined();
     expect(full.json.gaps).toBeUndefined();
 
-    // A few elements: the traced come as lines saying what each traces to.
-    const few = (await brief({ sections: ["intent"], ids: ["application.applicationfunction.export-step-number-3"] })).json;
+    // One element: its own answer, whole.
+    const few = (await brief({ sections: ["intent"], ids: ["application.applicationfunction.export-step-number-3"], traced: true })).json;
     expect(few.intent).toEqual({
       counts: { traced: 1, untraced: 0 },
       traced: [`application.applicationfunction.export-step-number-3 → ${FEATURE}`],
       untraced: [],
+      walk: { maxHops: 4, hubThreshold: 15 },
     });
   });
 
-  it("gives a page and a summary of the whole when a list is past the target, with the call for the rest", async () => {
+  it("gives a page and a summary of the whole when lists are past the target, with the call for the rest", async () => {
     await planLarge(40);
     const full = await fullBrief();
     const small = briefSections(full, ["gaps", "intent"], { targetBytes: 3_000 });
     expect(Buffer.byteLength(JSON.stringify(small, null, 2))).toBeLessThanOrEqual(3_000);
 
-    // Counts are over all 40 untraced elements, though the answer holds a page of their ids.
+    // One page size for both lists. Counts are over all 40 of each, though the answer holds a page.
+    const page = small.page!;
+    const size = page.nextOffset!;
+    expect(size).toBeGreaterThan(0);
+    expect(size).toBeLessThan(40);
+    expect(page).toEqual({
+      offset: 0,
+      totals: { gaps: 40, "intent.untraced": 40 },
+      returned: { gaps: size, "intent.untraced": size },
+      nextOffset: size,
+      summaries: { gaps: { byKind: { unconnected: 40 }, byType: { "data-model.objectschema": 40 } } },
+    });
     const intent = small.intent as any;
-    const page = small.pages!.intent!;
     expect(intent.counts).toEqual({ traced: 44, untraced: 40 });
+    expect(intent.untraced).toHaveLength(size);
     expect(intent.untracedByType).toEqual([{ type: "data-model.objectschema", count: 40 }]);
-    expect(page.total).toBe(40);
-    expect(page.returned).toBe(intent.untraced.length);
-    expect(page.returned).toBeLessThan(40);
-    expect(page.nextOffset).toBe(page.returned);
-    expect(page.next).toBe(`changeset_brief ${JSON.stringify({ sections: ["intent"], offset: page.returned })}`);
-
-    // The gaps: a page of lines, and every gap counted by kind and by type.
-    const gaps = small.pages!.gaps!;
-    expect(gaps.total).toBe(40);
-    expect(gaps.returned).toBe((small.gaps as string[]).length);
-    expect(gaps.summary).toEqual({ byKind: { unconnected: 40 }, byType: { "data-model.objectschema": 40 } });
-    expect(small.more).toContain(`gaps holds ${gaps.returned} of 40 gaps`);
-    expect(small.more).toContain(`intent holds ${page.returned} of 40 untraced elements`);
+    expect(small.gaps).toHaveLength(size);
+    expect(small.more).toContain(`gaps holds ${size} of 40`);
+    expect(small.more).toContain(`intent.untraced holds ${size} of 40`);
+    expect(small.more).toContain(`Next page: changeset_brief ${JSON.stringify({ sections: ["gaps", "intent"], offset: size })}`);
     expect(small.more).toContain("targetBytes");
 
-    // Following the pages reaches every untraced id and every gap, once.
-    const untraced = readAll(full, "intent", { targetBytes: 3_000 });
-    expect(untraced.items).toEqual(full.intent.untraced);
-    expect(untraced.totals).toEqual([40]);
-    expect(untraced.pages).toBeGreaterThan(1);
-    const lines = readAll(full, "gaps", { targetBytes: 3_000 });
-    expect(lines.items).toHaveLength(40);
-    expect(new Set(lines.items).size).toBe(40);
+    // Repeating the same two-section call with nextOffset reaches every untraced id and every gap, once.
+    const read = readAll(full, ["gaps", "intent"], { targetBytes: 3_000 });
+    expect(read.items.intent).toEqual(full.intent.untraced);
+    expect(read.items.gaps).toHaveLength(40);
+    expect(new Set(read.items.gaps).size).toBe(40);
+    expect(read.totals).toEqual({ gaps: [40], intent: [40] });
+    expect(read.pages).toBeGreaterThan(1);
 
     // The same call with room for it returns both lists whole, and says so.
     const roomy = briefSections(full, ["gaps", "intent"]);
     expect(roomy.gaps).toHaveLength(40);
     expect((roomy.intent as any).untraced).toHaveLength(40);
-    expect(roomy.pages).toEqual({
-      gaps: { total: 40, returned: 40, unit: "gaps" },
-      intent: { total: 40, returned: 40, unit: "untraced elements" },
-    });
+    expect(roomy.page).toEqual({ offset: 0, totals: { gaps: 40, "intent.untraced": 40 }, returned: { gaps: 40, "intent.untraced": 40 } });
   });
 
   it("pages the build view by size, and by limit when the caller names one (#1183)", async () => {
@@ -287,19 +300,22 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     const target = 6_000;
     const seen: string[] = [];
     let offset: number | undefined = 0;
-    for (let page = 0; offset !== undefined && page < 60; page++) {
+    for (let pass = 0; offset !== undefined && pass < 60; pass++) {
       const result = briefSections(full, ["changes"], { filter, offset, targetBytes: target, callArgs });
       expect(Buffer.byteLength(JSON.stringify(result, null, 2))).toBeLessThanOrEqual(target);
-      const info = result.pages!.changes!;
+      const page = result.page!;
       // The total is the filter's 44 elements on every page; the summary counts them all by type.
-      expect(info).toMatchObject({ total: 44, returned: result.changes!.length, unit: "elements" });
+      expect(page.totals).toEqual({ changes: 44 });
+      expect(page.returned).toEqual({ changes: result.changes!.length });
       expect(result.changes!.length).toBeGreaterThan(0);
-      if (info.nextOffset !== undefined) {
-        expect(info.summary).toEqual({ byType: { "application.applicationservice": 4, "application.applicationfunction": 40 } });
-        expect(info.next).toBe(`changeset_brief ${JSON.stringify({ layers: ["application"], sections: ["changes"], offset: info.nextOffset })}`);
+      expect(page.summaries).toEqual({ changes: { byType: { "application.applicationservice": 4, "application.applicationfunction": 40 } } });
+      if (page.nextOffset !== undefined) {
+        expect(result.more).toContain(
+          `Next page: changeset_brief ${JSON.stringify({ layers: ["application"], sections: ["changes"], offset: page.nextOffset })}`
+        );
       }
       seen.push(...result.changes!.map((c) => c.id));
-      offset = info.nextOffset;
+      offset = page.nextOffset;
     }
     // Every element of the layer, once, in the full list's order, and none of the other layer's.
     const whole = briefSections(full, ["changes"], { filter, full: true }).changes!.map((c) => c.id);
@@ -309,38 +325,51 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     // A limit is the page size whatever the bytes: 44 elements in one answer, past the target.
     const all = briefSections(full, ["changes"], { filter, limit: 100, targetBytes: target });
     expect(all.changes).toHaveLength(44);
-    expect(all.pages!.changes).toEqual({ total: 44, returned: 44, unit: "elements" });
+    expect(all.page).toEqual({ offset: 0, totals: { changes: 44 }, returned: { changes: 44 } });
     expect(Buffer.byteLength(JSON.stringify(all, null, 2))).toBeGreaterThan(target);
+    // The last page: no next offset, and still the count of all 44.
     const ten = briefSections(full, ["changes"], { filter, limit: 10, offset: 40 });
     expect(ten.changes!.map((c) => c.id)).toEqual(whole.slice(40));
-    // The last page: no next call, and still the count of all 44.
-    expect(ten.pages!.changes).toMatchObject({ total: 44, returned: 4, unit: "elements", offset: 40 });
-    expect(ten.pages!.changes!.nextOffset).toBeUndefined();
-    expect(ten.pages!.changes!.next).toBeUndefined();
+    expect(ten.page).toMatchObject({ offset: 40, totals: { changes: 44 }, returned: { changes: 4 } });
+    expect(ten.page!.nextOffset).toBeUndefined();
+    expect(ten.more).toContain("This is the last page");
 
     // A target too small for one element still returns one: a target, not a cut-off.
     const tiny = briefSections(full, ["changes"], { filter, targetBytes: 200 });
     expect(tiny.changes).toHaveLength(1);
-    expect(tiny.pages!.changes).toMatchObject({ total: 44, returned: 1, nextOffset: 1 });
+    expect(tiny.page).toMatchObject({ totals: { changes: 44 }, returned: { changes: 1 }, nextOffset: 1 });
 
     // Past the end: an empty page, the true total, and a line saying so.
     const past = briefSections(full, ["changes"], { filter, offset: 99 });
     expect(past.changes).toEqual([]);
-    expect(past.pages!.changes).toMatchObject({ total: 44, returned: 0, unit: "elements", offset: 99 });
-    expect(past.pages!.changes!.nextOffset).toBeUndefined();
-    expect(past.more).toContain("offset 99 is past the 44 elements of changes the filter keeps");
+    expect(past.page).toMatchObject({ offset: 99, totals: { changes: 44 }, returned: { changes: 0 } });
+    expect(past.page!.nextOffset).toBeUndefined();
+    expect(past.more).toContain("offset 99 is past the end of every list here");
   });
 
-  it("keeps a short list whole when a long one beside it is paged", async () => {
+  it("pages two sections of one call at the same index, so one offset never skips an item (review of PR 1269)", async () => {
     await planLarge(40);
     const full = await fullBrief();
-    const result = briefSections(full, ["changes", "gaps"], { filter: { layers: ["application", "data-model"] }, targetBytes: 22_000 });
-    expect(Buffer.byteLength(JSON.stringify(result, null, 2))).toBeLessThanOrEqual(22_000);
-    // The 40 gap lines fit their share; the build view takes the rest and pages.
-    expect(result.pages!.gaps).toEqual({ total: 40, returned: 40, unit: "gaps" });
-    expect(result.pages!.changes).toMatchObject({ total: 84, unit: "elements" });
-    expect(result.pages!.changes!.returned).toBeLessThan(84);
-    expect(result.pages!.changes!.returned).toBeGreaterThan(5);
+    // The build view and the layers view weigh differently per element: they are still cut together.
+    const first = briefSections(full, ["changes", "layers"], { targetBytes: 12_000 });
+    const page = first.page!;
+    expect(page.returned.changes).toBe(page.returned.layers);
+    expect(page.returned.changes).toBe(page.nextOffset!);
+    expect(page.totals).toEqual({ changes: 84, layers: 84 });
+
+    const read = readAll(full, ["changes", "layers"], { targetBytes: 12_000 });
+    expect(read.pages).toBeGreaterThan(2);
+    const whole = itemsOf("changes", briefSections(full, ["changes"], { limit: 10_000 }));
+    expect(read.items.changes).toEqual(whole);
+    expect(read.items.layers).toEqual(whole);
+
+    // A short list beside a long one ends early; the long one keeps paging on the same offset.
+    const mixed = readAll(full, ["gaps", "changes"], { limit: 25 });
+    expect(mixed.pages).toBe(4);
+    expect(mixed.items.gaps).toHaveLength(40);
+    expect(mixed.items.changes).toEqual(whole);
+    const second = briefSections(full, ["gaps", "changes"], { limit: 25, offset: 50 });
+    expect(second.page).toMatchObject({ offset: 50, totals: { gaps: 40, changes: 84 }, returned: { gaps: 0, changes: 25 }, nextOffset: 75 });
   });
 
   it("pages every list section to its whole set, with the true total on each page (limit and target)", async () => {
@@ -383,20 +412,75 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
       acceptedGaps: 53,
       feedback: 53,
     };
-    // Every section but the two that are not lists, and the delta (paged apart, below).
+    // Every section but the two that are not lists, and the delta (paged below).
     const listSections = BRIEF_SECTIONS.filter((section) => !["changeset", "drift", "delta"].includes(section));
     expect(Object.keys(expected).sort()).toEqual([...listSections].sort());
     for (const section of listSections) {
       const whole = itemsOf(section, briefSections(withUnwired, [section], { limit: 10_000 }));
       expect(whole).toHaveLength(expected[section]);
       for (const options of [{ limit: 7 }, { targetBytes: 2_500 }]) {
-        const read = readAll(withUnwired, section, options);
+        const read = readAll(withUnwired, [section], options);
         // The pages together are the whole set, in order, and each page reported the same total.
-        expect(read.items).toEqual(whole);
-        expect(read.totals).toEqual([expected[section]]);
-        if (expected[section] > 7) expect(read.pages).toBeGreaterThan(1);
+        expect(read.items[section]).toEqual(whole);
+        expect(read.totals[section]).toEqual([expected[section]]);
+        expect(read.pages).toBeGreaterThan(1);
       }
     }
+  });
+
+  it("pages the intent section's other lists with the untraced, and counts each whole", () => {
+    const ids = (type: string, n: number) => Array.from({ length: n }, (_, i) => `${type}.item-${i}`);
+    const intent: ChangesetBrief["intent"] = {
+      traced: ids("api.operation", 45).map((element) => ({ element, tracesTo: FEATURE, distance: 1, path: [element, FEATURE] })),
+      untraced: [...ids("application.applicationfunction", 60), ...ids("data-model.objectschema", 50)],
+      unanchored: ids("data-model.objectschema", 50).map((element, i) => ({
+        element,
+        tracesTo: i < 35 ? "product.feature.new" : "motivation.requirement.new",
+        path: [],
+        detail: "",
+      })),
+      noCatalogRoute: ids("application.applicationcomponent", 70),
+      walk: { maxHops: 4, hubThreshold: 15, blockedByHub: [] },
+    };
+    const full = { layers: [], intent } as unknown as ChangesetBrief;
+    const header = { revision: 1, revisionToken: "1:ab", changeset: { id: "c", name: "c", status: "staged" }, summary: {} };
+    const brief40 = (offset: number, traced = false) =>
+      briefSections({ ...header, ...full } as ChangesetBrief, ["intent"], { limit: 40, offset, traced });
+
+    const first = brief40(0);
+    const value = first.intent as any;
+    expect(first.page).toEqual({
+      offset: 0,
+      totals: { "intent.untraced": 110, "intent.unanchored": 50, "intent.noCatalogRoute": 70 },
+      returned: { "intent.untraced": 40, "intent.unanchored": 40, "intent.noCatalogRoute": 40 },
+      nextOffset: 40,
+    });
+    // Counts of all, whatever the page holds; a list that is a page is also counted in groups.
+    expect(value.counts).toEqual({ traced: 45, untraced: 110, unanchored: 50, noCatalogRoute: 70 });
+    expect(value.untracedByType).toEqual([
+      { type: "application.applicationfunction", count: 60 },
+      { type: "data-model.objectschema", count: 50 },
+    ]);
+    expect(value.unanchoredByIntent).toEqual({ "product.feature.new": 35, "motivation.requirement.new": 15 });
+    expect(value.noCatalogRoute.byType).toEqual({ "application.applicationcomponent": 70 });
+    expect(value.traced).toBeUndefined();
+
+    // Three pages reach every id of every list; the traced come too when asked for.
+    const collected = { untraced: [] as string[], unanchored: [] as string[], noRoute: [] as string[], traced: [] as string[] };
+    for (let offset: number | undefined = 0, pass = 0; offset !== undefined && pass < 10; pass++) {
+      const result = brief40(offset, true);
+      const part = result.intent as any;
+      collected.untraced.push(...part.untraced);
+      collected.unanchored.push(...(part.unanchored ?? []));
+      collected.noRoute.push(...part.noCatalogRoute.ids);
+      collected.traced.push(...(part.traced ?? []));
+      expect(result.page!.totals["intent.traced"]).toBe(45);
+      offset = result.page!.nextOffset;
+    }
+    expect(collected.untraced).toEqual(intent.untraced);
+    expect(collected.unanchored).toHaveLength(50);
+    expect(collected.noRoute).toEqual(intent.noCatalogRoute);
+    expect(collected.traced).toHaveLength(45);
   });
 
   it("keeps a real 220-element answer near the 40 KB target through the tool, and returns it whole on request", async () => {
@@ -404,21 +488,23 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     for (const args of [{ sections: ["changes"] }, { sections: ["layers"] }, { sections: ["changes", "layers", "gaps", "intent", "codeTouched"] }]) {
       const { json, bytes } = await brief(args);
       expect(bytes).toBeLessThanOrEqual(SECTIONS_TARGET_BYTES);
-      expect(json.pages.changes ?? json.pages.layers).toMatchObject({ total: 231, unit: "elements" });
+      expect(json.page.totals.changes ?? json.page.totals.layers).toBe(231);
+      expect(json.page.nextOffset).toBeGreaterThan(0);
       expect(json.more).toContain("Not everything is here");
     }
     // The next call the answer names returns the next page.
     const first = (await brief({ sections: ["changes"] })).json;
-    const next = JSON.parse(first.pages.changes.next.replace(/^changeset_brief /, ""));
-    expect(next).toEqual({ rootPath, sections: ["changes"], offset: first.pages.changes.returned });
+    const named = /Next page: changeset_brief (\{.*?\})\. /.exec(first.more)![1];
+    const next = JSON.parse(named);
+    expect(next).toEqual({ rootPath, sections: ["changes"], offset: first.page.nextOffset });
     const second = (await brief(next)).json;
     expect(second.changes[0].id).not.toBe(first.changes[0].id);
-    expect(second.pages.changes).toMatchObject({ total: 231, offset: first.pages.changes.returned });
+    expect(second.page).toMatchObject({ offset: first.page.nextOffset, totals: { changes: 231 } });
 
     // A larger target or a limit returns more in one answer: the 40 KB is a default.
     const roomy = await brief({ sections: ["changes"], targetBytes: 400_000 });
     expect(roomy.json.changes).toHaveLength(231);
-    expect(roomy.json.pages.changes).toEqual({ total: 231, returned: 231, unit: "elements" });
+    expect(roomy.json.page).toEqual({ offset: 0, totals: { changes: 231 }, returned: { changes: 231 } });
     expect((await brief({ sections: ["changes"], limit: 231 })).json.changes).toHaveLength(231);
 
     // A filtered section costs what it returns: one element, one element's bytes.
@@ -426,9 +512,20 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect(one.json.changes).toHaveLength(1);
     expect(one.json.intent.untraced).toEqual(["data-model.objectschema.export-row-shape-7"]);
     expect(one.json.gaps).toHaveLength(1);
-    expect(one.json.pages.changes).toEqual({ total: 1, returned: 1, unit: "elements" });
+    expect(one.json.page.returned).toEqual({ changes: 1, "intent.untraced": 1, gaps: 1 });
     expect(one.bytes).toBeLessThan(3_000);
   }, 60_000);
+
+  it("says when a layer name is not a layer, so an empty answer is not read as no changes", async () => {
+    await planLarge(10);
+    const { json } = await brief({ sections: ["changes", "gaps", "intent"], layers: ["data_model"] });
+    expect(json.changes).toEqual([]);
+    expect(json.intent.counts).toEqual({ traced: 0, untraced: 0 });
+    expect(json.more).toContain("Not a layer: data_model (it keeps nothing)");
+    expect(json.more).toContain("data-model");
+    // The real name: the layer's ten orphan schemas.
+    expect((await brief({ sections: ["gaps"], layers: ["data-model"] })).json.gaps).toHaveLength(10);
+  });
 
   it("lists the connections a change adds and counts the rest per predicate and layer (#1183)", async () => {
     // A service with 12 test cases, as a sync changeset stages them.
@@ -504,35 +601,30 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
         sourceProvenance: "manual",
       })) as any
     );
-    // All 30 fit: each element's own entries, whole.
+    // All 30 fit: each element's own entries, whole, with existingCount as the planning skill reads it.
     const { json } = await brief({ sections: ["unwired", "codeTouched"], unwiredLayers: ["product"] });
     expect(json.unwired.elements).toHaveLength(30);
-    expect(json.unwired.elements[0].byLayer[0].entries[0]).toMatchObject({ direction: "out", predicate: "realizes" });
-    expect(json.pages.unwired).toEqual({ total: 30, returned: 30, unit: "elements" });
-    expect(json.codeTouched).toHaveLength(30);
+    expect(json.unwired.elements[0].byLayer[0].entries[0]).toMatchObject({ direction: "out", predicate: "realizes", existingCount: 1 });
+    expect(json.page).toEqual({ offset: 0, totals: { unwired: 30, codeTouched: 30 }, returned: { unwired: 30, codeTouched: 30 } });
     expect(json.codeTouched[0]).toEqual({ file: "src/workers/worker-0.ts", changed: ["application.applicationservice.worker-0"] });
 
     // A page of 10: the summary still says, for all 30, which connection how many of them lack.
     const paged = (await brief({ sections: ["unwired", "codeTouched"], unwiredLayers: ["product"], limit: 10 })).json;
     expect(paged.unwired.elements).toHaveLength(10);
-    expect(paged.pages.unwired).toMatchObject({ total: 30, returned: 10, nextOffset: 10 });
-    const services = paged.pages.unwired.summary.byType.find((t: any) => t.type === "application.applicationservice");
+    expect(paged.page).toMatchObject({ totals: { unwired: 30, codeTouched: 30 }, returned: { unwired: 10, codeTouched: 10 }, nextOffset: 10 });
+    const services = paged.page.summaries.unwired.byType.find((t: any) => t.type === "application.applicationservice");
     expect(services.elements).toBe(30);
     expect(services.byLayer[0].entries).toContain("out realizes product.feature (1 existing, 0 added): 30 elements");
-    expect(JSON.parse(paged.pages.unwired.next.replace(/^changeset_brief /, ""))).toEqual({
-      unwiredLayers: ["product"],
-      limit: 10,
-      rootPath,
-      sections: ["unwired"],
-      offset: 10,
-    });
-    expect(paged.pages.codeTouched).toMatchObject({ total: 30, returned: 10, summary: { changedElements: 30, neighborOnlyFiles: 0 } });
+    expect(paged.page.summaries.codeTouched).toEqual({ changedElements: 30, neighborOnlyFiles: 0 });
+    expect(paged.more).toContain(
+      `Next page: changeset_brief ${JSON.stringify({ unwiredLayers: ["product"], limit: 10, rootPath, sections: ["unwired", "codeTouched"], offset: 10 })}`
+    );
 
     // A filter: only that element's entries and its file.
     const few = (await brief({ sections: ["unwired", "codeTouched"], unwiredLayers: ["product"], ids: ["application.applicationservice.worker-3"] })).json;
     expect(few.unwired.elements).toHaveLength(1);
     expect(few.codeTouched).toEqual([{ file: "src/workers/worker-3.ts", changed: ["application.applicationservice.worker-3"] }]);
-    expect(few.pages.unwired).toEqual({ total: 1, returned: 1, unit: "elements" });
+    expect(few.page.totals).toEqual({ unwired: 1, codeTouched: 1 });
   });
 
   it("pages the delta's lists with the same limit and offset, keeping each list's full length", () => {
@@ -554,32 +646,30 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
       note: "",
     };
     // The default page: 30 of each list, with the full length of every list that is not whole.
-    const first: DeltaPage = { total: 0, returned: 0 };
-    const compact = compactDelta(delta, { page: first });
+    const compact = compactDelta(delta);
     expect(compact.elements.added).toHaveLength(30);
     expect(compact.elements.removed).toHaveLength(3);
     expect(compact.counts).toEqual({ "elements.added": 70, "relationships.added": 45, "intent.newlyUntraced": 31 });
-    expect(first).toEqual({ total: 149, returned: 93, nextOffset: 30 });
+    expect(Object.fromEntries(Object.entries(deltaLists(delta)).map(([k, v]) => [k, v.length]))).toMatchObject({
+      "elements.added": 70,
+      "elements.removed": 3,
+      "relationships.added": 45,
+      "intent.newlyUntraced": 31,
+    });
 
-    // Following nextOffset reaches every entry of every list, once.
+    // Pages of 20 reach every entry of every list, once.
     const added: string[] = [];
     const relationships: string[] = [];
     const untraced: string[] = [];
-    let returned = 0;
-    for (let offset: number | undefined = 0, pass = 0; offset !== undefined && pass < 20; pass++) {
-      const page: DeltaPage = { total: 0, returned: 0 };
-      const part = compactDelta(delta, { limit: 20, offset, page });
-      expect(page.total).toBe(149);
+    for (let offset = 0; offset < 70; offset += 20) {
+      const part = compactDelta(delta, { limit: 20, offset });
       added.push(...part.elements.added);
       relationships.push(...part.relationships.added);
       untraced.push(...part.intent.newlyUntraced);
-      returned += page.returned;
-      offset = page.nextOffset;
     }
     expect(added).toEqual(delta.elements.added);
     expect(relationships).toHaveLength(45);
     expect(untraced).toEqual(delta.intent.newlyUntraced);
-    expect(returned).toBe(149);
   });
 
   it("pages a since delta through the tool when delta is named", async () => {
@@ -591,17 +681,22 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect(compact.delta.elements.added).toHaveLength(30);
     expect(compact.delta.counts["elements.added"]).toBe(45);
     expect(compact.more).toContain('sections: ["delta"] with since and offset pages them');
+    // A larger limit on the same call lists them all.
+    expect((await brief({ since: start.revisionToken, limit: 50 })).json.delta.elements.added).toHaveLength(45);
 
-    const first = (await brief({ since: start.revisionToken, sections: ["delta"] })).json;
-    expect(first.pages.delta).toMatchObject({ unit: "entries", nextOffset: 30 });
-    const next = JSON.parse(first.pages.delta.next.replace(/^changeset_brief /, ""));
-    expect(next).toEqual({ rootPath, since: start.revisionToken, sections: ["delta"], offset: 30 });
+    // Named: its lists page with the answer, and their totals are in page.totals.
+    const first = (await brief({ since: start.revisionToken, sections: ["delta"], limit: 30 })).json;
+    expect(first.page).toMatchObject({ offset: 0, nextOffset: 30 });
+    expect(first.page.totals["delta.elements.added"]).toBe(45);
+    expect(first.page.returned["delta.elements.added"]).toBe(30);
+    const next = JSON.parse(/Next page: changeset_brief (\{.*?\})\. /.exec(first.more)![1]);
+    expect(next).toEqual({ since: start.revisionToken, limit: 30, rootPath, sections: ["delta"], offset: 30 });
     const second = (await brief(next)).json;
     expect([...first.delta.elements.added, ...second.delta.elements.added]).toHaveLength(45);
     expect(new Set([...first.delta.elements.added, ...second.delta.elements.added]).size).toBe(45);
-    expect(second.pages.delta.nextOffset).toBeUndefined();
-    // One call for all of it, when asked.
-    expect((await brief({ since: start.revisionToken, sections: ["delta"], limit: 100 })).json.delta.elements.added).toHaveLength(45);
+    expect(second.page.nextOffset).toBeUndefined();
+    // With no limit the lists fit the target whole; in full they come as objects.
+    expect((await brief({ since: start.revisionToken, sections: ["delta"] })).json.delta.elements.added).toHaveLength(45);
     expect((await brief({ since: start.revisionToken, sections: ["delta"], detail: "full" })).json.delta.elements.added).toHaveLength(45);
   });
 
@@ -617,18 +712,26 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
       "peer-pattern: most existing application.applicationfunction elements wired like these have --accesses--> data-model.objectschema; " +
         "these have none (3 elements: application.applicationfunction.step-0, application.applicationfunction.step-1, application.applicationfunction.step-2)",
     ]);
+    // idsPerType is the caller's: two ids, and the third counted.
+    expect(gapLines([gap(0), gap(1), gap(2)], { group: true, idsPerType: 2 })[0]).toContain("(3 elements: application.applicationfunction.step-0, application.applicationfunction.step-1, +1 more)");
     // One gap keeps its own line, counts and all.
     expect(gapLines([gap(0)], { group: true })).toEqual([`${gap(0).element}: peer-pattern: ${gap(0).detail}`]);
   });
 
   it("describes the paging arguments and their defaults", () => {
-    expect(changesetBriefTool.description).toContain("pages gives each list's true total");
+    expect(changesetBriefTool.description).toContain("page gives each list's true total");
+    expect(changesetBriefTool.description).toContain("hubThreshold relationships (default 15)");
     const schema = changesetBriefTool.inputSchema as Record<string, any>;
-    expect(Object.keys(schema)).toEqual(expect.arrayContaining(["offset", "limit", "targetBytes", "maxConnections", "otherLayers"]));
+    expect(Object.keys(schema)).toEqual(
+      expect.arrayContaining(["offset", "limit", "targetBytes", "maxConnections", "otherLayers", "traced", "hubThreshold", "maxHops", "idsPerType"])
+    );
     expect(schema.sections.description).toContain("40 KB");
     expect(schema.targetBytes.description).toContain("40960");
     expect(schema.limit.description).toContain("default 30");
     expect(schema.maxConnections.description).toContain("default 8");
+    expect(schema.hubThreshold.description).toContain("default 15");
+    expect(schema.maxHops.description).toContain("default 4");
+    expect(schema.idsPerType.description).toContain("default 5");
   });
 });
 
@@ -647,27 +750,27 @@ describe("changeset_impact: the walk counts everything and lists a page", () => 
     const { graph } = await loadChangesetGraph(model, undefined);
     const whole = computeImpact(graph, { depth: 1 });
     // The feature and the 12 functions.
-    expect(whole).toMatchObject({ reached: 13, returned: 13, truncated: false });
-    expect(whole.nextOffset).toBeUndefined();
+    expect(whole).toMatchObject({ reached: 13, truncated: false, page: { total: 13, returned: 13, offset: 0 } });
+    expect(whole.page.nextOffset).toBeUndefined();
     const idsOf = (report: ReturnType<typeof computeImpact>) => Object.values(report.byLayer).flatMap((list) => list.map((e) => e.id));
 
     // A page of 5: the counts are still of all 13, and the pages together are the whole set.
     const seen: string[] = [];
     for (let offset: number | undefined = 0, pass = 0; offset !== undefined && pass < 10; pass++) {
-      const page = computeImpact(graph, { depth: 1, maxElements: 5, offset });
-      expect(page.reached).toBe(13);
-      expect(page.perHop).toEqual([{ depth: 1, reached: 13 }]);
-      expect(page.returned).toBe(idsOf(page).length);
-      expect(page.truncated).toBe(true);
-      seen.push(...idsOf(page));
-      offset = page.nextOffset;
+      const part = computeImpact(graph, { depth: 1, maxElements: 5, offset });
+      expect(part.reached).toBe(13);
+      expect(part.perHop).toEqual([{ depth: 1, reached: 13 }]);
+      expect(part.page).toMatchObject({ total: 13, returned: idsOf(part).length, offset });
+      expect(part.truncated).toBe(true);
+      seen.push(...idsOf(part));
+      offset = part.page.nextOffset;
     }
     expect(seen).toHaveLength(13);
     expect([...seen].sort()).toEqual(idsOf(whole).sort());
 
     // Through the tool: the answer says what it holds and names the call for the rest.
     const first = JSON.parse(text(await changesetImpactHandler({ depth: 1, maxElements: 5, rootPath })));
-    expect(first).toMatchObject({ reached: 13, returned: 5, nextOffset: 5, truncated: true });
+    expect(first).toMatchObject({ reached: 13, truncated: true, page: { total: 13, returned: 5, offset: 0, nextOffset: 5 } });
     expect(first.more).toContain("byLayer lists 5 of the 13 elements reached");
     expect(first.more).toContain(`changeset_impact ${JSON.stringify({ depth: 1, maxElements: 5, rootPath, offset: 5 })}`);
     const all = JSON.parse(text(await changesetImpactHandler({ depth: 1, rootPath })));
@@ -706,7 +809,7 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     expect(hasCatalogRouteToIntent("ux.view")).toBe(true);
     expect(full.noCatalogRoute).toEqual(["ux.subview.floating-palette"]);
 
-    const compact = (await brief({ sections: ["intent"] })).json.intent;
+    const compact = (await brief({ sections: ["intent"], traced: true })).json.intent;
     expect(compact.counts).toEqual({ traced: 19, untraced: 0, noCatalogRoute: 1 });
     expect(compact.traced).toContain(`ux.subview.panel-4 → ${FEATURE} (through ${VIEW})`);
     expect(compact.untraced).toEqual([]);
@@ -717,6 +820,7 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     const byDefault = (await brief()).json.intent;
     expect(byDefault.counts).toEqual({ traced: 19, untraced: 0, noCatalogRoute: 1 });
     expect(byDefault.traced).toContain("ux.subview.panel-4");
+    expect(byDefault.more).toBeUndefined();
   });
 
   it("follows wholes of wholes, and leaves the parts of an untraced whole untraced", async () => {
@@ -748,14 +852,139 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     expect(intent.noCatalogRoute).toEqual(["ux.subview.orphan-bar"]);
   });
 
+  it("traces the parts of an aggregate through it", async () => {
+    await changesetCreateHandler({ name: "team", description: "A collaboration of components.", rootPath });
+    const components = Array.from({ length: 16 }, (_, i) => ({ layer: "application", type: "applicationcomponent", name: `worker-${i}`, attributes: { type: "internal" } }));
+    await addAll(
+      [{ layer: "application", type: "applicationcollaboration", name: "export-team" }, ...components],
+      [
+        { source: "application.applicationcollaboration.export-team", predicate: "realizes", target: SERVICE },
+        ...components.map((c) => ({
+          source: "application.applicationcollaboration.export-team",
+          predicate: "aggregates",
+          target: `application.applicationcomponent.${c.name}`,
+        })),
+      ]
+    );
+    const intent = (await brief({ sections: ["intent"], detail: "full" })).json.intent;
+    // The collaboration has 17 relationships, a hub: each component traces through it, not past it.
+    expect(intent.traced).toHaveLength(17);
+    expect(intent.traced.find((t: any) => t.element === "application.applicationcomponent.worker-5")).toMatchObject({
+      through: "application.applicationcollaboration.export-team",
+      path: ["application.applicationcomponent.worker-5", "application.applicationcollaboration.export-team", SERVICE, FEATURE],
+    });
+    expect(intent.untraced).toEqual([]);
+    expect(intent.noCatalogRoute).toBeUndefined();
+  });
+
+  it("does not let a whole that traces only through one part carry its other parts (review of PR 1269)", async () => {
+    await changesetCreateHandler({ name: "bundle", description: "A data object of 17 parts.", rootPath });
+    const parts = Array.from({ length: 17 }, (_, i) => ({ layer: "application", type: "dataobject", name: `part-${i}` }));
+    await addAll(
+      [{ layer: "application", type: "dataobject", name: "bundle" }, ...parts],
+      [
+        ...parts.map((p) => ({ source: "application.dataobject.bundle", predicate: "composes", target: `application.dataobject.${p.name}` })),
+        // One part is accessed by the service that realizes the feature.
+        { source: SERVICE, predicate: "accesses", target: "application.dataobject.part-0" },
+      ]
+    );
+    const intent = (await brief({ sections: ["intent"], detail: "full" })).json.intent;
+    // The accessed part traces, and so does the whole by its own walk (through that part), as on main.
+    expect(intent.traced.map((t: any) => t.element).sort()).toEqual(["application.dataobject.bundle", "application.dataobject.part-0"]);
+    // The 16 siblings do not: the whole reaches intent only down through part-0, which says nothing about them.
+    expect(intent.untraced).toHaveLength(16);
+    expect(intent.untraced).not.toContain("application.dataobject.part-0");
+
+    // The hub rule is what leaves them untraced, and the answer says so, with the threshold.
+    expect(intent.walk).toEqual({ maxHops: 4, hubThreshold: 15, blockedByHub: intent.untraced });
+    const compact = (await brief({ sections: ["intent"] })).json.intent;
+    expect(compact.walk).toMatchObject({ maxHops: 4, hubThreshold: 15, blockedByHub: 16 });
+    expect(compact.walk.note).toContain("does not go through an element with more than 15 relationships");
+    expect(compact.walk.note).toContain("16 of the elements that do not trace would");
+    expect((await brief()).json.intent.walk).toMatchObject({ hubThreshold: 15, blockedByHub: 16 });
+
+    // The threshold is the caller's to change: with the bundle no longer a hub, the siblings trace.
+    const raised = (await brief({ sections: ["intent"], hubThreshold: 20 })).json.intent;
+    expect(raised.counts).toEqual({ traced: 18, untraced: 0 });
+    expect(raised.walk).toEqual({ maxHops: 4, hubThreshold: 20 });
+    // And so is the depth: one hop reaches only what is next to the feature's service.
+    const shallow = (await brief({ sections: ["intent"], maxHops: 1 })).json.intent;
+    expect(shallow.counts.traced).toBe(0);
+    expect(shallow.walk.maxHops).toBe(1);
+  });
+
+  it("traces an element through what it realizes, and not through a service that traces only via one of its functions", async () => {
+    await changesetCreateHandler({ name: "workers", description: "A service and its functions.", rootPath });
+    const functions = Array.from({ length: 17 }, (_, i) => ({ layer: "application", type: "applicationfunction", name: `step-${i}` }));
+    await addAll(
+      [
+        { layer: "application", type: "applicationservice", name: "exporter", attributes: { serviceType: "synchronous" } },
+        { layer: "application", type: "applicationservice", name: "importer", attributes: { serviceType: "synchronous" } },
+        ...functions,
+        ...functions.map((f) => ({ ...f, name: `import-${f.name}` })),
+      ],
+      [
+        // The exporter realizes the feature: its 17 functions trace through it, though it is a hub.
+        { source: "application.applicationservice.exporter", predicate: "realizes", target: FEATURE },
+        ...functions.map((f) => ({ source: `application.applicationfunction.${f.name}`, predicate: "realizes", target: "application.applicationservice.exporter" })),
+        // The importer reaches the feature only through one of its functions, which serves the checkout service.
+        ...functions.map((f) => ({ source: `application.applicationfunction.import-${f.name}`, predicate: "realizes", target: "application.applicationservice.importer" })),
+        { source: SERVICE, predicate: "serves", target: "application.applicationfunction.import-step-0" },
+      ]
+    );
+    const intent = (await brief({ sections: ["intent"], detail: "full" })).json.intent;
+    const traced = new Map(intent.traced.map((t: any) => [t.element, t]));
+    expect(traced.get("application.applicationfunction.step-9")).toMatchObject({
+      tracesTo: FEATURE,
+      through: "application.applicationservice.exporter",
+      path: ["application.applicationfunction.step-9", "application.applicationservice.exporter", FEATURE],
+    });
+    // import-step-0 traces by its own walk; the importer reaches intent only down through it, so it
+    // carries none of the other 16 functions that realize it.
+    expect(traced.has("application.applicationfunction.import-step-0")).toBe(true);
+    expect(intent.untraced.filter((id: string) => id.startsWith("application.applicationfunction.import-"))).toHaveLength(16);
+  });
+
+  it("reports in the delta an element that stops tracing, whichever list it lands in (review of PR 1269)", async () => {
+    await changesetCreateHandler({ name: "window", description: "A window and its bar.", rootPath });
+    await addAll(
+      [
+        { layer: "ux", type: "view", name: "workstation-window", attributes: { type: "page" } },
+        { layer: "ux", type: "subview", name: "top-bar" },
+      ],
+      [
+        { source: VIEW, predicate: "realizes", target: FEATURE },
+        { source: VIEW, predicate: "composes", target: "ux.subview.top-bar" },
+      ]
+    );
+    const before = (await brief()).json;
+    expect(before.intent.counts).toEqual({ traced: 2, untraced: 0 });
+
+    // The composes link goes: the sub-view no longer traces, and its type cannot be linked itself.
+    const { changesetUnstageHandler } = await import("../../../src/mcp/tools/changeset-editing.js");
+    text(await changesetUnstageHandler({ source: VIEW, target: "ux.subview.top-bar", rootPath } as any));
+    const after = (await brief({ since: before.revisionToken })).json;
+    expect(after.intent.counts).toEqual({ traced: 1, untraced: 0, noCatalogRoute: 1 });
+    expect(after.delta.intent.newlyUntraced).toEqual(["ux.subview.top-bar"]);
+
+    // Put back: newly traced.
+    await relate(VIEW, "composes", "ux.subview.top-bar");
+    const restored = (await brief({ since: after.revisionToken })).json;
+    expect(restored.delta.intent.newlyTraced).toEqual(["ux.subview.top-bar"]);
+    expect(restored.delta.intent.newlyUntraced).toEqual([]);
+  });
+
   it("explains an empty intent for a plan made only of intent elements (#1221)", async () => {
     await addAll([{ layer: "motivation", type: "goal", name: "model-stays-as-built", attributes: { priority: "high" } }]);
     await changesetCreateHandler({ name: "record-upgrade-drops", description: "Two requirements and a feature.", rootPath });
+    await addAll([
+      { layer: "motivation", type: "requirement", name: "a-migration-records-what-it-drops", attributes: { requirementType: "functional", priority: "high" } },
+    ]);
+    // One changed element: the note is in the singular.
+    expect((await brief()).json.intent.note).toContain("Nothing to trace: the one changed element is a motivation, business or product element.");
+
     await addAll(
-      [
-        { layer: "motivation", type: "requirement", name: "a-migration-records-what-it-drops", attributes: { requirementType: "functional", priority: "high" } },
-        { layer: "product", type: "feature", name: "upgrade-drop-record", attributes: { priority: "high", status: "planned" } },
-      ],
+      [{ layer: "product", type: "feature", name: "upgrade-drop-record", attributes: { priority: "high", status: "planned" } }],
       [
         { source: "product.feature.upgrade-drop-record", predicate: "satisfies", target: "motivation.requirement.a-migration-records-what-it-drops" },
         { source: "motivation.requirement.a-migration-records-what-it-drops", predicate: "realizes", target: "motivation.goal.model-stays-as-built" },
@@ -768,7 +997,12 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     expect(byDefault.note).toContain(note);
     expect(byDefault.note).toContain("are not listed");
     expect((await brief({ sections: ["intent"] })).json.intent.note).toContain(note);
-    expect((await brief({ detail: "full" })).json.intent).toEqual({ traced: [], untraced: [], note: expect.stringContaining(note) });
+    expect((await brief({ detail: "full" })).json.intent).toEqual({
+      traced: [],
+      untraced: [],
+      note: expect.stringContaining(note),
+      walk: { maxHops: 4, hubThreshold: 15, blockedByHub: [] },
+    });
 
     // One element outside the intent layers: it is traced, and there is nothing to explain.
     await addAll([{ layer: "application", type: "applicationfunction", name: "record-drops" }], [
@@ -783,19 +1017,24 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
     expect(changesetBriefTool.description).toContain("has nothing to trace and says so");
   });
 
-  it("gives the compact intent's untraced per type with the first ids when the list is long", () => {
+  it("keeps the default brief's intent lists as arrays, each with its count, and says when one is not whole", () => {
     const ids = (type: string, n: number) => Array.from({ length: n }, (_, i) => `${type}.item-${i}`);
-    const intent = {
+    const intent: ChangesetBrief["intent"] = {
       traced: ids("api.operation", 31).map((element) => ({ element, tracesTo: FEATURE, distance: 1, path: [element, FEATURE] })),
       untraced: [...ids("application.applicationfunction", 40), ...ids("data-model.objectschema", 3)],
       unanchored: [{ element: "data-model.objectschema.item-0", tracesTo: "product.feature.new", path: [], detail: "" }],
       noCatalogRoute: ids("application.applicationcomponent", 2),
+      walk: { maxHops: 4, hubThreshold: 15, blockedByHub: [] },
     };
-    expect(compactIntent(intent)).toEqual({
+    const compact = compactIntent(intent);
+    expect(compact).toEqual({
       counts: { traced: 31, untraced: 43, unanchored: 1, noCatalogRoute: 2 },
+      // A caller that reads the lists sees entries, never an absent key for 43 untraced elements.
+      traced: ids("api.operation", 30),
+      untraced: ids("application.applicationfunction", 30),
       untracedByType: [
-        { type: "application.applicationfunction", count: 40, ids: ids("application.applicationfunction", 5), more: 35 },
-        { type: "data-model.objectschema", count: 3, ids: ids("data-model.objectschema", 3) },
+        { type: "application.applicationfunction", count: 40 },
+        { type: "data-model.objectschema", count: 3 },
       ],
       unanchored: ["data-model.objectschema.item-0 → product.feature.new"],
       noCatalogRoute: {
@@ -803,31 +1042,16 @@ describe("changeset_brief intent: what counts as untraced (#1231, #1221)", () =>
         ids: ids("application.applicationcomponent", 2),
         note: expect.stringContaining("trace only through a neighbour"),
       },
+      walk: { maxHops: 4, hubThreshold: 15 },
+      more: expect.stringContaining("Lists hold their first 30: 30 of 43 untraced, 30 of 31 traced."),
     });
-    // A larger limit lists what the default counts: every untraced id and every traced one.
+    expect(compact.more).toContain('sections: ["intent"] pages every id');
+
+    // A larger limit lists what the default leaves counted, and then there is nothing to add.
     const listed = compactIntent(intent, { listLimit: 100 });
     expect(listed.untraced).toHaveLength(43);
     expect(listed.traced).toHaveLength(31);
-
-    // Under sections: a page of the untraced ids, with every one counted per type beside it.
-    const paged = compactIntent(intent, { untracedPage: intent.untraced.slice(0, 10) });
-    expect(paged.untraced).toHaveLength(10);
-    expect(paged.counts.untraced).toBe(43);
-    expect(paged.untracedByType).toEqual([
-      { type: "application.applicationfunction", count: 40 },
-      { type: "data-model.objectschema", count: 3 },
-    ]);
-
-    // More unanchored elements than the limit: counted per added intent element, none dropped.
-    const unanchored = ids("data-model.objectschema", 40).map((element, i) => ({
-      element,
-      tracesTo: i < 25 ? "product.feature.new" : "motivation.requirement.new",
-      path: [],
-      detail: "",
-    }));
-    const many = compactIntent({ ...intent, unanchored });
-    expect(many.unanchored).toBeUndefined();
-    expect(many.unanchoredByIntent).toEqual({ "product.feature.new": 25, "motivation.requirement.new": 15 });
-    expect(many.counts.unanchored).toBe(40);
+    expect(listed.untracedByType).toBeUndefined();
+    expect(listed.more).toBeUndefined();
   });
 });

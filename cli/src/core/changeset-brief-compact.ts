@@ -250,6 +250,13 @@ const typeOfId = (id: string): string => {
   return parts.length >= 3 ? `${parts[0]}.${parts[1]}` : id;
 };
 
+/** How many times each key occurs. */
+const countBy = (keys: string[]): Record<string, number> => {
+  const counts: Record<string, number> = {};
+  for (const key of keys) counts[key] = (counts[key] ?? 0) + 1;
+  return counts;
+};
+
 /** What a group of gaps has in common: the kind and detail, or for a peer pattern the type and the connection. */
 function gapGroupKey(g: BriefGap): string {
   if (g.kind !== "peer-pattern" || !g.connection) return `${g.kind}: ${g.detail}`;
@@ -259,12 +266,13 @@ function gapGroupKey(g: BriefGap): string {
 }
 
 /**
- * Gaps one line each; past LIST_LIMIT (or always, with `group`), gaps that say the same thing (a
- * bootstrap's unconnected adds, a peer pattern many elements of one type lack) share one line,
- * `kind: detail (n elements: first ids, +m more)`.
+ * Gaps one line each; past `limit` (default LIST_LIMIT; or always, with `group`), gaps that say the
+ * same thing (a bootstrap's unconnected adds, a peer pattern many elements of one type lack) share
+ * one line, `kind: detail (n elements: first ids, +m more)`. Every gap is on a line or in a count.
  */
-export function gapLines(gaps: BriefGap[], options: { group?: boolean } = {}): string[] {
-  if (!options.group && gaps.length <= LIST_LIMIT) return gaps.map(gapLine);
+export function gapLines(gaps: BriefGap[], options: { group?: boolean; limit?: number; idsPerType?: number } = {}): string[] {
+  const idsPerType = options.idsPerType ?? IDS_PER_TYPE;
+  if (!options.group && gaps.length <= (options.limit ?? LIST_LIMIT)) return gaps.map(gapLine);
   const groups = new Map<string, string[]>();
   const single = new Map<string, BriefGap>();
   for (const g of gaps) {
@@ -275,8 +283,8 @@ export function gapLines(gaps: BriefGap[], options: { group?: boolean } = {}): s
   return [...groups].map(([key, elements]) =>
     elements.length === 1
       ? gapLine(single.get(key)!)
-      : `${key} (${elements.length} elements: ${elements.slice(0, IDS_PER_TYPE).join(", ")}` +
-        `${elements.length > IDS_PER_TYPE ? `, +${elements.length - IDS_PER_TYPE} more` : ""})`
+      : `${key} (${elements.length} elements: ${elements.slice(0, idsPerType).join(", ")}` +
+        `${elements.length > idsPerType ? `, +${elements.length - idsPerType} more` : ""})`
   );
 }
 const cut = (text: string, limit: number) => (text.length > limit ? `${text.slice(0, limit - 1)}…` : text);
@@ -297,100 +305,114 @@ export function unwiredCounts(unwired: ElementUnwired[]): { total: number; byLay
   return { total, byLayer };
 }
 
-/** Ids of one `layer.type`: how many, and (where the ids are not listed beside it) the first of them. */
+/** How many ids of a list are of one `layer.type`. */
 export interface IdsByType {
   type: string;
   count: number;
-  /** The first ids of the type, in brief order. Absent when the ids come as a page beside it. */
-  ids?: string[];
-  /** How many more of the type there are than `ids` lists. */
-  more?: number;
 }
 
 /**
  * The intent section as the compact brief and `sections` return it. What an agent acts on is
- * listed (the untraced and the unanchored); what it does not is counted (the traced, past a few).
- * Every count is over all the elements the filter keeps, whatever the lists hold.
+ * listed (the untraced and the unanchored); what it does not is counted (the traced, unless asked
+ * for). Every count is over all the elements the filter keeps, whatever the lists hold: a list
+ * shorter than its count is a page of it, never the whole.
  */
 export interface CompactIntent {
   /** How many changed elements each group holds, listed or not. */
   counts: { traced: number; untraced: number; unanchored?: number; noCatalogRoute?: number };
   /**
-   * The traced elements, when there are at most `listLimit`: ids in the default brief, and
-   * `element → intent element` lines under `sections` (`through <whole>` when it traces through the
-   * whole that composes it, `anchored by <id>` when the intent element is one the changeset adds).
+   * Traced elements. Default brief: the first `limit` ids. Under `sections`: only with
+   * `traced: true`, as `element → intent element` lines (`through <whole>` when it traces through
+   * the whole that composes it, `anchored by <id>` when the intent element is one the changeset adds).
    */
   traced?: string[];
-  /**
-   * Untraced ids: all of them, or under `sections` a page of them (`pages.intent` has the total and
-   * the call for the next page). Absent from the default brief when the list is long.
-   */
-  untraced?: string[];
+  /** Untraced ids: the first `limit` in the default brief, a page under `sections`. `counts.untraced` is how many there are. */
+  untraced: string[];
   /** When `untraced` is not the whole list: every untraced element counted per `layer.type`, largest first. */
   untracedByType?: IdsByType[];
   /** `element → added intent element` for untraced elements that reach only intent which traces to nothing. */
   unanchored?: string[];
-  /** When there are more unanchored elements than `listLimit`: how many reach each added intent element. */
+  /** When `unanchored` is not the whole list: how many elements reach each added intent element. */
   unanchoredByIntent?: Record<string, number>;
   /**
    * Elements that do not trace and cannot be linked to intent themselves, counted apart from
-   * `untraced`: per type, with the ids when there are at most `listLimit`.
+   * `untraced`: per type, with their ids (a page of them, like `untraced`).
    */
-  noCatalogRoute?: { byType: Record<string, number>; ids?: string[]; note: string };
+  noCatalogRoute?: { byType: Record<string, number>; ids: string[]; note: string };
+  /**
+   * The two numbers that bound the trace. `blockedByHub` is how many of the elements above do reach
+   * intent within `maxHops` once hubs are walked through: not traced under the rule, and traced
+   * with a larger `hubThreshold`.
+   */
+  walk: { maxHops: number; hubThreshold: number; blockedByHub?: number; note?: string };
   /** Why nothing was traced (every changed element is an intent element or a deletion). */
   note?: string;
+  /** Default brief: set when a list holds fewer than its count, with the call that pages them all. */
+  more?: string;
 }
 
 const NO_CATALOG_ROUTE_NOTE =
   "The catalog gives these types no relationship to a motivation, business or product type, so they trace only " +
   "through a neighbour: the element that composes, uses or realizes them. They are not counted as untraced.";
 
-/** Ids per `layer.type`, largest type first, with the first `idsPerType` ids of each (0: counts only). */
-function idsByType(ids: string[], idsPerType: number): IdsByType[] {
-  const groups = new Map<string, string[]>();
-  for (const id of ids) groups.set(typeOfId(id), [...(groups.get(typeOfId(id)) ?? []), id]);
-  return [...groups]
-    .sort(([, a], [, b]) => b.length - a.length)
-    .map(([type, all]) => ({
-      type,
-      count: all.length,
-      ...(idsPerType > 0 ? { ids: all.slice(0, idsPerType) } : {}),
-      ...(idsPerType > 0 && all.length > idsPerType ? { more: all.length - idsPerType } : {}),
-    }));
+/** Ids counted per `layer.type`, largest type first. */
+function idsByType(ids: string[]): IdsByType[] {
+  return Object.entries(countBy(ids.map(typeOfId)))
+    .sort(([, a], [, b]) => b - a)
+    .map(([type, count]) => ({ type, count }));
 }
+
+/** `element → intent element`, with how it got there. */
+const tracedLine = (t: ChangesetBrief["intent"]["traced"][number]) =>
+  `${t.element} → ${t.tracesTo}` + (t.through ? ` (through ${t.through})` : "") + (t.anchoredBy ? ` (anchored by ${t.anchoredBy.id})` : "");
 
 /**
  * The compact form of the brief's intent. Counts always, over the whole of `intent`.
  *
- * - Untraced: with `untracedPage` (what `sections` passes), that page of ids, and every untraced
- *   element counted per type when the page is not the whole list. Without it, the ids when there
- *   are at most `listLimit`, else per type with the first `idsPerType` ids of each.
- * - Traced, unanchored and `noCatalogRoute` ids: listed when there are at most `listLimit` of each
- *   (default LIST_LIMIT); past it they are counted (the unanchored per added intent element, the
- *   others per type). `listLimit` is the caller's `limit`, so a larger one lists them.
+ * - Default brief (no `page`): each list holds its first `listLimit` entries (default LIST_LIMIT).
+ *   A longer untraced list is also counted per type, and `more` says which lists are not whole and
+ *   names the call that pages them.
+ * - Under `sections` (`page`): the untraced ids, the unanchored and the `noCatalogRoute` ids are
+ *   each the same page (`limit` entries from `offset`); the traced are listed, as lines, only with
+ *   `page.traced`. A list that is a page has its whole counted beside it (per type, per intent element).
  */
 export function compactIntent(
   intent: ChangesetBrief["intent"],
-  options: { listLimit?: number; idsPerType?: number; tracedAs?: "ids" | "lines"; untracedPage?: string[] } = {}
+  options: {
+    listLimit?: number;
+    tracedAs?: "ids" | "lines";
+    page?: { offset: number; limit: number; traced?: boolean };
+  } = {}
 ): CompactIntent {
+  const page = options.page;
   const listLimit = options.listLimit ?? LIST_LIMIT;
-  const idsPerType = options.idsPerType ?? IDS_PER_TYPE;
+  const cutOf = <T>(list: T[]): T[] => (page ? list.slice(page.offset, page.offset + page.limit) : list.slice(0, listLimit));
   const unanchored = intent.unanchored ?? [];
   const noRoute = intent.noCatalogRoute ?? [];
-  const tracedLine = (t: ChangesetBrief["intent"]["traced"][number]) =>
-    `${t.element} → ${t.tracesTo}` +
-    (t.through ? ` (through ${t.through})` : "") +
-    (t.anchoredBy ? ` (anchored by ${t.anchoredBy.id})` : "");
   const byType: Record<string, number> = {};
   for (const id of noRoute) byType[typeOfId(id)] = (byType[typeOfId(id)] ?? 0) + 1;
   const byIntent: Record<string, number> = {};
   for (const u of unanchored) byIntent[u.tracesTo] = (byIntent[u.tracesTo] ?? 0) + 1;
-  const page = options.untracedPage;
-  const untraced: Pick<CompactIntent, "untraced" | "untracedByType"> = page
-    ? { untraced: page, ...(page.length < intent.untraced.length ? { untracedByType: idsByType(intent.untraced, 0) } : {}) }
-    : intent.untraced.length <= listLimit
-      ? { untraced: intent.untraced }
-      : { untracedByType: idsByType(intent.untraced, idsPerType) };
+
+  const untraced = cutOf(intent.untraced);
+  const unanchoredShown = cutOf(unanchored);
+  const noRouteShown = cutOf(noRoute);
+  const tracedShown = page ? (page.traced ? cutOf(intent.traced) : undefined) : cutOf(intent.traced);
+  const lines = page ? true : options.tracedAs === "lines";
+  const blocked = intent.walk.blockedByHub.length;
+
+  // Default brief: say which lists are not whole. Under sections the answer's `page` and `more` do.
+  const short: string[] = [];
+  if (!page) {
+    const part = (shown: number, total: number, what: string) => {
+      if (shown < total) short.push(`${shown} of ${total} ${what}`);
+    };
+    part(untraced.length, intent.untraced.length, "untraced");
+    part(unanchoredShown.length, unanchored.length, "unanchored");
+    part(noRouteShown.length, noRoute.length, "noCatalogRoute");
+    part(tracedShown?.length ?? 0, intent.traced.length, "traced");
+  }
+
   return {
     counts: {
       traced: intent.traced.length,
@@ -398,19 +420,34 @@ export function compactIntent(
       ...(unanchored.length > 0 ? { unanchored: unanchored.length } : {}),
       ...(noRoute.length > 0 ? { noCatalogRoute: noRoute.length } : {}),
     },
-    ...(intent.traced.length > 0 && intent.traced.length <= listLimit
-      ? { traced: options.tracedAs === "lines" ? intent.traced.map(tracedLine) : intent.traced.map((t) => t.element) }
-      : {}),
-    ...untraced,
-    ...(unanchored.length === 0
-      ? {}
-      : unanchored.length <= listLimit
-        ? { unanchored: unanchored.map((u) => `${u.element} → ${u.tracesTo}`) }
-        : { unanchoredByIntent: byIntent }),
-    ...(noRoute.length > 0
-      ? { noCatalogRoute: { byType, ...(noRoute.length <= listLimit ? { ids: noRoute } : {}), note: NO_CATALOG_ROUTE_NOTE } }
-      : {}),
+    ...(tracedShown && intent.traced.length > 0 ? { traced: lines ? tracedShown.map(tracedLine) : tracedShown.map((t) => t.element) } : {}),
+    untraced,
+    // The ids are in `untraced` (its first entries, or a page): beside it, every one counted per type.
+    ...(untraced.length < intent.untraced.length ? { untracedByType: idsByType(intent.untraced) } : {}),
+    ...(unanchored.length > 0 ? { unanchored: unanchoredShown.map((u) => `${u.element} → ${u.tracesTo}`) } : {}),
+    ...(unanchoredShown.length < unanchored.length ? { unanchoredByIntent: byIntent } : {}),
+    ...(noRoute.length > 0 ? { noCatalogRoute: { byType, ids: noRouteShown, note: NO_CATALOG_ROUTE_NOTE } } : {}),
+    walk: {
+      maxHops: intent.walk.maxHops,
+      hubThreshold: intent.walk.hubThreshold,
+      ...(blocked > 0
+        ? {
+            blockedByHub: blocked,
+            note:
+              `The trace walks ${intent.walk.maxHops} hops and does not go through an element with more than ` +
+              `${intent.walk.hubThreshold} relationships. ${blocked} of the elements that do not trace would, within ` +
+              "the same hops, if it did: pass a larger hubThreshold to trace them.",
+          }
+        : {}),
+    },
     ...(intent.note ? { note: intent.note } : {}),
+    ...(short.length > 0
+      ? {
+          more:
+            `Lists hold their first ${listLimit}: ${short.join(", ")}. counts has every total. ` +
+            'changeset_brief with sections: ["intent"] pages every id (traced: true adds the traced), or pass a larger limit here.',
+        }
+      : {}),
   };
 }
 
@@ -439,33 +476,33 @@ function compactDrift(drift: BriefDrift): CompactDrift {
   };
 }
 
-/** How a delta's lists were paged: what there is in all, what the answer holds, and where the next page starts. */
-export interface DeltaPage {
-  /** Entries across the delta's lists (elements, relationships, accepted gaps, intent). */
-  total: number;
-  returned: number;
-  /** Set when a list has entries past this page. */
-  nextOffset?: number;
+/** The delta's lists that page, by the name `page.totals` and `delta.counts` give them. */
+export function deltaLists(delta: BriefDelta): Record<string, unknown[]> {
+  return {
+    "elements.added": delta.elements.added,
+    "elements.removed": delta.elements.removed,
+    "elements.updated": delta.elements.updated,
+    "relationships.added": delta.relationships.added,
+    "relationships.removed": delta.relationships.removed,
+    "acceptedGaps.accepted": delta.acceptedGaps.accepted,
+    "acceptedGaps.reopened": delta.acceptedGaps.reopened,
+    "intent.newlyTraced": delta.intent.newlyTraced,
+    "intent.newlyUntraced": delta.intent.newlyUntraced,
+  };
 }
 
 /**
- * The delta with each list a page: `limit` entries (default LIST_LIMIT) from `offset`, the same for
- * every list. `counts` has the full length of every list the page does not hold whole, so nothing
- * reads as complete when it is not; `page`, when passed, is filled with the totals.
+ * The delta with each of its lists (see `deltaLists`) a page: `limit` entries (default LIST_LIMIT)
+ * from `offset`, the same for every list. `counts` has the full length of every list the page does
+ * not hold whole, so nothing reads as complete when it is not.
  */
-export function compactDelta(delta: BriefDelta, options: { limit?: number; offset?: number; page?: DeltaPage } = {}): CompactDelta {
+export function compactDelta(delta: BriefDelta, options: { limit?: number; offset?: number } = {}): CompactDelta {
   const limit = options.limit ?? LIST_LIMIT;
   const offset = options.offset ?? 0;
   const counts: Record<string, number> = {};
-  let total = 0;
-  let returned = 0;
-  let more = false;
   const capped = <T>(list: T[], name: string): T[] => {
     const page = list.slice(offset, offset + limit);
-    total += list.length;
-    returned += page.length;
     if (page.length < list.length) counts[name] = list.length;
-    if (offset + page.length < list.length) more = true;
     return page;
   };
   const out: CompactDelta = {
@@ -502,19 +539,7 @@ export function compactDelta(delta: BriefDelta, options: { limit?: number; offse
     ...(delta.warnings ? { warnings: delta.warnings } : {}),
   };
   if (Object.keys(counts).length > 0) out.counts = counts;
-  if (options.page) {
-    options.page.total = total;
-    options.page.returned = returned;
-    if (more) options.page.nextOffset = offset + limit;
-  }
   return out;
-}
-
-/** Whether any of a delta's paged lists is longer than a default page. */
-function compactDeltaIsCut(delta: BriefDelta): boolean {
-  const page: DeltaPage = { total: 0, returned: 0 };
-  compactDelta(delta, { page });
-  return page.returned < page.total;
 }
 
 /** Each changed element in the compact form, and the touched files (changed ones counted, neighbour-only ones apart). */
@@ -605,7 +630,19 @@ function headerOf(brief: ChangesetBrief): { id: string; name: string; status: st
  * The compact form of a full brief. `unwired` is the per-element list, counted per layer (pass it
  * when the brief was built without its unwired listing). `briefSections` returns named sections only.
  */
-export function compactBrief(brief: ChangesetBrief, options: { unwired?: ElementUnwired[]; delta?: BriefDelta } = {}): CompactBrief {
+export function compactBrief(
+  brief: ChangesetBrief,
+  options: {
+    unwired?: ElementUnwired[];
+    delta?: BriefDelta;
+    /** Entries per id list (intent, the delta) and gaps listed before they are grouped (default LIST_LIMIT). */
+    limit?: number;
+    /** Ids shown per type in the summaries: changesByType and grouped gaps (default 5). */
+    idsPerType?: number;
+  } = {}
+): CompactBrief {
+  const limit = options.limit ?? LIST_LIMIT;
+  const idsPerType = options.idsPerType ?? IDS_PER_TYPE;
   const { changes, files, neighborFiles } = compactChanges(brief);
   const changedCount = changes.length;
   const large = changedCount > LARGE_PLAN;
@@ -615,29 +652,26 @@ export function compactBrief(brief: ChangesetBrief, options: { unwired?: Element
   const header: CompactBrief["changeset"] = { ...headerOf(brief), ...(description ? { description } : {}) };
   if (brief.changeset.drift) header.drift = compactDrift(brief.changeset.drift);
 
-  // Intent: counts, the untraced ids (per type when there are many: a bootstrap), the traced when few.
-  const intent = compactIntent(brief.intent);
-  const intentCut = !!intent.untracedByType || (brief.intent.traced.length > 0 && !intent.traced);
+  // Intent: counts, and the first ids of each list (the untraced also per type when there are many: a bootstrap).
+  const intent = compactIntent(brief.intent, { listLimit: limit });
+  const deltaCut = options.delta ? Object.values(deltaLists(options.delta)).some((list) => list.length > limit) : false;
 
   const withDelta = !!options.delta;
-  const elementList = withDelta ? {} : large ? { changesByType: changesByType(brief) } : { changes };
+  const elementList = withDelta ? {} : large ? { changesByType: changesByType(brief, idsPerType) } : { changes };
   const sectionNames = `sections: [...] for only some sections (${BRIEF_SECTIONS.join(", ")}; add detail: "full" for them in full)`;
   const more =
     (withDelta
       ? 'With since, the changed elements are left out: the delta says what changed (sections: ["changes"] lists them). ' +
-        (options.delta && compactDeltaIsCut(options.delta)
-          ? `The delta's lists hold the first ${LIST_LIMIT} entries each (delta.counts has the full lengths); ` +
+        (deltaCut
+          ? `The delta's lists hold their first ${limit} entries (delta.counts has the full lengths); ` +
             'sections: ["delta"] with since and offset pages them. '
           : "")
       : large
-        ? `This plan changes ${changedCount} elements, so changesByType counts them per type with the first ${IDS_PER_TYPE} ids ` +
-          'of each; sections: ["changes"] lists every one with its connections, a page at a time (pages.changes has the total and the next call). '
+        ? `This plan changes ${changedCount} elements, so changesByType counts them per type with the first ${idsPerType} ids ` +
+          'of each; sections: ["changes"] lists every one with its connections, a page at a time (page has the totals and nextOffset). '
         : "Each changed element is listed with a short description, its files and its connections; attributes are in the full brief. ") +
-    (brief.gaps.length > LIST_LIMIT ? 'Gaps that say the same thing share a line, every gap counted (sections: ["gaps"] lists each, a page at a time). ' : "") +
-    (intentCut
-      ? `Intent lists longer than ${LIST_LIMIT} are counted (intent.counts), the untraced per type with the first ids; ` +
-        'sections: ["intent"] lists every untraced id, a page at a time. '
-      : "") +
+    (brief.gaps.length > limit ? 'Gaps that say the same thing share a line, every gap counted (sections: ["gaps"] lists each, a page at a time). ' : "") +
+    (intent.more ? "intent.more says which intent lists are not whole. " : "") +
     `Pass ${sectionNames}, or detail: "full" for the whole brief.`;
 
   const out: CompactBrief = {
@@ -653,7 +687,7 @@ export function compactBrief(brief: ChangesetBrief, options: { unwired?: Element
       deleted: l.changes.filter((c) => c.op === "deleted").length,
     })),
     reach: brief.reach,
-    gaps: gapLines(brief.gaps),
+    gaps: gapLines(brief.gaps, { limit, idsPerType }),
     ...(brief.acceptedGaps.length > 0 ? { acceptedGaps: brief.acceptedGaps.map(acceptedGapLine) } : {}),
     intent,
     ...(brief.unwired && !options.unwired
@@ -672,7 +706,7 @@ export function compactBrief(brief: ChangesetBrief, options: { unwired?: Element
     // Short, and commit skips them: listed whenever there are any.
     out.alreadyInBase = brief.alreadyInBase;
   }
-  if (options.delta) out.delta = compactDelta(options.delta);
+  if (options.delta) out.delta = compactDelta(options.delta, { limit });
   return out;
 }
 
@@ -734,24 +768,25 @@ export interface UnwiredByType {
 }
 
 /**
- * How much of one section's list a `sections` answer holds. Present for every list section named,
- * whole or not, so an agent never has to guess whether it has everything.
+ * Where a `sections` answer sits in its lists. One `offset` and one page size apply to every list
+ * in the answer, so repeating the call with `nextOffset` pages them all together, each item once.
+ * The names follow the paging convention the MCP tools share (several lists paged together).
  */
-export interface SectionPage {
-  /** The items the filter keeps: the true count, whatever the answer holds. */
-  total: number;
-  /** The items in this answer. */
-  returned: number;
-  /** What an item is: elements, gaps, untraced elements, files, entries. */
-  unit: string;
-  /** Where this page starts, when not at the first item. */
-  offset?: number;
-  /** Where the next page starts. Absent when nothing is left. */
+export interface SectionsPage {
+  /** Where the page starts, in every list. */
+  offset: number;
+  /**
+   * Each list's true length, by name: a section's name, the intent section's lists as
+   * `intent.untraced`, `intent.unanchored`, `intent.noCatalogRoute` (and `intent.traced` when
+   * asked for), the delta's as `delta.<list>`.
+   */
+  totals: Record<string, number>;
+  /** How many items of each list this answer holds. Below its total: the list is a page, not the whole. */
+  returned: Record<string, number>;
+  /** Where the next page starts, for every list. Absent when no list has more. */
   nextOffset?: number;
-  /** The call that returns the next page, with its arguments. Absent when nothing is left. */
-  next?: string;
-  /** When the answer does not hold the whole list: counts over the whole of it. */
-  summary?: Record<string, unknown>;
+  /** For each section the answer holds only part of: counts over the whole of it. */
+  summaries?: Record<string, Record<string, unknown>>;
 }
 
 /** A brief of named sections only: a small header, then each section. */
@@ -783,10 +818,10 @@ export interface SectionsBrief {
   /** With since: the compact delta, or in full the whole one when `delta` is named. */
   delta?: CompactDelta | BriefDelta;
   /**
-   * Compact only: per list section, its total, how many items the answer holds and, when more are
-   * left, the call for the next page. A section with `returned` below `total` is a page, not the list.
+   * Compact only, whenever the answer has a list: each list's total and how many items the answer
+   * holds, and `nextOffset` when any list has more.
    */
-  pages?: Partial<Record<BriefSection, SectionPage>>;
+  page?: SectionsPage;
   more: string;
 }
 
@@ -795,42 +830,32 @@ export interface SectionsOptions {
   filter?: SectionFilter;
   /** Each section as the full brief has it, whatever its size (`detail: "full"`). */
   full?: boolean;
-  /** Skip this many items of each list section named (elements, gaps, untraced ids, files). */
+  /** Skip this many items of every list in the answer. */
   offset?: number;
   /**
-   * Items per list section. When absent, a page holds what fits the size target. When given, it is
-   * the page size whatever the bytes, and the most traced, unanchored and noCatalogRoute elements
-   * the intent section lists by id (default LIST_LIMIT).
+   * Items per list. When absent, the page holds as many as keep the answer near `targetBytes`
+   * (every list whole, when they fit). When given, it is the page size whatever the bytes.
    */
   limit?: number;
   /** The size the answer aims for when `limit` is absent (default SECTIONS_TARGET_BYTES). A target: a page holds at least one item. */
   targetBytes?: number;
   /** Connections listed per direction, predicate and other layer in the compact `layers` section (default CONNECTIONS_PER_GROUP). */
   maxConnections?: number;
+  /** The intent section also lists the traced elements, each with what it traces to, paged like the others (default: counted). */
+  traced?: boolean;
   /** Bytes of a value as the caller serialises it (default: indented JSON, the largest it can be). */
   measure?: (value: unknown) => number;
-  /** The caller's other arguments (changeset, filters, since), repeated in each page's `next` call. */
+  /** The caller's other arguments (changeset, filters, since), repeated in the next call `more` names. */
   callArgs?: Record<string, unknown>;
 }
 
-/** A list section being fitted: its items from the offset on, and how to make the section's value from a page of them. */
-interface SectionList {
-  name: BriefSection;
-  unit: string;
-  /** The filter's items, all of them. */
+/** One list of a compact answer: its name in `page.totals`, how long it is, and its section's summary of the whole. */
+interface PagedList {
+  key: string;
+  section: BriefSection;
   total: number;
-  /** The items from the offset on. */
-  items: unknown[];
-  wrap: (page: unknown[]) => unknown;
-  /** Counts over the whole list, given when the answer holds only a page of it. */
   summary?: () => Record<string, unknown>;
 }
-
-const countBy = (keys: string[]): Record<string, number> => {
-  const counts: Record<string, number> = {};
-  for (const key of keys) counts[key] = (counts[key] ?? 0) + 1;
-  return counts;
-};
 
 function compactLayerChange(
   c: ChangesetBrief["layers"][number]["changes"][number],
@@ -923,52 +948,18 @@ function unwiredByType(elements: NonNullable<ChangesetBrief["unwired"]>["element
 }
 
 /**
- * How many items of each list a compact answer holds when the caller names no `limit`. When all the
- * lists fit the target whole, they are returned whole. Otherwise the target is shared out, smallest
- * list first, so a short list stays whole and what it leaves goes to the longer ones; a list longer
- * than its share returns the items that fit it, and at least one. Nothing is dropped: a list that
- * is not whole is a page, with its total and the call for the next one.
- */
-function pageSizes(lists: SectionList[], target: number, measure: (value: unknown) => number): number[] {
-  const sizes = lists.map((list) => measure(list.wrap(list.items)));
-  const shown = lists.map((list) => list.items.length);
-  if (sizes.reduce((sum, n) => sum + n, 0) <= target) return shown;
-  const order = lists.map((_, i) => i).sort((a, b) => sizes[a] - sizes[b]);
-  let remaining = target;
-  order.forEach((index, position) => {
-    const list = lists[index];
-    const share = Math.max(0, remaining) / (order.length - position);
-    if (sizes[index] <= share) {
-      remaining -= sizes[index];
-      return;
-    }
-    // A page: the summary of the whole list first, then the items that fit what is left of the share.
-    let used = measure(list.wrap([])) + (list.summary ? measure(list.summary()) : 0);
-    let count = 0;
-    for (const item of list.items) {
-      const weight = measure(item) + 4;
-      if (count > 0 && used + weight > share) break;
-      used += weight;
-      count += 1;
-    }
-    shown[index] = count;
-    remaining -= used;
-  });
-  return shown;
-}
-
-/**
  * Only the named sections, under a small header. `changes` is the build view of every changed
  * element; with `since`, the delta comes too. `filter` narrows the element sections (changes,
  * layers, gaps, acceptedGaps, unwired, intent, codeTouched, feedback) to the elements in some layers
  * or with some ids.
  *
- * Each section comes in a compact form. A list section (every one but `changeset` and `drift`)
- * reports in `pages` its total, how many items the answer holds and, when more are left, the
- * `nextOffset` and the call that returns them: `offset` and `limit` page each list named. Without
- * `limit`, the page sizes are chosen so the answer weighs about `targetBytes`; a list that is not
- * returned whole also gets a `summary` counted over all of it. With `full`, each section is as the
- * full brief has it, whatever its size.
+ * Each section comes in a compact form, and every list in the answer is the same page: `limit`
+ * items from `offset`. `page` has each list's true total and how many items the answer holds, and
+ * `nextOffset` while any list has more, so the same call with that offset continues them all and
+ * the pages together are every item, once. Without `limit`, the page is as long as keeps the answer
+ * near `targetBytes` (and at least one item); a section the answer holds only part of also gets a
+ * summary counted over all of it. With `full`, each section is as the full brief has it, whatever
+ * its size.
  */
 export function briefSections(brief: ChangesetBrief, sections: readonly BriefSection[], options: SectionsOptions = {}): SectionsBrief {
   const names = [...new Set(sections)];
@@ -991,6 +982,12 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
     more: "",
   };
   const notes: string[] = [];
+  // A layer name that is not one keeps nothing: say so, or an empty answer reads as "no changes there".
+  const knownLayers = new Set(getAllLayerIds());
+  const unknownLayers = [...(options.filter?.layers ?? []), ...(options.filter?.otherLayers ?? [])].filter((l) => !knownLayers.has(l));
+  if (unknownLayers.length > 0) {
+    notes.push(`Not a layer: ${[...new Set(unknownLayers)].join(", ")} (it keeps nothing). The layers are ${[...knownLayers].join(", ")}.`);
+  }
   const intent: ChangesetBrief["intent"] = filter
     ? {
         traced: brief.intent.traced.filter((t) => keep(t.element)),
@@ -998,16 +995,24 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
         ...(brief.intent.unanchored ? { unanchored: brief.intent.unanchored.filter((u) => keep(u.element)) } : {}),
         ...(brief.intent.noCatalogRoute ? { noCatalogRoute: brief.intent.noCatalogRoute.filter(keep) } : {}),
         ...(brief.intent.note ? { note: brief.intent.note } : {}),
+        walk: { ...brief.intent.walk, blockedByHub: brief.intent.walk.blockedByHub.filter(keep) },
       }
     : brief.intent;
   const unwired =
     brief.unwired && filter ? { ...brief.unwired, elements: brief.unwired.elements.filter((e) => keep(e.element)) } : brief.unwired;
   const offset = Math.max(0, options.offset ?? 0);
   const maxConnections = options.maxConnections ?? CONNECTIONS_PER_GROUP;
-  const lists: SectionList[] = [];
-  /** A list section whose value is its items. */
-  const plain = (name: BriefSection, unit: string, all: unknown[], summary?: () => Record<string, unknown>) =>
-    lists.push({ name, unit, total: all.length, items: all.slice(offset), wrap: (page) => page, ...(summary ? { summary } : {}) });
+  const values = out as unknown as Record<string, unknown>;
+  const lists: PagedList[] = [];
+  /** Each sets its section's value to the page of `n` items from the offset. */
+  const renderers: Array<(n: number) => void> = [];
+  /** A list section: its items, how a page of them makes the section's value, and its summary of the whole. */
+  const list = <T>(name: BriefSection, all: T[], wrap: (page: T[]) => unknown, summary?: () => Record<string, unknown>) => {
+    lists.push({ key: name, section: name, total: all.length, ...(summary ? { summary } : {}) });
+    renderers.push((n) => {
+      values[name] = wrap(all.slice(offset, offset + n));
+    });
+  };
 
   for (const name of names) {
     switch (name) {
@@ -1020,17 +1025,29 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
         };
         break;
       }
-      case "drift":
-        if (brief.changeset.drift) out.drift = brief.changeset.drift;
-        else notes.push("No drift: the changeset is not staged.");
+      case "drift": {
+        const drift = brief.changeset.drift;
+        if (!drift) {
+          notes.push("No drift: the changeset is not staged.");
+          break;
+        }
+        out.drift = drift;
+        // The drift's own lists are cut where they are built, not here: say so, with the true counts beside them.
+        if (drift.baseChanges?.truncated) {
+          notes.push(
+            "The drift's base-change lists are cut where they are built (baseChanges.truncated): baseChanges.counts has " +
+              "the true totals, and this call cannot page them yet."
+          );
+        }
         break;
+      }
       case "delta":
         if (!options.delta) notes.push("delta needs since: pass the revisionToken of an earlier brief.");
         break;
       case "changes": {
         const all = compactChanges(brief).build.filter((c) => keep(c.id));
         if (full) out.changes = all;
-        else plain(name, "elements", all, () => ({ byType: countBy(all.map((c) => typeOfId(c.id))) }));
+        else list(name, all, (page) => page, () => ({ byType: countBy(all.map((c) => typeOfId(c.id))) }));
         break;
       }
       case "layers": {
@@ -1042,28 +1059,24 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
         }
         const otherLayers = options.filter?.otherLayers?.length ? new Set(options.filter.otherLayers) : undefined;
         const all = brief.layers.flatMap((l) => l.changes.filter((c) => keep(c.id)).map((c) => ({ layer: l.layer, change: c })));
-        const items = all.slice(offset).map(({ layer, change }) => ({ layer, change: compactLayerChange(change, maxConnections, otherLayers) }));
-        const regroup = (page: unknown[]) => {
-          const grouped: Array<{ layer: string; changes: CompactLayerChange[] }> = [];
-          for (const { layer, change } of page as typeof items) {
-            if (grouped[grouped.length - 1]?.layer !== layer) grouped.push({ layer, changes: [] });
-            grouped[grouped.length - 1].changes.push(change);
-          }
-          return grouped;
-        };
-        lists.push({
+        list(
           name,
-          unit: "elements",
-          total: all.length,
-          items,
-          wrap: regroup,
-          summary: () => ({ byType: countBy(all.map((a) => typeOfId(a.change.id))) }),
-        });
+          all,
+          (page) => {
+            const grouped: Array<{ layer: string; changes: CompactLayerChange[] }> = [];
+            for (const { layer, change } of page) {
+              if (grouped[grouped.length - 1]?.layer !== layer) grouped.push({ layer, changes: [] });
+              grouped[grouped.length - 1].changes.push(compactLayerChange(change, maxConnections, otherLayers));
+            }
+            return grouped;
+          },
+          () => ({ byType: countBy(all.map((a) => typeOfId(a.change.id))) })
+        );
         break;
       }
       case "relationshipChanges":
         if (full) out.relationshipChanges = brief.relationshipChanges;
-        else plain(name, "relationships", brief.relationshipChanges);
+        else list(name, brief.relationshipChanges, (page) => page);
         break;
       case "alreadyInBase": {
         if (full) {
@@ -1075,24 +1088,22 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           ...brief.alreadyInBase.elements.map((element) => ({ element })),
           ...brief.alreadyInBase.relationships.map((relationship) => ({ relationship })),
         ];
-        lists.push({
+        list(
           name,
-          unit: "entries",
-          total: entries.length,
-          items: entries.slice(offset),
-          wrap: (page) => ({
-            elements: (page as Entry[]).flatMap((e) => ("element" in e ? [e.element] : [])),
-            relationships: (page as Entry[]).flatMap((e) => ("relationship" in e ? [e.relationship] : [])),
+          entries,
+          (page) => ({
+            elements: page.flatMap((e) => ("element" in e ? [e.element] : [])),
+            relationships: page.flatMap((e) => ("relationship" in e ? [e.relationship] : [])),
           }),
-          summary: () => ({ elements: brief.alreadyInBase.elements.length, relationships: brief.alreadyInBase.relationships.length }),
-        });
+          () => ({ elements: brief.alreadyInBase.elements.length, relationships: brief.alreadyInBase.relationships.length })
+        );
         break;
       }
       case "gaps": {
         const kept = brief.gaps.filter((g) => keep(g.element));
         if (full) out.gaps = kept;
         else {
-          plain(name, "gaps", kept.map(gapLine), () => ({
+          list(name, kept.map(gapLine), (page) => page, () => ({
             byKind: countBy(kept.map((g) => g.kind)),
             byType: countBy(kept.map((g) => typeOfId(g.element))),
           }));
@@ -1102,7 +1113,7 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
       case "acceptedGaps": {
         const kept = brief.acceptedGaps.filter((g) => keep(g.element));
         if (full) out.acceptedGaps = kept;
-        else plain(name, "accepted gaps", kept);
+        else list(name, kept, (page) => page);
         break;
       }
       case "unwired": {
@@ -1112,19 +1123,12 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           break;
         }
         const { elements, ...head } = unwired;
-        lists.push({
-          name,
-          unit: "elements",
-          total: elements.length,
-          items: elements.slice(offset),
-          wrap: (page) => ({ ...head, elements: page }),
-          // Each connection with how many elements lack it; per-layer counts alone when that would be long.
-          summary: () => {
-            const withEntries = unwiredByType(elements);
-            const measure = options.measure ?? ((value: unknown) => Buffer.byteLength(JSON.stringify(value, null, 2) ?? ""));
-            const room = (options.targetBytes ?? SECTIONS_TARGET_BYTES) / 4;
-            return { ...(measure(withEntries) <= room ? withEntries : unwiredByType(elements, false)) };
-          },
+        // The summary: each connection with how many elements lack it; per-layer counts alone when that would be long.
+        list(name, elements, (page) => ({ ...head, elements: page }), () => {
+          const withEntries = unwiredByType(elements);
+          const measure = options.measure ?? ((value: unknown) => Buffer.byteLength(JSON.stringify(value, null, 2) ?? ""));
+          const room = (options.targetBytes ?? SECTIONS_TARGET_BYTES) / 4;
+          return { ...(measure(withEntries) <= room ? withEntries : unwiredByType(elements, false)) };
         });
         break;
       }
@@ -1133,13 +1137,14 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           out.intent = intent;
           break;
         }
-        // The list that pages is the untraced ids; the counts beside it are over all of them.
-        lists.push({
-          name,
-          unit: "untraced elements",
-          total: intent.untraced.length,
-          items: intent.untraced.slice(offset),
-          wrap: (page) => compactIntent(intent, { tracedAs: "lines", untracedPage: page as string[], listLimit: options.limit }),
+        // Three lists, or four with the traced: each the same page; the counts beside them are of all.
+        const part = (key: string, total: number) => lists.push({ key: `intent.${key}`, section: name, total });
+        part("untraced", intent.untraced.length);
+        if (intent.unanchored?.length) part("unanchored", intent.unanchored.length);
+        if (intent.noCatalogRoute?.length) part("noCatalogRoute", intent.noCatalogRoute.length);
+        if (options.traced) part("traced", intent.traced.length);
+        renderers.push((n) => {
+          out.intent = compactIntent(intent, { page: { offset, limit: n, traced: options.traced } });
         });
         break;
       }
@@ -1156,7 +1161,7 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           if (filter && changed.length === 0) continue;
           files.push({ file, changed, ...(neighbors > 0 ? { neighbors } : {}) });
         }
-        plain(name, "files", files, () => ({
+        list(name, files, (page) => page, () => ({
           changedElements: files.reduce((sum, f) => sum + f.changed.length, 0),
           neighborOnlyFiles: files.filter((f) => f.changed.length === 0).length,
         }));
@@ -1165,7 +1170,7 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
       case "feedback": {
         const kept = brief.feedback.filter((f) => keep(f.elementId));
         if (full) out.feedback = kept;
-        else plain(name, "comments", kept);
+        else list(name, kept, (page) => page);
         break;
       }
     }
@@ -1182,80 +1187,73 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
     return out;
   }
 
+  // The delta's lists are lists of this answer when the delta is named; otherwise it comes from its start.
+  const delta = options.delta;
+  if (delta && names.includes("delta")) {
+    for (const [key, all] of Object.entries(deltaLists(delta))) lists.push({ key: `delta.${key}`, section: "delta", total: all.length });
+    renderers.push((n) => {
+      out.delta = compactDelta(delta, { limit: n, offset });
+    });
+  } else if (delta) {
+    out.delta = compactDelta(delta);
+    if (Object.keys(out.delta.counts ?? {}).length > 0) {
+      notes.push("The delta's lists hold their first entries (delta.counts has the full lengths): name delta in sections to page them.");
+    }
+  }
+
   const measure = options.measure ?? ((value: unknown) => Buffer.byteLength(JSON.stringify(value, null, 2) ?? ""));
   const target = options.targetBytes ?? SECTIONS_TARGET_BYTES;
-  const values = out as unknown as Record<string, unknown>;
-  const pages: Partial<Record<BriefSection, SectionPage>> = {};
-  /** The call that returns a section's page at `at`: this call's own arguments, for that section alone. */
-  const nextCall = (section: BriefSection, at: number) =>
-    `changeset_brief ${JSON.stringify({ ...options.callArgs, sections: [section], offset: at })}`;
-
-  // The delta's lists page with the same limit and offset when the delta is named; otherwise it comes from the start.
-  if (options.delta) {
-    const page: DeltaPage = { total: 0, returned: 0 };
-    const paged = names.includes("delta");
-    out.delta = compactDelta(options.delta, { page, ...(paged ? { limit: options.limit, offset } : {}) });
-    const at = paged ? offset : 0;
-    pages.delta = {
-      total: page.total,
-      returned: page.returned,
-      unit: "entries",
-      ...(at > 0 ? { offset: at } : {}),
-      ...(page.nextOffset !== undefined ? { nextOffset: page.nextOffset, next: nextCall("delta", page.nextOffset) } : {}),
-    };
-  }
-
-  // How many items each list returns: the caller's limit, or what fits the target.
-  const shown =
-    options.limit !== undefined
-      ? lists.map((list) => Math.min(list.items.length, Math.max(0, options.limit!)))
-      : pageSizes(lists, Math.max(0, target - measure(out)), measure);
-  /** Places each list's page and its entry in `pages`, and closes with `more`. */
-  const finish = () => {
-    lists.forEach((list, i) => {
-      const returned = shown[i];
-      values[list.name] = list.wrap(list.items.slice(0, returned));
-      const nextOffset = offset + returned < list.total ? offset + returned : undefined;
-      pages[list.name] = {
-        total: list.total,
-        returned,
-        unit: list.unit,
-        ...(offset > 0 ? { offset } : {}),
-        ...(nextOffset !== undefined ? { nextOffset, next: nextCall(list.name, nextOffset) } : {}),
-        ...(returned < list.total && list.summary ? { summary: list.summary() } : {}),
+  const longest = Math.max(0, ...lists.map((l) => l.total - offset));
+  /** The answer with every list a page of `n` items from the offset. */
+  const render = (n: number) => {
+    for (const renderer of renderers) renderer(n);
+    if (lists.length > 0) {
+      const returned = (l: PagedList) => Math.max(0, Math.min(n, l.total - offset));
+      const more = lists.some((l) => l.total > offset + n);
+      const partial = [...new Set(lists.filter((l) => returned(l) < l.total && l.summary).map((l) => l))];
+      out.page = {
+        offset,
+        totals: Object.fromEntries(lists.map((l) => [l.key, l.total])),
+        returned: Object.fromEntries(lists.map((l) => [l.key, returned(l)])),
+        ...(more ? { nextOffset: offset + n } : {}),
+        ...(partial.length > 0 ? { summaries: Object.fromEntries(partial.map((l) => [l.key, l.summary!()])) } : {}),
       };
-      if (offset > 0 && offset >= list.total && list.total > 0) {
-        const note = `offset ${offset} is past the ${list.total} ${list.unit} of ${list.name}${filter ? " the filter keeps" : ""}.`;
-        if (!notes.includes(note)) notes.push(note);
-      }
-    });
-    if (Object.keys(pages).length > 0) out.pages = pages;
-    const paged = Object.entries(pages).filter(([, page]) => page.nextOffset !== undefined);
+    }
+    const page = out.page;
+    const short = page ? lists.filter((l) => page.returned[l.key] < l.total) : [];
+    const past = offset > 0 && lists.length > 0 && longest === 0;
     out.more = [
       ...notes,
+      ...(past ? [`offset ${offset} is past the end of every list here (page.totals has their lengths).`] : []),
       `Only the sections asked for are returned ${which}, each in its compact form.` +
-        (paged.length > 0
-          ? ` Not everything is here: ${paged.map(([name, page]) => `${name} holds ${page.returned} of ${page.total} ${page.unit}`).join("; ")}.` +
-            " pages has the call for each next page; counts and summaries are over the whole lists."
-          : " Every list is whole (pages has the totals).") +
-        (options.limit === undefined && paged.length > 0
-          ? ` Pages are sized to keep the answer near ${Math.round(target / 1024)} KB: pass limit for a fixed page size, or targetBytes for another target.`
-          : "") +
+        (!page
+          ? ""
+          : short.length === 0
+            ? " Every list is whole (page.totals)."
+            : ` Not everything is here: ${short.map((l) => `${l.key} holds ${page.returned[l.key]} of ${l.total}`).join("; ")}` +
+              `${offset > 0 ? ` (from ${offset})` : ""}; counts and summaries are over the whole lists.` +
+              (page.nextOffset !== undefined
+                ? ` Next page: changeset_brief ${JSON.stringify({ ...options.callArgs, sections: names, offset: page.nextOffset })}.`
+                : " This is the last page.") +
+              (options.limit === undefined && page.nextOffset !== undefined
+                ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass limit for a fixed page size, or targetBytes for another target.`
+                : "")) +
         ` Add detail: "full" for these sections in full at once, or call without sections for the compact brief.`,
     ].join(" ");
+    return out;
   };
-  finish();
-  // A share is measured item by item; nesting adds indentation, and the page entries take room too.
-  // With no limit named, shorten the largest page until the whole answer is near the target.
-  for (let pass = 0; options.limit === undefined && pass < 60 && measure(out) > target; pass++) {
-    const candidates = lists.map((list, i) => ({ list, i })).filter(({ i }) => shown[i] > 1);
-    if (candidates.length === 0) break;
-    const largest = candidates.reduce((a, b) => (measure(values[a.list.name]) >= measure(values[b.list.name]) ? a : b));
-    const now = shown[largest.i];
-    const over = measure(out) - target;
-    const each = measure(values[largest.list.name]) / now;
-    shown[largest.i] = Math.max(1, Math.min(now - 1, now - Math.ceil(over / Math.max(1, each))));
-    finish();
+
+  // The page size: the caller's limit, or the longest page that keeps the answer near the target (at least one item).
+  let size = options.limit ?? longest;
+  if (options.limit === undefined && longest > 0 && measure(render(longest)) > target) {
+    let low = 1;
+    let high = longest;
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if (measure(render(middle)) <= target) low = middle;
+      else high = middle - 1;
+    }
+    size = low;
   }
-  return out;
+  return render(Math.max(0, size));
 }

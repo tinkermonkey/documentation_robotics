@@ -1,31 +1,33 @@
 id: changeset-1795192239126-59nf7rnyj
 name: brief-sections-fit-one-response
-description: "changeset_brief's sections return compact forms in which a long
-  list comes a page at a time: every list reports its true total, how many items
-  the answer holds and the call for the next page, so no limit leaves an answer
-  looking complete when it is not. Page sizes default to what keeps the answer
-  near a 40 KB target, which the caller can change (targetBytes) or replace with
-  a fixed limit; detail: \"full\" with sections returns those sections in full
-  at once. changeset_impact counts everything it reaches and pages what it
-  lists. Intent traces a part through the whole that composes it, counts types
-  with no catalog route to intent apart from untraced, and explains an empty
-  intent. Done: on a 2,364-element changeset the default brief and the filtered
-  calls of #1183 and #1232 each come back near 40 KB with true totals; for every
-  list that can be shortened, a test shows the total is right and the pages
-  together equal the whole set; and the acceptance criteria of #1183, #1221,
-  #1231 and #1232 are met."
+description: "changeset_brief's sections return compact forms in which every
+  list in an answer is the same page: the answer's page gives each list's true
+  total, how many items it holds and the next offset, so no limit leaves an
+  answer looking complete when it is not. The page is sized to a 40 KB target
+  the caller can change (targetBytes) or replace with a fixed limit; detail:
+  \"full\" with sections returns those sections in full at once.
+  changeset_impact counts everything it reaches and pages what it lists. Intent
+  traces a part through the whole that composes it and an element through what
+  it realizes (hubs included, the maintainer's ruling of 2026-11-20), names its
+  walk's bounds and what the hub rule leaves untraced, counts types with no
+  catalog route to intent apart from untraced, and explains an empty intent.
+  Done: on a 2,364-element changeset the default brief and the filtered calls of
+  #1183 and #1232 each come back near 40 KB with true totals; for every list
+  that can be shortened, a test shows the total is right and the pages together
+  equal the whole set; and the acceptance criteria of #1183, #1221, #1231 and
+  #1232 are met."
 created: 2026-11-20T16:30:39.144Z
-modified: 2026-11-20T17:16:47.971Z
+modified: 2026-11-20T18:12:43.701Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 28
-  modifications: 7
+  additions: 30
+  modifications: 11
   deletions: 0
-lastSequence: 54
+lastSequence: 65
 unstaged:
   - sequence: 1
     removedAt: 28
@@ -375,3 +377,87 @@ unstaged:
         targetLayer: motivation
         category: structural
       timestamp: 2026-11-20T16:31:14.176Z
+  - sequence: 41
+    removedAt: 55
+    change:
+      type: add
+      elementId: data-model.objectschema.section-page
+      layerName: data-model
+      after:
+        id: fed666a5-2a0e-4bda-87c3-b6e449e29878
+        path: data-model.objectschema.section-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionPage
+        description: "How much of one section's list a sections answer holds: the true
+          total, how many items were returned, where the next page starts and
+          the call that returns it, and a summary of the whole list when the
+          answer is a page."
+        attributes:
+          type: object
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/changeset-brief-compact.ts
+              symbol: SectionPage
+        metadata:
+          created_at: 2026-11-20T17:16:07.747Z
+          updated_at: 2026-11-20T17:16:07.747Z
+          version: 1
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 42
+    removedAt: 55
+    change:
+      type: add
+      elementId: data-model.objectschema.delta-page
+      layerName: data-model
+      after:
+        id: 24a34d56-e9e8-40b4-86ac-ff9dc9bd74d7
+        path: data-model.objectschema.delta-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DeltaPage
+        description: "How a delta's lists were paged: the entries there are in all, how
+          many the answer holds, and where the next page starts."
+        attributes:
+          type: object
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/changeset-brief-compact.ts
+              symbol: DeltaPage
+        metadata:
+          created_at: 2026-11-20T17:16:07.794Z
+          updated_at: 2026-11-20T17:16:07.794Z
+          version: 1
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 43
+    removedAt: 55
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.section-page
+      layerName: application
+      after:
+        source: application.applicationfunction.brief-sections
+        target: data-model.objectschema.section-page
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 44
+    removedAt: 55
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.compact-delta::accesses::data-model.objectschema.delta-page
+      layerName: application
+      after:
+        source: application.applicationfunction.compact-delta
+        target: data-model.objectschema.delta-page
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T17:16:08.160Z
