@@ -141,6 +141,9 @@ describe("writeViewerRecord", () => {
         env,
         isAlive: (pid) => pid === 111,
         answers: async (port) => port === 8082,
+        // Stand-ins that name nothing, as a viewer from before 0.7.0: tied to the record by port.
+        looksLikeViewer: () => true,
+        servesPort: () => true,
       });
       expect(found).toMatchObject({ pid: 111, port: 8082 });
       expect((await readViewerRecords(projectRoot, env)).map((r) => r.pid)).toEqual([111]);
@@ -280,7 +283,12 @@ describe("findRunningViewer", () => {
     withFixture(async ({ env, projectRoot, record }) => {
       await writeViewerRecord(record(), env);
       let calls = 0;
-      const found = await findRunningViewer(projectRoot, { env, answers: async () => ++calls > 1, looksLikeViewer: () => true });
+      const found = await findRunningViewer(projectRoot, {
+        env,
+        answers: async () => ++calls > 1,
+        looksLikeViewer: () => true,
+        servesPort: () => true,
+      });
       expect(found?.pid).toBe(process.pid);
       expect(calls).toBe(2);
     }));
@@ -346,20 +354,34 @@ describe("findRunningViewer", () => {
       }
     }));
 
-  it("takes an older viewer for an older record only while the pid still looks like a viewer", () =>
+  it("takes an older viewer for an older record only when the record's own process serves its port", () =>
     withFixture(async ({ env, projectRoot, record }) => {
-      // Neither the record nor the viewer has an id (both from before 0.7.0).
+      // Neither the record nor the viewer has an id (both from before 0.7.0): two such viewers
+      // answer alike, so the answer alone cannot say which project it serves (#1271 re-review 4).
       const old = await healthServer({ status: "ok", version: "0.1.0" });
       try {
         await putRecord(record({ pid: 4242, port: old.port }), env);
-        const options = { env, isAlive: () => true };
-        expect(await probeViewer(projectRoot, { ...options, looksLikeViewer: () => true })).toMatchObject({
+        const options = { env, isAlive: () => true, looksLikeViewer: () => true };
+        expect(await probeViewer(projectRoot, { ...options, servesPort: () => true })).toMatchObject({
           state: "running",
           confirmed: false,
         });
-        // The pid cannot be read (no ps): still a link, never a signal (viewer-control decides that).
-        expect((await probeViewer(projectRoot, { ...options, looksLikeViewer: () => null })).state).toBe("running");
-        expect((await probeViewer(projectRoot, { ...options, looksLikeViewer: () => false })).state).toBe("none");
+
+        // Another project's older viewer holds the port: not reused, and said so.
+        const other = await probeViewer(projectRoot, { ...options, servesPort: () => false });
+        expect(other.state).toBe("none");
+        expect(other.unconfirmed).toEqual([
+          { pid: 4242, port: old.port, reason: "a viewer from before 0.7.0 answers on its port, but it is not the one this record's process runs" },
+        ]);
+        // No process table or no lsof: cannot tie it, so not reused either.
+        const unknown = await probeViewer(projectRoot, { ...options, servesPort: () => null });
+        expect(unknown.state).toBe("none");
+        expect(unknown.unconfirmed?.[0].reason).toContain("could not be read");
+        // The record is kept: it may be this project's viewer.
+        expect(await readViewerRecords(projectRoot, env)).toHaveLength(1);
+
+        // A pid that is plainly not a viewer: the record goes.
+        expect((await probeViewer(projectRoot, { env, isAlive: () => true, looksLikeViewer: () => false })).state).toBe("none");
       } finally {
         old.server.close();
       }
@@ -373,6 +395,8 @@ describe("findRunningViewer", () => {
         isAlive: () => true,
         cliVersion: "0.7.0",
         health: async (port: number) => ({ status: "ok" as const, cliVersion: versions[port] }),
+        looksLikeViewer: () => true,
+        servesPort: () => true,
       };
       await putRecord(record({ pid: 1, port: 9001, startedAt: "2026-11-17T10:00:00.000Z" }), env);
       await putRecord(record({ pid: 2, port: 9002, withChangesets: false, startedAt: "2026-11-18T10:00:00.000Z" }), env);
@@ -386,7 +410,13 @@ describe("findRunningViewer", () => {
     withFixture(async ({ env, projectRoot, record }) => {
       await putRecord(record({ pid: 1, port: 9001 }), env);
       await putRecord(record({ pid: 2, port: 9002 }), env);
-      const probe = await probeViewer(projectRoot, { env, isAlive: () => true, answers: async (port) => port === 9002 });
+      const probe = await probeViewer(projectRoot, {
+        env,
+        isAlive: () => true,
+        answers: async (port) => port === 9002,
+        looksLikeViewer: () => true,
+        servesPort: () => true,
+      });
       expect(probe).toMatchObject({ state: "running", record: { pid: 2 } });
       expect(await readViewerRecords(projectRoot, env)).toHaveLength(2);
     }));
@@ -451,7 +481,7 @@ describe("sweepViewerRegistry", () => {
       expect(existsSync(stale)).toBe(false);
 
       await putRecord(record({ pid: dead, port: 8099 }), env);
-      const live = { env, answers: async () => true, looksLikeViewer: () => true };
+      const live = { env, answers: async () => true, looksLikeViewer: () => true, servesPort: () => true };
       const probe = await probeViewer(projectRoot, live);
       expect(existsSync(stale)).toBe(false);
       // The probe passes on what its read removed; a read that removed nothing says nothing.

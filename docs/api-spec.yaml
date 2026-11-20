@@ -662,18 +662,22 @@ paths:
                     description: Version of the dr CLI that is serving this API, e.g. "0.5.0"
                   pid:
                     type: integer
-                    description: Process id of the server
+                    description: Process id of the server. Only with the auth token
                   launcherPid:
                     type: integer
-                    description: Process id of the `dr visualize` process that runs the server
+                    description:
+                      Process id of the `dr visualize` process that runs the server. Only
+                      with the auth token
                   viewerId:
                     type: string
                     description:
                       Id of this viewer, as its record in the user's viewer registry has
-                      it
+                      it. Only with the auth token
                   clients:
                     type: integer
-                    description: Browser tabs connected now (WebSocket clients)
+                    description:
+                      Browser tabs connected now (WebSocket clients). Only with the auth
+                      token
                 required:
                   - status
                   - version

@@ -403,8 +403,23 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
 
     try {
       if (replace) {
+        if (replaced?.reason === "older") {
+          // Not asked for: replaced only while nobody is looking at it. A tab may have opened since
+          // the first probe, so ask again just before stopping it.
+          const now = await deps.probeViewer(projectRoot);
+          const stillUnattended = now.state === "running" && now.record.pid === replace.pid && now.health?.clients === 0;
+          if (!stillUnattended) {
+            throw new CLIError("A browser tab connected to the viewer before it could be replaced; it was left running.", ErrorCategory.SYSTEM);
+          }
+        }
         const stop = await deps.stopViewer(replace);
         const which = `pid ${replace.pid}, port ${replace.port}`;
+        if (stop.outcome === "timed-out") {
+          throw new CLIError(
+            `The viewer for this project (${which}) did not exit in time and its pid could not be checked again, so it was not killed and not replaced.`,
+            ErrorCategory.SYSTEM
+          );
+        }
         if (stop.outcome === "not-permitted") {
           throw new CLIError(
             `The viewer for this project (${which}) belongs to another user and could not be stopped, so it was not replaced.`,

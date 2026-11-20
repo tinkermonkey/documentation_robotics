@@ -40,6 +40,7 @@ import {
   hasVisualizeArgument,
   isZombie,
   listProcesses,
+  processStartTime,
   listeningPort,
   processCwd,
   processScanDisabled,
@@ -123,7 +124,7 @@ export interface ListRunningViewersDeps {
   processes?: () => ProcessInfo[] | null;
   cwdOf?: (pid: number) => string | null;
   portOf?: (pid: number) => number | null;
-  health?: (port: number, timeoutMs: number) => Promise<ViewerHealth | null>;
+  health?: (port: number, timeoutMs: number, token?: string | null) => Promise<ViewerHealth | null>;
   /** Whether a command line's `dist/server-entry.js` is the dr CLI's (default: its package.json). */
   isDrServer?: (command: string) => boolean | null;
   /** The current user's id (default: this process's); null counts every user's processes. */
@@ -151,8 +152,18 @@ export interface ViewerSurvey {
   swept: SweepResult;
 }
 
-/** How long after its launcher started a record may have been written: ps reports whole seconds. */
-const START_SLACK_MS = 2000;
+/**
+ * A recorded pid may be the record's viewer only if its process started no later than the record
+ * was written. `ps` reports start times rounded down to the second, which only makes a process
+ * look earlier, so no slack is needed: a reused pid passes this check only if it was reused in the
+ * same second as the record was written.
+ */
+function startedNoLaterThan(info: ProcessInfo, record: ViewerRecord): boolean | null {
+  const started = info.startedAt ? Date.parse(info.startedAt) : Number.NaN;
+  const recorded = record.startedAt ? Date.parse(record.startedAt) : Number.NaN;
+  if (Number.isNaN(started) || Number.isNaN(recorded)) return null;
+  return started <= recorded;
+}
 
 /** What the process table and the viewer's own answer say about a recorded viewer. */
 type Confirmation =
@@ -172,12 +183,11 @@ export function confirmRecordedViewer(
   table: ProcessInfo[] | null,
   scan: ViewerProcessScan | null
 ): Confirmation {
-  // By the viewer itself.
-  if (health && answeringViewer(record, health) === "this" && health.pid && health.launcherPid === record.pid) {
-    return { kind: "confirmed", pids: { launcher: record.pid, server: health.pid, by: "health" } };
-  }
+  const namesItself = !!health && answeringViewer(record, health) === "this" && !!health.pid && health.launcherPid === record.pid;
 
   if (!table || !scan) {
+    // By the viewer itself, when there is nothing to check it against.
+    if (namesItself) return { kind: "confirmed", pids: { launcher: record.pid, server: health!.pid!, by: "health" } };
     return {
       kind: "unconfirmed",
       reason: health
@@ -186,21 +196,28 @@ export function confirmRecordedViewer(
     };
   }
 
-  // By the process table.
+  // With a process table, it has the last word, whatever /health says: a server that outlived its
+  // launcher still reports the launcher pid it started with, which may now be another process's.
   const info = table.find((candidate) => candidate.pid === record.pid);
   if (!info) return { kind: "stale", reason: "its pid is gone" };
   if (!hasVisualizeArgument(info.command)) return { kind: "stale", reason: "its pid now runs another program" };
-  const started = info.startedAt ? Date.parse(info.startedAt) : Number.NaN;
-  const recorded = record.startedAt ? Date.parse(record.startedAt) : Number.NaN;
-  if (!Number.isNaN(started) && !Number.isNaN(recorded) && started > recorded + START_SLACK_MS) {
-    return { kind: "stale", reason: "its pid now runs a process that started after the record was written" };
-  }
-  if (Number.isNaN(started) || Number.isNaN(recorded)) {
+  const inTime = startedNoLaterThan(info, record);
+  if (inTime === false) return { kind: "stale", reason: "its pid now runs a process that started after the record was written" };
+  if (inTime === null) {
     return { kind: "unconfirmed", reason: "the start time of its pid or of its record is unknown, so the pid may have been reused" };
   }
+
+  if (namesItself) {
+    const server = table.find((candidate) => candidate.pid === health!.pid);
+    if (!server || server.ppid !== record.pid) {
+      return { kind: "unconfirmed", reason: "the server that names this viewer is not a child of its recorded pid" };
+    }
+    return { kind: "confirmed", pids: { launcher: record.pid, server: server.pid, by: "health" } };
+  }
+
   const process_ = scan.viewers.find((viewer) => viewer.launcherPid === record.pid);
   if (!process_ || process_.serverPid === null) {
-    return { kind: "unconfirmed", reason: "its pid has no dr viewer server under it" };
+    return { kind: "unconfirmed", reason: "its pid is not a dr visualize launcher with a dr viewer server under it" };
   }
   return { kind: "confirmed", pids: { launcher: record.pid, server: process_.serverPid, by: "process" } };
 }
@@ -240,7 +257,7 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
 
   await Promise.all(
     records.map(async (record: ViewerRecord) => {
-      const answer = await health(record.port, timeoutMs);
+      const answer = await health(record.port, timeoutMs, record.token);
       const confirmation = confirmRecordedViewer(record, answer, table, scan);
       if (confirmation.kind === "stale") {
         // If a viewer still runs under that pid or on that port, the scan lists it as its own.
@@ -371,7 +388,12 @@ export type StopOutcome =
   /** The process belongs to another user. */
   | "not-permitted"
   /** Its pids could not be confirmed to be a viewer's, so nothing was signalled. */
-  | "unverified";
+  | "unverified"
+  /**
+   * It did not exit on SIGTERM in time, and was not sent SIGKILL because its start time could not
+   * be read to make sure the pid had not been reused meanwhile. It may still be running.
+   */
+  | "timed-out";
 
 export interface StopViewerOptions {
   env?: NodeJS.ProcessEnv;
@@ -379,6 +401,8 @@ export interface StopViewerOptions {
   timeoutMs?: number;
   isAlive?: (pid: number) => boolean;
   kill?: (pid: number, signal: NodeJS.Signals) => void;
+  /** When a pid's process started (default: from ps), or null when that cannot be read. */
+  startTimeOf?: (pid: number) => string | null;
   pollMs?: number;
 }
 
@@ -402,7 +426,18 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
   // A process that has exited but that its parent has not collected yet still has a pid.
   const isAlive = options.isAlive ?? ((pid: number) => isProcessAlive(pid) && !isZombie(pid));
   const kill = options.kill ?? ((pid: number, signal: NodeJS.Signals) => void process.kill(pid, signal));
+  const startTimeOf = options.startTimeOf ?? processStartTime;
   const pollMs = options.pollMs ?? 150;
+  // The processes as they are now, just confirmed. Before each later signal the pid's start time is
+  // read again: a pid that exited and was reused while the stop waited is a different process.
+  const startedAt = new Map<number, string | null>();
+  const sameProcess = (pid: number): boolean | null => {
+    if (!startedAt.has(pid)) return null;
+    const then = startedAt.get(pid) ?? null;
+    if (then === null) return null;
+    const now = startTimeOf(pid);
+    return now === null ? null : now === then;
+  };
   const goneWithin = async (pid: number, ms: number): Promise<boolean> => {
     const deadline = Date.now() + ms;
     while (isAlive(pid)) {
@@ -411,14 +446,22 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
     }
     return true;
   };
-  const stop = async (pid: number, timeoutMs: number): Promise<StopOutcome> => {
+  /** `recheck`: compare the start time before SIGTERM too (a signal later in the stop). */
+  const stop = async (pid: number, timeoutMs: number, recheck: boolean): Promise<StopOutcome> => {
     if (pid <= 1 || pid === process.pid || !isAlive(pid)) return "not-running";
+    if (recheck && sameProcess(pid) !== true) {
+      // Reused (false), or cannot be told (null): either way not provably the viewer any more.
+      return sameProcess(pid) === false ? "not-running" : "timed-out";
+    }
     try {
       kill(pid, "SIGTERM");
     } catch (error) {
       return (error as NodeJS.ErrnoException).code === "EPERM" ? "not-permitted" : "not-running";
     }
     if (await goneWithin(pid, timeoutMs)) return "stopped";
+    const same = sameProcess(pid);
+    if (same === false) return "stopped"; // It exited and the pid was taken by another process.
+    if (same === null) return "timed-out"; // Cannot make sure it is the same process: no SIGKILL.
     try {
       kill(pid, "SIGKILL");
     } catch {
@@ -429,16 +472,18 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
   };
 
   const { launcher, server } = viewer.confirmed;
+  for (const pid of [launcher, server]) if (pid !== null) startedAt.set(pid, startTimeOf(pid));
   let outcome: StopOutcome = "not-running";
   if (launcher !== null) {
-    outcome = await stop(launcher, options.timeoutMs ?? viewerSetting("stopTimeoutMs", options.env));
+    outcome = await stop(launcher, options.timeoutMs ?? viewerSetting("stopTimeoutMs", options.env), false);
   }
   if (server !== null && outcome !== "not-permitted") {
     // Left behind when the launcher was force-killed, or all there was.
-    const serverOutcome = await stop(server, SERVER_STOP_TIMEOUT_MS);
+    // The first signal it gets when there is no launcher; otherwise after a wait, so checked again.
+    const serverOutcome = await stop(server, SERVER_STOP_TIMEOUT_MS, launcher !== null);
     if (outcome === "not-running") outcome = serverOutcome;
   }
-  if (viewer.inRegistry && viewer.projectRoot && viewer.pid !== null && outcome !== "not-permitted") {
+  if (viewer.inRegistry && viewer.projectRoot && viewer.pid !== null && outcome !== "not-permitted" && outcome !== "timed-out") {
     await removeViewerRecord(viewer.projectRoot, { env: options.env, pid: viewer.pid }).catch(() => {});
   }
   return outcome;
@@ -446,7 +491,7 @@ export async function stopViewer(viewer: RunningViewer, options: StopViewerOptio
 
 export interface StopRecordedViewerOptions extends StopViewerOptions {
   /** What answers on a port (default: the viewer's health check). */
-  health?: (port: number, timeoutMs: number) => Promise<ViewerHealth | null>;
+  health?: (port: number, timeoutMs: number, token?: string | null) => Promise<ViewerHealth | null>;
   /** The process table, or null where it cannot be read. */
   processes?: () => ProcessInfo[] | null;
   isDrServer?: (command: string) => boolean | null;
@@ -472,7 +517,7 @@ export async function stopRecordedViewer(
 ): Promise<StopRecordedResult> {
   const env = options.env ?? process.env;
   const health = options.health ?? viewerHealth;
-  const answer = await health(record.port, viewerSetting("healthTimeoutMs", env));
+  const answer = await health(record.port, viewerSetting("healthTimeoutMs", env), record.token);
   const table = options.processes ? options.processes() : listProcesses(env);
   const scan = table
     ? scanViewerProcesses(table, {

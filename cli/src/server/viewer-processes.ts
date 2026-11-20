@@ -204,8 +204,10 @@ export function scanViewerProcesses(processes: ProcessInfo[], options: FindViewe
       continue;
     }
     const parent = byPid.get(server.ppid);
+    // The parent counts as its launcher only when it is a dr launcher (a CLI entry running
+    // `visualize`), not anything with a `visualize` argument, such as `make visualize`.
     const launcher =
-      parent && parent.pid !== selfPid && parent.pid > 1 && hasVisualizeArgument(parent.command) && mine(parent) ? parent : null;
+      parent && parent.pid !== selfPid && parent.pid > 1 && isLauncherCommand(parent.command) && mine(parent) ? parent : null;
     if (launcher) paired.add(launcher.pid);
     scan.viewers.push({
       launcherPid: launcher?.pid ?? null,
@@ -293,6 +295,44 @@ export function looksLikeViewer(pid: number): boolean | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * When a process started, as `ps` reports it (ISO, whole seconds), or null when it cannot be read
+ * (no such pid, no ps). Compared before each signal of a stop, so a pid that was reused while the
+ * stop waited is not signalled.
+ */
+export function processStartTime(pid: number): string | null {
+  if (process.platform === "win32" || pid <= 0) return null;
+  try {
+    const result = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)], {
+      encoding: "utf8",
+      timeout: 3000,
+      env: { ...process.env, LC_ALL: "C" },
+    });
+    const text = (result.stdout ?? "").trim();
+    if (result.error || !text) return null;
+    const started = new Date(text);
+    return Number.isNaN(started.getTime()) ? null : started.toISOString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether the dr server under a launcher pid listens on a port: true or false, or null when the
+ * process table or the port cannot be read. A viewer from before 0.7.0 does not name itself on
+ * /health, so this is how its record is tied to the viewer answering on its port.
+ */
+export function launcherServesPort(launcherPid: number, port: number, env: NodeJS.ProcessEnv = process.env): boolean | null {
+  const table = listProcesses(env);
+  if (!table) return null;
+  const viewer = scanViewerProcesses(table, { knownLaunchers: new Set([launcherPid]) }).viewers.find(
+    (candidate) => candidate.launcherPid === launcherPid
+  );
+  if (!viewer || viewer.serverPid === null) return false;
+  const listening = listeningPort(viewer.serverPid);
+  return listening === null ? null : listening === port;
 }
 
 /**

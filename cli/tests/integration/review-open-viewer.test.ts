@@ -200,7 +200,9 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     /** A `dr visualize` run by hand in the project folder; resolves once it has recorded itself. */
     const startByHand = async (): Promise<{ proc: ReturnType<typeof spawn>; port: number; serverPid: number }> => {
       const port = await portAllocator.allocatePort();
-      const proc = spawn("node", [CLI_PATH, "visualize", "--no-browser", "--no-auth", "--exit-with-parent", "--port", String(port)], {
+      // With auth: its record holds the token, which a viewer must be given before it names itself
+      // on /health, and with no process scan that is the only way --stop can confirm it.
+      const proc = spawn("node", [CLI_PATH, "visualize", "--no-browser", "--exit-with-parent", "--port", String(port)], {
         cwd: projectDir,
         env,
         stdio: "ignore",

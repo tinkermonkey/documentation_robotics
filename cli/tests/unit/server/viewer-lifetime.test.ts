@@ -170,20 +170,47 @@ describe("VisualizationServer.getActivity", () => {
     }
   });
 
-  it("names itself, its pids and its connected tabs on /health", async () => {
+  it("names itself, its pids and its connected tabs on /health, only to a caller with the token", async () => {
     const dir = join(tmpdir(), `dr-viewer-health-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     await mkdir(dir, { recursive: true });
     const rootPath = await realpath(dir);
     await Model.init(rootPath, { name: "Health Test", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
     const server = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
-      authEnabled: false,
+      authEnabled: true,
+      authToken: "secret",
       viewerId: "viewer-xyz",
       launcherPid: 4242,
     });
+    const open = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
+      authEnabled: false,
+      viewerId: "viewer-open",
+      launcherPid: 4242,
+    });
+    const health = async (target: typeof server, init?: RequestInit) =>
+      ((await (target as any).app.request("/health", init)) as Response).json();
+    const identity = ["pid", "launcherPid", "viewerId", "clients"];
     try {
-      const body = await ((await (server as any).app.request("/health")) as Response).json();
-      expect(body).toMatchObject({ status: "ok", viewerId: "viewer-xyz", pid: process.pid, launcherPid: 4242, clients: 0 });
+      expect(await health(server, { headers: { Authorization: "Bearer secret" } })).toMatchObject({
+        status: "ok",
+        viewerId: "viewer-xyz",
+        pid: process.pid,
+        launcherPid: 4242,
+        clients: 0,
+      });
+      expect(await health(server, { headers: { Authorization: "Bearer wrong" } })).toEqual({
+        status: "ok",
+        version: "0.1.0",
+        cliVersion: expect.any(String),
+      });
+      // Anyone else, a web page included: status and version only.
+      const anonymous = await health(server);
+      for (const key of identity) expect(anonymous).not.toHaveProperty(key);
+      expect(anonymous.cliVersion).toBeTruthy();
+      // A viewer without auth has no token, so it tells nobody.
+      const unauthenticated = await health(open);
+      for (const key of identity) expect(unauthenticated).not.toHaveProperty(key);
     } finally {
+      open.stop();
       server.stop();
       await rm(rootPath, { recursive: true, force: true });
     }

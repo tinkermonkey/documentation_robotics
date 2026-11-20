@@ -227,9 +227,11 @@ const OUTCOME_TEXT: Record<StopOutcome, string> = {
   "not-running": "Already gone:",
   "not-permitted": "Could not stop (it belongs to another user):",
   unverified: "Left alone (its pid could not be confirmed to be this viewer):",
+  "timed-out":
+    "Did not exit in time, and was not killed because its start time could not be read to make sure the pid was still the viewer's:",
 };
 
-const NOT_STOPPED: ReadonlySet<StopOutcome> = new Set<StopOutcome>(["not-permitted", "unverified"]);
+const NOT_STOPPED: ReadonlySet<StopOutcome> = new Set<StopOutcome>(["not-permitted", "unverified", "timed-out"]);
 
 /** The viewers a `--stop` run names. Throws when it names nothing that can be resolved. */
 export async function selectViewersToStop(viewers: RunningViewer[], options: StopViewersOptions): Promise<RunningViewer[]> {
@@ -348,7 +350,13 @@ export async function stopViewersCommand(
     const parts = [
       ...notStopped.map(
         ({ viewer, outcome }) =>
-          `${where(viewer)}: ${outcome === "not-permitted" ? "belongs to another user" : `pid not confirmed to be this viewer${viewer.unconfirmed ? ` (${viewer.unconfirmed})` : ""}`}`
+          `${where(viewer)}: ${
+            outcome === "not-permitted"
+              ? "belongs to another user"
+              : outcome === "timed-out"
+                ? "did not exit in time and its pid could not be checked again, so it was not killed"
+                : `pid not confirmed to be this viewer${viewer.unconfirmed ? ` (${viewer.unconfirmed})` : ""}`
+          }`
       ),
       ...unrecordedLeft.map((viewer) => `${where(viewer)}: not in this registry (add --include-unrecorded)`),
     ];

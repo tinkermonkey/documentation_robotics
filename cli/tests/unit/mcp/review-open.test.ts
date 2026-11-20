@@ -531,7 +531,7 @@ describe("review_open and a viewer older than this CLI (#1237)", () => {
   it("counts a viewer that reports no version (before 0.6.0) as older", async () => {
     await changesetCreateHandler({ name: "export-orders", rootPath });
     // A viewer that old names nothing about itself; its pid (this test process) is taken on trust for a link only.
-    const probe = (root: string) => probeViewer(root, { looksLikeViewer: () => true });
+    const probe = (root: string) => probeViewer(root, { looksLikeViewer: () => true, servesPort: () => true });
     await runningViewer(null, {}, {});
     const handler = createReviewOpenHandler({ startViewer: fakeSpawner().startViewer, probeViewer: probe, cliVersion: "0.7.0", pollMs: 10 });
     const result = parse(await handler({ rootPath }));
@@ -612,7 +612,7 @@ describe("review_open replaces only what it may (#1271 review)", () => {
     const { server } = await runningViewer("0.6.0", { startedBy: "review_open" }, {});
     const spawner = fakeSpawner();
     const stopper = fakeStopper(server);
-    const probe = (root: string) => probeViewer(root, { looksLikeViewer: () => true });
+    const probe = (root: string) => probeViewer(root, { looksLikeViewer: () => true, servesPort: () => true });
     const handler = createReviewOpenHandler({
       startViewer: spawner.startViewer,
       stopViewer: stopper.stopViewer,
@@ -699,6 +699,47 @@ describe("review_open replaces only what it may (#1271 review)", () => {
       if (saved === undefined) delete process.env.DR_VIEWER_IDLE_HOURS;
       else process.env.DR_VIEWER_IDLE_HOURS = saved;
     }
+  });
+});
+
+describe("review_open and a tab opened just before a replacement (#1271 re-review)", () => {
+  it("asks again just before stopping, and leaves the viewer when a tab has connected", async () => {
+    await changesetCreateHandler({ name: "export-orders", rootPath });
+    let clients = 0;
+    const port = await new Promise<number>((resolve) => {
+      const server = createServer((_req, res) => {
+        res.writeHead(200, { "content-type": "application/json" });
+        // The first probe sees no tab; by the time review_open is about to stop it, one is open.
+        res.end(JSON.stringify({ status: "ok", cliVersion: "0.1.0", viewerId: "old-1", pid: process.pid, launcherPid: process.pid, clients: clients++ }));
+      });
+      servers.push(server);
+      server.listen(0, "127.0.0.1", () => resolve((server.address() as { port: number }).port));
+    });
+    await writeViewerRecord({
+      pid: process.pid,
+      port,
+      token: "old-token",
+      projectRoot: await realpath(rootPath),
+      startedAt: new Date().toISOString(),
+      withChangesets: true,
+      viewerId: "old-1",
+      startedBy: "review_open",
+    });
+    const spawner = fakeSpawner();
+    const stopped: ViewerRecord[] = [];
+    const handler = createReviewOpenHandler({
+      startViewer: spawner.startViewer,
+      stopViewer: async (record) => {
+        stopped.push(record);
+        return { outcome: "stopped" as const };
+      },
+      cliVersion: getCliVersion(),
+      pollMs: 10,
+    });
+    const result = parse(await handler({ rootPath }));
+    expect(result).toMatchObject({ reused: true, port, outdated: true });
+    expect(stopped).toHaveLength(0);
+    expect(spawner.calls).toHaveLength(0);
   });
 });
 

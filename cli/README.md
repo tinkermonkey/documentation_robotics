@@ -540,18 +540,26 @@ nothing on screen says it is there:
 - `dr visualize --stop` stops viewers and waits for each to exit. It acts on the viewers this registry
   records. A viewer found only in the process table (its record was lost, or a session with another
   `DR_STATE_DIR` started it) is named and left running unless you add `--include-unrecorded`.
-- `--stop` signals a process only when it is confirmed to be the viewer: the viewer names itself on
-  `/health` (its id, its pid and its launcher's), or the process table shows the recorded pid started before
-  its record, runs `visualize`, and has a server under it whose script is the dr CLI's. Anything else (a pid
-  that may have been reused, another program's `dist/server-entry.js`, another user's viewer) is reported
-  and left alone.
+- `--stop` signals a process only when it is confirmed to be the viewer. Where the process table can be
+  read, it decides: the recorded pid started no later than its record, is a `dr visualize` launcher, and has a
+  server under it whose script is the dr CLI's (when the viewer also names itself on `/health`, that server
+  must be the one it names). Where it cannot be read, the viewer must name itself on `/health`: its id, its
+  pid and its launcher's, which it tells only to a caller with its auth token (taken from its record). A
+  viewer started with `--no-auth` tells nobody, so without a process table it is never stopped from here.
+  Before a SIGKILL, and before signalling a server after its launcher, the start time is read again; a pid
+  that was reused while `--stop` waited is not signalled, and one whose start time cannot be read is not
+  killed (reported as "did not exit in time"). Anything else (a reused pid, another program's
+  `dist/server-entry.js`, another user's viewer) is reported and left alone.
 - A `review_open` viewer exits on its own after 24 hours with no browser tab connected and no authenticated
   API request; an open tab keeps it alive. Idle time is wall-clock time, so hours the machine sleeps count
   for a viewer with no tab open. `DR_VIEWER_IDLE_HOURS` changes the period, and `0` means never; the `dr mcp`
   server reads it when `review_open` starts a viewer, so a change applies to viewers started after it.
   `--idle-exit <hours>` gives any `dr visualize` the same limit.
 - `review_open` replaces a viewer older than the CLI only when `review_open` started it and it reports no
-  browser tab connected. Otherwise it returns the link with a notice, and `restart: true` replaces it.
+  browser tab connected, both when it first looks and again just before stopping it. Otherwise it returns the
+  link with a notice, and `restart: true` replaces it. A viewer from before 0.7.0 does not name itself, so it
+  is reused only when the process table shows the record's own process serving its port; otherwise
+  `review_open` starts a new viewer rather than risk a link to another project's.
 - Any viewer exits when its project's `documentation-robotics/` folder is removed.
 - `--exit-with-parent` makes `dr visualize` exit when the process that started it is gone, for scripts and
   test runs that must not leave a server behind.

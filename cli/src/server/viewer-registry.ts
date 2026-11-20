@@ -37,7 +37,7 @@ import { chmod, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { getCliVersion } from "../utils/spec-version.js";
-import { looksLikeViewer as processLooksLikeViewer } from "./viewer-processes.js";
+import { launcherServesPort, looksLikeViewer as processLooksLikeViewer } from "./viewer-processes.js";
 import { viewerSetting } from "./viewer-settings.js";
 
 /** Env var that points the user state directory somewhere else (tests). */
@@ -406,9 +406,13 @@ export function answeringViewer(record: ViewerRecord, health: ViewerHealth): "th
 }
 
 /** A dr viewer's answer to its health check on this port, or null when nothing answers as one. */
-export async function viewerHealth(port: number, timeoutMs = 1500): Promise<ViewerHealth | null> {
+export async function viewerHealth(port: number, timeoutMs = 1500, token?: string | null): Promise<ViewerHealth | null> {
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(timeoutMs) });
+    // With the viewer's token it also names itself (viewerId, pids, open tabs); without, only its status and version.
+    const response = await fetch(`http://127.0.0.1:${port}/health`, {
+      signal: AbortSignal.timeout(timeoutMs),
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+    });
     if (!response.ok) return null;
     const body = (await response.json()) as Record<string, unknown>;
     if (body?.status !== "ok" && body?.status !== "degraded") return null;
@@ -583,7 +587,7 @@ export interface FindRunningViewerOptions {
   /** Injected for tests; defaults to isProcessAlive. */
   isAlive?: (pid: number) => boolean;
   /** Injected for tests; defaults to viewerHealth. Called with the probe's timeout. */
-  health?: (port: number, timeoutMs: number) => Promise<ViewerHealth | null>;
+  health?: (port: number, timeoutMs: number, token?: string | null) => Promise<ViewerHealth | null>;
   /** Injected for tests, when the CLI version does not matter: whether a viewer answers on the port. */
   answers?: (port: number, timeoutMs: number) => Promise<boolean>;
   /**
@@ -591,6 +595,12 @@ export interface FindRunningViewerOptions {
    * the pid after the viewer died (false), or unknown (null). Defaults to its command line.
    */
   looksLikeViewer?: (pid: number) => boolean | null;
+  /**
+   * For a record and viewer from before 0.7.0 (neither has an id): whether the record's launcher
+   * runs the server listening on its port. True, false, or null when that cannot be read.
+   * Defaults to the process table and lsof.
+   */
+  servesPort?: (pid: number, port: number) => boolean | null;
   /** The CLI version to prefer when several viewers run (default: this CLI's). */
   cliVersion?: string;
   /** First health probe's timeout (default: DR_VIEWER_HEALTH_TIMEOUT_MS, 1.5s). */
@@ -619,7 +629,15 @@ export type ViewerProbe = (
   | { state: "none" }
   | { state: "running"; record: ViewerRecord; cliVersion?: string; health?: ViewerHealth; confirmed?: boolean }
   | { state: "unreachable"; record: ViewerRecord }
-) & { swept?: SweepResult };
+) & {
+  swept?: SweepResult;
+  /**
+   * Viewers from before 0.7.0 that answer on their recorded port but could not be tied to the
+   * record (the process table or the port could not be read, or another server holds the port):
+   * not reused, since the link could open another project. Their records are kept.
+   */
+  unconfirmed?: Array<{ pid: number; port: number; reason: string }>;
+};
 
 /** Oldest first; a record with no start time sorts last. */
 function byStartedAt(a: ViewerRecord, b: ViewerRecord): number {
@@ -634,7 +652,7 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
   const env = options.env ?? process.env;
   const isAlive = options.isAlive ?? isProcessAlive;
   const answers = options.answers;
-  const health: (port: number, timeoutMs: number) => Promise<ViewerHealth | null> =
+  const health: (port: number, timeoutMs: number, token?: string | null) => Promise<ViewerHealth | null> =
     options.health ??
     (answers ? async (port, timeoutMs) => ((await answers(port, timeoutMs)) ? { status: "ok" } : null) : viewerHealth);
   const preferred = options.cliVersion ?? getCliVersion();
@@ -645,25 +663,47 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
   if (records.length === 0) return { state: "none", ...sweptPart() };
 
   const looksLikeViewer = options.looksLikeViewer ?? processLooksLikeViewer;
+  const servesPort = options.servesPort ?? ((pid: number, port: number) => launcherServesPort(pid, port, env));
+  const unconfirmed: Array<{ pid: number; port: number; reason: string }> = [];
+  const extra = () => ({ ...sweptPart(), ...(unconfirmed.length > 0 ? { unconfirmed } : {}) });
   // "Answers" means the viewer on the record's port is this record's, not just that some viewer
   // holds the port: a stale record whose port another project's viewer took must not yield a
   // link to that project.
   const probeOne = async (record: ViewerRecord, timeoutMs: number) => {
-    const answer = await health(record.port, timeoutMs);
+    const answer = await health(record.port, timeoutMs, record.token);
     if (!answer) return { record, health: null as ViewerHealth | null, confirmed: false };
     const whose = answeringViewer(record, answer);
     if (whose === "this") return { record, health: answer, confirmed: true };
-    // Neither side has an id (both from before 0.7.0): take it unless the pid is plainly not a viewer.
-    if (whose === "unknown" && looksLikeViewer(record.pid) !== false) return { record, health: answer, confirmed: false };
+    // Neither side has an id (both from before 0.7.0): two such viewers cannot be told apart by
+    // what they answer, so the record's own launcher must be the one serving its port.
+    if (whose === "unknown" && looksLikeViewer(record.pid) !== false) {
+      const serves = servesPort(record.pid, record.port);
+      if (serves === true) return { record, health: answer, confirmed: false };
+      if (!unconfirmed.some((entry) => entry.pid === record.pid)) {
+        unconfirmed.push({
+          pid: record.pid,
+          port: record.port,
+          reason:
+            serves === null
+              ? "a viewer from before 0.7.0 answers on its port, and the process table or the port could not be read to tie it to this record"
+              : "a viewer from before 0.7.0 answers on its port, but it is not the one this record's process runs",
+        });
+      }
+      return { record, health: null as ViewerHealth | null, confirmed: false, legacy: true };
+    }
     return { record, health: null as ViewerHealth | null, confirmed: false };
   };
   const probe = (timeoutMs: number, candidates: ViewerRecord[]) =>
     Promise.all(candidates.map((record) => probeOne(record, timeoutMs)));
   let probed = await probe(options.probeTimeoutMs ?? viewerSetting("healthTimeoutMs", env), records);
-  const silent = probed.filter((entry) => !entry.health).map((entry) => entry.record);
-  if (silent.length === records.length) {
+  const silentOf = (entries: typeof probed) =>
+    entries.filter((entry) => !entry.health && !("legacy" in entry && entry.legacy)).map((entry) => entry.record);
+  let silent = silentOf(probed);
+  if (silent.length > 0 && probed.every((entry) => !entry.health)) {
     // Nothing answered: give a busy viewer longer before calling it unreachable.
-    probed = await probe(options.retryTimeoutMs ?? viewerSetting("healthRetryTimeoutMs", env), silent);
+    const retried = await probe(options.retryTimeoutMs ?? viewerSetting("healthRetryTimeoutMs", env), silent);
+    probed = [...probed.filter((entry) => !silent.includes(entry.record)), ...retried];
+    silent = silentOf(probed);
   }
 
   const running = probed.filter((entry) => entry.health);
@@ -678,7 +718,7 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
       ...(best.health?.cliVersion ? { cliVersion: best.health.cliVersion } : {}),
       health: best.health!,
       confirmed: best.confirmed,
-      ...sweptPart(),
+      ...extra(),
     };
   }
 
@@ -693,8 +733,8 @@ export async function probeViewer(projectRoot: string, options: FindRunningViewe
       swept.records += removed.length;
     } else stuck.push(record);
   }
-  if (stuck.length === 0) return { state: "none", ...sweptPart() };
-  return { state: "unreachable", record: stuck.sort(byStartedAt)[0], ...sweptPart() };
+  if (stuck.length === 0) return { state: "none", ...extra() };
+  return { state: "unreachable", record: stuck.sort(byStartedAt)[0], ...extra() };
 }
 
 /**

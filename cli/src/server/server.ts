@@ -908,14 +908,18 @@ export class VisualizationServer {
         version: "0.1.0",
         // The dr CLI serving the API: the viewer shows it; `version` is the API's own.
         cliVersion: getCliVersion(),
-        // Which viewer this is (server/viewer-registry.ts): its registry record carries the same
-        // id, so a caller can tell it from another viewer that took its port, and learns its
-        // pids from the viewer itself.
-        pid: process.pid,
-        clients: this.clients.size,
-        ...(this.viewerId ? { viewerId: this.viewerId } : {}),
-        ...(this.launcherPid ? { launcherPid: this.launcherPid } : {}),
       };
+      // Which viewer this is (server/viewer-registry.ts), its pids and its open tabs: only to a
+      // caller with the token. Its registry record carries the same id and the token, so the CLI
+      // can tell this viewer from another that took its port; a web page cannot learn whether a
+      // review is open or what the process ids are. A viewer without auth has no token, so it
+      // tells nobody, and is identified from the process table instead.
+      if (this.authEnabled && this.requestHasToken(c)) {
+        response.pid = process.pid;
+        response.clients = this.clients.size;
+        if (this.viewerId) response.viewerId = this.viewerId;
+        if (this.launcherPid) response.launcherPid = this.launcherPid;
+      }
 
       // Include warnings if any services failed to initialize
       if (this.chatInitializationError) {
@@ -4960,6 +4964,13 @@ export class VisualizationServer {
    * connected now, and when it was last used (an API request that passed authentication, or a
    * tab's WebSocket opening or closing).
    */
+  /** Whether a request carries this server's token (Authorization: Bearer, or ?token=). */
+  private requestHasToken(c: { req: { header(name: string): string | undefined; query(name: string): string | undefined } }): boolean {
+    const authHeader = c.req.header("Authorization");
+    const provided = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : c.req.query("token");
+    return !!provided && provided === this.authToken;
+  }
+
   getActivity(): { clients: number; lastActivityAt: number } {
     return { clients: this.clients.size, lastActivityAt: this.lastActivityAt };
   }

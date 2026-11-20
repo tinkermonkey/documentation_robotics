@@ -125,6 +125,31 @@ describe("confirmRecordedViewer: when a recorded pid may be signalled", () => {
       kind: "confirmed",
       pids: { launcher: 100, server: 101, by: "health" },
     });
+    // With a process table that agrees.
+    expect(confirmRecordedViewer(record, own, table, scanOf(table))).toEqual({
+      kind: "confirmed",
+      pids: { launcher: 100, server: 101, by: "health" },
+    });
+  });
+
+  it("with a process table, does not take /health's word over it (#1271 re-review 1)", () => {
+    // The launcher was killed and its pid reused; the orphaned server still reports launcherPid 100.
+    const reused = [launcher(100, 1, "--no-browser", "2026-11-20T08:00:00.000Z"), { ...server(101, 1) }];
+    expect(confirmRecordedViewer(record, own, reused, scanOf(reused)).kind).toBe("stale");
+    // The pid runs another program now.
+    const other = [{ pid: 100, ppid: 1, uid: 501, startedAt: "2026-11-01T00:00:00.000Z", command: "/usr/bin/postgres" }, server(101, 1)];
+    expect(confirmRecordedViewer(record, own, other, scanOf(other)).kind).toBe("stale");
+    // The pid is old enough, but the server naming itself is no longer its child.
+    const orphan = [launcher(100, 1), { ...server(101, 1) }];
+    expect(confirmRecordedViewer(record, own, orphan, scanOf(orphan))).toMatchObject({
+      kind: "unconfirmed",
+      reason: "the server that names this viewer is not a child of its recorded pid",
+    });
+  });
+
+  it("does not accept a pid that started even a second after the record was written", () => {
+    const late = [launcher(100, 1, "--no-browser", "2026-11-18T09:00:06.000Z"), server(101, 100)];
+    expect(confirmRecordedViewer(record, null, late, scanOf(late)).kind).toBe("stale");
   });
 
   it("is not confirmed by some viewer answering on the recorded port", () => {
@@ -164,12 +189,22 @@ describe("confirmRecordedViewer: when a recorded pid may be signalled", () => {
     expect(confirmRecordedViewer(record, null, [], scanOf([])).kind).toBe("stale");
   });
 
+  it("does not take `make visualize` (or any non-dr parent) for a viewer's launcher", () => {
+    const makeParent = [
+      { pid: 100, ppid: 1, uid: 501, startedAt: "2026-11-01T00:00:00.000Z", command: "make visualize" },
+      server(101, 100),
+    ];
+    const scan = scanOf(makeParent);
+    expect(scan.viewers).toEqual([{ launcherPid: null, serverPid: 101, startedAt: makeParent[1].startedAt, command: makeParent[1].command }]);
+    expect(confirmRecordedViewer(record, null, makeParent, scan).kind).toBe("unconfirmed");
+  });
+
   it("is not confirmed by a `visualize` argument alone", () => {
     // Started before the record, so not provably reused, but nothing says it is a dr viewer.
     const lookalike = [{ pid: 100, ppid: 1, uid: 501, startedAt: "2026-11-01T00:00:00.000Z", command: "python manage.py visualize --all" }];
     expect(confirmRecordedViewer(record, null, lookalike, scanOf(lookalike))).toMatchObject({
       kind: "unconfirmed",
-      reason: "its pid has no dr viewer server under it",
+      reason: "its pid is not a dr visualize launcher with a dr viewer server under it",
     });
     // A start time that cannot be compared proves nothing either way.
     const undated = [launcher(100, 1, "--no-browser", ""), server(101, 100)];
@@ -305,7 +340,7 @@ describe("surveyViewers", () => {
         health: async () => null,
       });
       expect(survey.viewers).toMatchObject([
-        { pid: 4242, serverPid: null, confirmed: null, unconfirmed: "its pid has no dr viewer server under it", answering: false },
+        { pid: 4242, serverPid: null, confirmed: null, unconfirmed: "its pid is not a dr visualize launcher with a dr viewer server under it", answering: false },
       ]);
     }));
 
@@ -429,18 +464,28 @@ function viewer(overrides: Partial<RunningViewer> = {}): RunningViewer {
 }
 
 /** A fake process table: which pids are alive, and what each does when signalled. */
+/**
+ * A fake process table: which pids are alive, when each started, and what each does when
+ * signalled. `reuse(pid)` gives a pid to a new process (a later start time).
+ */
 function processes(alive: number[], onSignal: (pid: number, signal: string, die: (pid: number) => void) => void) {
   const live = new Set(alive);
   const sent: Array<[number, string]> = [];
+  const started = new Map(alive.map((pid) => [pid, "2026-11-18T09:00:00.000Z"]));
   return {
     sent,
     live,
+    reuse: (pid: number) => {
+      live.add(pid);
+      started.set(pid, "2026-11-20T12:00:00.000Z");
+    },
     options: {
       isAlive: (pid: number) => live.has(pid),
       kill: (pid: number, signal: NodeJS.Signals) => {
         sent.push([pid, signal]);
         onSignal(pid, signal, (gone) => live.delete(gone));
       },
+      startTimeOf: (pid: number) => (live.has(pid) ? (started.get(pid) ?? null) : null),
       pollMs: 5,
       timeoutMs: 60,
     },
@@ -498,12 +543,40 @@ describe("stopViewer", () => {
     const outcome = await stopViewer(viewer({ confirmed: { launcher: 100, server: null, by: "process" } }), {
       isAlive: table.options.isAlive,
       kill: table.options.kill,
+      startTimeOf: table.options.startTimeOf,
       pollMs: 5,
       env: { DR_VIEWER_STOP_TIMEOUT_MS: "120" },
     });
     expect(outcome).toBe("force-killed");
     expect(Date.now() - started).toBeGreaterThanOrEqual(110);
     expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("does not SIGKILL a pid that was reused while it waited, nor signal a server pid reused meanwhile (#1271 re-review 2)", async () => {
+    // The launcher ignores SIGTERM ... and then exits, and both pids go to new processes before the next poll.
+    const table = processes([100, 101], () => {});
+    const outcome = await stopViewer(viewer({ confirmed: { launcher: 100, server: 101, by: "process" } }), {
+      ...table.options,
+      isAlive: (pid) => {
+        if (table.sent.length > 0) {
+          table.reuse(100);
+          table.reuse(101);
+        }
+        return table.live.has(pid);
+      },
+    });
+    expect(table.sent).toEqual([[100, "SIGTERM"]]);
+    expect(outcome).toBe("stopped");
+  });
+
+  it("sends no SIGKILL when it cannot read the start time again, and says so", async () => {
+    const table = processes([100], () => {});
+    const outcome = await stopViewer(viewer({ confirmed: { launcher: 100, server: null, by: "health" } }), {
+      ...table.options,
+      startTimeOf: () => null,
+    });
+    expect(outcome).toBe("timed-out");
+    expect(table.sent).toEqual([[100, "SIGTERM"]]);
   });
 
   it("never signals pid 1 or itself, and says when the viewer is already gone", async () => {

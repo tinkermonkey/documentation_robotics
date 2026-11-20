@@ -713,7 +713,10 @@ Running viewers (--list, --stop):
     in the process table (its record was lost, or another state directory
     started it) is named and left, unless --include-unrecorded is given.
     Only your own viewers are ever stopped, and only a pid that is confirmed
-    to be the viewer's: by the viewer itself, or by the process table.
+    to be the viewer's: by the process table, or (without one) by the viewer
+    naming itself on /health, which it does only for a caller with its token.
+    A pid's start time is read again before each later signal; a reused pid
+    is never signalled.
   - --stop says how many were running, how many matched and how many it
     stopped, names each one it did not stop with why, and exits 1 then.
 
