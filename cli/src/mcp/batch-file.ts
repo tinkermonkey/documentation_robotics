@@ -16,9 +16,14 @@
  * no list for is refused, and `file` cannot be combined with an inline list. A relative path is
  * read from the project root the call addresses (`rootPath` when it is sent), not from the
  * server's working directory.
+ *
+ * The file must be inside that project root, with links resolved. The server reads it with its
+ * own permissions, and the caller is not always someone with the server's filesystem (the HTTP
+ * transport, a gateway): a tool that reads any path would say which files exist, how large they
+ * are and what their keys are called. A path outside the root is refused before it is looked at.
  */
 
-import { readFile, stat } from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { z, type ZodRawShape } from "zod";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
@@ -28,9 +33,16 @@ import { unknownArgumentsMessage } from "./strict-schema.js";
 export const MAX_BATCH_FILE_BYTES = 64 * 1024 * 1024;
 
 export const BATCH_FILE_DESCRIPTION =
-  "Path to a JSON file holding the batch, instead of sending the lists inline: absolute, or relative to the " +
-  "project root (rootPath's project when that is sent). Use it for a large batch written by a script, so the " +
+  "Path to a JSON file holding the batch, instead of sending the lists inline. The file must be inside the " +
+  "project: a path relative to the project root (rootPath's project when that is sent), or an absolute path " +
+  "under it; .dr/ is a good place for it (git ignores .dr/). Use it for a large batch written by a script, so the " +
   `items are not copied into the call. A file may be up to ${MAX_BATCH_FILE_BYTES / (1024 * 1024)} MB; split a larger batch.`;
+
+/** Whether `target` is `root` or a path under it (both absolute). */
+function isInside(root: string, target: string): boolean {
+  const relative = path.relative(root, target);
+  return !relative.startsWith("..") && !path.isAbsolute(relative);
+}
 
 /** Where the first JSON syntax error is, for a message an agent can act on without the file's text. */
 export interface JsonErrorPosition {
@@ -168,9 +180,17 @@ export async function readBatchFile<Shape extends ZodRawShape>(
   projectRoot: string,
   lists: Shape
 ): Promise<z.infer<z.ZodObject<Shape>>> {
-  const resolved = path.isAbsolute(file) ? file : path.resolve(projectRoot, file);
+  const root = path.resolve(projectRoot);
+  const resolved = path.resolve(root, file);
   const names = Object.keys(lists);
   const shapeHint = `The file is one JSON object: {${names.map((name) => `"${name}": [...]`).join(", ")}}`;
+  const outside = (what: string) =>
+    new CLIError(`${tool}: ${what} is outside the project root (${root}); a batch file must be inside it`, ErrorCategory.USER, [
+      `Write the file under the project root, for example ${path.join(root, ".dr", "batch.json")} (git ignores .dr/), and pass that path`,
+    ]);
+  // Refused on the path alone, before anything is read: a path outside the root learns nothing
+  // about the file there, not even whether it exists.
+  if (!isInside(root, resolved)) throw outside(resolved);
 
   let size: number;
   try {
@@ -185,14 +205,23 @@ export async function readBatchFile<Shape extends ZodRawShape>(
       throw new CLIError(`${tool}: no file at ${resolved}`, ErrorCategory.USER, [
         path.isAbsolute(file)
           ? "Check the path, or write the file first"
-          : `A relative path is read from the project root (${projectRoot}); pass an absolute path for a file elsewhere`,
+          : `A relative path is read from the project root (${root})`,
       ]);
     }
     throw new CLIError(`${tool}: cannot read ${resolved}: ${getErrorMessage(error)}`, ErrorCategory.USER);
   }
+  // A link inside the root may point out of it: compare where the file and the root really are.
+  try {
+    if (!isInside(await realpath(root), await realpath(resolved))) throw outside(`${resolved} is a link, and the file it points to`);
+  } catch (error) {
+    if (error instanceof CLIError) throw error;
+    throw new CLIError(`${tool}: cannot read ${resolved}: ${getErrorMessage(error)}`, ErrorCategory.USER);
+  }
   if (size > MAX_BATCH_FILE_BYTES) {
+    const bytes = (n: number) => n.toLocaleString("en-US");
     throw new CLIError(
-      `${tool}: ${resolved} is ${Math.round(size / (1024 * 1024))} MB; a batch file can be at most ${MAX_BATCH_FILE_BYTES / (1024 * 1024)} MB`,
+      `${tool}: ${resolved} is ${bytes(size)} bytes; a batch file can be at most ${bytes(MAX_BATCH_FILE_BYTES)} bytes ` +
+        `(${MAX_BATCH_FILE_BYTES / (1024 * 1024)} MB)`,
       ErrorCategory.USER,
       ["Split the batch into several files and call the tool once for each"]
     );
@@ -259,8 +288,11 @@ export async function readBatchFile<Shape extends ZodRawShape>(
     for (const issue of issues) {
       byMessage.set(issue.message, [...(byMessage.get(issue.message) ?? []), formatIssuePath(issue.path)]);
     }
+    // An item with three problems is one item: count items by their place in a list.
+    const items = new Set(issues.map((issue) => formatIssuePath(issue.path.slice(0, 2)))).size;
     throw new CLIError(
-      `${tool}: ${resolved} has ${issues.length} item${issues.length === 1 ? "" : "s"} the tool can't read; nothing was staged`,
+      `${tool}: ${resolved} has ${items} item${items === 1 ? "" : "s"} the tool can't read` +
+        `${issues.length > items ? ` (${issues.length} problems)` : ""}; nothing was staged`,
       ErrorCategory.USER,
       [...byMessage].map(([message, paths]) => `${paths.join(", ")}: ${message}`)
     );

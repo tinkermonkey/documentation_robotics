@@ -14,13 +14,24 @@
  * - `attention` lists items in full, the ones that were not written first, up to `limit`
  *   (default {@link DEFAULT_ATTENTION_LIMIT}); `attentionTotal` is how many there are in all.
  * - Past the limit, every remaining item is in `attentionNotListed.groups`: grouped by its reason
- *   (with the ids and names that differ between items taken out), with its position in the
- *   request, and its id when it was written. The group says what happened to each; the item's own
- *   message and suggestions come with a higher `limit` or `verbose: true`.
+ *   and suggestions with the ids, names and positions that differ between items taken out, and
+ *   listed with its position in the request and those values in order. Nothing the full item says
+ *   is lost: putting an item's `values` back into the group's `reason` and `suggestions` gives the
+ *   item's own text. A higher `limit` or `verbose: true` returns items whole.
  * - `verbose: true` returns every item as `results`.
+ *
+ * What a write did without being asked in so many words is not a problem to look at: a
+ * relationship end given by name and read as an id is reported once, in `readByName`
+ * (relationship-tools.ts), not as an attention item per relationship.
  */
 
 import { z } from "zod";
+
+/**
+ * The line width batch results are written at (jsonResult's compact form): wide enough that an
+ * attention item or a group's item is one line, which is about a tenth off a large result.
+ */
+export const BATCH_RESULT_LINE_WIDTH = 400;
 
 /** How many attention items a batch lists in full unless `limit` says otherwise. */
 export const DEFAULT_ATTENTION_LIMIT = 50;
@@ -56,16 +67,25 @@ export interface BatchItemResult {
   notes?: string[];
 }
 
-/** Attention items past the limit that share a status and a reason. Together the groups hold every such item. */
+/** One item of a {@link BatchAttentionGroup}. */
+export interface BatchAttentionGroupItem {
+  /** Position in the request, from 0. */
+  index: number;
+  /** The item's element id, when it was written. */
+  id?: string;
+  /** What each `<id>`, `"<name>"` and `[n]` of the group's reason and suggestions stands for in this item, in order. */
+  values?: Array<string | number>;
+}
+
+/** Attention items past the limit that share a status, a reason and suggestions. Together the groups hold every such item. */
 export interface BatchAttentionGroup {
   status: string;
-  /** The items' reason, warning or note, with the ids and names that differ between items replaced. */
+  /** The items' reason, warning or note, with the ids, names and positions that differ between items replaced. */
   reason: string;
+  /** The items' suggestions, with the same replacements. */
+  suggestions?: string[];
   count: number;
-  /** Positions in the request, from 0. */
-  indexes: number[];
-  /** For items that were written: their ids, in the order of `indexes`. */
-  ids?: string[];
+  items: BatchAttentionGroupItem[];
 }
 
 export interface BatchReport<T extends BatchItemResult> {
@@ -83,17 +103,60 @@ export interface BatchReport<T extends BatchItemResult> {
   attentionNotListed?: { count: number; groups: BatchAttentionGroup[]; more: string };
 }
 
+const VARYING = /(@?\b[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9-]*\b)|"([^"\n]*)"|\[(\d+)\]/g;
+
 /**
- * A reason with what differs from item to item taken out, so items refused for the same cause
- * group together: element ids, quoted names, and positions.
+ * A text split into its pattern and what varies: element ids become `<id>`, quoted names
+ * `"<name>"` and positions `[n]`, and `values` holds what each stood for, in order. Items refused
+ * for the same cause share a pattern, and a pattern with an item's values is that item's text.
  */
-export function reasonPattern(text: string): string {
-  return text
-    .replace(/@?\b[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9-]*\b/g, "<id>")
-    .replace(/"[^"\n]*"/g, '"<name>"')
-    .replace(/\[\d+\]/g, "[n]")
+export function reasonParts(text: string): { pattern: string; values: Array<string | number> } {
+  const values: Array<string | number> = [];
+  const pattern = text
+    .replace(VARYING, (_match, id: string | undefined, name: string | undefined, position: string | undefined) => {
+      if (id !== undefined) {
+        values.push(id);
+        return "<id>";
+      }
+      if (name !== undefined) {
+        values.push(name);
+        return '"<name>"';
+      }
+      values.push(Number(position));
+      return "[n]";
+    })
     .replace(/\s+/g, " ")
     .trim();
+  return { pattern, values };
+}
+
+/** {@link reasonParts}' pattern alone. */
+export function reasonPattern(text: string): string {
+  return reasonParts(text).pattern;
+}
+
+/**
+ * Puts back into a group's text the values every one of its items shares (a tool name in a
+ * suggestion, the one target all the items name), so an item lists only what is its own.
+ */
+function foldSharedValues(group: BatchAttentionGroup): void {
+  const first = group.items[0]?.values ?? [];
+  const shared = first.map((value, j) => group.items.every((item) => item.values?.[j] === value));
+  if (!shared.some(Boolean)) return;
+  let position = 0;
+  const fold = (text: string) =>
+    text.replace(/<id>|"<name>"|\[n\]/g, (token) => {
+      const j = position++;
+      if (!shared[j]) return token;
+      return token === "<id>" ? String(first[j]) : token === "[n]" ? `[${first[j]}]` : `"${first[j]}"`;
+    });
+  group.reason = fold(group.reason);
+  if (group.suggestions) group.suggestions = group.suggestions.map(fold);
+  for (const item of group.items) {
+    const own = (item.values ?? []).filter((_, j) => !shared[j]);
+    if (own.length > 0) item.values = own;
+    else delete item.values;
+  }
 }
 
 /**
@@ -103,7 +166,13 @@ export function reasonPattern(text: string): string {
  */
 export function batchReport<T extends BatchItemResult>(
   results: T[],
-  options: { verbose?: boolean; limit?: number; written: readonly string[] }
+  options: {
+    verbose?: boolean;
+    limit?: number;
+    written: readonly string[];
+    /** Whether a written item needs attention. Default: it carries a warning or a note. */
+    writtenNeedsAttention?: (item: T) => boolean;
+  }
 ): BatchReport<T> {
   const counts: Record<string, number> = {};
   for (const r of results) counts[r.status] = (counts[r.status] ?? 0) + 1;
@@ -111,7 +180,8 @@ export function batchReport<T extends BatchItemResult>(
 
   const isWritten = (r: T) => options.written.includes(r.status);
   const notWritten = results.filter((r) => !isWritten(r));
-  const writtenFlagged = results.filter((r) => isWritten(r) && ((r.warnings?.length ?? 0) > 0 || (r.notes?.length ?? 0) > 0));
+  const needs = options.writtenNeedsAttention ?? ((r: T) => (r.warnings?.length ?? 0) > 0 || (r.notes?.length ?? 0) > 0);
+  const writtenFlagged = results.filter((r) => isWritten(r) && needs(r));
   // What the agent has to act on comes first, so the limit never hides a failure behind a note.
   const flagged = [...notWritten, ...writtenFlagged];
   if (flagged.length === 0) return { total: results.length, counts };
@@ -138,30 +208,34 @@ export function batchReport<T extends BatchItemResult>(
   if (rest.length > 0) {
     const groups = new Map<string, BatchAttentionGroup>();
     for (const item of rest) {
-      const written = isWritten(item);
-      const said = item.reason ?? [...(item.warnings ?? []), ...(item.notes ?? [])].join(" ");
-      const reason = reasonPattern(said) || item.status;
-      const key = `${item.status}\n${reason}`;
+      const said = reasonParts(item.reason ?? [...(item.warnings ?? []), ...(item.notes ?? [])].join(" "));
+      const hints = (item.suggestions ?? []).map(reasonParts);
+      const reason = said.pattern || item.status;
+      const suggestions = hints.map((hint) => hint.pattern);
+      const key = [item.status, reason, ...suggestions].join("\n");
       let group = groups.get(key);
       if (!group) {
-        group = { status: item.status, reason, count: 0, indexes: [], ...(written ? { ids: [] } : {}) };
+        group = { status: item.status, reason, ...(suggestions.length ? { suggestions } : {}), count: 0, items: [] };
         groups.set(key, group);
       }
+      const values = [...said.values, ...hints.flatMap((hint) => hint.values)];
       group.count++;
-      group.indexes.push(item.index);
-      if (written) group.ids!.push(item.id ?? "");
+      group.items.push({
+        index: item.index,
+        ...(isWritten(item) && item.id ? { id: item.id } : {}),
+        ...(values.length ? { values } : {}),
+      });
     }
-    for (const group of groups.values()) {
-      if (group.ids && group.ids.every((id) => id === "")) delete group.ids;
-    }
+    for (const group of groups.values()) foldSharedValues(group);
     report.attentionNotListed = {
       count: rest.length,
       groups: [...groups.values()],
       more:
         `${limit} of ${flagged.length} items that need attention are in attention, in full. The other ${rest.length} are all in ` +
-        `groups: each by its position in the request (indexes) under its reason, with the ids and names that differ ` +
-        `between items replaced. For each one's own message and suggestions, send the call's items that were not ` +
-        `written again with limit: ${flagged.length} (nothing is written twice), or pass verbose: true for every item.`,
+        `groups, each under its reason and suggestions by its position in the request (index). A group's text has ` +
+        `<id>, "<name>" or [n] where its items differ; an item's values are what those stand for, in order. ` +
+        `To get items whole, pass limit: ${flagged.length} (sending items that were not written again writes nothing ` +
+        `twice) or verbose: true.`,
     };
   }
   return report;

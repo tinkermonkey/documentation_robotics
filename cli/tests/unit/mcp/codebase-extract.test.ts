@@ -2284,7 +2284,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(many.reject.attention).toHaveLength(50);
     expect(many.reject.attentionNotListed.count).toBe(100);
     expect(
-      [...many.reject.attention.map((p: any) => p.index), ...many.reject.attentionNotListed.groups.flatMap((g: any) => g.indexes)].sort((a: number, b: number) => a - b)
+      [...many.reject.attention.map((p: any) => p.index), ...many.reject.attentionNotListed.groups.flatMap((g: any) => g.items.map((i: any) => i.index))].sort((a: number, b: number) => a - b)
     ).toEqual(everyIndex);
     expect(many.reject.attentionNotListed.groups.every((g: any) => g.status === "no-match")).toBe(true);
     expect(many.notElements.recorded.total).toBe(1);

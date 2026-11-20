@@ -4,11 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, symlink, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
-import { locateJsonError, readBatchFile } from "../../../src/mcp/batch-file.js";
+import { MAX_BATCH_FILE_BYTES, locateJsonError, readBatchFile } from "../../../src/mcp/batch-file.js";
 import { strictItem } from "../../../src/mcp/strict-schema.js";
 import { CLIError } from "../../../src/utils/errors.js";
 
@@ -133,6 +133,55 @@ describe("readBatchFile", () => {
     const error = await refusal(join(root, "deep.json"));
     expect(error.message).toContain("is not valid JSON");
     expect(error.message).not.toContain("call stack");
+  });
+
+  it("reads only inside the project root, and says nothing about a file outside it", async () => {
+    // A file that exists outside the root, with keys worth hiding.
+    const outside = `${root}-outside`;
+    await mkdir(outside, { recursive: true });
+    await writeFile(join(outside, "secrets.json"), JSON.stringify({ client_secret: "s3cr3t", refresh_token: "t0k3n" }));
+    try {
+      for (const file of [join(outside, "secrets.json"), `../${outside.split("/").pop()}/secrets.json`, join(outside, "not-there.json")]) {
+        const error = await refusal(file);
+        // The same answer whether or not the file exists, and none of its keys.
+        expect(error.message).toContain(`is outside the project root (${root}); a batch file must be inside it`);
+        expect(error.message).not.toContain("client_secret");
+        expect(error.message).not.toContain("no file at");
+        expect(error.suggestions?.[0]).toContain(join(root, ".dr", "batch.json"));
+      }
+
+      // A link inside the root that points out of it is refused too.
+      await symlink(join(outside, "secrets.json"), join(root, "link.json"));
+      const linked = await refusal("link.json");
+      expect(linked.message).toContain("is a link, and the file it points to is outside the project root");
+      expect(linked.message).not.toContain("client_secret");
+
+      // An absolute path inside the root is fine, and so is a link that stays inside it.
+      await writeFile(join(root, "batches", "one.json"), JSON.stringify({ elements: [] }));
+      await symlink(join(root, "batches", "one.json"), join(root, "inner-link.json"));
+      expect(await readBatchFile("model_add", join(root, "batches", "one.json"), root, lists)).toEqual({ elements: [] });
+      expect(await readBatchFile("model_add", "inner-link.json", root, lists)).toEqual({ elements: [] });
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a file over the size bound with both sizes, and reads one at the bound's edge", async () => {
+    // Sparse files: the size is what is checked, before anything is read.
+    await writeFile(join(root, "big.json"), "");
+    await truncate(join(root, "big.json"), MAX_BATCH_FILE_BYTES + 1);
+    const error = await refusal("big.json");
+    expect(error.message).toContain("is 67,108,865 bytes; a batch file can be at most 67,108,864 bytes (64 MB)");
+    expect(error.suggestions).toEqual(["Split the batch into several files and call the tool once for each"]);
+  });
+
+  it("counts malformed items, not problems", async () => {
+    await writeFile(
+      join(root, "two.json"),
+      JSON.stringify({ elements: [{ layer: "api" }, { type: "operation", nmae: "x" }, { layer: "api", type: "operation", name: "ok" }] })
+    );
+    const error = await refusal("two.json");
+    expect(error.message).toMatch(/has 2 items the tool can't read \(\d+ problems\); nothing was staged/);
   });
 
   it("refuses a directory", async () => {
