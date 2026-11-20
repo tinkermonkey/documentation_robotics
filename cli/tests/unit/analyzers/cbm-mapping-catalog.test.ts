@@ -104,10 +104,64 @@ describe("cbm mapping names only what the spec has", () => {
 
   it("maps USAGE from a node to an artifact it references as composes, keeping the data-object targets (#1107 follow-up)", () => {
     const usage = cbm.edges_by_type.USAGE as AnalyzerEdgeMapping;
-    expect((usage.conditions as { to_types?: string[] }).to_types).toEqual(["application.dataobject", "data-model.objectschema", "api.schema"]);
+    expect((usage.conditions as { to_types?: string[] }).to_types).toEqual([
+      "application.dataobject",
+      "data-model.objectschema",
+      "api.schema",
+      "data-model.schemadefinition",
+    ]);
     const scoped = edgePreferences(usage).filter((p) => p.from_types?.length && p.to_types?.length);
     expect(scoped).toEqual([{ predicate: "composes", invert: false, from_types: ["technology.node"], to_types: ["technology.artifact"] }]);
     expect(triples.has("technology.node.composes.technology.artifact")).toBe(true);
+  });
+
+  it("maps a use of a schema definition as an access, for the types the catalog lets access one", () => {
+    const usage = cbm.edges_by_type.USAGE as AnalyzerEdgeMapping;
+    const has = (id: string) => triples.has(id);
+    for (const from of ["application.applicationfunction", "application.applicationcomponent"]) {
+      expect(relationshipFor(usage, from, "data-model.schemadefinition", has)).toMatchObject({
+        id: `${from}.accesses.data-model.schemadefinition`,
+        inverted: false,
+      });
+    }
+    // The catalog has no relationship from a service to a definition, nor from behaviour to a composition.
+    expect(relationshipFor(usage, "application.applicationservice", "data-model.schemadefinition", has)).toBeNull();
+    expect(relationshipFor(usage, "application.applicationfunction", "data-model.schemacomposition", has)).toBeNull();
+  });
+
+  it("maps a call from a service to a function or component as that function or component realizing the service", () => {
+    const calls = cbm.edges_by_type.CALLS as AnalyzerEdgeMapping;
+    const has = (id: string) => triples.has(id);
+    const scoped = edgePreferences(calls).filter((p) => p.from_types?.length && p.to_types?.length);
+    expect(scoped).toEqual([
+      {
+        predicate: "realizes",
+        invert: true,
+        from_types: ["application.applicationservice"],
+        to_types: ["application.applicationfunction", "application.applicationcomponent"],
+      },
+    ]);
+    // The CBM edge runs service -> callee; the relationship runs callee -> service.
+    expect(relationshipFor(calls, "application.applicationservice", "application.applicationfunction", has)).toEqual({
+      id: "application.applicationfunction.realizes.application.applicationservice",
+      source: "application.applicationfunction",
+      predicate: "realizes",
+      destination: "application.applicationservice",
+      inverted: true,
+    });
+    expect(relationshipFor(calls, "application.applicationservice", "application.applicationcomponent", has)).toMatchObject({
+      id: "application.applicationcomponent.realizes.application.applicationservice",
+      inverted: true,
+    });
+    // The other direction is unchanged: a function that calls a service is served by it.
+    expect(relationshipFor(calls, "application.applicationfunction", "application.applicationservice", has)).toMatchObject({
+      id: "application.applicationservice.serves.application.applicationfunction",
+      inverted: true,
+    });
+    // And a call between functions is still a dependency, never a realization.
+    expect(relationshipFor(calls, "application.applicationfunction", "application.applicationfunction", has)).toMatchObject({
+      id: "application.applicationfunction.depends-on.application.applicationfunction",
+    });
   });
 
   it("accounts for every CBM edge type exactly once", () => {
