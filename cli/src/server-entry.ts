@@ -106,9 +106,10 @@ async function gracefulShutdown(exitCode: number = 0): Promise<void> {
   isShuttingDown = true;
 
   try {
-    // Stop the visualization server
+    // Stop the visualization server. The process exits below, so the file watcher is not closed
+    // (closing it can deadlock Bun: see VisualizationServer.stop)
     if (serverInstance) {
-      serverInstance.stop();
+      serverInstance.stop({ processExiting: true });
       serverInstance = null;
     }
 

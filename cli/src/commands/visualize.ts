@@ -12,6 +12,7 @@ import { CLIError } from "../utils/errors.js"
 import { getSpecReferencePath, getModelPath } from "../utils/project-paths.js"
 import { getErrorMessage } from "../utils/errors.js"
 import { removeViewerRecord, removeViewerRecordSync, writeViewerRecord } from "../server/viewer-registry.js"
+import { hasExited, stopChildProcess } from "../utils/stop-child-process.js"
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined
@@ -28,6 +29,9 @@ export interface VisualizeOptions {
   withChangesets?: boolean
   viewerPath?: string
 }
+
+/** How long the server process gets to exit on a signal before it is force-killed. */
+const SERVER_SHUTDOWN_TIMEOUT_MS = 3000
 
 /**
  * Addresses a port must be free on before the viewer takes it. The server binds the loopback
@@ -465,26 +469,18 @@ export async function visualizeCommand(
         flushInterval = null
       }
 
-      // Forward signal to server process for graceful shutdown
-      if (serverProcess && !serverProcess.killed) {
+      // Forward the signal to the server process, and force-kill it if it has not exited in time.
+      // A server that hangs in its own shutdown must not outlive this process (#1235).
+      if (serverProcess && !hasExited(serverProcess)) {
         logDebug("Sending termination signal to server process...")
-        serverProcess.kill(signal as NodeJS.Signals)
-
-        // Wait for server to exit (with timeout)
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => {
-            logDebug("Server shutdown timeout, forcing exit...")
-            if (!serverProcess.killed) {
-              serverProcess.kill("SIGKILL")
-            }
-            resolve()
-          }, 3000) // 3 second timeout
-
-          serverProcess.on("exit", () => {
-            clearTimeout(timeout)
-            resolve()
-          })
-        })
+        const outcome = await stopChildProcess(
+          serverProcess,
+          signal as NodeJS.Signals,
+          SERVER_SHUTDOWN_TIMEOUT_MS
+        )
+        if (outcome === "force-killed") {
+          logDebug("Server shutdown timeout, forced exit")
+        }
       }
 
       logDebug("Visualization server stopped")

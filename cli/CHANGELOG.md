@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A stopped viewer could leave its server running.** Under Bun, the visualization server
+  closed its file watcher on SIGTERM or Ctrl-C, and that deadlocked when the project folder was
+  being deleted at the same moment: the server never exited and ignored every later signal. It now
+  leaves the watcher to the process exit. `dr visualize` also force-kills a server that has not
+  exited 3 seconds after it was told to stop; the fallback that was meant to do this never ran
+  (#1235).
+
 ## [0.6.0] - 2026-11-19
 
 **Specification Support:** v0.14.0

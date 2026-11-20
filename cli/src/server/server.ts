@@ -67,6 +67,7 @@ import {
   type PrepareDrMcpLaunchOptions,
 } from "../coding-agents/drbot-mcp.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { hasExited } from "../utils/stop-child-process.js";
 import {
   AnnotationCreateSchema,
   AnnotationUpdateSchema,
@@ -4868,7 +4869,7 @@ export class VisualizationServer {
    * `.killed` to decide whether retry/escalation is still needed.
    */
   private hasExited(proc: ChildProcess): boolean {
-    return proc.exitCode !== null || proc.signalCode !== null;
+    return hasExited(proc);
   }
 
   /**
@@ -4928,9 +4929,15 @@ export class VisualizationServer {
   }
 
   /**
-   * Stop the server
+   * Stop the server.
+   *
+   * With `processExiting`, the file watcher is left open: the process is about to exit, which
+   * releases its watches. Closing a chokidar watcher while the tree it watches is being deleted
+   * deadlocks Bun's main thread (seen on Bun 1.3.4 and 1.3.5, #1235), so process.exit was never
+   * reached and the server ignored every later signal. That is what happens when a project
+   * folder is removed as its viewer is stopped.
    */
-  stop(): void {
+  stop(options: { processExiting?: boolean } = {}): void {
     // Close all WebSocket connections
     for (const client of this.clients) {
       try {
@@ -4946,7 +4953,7 @@ export class VisualizationServer {
     this.clients.clear();
 
     // Stop file watcher
-    if (this.watcher) {
+    if (this.watcher && !options.processExiting) {
       this.watcher.close?.();
     }
     if (this.changesetsBroadcastTimer) {
