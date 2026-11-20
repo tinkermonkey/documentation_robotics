@@ -95,9 +95,9 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(reviewOpenTool.description).toContain("free local port");
   });
 
-  it("says which layers codebase_verify checks, and that not-indexed findings are not drift", () => {
+  it("says which layers codebase_verify checks, and that a layer it could not check is not in step", () => {
     expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks api, data-store, technology and testing");
-    expect(SERVER_INSTRUCTIONS).toContain("not_indexed and no-routes API findings aren't drift");
+    expect(SERVER_INSTRUCTIONS).toContain("a not_checked layer is neither in step nor drifted");
     expect(SERVER_INSTRUCTIONS).not.toContain("checks only the API layer");
   });
 

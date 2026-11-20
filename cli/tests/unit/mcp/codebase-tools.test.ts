@@ -16,7 +16,14 @@ import { Model } from "../../../src/core/model.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
-import { codebaseVerifyTool, createCodebaseVerifyHandler } from "../../../src/mcp/tools/codebase-verify.js";
+import {
+  codebaseVerifyTool,
+  createCodebaseVerifyHandler,
+  IN_CODE_ONLY_HINT,
+  VERIFY_MIN_PAGE_SIZE,
+  VERIFY_PAGE_SIZE,
+  VERIFY_SIZE_TARGET,
+} from "../../../src/mcp/tools/codebase-verify.js";
 import { describeIndex, isIndexedSource, judgeIndex, requireFreshIndex, type CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { finishIndexJob, readIndexJob, recordIndexJobFill, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readSession, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
@@ -413,6 +420,129 @@ describe("codebase_verify", () => {
     expect(report.summary.matched_count).toBe(1);
     expect(report.summary.gap_count).toBe(1);
     expect(report.layers_not_verified).toBeUndefined();
+    // The result leads with each layer's status: here, checked and drifted (a route the model lacks).
+    expect(Object.keys(report)[0]).toBe("status");
+    expect(report.status).toEqual([
+      {
+        layer: "api",
+        status: "drifted",
+        text: "Checked 1 of the model's 1 API operations: drifted, 1 HTTP routes in the code only.",
+        coverage: { model_elements: 1, checked: 1, not_checked: 0, code_entries: 2 },
+      },
+    ]);
+    // The hint names the tools that close the gap, and no dr command or deprecated skill.
+    expect(report.hints).toEqual([IN_CODE_ONLY_HINT]);
+    expect(report.hints[0]).toContain("codebase_extract");
+    expect(report.hints[0]).not.toMatch(/\/dr-map|`dr |dr analyzer/);
+  });
+
+  it("says not checked, never in step, when no operation could be compared (#1180)", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    await addOperation();
+    // The handler file is there and names the handler; the analyzer read no route from it.
+    await mkdir(join(rootPath, "src", "handlers"), { recursive: true });
+    await writeFile(join(rootPath, "src", "handlers", "users.ts"), "export function getUsers() {}\n");
+    const h = harness();
+    h.routes = [];
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.status[0]).toMatchObject({ layer: "api", status: "not_checked", coverage: { model_elements: 1, checked: 0, not_checked: 1 } });
+    expect(report.status[0].text).toContain("none of the model's 1 API operations could be compared");
+    expect(report.summary).toMatchObject({ drift_count: 0, elements_without_source_ref: 0, elements_not_checked: 1 });
+    expect(report.buckets.not_checked[0]).toMatchObject({ count: 1, ids: ["api.operation.get-users"] });
+    expect(report.hints).toBeUndefined();
+  });
+
+  it("pages a long list of routes: true totals, the call for the rest, and every route reachable", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    h.routes = Array.from({ length: 130 }, (_, i) => ({
+      id: `r${i}`,
+      http_method: "GET",
+      http_path: `/things/${i}`,
+      source_file: "src/things.ts",
+      source_symbol: `thing${i}`,
+    }));
+    // A page of 50, asked for: counts and the status are over all 130, whatever the page holds.
+    const first = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath, limit: 50 }));
+    expect(first.summary.gap_count).toBe(130);
+    expect(first.status[0]).toMatchObject({ status: "drifted", coverage: { code_entries: 130 } });
+    expect(first.buckets.in_graph_only).toHaveLength(50);
+    // The top-level page is the multi-list form: one offset, every list's true length.
+    expect(first.page).toMatchObject({ limit: 50, offset: 0, nextOffset: 50 });
+    expect(first.page.totals).toMatchObject({ "api.in_graph_only": 130, "api.matched": 0 });
+    expect(first.more).toContain("in_graph_only 50 of 130");
+    expect(first.more).toContain("call codebase_verify again with the same arguments and offset: 50");
+
+    const seen: string[] = [];
+    let offset: number | undefined = 0;
+    while (offset !== undefined) {
+      const page = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath, offset, limit: 50 }));
+      seen.push(...page.buckets.in_graph_only.map((g: any) => g.id));
+      expect(page.summary.gap_count).toBe(130);
+      expect(page.page.totals["api.in_graph_only"]).toBe(130);
+      offset = page.page.nextOffset;
+    }
+    expect(seen).toEqual(h.routes.map((r) => r.id));
+
+    // Without a limit the page holds as many as fit the size target: here all 130 at once.
+    const fitted = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(fitted.buckets.in_graph_only).toHaveLength(130);
+    expect(fitted.page.nextOffset).toBeUndefined();
+    expect(fitted.more).toBeUndefined();
+  });
+
+  it("sizes the default page to the size target at each offset, and the pages stay contiguous", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    // Long paths: far more than fit one result.
+    h.routes = Array.from({ length: 400 }, (_, i) => ({
+      id: `route-${i}-${"x".repeat(300)}`,
+      http_method: "GET",
+      http_path: `/${"segment/".repeat(30)}${i}`,
+      source_file: `src/${"deep/".repeat(20)}things.ts`,
+      source_symbol: `thing${i}`,
+    }));
+    const seen: string[] = [];
+    let offset: number | undefined = 0;
+    let calls = 0;
+    while (offset !== undefined) {
+      const result = await createCodebaseVerifyHandler(h.deps)({ rootPath, offset });
+      const text = (result.content[0] as any).text as string;
+      // Each page is near the target, whatever its offset.
+      expect(text.length).toBeLessThan(VERIFY_SIZE_TARGET + 2_000);
+      const page = JSON.parse(text);
+      expect(page.page.limit).toBeGreaterThanOrEqual(VERIFY_MIN_PAGE_SIZE);
+      expect(page.buckets.in_graph_only).toHaveLength(Math.min(page.page.limit, 400 - offset));
+      expect(page.summary.gap_count).toBe(400);
+      if (page.page.nextOffset !== undefined) {
+        expect(page.more).toContain("sized to keep this result near 40 KB");
+        // The next page starts where this one ended, whatever size it was given.
+        expect(page.page.nextOffset).toBe(offset + page.page.limit);
+      }
+      seen.push(...page.buckets.in_graph_only.map((g: any) => g.id));
+      offset = page.page.nextOffset;
+      calls++;
+    }
+    expect(seen).toEqual(h.routes.map((r) => r.id));
+    expect(calls).toBeGreaterThan(1);
+    // An explicit limit is taken as given.
+    const asked = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath, limit: VERIFY_PAGE_SIZE }));
+    expect(asked.buckets.in_graph_only).toHaveLength(VERIFY_PAGE_SIZE);
+  });
+
+  it("gives a layer with no check the status not_checked", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["api", "ux"], rootPath }));
+    expect(report.status.map((s: any) => [s.layer, s.status])).toEqual([
+      ["api", "not_checked"],
+      ["ux", "not_checked"],
+    ]);
+    expect(report.status[1].text).toBe("Not checked: No verification available for this layer.");
   });
 
   it("lists layers it can't verify", async () => {
@@ -420,8 +550,20 @@ describe("codebase_verify", () => {
     await writeIndexMeta(META, rootPath, "cbm");
     const h = harness();
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["api", "data-model"], rootPath }));
-    expect(report.layers_verified).toEqual(["api"]);
+    // The API check ran and had nothing to compare (no operations, no routes): not checked, so
+    // not among the layers verified either.
+    expect(report.layers_verified).toEqual([]);
+    expect(report.status.map((s: any) => [s.layer, s.status])).toEqual([
+      ["api", "not_checked"],
+      ["data-model", "not_checked"],
+    ]);
     expect(report.layers_not_verified).toEqual([{ layer: "data-model", reason: "No verification available for this layer" }]);
+
+    // With something compared, the layer is verified.
+    await addOperation();
+    h.routes = [{ id: "r1", http_method: "GET", http_path: "/users", source_file: "src/handlers/users.ts", source_symbol: "getUsers" }];
+    const compared = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["api", "data-model"], rootPath }));
+    expect(compared.layers_verified).toEqual(["api"]);
 
     const none = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["ux"], rootPath }));
     expect(none.layers_verified).toEqual([]);
@@ -442,6 +584,9 @@ describe("codebase_verify", () => {
       }),
     } as unknown as AnalyzerBackend;
     const deps = { ...h.deps, getAnalyzer: async (name: string) => (name === "cbm" ? failing : undefined) };
+    await addOperation();
+    await mkdir(join(rootPath, "src", "handlers"), { recursive: true });
+    // The handler file is gone from the code: the operation is compared, and in the model only.
     const report = ok(await createCodebaseVerifyHandler(deps)({ layers: ["api", "technology", "data-model"], rootPath }));
     expect(report.layers_verified).toEqual(["api"]);
     expect(report.layers_not_verified).toEqual([
@@ -671,7 +816,10 @@ describe("index freshness (bug 11)", () => {
     expect(index.message).toContain("nothing to do");
 
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
-    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "testing"]);
+    // The index is usable: the checks ran. (The API layer had nothing to compare, so it is not
+    // listed as verified; this harness's analyzer reports no status for the other three.)
+    expect(report.status[0]).toMatchObject({ layer: "api", status: "not_checked" });
+    expect(report.layers_verified).toEqual(["data-store", "technology", "testing"]);
   });
 
   it("calls the index stale when commits since it changed source files", async () => {
@@ -831,7 +979,8 @@ describe("codebase_verify wording (D6)", () => {
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
     expect(report.scope).toContain("checks the api, data-store, technology, testing layers");
     expect(report.scope).toContain("not_indexed");
-    expect(report.note).toContain("not drift");
+    expect(report.scope).toContain("A layer that was not checked is not in step");
+    expect(report.note).toContain("not as drift");
 
     const tool = codebaseVerifyTool;
     expect(tool.description).not.toContain("API layer only");
@@ -886,8 +1035,18 @@ describe("codebase_verify wording (D6)", () => {
     );
     expect(report.buckets.in_model_only.map((e) => e.source_file)).toEqual(["src/handlers/users.ts"]);
     expect(report.buckets.not_indexed).toEqual([
-      { id: expect.any(String), type: "operation", source_file: "src/legacy/old.ts", source_symbol: "get-legacy", reason: "the analyzer does not index it (excluded subtree)" },
+      {
+        id: expect.any(String),
+        type: "operation",
+        source_file: "src/legacy/old.ts",
+        source_symbol: "get-legacy",
+        reason: "the analyzer does not index it (excluded subtree)",
+        path: "api.operation.get-legacy",
+        name: "get-legacy",
+      },
     ]);
+    // In the model only says why: the file is there and no longer names the operation.
+    expect(report.buckets.in_model_only[0].reason).toContain("doesn't name its path or symbol any more");
     expect(report.summary).toMatchObject({ drift_count: 1, not_indexed_count: 1, total_model_entries: 2 });
     expect(apiLayerReport(report).buckets.not_indexed.map((e) => e.files)).toEqual([["src/legacy/old.ts"]]);
   });

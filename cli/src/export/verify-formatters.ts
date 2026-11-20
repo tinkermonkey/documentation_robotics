@@ -85,6 +85,11 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
   // Changeset context
   formatChangesetContextMarkdown(lines, report);
   lines.push("");
+  const rejectionsMd = rejectionsLine(report);
+  if (rejectionsMd) {
+    lines.push(`**${escapeMarkdown(rejectionsMd)}**`);
+    lines.push("");
+  }
 
   if (api) {
     // Summary section
@@ -96,11 +101,11 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
     lines.push("");
 
     // Graph-only section (gaps)
-    formatGraphOnlyMarkdown(lines, report.buckets.in_graph_only);
+    formatGraphOnlyMarkdown(lines, report.buckets.in_graph_only, report.summary);
     lines.push("");
 
     // Model-only section (drift)
-    formatModelOnlyMarkdown(lines, report.buckets.in_model_only);
+    formatModelOnlyMarkdown(lines, report.buckets.in_model_only, report.summary);
     lines.push("");
 
     // Ignored section
@@ -113,6 +118,71 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
 
   return lines.join("\n");
 }
+
+/**
+ * What to print when no route is in the code only. "No gaps" is said only when routes were
+ * discovered: with none found, nothing was compared on this side.
+ */
+function noGapsLine(summary: VerifyReport["summary"]): string {
+  return summary.total_graph_entries === 0
+    ? "No routes were discovered in the code, so none could be missing from the model."
+    : "No gaps detected — all discovered routes are in the model.";
+}
+
+/**
+ * What to print when no operation is in the model only. "No drift" is said only when every model
+ * operation was compared: an operation that could not be checked is neither drift nor in step.
+ */
+function noDriftLine(summary: VerifyReport["summary"]): string {
+  const unchecked = (summary.elements_without_source_ref ?? 0) + (summary.elements_not_checked ?? 0) + (summary.not_indexed_count ?? 0);
+  if (summary.total_model_entries === 0) return "The model has no API operations to compare.";
+  if (unchecked > 0) {
+    const checked = summary.total_model_entries - unchecked;
+    return (
+      `No operation is in the model only among the ${checked} checked. ${unchecked} of the model's ${summary.total_model_entries} ` +
+      "could not be checked: that is not \"no drift\" (the api layer's status below says why)."
+    );
+  }
+  return "No drift detected — all model operations were discovered.";
+}
+
+/** Said beside routes in the code only: how they get into the model. Names no deprecated command. */
+const GAPS_TIP =
+  "Extraction stages an operation for each of these, with its source reference. An operation added by hand is matched " +
+  "only when it carries a source file and symbol, or http_method and http_path.";
+
+/**
+ * The recorded rejections a report applied, in one line: the file, how many were read and how many
+ * each layer applied, or why none was (no file, or a read error). Printed in every format, since a
+ * rejection changes what a layer reports.
+ */
+function rejectionsLine(report: VerifyReport): string | null {
+  const r = report.rejections;
+  if (!r) return null;
+  if (r.error) return `Recorded rejections: none applied, ${r.error}. Entries someone rejected may be listed as in the code only.`;
+  if (!r.found) return `Recorded rejections: none (${r.file} is not in this checkout).`;
+  const applied = Object.entries(r.applied).map(([layer, n]) => `${layer} ${n}`).join(", ");
+  return `Recorded rejections: ${r.recorded.elements} read from ${r.file}; applied ${applied || "none"} (listed under each layer's ignored). The file is not in git, so another checkout may report differently.`;
+}
+
+/** A layer's status sentence without the label it starts with ("Not checked: ..."), which the report prints itself. */
+function statusSentence(layer: NonNullable<VerifyReport["layers"]>[number]): string {
+  const label = `${STATUS_LABEL[layer.status]}: `;
+  return layer.status_text.startsWith(label) ? layer.status_text.slice(label.length) : layer.status_text;
+}
+
+/** An entry's dotted id when the model gave one, else its id. */
+const entryId = (entry: { id: string; path?: string }) => entry.path ?? entry.id;
+
+/** Ids printed per not-checked group in the text and markdown reports; the JSON report has them all. */
+const NOT_CHECKED_IDS_SHOWN = 20;
+
+/** A layer's status as the reports print it. */
+const STATUS_LABEL: Record<NonNullable<VerifyReport["layers"]>[number]["status"], string> = {
+  in_step: "In step",
+  drifted: "Drifted",
+  not_checked: "Not checked",
+};
 
 /**
  * Format the per-layer checks beyond the API layer, the API layer's parse gaps, and the layers
@@ -131,9 +201,25 @@ function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
     if (entries.length > 50) lines.push(`| _... and ${entries.length - 50} more_ | | | |`);
     lines.push("");
   };
+  const status = (layer: NonNullable<VerifyReport["layers"]>[number]) => {
+    lines.push(`**${STATUS_LABEL[layer.status]}:** ${escapeMarkdown(statusSentence(layer))}`);
+    lines.push("");
+    for (const group of layer.not_checked ?? []) {
+      const shown = group.ids.slice(0, NOT_CHECKED_IDS_SHOWN);
+      const more = group.count > shown.length ? `, ... (${group.count - shown.length} more; --json lists them all)` : "";
+      lines.push(
+        `- Not checked (${group.count}): ${escapeMarkdown(group.reason)}${group.to_check ? `. To check: ${escapeMarkdown(group.to_check)}` : ""}: ` +
+          `${escapeMarkdown(shown.join(", "))}${more}`
+      );
+    }
+    if (layer.not_checked?.length) lines.push("");
+  };
   for (const layer of report.layers ?? []) {
     const { summary, buckets } = layer;
     if (layer.layer === "api") {
+      lines.push("## Layer: api");
+      lines.push("");
+      status(layer);
       table("API operations not indexed (parse gaps, not drift)", buckets.not_indexed);
       continue;
     }
@@ -141,6 +227,7 @@ function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
     lines.push("");
     lines.push(`_${escapeMarkdown(layer.checks)}_`);
     lines.push("");
+    status(layer);
     lines.push("| Metric | Count |");
     lines.push("|--------|-------|");
     lines.push(`| Matched | ${summary.matched_count} |`);
@@ -193,9 +280,15 @@ function formatChangesetContextMarkdown(lines: string[], report: VerifyReport): 
  */
 function formatSummaryMarkdown(lines: string[], report: VerifyReport): void {
   const summary = report.summary;
+  const api = report.layers?.find((l) => l.layer === "api");
 
   lines.push("## Summary");
   lines.push("");
+  // The API layer's status first: the counts below don't say what was left unchecked.
+  if (api) {
+    lines.push(`**${STATUS_LABEL[api.status]}:** ${escapeMarkdown(statusSentence(api))}`);
+    lines.push("");
+  }
   lines.push("| Metric | Count | Description |");
   lines.push("|--------|-------|-------------|");
   lines.push(`| Matched | ${summary.matched_count} | Operations found in both graph and model |`);
@@ -207,7 +300,10 @@ function formatSummaryMarkdown(lines: string[], report: VerifyReport): void {
   lines.push("");
   lines.push(`**Total Model Entries (API Layer):** ${summary.total_model_entries}`);
   if (summary.elements_without_source_ref > 0) {
-    lines.push(`_(${summary.elements_without_source_ref} element(s) excluded from drift detection — no source attribution)_`);
+    lines.push(`_(${summary.elements_without_source_ref} element(s) not checked — no source attribution)_`);
+  }
+  if (summary.elements_not_checked) {
+    lines.push(`_(${summary.elements_not_checked} element(s) not checked — sourced to a file the analyzer reads no route from)_`);
   }
 }
 
@@ -230,7 +326,7 @@ function formatMatchedMarkdown(lines: string[], matched: MatchedEntry[]): void {
 
   for (const entry of matched.slice(0, 50)) {
     const source = `${escapeMarkdown(entry.source_file)}:${escapeMarkdown(entry.source_symbol)}`;
-    lines.push(`| ${escapeMarkdown(entry.id)} | ${escapeMarkdown(entry.type)} | ${source} |`);
+    lines.push(`| ${escapeMarkdown(entryId(entry))} | ${escapeMarkdown(entry.type)} | ${source} |`);
   }
 
   if (matched.length > 50) {
@@ -242,12 +338,12 @@ function formatMatchedMarkdown(lines: string[], matched: MatchedEntry[]): void {
 /**
  * Format graph-only entries for markdown output (gaps)
  */
-function formatGraphOnlyMarkdown(lines: string[], graphOnly: GraphOnlyEntry[]): void {
+function formatGraphOnlyMarkdown(lines: string[], graphOnly: GraphOnlyEntry[], summary: VerifyReport["summary"]): void {
   lines.push(`## Graph-only Entries (Gaps)`);
   lines.push("");
 
   if (graphOnly.length === 0) {
-    lines.push("_No gaps detected — all discovered routes are in the model._");
+    lines.push(`_${noGapsLine(summary)}_`);
     return;
   }
 
@@ -255,7 +351,7 @@ function formatGraphOnlyMarkdown(lines: string[], graphOnly: GraphOnlyEntry[]): 
   lines.push("");
   lines.push("Routes discovered in the codebase but missing from the model:");
   lines.push("");
-  lines.push('> **Tip:** Use `/dr-map` or `dr analyzer endpoints` ingestion to close these gaps — manual `dr add` operations cannot be matched by the verifier.');
+  lines.push(`> **Tip:** ${GAPS_TIP}`);
   lines.push("");
   lines.push("| ID | Endpoint | Source |");
   lines.push("|----|----|--------|");
@@ -275,12 +371,12 @@ function formatGraphOnlyMarkdown(lines: string[], graphOnly: GraphOnlyEntry[]): 
 /**
  * Format model-only entries for markdown output (drift)
  */
-function formatModelOnlyMarkdown(lines: string[], modelOnly: ModelOnlyEntry[]): void {
+function formatModelOnlyMarkdown(lines: string[], modelOnly: ModelOnlyEntry[], summary: VerifyReport["summary"]): void {
   lines.push(`## Model-only Entries (Drift)`);
   lines.push("");
 
   if (modelOnly.length === 0) {
-    lines.push("_No drift detected — all model operations were discovered._");
+    lines.push(`_${noDriftLine(summary)}_`);
     return;
   }
 
@@ -293,7 +389,7 @@ function formatModelOnlyMarkdown(lines: string[], modelOnly: ModelOnlyEntry[]): 
 
   for (const entry of modelOnly.slice(0, 50)) {
     const source = `${escapeMarkdown(entry.source_file)}:${escapeMarkdown(entry.source_symbol)}`;
-    lines.push(`| ${escapeMarkdown(entry.id)} | ${escapeMarkdown(entry.type)} | ${source} |`);
+    lines.push(`| ${escapeMarkdown(entryId(entry))} | ${escapeMarkdown(entry.type)} | ${source} |`);
   }
 
   if (modelOnly.length > 50) {
@@ -362,6 +458,11 @@ export function formatVerifyText(report: VerifyReport): string {
   // Changeset context
   formatChangesetContextText(lines, report);
   lines.push("");
+  const rejectionsText = rejectionsLine(report);
+  if (rejectionsText) {
+    lines.push(report.rejections?.error ? ansis.yellow(rejectionsText) : ansis.dim(rejectionsText));
+    lines.push("");
+  }
 
   // The API layer's sections, when it was asked for: an all-zero API summary would read as a result.
   if (api) {
@@ -374,11 +475,11 @@ export function formatVerifyText(report: VerifyReport): string {
     lines.push("");
 
     // Graph-only section (gaps)
-    formatGraphOnlyText(lines, report.buckets.in_graph_only);
+    formatGraphOnlyText(lines, report.buckets.in_graph_only, report.summary);
     lines.push("");
 
     // Model-only section (drift)
-    formatModelOnlyText(lines, report.buckets.in_model_only);
+    formatModelOnlyText(lines, report.buckets.in_model_only, report.summary);
     lines.push("");
 
     // Ignored section
@@ -399,10 +500,17 @@ export function formatVerifyText(report: VerifyReport): string {
 function formatLayersText(lines: string[], report: VerifyReport): void {
   for (const layer of report.layers ?? []) {
     const { summary, buckets } = layer;
-    if (layer.layer === "api" && buckets.not_indexed.length === 0) continue;
     lines.push(ansis.bold.blue(`Layer: ${layer.layer}`));
     lines.push(ansis.dim("─".repeat(60)));
     lines.push(ansis.dim(layer.checks));
+    // Checked and in step, checked and drifted, or not checked: never left to be read off the counts.
+    const paint = layer.status === "in_step" ? ansis.green : layer.status === "drifted" ? ansis.red : ansis.yellow;
+    lines.push(`${paint(STATUS_LABEL[layer.status])}: ${statusSentence(layer)}`);
+    for (const group of layer.not_checked ?? []) {
+      lines.push(`  Not checked (${group.count}): ${group.reason}${group.to_check ? `. To check: ${group.to_check}` : ""}`);
+      const shown = group.ids.slice(0, NOT_CHECKED_IDS_SHOWN);
+      lines.push(ansis.dim(`    ${shown.join(", ")}${group.count > shown.length ? `, ... (${group.count - shown.length} more; --json lists them all)` : ""}`));
+    }
     lines.push(
       `Matched: ${summary.matched_count}   In code only: ${summary.gap_count}   In model only (drift): ${summary.drift_count}   ` +
         `Not indexed: ${summary.not_indexed_count}${summary.ignored_count ? `   Ignored: ${summary.ignored_count}` : ""}`
@@ -454,10 +562,17 @@ function formatChangesetContextText(lines: string[], report: VerifyReport): void
  */
 function formatSummaryText(lines: string[], report: VerifyReport): void {
   const summary = report.summary;
+  const api = report.layers?.find((l) => l.layer === "api");
 
   lines.push(ansis.bold.yellow("SUMMARY"));
   lines.push(ansis.dim("─".repeat(60)));
   lines.push("");
+  // The API layer's status first: the counts below don't say what was left unchecked.
+  if (api) {
+    const paint = api.status === "in_step" ? ansis.green : api.status === "drifted" ? ansis.red : ansis.yellow;
+    lines.push(`${paint(STATUS_LABEL[api.status])}: ${statusSentence(api)}`);
+    lines.push("");
+  }
 
   lines.push(ansis.bold("Verification Results:"));
   lines.push(`  Matched:        ${ansis.green(String(summary.matched_count).padStart(4))} operations found in both graph and model`);
@@ -468,7 +583,10 @@ function formatSummaryText(lines: string[], report: VerifyReport): void {
   lines.push(`Total Graph Entries Analyzed:   ${summary.total_graph_entries}`);
   lines.push(`Total Model Entries (API Layer): ${summary.total_model_entries}`);
   if (summary.elements_without_source_ref > 0) {
-    lines.push(ansis.dim(`  (${summary.elements_without_source_ref} element(s) excluded from drift detection — no source attribution)`));
+    lines.push(ansis.dim(`  (${summary.elements_without_source_ref} element(s) not checked — no source attribution)`));
+  }
+  if (summary.elements_not_checked) {
+    lines.push(ansis.dim(`  (${summary.elements_not_checked} element(s) not checked — sourced to a file the analyzer reads no route from)`));
   }
 }
 
@@ -485,7 +603,7 @@ function formatMatchedText(lines: string[], matched: MatchedEntry[]): void {
   }
 
   for (const entry of matched.slice(0, 20)) {
-    lines.push(`  ${ansis.green("✓")} ${entry.id}`);
+    lines.push(`  ${ansis.green("✓")} ${entryId(entry)}`);
     lines.push(`    Type: ${entry.type}`);
     lines.push(`    Source: ${entry.source_file}:${entry.source_symbol}`);
     lines.push("");
@@ -499,18 +617,17 @@ function formatMatchedText(lines: string[], matched: MatchedEntry[]): void {
 /**
  * Format graph-only entries for text output (gaps)
  */
-function formatGraphOnlyText(lines: string[], graphOnly: GraphOnlyEntry[]): void {
+function formatGraphOnlyText(lines: string[], graphOnly: GraphOnlyEntry[], summary: VerifyReport["summary"]): void {
   lines.push(ansis.bold.yellow(`⚠ Graph-only / Gaps (${graphOnly.length})`));
   lines.push(ansis.dim("─".repeat(60)));
 
   if (graphOnly.length === 0) {
-    lines.push(ansis.dim("  No gaps detected — all discovered routes are in the model."));
+    lines.push(ansis.dim(`  ${noGapsLine(summary)}`));
     return;
   }
 
   lines.push(ansis.dim("Routes discovered in the codebase but missing from the model:"));
-  lines.push(ansis.dim("  Tip: Use /dr-map or `dr analyzer endpoints` ingestion to close these gaps —"));
-  lines.push(ansis.dim("  manual `dr add` operations cannot be matched by the verifier."));
+  lines.push(ansis.dim(`  Tip: ${GAPS_TIP}`));
   lines.push("");
 
   for (const entry of graphOnly.slice(0, 20)) {
@@ -530,12 +647,12 @@ function formatGraphOnlyText(lines: string[], graphOnly: GraphOnlyEntry[]): void
 /**
  * Format model-only entries for text output (drift)
  */
-function formatModelOnlyText(lines: string[], modelOnly: ModelOnlyEntry[]): void {
+function formatModelOnlyText(lines: string[], modelOnly: ModelOnlyEntry[], summary: VerifyReport["summary"]): void {
   lines.push(ansis.bold.red(`✗ Model-only / Drift (${modelOnly.length})`));
   lines.push(ansis.dim("─".repeat(60)));
 
   if (modelOnly.length === 0) {
-    lines.push(ansis.dim("  No drift detected — all model operations were discovered."));
+    lines.push(ansis.dim(`  ${noDriftLine(summary)}`));
     return;
   }
 
@@ -543,7 +660,7 @@ function formatModelOnlyText(lines: string[], modelOnly: ModelOnlyEntry[]): void
   lines.push("");
 
   for (const entry of modelOnly.slice(0, 20)) {
-    lines.push(`  ${ansis.red("✗")} ${entry.id}`);
+    lines.push(`  ${ansis.red("✗")} ${entryId(entry)}${entry.reason ? ` - ${entry.reason}` : ""}`);
     lines.push(`    Type: ${entry.type}`);
     lines.push(`    Source: ${entry.source_file}:${entry.source_symbol}`);
     lines.push("");

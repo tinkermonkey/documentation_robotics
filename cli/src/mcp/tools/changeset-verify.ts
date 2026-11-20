@@ -9,7 +9,13 @@ import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Changeset } from "../../core/changeset.js";
-import { compactVerifyReport, verifyChangesetInModel, VERIFY_SECTIONS } from "../../core/changeset-verify.js";
+import {
+  compactVerifyReport,
+  verifyChangesetInModel,
+  VERIFY_LIST_LIMIT,
+  VERIFY_SECTION_PAGE_SIZE,
+  VERIFY_SECTIONS,
+} from "../../core/changeset-verify.js";
 import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
@@ -94,6 +100,22 @@ const inputSchema = {
         "planned or built element, a relationship by either end. Combines with ids (either keeps an item)."
     ),
   ids: z.array(z.string()).optional().describe("With sections: only the items touching these element ids."),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      `The most entries to return from each list: lines of the compact report (default ${VERIFY_LIST_LIMIT}) or items of a section ` +
+        `(default ${VERIFY_SECTION_PAGE_SIZE}); any size is accepted. A page size, not a cut-off: the verdict and summary counts are ` +
+        "over everything, and page.totals gives every list's true length."
+    ),
+  offset: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("Skip this many entries of each list: repeat the call with the same arguments and the result's page.nextOffset for the next page."),
 };
 
 export type ChangesetVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
@@ -151,6 +173,8 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
       sections: args.sections,
       layers: args.layers,
       ids: args.ids,
+      limit: args.limit,
+      offset: args.offset,
     });
     // The same JSON, short objects kept on one line: the full report is the largest result.
     return jsonResult(result, { compact: true });
@@ -164,8 +188,9 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "wrote (with since, the branch's base), or the base model. Elements match by id, then by layer + type + name " +
     "ignoring case and separators, then by source file; relationships match through those element matches. The " +
     "verdict counts matched, missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, " +
-    "re-exports, planned JavaScript and TypeScript test cases, relationships no code edge maps to; not part of the " +
-    "verdict), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
+    "re-exports, planned JavaScript and TypeScript test cases, a service or operation the code may register by a name " +
+    "string such as an MCP tool (text evidence: the verdict names it and is at best probable-match until you confirm " +
+    "it), relationships no code edge maps to; not part of the verdict; each with its reason), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
     "values), and planned deletions that still exist. Description differences are notes on a match, not divergence: " +
     "don't edit the plan to match extracted text. By default the result is compact: the verdict and counts; missing, " +
     "divergent and probable matches one line each (confirm probable ones in the code); unverifiable items one line " +
@@ -173,10 +198,12 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "by extraction, from its own record); extraction's as-built share in counts; and sourceReferences. " +
     "sourceReferences.missing lists matched plan elements whose as-built match has a source file and symbol the plan " +
     "lacks: changeset_adopt_source_references copies them onto the plan before it lands. sourceReferences.unreferenced " +
-    "lists planned adds with no source reference and no as-built match: set sourceFile and sourceSymbol on those the " +
-    "build has code for with model_update. For more, pass sections: [...] for only some sections in full (unplanned " +
+    "lists planned adds with no source reference and no as-built match, with the build's files that may hold their code " +
+    "as candidates: confirm those the build has code for and pass them to changeset_adopt_source_references in " +
+    "references. For more, pass sections: [...] for only some sections in full (unplanned " +
     "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
-    "for the whole report. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    "for the whole report (large for a big build). Every list is a page (limit, offset): page.totals gives every list's " +
+    "true length, page.nextOffset the next offset (absent on the last page), and more the call for it. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

@@ -1,0 +1,1346 @@
+- type: add
+  elementId: motivation.requirement.verification-says-what-it-could-not-check
+  layerName: motivation
+  after:
+    id: b78f9db9-77a1-4de5-8bcf-edee2ee5644c
+    path: motivation.requirement.verification-says-what-it-could-not-check
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Verification says what it could not check
+    description: "codebase_verify and changeset_verify never report an unchecked
+      element as in step, drifted or missing. Each layer states one of three
+      things: checked and in step, checked and drifted (with what), or not
+      checked (with why and what would make it checkable). A list is never cut:
+      it is a page with its true total."
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance (issues 1180, 1226, 1159): a layer that compared
+        nothing reads not_checked, never in_step; an operation sourced to a file
+        the check can't read is not counted as lacking a source reference; a
+        planned element extraction can't produce is unverifiable with its
+        reason, and a clean match never rests on text evidence alone; recorded
+        rejections are reported with how many were read and applied; every list
+        gives its true total and the call for the rest."
+    metadata:
+      created_at: 2026-11-20T18:09:28.129Z
+      updated_at: 2026-11-20T18:09:28.129Z
+      version: 1
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.layer-status
+  layerName: application
+  after:
+    id: 985e9b0c-2a8c-42f1-a474-87386a681948
+    path: application.applicationfunction.layer-status
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: layerStatus
+    description: The status (in step, drifted, not checked), its sentence and the
+      coverage of one layer's check; not checked is never folded into in step.
+    metadata:
+      created_at: 2026-11-20T18:09:28.170Z
+      updated_at: 2026-11-20T18:09:28.170Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/verify-status.ts
+          symbol: layerStatus
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.group-not-checked
+  layerName: application
+  after:
+    id: 127fccfa-6be0-4b7f-a123-9aa5bea6403b
+    path: application.applicationfunction.group-not-checked
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: groupNotChecked
+    description: Elements a check could not compare, grouped by reason with what
+      would make each group checkable; every id kept.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    accepted_gaps:
+      - direction: incoming
+        predicate: assigned-to
+        other_spec_node_id: application.applicationcomponent
+        reason: A module-level function in verify-status.ts; no class owns it.
+        decided_by: agent
+        decided_at: 2026-11-20T18:10:48.601Z
+        changeset: changeset-1795198126148-0yezre21m
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/verify-status.ts
+          symbol: groupNotChecked
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.manifest-lists
+  layerName: application
+  after:
+    id: ae3d2c4e-b55b-4fad-a4c1-1f3fdb15b21d
+    path: application.applicationfunction.manifest-lists
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: manifestLists
+    description: Whether a dependency manifest (package.json, requirements.txt,
+      go.mod, ...) lists the dependency a system software element's symbol
+      names.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/layer-verify.ts
+          symbol: manifestLists
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.rejections-applied
+  layerName: application
+  after:
+    id: 50e99874-3424-4e27-9eaf-38944fc302d3
+    path: application.applicationfunction.rejections-applied
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: rejectionsApplied
+    description: "What a verification says about the recorded rejections it used:
+      the file, how many were read, how many each layer applied, and the read
+      error when there was one."
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    accepted_gaps:
+      - direction: incoming
+        predicate: assigned-to
+        other_spec_node_id: application.applicationcomponent
+        reason: A module-level function in layer-verify.ts; no class owns it.
+        decided_by: agent
+        decided_at: 2026-11-20T18:10:49.291Z
+        changeset: changeset-1795198126148-0yezre21m
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/layer-verify.ts
+          symbol: rejectionsApplied
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.registered-by-name
+  layerName: application
+  after:
+    id: eeb7d931-b27b-43ac-9062-250c726cc520
+    path: application.applicationfunction.registered-by-name
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: registeredByName
+    description: The code file that may register a planned service or operation by a
+      name string (a call argument or a name property), with no declaration of
+      that name for extraction to stage.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    accepted_gaps:
+      - direction: outgoing
+        predicate: accesses
+        other_spec_node_id: application.dataobject
+        reason: "Reads file text, not model elements or layers: it takes a planned
+          element's name and source reference only."
+        decided_by: agent
+        decided_at: 2026-11-20T18:10:50.195Z
+        changeset: changeset-1795198126148-0yezre21m
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/build-evidence.ts
+          symbol: registeredByName
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.source-candidates
+  layerName: application
+  after:
+    id: 09c1c5e4-f00c-4ec5-ab91-d5e3b04a4c27
+    path: application.applicationfunction.source-candidates
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sourceCandidates
+    description: "The build's files that may hold a planned add's code, best first:
+      a file that names it, a file named after it, files carrying the words of
+      its name."
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    accepted_gaps:
+      - direction: outgoing
+        predicate: accesses
+        other_spec_node_id: application.dataobject
+        reason: "Reads file text, not model elements or layers: it takes a planned
+          element's name only."
+        decided_by: agent
+        decided_at: 2026-11-20T18:10:50.998Z
+        changeset: changeset-1795198126148-0yezre21m
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/build-evidence.ts
+          symbol: sourceCandidates
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.read-build-files
+  layerName: application
+  after:
+    id: 345bf8c4-25db-4587-8a0e-ad6cb014bb1c
+    path: application.applicationfunction.read-build-files
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readBuildFiles
+    description: The text of the files the build changed since a ref and of the
+      planned elements' own files, with a note naming any file that was not
+      searched.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/build-evidence.ts
+          symbol: readBuildFiles
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.adopt-confirmed-references
+  layerName: application
+  after:
+    id: 44b36155-ca14-4dc8-a4dd-6355d1114372
+    path: application.applicationfunction.adopt-confirmed-references
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: adoptConfirmedReferences
+    description: Stage onto the plan the source references the agent confirmed in
+      the code for planned elements with no as-built match, as root-relative
+      file paths with provenance manual.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/source-reference-adoption.ts
+          symbol: adoptConfirmedReferences
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 8
+- type: add
+  elementId: application.applicationfunction.page-layer-report
+  layerName: application
+  after:
+    id: 8b486b3a-a156-432b-a9ff-cfdc8f67e6d3
+    path: application.applicationfunction.page-layer-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: pageLayerReport
+    description: A layer's report with every list a page of it; status, coverage and
+      summary stay over the whole layer.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-verify.ts
+          symbol: pageLayerReport
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 9
+- type: add
+  elementId: application.applicationfunction.adoption-result
+  layerName: application
+  after:
+    id: c089a063-612d-4f6e-a6a1-b9d3b699b601
+    path: application.applicationfunction.adoption-result
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: adoptionResult
+    description: "changeset_adopt_source_references' result: counts over everything,
+      lists in full up to limit, every item past it still named by id or grouped
+      by reason."
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-adopt-source-references.ts
+          symbol: adoptionResult
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 10
+- type: add
+  elementId: application.applicationfunction.page-of
+  layerName: application
+  after:
+    id: 1c29d3f0-8772-4c84-a1f4-fbbff968f8e4
+    path: application.applicationfunction.page-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: pageOf
+    description: The page of a list the arguments ask for, with its true total, how
+      many came back and the next offset.
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/list-page.ts
+          symbol: pageOf
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 11
+- type: add
+  elementId: application.applicationcomponent.paged-lists
+  layerName: application
+  after:
+    id: 324e8060-844e-46a6-b3fb-cba2fa62861a
+    path: application.applicationcomponent.paged-lists
+    spec_node_id: application.applicationcomponent
+    type: applicationcomponent
+    layer_id: application
+    name: PagedLists
+    description: Pages every list of a result through one window and records each
+      list's true length.
+    attributes:
+      type: internal
+    metadata:
+      created_at: 2026-11-20T18:09:28.172Z
+      updated_at: 2026-11-20T18:09:28.172Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/list-page.ts
+          symbol: PagedLists
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: product.feature.code-to-model-verification::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: product
+  after:
+    source: product.feature.code-to-model-verification
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: product.feature.changeset-verify::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: product
+  after:
+    source: product.feature.changeset-verify
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationfunction.verify-layers::depends-on::application.applicationfunction.layer-status
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-layers
+    target: application.applicationfunction.layer-status
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationfunction.verify-layers::depends-on::application.applicationfunction.group-not-checked
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-layers
+    target: application.applicationfunction.group-not-checked
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.verify-layers::depends-on::application.applicationfunction.manifest-lists
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-layers
+    target: application.applicationfunction.manifest-lists
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.api-layer-report::depends-on::application.applicationfunction.layer-status
+  layerName: application
+  after:
+    source: application.applicationfunction.api-layer-report
+    target: application.applicationfunction.layer-status
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.verify-engine-compute-report::depends-on::application.applicationfunction.group-not-checked
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-engine-compute-report
+    target: application.applicationfunction.group-not-checked
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationfunction.cbm-analyzer-verify::depends-on::application.applicationfunction.rejections-applied
+  layerName: application
+  after:
+    source: application.applicationfunction.cbm-analyzer-verify
+    target: application.applicationfunction.rejections-applied
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.verify-changeset-in-model::depends-on::application.applicationfunction.registered-by-name
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-changeset-in-model
+    target: application.applicationfunction.registered-by-name
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.verify-changeset-in-model::depends-on::application.applicationfunction.source-candidates
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-changeset-in-model
+    target: application.applicationfunction.source-candidates
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: application.applicationfunction.verify-changeset-in-model::depends-on::application.applicationfunction.read-build-files
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-changeset-in-model
+    target: application.applicationfunction.read-build-files
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-verified-source-references::depends-on::application.applicationfunction.adopt-confirmed-references
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-verified-source-references
+    target: application.applicationfunction.adopt-confirmed-references
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:28.190Z
+  sequenceNumber: 24
+- type: add
+  elementId: application.applicationfunction.paged-lists-list
+  layerName: application
+  after:
+    id: 3185a501-9032-445c-9058-2d2081adbc4c
+    path: application.applicationfunction.paged-lists-list
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: PagedLists list
+    description: The page of one list, recording its true length in the result's
+      page totals.
+    metadata:
+      created_at: 2026-11-20T18:09:54.574Z
+      updated_at: 2026-11-20T18:09:54.574Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/list-page.ts
+          symbol: PagedLists.list
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 25
+- type: add
+  elementId: data-model.schemadefinition.layer-verify-status
+  layerName: data-model
+  after:
+    id: f57955c2-afe1-4dcf-bbbc-83029788bb56
+    path: data-model.schemadefinition.layer-verify-status
+    spec_node_id: data-model.schemadefinition
+    type: schemadefinition
+    layer_id: data-model
+    name: LayerVerifyStatus
+    description: in_step, drifted or not_checked.
+    attributes:
+      title: LayerVerifyStatus
+      type: string
+      enum:
+        - in_step
+        - drifted
+        - not_checked
+    metadata:
+      created_at: 2026-11-20T18:09:54.576Z
+      updated_at: 2026-11-20T18:09:54.576Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/types.ts
+          symbol: LayerVerifyStatus
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 26
+- type: add
+  elementId: data-model.objectschema.layer-verify-coverage
+  layerName: data-model
+  after:
+    id: 1dd566b0-41ad-47f3-81b2-0c2151361dd3
+    path: data-model.objectschema.layer-verify-coverage
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: LayerVerifyCoverage
+    description: "How much of a layer a check covered: model elements, checked, not
+      checked, code entries."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.576Z
+      updated_at: 2026-11-20T18:09:54.576Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/types.ts
+          symbol: LayerVerifyCoverage
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 27
+- type: add
+  elementId: data-model.objectschema.not-checked-group
+  layerName: data-model
+  after:
+    id: 4671349e-92c7-4b7f-8548-36e497ebd7e9
+    path: data-model.objectschema.not-checked-group
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: NotCheckedGroup
+    description: Model elements a check could not compare, for one reason, with what
+      would make them checkable.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.576Z
+      updated_at: 2026-11-20T18:09:54.576Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/types.ts
+          symbol: NotCheckedGroup
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 28
+- type: add
+  elementId: data-model.objectschema.verify-rejections
+  layerName: data-model
+  after:
+    id: 747899c9-26c2-4735-b583-0fd9d0d35a46
+    path: data-model.objectschema.verify-rejections
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: VerifyRejections
+    description: "The recorded rejections a verification used: file, found, recorded
+      counts, applied per layer, error, note."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.576Z
+      updated_at: 2026-11-20T18:09:54.576Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/types.ts
+          symbol: VerifyRejections
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 29
+- type: add
+  elementId: data-model.objectschema.recorded-decisions
+  layerName: data-model
+  after:
+    id: fcfb5f88-964f-414d-9ed1-2ab7dcf200d4
+    path: data-model.objectschema.recorded-decisions
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: RecordedDecisions
+    description: The not-an-element and not-a-relationship decisions read from
+      codebase_extract's decisions file, with whether it was found and any read
+      error.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.576Z
+      updated_at: 2026-11-20T18:09:54.576Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/layer-verify.ts
+          symbol: RecordedDecisions
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 30
+- type: add
+  elementId: data-model.objectschema.registered-by-name
+  layerName: data-model
+  after:
+    id: 4ee09df5-a4ea-4e4e-bcbd-587b44e2d321
+    path: data-model.objectschema.registered-by-name
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: RegisteredByName
+    description: "Where the code may register an element by a name string: file,
+      string, line, and whether it is a call argument or a name property."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.577Z
+      updated_at: 2026-11-20T18:09:54.577Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/build-evidence.ts
+          symbol: RegisteredByName
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 31
+- type: add
+  elementId: data-model.objectschema.source-candidate
+  layerName: data-model
+  after:
+    id: adaad023-2a96-4431-9d30-13412c14a815
+    path: data-model.objectschema.source-candidate
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SourceCandidate
+    description: A file of the build that may hold a planned element's code, with
+      the symbol and the evidence.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.577Z
+      updated_at: 2026-11-20T18:09:54.577Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/build-evidence.ts
+          symbol: SourceCandidate
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 32
+- type: add
+  elementId: data-model.objectschema.confirmed-reference
+  layerName: data-model
+  after:
+    id: f10624e0-b75f-46b7-a703-8387d1a30b21
+    path: data-model.objectschema.confirmed-reference
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ConfirmedReference
+    description: "A source reference the agent confirmed in the code: id,
+      sourceFile, sourceSymbol."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.577Z
+      updated_at: 2026-11-20T18:09:54.577Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/source-reference-adoption.ts
+          symbol: ConfirmedReference
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 33
+- type: add
+  elementId: data-model.objectschema.multi-list-page
+  layerName: data-model
+  after:
+    id: 8b7925ea-5e3d-4fed-8e33-aac8f6e6aaf3
+    path: data-model.objectschema.multi-list-page
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: MultiListPage
+    description: "Where a result with several lists sits in them: limit, offset,
+      each list's true length, next offset."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:09:54.577Z
+      updated_at: 2026-11-20T18:09:54.577Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/list-page.ts
+          symbol: MultiListPage
+  timestamp: 2026-11-20T18:13:59.111Z
+  sequenceNumber: 34
+- type: relationship-add
+  elementId: application.applicationcomponent.paged-lists::assigned-to::application.applicationfunction.paged-lists-list
+  layerName: application
+  after:
+    source: application.applicationcomponent.paged-lists
+    target: application.applicationfunction.paged-lists-list
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 35
+- type: relationship-add
+  elementId: application.applicationfunction.paged-lists-list::depends-on::application.applicationfunction.page-of
+  layerName: application
+  after:
+    source: application.applicationfunction.paged-lists-list
+    target: application.applicationfunction.page-of
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 36
+- type: relationship-add
+  elementId: application.applicationfunction.page-layer-report::depends-on::application.applicationfunction.paged-lists-list
+  layerName: application
+  after:
+    source: application.applicationfunction.page-layer-report
+    target: application.applicationfunction.paged-lists-list
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 37
+- type: relationship-add
+  elementId: application.applicationfunction.compact-verify-report::depends-on::application.applicationfunction.paged-lists-list
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-verify-report
+    target: application.applicationfunction.paged-lists-list
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 38
+- type: relationship-add
+  elementId: application.applicationfunction.verify-sections::depends-on::application.applicationfunction.paged-lists-list
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-sections
+    target: application.applicationfunction.paged-lists-list
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 39
+- type: relationship-add
+  elementId: application.applicationfunction.layer-status::accesses::data-model.schemadefinition.layer-verify-status
+  layerName: application
+  after:
+    source: application.applicationfunction.layer-status
+    target: data-model.schemadefinition.layer-verify-status
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 41
+- type: relationship-add
+  elementId: application.applicationfunction.layer-status::accesses::data-model.objectschema.layer-verify-coverage
+  layerName: application
+  after:
+    source: application.applicationfunction.layer-status
+    target: data-model.objectschema.layer-verify-coverage
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 42
+- type: relationship-add
+  elementId: application.applicationfunction.group-not-checked::accesses::data-model.objectschema.not-checked-group
+  layerName: application
+  after:
+    source: application.applicationfunction.group-not-checked
+    target: data-model.objectschema.not-checked-group
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 43
+- type: relationship-add
+  elementId: application.applicationfunction.rejections-applied::accesses::data-model.objectschema.verify-rejections
+  layerName: application
+  after:
+    source: application.applicationfunction.rejections-applied
+    target: data-model.objectschema.verify-rejections
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: application.applicationfunction.rejections-applied::accesses::data-model.objectschema.recorded-decisions
+  layerName: application
+  after:
+    source: application.applicationfunction.rejections-applied
+    target: data-model.objectschema.recorded-decisions
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 45
+- type: relationship-add
+  elementId: application.applicationfunction.read-recorded-decisions::accesses::data-model.objectschema.recorded-decisions
+  layerName: application
+  after:
+    source: application.applicationfunction.read-recorded-decisions
+    target: data-model.objectschema.recorded-decisions
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 46
+- type: relationship-add
+  elementId: application.applicationfunction.registered-by-name::accesses::data-model.objectschema.registered-by-name
+  layerName: application
+  after:
+    source: application.applicationfunction.registered-by-name
+    target: data-model.objectschema.registered-by-name
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 47
+- type: relationship-add
+  elementId: application.applicationfunction.source-candidates::accesses::data-model.objectschema.source-candidate
+  layerName: application
+  after:
+    source: application.applicationfunction.source-candidates
+    target: data-model.objectschema.source-candidate
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 48
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.confirmed-reference
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: data-model.objectschema.confirmed-reference
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:09:54.607Z
+  sequenceNumber: 49
+- type: relationship-add
+  elementId: application.applicationfunction.verify-changeset-in-model::accesses::data-model.objectschema.registered-by-name
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-changeset-in-model
+    target: data-model.objectschema.registered-by-name
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:05.799Z
+  sequenceNumber: 50
+- type: update
+  elementId: product.feature.code-to-model-verification
+  layerName: product
+  before:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+      routes vs model endpoints). An element sourced at a whole file is checked
+      by its file alone: it is not reported as drift because extraction no
+      longer offers the file."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+        routes vs model endpoints). An element an existing model sourced at a
+        whole file (no symbol, or the file's module name as its symbol) is
+        checked by its file alone: it counts as present while the file exists,
+        and is not reported as drift or as a candidate delete because extraction
+        no longer offers the file."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/verify-engine.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:58.119Z
+      updated_at: 2026-11-09T21:54:58.119Z
+      version: 1
+  after:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer (api,
+      data-store, technology, testing) states its status first: checked and in
+      step, checked and drifted, or not checked with why and what would make it
+      checkable. API operations are compared with served routes and with the
+      routes an OpenAPI file declares; recorded rejections are applied and
+      reported; every list is a page with its true total."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads
+        with status (in_step, drifted, not_checked) and coverage; a layer that
+        compared nothing is never in step. API: served routes, and the routes an
+        OpenAPI file declares against operations sourced to it. Testing: test
+        functions and methods, and JS/TS it()/test() cases. Technology:
+        infrastructure, and system software sourced to a dependency manifest
+        against what it lists. Elements that could not be compared are listed by
+        reason under not_checked. Recorded codebase_extract rejections leave
+        entries out of in_graph_only, listed under ignored, and rejections says
+        how many were read and applied. Lists page with limit and offset
+        (default 50, lowered near 40 KB); page.totals gives true lengths. An
+        element sourced at a whole file is checked by its file alone."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T18:10:06.403Z
+  sequenceNumber: 51
+- type: update
+  elementId: product.feature.changeset-verify
+  layerName: product
+  before:
+    id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+    path: product.feature.changeset-verify
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset verify
+    description: "MCP: changeset_verify against an as-built changeset or the base.
+      CLI: dr changeset verify."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_verify against an as-built changeset or the base.
+        CLI: dr changeset verify."
+    source_reference: &a3
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+    metadata: &a4
+      created_at: 2026-11-09T21:54:57.790Z
+      updated_at: 2026-11-09T21:54:57.790Z
+      version: 1
+  after:
+    id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+    path: product.feature.changeset-verify
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset verify
+    description: "MCP: changeset_verify against an as-built changeset or the base,
+      and changeset_adopt_source_references. CLI: dr changeset verify. What
+      extraction can't see is unverifiable with its reason, never missing; a
+      service or operation the build may register by a name string is named in
+      the verdict, which is never a clean match while one is unconfirmed.
+      Planned adds with no source reference come with candidate files, and adopt
+      takes the references the agent confirmed. Every list is a page with its
+      true total."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_verify (limit and offset page every list;
+        page.totals gives true lengths) and changeset_adopt_source_references
+        (references: {id, sourceFile, sourceSymbol} for elements with no
+        as-built match, stored root-relative with provenance manual; result
+        counts over everything, items past limit still accounted for). CLI: dr
+        changeset verify. Unverifiable: intent, re-exports, planned JS/TS test
+        cases, relationships no code edge maps to, and a planned service,
+        interface, function, event, process or operation a code file names only
+        as a call argument or name property (reason gives file and line; verdict
+        at best probable-match)."
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T18:10:12.699Z
+  sequenceNumber: 52
+- type: relationship-add
+  elementId: motivation.requirement.verification-says-what-it-could-not-check::realizes::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: motivation
+  after:
+    source: motivation.requirement.verification-says-what-it-could-not-check
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 53
+- type: relationship-add
+  elementId: application.applicationfunction.layer-status::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.layer-status
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 54
+- type: relationship-add
+  elementId: application.applicationfunction.group-not-checked::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.group-not-checked
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 55
+- type: relationship-add
+  elementId: application.applicationfunction.registered-by-name::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.registered-by-name
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 56
+- type: relationship-add
+  elementId: application.applicationfunction.rejections-applied::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.rejections-applied
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 57
+- type: relationship-add
+  elementId: application.applicationfunction.paged-lists-list::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.paged-lists-list
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 58
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 59
+- type: relationship-add
+  elementId: application.applicationfunction.adoption-result::accesses::data-model.objectschema.verified-adoption-report
+  layerName: application
+  after:
+    source: application.applicationfunction.adoption-result
+    target: data-model.objectschema.verified-adoption-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 60
+- type: relationship-add
+  elementId: application.applicationfunction.page-layer-report::accesses::data-model.objectschema.layer-verify-report
+  layerName: application
+  after:
+    source: application.applicationfunction.page-layer-report
+    target: data-model.objectschema.layer-verify-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:24.787Z
+  sequenceNumber: 61
+- type: relationship-add
+  elementId: application.applicationfunction.read-build-files::depends-on::application.applicationfunction.code-changes-since
+  layerName: application
+  after:
+    source: application.applicationfunction.read-build-files
+    target: application.applicationfunction.code-changes-since
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:27.859Z
+  sequenceNumber: 64
+- type: relationship-add
+  elementId: application.applicationfunction.source-candidates::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.source-candidates
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:32.923Z
+  sequenceNumber: 65
+- type: relationship-add
+  elementId: application.applicationfunction.read-build-files::satisfies::motivation.requirement.verification-says-what-it-could-not-check
+  layerName: application
+  after:
+    source: application.applicationfunction.read-build-files
+    target: motivation.requirement.verification-says-what-it-could-not-check
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:32.923Z
+  sequenceNumber: 66
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::depends-on::application.applicationfunction.changeset-graph-build
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: application.applicationfunction.changeset-graph-build
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:32.923Z
+  sequenceNumber: 67
+- type: relationship-add
+  elementId: motivation.requirement.verification-says-what-it-could-not-check::realizes::motivation.principle.base-model-is-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.verification-says-what-it-could-not-check
+    target: motivation.principle.base-model-is-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:40.506Z
+  sequenceNumber: 68
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-verified-source-references::depends-on::application.applicationfunction.staging-area-manager-load
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-verified-source-references
+    target: application.applicationfunction.staging-area-manager-load
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 74
+- type: relationship-add
+  elementId: application.applicationfunction.verify-engine-compute-report::depends-on::application.applicationfunction.route-key
+  layerName: application
+  after:
+    source: application.applicationfunction.verify-engine-compute-report
+    target: application.applicationfunction.route-key
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 75
+- type: relationship-add
+  elementId: application.applicationcomponent.paged-lists::accesses::data-model.objectschema.multi-list-page
+  layerName: application
+  after:
+    source: application.applicationcomponent.paged-lists
+    target: data-model.objectschema.multi-list-page
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 76
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.rewrite
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: data-model.objectschema.rewrite
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 77
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.source-location
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: data-model.objectschema.source-location
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 78
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.source-reference
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: data-model.objectschema.source-reference
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 79
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::accesses::data-model.objectschema.staged-change
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: data-model.objectschema.staged-change
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 80
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::depends-on::application.applicationfunction.read-staged-source-reference
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: application.applicationfunction.read-staged-source-reference
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 81
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::depends-on::application.applicationfunction.set-staged-source-reference
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: application.applicationfunction.set-staged-source-reference
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 82
+- type: relationship-add
+  elementId: application.applicationfunction.adopt-confirmed-references::depends-on::application.applicationfunction.staging-area-manager-stage-many
+  layerName: application
+  after:
+    source: application.applicationfunction.adopt-confirmed-references
+    target: application.applicationfunction.staging-area-manager-stage-many
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.cbm-analyzer-verify::accesses::data-model.objectschema.recorded-decisions
+  layerName: application
+  after:
+    source: application.applicationfunction.cbm-analyzer-verify
+    target: data-model.objectschema.recorded-decisions
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: application.applicationfunction.rejections-applied::accesses::application.dataobject.layer
+  layerName: application
+  after:
+    source: application.applicationfunction.rejections-applied
+    target: application.dataobject.layer
+    predicate: accesses
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: application.applicationfunction.rejections-applied::accesses::data-model.objectschema.layer-verify-report
+  layerName: application
+  after:
+    source: application.applicationfunction.rejections-applied
+    target: data-model.objectschema.layer-verify-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:58.143Z
+  sequenceNumber: 86
