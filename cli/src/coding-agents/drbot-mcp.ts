@@ -12,7 +12,7 @@
  * the model directory, and is removed when the agent process exits.
  *
  * Tolerance: if anything here fails (no temp dir), the caller launches DrBot without
- * MCP and it falls back to the read-safe Bash rules; the failure is logged, not swallowed.
+ * MCP and it falls back to its mode's Bash rules; the failure is logged, not swallowed.
  */
 
 import { existsSync, readdirSync, readFileSync, type Dirent } from "node:fs";
@@ -429,13 +429,22 @@ export function agentDefinitionFromMarkdown(markdown: string): AgentDefinition {
 }
 
 /**
- * Extra `claude` arguments that make `--agent dr-architect` run `agent`. Only the bundled copy
- * needs them: `--agents` outranks every installed agent, the plugin's included. Throws when the
- * bundled file can't be read or parsed.
+ * Extra `claude` arguments that make `--agent dr-architect` run `agent`. `--agents` outranks every
+ * installed agent, the plugin's included (checked against claude 2.1.328 for a project copy).
+ * - The bundled copy is passed as it is.
+ * - An installed copy runs from its own file, unless `addTools` names dr MCP tools its `tools:`
+ *   field leaves out: then it is passed too, with its own prompt and those tools added, so a copy
+ *   installed before DrBot used MCP still reaches the server (#1240).
+ * Throws when the file can't be read or turned into a definition (no frontmatter or description).
  */
-export async function drBotAgentArgs(agent: DrBotAgent | null): Promise<string[]> {
-  if (agent?.source !== "bundled") return [];
+export async function drBotAgentArgs(agent: DrBotAgent | null, addTools: readonly string[] = []): Promise<string[]> {
+  if (!agent) return [];
+  if (agent.source !== "bundled" && addTools.length === 0) return [];
   const definition = agentDefinitionFromMarkdown(await readFile(agent.path, "utf8"));
+  if (agent.source !== "bundled" && definition.tools) {
+    const listed = new Set(definition.tools);
+    definition.tools = [...definition.tools, ...addTools.filter((tool) => !listed.has(tool))];
+  }
   return ["--agents", JSON.stringify({ [DR_ARCHITECT_AGENT]: definition })];
 }
 
@@ -447,8 +456,13 @@ export interface AgentMcpToolCheck {
   source: DrBotAgent["source"];
   /** The mcp__dr__* rules the mode uses that the agent's `tools:` field leaves out. */
   missing: string[];
-  /** True when the agent can see none of them (a copy installed before DrBot used MCP). */
+  /** True when the agent's file lists none of them (a copy installed before DrBot used MCP). */
   noneVisible: boolean;
+  /**
+   * True when the launch adds the missing tools to the agent (drBotAgentArgs), so DrBot can call
+   * them after all. The file is still out of date: the warning says to run `dr claude upgrade`.
+   */
+  added?: boolean;
   /**
    * Set when the bundled copy couldn't be passed with --agents. Claude Code then runs whatever it
    * finds (the plugin's copy, say), so DrBot can't count on any dr tool: noneVisible is true.
@@ -504,9 +518,11 @@ export interface DrBotAgentLaunch {
 
 /**
  * Resolves DrBot's dr-architect once and derives both the launch arguments and the tool check
- * from it. When the bundled copy can't be passed, the check reports that no dr tool is visible
- * (with `error`) rather than passing against a file claude won't run. Throws if an installed
- * copy can't be read.
+ * from it. An installed copy that leaves out dr MCP tools the mode uses is passed with --agents
+ * with those tools added (the check then says `added`), so the dr MCP server still connects. When
+ * the bundled copy can't be passed, the check reports that no dr tool is visible (with `error`)
+ * rather than passing against a file claude won't run; an installed copy that can't be passed
+ * keeps its check as it was (the tools stay missing). Throws if an installed copy can't be read.
  */
 export async function prepareDrBotAgent(
   rootPath: string,
@@ -514,22 +530,29 @@ export async function prepareDrBotAgent(
   options: AgentLookupOptions = {}
 ): Promise<DrBotAgentLaunch> {
   const agent = resolveDrBotAgent(rootPath, options);
-  let args: string[];
-  try {
-    args = await drBotAgentArgs(agent);
-  } catch (error) {
-    const missing = drMcpToolsForMode(mode);
-    return {
-      agent,
-      args: [],
-      check: {
-        path: agent!.path,
-        source: "bundled",
-        missing,
-        noneVisible: true,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    };
+  if (agent?.source === "bundled") {
+    try {
+      return { agent, args: await drBotAgentArgs(agent), check: await checkAgentMcpTools(agent, mode) };
+    } catch (error) {
+      return {
+        agent,
+        args: [],
+        check: {
+          path: agent.path,
+          source: "bundled",
+          missing: drMcpToolsForMode(mode),
+          noneVisible: true,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      };
+    }
   }
-  return { agent, args, check: await checkAgentMcpTools(agent, mode) };
+  const check = await checkAgentMcpTools(agent, mode);
+  if (!check) return { agent, args: [], check };
+  try {
+    return { agent, args: await drBotAgentArgs(agent, check.missing), check: { ...check, added: true } };
+  } catch {
+    // No frontmatter description to build a definition from: claude runs the file as it is.
+    return { agent, args: [], check };
+  }
 }

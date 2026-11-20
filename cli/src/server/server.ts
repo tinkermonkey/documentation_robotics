@@ -56,7 +56,6 @@ import {
 } from "../coding-agents/default-permissions.js";
 import {
   DR_ARCHITECT_AGENT,
-  drBotMcpPrompt,
   drMcpAllowedTools,
   prepareDrMcpLaunch,
   prepareDrBotAgent,
@@ -66,6 +65,11 @@ import {
   type DrMcpLaunch,
   type PrepareDrMcpLaunchOptions,
 } from "../coding-agents/drbot-mcp.js";
+import {
+  drBotSessionPrompt,
+  explainDeniedToolCall,
+  isPermissionDenial,
+} from "../coding-agents/drbot-permissions.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { hasExited } from "../utils/stop-child-process.js";
 import {
@@ -201,6 +205,13 @@ interface ClaudeTurnState {
   accumulatedText: string;
   /** tool_use id -> the call, until its tool_result arrives. */
   pendingTools: Map<string, { name: unknown; input: unknown }>;
+  /**
+   * tool_use id -> a call that failed with a result that didn't read as a permission refusal.
+   * The turn's `result` event lists the refused calls, so one of these may still turn out to be one.
+   */
+  failedTools: Map<string, { name: unknown; input: unknown; result: unknown }>;
+  /** The dr MCP server was connected for this launch. */
+  mcpConnected: boolean;
   /** The conversation's Claude Code session, when the send named a conversation. */
   session?: ChatSession;
   /** Claude Code printed at least one stream-json event. */
@@ -2592,6 +2603,8 @@ export class VisualizationServer {
             sdk_available: hasClient,
             sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
             error_message: statusError,
+            // What the chat agent may do, fixed when the viewer started (#1241).
+            permission_mode: this.chatPermissionMode(),
           });
           break;
 
@@ -2761,7 +2774,19 @@ export class VisualizationServer {
     }
 
     if (mcpConfigPath) {
-      cmd.push("--mcp-config", mcpConfigPath, "--append-system-prompt", drBotMcpPrompt(mode));
+      cmd.push("--mcp-config", mcpConfigPath);
+    }
+    // Under an allowlist DrBot can call only its own dr server's tools, so load no other MCP
+    // server: the user's plugins and connectors would describe tools it can't call (#1240).
+    if (mode !== "danger") {
+      cmd.push("--strict-mcp-config");
+    }
+
+    // Every launch says how to reach the model, which mode this is and what a refused call
+    // means (#1241), whether or not the MCP server connected. Danger mode without MCP has nothing to say.
+    const sessionPrompt = drBotSessionPrompt(mode, { mcpConnected: mcpConfigPath !== undefined });
+    if (sessionPrompt) {
+      cmd.push("--append-system-prompt", sessionPrompt);
     }
 
     // Same session handling as ClaudeCodeClient: start the session with our id, then resume it.
@@ -2837,6 +2862,15 @@ export class VisualizationServer {
   }
 
   /**
+   * The mode the selected chat client really runs in. Copilot has no changeset staging: outside
+   * danger mode it gets the read-safe allowlist whatever the viewer was started with.
+   */
+  private chatPermissionMode(): DrBotMode {
+    const mode = this.drBotMode();
+    return this.selectedChatClient instanceof CopilotClient && mode === "changesets" ? "read-safe" : mode;
+  }
+
+  /**
    * Resolves the dr-architect DrBot runs, once: the extra launch arguments (--agents for the
    * bundled copy) and the check of its tools both come from this lookup.
    */
@@ -2866,10 +2900,17 @@ export class VisualizationServer {
     const mode = this.drBotMode();
     const overrides = this._testDrMcpOptions ?? {};
 
-    // The agent's `tools:` field decides which MCP tools DrBot can see. A copy from before DrBot
-    // used MCP sees none of them: say so, and launch without MCP rather than tell the agent about
-    // tools it can't call.
-    if (check) {
+    // The agent's `tools:` field decides which MCP tools DrBot can see. When the launch added the
+    // ones an installed copy leaves out (check.added), the chat works and the warning only asks
+    // for the upgrade. Otherwise a copy that lists none of them can't use the server: say so, and
+    // launch without MCP rather than tell the agent about tools it can't call.
+    if (check?.added) {
+      this.warnDrBotOnce(
+        `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) ` +
+          (check.noneVisible ? "predates the dr MCP tools" : `doesn't list ${check.missing.join(", ")}`) +
+          "; the chat adds them for its own sessions. Run `dr claude upgrade` to update the file."
+      );
+    } else if (check) {
       this.warnDrBotOnce(
         check.error
           ? `[Claude Code] Could not pass the bundled ${DR_ARCHITECT_AGENT} agent (${check.path}: ${check.error}), ` +
@@ -3035,7 +3076,14 @@ export class VisualizationServer {
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
-        const turn: ClaudeTurnState = { accumulatedText: "", pendingTools: new Map(), session, sawEvent: false };
+        const turn: ClaudeTurnState = {
+          accumulatedText: "",
+          pendingTools: new Map(),
+          failedTools: new Map(),
+          mcpConnected: drMcp !== null,
+          session,
+          sawEvent: false,
+        };
         let buffer = "";
 
         // Handles one stdout line: a stream-json event, or else raw text for the reply.
@@ -3267,12 +3315,17 @@ export class VisualizationServer {
         this.sendToolOutcome(ws, conversationId, turn, block.tool_use_id, block.is_error === true, block.content);
       }
     } else if (event?.type === "result") {
-      // Denials the turn lists but never answered with a tool_result are failures too.
+      // Denials the turn lists but never answered with a tool_result are failures too. One whose
+      // tool_result didn't read as a refusal is reported again, now with the reason.
       const denials = Array.isArray(event.permission_denials) ? event.permission_denials : [];
       for (const denial of denials) {
         const id = denial?.tool_use_id;
-        if (typeof id === "string" && turn.pendingTools.has(id)) {
+        if (typeof id !== "string") continue;
+        if (turn.pendingTools.has(id)) {
           this.sendToolOutcome(ws, conversationId, turn, id, true, `Permission denied: ${denial.tool_name ?? "tool"}`);
+        } else if (turn.failedTools.has(id)) {
+          const failed = turn.failedTools.get(id)!;
+          this.sendToolOutcome(ws, conversationId, turn, id, true, failed.result, { denied: true, call: failed });
         }
       }
       this.sendChatNotification(ws, "chat.response.complete", {
@@ -3284,17 +3337,35 @@ export class VisualizationServer {
     }
   }
 
-  /** Sends a tool's final `chat.tool.invoke` (completed or failed) and stops tracking it. */
+  /**
+   * Sends a tool's final `chat.tool.invoke` (completed or failed) and stops tracking it. A call
+   * DrBot's permissions refused also carries `permission_denied` and, after Claude Code's own
+   * text, the rule that refused it and how the person allows it (#1241).
+   */
   private sendToolOutcome(
     ws: HonoWSContext,
     conversationId: string,
     turn: ClaudeTurnState,
     toolUseId: string,
     isError: boolean,
-    result: unknown
+    result: unknown,
+    known: { denied?: boolean; call?: { name: unknown; input: unknown } } = {}
   ): void {
-    const tool = turn.pendingTools.get(toolUseId);
+    const tool = known.call ?? turn.pendingTools.get(toolUseId);
     turn.pendingTools.delete(toolUseId);
+    turn.failedTools.delete(toolUseId);
+    const text = toolResultText(result);
+    const denied = isError && (known.denied === true || isPermissionDenial(text));
+    if (isError && !denied && tool) {
+      turn.failedTools.set(toolUseId, { name: tool.name, input: tool.input, result });
+    }
+    const explanation = denied
+      ? explainDeniedToolCall(
+          this.drBotMode(),
+          { toolName: tool?.name, toolInput: tool?.input },
+          { mcpConnected: turn.mcpConnected }
+        )
+      : undefined;
     this.sendChatNotification(ws, "chat.tool.invoke", {
       conversation_id: conversationId,
       tool_use_id: toolUseId,
@@ -3303,7 +3374,8 @@ export class VisualizationServer {
       status: isError ? "failed" : "completed",
       is_error: isError,
       result,
-      ...(isError ? { error: toolResultText(result) || "Tool call failed" } : {}),
+      ...(isError ? { error: [text || "Tool call failed", explanation].filter(Boolean).join("\n\n") } : {}),
+      ...(denied ? { permission_denied: true, permission_explanation: explanation } : {}),
       timestamp: new Date().toISOString(),
     });
   }

@@ -13,6 +13,8 @@
  * - --emit-non-json: Inject a plain-text line after the first JSON event for fallback testing
  * - --emit-init: Start with the `system` init event that carries the session id
  * - --unanswered-tool: Add a tool call that never gets a tool_result
+ * - --denial-text TEXT: The denied Bash call's tool_result text (default: Claude Code's
+ *   "requested permissions" wording)
  *
  * Each option also accepts an equivalent environment variable as a fallback.
  */
@@ -32,6 +34,8 @@ const EMIT_INIT = hasArg("--emit-init") || process.env.EMIT_INIT === "true";
 const UNANSWERED_TOOL = hasArg("--unanswered-tool") || process.env.UNANSWERED_TOOL === "true";
 
 const DENIAL =
+  getArgValue("--denial-text") ||
+  process.env.DENIAL_TEXT ||
   "Claude requested permissions to use Bash, but you haven't granted it yet.";
 
 // Define the event sequence

@@ -1,8 +1,8 @@
 /**
  * DrBot on MCP, end to end through launchClaudeCodeChat: the MCP config is prepared (in scratch
  * dirs), passed to claude, and removed once the agent process exits; a stale installed
- * dr-architect agent or a failed preparation launches without MCP. The mock-claude-stream
- * fixture stands in for the claude binary.
+ * dr-architect agent gets the dr tools added; a failed preparation launches without MCP. Every
+ * launch is told its permission mode. The mock-claude-stream fixture stands in for the claude binary.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
@@ -35,7 +35,14 @@ interface Fixture {
 }
 
 async function createServer(
-  options: { failPrepare?: boolean; agentTools?: string; bundledPath?: string | null } = {}
+  options: {
+    failPrepare?: boolean;
+    agentTools?: string;
+    /** Gives the installed agent a description, which Claude Code needs to load it and --agents to pass it. */
+    agentDescription?: string;
+    bundledPath?: string | null;
+    readOnly?: boolean;
+  } = {}
 ): Promise<Fixture> {
   const base = join(scratch, randomUUID());
   const rootPath = join(base, "project");
@@ -51,14 +58,15 @@ async function createServer(
     await mkdir(join(rootPath, ".claude", "agents"), { recursive: true });
     await writeFile(
       join(rootPath, ".claude", "agents", "dr-architect.md"),
-      `---\nname: dr-architect\ntools: ${options.agentTools}\n---\n\nBody\n`
+      `---\nname: dr-architect\n${options.agentDescription ? `description: ${options.agentDescription}\n` : ""}` +
+        `tools: ${options.agentTools}\n---\n\nInstalled body\n`
     );
   }
 
   // The tests launch the chat directly; skip probing the real CLIs (see the helper).
   const server = createServerWithoutChatDetection(model, {
     authEnabled: false,
-    withChangesets: true,
+    withChangesets: !options.readOnly,
   });
   (server as any)._testClaudeCmdOverride = ["node", mockClaude];
   (server as any)._testDrMcpOptions = {
@@ -146,12 +154,67 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
 
     const args: string[] = (server as any)._testLastClaudeChatArgs;
     expect(args).not.toContain("--mcp-config");
-    expect(args).not.toContain("--append-system-prompt");
+    // Still told its mode and how to work without the MCP tools (#1240).
+    const prompt = valueOf(args, "--append-system-prompt")!;
+    expect(prompt).toContain("dr MCP server is not connected");
+    expect(prompt).toContain("dr changeset create");
+    expect(prompt).not.toContain("mcp__dr__");
     expect(existsSync(tempRoot)).toBe(false);
     server.stop();
   });
 
-  it("skips MCP and warns once when the installed dr-architect agent can't see the dr tools", async () => {
+  it("adds the dr tools to an installed dr-architect that predates them, connects MCP and warns once (#1240)", async () => {
+    const { server } = await createServer({
+      agentTools: "Bash, Read, Edit, Write",
+      agentDescription: "The project's architect",
+    });
+    await chat(server, "req-stale-added-1");
+    await chat(server, "req-stale-added-2");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    expect(args).toContain("--mcp-config");
+    const definition = JSON.parse(valueOf(args, "--agents")!)["dr-architect"];
+    // The installed copy's own prompt and tools, plus the mode's dr tools.
+    expect(definition.prompt).toBe("Installed body");
+    expect(definition.description).toBe("The project's architect");
+    expect(definition.tools.slice(0, 4)).toEqual(["Bash", "Read", "Edit", "Write"]);
+    expect(definition.tools).toContain("mcp__dr__model_trace");
+    expect(definition.tools).toContain("mcp__dr__changeset_create");
+    expect(valueOf(args, "--allowedTools")).toContain("mcp__dr__changeset_create");
+
+    const warnings = [...(server as any).drBotWarnings] as string[];
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("predates the dr MCP tools");
+    expect(warnings[0]).toContain("dr claude upgrade");
+    server.stop();
+  });
+
+  it("adds only the read tools to a stale agent in a read-only viewer", async () => {
+    const { server } = await createServer({
+      agentTools: "Bash, Read",
+      agentDescription: "The project's architect",
+      readOnly: true,
+    });
+    await chat(server, "req-stale-readonly");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    const definition = JSON.parse(valueOf(args, "--agents")!)["dr-architect"];
+    expect(definition.tools).toContain("mcp__dr__model_trace");
+    expect(definition.tools).not.toContain("mcp__dr__changeset_create");
+    expect(valueOf(args, "--allowedTools")).not.toContain("mcp__dr__changeset_create");
+    expect(valueOf(args, "--append-system-prompt")).toContain("mode: read-only");
+    server.stop();
+  });
+
+  it("loads no MCP server but DrBot's own under an allowlist", async () => {
+    const { server } = await createServer();
+    await chat(server, "req-strict");
+    expect((server as any)._testLastClaudeChatArgs).toContain("--strict-mcp-config");
+    server.stop();
+  });
+
+  it("skips MCP and warns once when the installed dr-architect agent can't be passed with the dr tools", async () => {
+    // No description: --agents can't carry it, so Claude Code runs the file as it is.
     const { server, tempRoot } = await createServer({
       agentTools: "Bash, Read, Edit, Write",
     });
@@ -160,7 +223,8 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
 
     const args: string[] = (server as any)._testLastClaudeChatArgs;
     expect(args).not.toContain("--mcp-config");
-    expect(args).not.toContain("--append-system-prompt");
+    expect(args).not.toContain("--agents");
+    expect(valueOf(args, "--append-system-prompt")).toContain("dr MCP server is not connected");
     expect(readdirSync(tempRoot)).toEqual([]);
 
     const warnings = [...(server as any).drBotWarnings] as string[];

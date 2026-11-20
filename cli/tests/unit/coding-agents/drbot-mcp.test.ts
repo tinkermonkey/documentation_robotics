@@ -249,11 +249,26 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
     expect(valueOf(cmd, "--mcp-config")).toBe("/tmp/x/mcp.json");
   });
 
-  it("launches exactly as before when no MCP config could be prepared", () => {
+  it("keeps the Bash rules, and still says the mode, when no MCP config could be prepared", () => {
     const cmd = args({ withChangesets: true });
     expect(cmd).not.toContain("--mcp-config");
-    expect(cmd).not.toContain("--append-system-prompt");
     expect(valueOf(cmd, "--allowedTools")).toBe(formatForClaudeCodeWithChangesets());
+    const prompt = valueOf(cmd, "--append-system-prompt")!;
+    expect(prompt).toContain("dr MCP server is not connected");
+    expect(prompt).toContain("mode: changeset staging");
+    expect(args({})).toContain("--append-system-prompt");
+  });
+
+  it("loads only DrBot's own MCP server under an allowlist, and every server in danger mode", () => {
+    expect(args({}, "/tmp/x/mcp.json")).toContain("--strict-mcp-config");
+    expect(args({ withChangesets: true }, "/tmp/x/mcp.json")).toContain("--strict-mcp-config");
+    // Without a config too: the user's own servers would describe tools DrBot can't call.
+    expect(args({ withChangesets: true })).toContain("--strict-mcp-config");
+    expect(args({ withDanger: true }, "/tmp/x/mcp.json")).not.toContain("--strict-mcp-config");
+  });
+
+  it("says nothing extra in danger mode without MCP (there is no allowlist to explain)", () => {
+    expect(args({ withDanger: true })).not.toContain("--append-system-prompt");
   });
 
   it("keeps the stream-json output flags last", () => {
@@ -419,6 +434,24 @@ describe("which dr-architect DrBot runs", () => {
     expect(await drBotAgentArgs({ path: "/x", source: "project" })).toEqual([]);
     expect(await drBotAgentArgs({ path: "/x", source: "user" })).toEqual([]);
     expect(await drBotAgentArgs(null)).toEqual([]);
+    expect(await drBotAgentArgs(null, ["mcp__dr__model_show"])).toEqual([]);
+  });
+
+  it("passes an installed copy with the tools it lacks added, keeping its own prompt and tools", async () => {
+    const root = join(scratch, "installed-with-added-tools");
+    const path = await install(root, "Bash, mcp__dr__model_show");
+    const args = await drBotAgentArgs({ path, source: "project" }, ["mcp__dr__model_show", "mcp__dr__model_trace"]);
+    expect(args[0]).toBe("--agents");
+    expect(JSON.parse(args[1])).toEqual({
+      "dr-architect": { description: "d", prompt: "body", tools: ["Bash", "mcp__dr__model_show", "mcp__dr__model_trace"] },
+    });
+  });
+
+  it("never adds tools to the bundled copy, which already lists them", async () => {
+    const tools = JSON.parse((await drBotAgentArgs({ path: BUNDLED_AGENT, source: "bundled" }, ["mcp__dr__x"]))[1])[
+      "dr-architect"
+    ].tools;
+    expect(tools).not.toContain("mcp__dr__x");
   });
 
   it("reads an agent file's description, model, tools and body", () => {
@@ -514,7 +547,52 @@ describe("prepareDrBotAgent", () => {
     expect(launch.check?.missing).toEqual(drMcpAllowedTools("changesets"));
   });
 
-  it("leaves an installed copy in charge and checks it", async () => {
+  it("adds the mode's dr tools to an installed copy that predates them (#1240)", async () => {
+    const root = join(scratch, "prepare-stale");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    await writeFile(
+      join(root, ".claude", "agents", "dr-architect.md"),
+      "---\nname: dr-architect\ndescription: Old copy\ntools: Bash, Read\n---\nOld body\n"
+    );
+    for (const mode of ["read-safe", "changesets"] as const) {
+      const launch = await prepareDrBotAgent(root, mode, at(noHome()));
+      expect(launch.agent?.source).toBe("project");
+      expect(launch.check).toMatchObject({ noneVisible: true, added: true, missing: drMcpAllowedTools(mode) });
+      expect(launch.args[0]).toBe("--agents");
+      const definition = JSON.parse(launch.args[1])["dr-architect"];
+      expect(definition.prompt).toBe("Old body");
+      expect(definition.tools).toEqual(["Bash", "Read", ...drMcpAllowedTools(mode)]);
+    }
+    // Danger mode has no allowlist, but the agent's tools field still limits it: every dr tool is added.
+    const danger = await prepareDrBotAgent(root, "danger", at(noHome()));
+    expect(JSON.parse(danger.args[1])["dr-architect"].tools).toContain("mcp__dr__changeset_create");
+  });
+
+  it("adds only the tools a partly current copy leaves out", async () => {
+    const root = join(scratch, "prepare-partial");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    const listed = drMcpAllowedTools("read-safe").filter((rule) => rule !== "mcp__dr__model_trace");
+    await writeFile(
+      join(root, ".claude", "agents", "dr-architect.md"),
+      `---\nname: dr-architect\ndescription: Partial\ntools: ${["Bash", ...listed].join(", ")}\n---\nbody\n`
+    );
+    const launch = await prepareDrBotAgent(root, "read-safe", at(noHome()));
+    expect(launch.check).toMatchObject({ noneVisible: false, added: true, missing: ["mcp__dr__model_trace"] });
+    expect(JSON.parse(launch.args[1])["dr-architect"].tools).toEqual(["Bash", ...listed, "mcp__dr__model_trace"]);
+  });
+
+  it("passes nothing for an installed copy that already lists every tool", async () => {
+    const root = join(scratch, "prepare-current");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    await writeFile(join(root, ".claude", "agents", "dr-architect.md"), await readFile(BUNDLED_AGENT, "utf8"));
+    expect(await prepareDrBotAgent(root, "changesets", at(noHome()))).toEqual({
+      agent: { path: join(root, ".claude", "agents", "dr-architect.md"), source: "project" },
+      args: [],
+      check: null,
+    });
+  });
+
+  it("leaves an installed copy it can't pass (no description) in charge and checks it", async () => {
     const root = join(scratch, "prepare-installed");
     await mkdir(join(root, ".claude", "agents"), { recursive: true });
     await writeFile(join(root, ".claude", "agents", "dr-architect.md"), "---\nname: dr-architect\ntools: Bash\n---\nbody\n");
@@ -522,6 +600,7 @@ describe("prepareDrBotAgent", () => {
     expect(launch.args).toEqual([]);
     expect(launch.agent?.source).toBe("project");
     expect(launch.check?.noneVisible).toBe(true);
+    expect(launch.check?.added).toBeUndefined();
     expect(launch.check?.error).toBeUndefined();
   });
 });
