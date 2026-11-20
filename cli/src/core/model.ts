@@ -436,8 +436,9 @@ export class Model {
       let parseErrorCount = 0;
       const fileRecords = new Map<string, LayerFileRecord>();
 
-      // Load all YAML files in the layer directory (any letter case of the extension)
-      const files = await fs.readdir(layerPath);
+      // Load all YAML files in the layer directory (any letter case of the extension), in name order:
+      // readdir's order depends on the filesystem, and a layer's elements are listed in load order.
+      const files = (await fs.readdir(layerPath)).sort();
       for (const file of files) {
         if (YAML_FILE.test(file)) {
           const filePath = `${layerPath}/${file}`;

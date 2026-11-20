@@ -219,6 +219,9 @@ byLayer}` in place of `orphanedElements`.
   `dr visualize` in a project no longer replaces a live viewer's registry record, and stale records
   are swept whenever the registry is read (#1237). Tests for the custom viewer take allocated ports
   and wait for their servers (#1236).
+- **A layer's elements were listed in the filesystem's order**, which differs between machines
+  (macOS returns file names sorted, Linux filesystems often don't). Layer files now load in name
+  order, so `model_list`, `dr list` and every other listing give the same order everywhere.
 
 ## [0.6.0] - 2026-11-19
 
