@@ -1,0 +1,1007 @@
+- type: add
+  elementId: application.applicationfunction.compact-intent
+  layerName: application
+  after:
+    id: a303a922-e040-43b6-8602-c9b8c8f82df3
+    path: application.applicationfunction.compact-intent
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compactIntent
+    description: "The intent section's compact form: counts always, the untraced and
+      unanchored elements listed (per type with the first ids when the list is
+      long), traced elements as lines only when there are few, elements whose
+      type has no catalog route to intent counted apart, and a note when nothing
+      was traced because every change is an intent element."
+    metadata:
+      created_at: 2026-11-20T16:31:14.121Z
+      updated_at: 2026-11-20T16:31:14.121Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: compactIntent
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.has-catalog-route-to-intent
+  layerName: application
+  after:
+    id: 4785a996-f184-4f4a-91f6-1869364011d4
+    path: application.applicationfunction.has-catalog-route-to-intent
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: hasCatalogRouteToIntent
+    description: Whether the relationship catalog defines any relationship between a
+      node type and a motivation, business or product type. A type without one
+      can trace to intent only through a neighbour.
+    metadata:
+      created_at: 2026-11-20T16:31:14.130Z
+      updated_at: 2026-11-20T16:31:14.130Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-analysis.ts
+          symbol: hasCatalogRouteToIntent
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 2
+- type: add
+  elementId: data-model.objectschema.compact-intent
+  layerName: data-model
+  after:
+    id: e1f3021e-590b-4eb6-a790-12d543a43103
+    path: data-model.objectschema.compact-intent
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: CompactIntent
+    description: "The intent section as the compact brief and sections return it:
+      counts, untraced ids or untraced by type, unanchored lines, traced lines
+      when few, noCatalogRoute by type, and a note."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:14.130Z
+      updated_at: 2026-11-20T16:31:14.130Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: CompactIntent
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 3
+- type: add
+  elementId: data-model.objectschema.compact-layer-change
+  layerName: data-model
+  after:
+    id: 7a6b69e3-6ee1-4152-8570-49f4b9a01bf0
+    path: data-model.objectschema.compact-layer-change
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: CompactLayerChange
+    description: "A changed element in the compact layers section: its type, name,
+      description, attributes and changed fields, with changed connections as
+      lines and every other connection counted per direction, predicate and
+      other layer."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:14.138Z
+      updated_at: 2026-11-20T16:31:14.138Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: CompactLayerChange
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: application.applicationfunction.compact-intent::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-intent
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.has-catalog-route-to-intent::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.has-catalog-route-to-intent
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.compact-intent::accesses::data-model.objectschema.compact-intent
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-intent
+    target: data-model.objectschema.compact-intent
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.compact-brief::depends-on::application.applicationfunction.compact-intent
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-brief
+    target: application.applicationfunction.compact-intent
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.compact-intent
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: application.applicationfunction.compact-intent
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationfunction.build-brief::depends-on::application.applicationfunction.has-catalog-route-to-intent
+  layerName: application
+  after:
+    source: application.applicationfunction.build-brief
+    target: application.applicationfunction.has-catalog-route-to-intent
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.compact-layer-change
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: data-model.objectschema.compact-layer-change
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:14.176Z
+  sequenceNumber: 15
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+        connections, intent trace, code touched, feedback, drift, 'since'
+        deltas). Also the build's input."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input. Compact by default; sections returns the named
+      sections in a compact form within a 40 KB budget, saying what was cut and
+      how to get it; detail: \"full\" returns everything, or the named sections
+      in full. Intent traces a part through the whole that composes it and
+      counts types with no catalog route to intent apart from untraced."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+        connections, intent trace, code touched, feedback, drift, 'since'
+        deltas). Also the build's input. Compact by default; sections returns
+        the named sections in a compact form within a 40 KB budget, saying what
+        was cut and how to get it; detail: \"full\" returns everything, or the
+        named sections in full. Intent traces a part through the whole that
+        composes it and counts types with no catalog route to intent apart from
+        untraced."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T16:31:25.003Z
+  sequenceNumber: 16
+- type: update
+  elementId: application.applicationfunction.brief-sections
+  layerName: application
+  before:
+    id: 33ff177a-765d-41a2-8f4c-34dcae0e41c8
+    path: application.applicationfunction.brief-sections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: briefSections
+    description: Only the named sections, each in full, under a small header.
+    source_reference: &a3
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: briefSections
+    metadata: &a4
+      created_at: 2026-11-20T15:07:07.581Z
+      updated_at: 2026-11-20T15:07:07.581Z
+      version: 1
+  after:
+    id: 33ff177a-765d-41a2-8f4c-34dcae0e41c8
+    path: application.applicationfunction.brief-sections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: briefSections
+    description: "Only the named sections under a small header, each in its compact
+      form and together within a size budget: a section that does not fit falls
+      back to a summary or is cut, and the result says what was cut and how to
+      get it. With full, each section as the full brief has it, with no budget."
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T16:31:25.533Z
+  sequenceNumber: 17
+- type: update
+  elementId: data-model.objectschema.intent-trace
+  layerName: data-model
+  before:
+    id: 3710d73b-b71b-493e-9b3a-1dc2b65185c2
+    path: data-model.objectschema.intent-trace
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: IntentTrace
+    description: A changed element that reaches intent, and how.
+    attributes: &a5
+      type: object
+    source_reference: &a6
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-analysis.ts
+          symbol: IntentTrace
+    metadata: &a7
+      created_at: 2026-11-20T15:07:38.103Z
+      updated_at: 2026-11-20T15:07:38.103Z
+      version: 1
+  after:
+    id: 3710d73b-b71b-493e-9b3a-1dc2b65185c2
+    path: data-model.objectschema.intent-trace
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: IntentTrace
+    description: "A changed element that reaches intent, and how: by its own walk,
+      or through the whole that composes or aggregates it."
+    attributes: *a5
+    source_reference: *a6
+    metadata: *a7
+  timestamp: 2026-11-20T16:31:26.090Z
+  sequenceNumber: 18
+- type: update
+  elementId: data-model.objectschema.sections-brief
+  layerName: data-model
+  before:
+    id: 4c3ea170-3e03-41d0-a49e-53be687c1922
+    path: data-model.objectschema.sections-brief
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsBrief
+    description: A brief of named sections only
+    attributes: &a8
+      type: object
+    source_reference: &a9
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionsBrief
+    metadata: &a10
+      created_at: 2026-11-20T15:07:38.103Z
+      updated_at: 2026-11-20T15:07:38.103Z
+      version: 1
+  after:
+    id: 4c3ea170-3e03-41d0-a49e-53be687c1922
+    path: data-model.objectschema.sections-brief
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsBrief
+    description: "A brief of named sections only: a small header, then each section
+      in its compact form (or in full, when asked), with what was cut to stay
+      within the size budget."
+    attributes: *a8
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-20T16:31:26.626Z
+  sequenceNumber: 19
+- type: add
+  elementId: data-model.objectschema.ids-by-type
+  layerName: data-model
+  after:
+    id: 4c25d332-4f60-42bb-9353-f2b0aff26320
+    path: data-model.objectschema.ids-by-type
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: IdsByType
+    description: "Ids of one layer.type: how many, and the first of them."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:47:09.779Z
+      updated_at: 2026-11-20T16:47:09.779Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: IdsByType
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 20
+- type: add
+  elementId: data-model.objectschema.compact-code-file
+  layerName: data-model
+  after:
+    id: 12ec4a2e-532b-45d1-9f2f-7c1d5827f1d2
+    path: data-model.objectschema.compact-code-file
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: CompactCodeFile
+    description: "A touched file in the compact codeTouched section: its changed
+      elements and a count of the existing elements next to the change."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:47:09.780Z
+      updated_at: 2026-11-20T16:47:09.780Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: CompactCodeFile
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 21
+- type: add
+  elementId: data-model.objectschema.unwired-by-type
+  layerName: data-model
+  after:
+    id: 406dbbcc-231e-4f29-83aa-7c08af3422b2
+    path: data-model.objectschema.unwired-by-type
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: UnwiredByType
+    description: "Unwired connections per element type, for more elements than are
+      worth listing one by one: each connection with how many elements lack it."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:47:09.780Z
+      updated_at: 2026-11-20T16:47:09.780Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: UnwiredByType
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 22
+- type: add
+  elementId: data-model.objectschema.sections-options
+  layerName: data-model
+  after:
+    id: 48c2d87c-7262-4b11-ad33-cdbc0e88131a
+    path: data-model.objectschema.sections-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsOptions
+    description: "How briefSections renders: the delta, the filter, full or compact,
+      the offset into changes and layers, the size budget and how bytes are
+      measured."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:47:09.780Z
+      updated_at: 2026-11-20T16:47:09.780Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionsOptions
+  timestamp: 2026-11-20T16:58:06.102Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: application.applicationfunction.compact-intent::accesses::data-model.objectschema.ids-by-type
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-intent
+    target: data-model.objectschema.ids-by-type
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:47:09.815Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.compact-code-file
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: data-model.objectschema.compact-code-file
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:47:09.815Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.unwired-by-type
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: data-model.objectschema.unwired-by-type
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:47:09.815Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.sections-options
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: data-model.objectschema.sections-options
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:47:09.815Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: application.applicationfunction.compact-intent::accesses::data-model.objectschema.changeset-brief
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-intent
+    target: data-model.objectschema.changeset-brief
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:58:29.141Z
+  sequenceNumber: 38
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input. Compact by default; sections returns the named
+      sections in a compact form within a 40 KB budget, saying what was cut and
+      how to get it; detail: \"full\" returns everything, or the named sections
+      in full. Intent traces a part through the whole that composes it and
+      counts types with no catalog route to intent apart from untraced."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+        connections, intent trace, code touched, feedback, drift, 'since'
+        deltas). Also the build's input. Compact by default; sections returns
+        the named sections in a compact form within a 40 KB budget, saying what
+        was cut and how to get it; detail: \"full\" returns everything, or the
+        named sections in full. Intent traces a part through the whole that
+        composes it and counts types with no catalog route to intent apart from
+        untraced."
+    source_reference: &a11
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a12
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input. Compact by default; sections returns the named
+      sections in a compact form, a long list a page at a time with its true
+      total and the call for the next page (offset, limit; page sizes default to
+      a 40 KB target the caller can change); detail: \"full\" returns
+      everything, or the named sections in full. Intent traces a part through
+      the whole that composes it and counts types with no catalog route to
+      intent apart from untraced."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+        connections, intent trace, code touched, feedback, drift, 'since'
+        deltas). Also the build's input. Compact by default; sections returns
+        the named sections in a compact form, a long list a page at a time with
+        its true total and the call for the next page (offset, limit; page sizes
+        default to a 40 KB target the caller can change); detail: \"full\"
+        returns everything, or the named sections in full. Intent traces a part
+        through the whole that composes it and counts types with no catalog
+        route to intent apart from untraced."
+    source_reference: *a11
+    metadata: *a12
+  timestamp: 2026-11-20T17:16:20.901Z
+  sequenceNumber: 46
+- type: update
+  elementId: application.applicationfunction.brief-sections
+  layerName: application
+  before:
+    id: 33ff177a-765d-41a2-8f4c-34dcae0e41c8
+    path: application.applicationfunction.brief-sections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: briefSections
+    description: "Only the named sections under a small header, each in its compact
+      form and together within a size budget: a section that does not fit falls
+      back to a summary or is cut, and the result says what was cut and how to
+      get it. With full, each section as the full brief has it, with no budget."
+    source_reference: &a13
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: briefSections
+    metadata: &a14
+      created_at: 2026-11-20T15:07:07.581Z
+      updated_at: 2026-11-20T15:07:07.581Z
+      version: 1
+  after:
+    id: 33ff177a-765d-41a2-8f4c-34dcae0e41c8
+    path: application.applicationfunction.brief-sections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: briefSections
+    description: Only the named sections under a small header, each in its compact
+      form. Every list section reports its true total and how many items the
+      answer holds; a list too long for the size target comes a page at a time,
+      with a summary of the whole and the call for the next page. With full,
+      each section as the full brief has it, whatever its size.
+    source_reference: *a13
+    metadata: *a14
+  timestamp: 2026-11-20T17:16:24.316Z
+  sequenceNumber: 47
+- type: update
+  elementId: data-model.objectschema.sections-brief
+  layerName: data-model
+  before:
+    id: 4c3ea170-3e03-41d0-a49e-53be687c1922
+    path: data-model.objectschema.sections-brief
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsBrief
+    description: "A brief of named sections only: a small header, then each section
+      in its compact form (or in full, when asked), with what was cut to stay
+      within the size budget."
+    attributes: &a15
+      type: object
+    source_reference: &a16
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionsBrief
+    metadata: &a17
+      created_at: 2026-11-20T15:07:38.103Z
+      updated_at: 2026-11-20T15:07:38.103Z
+      version: 1
+  after:
+    id: 4c3ea170-3e03-41d0-a49e-53be687c1922
+    path: data-model.objectschema.sections-brief
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsBrief
+    description: "A brief of named sections only: a small header, then each section
+      in its compact form (or in full, when asked), with a page entry per list
+      section giving its total, how many items were returned and the call for
+      the next page."
+    attributes: *a15
+    source_reference: *a16
+    metadata: *a17
+  timestamp: 2026-11-20T17:16:26.362Z
+  sequenceNumber: 48
+- type: add
+  elementId: motivation.requirement.a-limit-never-hides-part-of-an-answer
+  layerName: motivation
+  after:
+    id: fc5f8bf1-1a9d-45a8-b144-6b04526f0fda
+    path: motivation.requirement.a-limit-never-hides-part-of-an-answer
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A limit never hides part of an answer
+    description: "A count or size limit in a changeset_brief or changeset_impact
+      answer is a default the caller can change, never a silent cut-off. A list
+      too long for one tool result comes a page at a time, with its true total,
+      how many items the answer holds and the call for the next page; counts and
+      summaries are over the whole list, not the page. No answer reads as
+      complete when it is not (#1183, #1232)."
+    attributes:
+      requirementType: non-functional
+      priority: high
+      documentation: "A count or size limit in a changeset_brief or changeset_impact
+        answer is a default the caller can change, never a silent cut-off. A
+        list too long for one tool result comes a page at a time, with its true
+        total, how many items the answer holds and the call for the next page;
+        counts and summaries are over the whole list, not the page. No answer
+        reads as complete when it is not (#1183, #1232)."
+    metadata:
+      created_at: 2026-11-20T17:16:47.878Z
+      updated_at: 2026-11-20T17:16:47.878Z
+      version: 1
+  timestamp: 2026-11-20T17:16:47.935Z
+  sequenceNumber: 52
+- type: relationship-add
+  elementId: motivation.requirement.a-limit-never-hides-part-of-an-answer::realizes::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-limit-never-hides-part-of-an-answer
+    target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T17:16:47.935Z
+  sequenceNumber: 53
+- type: relationship-add
+  elementId: product.feature.changeset-brief::satisfies::motivation.requirement.a-limit-never-hides-part-of-an-answer
+  layerName: product
+  after:
+    source: product.feature.changeset-brief
+    target: motivation.requirement.a-limit-never-hides-part-of-an-answer
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T17:16:47.935Z
+  sequenceNumber: 54
+- type: add
+  elementId: data-model.objectschema.sections-page
+  layerName: data-model
+  after:
+    id: e3104aa9-d990-4d4d-960f-27ca8fd7cd0e
+    path: data-model.objectschema.sections-page
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsPage
+    description: "Where a sections answer sits in its lists: one offset for every
+      list, each list's true total and how many items the answer holds, the next
+      offset while any list has more, and a summary of each section the answer
+      holds only part of."
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionsPage
+    metadata:
+      created_at: 2026-11-20T17:44:47.569Z
+      updated_at: 2026-11-20T17:44:47.569Z
+      version: 1
+  timestamp: 2026-11-20T17:44:47.602Z
+  sequenceNumber: 56
+- type: add
+  elementId: application.applicationfunction.delta-lists
+  layerName: application
+  after:
+    id: 94c2a331-5d92-405a-bd99-2926e9b55d00
+    path: application.applicationfunction.delta-lists
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: deltaLists
+    description: The delta's lists that page (elements, relationships, accepted
+      gaps, intent), by the name the page totals and the delta's counts give
+      them.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: deltaLists
+    metadata:
+      created_at: 2026-11-20T17:44:47.569Z
+      updated_at: 2026-11-20T17:44:47.569Z
+      version: 1
+  timestamp: 2026-11-20T17:44:47.602Z
+  sequenceNumber: 57
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.sections-page
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: data-model.objectschema.sections-page
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:44:47.602Z
+  sequenceNumber: 58
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.delta-lists
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: application.applicationfunction.delta-lists
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:44:47.602Z
+  sequenceNumber: 59
+- type: relationship-add
+  elementId: application.applicationfunction.compact-brief::depends-on::application.applicationfunction.delta-lists
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-brief
+    target: application.applicationfunction.delta-lists
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:44:47.602Z
+  sequenceNumber: 60
+- type: relationship-add
+  elementId: application.applicationfunction.delta-lists::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.delta-lists
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:44:47.602Z
+  sequenceNumber: 61
+- type: update
+  elementId: application.applicationfunction.brief-sections
+  layerName: application
+  before:
+    id: 33ff177a-765d-41a2-8f4c-34dcae0e41c8
+    path: application.applicationfunction.brief-sections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: briefSections
+    description: Only the named sections under a small header, each in its compact
+      form. Every list section reports its true total and how many items the
+      answer holds; a list too long for the size target comes a page at a time,
+      with a summary of the whole and the call for the next page. With full,
+      each section as the full brief has it, whatever its size.
+    source_reference: &a18
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: briefSections
+    metadata: &a19
+      created_at: 2026-11-20T15:07:07.581Z
+      updated_at: 2026-11-20T15:07:07.581Z
+      version: 1
+  after:
+    id: 33ff177a-765d-41a2-8f4c-34dcae0e41c8
+    path: application.applicationfunction.brief-sections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: briefSections
+    description: "Only the named sections under a small header, each in its compact
+      form. Every list in the answer is the same page (limit items from offset):
+      the answer's page has each list's true total and how many items it holds,
+      and the next offset while any list has more. Without a limit the page is
+      as long as keeps the answer near the size target. With full, each section
+      as the full brief has it, whatever its size."
+    source_reference: *a18
+    metadata: *a19
+  timestamp: 2026-11-20T17:44:48.074Z
+  sequenceNumber: 62
+- type: update
+  elementId: data-model.objectschema.sections-brief
+  layerName: data-model
+  before:
+    id: 4c3ea170-3e03-41d0-a49e-53be687c1922
+    path: data-model.objectschema.sections-brief
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsBrief
+    description: "A brief of named sections only: a small header, then each section
+      in its compact form (or in full, when asked), with a page entry per list
+      section giving its total, how many items were returned and the call for
+      the next page."
+    attributes: &a20
+      type: object
+    source_reference: &a21
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionsBrief
+    metadata: &a22
+      created_at: 2026-11-20T15:07:38.103Z
+      updated_at: 2026-11-20T15:07:38.103Z
+      version: 1
+  after:
+    id: 4c3ea170-3e03-41d0-a49e-53be687c1922
+    path: data-model.objectschema.sections-brief
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SectionsBrief
+    description: "A brief of named sections only: a small header, then each section
+      in its compact form (or in full, when asked), with a page giving each
+      list's total, how many items were returned and the next offset."
+    attributes: *a20
+    source_reference: *a21
+    metadata: *a22
+  timestamp: 2026-11-20T17:44:48.558Z
+  sequenceNumber: 63
+- type: update
+  elementId: data-model.objectschema.intent-trace
+  layerName: data-model
+  before:
+    id: 3710d73b-b71b-493e-9b3a-1dc2b65185c2
+    path: data-model.objectschema.intent-trace
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: IntentTrace
+    description: "A changed element that reaches intent, and how: by its own walk,
+      or through the whole that composes or aggregates it."
+    attributes: &a23
+      type: object
+    source_reference: &a24
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-analysis.ts
+          symbol: IntentTrace
+    metadata: &a25
+      created_at: 2026-11-20T15:07:38.103Z
+      updated_at: 2026-11-20T15:07:38.103Z
+      version: 1
+  after:
+    id: 3710d73b-b71b-493e-9b3a-1dc2b65185c2
+    path: data-model.objectschema.intent-trace
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: IntentTrace
+    description: "A changed element that reaches intent, and how: by its own walk,
+      or carried by the whole that composes or aggregates it, or by what it
+      realizes, hub or not."
+    attributes: *a23
+    source_reference: *a24
+    metadata: *a25
+  timestamp: 2026-11-20T18:12:41.622Z
+  sequenceNumber: 64
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input. Compact by default; sections returns the named
+      sections in a compact form, a long list a page at a time with its true
+      total and the call for the next page (offset, limit; page sizes default to
+      a 40 KB target the caller can change); detail: \"full\" returns
+      everything, or the named sections in full. Intent traces a part through
+      the whole that composes it and counts types with no catalog route to
+      intent apart from untraced."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+        connections, intent trace, code touched, feedback, drift, 'since'
+        deltas). Also the build's input. Compact by default; sections returns
+        the named sections in a compact form, a long list a page at a time with
+        its true total and the call for the next page (offset, limit; page sizes
+        default to a 40 KB target the caller can change); detail: \"full\"
+        returns everything, or the named sections in full. Intent traces a part
+        through the whole that composes it and counts types with no catalog
+        route to intent apart from untraced."
+    source_reference: &a26
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a27
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+      connections, intent trace, code touched, feedback, drift, 'since' deltas).
+      Also the build's input. Compact by default; sections returns the named
+      sections in a compact form, every list a page with its true total and the
+      next offset (offset, limit; the page is sized to a 40 KB target the caller
+      can change); detail: \"full\" returns everything, or the named sections in
+      full. Intent traces a part through the whole that composes it and an
+      element through what it realizes, names the walk's bounds and what the hub
+      rule leaves untraced, and counts types with no catalog route to intent
+      apart from untraced."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_brief (changes by layer, reach, gaps, unwired
+        connections, intent trace, code touched, feedback, drift, 'since'
+        deltas). Also the build's input. Compact by default; sections returns
+        the named sections in a compact form, every list a page with its true
+        total and the next offset (offset, limit; the page is sized to a 40 KB
+        target the caller can change); detail: \"full\" returns everything, or
+        the named sections in full. Intent traces a part through the whole that
+        composes it and an element through what it realizes, names the walk's
+        bounds and what the hub rule leaves untraced, and counts types with no
+        catalog route to intent apart from untraced."
+    source_reference: *a26
+    metadata: *a27
+  timestamp: 2026-11-20T18:12:42.207Z
+  sequenceNumber: 65
+- type: relationship-add
+  elementId: application.applicationfunction.delta-lists::accesses::data-model.objectschema.brief-delta
+  layerName: application
+  after:
+    source: application.applicationfunction.delta-lists
+    target: data-model.objectschema.brief-delta
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:21:21.110Z
+  sequenceNumber: 66

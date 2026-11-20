@@ -13,9 +13,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
-import { mkdir as mkdirAsync, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir as mkdirAsync, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Model } from "../../src/core/model.js";
@@ -36,6 +37,7 @@ import { collectExtraction, extractionConfigFrom } from "../../src/analyzers/car
 import type { CardGraph, GraphNode } from "../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../src/analyzers/types.js";
+import { BUILD_FILE_LIMIT } from "../../src/core/build-evidence.js";
 
 
 const HEAD = "1111111111111111111111111111111111111111";
@@ -244,9 +246,300 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect(report.elements.unverifiable.map((u: any) => u.planned).sort()).toEqual(["product.feature.format-strings", "product.feature.trim-strings"]);
     expect(report.sourceReferences.missing).toEqual([]);
     expect(report.sourceReferences.unreferenced).toEqual([{ planned: "product.feature.format-strings", result: "unverifiable" }]);
-    expect(report.sourceReferences.next).toContain("model_update");
-    expect(report.sourceReferences.next).toContain('sourceProvenance: "manual"');
-    expect(report.sourceReferences.next).not.toContain("changeset_adopt_source_references");
+    // No as-built match to copy from: the agent confirms the file and passes it in references.
+    expect(report.sourceReferences.next).toContain("changeset_adopt_source_references in references ({id, sourceFile, sourceSymbol})");
+
+    // The reference the agent confirmed in the code is staged onto the plan (#1159). A path that is
+    // not a file, an element the plan doesn't stage, and a second reference for one element are not.
+    await mkdirAsync(join(rootPath, "src", "util"), { recursive: true });
+    await writeFile(join(rootPath, HELPERS_FILE), "public class Helpers {\n}\n");
+    const adopted = ok(
+      await changesetAdoptSourceReferencesHandler({
+        changeset: "add-helpers",
+        against: { changeset: "add-helpers-as-built" },
+        references: [
+          { id: "product.feature.format-strings", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers.format" },
+          { id: "product.feature.format-strings", sourceFile: HELPERS_FILE },
+          { id: "product.feature.trim-strings", sourceFile: "src/util/Missing.java" },
+          { id: "product.feature.nope", sourceFile: HELPERS_FILE },
+        ],
+        rootPath,
+      })
+    );
+    expect(adopted.confirmed).toEqual([
+      { planned: "product.feature.format-strings", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers.format" }] } },
+    ]);
+    expect(adopted.skipped.map((k: any) => [k.planned, k.reason.split(":")[0]])).toEqual([
+      ["product.feature.format-strings", "named twice in references"],
+      ["product.feature.trim-strings", "src/util/Missing.java is not a file under the codebase root"],
+      ["product.feature.nope", "the plan stages no add or update of this element to carry the reference"],
+    ]);
+    expect(adopted.next).toContain("Set the confirmed source reference of 1 element(s)");
+    const { manager: m } = await manager();
+    const plan = (await m.load("add-helpers"))!;
+    const add = plan.changes.find((c) => c.type === "add" && String(c.elementId).includes("format-strings"))!;
+    expect(stagedSourceReference(add.after as any)).toEqual({ provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers.format" }] });
+    // Once it has a reference it is no longer listed as unreferenced.
+    clearModelCache();
+    const after = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-helpers", against: { changeset: "add-helpers-as-built" }, rootPath }));
+    expect(after.sourceReferences).toBeUndefined();
+  }, 120_000);
+
+  it("lists the build's files that may hold an unreferenced planned add, from the range the as-built changeset read (#1159)", async () => {
+    // The build, in git: one commit on main, then the feature's file on a branch.
+    const git = (...args: string[]) => spawnSync("git", args, { cwd: rootPath, stdio: "pipe" });
+    git("init", "-q", "-b", "main");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test");
+    await writeFile(join(rootPath, "README.md"), "# project\n");
+    git("add", "README.md");
+    git("commit", "-q", "-m", "base");
+    git("checkout", "-q", "-b", "feature");
+    await mkdirAsync(join(rootPath, "src", "core"), { recursive: true });
+    await writeFile(join(rootPath, "src", "core", "commit-confirmation-token.ts"), "export function issueToken() {}\n");
+    await writeFile(join(rootPath, "src", "core", "model.ts"), "export class Model {}\n");
+    // More changed files than verify searches: the verdict must say not all were read.
+    await mkdirAsync(join(rootPath, "src", "gen"), { recursive: true });
+    for (let i = 0; i < BUILD_FILE_LIMIT; i++) await writeFile(join(rootPath, "src", "gen", `f${String(i).padStart(4, "0")}.ts`), `export const v${i} = ${i};\n`);
+    git("add", "src");
+    git("commit", "-q", "-m", "build");
+
+    const plan = ok(await changesetCreateHandler({ name: "add-token", description: "Confirm a commit with a token.", rootPath }));
+    ok(await modelAddHandler({ layer: "product", type: "feature", name: "Commit confirmation token", attributes: { priority: "medium", status: "planned" }, rootPath } as any));
+    // A planned function the build never wrote: missing.
+    ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "revokeToken", rootPath } as any));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const first = ok(await extract({ changeset: "add-token-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-token-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    const asBuilt = ok(await extract({ changeset: "add-token-as-built" }));
+    // The as-built changeset is the plan's verification record, read from the range since main.
+    const { manager: m } = await manager();
+    await m.declarePurpose(asBuilt.changeset.id, { purpose: "verification", verifies: plan.id, scope: { since: "main" } });
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-token", against: { changeset: "add-token-as-built" }, rootPath }));
+    // Extraction never reads a feature, so nothing matches it; the file named after it is offered.
+    // The planned function the build never wrote is unreferenced too, with no file to offer.
+    expect(report.sourceReferences.unreferenced).toContainEqual({ planned: "application.applicationfunction.revoke-token", result: "missing" });
+    expect(report.sourceReferences.unreferenced.filter((u: any) => u.planned.startsWith("product."))).toEqual([
+      {
+        planned: "product.feature.commit-confirmation-token",
+        result: "unverifiable",
+        candidates: [{ file: "src/core/commit-confirmation-token.ts", evidence: "file-name" }],
+      },
+    ]);
+    expect(report.sourceReferences.next).toContain("each with the build's files that may hold its code as candidates");
+    // Missing, and the files it was looked for in were not all read: the verdict says so.
+    expect(report.elements.missing.map((m: any) => m.planned)).toEqual(["application.applicationfunction.revoke-token"]);
+    expect(report.verdictText).toContain("Not every file of the build was searched for the missing elements");
+    expect(report.verdictText).toContain(`the first ${BUILD_FILE_LIMIT}`);
+    // The compact report carries it on the element's line.
+    const compact = ok(await changesetVerifyHandler({ changeset: "add-token", against: { changeset: "add-token-as-built" }, rootPath }));
+    expect(compact.sourceReferences.unreferenced).toContain(
+      "product.feature.commit-confirmation-token (unverifiable): may be src/core/commit-confirmation-token.ts (file-name)"
+    );
+  }, 120_000);
+
+  it("stores a confirmed reference as a file path relative to the root, with provenance manual (#1159 review)", async () => {
+    ok(await changesetCreateHandler({ name: "add-helpers", description: "Add the string helpers.", rootPath }));
+    const feature = { layer: "product", type: "feature", attributes: { priority: "medium", status: "planned" }, rootPath };
+    ok(await modelAddHandler({ ...feature, name: "absolute" } as any));
+    ok(await modelAddHandler({ ...feature, name: "dotted" } as any));
+    ok(await modelAddHandler({ ...feature, name: "folder" } as any));
+    ok(await modelAddHandler({ ...feature, name: "outside" } as any));
+    // Already sourced, by inference: the confirmed location is added and the reference becomes manual.
+    ok(await modelAddHandler({ ...feature, name: "inferred", sourceFile: "src/util", sourceProvenance: "inferred" } as any));
+    ok(await modelAddHandler({ ...feature, name: "same", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers", sourceProvenance: "manual" } as any));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    ok(await changesetCreateHandler({ name: "add-helpers-as-built", rootPath }));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    await mkdirAsync(join(rootPath, "src", "util"), { recursive: true });
+    await writeFile(join(rootPath, HELPERS_FILE), "public class Helpers {\n}\n");
+    clearModelCache();
+
+    const result = ok(
+      await changesetAdoptSourceReferencesHandler({
+        changeset: "add-helpers",
+        against: { changeset: "add-helpers-as-built" },
+        references: [
+          { id: "product.feature.absolute", sourceFile: join(rootPath, HELPERS_FILE), sourceSymbol: "Helpers" },
+          { id: "product.feature.dotted", sourceFile: "src/../src/util/./Helpers.java" },
+          { id: "product.feature.folder", sourceFile: "src/util" },
+          { id: "product.feature.outside", sourceFile: "../elsewhere/Helpers.java" },
+          { id: "product.feature.inferred", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers" },
+          { id: "product.feature.same", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers" },
+        ],
+        rootPath,
+      })
+    );
+    // An absolute path inside the root and a path with `..` are stored as the model keeps paths.
+    expect(result.confirmed).toEqual([
+      { planned: "product.feature.absolute", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers" }] } },
+      { planned: "product.feature.dotted", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE }] } },
+      {
+        planned: "product.feature.inferred",
+        reference: { provenance: "manual", locations: [{ file: "src/util" }, { file: HELPERS_FILE, symbol: "Helpers" }] },
+      },
+    ]);
+    expect(result.skipped.map((k: any) => [k.planned, k.reason.split(":")[0]])).toEqual([
+      ["product.feature.folder", "src/util is a folder, not a file"],
+      ["product.feature.outside", "../elsewhere/Helpers.java is not a file under the codebase root"],
+      ["product.feature.same", `it already names ${HELPERS_FILE}#Helpers`],
+    ]);
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 3, skipped: 3, unknownIds: 0 });
+    expect(result.total).toBe(6);
+
+    // A second call with the same references adds nothing: no location is listed twice.
+    const again = ok(
+      await changesetAdoptSourceReferencesHandler({
+        changeset: "add-helpers",
+        against: { changeset: "add-helpers-as-built" },
+        references: [
+          { id: "product.feature.absolute", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers" },
+          { id: "product.feature.dotted", sourceFile: HELPERS_FILE },
+          { id: "product.feature.inferred", sourceFile: HELPERS_FILE },
+        ],
+        rootPath,
+      })
+    );
+    expect(again.counts).toMatchObject({ confirmed: 0, skipped: 3 });
+    expect(again.skipped.every((k: any) => k.reason.startsWith("it already names"))).toBe(true);
+
+    // A link inside the root that points outside it is refused like the file it points to.
+    await symlink("/etc/hosts", join(rootPath, "src", "util", "link.java"));
+    const linked = ok(
+      await changesetAdoptSourceReferencesHandler({
+        changeset: "add-helpers",
+        against: { changeset: "add-helpers-as-built" },
+        references: [{ id: "product.feature.folder", sourceFile: "src/util/link.java" }],
+        rootPath,
+      })
+    );
+    expect(linked.counts).toMatchObject({ confirmed: 0, skipped: 1 });
+    expect(linked.skipped[0].reason).toContain("is not a file under the codebase root");
+  }, 120_000);
+
+  it("reports a planned element the code registers by a name string as unverifiable, not missing (#1226)", async () => {
+    // The build: an MCP server that registers its tools by name. No symbol is called diff_set.
+    await mkdirAsync(join(rootPath, "src"), { recursive: true });
+    await writeFile(
+      join(rootPath, "src", "server.ts"),
+      'export function registerTools(server: Server) {\n  server.registerTool("diff_set", diffSetHandler);\n  server.registerTool("grid_lookup", lookup);\n  track("AuditLog");\n}\n'
+    );
+    ok(await changesetCreateHandler({ name: "add-tools", description: "Add the diff_set and merge_set tools.", rootPath }));
+    const service = { layer: "application", type: "applicationservice", attributes: { serviceType: "synchronous" }, rootPath };
+    // Registered by name in the build.
+    ok(await modelAddHandler({ ...service, name: "diff_set", sourceFile: "src/server.ts", sourceSymbol: "diff_set", sourceProvenance: "manual" } as any));
+    // Planned and never built: the file doesn't name it.
+    ok(await modelAddHandler({ ...service, name: "merge_set", sourceFile: "src/server.ts", sourceSymbol: "merge_set", sourceProvenance: "manual" } as any));
+    // A planned class that was never written: the build only quotes its name. A component is
+    // declared, not registered, so the quoted name is no evidence for it.
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "AuditLog",
+        attributes: { type: "internal" },
+        sourceFile: "src/server.ts",
+        sourceSymbol: "AuditLog",
+        sourceProvenance: "manual",
+        rootPath,
+      } as any)
+    );
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const first = ok(await extract({ changeset: "add-tools-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-tools-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    ok(await extract({ changeset: "add-tools-as-built" }));
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-tools", against: { changeset: "add-tools-as-built" }, rootPath }));
+    expect(report.elements.unverifiable.map((u: any) => u.planned)).toEqual(["application.applicationservice.diff-set"]);
+    expect(report.elements.unverifiable[0].reason).toContain(
+      'it may be registered by name: the build names it only as a string ("diff_set", an argument of a call at src/server.ts:2)'
+    );
+    expect(report.elements.unverifiable[0].registeredByName).toEqual({ file: "src/server.ts", string: "diff_set", line: 2, how: "call-argument" });
+    // What the build really lacks is still missing, and still decides the verdict: the tool no file
+    // names, and the class the build only quotes.
+    expect(report.elements.missing.map((m: any) => m.planned).sort()).toEqual([
+      "application.applicationcomponent.audit-log",
+      "application.applicationservice.merge-set",
+    ]);
+    expect(report.verdict).toBe("incomplete");
+    expect(report.summary.elements).toMatchObject({ unverifiable: 1, missing: 2 });
+    // The verdict names the element that rests on text alone, and counts it as missing unless registered.
+    expect(report.verdictText).toContain('1 planned element is missing unless the code registers it by name (application.applicationservice.diff-set: "diff_set" at src/server.ts:2)');
+    expect(report.summary.elements.missingUnlessRegisteredByName).toBe(1);
+  }, 120_000);
+
+  it("never gives a clean match that rests on a by-name element (#1226 review)", async () => {
+    await mkdirAsync(join(rootPath, "src"), { recursive: true });
+    await writeFile(join(rootPath, "src", "server.ts"), 'export function registerTools(server: Server) {\n  server.registerTool("diff_set", diffSetHandler);\n}\n');
+    ok(await changesetCreateHandler({ name: "add-tool", description: "Add the diff_set tool and its helpers.", rootPath }));
+    // Matched exactly by the as-built side.
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "helpers", attributes: { type: "internal" }, rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "diff_set",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/server.ts",
+        sourceSymbol: "diff_set",
+        sourceProvenance: "manual",
+        rootPath,
+      } as any)
+    );
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const first = ok(await extract({ changeset: "add-tool-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-tool-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    ok(await extract({ changeset: "add-tool-as-built" }));
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ changeset: "add-tool", against: { changeset: "add-tool-as-built" }, rootPath }));
+    // Everything extraction can see was found, and nothing is missing: still not a clean match.
+    expect(report.summary.elements).toMatchObject({ matched: 1, missing: 0, unverifiable: 1 });
+    expect(report.verdict).toBe("probable-match");
+    // The headline is never "missing: 0" alone: it leads with what is missing unless registered by name.
+    expect(report.summary.elements.missingUnlessRegisteredByName).toBe(1);
+    expect(report.verdictText).toMatch(/^1 planned element is missing unless the code registers it by name/);
+    expect(report.verdictText).toContain("Apart from that, ");
+    expect(report.verdictText).not.toMatch(/^The build matches/);
   }, 120_000);
 
   it("reproduces the bug: a plan landed without them is offered again by the next extract", async () => {
@@ -405,7 +698,11 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     const result = ok(
       await changesetAdoptSourceReferencesHandler({ changeset: plan.id, against: { changeset: asBuilt.id }, ids: [HELPERS], rootPath })
     );
-    expect(result.missing.map((g: any) => [g.planned, g.builtByAgent])).toEqual([[HELPERS, true]]);
+    // Counts are over everything listed; the reference still missing is the one skipped below
+    // (verbose: true returns it in full).
+    expect(result.total).toBe(1);
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 0, skipped: 1, unknownIds: 0 });
+    expect(result.skipped.map((k: any) => k.planned)).toEqual([HELPERS]);
     expect(result.adopted).toEqual([]);
     // Confirming it by id doesn't help: its reference is the agent's, not evidence.
     expect(result.skipped[0].reason).toContain("not staged by extraction");

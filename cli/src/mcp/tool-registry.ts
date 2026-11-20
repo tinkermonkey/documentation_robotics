@@ -82,6 +82,9 @@ import { codebaseExtractTool, tier1StatusTool } from "./tools/index.js";
 import { gapAcceptTool, gapReopenTool } from "./tools/index.js";
 import { errorResult, loadModel, rootPathSchema } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
+import { CHAT_PROJECT_ROOT_ENV, chatToolRefusal } from "../coding-agents/chat-guard.js";
+import { DR_MCP_CHANGESET_TOOLS, DR_MCP_READ_TOOLS } from "../coding-agents/drbot-mcp.js";
+import { currentProjectRoot } from "./project-root.js";
 import { whenProjectRootSettled } from "./project-root.js";
 
 const MODEL_TOOLS: McpToolDefinition[] = [
@@ -173,8 +176,15 @@ export class McpToolRegistry {
               // Tools that don't load the model still read the project from the working
               // directory, so wait until the client's roots have settled which project that is.
               await whenProjectRootSettled();
+              // A server the viewer's chat started (DR_CHAT_MODE) refuses, itself, a tool outside
+              // the chat's mode and any rootPath but the served project (coding-agents/chat-guard.ts).
               // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
-              const refusal = await changesetOnlyRefusal(tool.name, (args as { rootPath?: string }).rootPath, loadModel);
+              const rootPath = (args as { rootPath?: string }).rootPath;
+              const refusal =
+                chatToolRefusal(tool.name, rootPath, process.env[CHAT_PROJECT_ROOT_ENV]?.trim() || currentProjectRoot().root, {
+                  read: DR_MCP_READ_TOOLS,
+                  staging: DR_MCP_CHANGESET_TOOLS,
+                }) ?? (await changesetOnlyRefusal(tool.name, rootPath, loadModel));
               const result = refusal
                 ? errorResult(refusal)
                 : await tool.handler(args, { server: server.server, requestId: extra?.requestId, signal: extra?.signal });

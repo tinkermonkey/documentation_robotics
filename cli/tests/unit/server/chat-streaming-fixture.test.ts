@@ -336,6 +336,111 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     await cleanupTestServer(server, testDir);
   });
 
+  it("tool status: a denied call says which rule refused it and how to allow it (#1241)", async () => {
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+      "--denial-text",
+      "This command requires approval",
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-explained-${randomUUID()}`, "hi", "req-explained");
+    await waitFor(() => ws.sent.find((m) => m.id === "req-explained" && m.result));
+
+    const failed = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_456")
+      .map((m) => m.params)
+      .filter((u) => u.status === "failed");
+    expect(failed).toHaveLength(1);
+    // Claude Code's own text first, then the reason: the fixture's call pipes dr into head.
+    expect(failed[0].error).toStartWith("This command requires approval\n\nBlocked by DrBot's permissions (read-only mode)");
+    expect(failed[0].error).toContain("only one plain `dr` command per call");
+    expect(failed[0].error).toContain("Nobody was asked to approve it and no prompt is coming.");
+    expect(failed[0].error).toContain("not by a settings file");
+    expect(failed[0].permission_denied).toBe(true);
+    expect(failed[0].permission_explanation).toStartWith("Blocked by DrBot's permissions");
+    // The tool's own result is passed through untouched.
+    expect(failed[0].result).toBe("This command requires approval");
+
+    await cleanupTestServer(server, testDir);
+  });
+
+  it("tool status: a denial in wording the server doesn't know is explained once the turn lists it", async () => {
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+      "--denial-text",
+      "Blocked: new wording from a later Claude Code",
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-late-${randomUUID()}`, "hi", "req-late");
+    await waitFor(() => ws.sent.find((m) => m.id === "req-late" && m.result));
+
+    const updates = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_456")
+      .map((m) => m.params);
+    // Failed when the result arrived, then again with the reason when the result event listed the denial.
+    expect(updates.map((u) => u.status)).toEqual(["executing", "failed", "failed"]);
+    expect(updates[1].permission_denied).toBeUndefined();
+    expect(updates[1].error).toBe("Blocked: new wording from a later Claude Code");
+    expect(updates[2].permission_denied).toBe(true);
+    expect(updates[2].error).toContain("Blocked by DrBot's permissions");
+    expect(updates[2].tool_name).toBe("Bash");
+
+    await cleanupTestServer(server, testDir);
+  });
+
+  it("tool status: a refusal that already says why (the chat's hook, or dr itself) is not explained twice", async () => {
+    const hookText =
+      "PreToolUse:Bash hook error: Blocked by DrBot's permissions (read-only mode): `head` is piped. Nobody was asked to approve it and no prompt is coming.";
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+      "--denial-text",
+      hookText,
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-hook-${randomUUID()}`, "hi", "req-hook");
+    await waitFor(() => ws.sent.find((m) => m.id === "req-hook" && m.result));
+
+    const failed = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_456")
+      .map((m) => m.params)
+      .filter((u) => u.status === "failed");
+    expect(failed).toHaveLength(1);
+    expect(failed[0].permission_denied).toBe(true);
+    expect(failed[0].error).toBe(hookText);
+    expect(failed[0].error.match(/Blocked by DrBot's permissions/g)).toHaveLength(1);
+    expect(failed[0].permission_explanation).toStartWith("Blocked by DrBot's permissions (read-only mode): `head` is piped.");
+
+    await cleanupTestServer(server, testDir);
+  });
+
+  it("tool status: a tool's own failure is not called a permission refusal", async () => {
+    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+      "node",
+      mockClaudeScriptPath,
+      "--unanswered-tool",
+    ]);
+    const ws = createFakeWs();
+
+    await (server as any).launchClaudeCodeChat(ws, `conv-own-${randomUUID()}`, "hi", "req-own");
+    await waitFor(() => ws.sent.find((m) => m.id === "req-own" && m.result));
+
+    const failed = ws.sent
+      .filter((m) => m.method === "chat.tool.invoke" && m.params.tool_use_id === "tool_789")
+      .map((m) => m.params)
+      .filter((u) => u.status === "failed");
+    expect(failed).toHaveLength(1);
+    expect(failed[0].permission_denied).toBeUndefined();
+    expect(failed[0].error).toBe("The tool reported no result before the reply ended");
+
+    await cleanupTestServer(server, testDir);
+  });
+
   it("tool status: a tool with no result by the end of the reply reports as failed", async () => {
     const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
       "node",

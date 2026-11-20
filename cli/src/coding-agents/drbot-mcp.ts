@@ -12,17 +12,18 @@
  * the model directory, and is removed when the agent process exits.
  *
  * Tolerance: if anything here fails (no temp dir), the caller launches DrBot without
- * MCP and it falls back to the read-safe Bash rules; the failure is logged, not swallowed.
+ * MCP and it falls back to its mode's Bash rules; the failure is logged, not swallowed.
  */
 
 import { existsSync, readdirSync, readFileSync, type Dirent } from "node:fs";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
 import { CHANGESET_ORIGIN_ENV } from "../core/changeset-review.js";
+import { CHAT_MODE_ENV, CHAT_PROJECT_ROOT_ENV, type ChatMode } from "./chat-guard.js";
 
 /** Name the dr MCP server is registered under; Claude Code exposes its tools as mcp__dr__<tool>. */
 export const DR_MCP_SERVER_NAME = "dr";
@@ -138,6 +139,11 @@ export interface DrMcpConfigOptions {
   rootPath: string;
   /** Run the server in changeset-only mode (DR_CHANGESET_ONLY=true). */
   changesetOnly: boolean;
+  /**
+   * The chat's mode (DR_CHAT_MODE): the server then refuses, itself, any tool outside the mode's
+   * list and any rootPath but the served project (chat-guard.ts). Omitted in danger mode.
+   */
+  chatMode?: ChatMode;
 }
 
 /** The Claude Code MCP config (the --mcp-config file's content) for DrBot's dr server. */
@@ -160,6 +166,10 @@ export function buildDrMcpConfig(options: DrMcpConfigOptions): {
   if (options.changesetOnly) {
     env[CHANGESET_ONLY_ENV] = "true";
   }
+  if (options.chatMode) {
+    env[CHAT_MODE_ENV] = options.chatMode;
+    env[CHAT_PROJECT_ROOT_ENV] = options.rootPath;
+  }
   return {
     mcpServers: {
       [DR_MCP_SERVER_NAME]: {
@@ -175,12 +185,19 @@ export function buildDrMcpConfig(options: DrMcpConfigOptions): {
 /** A written MCP config and the function that removes it again (safe to call more than once). */
 export interface DrMcpLaunch {
   configPath: string;
+  /**
+   * A private folder holding a `dr` that runs this same installation, for the front of the chat's
+   * PATH: the agent's `dr` commands then run the dr whose guards match this launch, not an older
+   * global install. Absent when this dr itself is the one on PATH, or on Windows.
+   */
+  binDir?: string;
   cleanup: () => Promise<void>;
 }
 
 export interface PrepareDrMcpLaunchOptions {
   rootPath: string;
   changesetOnly: boolean;
+  chatMode?: ChatMode;
   drCommand?: DrCommand;
   /** Parent directory for the private config directory; defaults to the OS temp dir. */
   tempRoot?: string;
@@ -195,6 +212,7 @@ export async function prepareDrMcpLaunch(options: PrepareDrMcpLaunchOptions): Pr
     drCommand: options.drCommand ?? resolveDrCommand(),
     rootPath: options.rootPath,
     changesetOnly: options.changesetOnly,
+    chatMode: options.chatMode,
   });
 
   const dir = await mkdtemp(join(options.tempRoot ?? tmpdir(), "dr-drbot-mcp-"));
@@ -215,11 +233,30 @@ export async function prepareDrMcpLaunch(options: PrepareDrMcpLaunchOptions): Pr
     await writeFile(configPath, JSON.stringify(config, null, 2), {
       mode: 0o600,
     });
-    return { configPath, cleanup };
+    const binDir = await writeDrShim(dir, options.drCommand ?? resolveDrCommand());
+    return { configPath, ...(binDir ? { binDir } : {}), cleanup };
   } catch (error) {
     await cleanup();
     throw error;
   }
+}
+
+/** A word quoted for sh. */
+function shQuote(word: string): string {
+  return `'${word.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Writes `<dir>/bin/dr`, a script that runs `drCommand`, and returns the folder; null when there
+ * is nothing to pin (drCommand is `dr` from PATH) or the platform has no sh (Windows).
+ */
+async function writeDrShim(dir: string, drCommand: DrCommand): Promise<string | null> {
+  if (process.platform === "win32" || drCommand.command === "dr") return null;
+  const binDir = join(dir, "bin");
+  await mkdir(binDir, { mode: 0o700 });
+  const script = `#!/bin/sh\nexec ${[drCommand.command, ...drCommand.args].map(shQuote).join(" ")} "$@"\n`;
+  await writeFile(join(binDir, "dr"), script, { mode: 0o700 });
+  return binDir;
 }
 
 /** Appended to DrBot's system prompt when the dr MCP server is connected. */
@@ -429,13 +466,30 @@ export function agentDefinitionFromMarkdown(markdown: string): AgentDefinition {
 }
 
 /**
- * Extra `claude` arguments that make `--agent dr-architect` run `agent`. Only the bundled copy
- * needs them: `--agents` outranks every installed agent, the plugin's included. Throws when the
- * bundled file can't be read or parsed.
+ * Extra `claude` arguments that make `--agent dr-architect` run `agent`. `--agents` outranks every
+ * installed agent, the plugin's included (checked against claude 2.1.328 for a project copy).
+ * - The bundled copy is passed as it is.
+ * - An installed copy runs from its own file, unless `addTools` names dr MCP tools its `tools:`
+ *   field leaves out: then it is passed too, with its own prompt and those tools added, so a copy
+ *   installed before DrBot used MCP still reaches the server (#1240).
+ * - With `always`, an installed copy is passed whatever it lists: a launch under an allowlist
+ *   runs `claude --restricted`, which loads no agent file from the project or the user folder.
+ * Only the description, the prompt, the tools and the model are passed; other frontmatter of an
+ * installed copy (permission mode, hooks, MCP servers) is left out on purpose.
+ * Throws when the file can't be read or turned into a definition (no frontmatter or description).
  */
-export async function drBotAgentArgs(agent: DrBotAgent | null): Promise<string[]> {
-  if (agent?.source !== "bundled") return [];
+export async function drBotAgentArgs(
+  agent: DrBotAgent | null,
+  addTools: readonly string[] = [],
+  always: boolean = false
+): Promise<string[]> {
+  if (!agent) return [];
+  if (agent.source !== "bundled" && addTools.length === 0 && !always) return [];
   const definition = agentDefinitionFromMarkdown(await readFile(agent.path, "utf8"));
+  if (agent.source !== "bundled" && definition.tools) {
+    const listed = new Set(definition.tools);
+    definition.tools = [...definition.tools, ...addTools.filter((tool) => !listed.has(tool))];
+  }
   return ["--agents", JSON.stringify({ [DR_ARCHITECT_AGENT]: definition })];
 }
 
@@ -447,8 +501,18 @@ export interface AgentMcpToolCheck {
   source: DrBotAgent["source"];
   /** The mcp__dr__* rules the mode uses that the agent's `tools:` field leaves out. */
   missing: string[];
-  /** True when the agent can see none of them (a copy installed before DrBot used MCP). */
+  /** True when the agent's file lists none of them (a copy installed before DrBot used MCP). */
   noneVisible: boolean;
+  /**
+   * True when the launch adds the missing tools to the agent (drBotAgentArgs), so DrBot can call
+   * them after all. The file is still out of date: the warning says to run `dr claude upgrade`.
+   */
+  added?: boolean;
+  /**
+   * Set when an installed copy couldn't be passed with --agents (no description) and the launch
+   * runs the bundled copy instead: the installed file's path and why.
+   */
+  replaced?: { path: string; reason: string };
   /**
    * Set when the bundled copy couldn't be passed with --agents. Claude Code then runs whatever it
    * finds (the plugin's copy, say), so DrBot can't count on any dr tool: noneVisible is true.
@@ -504,9 +568,19 @@ export interface DrBotAgentLaunch {
 
 /**
  * Resolves DrBot's dr-architect once and derives both the launch arguments and the tool check
- * from it. When the bundled copy can't be passed, the check reports that no dr tool is visible
- * (with `error`) rather than passing against a file claude won't run. Throws if an installed
- * copy can't be read.
+ * from it.
+ *
+ * Under an allowlist (every mode but danger) the launch runs `claude --restricted`, which loads
+ * no agent file from the project or the user folder, so the agent is always passed with --agents:
+ * the installed copy with any dr MCP tools the mode uses that it leaves out added (the check then
+ * says `added`), or the bundled copy. An installed copy that can't be passed (no description) is
+ * replaced by the bundled one, and the check says so (`replaced`). When no copy can be passed the
+ * check reports that no dr tool is visible (with `error`), `args` is empty, and the caller
+ * launches without `--agent`.
+ *
+ * In danger mode claude loads installed agents itself: an installed copy is passed only to add
+ * tools it lacks, and one that can't be passed keeps its check as it was (the tools stay missing).
+ * Throws if an installed copy can't be read.
  */
 export async function prepareDrBotAgent(
   rootPath: string,
@@ -514,22 +588,48 @@ export async function prepareDrBotAgent(
   options: AgentLookupOptions = {}
 ): Promise<DrBotAgentLaunch> {
   const agent = resolveDrBotAgent(rootPath, options);
-  let args: string[];
+  if (!agent) return { agent, args: [], check: null };
+  const restricted = mode !== "danger";
+  const bundled = async (bundledAgent: DrBotAgent, replaced?: AgentMcpToolCheck["replaced"]): Promise<DrBotAgentLaunch> => {
+    try {
+      const args = await drBotAgentArgs(bundledAgent);
+      const check = await checkAgentMcpTools(bundledAgent, mode);
+      const noted = replaced
+        ? { ...(check ?? { path: bundledAgent.path, source: "bundled" as const, missing: [], noneVisible: false }), replaced }
+        : check;
+      return { agent: bundledAgent, args, check: noted };
+    } catch (error) {
+      return {
+        agent: bundledAgent,
+        args: [],
+        check: {
+          path: bundledAgent.path,
+          source: "bundled",
+          missing: drMcpToolsForMode(mode),
+          noneVisible: true,
+          error: error instanceof Error ? error.message : String(error),
+          ...(replaced ? { replaced } : {}),
+        },
+      };
+    }
+  };
+  if (agent.source === "bundled") return bundled(agent);
+
+  const check = await checkAgentMcpTools(agent, mode);
+  if (!check && !restricted) return { agent, args: [], check };
   try {
-    args = await drBotAgentArgs(agent);
+    const args = await drBotAgentArgs(agent, check?.missing ?? [], restricted);
+    return { agent, args, check: check ? { ...check, added: true } : null };
   } catch (error) {
-    const missing = drMcpToolsForMode(mode);
+    // No frontmatter description to build a definition from.
+    if (!restricted) return { agent, args: [], check };
+    const reason = error instanceof Error ? error.message : String(error);
+    const bundledPath = options.bundledPath === undefined ? bundledAgentFile() : options.bundledPath;
+    if (bundledPath) return bundled({ path: bundledPath, source: "bundled" }, { path: agent.path, reason });
     return {
       agent,
       args: [],
-      check: {
-        path: agent!.path,
-        source: "bundled",
-        missing,
-        noneVisible: true,
-        error: error instanceof Error ? error.message : String(error),
-      },
+      check: { path: agent.path, source: agent.source, missing: drMcpToolsForMode(mode), noneVisible: true, error: reason },
     };
   }
-  return { agent, args, check: await checkAgentMcpTools(agent, mode) };
 }

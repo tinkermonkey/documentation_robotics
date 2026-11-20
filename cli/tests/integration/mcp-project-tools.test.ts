@@ -334,7 +334,7 @@ describe("project_upgrade over MCP", () => {
     expect(result.body.prettierignore).toBeUndefined();
   }, 60000);
 
-  it("gives a model already at the current spec the .prettierignore entry: the preview says so, apply adds it (#1155)", async () => {
+  it("gives a model already at the current spec the .prettierignore entry: the preview says so, apply adds it (#1155, #1246)", async () => {
     const project = join(testDir, "current-pretty");
     await mkdir(project, { recursive: true });
     await runDr(["init", "--name", "Current Pretty"], { cwd: project });
@@ -346,7 +346,7 @@ describe("project_upgrade over MCP", () => {
     expect(preview.body.status).toBe("up-to-date");
     expect(preview.body.prettierignore).toEqual({
       path: expect.stringMatching(/current-pretty\/\.prettierignore$/),
-      missing: ["documentation-robotics/changesets/"],
+      missing: ["documentation-robotics/"],
     });
     expect(preview.body.next).toContain("apply: true");
     expect(await readFile(join(project, ".prettierignore"), "utf8").catch(() => null)).toBeNull();
@@ -355,9 +355,15 @@ describe("project_upgrade over MCP", () => {
     expect(applied.body.status).toBe("up-to-date");
     expect(applied.body.prettierignore).toEqual({
       path: expect.stringMatching(/current-pretty\/\.prettierignore$/),
-      added: ["documentation-robotics/changesets/"],
+      added: ["documentation-robotics/"],
     });
-    expect(await readFile(join(project, ".prettierignore"), "utf8")).toContain("documentation-robotics/changesets/\n");
+    expect(await readFile(join(project, ".prettierignore"), "utf8")).toContain(
+      "documentation-robotics/\n"
+    );
+    // Nothing left to add: the next preview has nothing to say about it
+    const again = await callTool(state, "project_upgrade");
+    expect(again.body.prettierignore).toBeUndefined();
+    expect(again.body.next).toBeUndefined();
   }, 60000);
 
   it("removes attributes the spec retired from a model at the current spec version (#1091)", async () => {

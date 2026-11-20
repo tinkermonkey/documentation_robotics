@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { CHANGESET_ORIGIN_ENV } from "../../../src/core/changeset-review.js";
@@ -187,6 +187,42 @@ describe("prepareDrMcpLaunch", () => {
     expect(existsSync(launch.configPath)).toBe(false);
     await launch.cleanup(); // idempotent
   });
+
+  it("gives the server the chat's mode and project root, only for a chat under an allowlist", () => {
+    const drCommand = { command: "dr", args: [] };
+    const chat = buildDrMcpConfig({ drCommand, rootPath: "/work/project", changesetOnly: true, chatMode: "changesets" });
+    expect(chat.mcpServers.dr.env.DR_CHAT_MODE).toBe("changesets");
+    expect(chat.mcpServers.dr.env.DR_CHAT_PROJECT_ROOT).toBe("/work/project");
+    const danger = buildDrMcpConfig({ drCommand, rootPath: "/work/project", changesetOnly: false });
+    expect(danger.mcpServers.dr.env.DR_CHAT_MODE).toBeUndefined();
+    expect(danger.mcpServers.dr.env.DR_CHAT_PROJECT_ROOT).toBeUndefined();
+  });
+
+  it("writes a private dr that runs this installation, for the front of the chat's PATH", async () => {
+    if (process.platform === "win32") return;
+    const script = join(scratch, "fake-cli.js");
+    await writeFile(script, 'console.log("fake-dr " + process.argv.slice(2).join(" "));\n');
+    const launch = await prepareDrMcpLaunch({
+      rootPath: "/work/project",
+      changesetOnly: true,
+      drCommand: { command: process.execPath, args: [script] },
+      tempRoot: scratch,
+    });
+    try {
+      expect(launch.binDir).toBe(join(dirname(launch.configPath), "bin"));
+      const shim = join(launch.binDir!, "dr");
+      expect(statSync(shim).mode & 0o777).toBe(0o700);
+      const { stdout } = Bun.spawnSync([shim, "list", "it's"]);
+      expect(stdout.toString().trim()).toBe("fake-dr list it's");
+    } finally {
+      await launch.cleanup();
+    }
+    expect(existsSync(launch.binDir!)).toBe(false);
+    // Nothing to pin when this dr is the one on PATH.
+    const plain = await prepareDrMcpLaunch({ rootPath: "/w", changesetOnly: false, drCommand: { command: "dr", args: [] }, tempRoot: scratch });
+    expect(plain.binDir).toBeUndefined();
+    await plain.cleanup();
+  });
 });
 
 describe("drBotMcpPrompt", () => {
@@ -249,11 +285,55 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
     expect(valueOf(cmd, "--mcp-config")).toBe("/tmp/x/mcp.json");
   });
 
-  it("launches exactly as before when no MCP config could be prepared", () => {
+  it("keeps the Bash rules, and still says the mode, when no MCP config could be prepared", () => {
     const cmd = args({ withChangesets: true });
     expect(cmd).not.toContain("--mcp-config");
-    expect(cmd).not.toContain("--append-system-prompt");
     expect(valueOf(cmd, "--allowedTools")).toBe(formatForClaudeCodeWithChangesets());
+    const prompt = valueOf(cmd, "--append-system-prompt")!;
+    expect(prompt).toContain("dr MCP server is not connected");
+    expect(prompt).toContain("mode: changeset staging");
+    expect(args({})).toContain("--append-system-prompt");
+  });
+
+  it("under an allowlist: reads no settings file, has no editing tool, never asks, and denies the person's steps", () => {
+    for (const options of [{}, { withChangesets: true }]) {
+      const cmd = args(options, "/tmp/x/mcp.json");
+      expect(cmd).toContain("--restricted");
+      expect(valueOf(cmd, "--tools")).toBe("Bash,Read,Glob,Grep");
+      expect(valueOf(cmd, "--permission-mode")).toBe("dontAsk");
+      const denied = valueOf(cmd, "--disallowedTools")!.split(",");
+      expect(denied).toContain("Bash(dr changeset commit:*)");
+      expect(denied).toContain("Write");
+      expect(JSON.parse(valueOf(cmd, "--settings")!).hooks.PreToolUse[0].matcher).toBe("Bash");
+    }
+    const danger = args({ withDanger: true }, "/tmp/x/mcp.json");
+    for (const flag of ["--restricted", "--tools", "--permission-mode", "--disallowedTools", "--settings"]) {
+      expect(danger).not.toContain(flag);
+    }
+  });
+
+  it("names the agent only when its definition is passed or claude can load it", () => {
+    const server = new VisualizationServer(model, {}) as any;
+    expect(server.buildClaudeChatArgs(undefined, undefined, [], true)).not.toContain("--agent");
+    expect(server.buildClaudeChatArgs(undefined, undefined, ["--agents", "{}"]).slice(0, 5)).toEqual([
+      "claude",
+      "--agent",
+      "dr-architect",
+      "--agents",
+      "{}",
+    ]);
+  });
+
+  it("loads only DrBot's own MCP server under an allowlist, and every server in danger mode", () => {
+    expect(args({}, "/tmp/x/mcp.json")).toContain("--strict-mcp-config");
+    expect(args({ withChangesets: true }, "/tmp/x/mcp.json")).toContain("--strict-mcp-config");
+    // Without a config too: the user's own servers would describe tools DrBot can't call.
+    expect(args({ withChangesets: true })).toContain("--strict-mcp-config");
+    expect(args({ withDanger: true }, "/tmp/x/mcp.json")).not.toContain("--strict-mcp-config");
+  });
+
+  it("says nothing extra in danger mode without MCP (there is no allowlist to explain)", () => {
+    expect(args({ withDanger: true })).not.toContain("--append-system-prompt");
   });
 
   it("keeps the stream-json output flags last", () => {
@@ -419,6 +499,24 @@ describe("which dr-architect DrBot runs", () => {
     expect(await drBotAgentArgs({ path: "/x", source: "project" })).toEqual([]);
     expect(await drBotAgentArgs({ path: "/x", source: "user" })).toEqual([]);
     expect(await drBotAgentArgs(null)).toEqual([]);
+    expect(await drBotAgentArgs(null, ["mcp__dr__model_show"])).toEqual([]);
+  });
+
+  it("passes an installed copy with the tools it lacks added, keeping its own prompt and tools", async () => {
+    const root = join(scratch, "installed-with-added-tools");
+    const path = await install(root, "Bash, mcp__dr__model_show");
+    const args = await drBotAgentArgs({ path, source: "project" }, ["mcp__dr__model_show", "mcp__dr__model_trace"]);
+    expect(args[0]).toBe("--agents");
+    expect(JSON.parse(args[1])).toEqual({
+      "dr-architect": { description: "d", prompt: "body", tools: ["Bash", "mcp__dr__model_show", "mcp__dr__model_trace"] },
+    });
+  });
+
+  it("never adds tools to the bundled copy, which already lists them", async () => {
+    const tools = JSON.parse((await drBotAgentArgs({ path: BUNDLED_AGENT, source: "bundled" }, ["mcp__dr__x"]))[1])[
+      "dr-architect"
+    ].tools;
+    expect(tools).not.toContain("mcp__dr__x");
   });
 
   it("reads an agent file's description, model, tools and body", () => {
@@ -514,14 +612,89 @@ describe("prepareDrBotAgent", () => {
     expect(launch.check?.missing).toEqual(drMcpAllowedTools("changesets"));
   });
 
-  it("leaves an installed copy in charge and checks it", async () => {
+  it("adds the mode's dr tools to an installed copy that predates them (#1240)", async () => {
+    const root = join(scratch, "prepare-stale");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    await writeFile(
+      join(root, ".claude", "agents", "dr-architect.md"),
+      "---\nname: dr-architect\ndescription: Old copy\ntools: Bash, Read\n---\nOld body\n"
+    );
+    for (const mode of ["read-safe", "changesets"] as const) {
+      const launch = await prepareDrBotAgent(root, mode, at(noHome()));
+      expect(launch.agent?.source).toBe("project");
+      expect(launch.check).toMatchObject({ noneVisible: true, added: true, missing: drMcpAllowedTools(mode) });
+      expect(launch.args[0]).toBe("--agents");
+      const definition = JSON.parse(launch.args[1])["dr-architect"];
+      expect(definition.prompt).toBe("Old body");
+      expect(definition.tools).toEqual(["Bash", "Read", ...drMcpAllowedTools(mode)]);
+    }
+    // Danger mode has no allowlist, but the agent's tools field still limits it: every dr tool is added.
+    const danger = await prepareDrBotAgent(root, "danger", at(noHome()));
+    expect(JSON.parse(danger.args[1])["dr-architect"].tools).toContain("mcp__dr__changeset_create");
+  });
+
+  it("adds only the tools a partly current copy leaves out", async () => {
+    const root = join(scratch, "prepare-partial");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    const listed = drMcpAllowedTools("read-safe").filter((rule) => rule !== "mcp__dr__model_trace");
+    await writeFile(
+      join(root, ".claude", "agents", "dr-architect.md"),
+      `---\nname: dr-architect\ndescription: Partial\ntools: ${["Bash", ...listed].join(", ")}\n---\nbody\n`
+    );
+    const launch = await prepareDrBotAgent(root, "read-safe", at(noHome()));
+    expect(launch.check).toMatchObject({ noneVisible: false, added: true, missing: ["mcp__dr__model_trace"] });
+    expect(JSON.parse(launch.args[1])["dr-architect"].tools).toEqual(["Bash", ...listed, "mcp__dr__model_trace"]);
+  });
+
+  it("passes a current installed copy unchanged under an allowlist, and leaves it to claude in danger mode", async () => {
+    const root = join(scratch, "prepare-current");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    const path = join(root, ".claude", "agents", "dr-architect.md");
+    await writeFile(path, await readFile(BUNDLED_AGENT, "utf8"));
+    // Under an allowlist the launch runs `claude --restricted`, which loads no agent file.
+    const launch = await prepareDrBotAgent(root, "changesets", at(noHome()));
+    expect(launch.agent).toEqual({ path, source: "project" });
+    expect(launch.check).toBeNull();
+    expect(launch.args[0]).toBe("--agents");
+    expect(JSON.parse(launch.args[1])["dr-architect"].tools).toEqual(
+      parseAgentFrontmatterTools(await readFile(BUNDLED_AGENT, "utf8"))
+    );
+    expect(await prepareDrBotAgent(root, "danger", at(noHome()))).toEqual({
+      agent: { path, source: "project" },
+      args: [],
+      check: null,
+    });
+  });
+
+  it("replaces an installed copy it can't pass (no description) with the bundled one under an allowlist", async () => {
+    const root = join(scratch, "prepare-replaced");
+    await mkdir(join(root, ".claude", "agents"), { recursive: true });
+    const path = join(root, ".claude", "agents", "dr-architect.md");
+    await writeFile(path, "---\nname: dr-architect\ntools: Bash\n---\nbody\n");
+    const launch = await prepareDrBotAgent(root, "read-safe", at(noHome()));
+    expect(launch.agent).toEqual({ path: BUNDLED_AGENT, source: "bundled" });
+    expect(launch.args[0]).toBe("--agents");
+    expect(launch.check).toMatchObject({
+      source: "bundled",
+      missing: [],
+      noneVisible: false,
+      replaced: { path, reason: "agent file has no description" },
+    });
+    // With no bundled copy either, nothing can be passed and no dr tool is visible.
+    const none = await prepareDrBotAgent(root, "read-safe", { ...at(noHome()), bundledPath: null });
+    expect(none.args).toEqual([]);
+    expect(none.check).toMatchObject({ noneVisible: true, error: "agent file has no description" });
+  });
+
+  it("leaves an installed copy it can't pass in charge in danger mode, where claude loads it itself", async () => {
     const root = join(scratch, "prepare-installed");
     await mkdir(join(root, ".claude", "agents"), { recursive: true });
     await writeFile(join(root, ".claude", "agents", "dr-architect.md"), "---\nname: dr-architect\ntools: Bash\n---\nbody\n");
-    const launch = await prepareDrBotAgent(root, "read-safe", at(noHome()));
+    const launch = await prepareDrBotAgent(root, "danger", at(noHome()));
     expect(launch.args).toEqual([]);
     expect(launch.agent?.source).toBe("project");
     expect(launch.check?.noneVisible).toBe(true);
+    expect(launch.check?.added).toBeUndefined();
     expect(launch.check?.error).toBeUndefined();
   });
 });
