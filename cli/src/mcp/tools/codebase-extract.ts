@@ -527,10 +527,30 @@ function relationshipKey(r: { source: string; predicate: string; target: string 
   return `${r.source}::${r.predicate}::${r.target}`;
 }
 
+/** The last preview's cards and lists, read by a later call with preview: true and view or list. */
+const PREVIEW_FILE = "preview.json";
+
+/**
+ * A preview's response, with every call it names for the rest (a `more`, a `next` step's view or
+ * list call) made a read of the preview's own record: `preview: true` added.
+ */
+function asPreviewReads<T>(preview: boolean, value: T): T {
+  if (!preview) return value;
+  const fix = (v: unknown): unknown => {
+    if (typeof v === "string") {
+      return v.replace(/(call codebase_extract with )(?=(?:list|view|limit|offset|groupBy|groupDepth|page)\b)/gi, "$1preview: true, ");
+    }
+    if (Array.isArray(v)) return v.map(fix);
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fix(x)]));
+    return v;
+  };
+  return fix(value) as T;
+}
+
 /** The cards of the last run that staged nothing, so made no changeset ({@link StoredCards.pending}). */
 const PENDING_FILE = "pending.json";
 
-const KEEP_FILES = new Set([DESCRIPTIONS_FILE, DECISIONS_FILE, PENDING_FILE]);
+const KEEP_FILES = new Set([DESCRIPTIONS_FILE, DECISIONS_FILE, PENDING_FILE, PREVIEW_FILE]);
 
 function extractDir(projectRoot: string): string {
   return path.join(projectRoot, ".dr", "analyzers", "extract");
@@ -2142,8 +2162,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       const decisionsOnly = !paging && !decideItems.length && (rejectItems.length > 0 || args.clearRejected !== undefined);
       // A preview counts what a run would do, and stages and records nothing.
       const preview = args.preview === true;
-      if (preview && (paging || decisionsOnly)) {
-        throw new CLIError("preview counts a run; it can't be combined with page, reject or clearRejected", ErrorCategory.USER, [
+      // preview with page, view or list reads the last preview's record; with reject or clearRejected it is refused.
+      const previewRead = preview && paging;
+      if (preview && decisionsOnly) {
+        throw new CLIError("preview counts a run; it can't be combined with reject or clearRejected", ErrorCategory.USER, [
           "Call codebase_extract with preview: true and the run's own arguments (since, layers, changeset)",
         ]);
       }
@@ -2571,6 +2593,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
         // Later pages, views and lists: the last run's record, marking any card the agent has modelled since.
         if (paging) {
+          if (previewRead) {
+            stored = await readJson<StoredCards>(path.join(extractDir(projectRoot), PREVIEW_FILE));
+            changeset = null;
+            if (!stored) {
+              throw new CLIError("No preview to read: preview: true with view, list or page reads the last preview's cards and lists", ErrorCategory.USER, [
+                "Call codebase_extract with preview: true and the run's arguments first",
+              ]);
+            }
+          }
           if (!stored) {
             throw new CLIError(
               changeset ? `No cards recorded for '${changeset.name}'` : `No extraction changeset '${name}' yet`,
@@ -2609,7 +2640,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const untouched = stored.rangeOnly && view.changed === true ? filterCards(live, { ...view, changed: false }).length : 0;
           const readHeader = {
             changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
-            ...(changeset ? {} : { pending: `No changeset yet: the run that read these cards staged nothing. Call changeset_create with name: "${runName}" before staging.` }),
+            ...(previewRead
+              ? { preview: true, note: "The last preview's cards and lists: nothing was staged or recorded." }
+              : changeset
+                ? {}
+                : { pending: `No changeset yet: the run that read these cards staged nothing. Call changeset_create with name: "${runName}" before staging.` }),
             scope: { since: stored.since, layers: stored.layers ?? "all" },
             ...(stored.baseModified !== baseModified
               ? { warning: "The base model changed since these cards were read; call codebase_extract without page, view or list to refresh them." }
@@ -2645,14 +2680,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   ? `, rule: "${args.rule}"`
                   : "";
             return jsonResult(
-              {
+              asPreviewReads(previewRead, {
                 ...readHeader,
                 list: args.list,
                 ...(args.rule ? { rule: args.rule } : {}),
                 ...filtered,
                 ...(args.list === "groups" ? { cards: cards.length, ...(untouched ? { untouched } : {}) } : {}),
                 ...pageOf(items, limit, offset, (next) => `Call codebase_extract with list: "${args.list}"${extra}, limit: ${limit} and offset: ${next} for the next ones.`),
-              },
+              }),
               { compact: true }
             );
           }
@@ -2660,7 +2695,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const p = page(cards, pageNumber, effectivePageSize);
           const viewArg = args.view ? `view: ${JSON.stringify(args.view)}, ` : "";
           return jsonResult(
-            fitCards(p.items, p, (items, fit) => ({
+            asPreviewReads(previewRead, fitCards(p.items, p, (items, fit) => ({
               ...readHeader,
               ...fitNotes(fit),
               ...filtered,
@@ -2677,7 +2712,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 : pageNumber < p.pages
                   ? { next: `Call codebase_extract with ${viewArg}page: ${pageNumber + 1} for the next cards.` }
                   : {}),
-            }), viewArg),
+            }), viewArg)),
             { compact: true }
           );
         }
@@ -2861,6 +2896,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // Without the changed lines (git couldn't give them) nothing says which symbols the range touched: every card is listed.
         const rangeChanged = changes && changes.hunks && !changes.hunksError ? changes : null;
         let ruleUntouched = new Map<string, number>();
+        let ruleOverrode = new Map<string, { decided: number; rejected: number }>();
         const planFrom = (graph: ExtractionGraph) => {
           const applied = applyProjectRules(withCardDecisions(graph, decided.byCard), rules, {
             decidedCards: new Set(decided.byCard.keys()),
@@ -2868,6 +2904,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(rangeChanged ? { changed: (s) => symbolChangedInRange(s, rangeChanged.hunks, rangeChanged) } : {}),
           });
           ruleUntouched = applied.untouched;
+          ruleOverrode = applied.overrode;
           return planWith(applied.extraction);
         };
         const planWith = (graph: ExtractionGraph) =>
@@ -3051,12 +3088,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         );
 
         // What each rule decided, and how each decide item of this call fared.
-        const ruleReports = rules.map((r) => ruleReport(r.rule, plan, ruleUntouched, relationshipsByRule)).filter((r): r is RuleReport => !!r);
+        // Every rule, one that decided nothing included: a rule that matches nothing may be mistyped.
+        const ruleReports: RuleReport[] = rules.map((r) => ruleReport(r.rule, plan, ruleUntouched, relationshipsByRule, undefined, ruleOverrode));
+        const reportedSomething = (r: RuleReport) => r.notElements + r.staged + (r.relationships ?? 0) + (r.untouched ?? 0) > 0;
         const decideResults: DecideResult[] = [...decided.problems];
         const NEEDS = (n: number) => `${n} card(s) it covers need attributes the code can't give: they are needs-attributes cards, not staged`;
         for (const d of decided.rules) {
           const r = d.compiled.rule;
-          const report = ruleReports.find((x) => x.rule === r.name);
+          const found = ruleReports.find((x) => x.rule === r.name);
+          const report = found && reportedSomething(found) ? found : undefined;
           const needs = needsAttributesByRule.get(r.name) ?? 0;
           if (!report && !needs) {
             decideResults.push({
@@ -3350,6 +3390,42 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 },
               }
             : {};
+        // Where every symbol went, in one line that sums to the symbols read (the run's budget).
+        const invalidByRule = invalid.filter((c) => isProjectRule(c.rule)).length;
+        const t = plan.tally;
+        const budgetParts = {
+          recorded: t.recorded,
+          modelled: t.modelled,
+          outsideLayers: t.outsideLayers,
+          decidedByRules: { notElements: t.ruleNone, staged: t.ruleStaged - invalidByRule },
+          decidedByTier0: { notElements: t.tier0Rejected, staged: t.tier0Staged - (invalid.length - invalidByRule) },
+          ...(tier1NotElement ? { hiddenByTier1: tier1NotElement } : {}),
+          open: shown.length,
+          ...(untouchedCards ? { untouched: untouchedCards } : {}),
+        };
+        const overrodeTotals = [...ruleOverrode.values()].reduce((o, x) => ({ decided: o.decided + x.decided, rejected: o.rejected + x.rejected }), { decided: 0, rejected: 0 });
+        const budgetSection = {
+          budget: {
+            symbols:
+              budgetParts.recorded +
+              budgetParts.modelled +
+              budgetParts.outsideLayers +
+              budgetParts.decidedByRules.notElements +
+              budgetParts.decidedByRules.staged +
+              budgetParts.decidedByTier0.notElements +
+              budgetParts.decidedByTier0.staged +
+              (budgetParts.hiddenByTier1 ?? 0) +
+              budgetParts.open +
+              (budgetParts.untouched ?? 0),
+            ...budgetParts,
+            ...(overrodeTotals.decided || overrodeTotals.rejected ? { rulesOverrodeTier0: overrodeTotals } : {}),
+            note:
+              "Every symbol this run read, once: recorded (a decision recorded earlier), modelled (an element names it), outsideLayers, decided by the project's rules or by Tier 0 " +
+              "(staged counts symbols, so infrastructure merged into one element counts each), " +
+              (untouchedCards ? "untouched (in changed files, not changed by the range), " : "") +
+              "and open: the cards left for you (needs-attributes cards included). The parts sum to symbols. rulesOverrodeTier0 counts what a none rule took from Tier 0's decisions (per rule in rules.decided).",
+          },
+        };
         const decideSection = decideItems.length
           ? { decide: batchReport(decideResults, { verbose: args.verbose, limit: args.limit, written: ["applied", "kept", "would-apply"] }) }
           : {};
@@ -3369,15 +3445,57 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               }
             : {};
 
+        // The run's lists in full, so one the response shortens is reachable with list: <name>.
+        const updatedList = stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) }));
+        const impactedList = impactHints.map(({ id, symbol, hop, via, viaEdge, rolledUp }) => ({ id, symbol, hop, via, viaEdge, ...(rolledUp ? { rolledUp } : {}) }));
+        const runLists: Record<string, unknown[]> = {};
+        const keepList = (listName: string, items: unknown[]) => {
+          if (items.length) runLists[listName] = items;
+        };
+        keepList("candidateDeletes", plan.candidateDeletes);
+        keepList("retyped", plan.retyped);
+        keepList("updated", updatedList);
+        keepList("impacted", impactedList);
+        keepList("rules", ruleReports);
+        keepList("sharedHelpers", helpers.helpers);
+        keepList("unwiredTests", planned.unwiredTests);
+        keepList("tier1NotElementCards", tier1NotElementCards);
+        keepList("contradictedGaps", contradictedGaps);
+        keepList("retiredDecisions", plan.decisions?.retired ?? []);
+        for (const r of rules) {
+          const d = plan.byRule.get(r.rule.name);
+          keepList(`ruleDecided:${r.rule.name}`, [
+            ...(d?.staged ?? []).map((id) => ({ staged: id })),
+            ...(d?.none ?? []).map((n) => ({ notElement: `${n.file ?? ""}#${n.symbol}`, label: n.label })),
+            ...(relationshipsByRule.get(r.rule.name) ?? []).map((key) => ({ relationship: key })),
+          ]);
+        }
         // A preview, and a run held while the index job fills Tier 1's cache (warming), stage and
         // record nothing: they say what a run would do.
         if (preview || heldForWarming) {
           const target = changeset?.name ?? name;
+          if (preview) {
+            // The preview's cards and lists, so every list it shortens can be read in full with
+            // preview: true and list or view. Not a decision, not staged: the next preview replaces it.
+            const record: StoredCards = {
+              changesetId: "",
+              changesetName: target,
+              gitHead: head,
+              since: since ?? null,
+              layers: layers ?? null,
+              baseModified,
+              createdAt: now,
+              cards: undecided,
+              ...(rangeOnly ? { rangeOnly: true } : {}),
+              ...(Object.keys(runLists).length ? { lists: runLists } : {}),
+            };
+            await writeFile(path.join(extractDir(projectRoot), PREVIEW_FILE), JSON.stringify(record), "utf-8");
+          }
           const would =
             `A run with these arguments would stage ${summary.adds} add(s), ${summary.updates} update(s) ` +
             `and ${summary.relationships} relationship(s) into '${target}', and leave ${summary.cards} card(s) and ${summary.candidateDeletes} candidate delete(s).`;
           return jsonResult(
-            {
+            asPreviewReads(preview, {
               ...(preview
                 ? { preview: true, message: `Preview: nothing was staged or recorded. ${would}` }
                 : {
@@ -3422,6 +3540,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 ...untouchedSection,
                 ...groupsSection(),
               },
+              ...budgetSection,
               ...rulesSection(),
               ...decideSection,
               ...helpersSection(),
@@ -3447,7 +3566,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 ...(ignore ? [ignoreStep(ignore)] : []),
               ],
               durationMs: Date.now() - startedAt,
-            },
+            }),
             { compact: true }
           );
         }
@@ -3590,32 +3709,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           candidates: coverage.filter((c) => c.status === "candidates").length,
           none: coverage.filter((c) => c.status === "none").length,
         };
-        // The run's lists in full, so one the response shortens is reachable with list: <name>.
-        const updatedList = stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) }));
-        const impactedList = impactHints.map(({ id, symbol, hop, via, viaEdge, rolledUp }) => ({ id, symbol, hop, via, viaEdge, ...(rolledUp ? { rolledUp } : {}) }));
-        const runLists: Record<string, unknown[]> = {};
-        const keepList = (listName: string, items: unknown[]) => {
-          if (items.length) runLists[listName] = items;
-        };
-        keepList("candidateDeletes", plan.candidateDeletes);
-        keepList("retyped", plan.retyped);
-        keepList("updated", updatedList);
-        keepList("impacted", impactedList);
-        keepList("rules", ruleReports);
-        keepList("sharedHelpers", helpers.helpers);
         keepList("planCoverage", coverage);
-        keepList("unwiredTests", planned.unwiredTests);
-        keepList("tier1NotElementCards", tier1NotElementCards);
-        keepList("contradictedGaps", contradictedGaps);
-        keepList("retiredDecisions", plan.decisions?.retired ?? []);
-        for (const r of rules) {
-          const d = plan.byRule.get(r.rule.name);
-          keepList(`ruleDecided:${r.rule.name}`, [
-            ...(d?.staged ?? []).map((id) => ({ staged: id })),
-            ...(d?.none ?? []).map((n) => ({ notElement: `${n.file ?? ""}#${n.symbol}`, label: n.label })),
-            ...(relationshipsByRule.get(r.rule.name) ?? []).map((key) => ({ relationship: key })),
-          ]);
-        }
         const pendingPath = path.join(extractDir(projectRoot), PENDING_FILE);
         if (changeset) {
           const staged = [...stillStaged];
@@ -3777,7 +3871,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   },
                 }
               : {}),
-            cards: { ...extraction.summary, needsAttributes: invalid.length },
+            cards: {
+              ...extraction.summary,
+              needsAttributes: invalid.length,
+              note: "What the analyzer and Tier 0 alone made of the symbols, before the project's rules and recorded decisions: budget says where every symbol went.",
+            },
             staged: {
               adds: adds.length,
               updates: stagedUpdates.length,
@@ -3872,6 +3970,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 }
               : {}),
             ...rejectResult,
+            ...budgetSection,
             ...rulesSection(fit.listLimit),
             ...decideSection,
             ...helpersSection(fit.listLimit),

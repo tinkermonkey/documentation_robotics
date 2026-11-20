@@ -191,26 +191,29 @@ export interface RuleReport {
   relationships?: number;
   /** With a since run: symbols a typed rule covers that the range did not change. */
   untouched?: number;
+  /** Of its notElements, symbols Tier 0 (or the node mapping) had decided as elements, or rejected, that this rule overrode. */
+  overrodeTier0?: { decided: number; rejected: number };
   /** The first few it decided: symbols as file#symbol, staged elements as ids. */
   sample: string[];
   /** How many the sample is taken from. */
   sampleOf: number;
 }
 
-/** A rule's part of a plan as a report line, or null when it decided nothing. */
+/** A rule's part of a plan as a report line: every rule gets one, one that decided nothing included (with 0s). */
 export function ruleReport(
   rule: ProjectRule,
   plan: Pick<ElementPlan, "byRule">,
   untouched: ReadonlyMap<string, number>,
   relationships: ReadonlyMap<string, string[]>,
-  sampleSize = SAMPLE_SIZE
-): RuleReport | null {
+  sampleSize = SAMPLE_SIZE,
+  overrode?: ReadonlyMap<string, { decided: number; rejected: number }>
+): RuleReport {
   const decided = plan.byRule.get(rule.name);
   const rels = relationships.get(rule.name) ?? [];
   const left = untouched.get(rule.name) ?? 0;
   const none = decided?.none ?? [];
   const staged = decided?.staged ?? [];
-  if (!none.length && !staged.length && !rels.length && !left) return null;
+
   const all = [...staged, ...none.map((n) => `${n.file ?? ""}#${n.symbol}`), ...rels];
   return {
     rule: rule.name,
@@ -219,6 +222,7 @@ export function ruleReport(
     staged: staged.length,
     ...(rels.length ? { relationships: rels.length } : {}),
     ...(left ? { untouched: left } : {}),
+    ...(overrode?.get(rule.name) ? { overrodeTier0: overrode.get(rule.name)! } : {}),
     sample: all.slice(0, sampleSize),
     sampleOf: all.length,
   };

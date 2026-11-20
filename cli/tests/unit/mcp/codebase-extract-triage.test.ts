@@ -205,6 +205,47 @@ describe("codebase_extract triage: groups before cards (#1154, #1177)", () => {
     expect(fail(await handler({ list: "nope" as any, rootPath })).error).toBeDefined();
   }, SLOW);
 
+  it("gives a budget whose parts sum to the symbols read, before and after rules", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const sum = (b: any) =>
+      b.recorded + b.modelled + b.outsideLayers + b.decidedByRules.notElements + b.decidedByRules.staged + b.decidedByTier0.notElements + b.decidedByTier0.staged + (b.hiddenByTier1 ?? 0) + b.open + (b.untouched ?? 0);
+    const before = ok(await handler({ preview: true, rootPath })).budget;
+    expect(before).toMatchObject({ symbols: 38, open: 38 });
+    expect(sum(before)).toBe(before.symbols);
+    const after = ok(await handler({ preview: true, decide: [NOT_PRODUCT, EXPORTED_FUNCTIONS, LOCAL_FUNCTIONS], rootPath })).budget;
+    expect(after).toMatchObject({ symbols: 38, open: 2, decidedByRules: { notElements: 33, staged: 3 } });
+    expect(sum(after)).toBe(after.symbols);
+  }, SLOW);
+
+  it("after a preview, every call it names for the rest works and reads the preview", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const preview = ok(await handler({ preview: true, limit: 1, rootPath }));
+    const more: string = preview.undecided.groups.more;
+    expect(more).toContain('preview: true, list: "groups"');
+    const rest = ok(await handler({ preview: true, list: "groups", limit: 1, offset: 1, rootPath }));
+    expect(rest).toMatchObject({ preview: true, total: 2, returned: 1 });
+    const cards = ok(await handler({ preview: true, view: { files: "design/**" }, pageSize: 50, rootPath }));
+    expect(cards.undecided.total).toBe(30);
+    // Nothing was staged or recorded by any of it.
+    clearModelCache();
+    expect((await new StagingAreaManager(rootPath, await Model.load(rootPath)).list()).length).toBe(0);
+    expect(existsSync(decisionsFile())).toBe(false);
+    // A preview with reject is still refused.
+    expect(fail(await handler({ preview: true, reject: [{ files: "design/**", reason: "x" }], rootPath })).error).toContain("can't be combined with reject");
+  }, SLOW);
+
+  it("reports every rule, one that decided nothing included", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    await mkdir(join(rootPath, "documentation-robotics"), { recursive: true });
+    await writeFile(
+      projectRulesPath(rootPath),
+      "version: 1\nrules:\n  - name: no-traits\n    where: { label: Trait }\n    as: none\n    reason: none here\n",
+      "utf-8"
+    );
+    const run = ok(await handler({ preview: true, rootPath }));
+    expect(run.rules.decided.items).toEqual([expect.objectContaining({ rule: "no-traits", notElements: 0, staged: 0, sampleOf: 0 })]);
+  }, SLOW);
+
   it("previews the groups without creating anything", async () => {
     const handler = createCodebaseExtractHandler(harness().deps);
     const preview = ok(await handler({ preview: true, rootPath }));

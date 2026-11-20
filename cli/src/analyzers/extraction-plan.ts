@@ -250,7 +250,16 @@ export interface ElementPlan {
    * the symbols it said are not elements, and the elements it adds. Only symbols with no element.
    */
   byRule: Map<string, RuleDecided>;
+  /**
+   * Where every extracted symbol went, one bucket each, so the buckets sum to the symbols read:
+   * `recorded` (a decision someone recorded), `modelled` (an element names it), `outsideLayers`,
+   * `ruleNone` / `ruleStaged` (a project rule), `tier0Rejected` / `tier0Staged` (Tier 0 or the node
+   * mapping), `open` (a card). Decision-record cards are counted in `open` as well.
+   */
+  tally: Record<TallyBucket, number>;
 }
+
+export type TallyBucket = "recorded" | "modelled" | "outsideLayers" | "ruleNone" | "ruleStaged" | "tier0Rejected" | "tier0Staged" | "open";
 
 /** What one project rule decided in a plan. */
 export interface RuleDecided {
@@ -709,7 +718,9 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     elementOf: new Map(),
     descriptions: {},
     byRule: new Map(),
+    tally: { recorded: 0, modelled: 0, outsideLayers: 0, ruleNone: 0, ruleStaged: 0, tier0Rejected: 0, tier0Staged: 0, open: 0 },
   };
+  const tally = (b: TallyBucket) => plan.tally[b]++;
   const ruleDecided = (rule: string): RuleDecided => {
     const name = projectRuleName(rule);
     return plan.byRule.get(name) ?? plan.byRule.set(name, { none: [], staged: [] }).get(name)!;
@@ -837,6 +848,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     // Someone decided it is not an element: neither staged nor carded, unless it has one now.
     if (!match && notElements.has(decisionKey(file, symbol))) {
       plan.skipped++;
+      tally("recorded");
       continue;
     }
 
@@ -845,6 +857,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     if (ambiguous) {
       if (decided && !inLayers(decided.layer, layers)) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       plan.undecided.push(
@@ -862,10 +875,12 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
           }
         )
       );
+      tally("open");
       continue;
     }
 
     if (match) {
+      tally("modelled");
       matched.add(match.id);
       plan.elementOf.set(s.qualifiedName, match.id);
       if (!decided) {
@@ -897,6 +912,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       }
       if (!inLayers(decided.layer, layers)) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {}, siblingsOf(env, s));
@@ -912,6 +928,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     if (s.unhandled && tier0?.kind !== "reject") {
       if (layers && !layers.has("api")) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       plan.undecided.push(
@@ -923,6 +940,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
           { candidates: ["api.operation"] }
         )
       );
+      tally("open");
       continue;
     }
 
@@ -936,6 +954,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         : true;
       if (!relevant) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       plan.undecided.push(
@@ -948,17 +967,22 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
               ...(hint ? { hint } : {}),
             })
       );
+      tally("open");
       continue;
     }
     if (tier0.kind === "reject") {
       plan.rejected++;
-      if (isProjectRule(tier0.rule)) ruleDecided(tier0.rule).none.push({ symbol, file, label: card.label });
+      if (isProjectRule(tier0.rule)) {
+        ruleDecided(tier0.rule).none.push({ symbol, file, label: card.label });
+        tally("ruleNone");
+      } else tally("tier0Rejected");
       continue;
     }
 
     // Decided, and not modelled yet: an add.
     if (!inLayers(tier0.layer, layers)) {
       plan.outsideLayers++;
+        tally("outsideLayers");
       continue;
     }
     // An infrastructure symbol another symbol of the same name already added: one more location.
@@ -972,6 +996,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         };
       }
       plan.elementOf.set(s.qualifiedName, mergedInto.id);
+      tally(isProjectRule(tier0.rule) ? "ruleStaged" : "tier0Staged");
       continue;
     }
     const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
@@ -994,6 +1019,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     };
     plan.adds.push(add);
     if (isProjectRule(tier0.rule)) ruleDecided(tier0.rule).staged.push(id);
+    tally(isProjectRule(tier0.rule) ? "ruleStaged" : "tier0Staged");
     if (mergeAs) mergedAdds.set(mergeAs, add);
     plan.elementOf.set(s.qualifiedName, id);
   }
@@ -1008,6 +1034,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       rejected: (file, symbol) => notElements.has(decisionKey(file, symbol)),
     });
     plan.undecided.push(...decisions.cards);
+    plan.tally.open += decisions.cards.length;
     plan.skipped += decisions.skipped;
     plan.outsideLayers += decisions.outsideLayers;
     const listed = new Set(plan.candidateDeletes.map((d) => d.id));

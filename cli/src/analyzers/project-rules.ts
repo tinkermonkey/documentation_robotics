@@ -27,6 +27,7 @@ import { Minimatch } from "minimatch";
 import { parse as parseYAML, stringify as stringifyYAML } from "yaml";
 import { isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType } from "../generated/node-types.js";
+import { RELATIONSHIPS_BY_PREDICATE } from "../generated/relationship-index.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 import type { ExtractedSymbol, ExtractionGraph } from "./cards/extract.js";
 import type { Visibility } from "./cards/visibility.js";
@@ -136,6 +137,34 @@ function regex(ruleName: string, key: string, source: string): RegExp {
   }
 }
 
+/**
+ * The card labels extraction makes: the code index's declarations, infrastructure, environment
+ * variables and decision records, and DR's own test cards. A rule naming another label would match
+ * nothing, so it is refused as a typo.
+ */
+export const RULE_LABELS: readonly string[] = [
+  "Class",
+  "Interface",
+  "Function",
+  "Method",
+  "Route",
+  "Type",
+  "Enum",
+  "Trait",
+  "Struct",
+  "Table",
+  "Resource",
+  "Image",
+  "Chart",
+  "Process",
+  "EnvVar",
+  "ADR",
+  "TestCase",
+  "TestSuite",
+];
+export const PROJECT_RULES_VERSION = 1;
+const FILE_KEYS = ["version", "rules"] as const;
+
 const WHERE_KEYS = ["files", "label", "visibility", "nested", "name", "declaration", "ownerType"] as const;
 const RULE_KEYS = ["name", "where", "relationship", "as", "reason", "decided"] as const;
 const RELATIONSHIP_KEYS = ["source", "predicate", "target"] as const;
@@ -183,6 +212,9 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
     const bad = Object.keys(rel).filter((k) => !(RELATIONSHIP_KEYS as readonly string[]).includes(k));
     if (bad.length) throw new Error(`rule '${name}': relationship has unknown key ${bad.map((k) => `'${k}'`).join(", ")} (known: ${RELATIONSHIP_KEYS.join(", ")})`);
     if (typeof rel.predicate !== "string" || !rel.predicate) throw new Error(`rule '${name}': relationship.predicate is required`);
+    if (!RELATIONSHIPS_BY_PREDICATE.has(rel.predicate)) {
+      throw new Error(`rule '${name}': '${rel.predicate}' is not a predicate the relationship catalog has (realizes, depends-on, accesses, uses, serves, composes, tests, ...)`);
+    }
     for (const end of ["source", "target"] as const) {
       if (rel[end] !== undefined && (typeof rel[end] !== "string" || !rel[end])) throw new Error(`rule '${name}': relationship.${end} must be an element id`);
     }
@@ -205,6 +237,9 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
     const labels = strings(name, "label", w.label);
     const visibility = strings(name, "visibility", w.visibility);
     const ownerType = strings(name, "ownerType", w.ownerType);
+    for (const l of labels ?? []) {
+      if (!RULE_LABELS.includes(l)) throw new Error(`rule '${name}': where.label '${l}' is not a card label (${RULE_LABELS.join(", ")})`);
+    }
     for (const v of visibility ?? []) {
       if (!(VISIBILITIES as readonly string[]).includes(v)) throw new Error(`rule '${name}': where.visibility '${v}' is not one of ${VISIBILITIES.join(", ")}`);
     }
@@ -287,10 +322,16 @@ export async function loadProjectRules(projectRoot: string): Promise<CompiledRul
     throw fail(`${path.relative(projectRoot, file)} is not valid YAML (${error instanceof Error ? error.message.split("\n")[0] : String(error)})`);
   }
   if (parsed === null || parsed === undefined) return [];
-  const rules = (parsed as { rules?: unknown }).rules;
-  if (typeof parsed !== "object" || Array.isArray(parsed) || (rules !== undefined && !Array.isArray(rules))) {
-    throw fail(`${path.relative(projectRoot, file)} must be an object with a 'rules' list`);
+  const rel = path.relative(projectRoot, file);
+  if (typeof parsed !== "object" || Array.isArray(parsed)) throw fail(`${rel} must be an object with version: ${PROJECT_RULES_VERSION} and a 'rules' list`);
+  const body = parsed as Record<string, unknown>;
+  const unknownKeys = Object.keys(body).filter((k) => !(FILE_KEYS as readonly string[]).includes(k));
+  if (unknownKeys.length) throw fail(`${rel} has unknown key ${unknownKeys.map((k) => `'${k}'`).join(", ")} (it takes ${FILE_KEYS.join(" and ")})`);
+  if (body.version !== undefined && body.version !== PROJECT_RULES_VERSION) {
+    throw fail(`${rel} is version ${JSON.stringify(body.version)}; this dr reads version ${PROJECT_RULES_VERSION}`);
   }
+  const rules = body.rules;
+  if (rules !== undefined && !Array.isArray(rules)) throw fail(`${rel}: 'rules' must be a list`);
   try {
     return compileRules((rules as unknown[] | undefined) ?? []);
   } catch (error) {
@@ -374,6 +415,8 @@ export interface AppliedRules {
   extraction: ExtractionGraph;
   /** Per rule: symbols it matched that a typed rule left alone because the range didn't change them. */
   untouched: Map<string, number>;
+  /** Per `none` rule: symbols Tier 0 (or the node mapping) had decided as an element, or rejected, that the rule overrode. */
+  overrode: Map<string, { decided: number; rejected: number }>;
 }
 
 /** What a rule is asked about a symbol. */
@@ -401,14 +444,22 @@ export function applyProjectRules(extraction: ExtractionGraph, rules: readonly C
   const noneRules = symbolRules.filter((r) => r.decision.kind === "none");
   const typedRules = symbolRules.filter((r) => r.decision.kind === "type");
   const untouched = new Map<string, number>();
-  if (!symbolRules.length) return { extraction, untouched };
+  const overrode = new Map<string, { decided: number; rejected: number }>();
+  if (!symbolRules.length) return { extraction, untouched, overrode };
   const symbols = extraction.symbols.map((s) => {
     // A decision on this one card wins over every rule.
     if (context.decidedCards?.has(s.card.id)) return s;
     const subject = subjectOf(s, context.ownerTypeOf?.(s));
     // Any none rule, ahead of Tier 0 and of every typed rule.
     const none = noneRules.find((r) => r.matches(subject));
-    if (none) return { ...s, tier0: { kind: "reject", rule: `${PROJECT_RULE_PREFIX}${none.rule.name}`, confidence: "high" } satisfies Tier0Outcome };
+    if (none) {
+      if (s.tier0?.kind === "decide" || s.tier0?.kind === "reject") {
+        const o = overrode.get(none.rule.name) ?? overrode.set(none.rule.name, { decided: 0, rejected: 0 }).get(none.rule.name)!;
+        if (s.tier0.kind === "decide") o.decided++;
+        else o.rejected++;
+      }
+      return { ...s, tier0: { kind: "reject", rule: `${PROJECT_RULE_PREFIX}${none.rule.name}`, confidence: "high" } satisfies Tier0Outcome };
+    }
     // A typed rule decides only what Tier 0 left open; a route nothing handles is never typed by rule.
     if ((s.tier0 && s.tier0.kind !== "narrow") || s.unhandled) return s;
     const typed = typedRules.find((r) => r.matches(subject));
@@ -422,7 +473,7 @@ export function applyProjectRules(extraction: ExtractionGraph, rules: readonly C
       tier0: { kind: "decide", layer: typed.decision.layer, type: typed.decision.type, rule: `${PROJECT_RULE_PREFIX}${typed.rule.name}`, confidence: "high" } satisfies Tier0Outcome,
     };
   });
-  return { extraction: { ...extraction, symbols }, untouched };
+  return { extraction: { ...extraction, symbols }, untouched, overrode };
 }
 
 /** The first relationship rule that covers a relationship, when one does. */
