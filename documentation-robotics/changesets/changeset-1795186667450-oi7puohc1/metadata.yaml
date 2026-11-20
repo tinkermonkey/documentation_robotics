@@ -1,0 +1,947 @@
+id: changeset-1795186667450-oi7puohc1
+name: bootstrap-code-layers
+description: "Model the dr CLI's code as built at 419c1a32: add the application,
+  data-model and api layers from extraction and link them to the product
+  features they realize. Done: every class, exported operation and declared
+  shape under cli/src is an element or a recorded rejection, and the model
+  validates."
+created: 2026-11-20T14:57:47.451Z
+modified: 2026-11-20T15:38:19.053Z
+status: committed
+baseSnapshot: sha256:0d13a152cef9359934356a1242642fc9f5a4abb4ab65b2b776aabc0e6243aede
+origin:
+  kind: extract
+purpose: bootstrap
+stats:
+  additions: 6257
+  modifications: 0
+  deletions: 0
+lastSequence: 6338
+unstaged:
+  - sequence: 0
+    removedAt: 56
+    change:
+      type: add
+      elementId: technology.artifact.clickhouse-clickhouse-server
+      layerName: technology
+      after:
+        id: a3c173ec-3390-4de0-b936-f2bdb526d485
+        path: technology.artifact.clickhouse-clickhouse-server
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: clickhouse/clickhouse-server
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 47
+    removedAt: 57
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-db::composes::technology.artifact.clickhouse-clickhouse-server
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-db
+        target: technology.artifact.clickhouse-clickhouse-server
+        predicate: composes
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 1
+    removedAt: 58
+    change:
+      type: add
+      elementId: technology.artifact.clickhouse-zookeeper
+      layerName: technology
+      after:
+        id: 18c0fb32-8f6b-4563-a5ec-b5fb3a2117af
+        path: technology.artifact.clickhouse-zookeeper
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: clickhouse/zookeeper
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 55
+    removedAt: 59
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-zookeeper::composes::technology.artifact.clickhouse-zookeeper
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-zookeeper
+        target: technology.artifact.clickhouse-zookeeper
+        predicate: composes
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 2
+    removedAt: 60
+    change:
+      type: add
+      elementId: technology.artifact.ghcr-io-signoz-frontend
+      layerName: technology
+      after:
+        id: 43534a0a-a1c5-462a-8161-918c621002bd
+        path: technology.artifact.ghcr-io-signoz-frontend
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: ghcr.io/signoz/frontend
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 49
+    removedAt: 61
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-frontend::composes::technology.artifact.ghcr-io-signoz-frontend
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-frontend
+        target: technology.artifact.ghcr-io-signoz-frontend
+        predicate: composes
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 3
+    removedAt: 62
+    change:
+      type: add
+      elementId: technology.artifact.ghcr-io-signoz-query-service
+      layerName: technology
+      after:
+        id: bd837a93-1f6f-47a4-a159-46ed8fe6b386
+        path: technology.artifact.ghcr-io-signoz-query-service
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: ghcr.io/signoz/query-service
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 51
+    removedAt: 63
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-query-service::composes::technology.artifact.ghcr-io-signoz-query-service
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-query-service
+        target: technology.artifact.ghcr-io-signoz-query-service
+        predicate: composes
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 4
+    removedAt: 64
+    change:
+      type: add
+      elementId: technology.artifact.otel-opentelemetry-collector-contrib
+      layerName: technology
+      after:
+        id: 02204b38-9081-457d-b560-ee9b10e0c0f6
+        path: technology.artifact.otel-opentelemetry-collector-contrib
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: otel/opentelemetry-collector-contrib
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 43
+    removedAt: 65
+    change:
+      type: relationship-add
+      elementId: technology.node.service-otel-collector::composes::technology.artifact.otel-opentelemetry-collector-contrib
+      layerName: technology
+      after:
+        source: technology.node.service-otel-collector
+        target: technology.artifact.otel-opentelemetry-collector-contrib
+        predicate: composes
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 5
+    removedAt: 66
+    change:
+      type: add
+      elementId: technology.artifact.redis
+      layerName: technology
+      after:
+        id: e86a75aa-62d2-43bd-9b11-658cea9d77f2
+        path: technology.artifact.redis
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: redis
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 46
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-cache::composes::technology.artifact.redis
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-cache
+        target: technology.artifact.redis
+        predicate: composes
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 6
+    removedAt: 68
+    change:
+      type: add
+      elementId: technology.artifact.switchyard-orchestrator
+      layerName: technology
+      after:
+        id: d823b483-b12b-4f5d-94e6-40daef0da162
+        path: technology.artifact.switchyard-orchestrator
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: switchyard-orchestrator
+        attributes:
+          artifactType: container-image
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Image
+  - sequence: 7
+    removedAt: 69
+    change:
+      type: add
+      elementId: technology.node.service-otel-collector
+      layerName: technology
+      after:
+        id: ec447734-7f64-4f39-a65c-528209297114
+        path: technology.node.service-otel-collector
+        spec_node_id: technology.node
+        type: node
+        layer_id: technology
+        name: Service/otel-collector
+        attributes:
+          nodeType: container
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: docs/otel_example/docker-compose.signoz.yml
+              symbol: Service/otel-collector
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 44
+    removedAt: 70
+    change:
+      type: relationship-add
+      elementId: technology.node.service-otel-collector::depends-on::technology.node.service-signoz-cache
+      layerName: technology
+      after:
+        source: technology.node.service-otel-collector
+        target: technology.node.service-signoz-cache
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 45
+    removedAt: 71
+    change:
+      type: relationship-add
+      elementId: technology.node.service-otel-collector::depends-on::technology.node.service-signoz-db
+      layerName: technology
+      after:
+        source: technology.node.service-otel-collector
+        target: technology.node.service-signoz-db
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 52
+    removedAt: 72
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-query-service::depends-on::technology.node.service-otel-collector
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-query-service
+        target: technology.node.service-otel-collector
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 8
+    removedAt: 73
+    change:
+      type: add
+      elementId: technology.node.service-signoz-cache
+      layerName: technology
+      after:
+        id: 2859fbea-e4d1-4224-9b82-f71575dd2f78
+        path: technology.node.service-signoz-cache
+        spec_node_id: technology.node
+        type: node
+        layer_id: technology
+        name: Service/signoz-cache
+        attributes:
+          nodeType: container
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: docs/otel_example/docker-compose.signoz.yml
+              symbol: Service/signoz-cache
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 53
+    removedAt: 74
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-query-service::depends-on::technology.node.service-signoz-cache
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-query-service
+        target: technology.node.service-signoz-cache
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 9
+    removedAt: 75
+    change:
+      type: add
+      elementId: technology.node.service-signoz-db
+      layerName: technology
+      after:
+        id: 688fccc3-6df0-4649-a1f8-61f97c0d1faf
+        path: technology.node.service-signoz-db
+        spec_node_id: technology.node
+        type: node
+        layer_id: technology
+        name: Service/signoz-db
+        attributes:
+          nodeType: container
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: docs/otel_example/docker-compose.signoz.yml
+              symbol: Service/signoz-db
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 48
+    removedAt: 76
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-db::depends-on::technology.node.service-signoz-zookeeper
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-db
+        target: technology.node.service-signoz-zookeeper
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 54
+    removedAt: 77
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-query-service::depends-on::technology.node.service-signoz-db
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-query-service
+        target: technology.node.service-signoz-db
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 10
+    removedAt: 78
+    change:
+      type: add
+      elementId: technology.node.service-signoz-frontend
+      layerName: technology
+      after:
+        id: 5653f7ee-b8a8-48ba-a6c9-530a399bd579
+        path: technology.node.service-signoz-frontend
+        spec_node_id: technology.node
+        type: node
+        layer_id: technology
+        name: Service/signoz-frontend
+        attributes:
+          nodeType: container
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: docs/otel_example/docker-compose.signoz.yml
+              symbol: Service/signoz-frontend
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 50
+    removedAt: 79
+    change:
+      type: relationship-add
+      elementId: technology.node.service-signoz-frontend::depends-on::technology.node.service-signoz-query-service
+      layerName: technology
+      after:
+        source: technology.node.service-signoz-frontend
+        target: technology.node.service-signoz-query-service
+        predicate: depends-on
+        layer: technology
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 11
+    removedAt: 80
+    change:
+      type: add
+      elementId: technology.node.service-signoz-query-service
+      layerName: technology
+      after:
+        id: 914010c0-a572-4905-bd62-7693b5375826
+        path: technology.node.service-signoz-query-service
+        spec_node_id: technology.node
+        type: node
+        layer_id: technology
+        name: Service/signoz-query-service
+        attributes:
+          nodeType: container
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: docs/otel_example/docker-compose.signoz.yml
+              symbol: Service/signoz-query-service
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 12
+    removedAt: 81
+    change:
+      type: add
+      elementId: technology.node.service-signoz-zookeeper
+      layerName: technology
+      after:
+        id: 77fb8e0a-e70f-46f2-ae22-07f8635cc6b7
+        path: technology.node.service-signoz-zookeeper
+        spec_node_id: technology.node
+        type: node
+        layer_id: technology
+        name: Service/signoz-zookeeper
+        attributes:
+          nodeType: container
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: docs/otel_example/docker-compose.signoz.yml
+              symbol: Service/signoz-zookeeper
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_compose_service
+  - sequence: 13
+    removedAt: 82
+    change:
+      type: add
+      elementId: api.operation.delete-todos-todo-id
+      layerName: api
+      after:
+        id: 8287ba17-d7a0-491a-ad0f-f9e3de3421a8
+        path: api.operation.delete-todos-todo-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: DELETE /todos/{todo_id}
+        attributes:
+          operationId: delete-todos-todo-id
+          summary: DELETE /todos/{todo_id}
+          tags: todos
+          http_method: DELETE
+          http_path: /todos/{todo_id}
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: DELETE /todos/{todo_id}
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 39
+    removedAt: 83
+    change:
+      type: relationship-add
+      elementId: api.operation.delete-todos-todo-id::realizes::application.applicationfunction.delete-todo
+      layerName: api
+      after:
+        source: api.operation.delete-todos-todo-id
+        target: application.applicationfunction.delete-todo
+        predicate: realizes
+        layer: api
+        targetLayer: application
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 14
+    removedAt: 84
+    change:
+      type: add
+      elementId: api.operation.get-todos
+      layerName: api
+      after:
+        id: 7489b147-5c4a-45ac-b8d4-c3208cfe50af
+        path: api.operation.get-todos
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /todos
+        attributes:
+          operationId: get-todos
+          summary: GET /todos
+          tags: todos
+          http_method: GET
+          http_path: /todos
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: GET /todos
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 40
+    removedAt: 85
+    change:
+      type: relationship-add
+      elementId: api.operation.get-todos::realizes::application.applicationfunction.list-todos
+      layerName: api
+      after:
+        source: api.operation.get-todos
+        target: application.applicationfunction.list-todos
+        predicate: realizes
+        layer: api
+        targetLayer: application
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 15
+    removedAt: 86
+    change:
+      type: add
+      elementId: api.operation.post-todos
+      layerName: api
+      after:
+        id: af536fe9-7bf2-4eb5-bb87-f2395cfb87f2
+        path: api.operation.post-todos
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: POST /todos
+        attributes:
+          operationId: post-todos
+          summary: POST /todos
+          tags: todos
+          http_method: POST
+          http_path: /todos
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: POST /todos
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 41
+    removedAt: 87
+    change:
+      type: relationship-add
+      elementId: api.operation.post-todos::realizes::application.applicationfunction.create-todo
+      layerName: api
+      after:
+        source: api.operation.post-todos
+        target: application.applicationfunction.create-todo
+        predicate: realizes
+        layer: api
+        targetLayer: application
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 16
+    removedAt: 88
+    change:
+      type: add
+      elementId: api.operation.put-todos-todo-id
+      layerName: api
+      after:
+        id: 2d51dec2-9c03-475d-8aa3-c5a7abcea304
+        path: api.operation.put-todos-todo-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: PUT /todos/{todo_id}
+        attributes:
+          operationId: put-todos-todo-id
+          summary: PUT /todos/{todo_id}
+          tags: todos
+          http_method: PUT
+          http_path: /todos/{todo_id}
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: PUT /todos/{todo_id}
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 42
+    removedAt: 89
+    change:
+      type: relationship-add
+      elementId: api.operation.put-todos-todo-id::realizes::application.applicationfunction.update-todo
+      layerName: api
+      after:
+        source: api.operation.put-todos-todo-id
+        target: application.applicationfunction.update-todo
+        predicate: realizes
+        layer: api
+        targetLayer: application
+        category: structural
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: node-mapping:Route
+  - sequence: 35
+    removedAt: 90
+    change:
+      type: add
+      elementId: application.applicationfunction.create-todo
+      layerName: application
+      after:
+        id: 7aaa3fc8-7755-4c61-a135-3b962faf0cd8
+        path: application.applicationfunction.create-todo
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: create_todo
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: create_todo
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_route_handler
+  - sequence: 36
+    removedAt: 91
+    change:
+      type: add
+      elementId: application.applicationfunction.delete-todo
+      layerName: application
+      after:
+        id: 5daf8adf-def4-48ce-b2d4-ad4fbf9a71d1
+        path: application.applicationfunction.delete-todo
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: delete_todo
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: delete_todo
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_route_handler
+  - sequence: 37
+    removedAt: 92
+    change:
+      type: add
+      elementId: application.applicationfunction.list-todos
+      layerName: application
+      after:
+        id: 86b92a6c-14f7-4b66-b28e-af37cccc334a
+        path: application.applicationfunction.list-todos
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: list_todos
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: list_todos
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_route_handler
+  - sequence: 38
+    removedAt: 93
+    change:
+      type: add
+      elementId: application.applicationfunction.update-todo
+      layerName: application
+      after:
+        id: 00b32df5-f706-41f7-946c-7c2e76caadbc
+        path: application.applicationfunction.update-todo
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: update_todo
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli-validation/test-project/baseline/backend/main.py
+              symbol: update_todo
+        metadata:
+          created_at: 2026-11-20T14:57:47.346Z
+          updated_at: 2026-11-20T14:57:47.346Z
+          version: 1
+      timestamp: 2026-11-20T14:57:47.454Z
+      origin:
+        by: tier0
+        rule: tier0_route_handler
+  - sequence: 96
+    removedAt: 2440
+    change:
+      type: add
+      elementId: api.operation.delete-mcp
+      layerName: api
+      after:
+        id: a756489d-9bfa-4320-abeb-0303ff5fb782
+        path: api.operation.delete-mcp
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: DELETE /mcp
+        description: End an MCP session over the HTTP transport
+        attributes:
+          operationId: deleteMcp
+          summary: End an MCP session over the HTTP transport
+          tags: mcp
+          http_method: DELETE
+          http_path: /mcp
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/http-transport.ts
+              symbol: DELETE /mcp
+        metadata:
+          created_at: 2026-11-20T15:02:45.990Z
+          updated_at: 2026-11-20T15:02:45.990Z
+          version: 1
+      timestamp: 2026-11-20T15:02:46.016Z
+  - sequence: 1275
+    removedAt: 2441
+    change:
+      type: add
+      elementId: api.operation.get-mcp
+      layerName: api
+      after:
+        id: 4c28b5eb-7003-4b47-88af-c1a3fabed0f7
+        path: api.operation.get-mcp
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /mcp
+        description: Open the MCP server-to-client event stream for a session
+        attributes:
+          operationId: getMcp
+          summary: Open the MCP server-to-client event stream for a session
+          tags: mcp
+          http_method: GET
+          http_path: /mcp
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/http-transport.ts
+              symbol: GET /mcp
+        metadata:
+          created_at: 2026-11-20T15:05:59.975Z
+          updated_at: 2026-11-20T15:05:59.975Z
+          version: 1
+      timestamp: 2026-11-20T15:06:00.105Z
+  - sequence: 1276
+    removedAt: 2442
+    change:
+      type: add
+      elementId: api.operation.post-mcp
+      layerName: api
+      after:
+        id: 726e53b4-0434-4a62-9034-9e4af83bbd48
+        path: api.operation.post-mcp
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: POST /mcp
+        description: Receive an MCP client message over the streamable HTTP transport
+        attributes:
+          operationId: postMcp
+          summary: Receive an MCP client message over the streamable HTTP transport
+          tags: mcp
+          http_method: POST
+          http_path: /mcp
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/http-transport.ts
+              symbol: POST /mcp
+        metadata:
+          created_at: 2026-11-20T15:05:59.975Z
+          updated_at: 2026-11-20T15:05:59.975Z
+          version: 1
+      timestamp: 2026-11-20T15:06:00.105Z

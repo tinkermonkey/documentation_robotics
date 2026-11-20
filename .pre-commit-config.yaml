@@ -18,7 +18,8 @@ repos:
         exclude: ^spec/test-fixtures/invalid/
       - id: check-added-large-files
         args: [--maxkb=1000]
-        exclude: ^docs/logo/
+        # dr writes a changeset's changes.yaml whole; a bootstrap's runs to several MB
+        exclude: ^(docs/logo/|documentation-robotics/changesets/)
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: mixed-line-ending
