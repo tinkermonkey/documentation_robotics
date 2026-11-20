@@ -816,3 +816,123 @@
     category: structural
   timestamp: 2026-11-20T16:56:21.786Z
   sequenceNumber: 51
+- type: update
+  elementId: product.feature.project-status
+  layerName: product
+  before:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status. Where this repo stands with DR: model
+      present, spec version against the CLI, whether the dr server answering is
+      older than the CLI installed now, active and staged changesets (with what
+      moved in the base under each and whether landing needs force), code index
+      present and fresh, code changed since the model was last reconciled with
+      it, viewer running, Tier 1 state, and the suggested next step. The server
+      instructions tell the agent to call it first."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: project_status (cli/src/mcp/tools/project-status.ts,
+        sections in project-status-collectors.ts). Where this repo stands with
+        DR: model present, spec version against the CLI, the dr server's version
+        against the installed CLI, active and staged changesets, code index
+        present and fresh (and any indexing run in flight), code drift, viewer
+        running, Tier 1 state, and nextStep, a sentence and the tool to call.
+        Each drift state says what changed, whether a landing is refused and
+        which tool comes next, without a second call. A staged changeset whose
+        base changed carries drift: the state and whether it blocks (read from
+        core/changeset-drift-status.ts, never re-derived), how many base
+        elements and relationships changed, how many of its own changes they
+        overlap, landing (refused-without-force, allowed, allowed-with-warning)
+        and the changeset_brief call that lists the rest. Code drift is counted
+        from the code commit the last as-built landing's extraction read
+        (countedFrom), or from the commit that brought in that landing when the
+        repository lacks it; a model with no as-built landing counts from its
+        last commit that is not a spec migration. rule says which applies,
+        landedSince names the changesets landed since (none moves the baseline),
+        and unreferenced counts changed files no element references, which the
+        check cannot see. server is stale when the CLI on disk has another
+        version than the running process or its files were written after the
+        process started: the fix is a restart of the session's dr server, not an
+        update. The status is kept small, and its limits are defaults, not
+        cut-offs: each list shows its first entries (20 staged changesets, 15
+        changed source files with 3 elements each, 5 unreferenced files, the 5
+        latest changesets landed since, 15 files changed since the index, 3
+        overlapping changes per drifted changeset) with its true count beside it
+        and a more line naming the call for the rest. list returns any of them
+        in full, paged with limit (default 50, no upper bound) and offset, with
+        total, returned and nextOffset. Every status, count and nextStep is
+        computed over the whole lists before anything is shortened. Reads local
+        files and git only. The server instructions tell the agent to call it
+        first."
+    source_reference: &a5
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/project-status.ts
+    metadata: &a6
+      created_at: 2026-11-09T22:04:38.150Z
+      updated_at: 2026-11-09T22:04:38.150Z
+      version: 1
+  after:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status. Where this repo stands with DR: model
+      present, spec version against the CLI, whether the dr server answering is
+      older than the CLI installed now, active and staged changesets (with what
+      moved in the base under each and whether landing needs force), code index
+      present and fresh, code changed since the model was last reconciled with
+      it, viewer running, Tier 1 state, and the suggested next step. The server
+      instructions tell the agent to call it first."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: project_status (cli/src/mcp/tools/project-status.ts,
+        sections in project-status-collectors.ts). Where this repo stands with
+        DR: model present, spec version against the CLI, the dr server's version
+        against the installed CLI, active and staged changesets, code index
+        present and fresh (and any indexing run in flight), code drift, viewer
+        running, Tier 1 state, and nextStep, a sentence and the tool to call.
+        Each drift state says what changed, whether a landing is refused and
+        which tool comes next. A staged changeset whose base changed carries
+        drift: the state and whether it blocks (read from
+        core/changeset-drift-status.ts, never re-derived), landing
+        (refused-without-force, allowed, allowed-with-warning, or unknown when
+        drift could not be checked) and the changeset_brief call that lists what
+        moved. The active changeset's drift also counts the base elements and
+        relationships that changed and how many of its own changes they overlap;
+        the others get that from the named call or from the stagedChangesets
+        list, because describing drift costs a pass over the model per
+        changeset. Code drift is counted from the code commit the last as-built
+        landing's extraction read (countedFrom); a model with no as-built
+        landing counts from its last commit that is not a spec migration. When
+        that code commit is not in the repository, or a shallow clone's history
+        stops at the baseline, changed files that are seen are still drift and
+        seeing none is unknown, never in step. rule says which rule applies,
+        landedSince names the changesets landed since (none moves the baseline),
+        and unreferenced counts changed files no element references, which the
+        check cannot see. server is stale when the CLI on disk has another
+        version than the running process or its files were written after the
+        process started: the fix is a restart of the session's dr server, not an
+        update; comparedWith names the install that was read. The status is kept
+        small, and its limits are defaults, not cut-offs: each list shows its
+        first entries (10 staged changesets, 15 changed source files with 3
+        elements each, 5 unreferenced files, the 5 latest changesets landed
+        since, 15 files changed since the index, 3 overlapping changes per
+        drifted changeset) with its true count beside it and a more line naming
+        the call for the rest. list returns any of them in full, paged with
+        limit (default 50, no upper bound) and offset, with total, returned and
+        nextOffset. Every status, count and nextStep is computed over the whole
+        lists before anything is shortened. Reads local files and git only. The
+        server instructions tell the agent to call it first."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T17:09:52.422Z
+  sequenceNumber: 59
