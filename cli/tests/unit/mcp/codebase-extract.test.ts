@@ -756,8 +756,8 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
     expect(first.undecided.items.map((c: any) => c.symbol).sort()).toEqual(["Helpers", "Helpers.format", "OwnerService"]);
     const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
 
-    // An unknown card records nothing.
-    const bad = fail(await handler({ reject: [{ card: "nope", reason: "x" }, { card: helpers.cardId, reason: "x" }], rootPath }));
+    // A call that names only an unknown card records nothing.
+    const bad = fail(await handler({ reject: [{ card: "nope", reason: "x" }], rootPath }));
     expect(bad.error).toContain("nope");
     expect(existsSync(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"))).toBe(false);
 
@@ -1572,7 +1572,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "Owner Service", attributes: { type: "internal" }, sourceFile: SERVICE_FILE, sourceSymbol: "OwnerService", sourceProvenance: "extracted", rootPath }));
     clearModelCache();
     const refused = fail(await handler({ changeset: "my-design", reject: [{ card: "OwnerService", reason: "x" }], rootPath }));
-    expect(refused.error).toContain("No cards recorded for 'my-design'");
+    expect(refused.error).toContain("no cards recorded for 'my-design'");
     const design = await new StagingAreaManager(rootPath, await Model.load(rootPath)).load("my-design");
     expect(design!.changes.map((c) => c.elementId)).toEqual(["application.applicationcomponent.owner-service"]);
   });
@@ -1954,11 +1954,12 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(await relationshipIds(first.changeset.id)).toContain(WRONG_KEY);
 
     // A relationship nothing staged and the model doesn't have records nothing.
-    const bad = fail(await handler({ reject: [{ relationship: { ...WRONG, predicate: "serves" }, reason: "x" }, { relationship: WRONG, reason: "x" }], rootPath }));
+    const bad = fail(await handler({ reject: [{ relationship: { ...WRONG, predicate: "serves" }, reason: "x" }], rootPath }));
     expect(bad.error).toContain(`${HANDLER}::serves::${SCHEMA}`);
     expect(existsSync(decisionsFile())).toBe(false);
     // An item names exactly one of card, files and relationship.
     expect(fail(await handler({ reject: [{ card: "Helpers", relationship: WRONG, reason: "x" }], rootPath })).error).toContain("names card and relationship");
+    expect(existsSync(decisionsFile())).toBe(false);
 
     const rejected = ok(await handler({ reject: [{ relationship: WRONG, reason: "the code never calls it" }], rootPath }));
     expect(rejected.message).toContain("unstaged 1 relationship(s)");
@@ -2093,9 +2094,11 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     const first = ok(await handler({ rootPath }));
     expect(first.undecided.total).toBe(28);
 
-    // A pattern that matches no card records nothing, even beside one that does.
-    const bad = fail(await handler({ reject: [{ files: "docs/**", reason: "docs" }, { files: "nope/**", reason: "x" }], rootPath }));
+    // A call in which no pattern matches a card is refused and records nothing.
+    const bad = fail(await handler({ reject: [{ files: "nope/**", reason: "x" }, { files: "barcut.html", reason: "y" }], rootPath }));
     expect(bad.error).toContain("'nope/**'");
+    expect(bad.error).toContain("'barcut.html'");
+    expect(bad.error).toContain("Nothing was recorded");
     expect(existsSync(decisionsFile())).toBe(false);
 
     const rejected = ok(await handler({ reject: [{ files: "docs/**", reason: "the docs site" }, { files: "src/util/Helpers.java", reason: "a helper" }], rootPath }));
@@ -2108,6 +2111,47 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     ok(await handler({ clearRejected: true, rootPath }));
     expect(ok(await handler({ rootPath })).undecided.total).toBe(28);
     expect(ok(await handler({ reject: [{ files: "docs/site/", reason: "the docs site" }], rootPath })).notElements.total).toBe(25);
+  }, SLOW);
+
+  it("#1213: a reject item that names nothing is reported and the other items are recorded", async () => {
+    await indexed();
+    const h = harness();
+    withDocsSite(h);
+    const handler = createCodebaseExtractHandler(h.deps);
+    expect(ok(await handler({ rootPath })).undecided.total).toBe(28);
+
+    const mixed = ok(
+      await handler({
+        reject: [
+          { files: "docs/**", reason: "the docs site" },
+          { files: "barcut.html", reason: "a page" },
+          { card: "Helpers", reason: "a static utility" },
+          { files: "*.js", reason: "scripts" },
+          { card: "NoSuchThing", reason: "x" },
+          { relationship: { source: "a.b.c", predicate: "uses", target: "d.e.f" }, reason: "not there" },
+        ],
+        rootPath,
+      })
+    );
+    // The two that apply are recorded: 25 docs cards and the Helpers card.
+    expect(mixed.notElements).toMatchObject({ total: 26, recorded: { total: 26 } });
+    expect(mixed.notRelationships).toBeUndefined();
+    // The four that name nothing are listed by their place in the call, with why.
+    expect(mixed.notApplied).toMatchObject({ total: 4, of: 6 });
+    expect(mixed.notApplied.items.map((p: any) => [p.index, p.status, p.item])).toEqual([
+      [1, "no-match", "files: barcut.html"],
+      [3, "no-match", "files: *.js"],
+      [4, "unknown", "card: NoSuchThing"],
+      [5, "unknown", "relationship: a.b.c::uses::d.e.f"],
+    ]);
+    expect(mixed.message).toContain("Recorded 2 of 6 reject item(s); 4 named nothing");
+    const recorded = JSON.parse(await readFile(decisionsFile(), "utf-8"));
+    expect(Object.keys(recorded.notElements)).toHaveLength(26);
+
+    // The rerun leaves out what was recorded.
+    const rerun = ok(await handler({ rootPath }));
+    expect(rerun.notElements).toMatchObject({ total: 26, skipped: 26 });
+    expect(rerun.notApplied).toBeUndefined();
   }, SLOW);
 
   it("suggests .cbmignore for the few folders most undecided cards come from", async () => {

@@ -221,7 +221,8 @@ const inputSchema = {
         "instead of one call per card. " +
         "relationship: {source, predicate, target} of a wrong relationship. Recorded for the project until cleared, so " +
         "later runs leave them out; what is still staged for them in the changeset is unstaged (an element with its relationships). " +
-        "A call with only reject or clearRejected records and runs nothing."
+        "An item that names nothing (a pattern no card is in, an unknown card) is listed in notApplied and the others are still recorded; " +
+        "the call is refused only when no item applies. A call with only reject or clearRejected records and runs nothing."
     ),
   clearRejected: z
     .union([z.literal(true), z.array(z.string().min(1))])
@@ -1545,7 +1546,7 @@ function changesetRejectables(changeset: Changeset | null, graph: ChangesetGraph
 }
 
 /**
- * What a `reject` names, one symbol per entry, or a CLIError naming the entries it can't place.
+ * What a `reject` names, one symbol per entry, and the entries it can't place ({@link RejectProblem}).
  * An entry may be a cardId (of the last run, or an earlier run's card the agent has modelled
  * since), an element id the extraction staged, or a symbol (bare, file#symbol or qualified name)
  * that only one of those has.
@@ -1554,22 +1555,16 @@ function cardsToReject(
   stored: StoredCards | null,
   fromChangeset: Rejectable[],
   changesetName: string,
-  refs: Array<{ card: string; reason: string }>
-): Array<{ file: string | null; symbol: string; label?: string; reason: string }> {
+  refs: Array<{ card: string; reason: string; index: number }>
+): { found: Array<{ file: string | null; symbol: string; label?: string; reason: string }>; problems: RejectProblem[] } {
   const known: Rejectable[] = [
     ...(stored?.cards ?? []).map((c) => ({ file: c.file, symbol: c.symbol, label: c.label, cardId: c.cardId, qualifiedName: c.qualifiedName })),
     ...(stored?.earlierCards ?? []).map((c) => ({ file: c.file, symbol: c.symbol, label: c.label, cardId: c.cardId, qualifiedName: c.qualifiedName })),
     ...(stored?.staged ?? []).map((s) => ({ file: s.file, symbol: s.symbol, label: s.label, elementId: s.id })),
     ...fromChangeset,
   ];
-  if (!known.length) {
-    throw new CLIError(`No cards recorded for '${changesetName}' to reject from`, ErrorCategory.USER, [
-      "Call codebase_extract first, then pass the cardId (or symbol) of each card that is not an element",
-    ]);
-  }
   const found: Array<{ file: string | null; symbol: string; label?: string; reason: string }> = [];
-  const unknown: string[] = [];
-  const ambiguous: string[] = [];
+  const problems: RejectProblem[] = [];
   // The same symbol can be known several ways (a card, then the element staged for it).
   const distinctSymbols = (matches: Rejectable[]): Rejectable[] => {
     const bySymbol = new Map<string, Rejectable>();
@@ -1581,6 +1576,10 @@ function cardsToReject(
     return [...bySymbol.values()];
   };
   for (const ref of refs) {
+    if (!known.length) {
+      problems.push({ index: ref.index, item: `card: ${ref.card}`, status: "unknown", message: `no cards recorded for '${changesetName}' to reject from` });
+      continue;
+    }
     // An element id names the element: every symbol it names (one per source location).
     const ofElement = known.filter((k) => k.elementId === ref.card);
     if (ofElement.length) {
@@ -1594,19 +1593,17 @@ function cardsToReject(
     const distinct = distinctSymbols(matches);
     if (distinct.length === 1) found.push({ file: distinct[0].file, symbol: distinct[0].symbol, label: distinct[0].label, reason: ref.reason });
     else if (distinct.length > 1) {
-      ambiguous.push(`${ref.card} (${distinct.map((d) => d.cardId ?? `${d.file ?? ""}#${d.symbol}`).join(", ")})`);
-    } else unknown.push(ref.card);
+      problems.push({
+        index: ref.index,
+        item: `card: ${ref.card}`,
+        status: "ambiguous",
+        message: `names more than one card: ${distinct.map((d) => d.cardId ?? `${d.file ?? ""}#${d.symbol}`).join(", ")}`,
+      });
+    } else {
+      problems.push({ index: ref.index, item: `card: ${ref.card}`, status: "unknown", message: `not among the cards or staged symbols of '${changesetName}'` });
+    }
   }
-  if (unknown.length || ambiguous.length) {
-    const parts = [
-      ...(unknown.length ? [`not among the cards or staged symbols of '${changesetName}': ${unknown.join(", ")}`] : []),
-      ...(ambiguous.length ? [`names more than one card: ${ambiguous.join("; ")}`] : []),
-    ];
-    throw new CLIError(`Can't reject: ${parts.join("; ")}. Nothing was recorded`, ErrorCategory.USER, [
-      "Pass the cardId (or file#symbol) of a card, or the id of an element this extraction staged",
-    ]);
-  }
-  return found;
+  return { found, problems };
 }
 
 /**
@@ -1634,25 +1631,39 @@ function clearDecisions(decisions: Decisions, which: true | string[]): { element
 type RejectItem = NonNullable<CodebaseExtractArgs["reject"]>[number];
 type RelationshipRef = { source: string; predicate: string; target: string };
 
-/** A reject's items by what they name, each naming exactly one of card, files and relationship. */
+/**
+ * A `reject` item that was not applied: it is malformed, or names nothing this extraction has. The
+ * other items of the call are still recorded (#1213).
+ */
+interface RejectProblem {
+  /** The item's place in the call's `reject` list, from 0. */
+  index: number;
+  /** What the item named, as sent (`files: docs/**`). */
+  item: string;
+  status: "malformed" | "no-match" | "unknown" | "ambiguous";
+  message: string;
+}
+
+/** A reject's items by what they name; an item that doesn't name exactly one of card, files and relationship is a problem. */
 function splitRejects(items: RejectItem[]) {
-  const cards: Array<{ card: string; reason: string }> = [];
-  const files: Array<{ files: string; reason: string }> = [];
-  const relationships: Array<{ relationship: RelationshipRef; reason: string }> = [];
-  const bad: string[] = [];
-  items.forEach((item, i) => {
+  const cards: Array<{ card: string; reason: string; index: number }> = [];
+  const files: Array<{ files: string; reason: string; index: number }> = [];
+  const relationships: Array<{ relationship: RelationshipRef; reason: string; index: number }> = [];
+  const problems: RejectProblem[] = [];
+  items.forEach((item, index) => {
     const named = (["card", "files", "relationship"] as const).filter((k) => item[k] !== undefined);
-    if (named.length !== 1) bad.push(`item ${i + 1} names ${named.length ? named.join(" and ") : "none of them"}`);
-    else if (item.card !== undefined) cards.push({ card: item.card, reason: item.reason });
-    else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason });
-    else relationships.push({ relationship: item.relationship!, reason: item.reason });
+    if (named.length !== 1) {
+      problems.push({
+        index,
+        item: named.length ? named.join(" and ") : "(nothing)",
+        status: "malformed",
+        message: `names ${named.length ? named.join(" and ") : "none of card, files and relationship"}: each item names exactly one of them`,
+      });
+    } else if (item.card !== undefined) cards.push({ card: item.card, reason: item.reason, index });
+    else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason, index });
+    else relationships.push({ relationship: item.relationship!, reason: item.reason, index });
   });
-  if (bad.length) {
-    throw new CLIError(`Each reject[] item names one of card, files or relationship: ${bad.join("; ")}. Nothing was recorded`, ErrorCategory.USER, [
-      'Split it: {card, reason}, {files: "docs/**", reason} or {relationship: {source, predicate, target}, reason}',
-    ]);
-  }
-  return { cards, files, relationships };
+  return { cards, files, relationships, problems };
 }
 
 /** Whether a codebase-relative file is in a reject's `files`: the file, a folder it is in, or a glob it (or its folder) matches. */
@@ -1669,28 +1680,28 @@ function filesMatcher(pattern: string): (file: string) => boolean {
 /**
  * The cards a `files` reject names: every undecided card of the last run in matching files, as
  * card refs (the first reason wins for a card two patterns match). A pattern that matches no card
- * is refused, so a mistyped path records nothing.
+ * is a problem: it records nothing, and the other items still apply.
  */
-function cardsInFiles(stored: StoredCards | null, refs: Array<{ files: string; reason: string }>, changesetName: string): Array<{ card: string; reason: string }> {
-  if (!refs.length) return [];
+function cardsInFiles(
+  stored: StoredCards | null,
+  refs: Array<{ files: string; reason: string; index: number }>,
+  changesetName: string
+): { refs: Array<{ card: string; reason: string; index: number }>; problems: RejectProblem[] } {
   const cards = stored?.cards ?? [];
-  const out = new Map<string, string>();
-  const none: string[] = [];
+  const out = new Map<string, { reason: string; index: number }>();
+  const problems: RejectProblem[] = [];
   for (const ref of refs) {
     const match = filesMatcher(ref.files);
     const hits = cards.filter((c) => {
       const file = normFile(c.file);
       return !!file && match(file);
     });
-    if (!hits.length) none.push(`'${ref.files}'`);
-    for (const c of hits) if (!out.has(c.cardId)) out.set(c.cardId, ref.reason);
+    if (!hits.length) {
+      problems.push({ index: ref.index, item: `files: ${ref.files}`, status: "no-match", message: `no undecided card of '${changesetName}' is in '${ref.files}'` });
+    }
+    for (const c of hits) if (!out.has(c.cardId)) out.set(c.cardId, { reason: ref.reason, index: ref.index });
   }
-  if (none.length) {
-    throw new CLIError(`Can't reject: no undecided card of '${changesetName}' is in ${none.join(", ")}. Nothing was recorded`, ErrorCategory.USER, [
-      "Pass a file, folder or glob relative to the codebase root, as the cards' file gives it (docs/**, scripts/)",
-    ]);
-  }
-  return [...out].map(([card, reason]) => ({ card, reason }));
+  return { refs: [...out].map(([card, { reason, index }]) => ({ card, reason, index })), problems };
 }
 
 /** A relationship with both ends as the graph names them (a UUID becomes its dotted id). */
@@ -1711,18 +1722,18 @@ function stagedRelationshipAdds(changeset: Changeset | null, graph?: ChangesetGr
 
 /**
  * The relationships a reject names, each one extraction staged into this changeset (staged now or
- * unstaged since), one the changeset or the base model has, or one a decision already names; a
- * CLIError naming the others, so a mistyped one records nothing. Ends are resolved through the
- * graph (a UUID becomes its dotted id), so the decision is keyed as runs and unstaging key it.
+ * unstaged since), one the changeset or the base model has, or one a decision already names; the
+ * others are problems, so a mistyped one records nothing. Ends are resolved through the graph (a
+ * UUID becomes its dotted id), so the decision is keyed as runs and unstaging key it.
  */
 function relationshipsToReject(
-  refs: Array<{ relationship: RelationshipRef; reason: string }>,
+  refs: Array<{ relationship: RelationshipRef; reason: string; index: number }>,
   stored: StoredCards | null,
   changeset: Changeset | null,
   graph: ChangesetGraph,
   decisions: Decisions,
   changesetName: string
-): Array<RelationshipRef & { key: string; reason: string }> {
+): { found: Array<RelationshipRef & { key: string; reason: string }>; problems: RejectProblem[] } {
   const known = new Set([
     ...(stored?.stagedRelationships ?? []).map((k) => {
       const [source, predicate, target] = k.split("::");
@@ -1735,23 +1746,23 @@ function relationshipsToReject(
     const triple = stagedRelationshipTriple(t.change as StagedChange);
     if (triple) known.add(relationshipKey(resolvedTriple(triple, graph)));
   }
-  const out: Array<RelationshipRef & { key: string; reason: string }> = [];
-  const unknown: string[] = [];
-  for (const { relationship: given, reason } of refs) {
+  const found: Array<RelationshipRef & { key: string; reason: string }> = [];
+  const problems: RejectProblem[] = [];
+  for (const { relationship: given, reason, index } of refs) {
     const r = resolvedTriple(given, graph);
     const key = relationshipKey(r);
     if (known.has(key) || graph.getRelationship(r.source, r.predicate, r.target) || decisions.notRelationships[key]) {
-      out.push({ source: r.source, predicate: r.predicate, target: r.target, key, reason });
-    } else unknown.push(key);
+      found.push({ source: r.source, predicate: r.predicate, target: r.target, key, reason });
+    } else {
+      problems.push({
+        index,
+        item: `relationship: ${key}`,
+        status: "unknown",
+        message: `not a relationship '${changesetName}' stages or staged, nor one the model has`,
+      });
+    }
   }
-  if (unknown.length) {
-    throw new CLIError(
-      `Can't reject: not a relationship '${changesetName}' stages or staged, nor one the model has: ${unknown.join(", ")}. Nothing was recorded`,
-      ErrorCategory.USER,
-      ["Pass source, predicate and target as the staged relationship names them (changeset_show lists them)"]
-    );
-  }
-  return out;
+  return { found, problems };
 }
 
 function notRelationshipsResult(
@@ -2127,6 +2138,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const keptElements: Array<{ id: string; alsoNames: string[] }> = [];
         const relationshipsToUnstage: Array<RelationshipRef & { key: string }> = [];
         const relationshipsInBase: string[] = [];
+        const rejectProblems: RejectProblem[] = [];
         if (rejects) {
           const now = new Date().toISOString();
           const changesetLabel = changeset?.name ?? stored?.changesetName ?? name;
@@ -2134,11 +2146,31 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const graph = extractionChangeset ? await ChangesetGraph.build(model, extractionChangeset) : null;
           // Everything is checked before anything is recorded.
           const relationshipGraph = rejects.relationships.length ? (graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset()))) : null;
-          const rejectedRelationships = relationshipGraph
+          const fromRelationships = relationshipGraph
             ? relationshipsToReject(rejects.relationships, stored, changeset, relationshipGraph, decisions, changesetLabel)
-            : [];
-          const cardRefs = [...rejects.cards, ...cardsInFiles(stored, rejects.files, changesetLabel)];
-          const rejected = cardRefs.length ? cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changesetLabel, cardRefs) : [];
+            : { found: [], problems: [] };
+          const inFiles = cardsInFiles(stored, rejects.files, changesetLabel);
+          const cardRefs = [...rejects.cards, ...inFiles.refs];
+          const fromCards = cardRefs.length
+            ? cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changesetLabel, cardRefs)
+            : { found: [], problems: [] };
+          // An item that names nothing is reported and the rest are recorded (#1213); a call in
+          // which no item applies is refused, as a mistyped single reject was before.
+          rejectProblems.push(...rejects.problems, ...fromRelationships.problems, ...inFiles.problems, ...fromCards.problems);
+          rejectProblems.sort((a, b) => a.index - b.index);
+          if (rejectProblems.length && !fromRelationships.found.length && !fromCards.found.length) {
+            throw new CLIError(
+              `Can't reject: ${rejectProblems.map((p) => `${p.item} (${p.message})`).join("; ")}. Nothing was recorded`,
+              ErrorCategory.USER,
+              [
+                "Pass the cardId (or file#symbol) of a card, or the id of an element this extraction staged",
+                "For files, a file, folder or glob relative to the codebase root, as the cards' file gives it (docs/**, scripts/)",
+                "For a relationship, source, predicate and target as the staged relationship names them (changeset_show lists them)",
+              ]
+            );
+          }
+          const rejectedRelationships = fromRelationships.found;
+          const rejected = fromCards.found;
           // A relationship still staged in the extraction changeset is unstaged; one the base model
           // has stays (rejecting is about what extraction stages).
           const stagedNow = stagedRelationshipAdds(extractionChangeset, relationshipGraph);
@@ -2249,6 +2281,17 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         if (unstaged.length || unstagedRels.length) await reloadModel(args.rootPath);
         const rejectResult = {
+          ...(rejectProblems.length
+            ? {
+                notApplied: {
+                  total: rejectProblems.length,
+                  of: args.reject!.length,
+                  items: rejectProblems.slice(0, MAX_LISTED),
+                  ...(rejectProblems.length > MAX_LISTED ? { truncated: true as const } : {}),
+                  note: "These reject items named nothing, so they recorded nothing (index counts from 0). The other items were recorded.",
+                },
+              }
+            : {}),
           ...(unstaged.length
             ? {
                 unstaged: {
@@ -2297,7 +2340,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                       ...(unstaged.length ? [`${unstaged.length} element(s)`] : []),
                       ...(unstagedRels.length ? [`${unstagedRels.length} relationship(s)`] : []),
                     ].join(" and ")} it had staged; nothing was extracted.`
-                  : "Recorded; nothing was extracted or staged.",
+                  : rejectProblems.length
+                    ? `Recorded ${args.reject!.length - new Set(rejectProblems.map((p) => p.index)).size} of ${args.reject!.length} reject item(s); ${new Set(rejectProblems.map((p) => p.index)).size} named nothing (notApplied). Nothing was extracted or staged.`
+                    : "Recorded; nothing was extracted or staged.",
               next: [`Call codebase_extract with ${rerun} to refresh the cards: it leaves out what is recorded, and says how many.`],
             },
             { compact: true }
