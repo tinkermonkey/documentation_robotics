@@ -4,12 +4,16 @@
  * Scans the filesystem to determine what needs upgrading:
  * 1. .dr/ (spec reference) - if CLI has newer bundled version
  * 2. Model data - if model spec version doesn't match spec reference
+ * 3. Installed integrations (.claude/, .github/), layer reports and the ignore files
  *
- * Shows upgrade plan and prompts for confirmation before proceeding.
+ * Shows the upgrade plan, with every file it would touch outside the model listed by group, and
+ * prompts for confirmation before proceeding. `--model-only` leaves everything outside the model
+ * and the spec reference alone. The dry run rehearses the model step on a copy, so it names the
+ * model files that would change and what the upgraded model would still need.
  */
 
 import ansis from "ansis";
-import { confirm } from "@clack/prompts";
+import { confirm, isCancel, select } from "@clack/prompts";
 import { findProjectRoot, getModelPath } from "../utils/project-paths.js";
 import { getCliVersion, getCliBundledSpecVersion, getModelSpecVersion } from "../utils/spec-version.js";
 import {
@@ -25,7 +29,19 @@ import {
   upgradeModel,
   type ChangesetRebaselineResult,
   type ChangesetRef,
+  type ModelUpgradeOptions,
+  type ModelUpgradeResult,
 } from "../core/model-upgrade.js";
+import { countFiles, diffFiles, filesOutside, filesUnder, hashFiles, rehearseModelUpgrade, type FilesChanged } from "../core/upgrade-rehearsal.js";
+import {
+  outsideModelLines,
+  scanOutsideModel,
+  touchesOutsideModel,
+  type IntegrationPlan,
+  type OutsideModel,
+} from "../core/upgrade-outside-model.js";
+import type { UpgradeFills } from "../core/upgrade-fills.js";
+import { largeFileHook, largeFileHookNote } from "../core/commit-size-hook.js";
 import { formatRoutes, type UpgradeDropRecord } from "../core/upgrade-drop-record.js";
 import {
   summarizeRelationshipChanges,
@@ -33,8 +49,15 @@ import {
   type StagedRelationshipRewriteChange,
 } from "../core/relationship-migration.js";
 import { installSpecReference } from "../utils/spec-installer.js";
-import { ensureDotDrIgnored, dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
-import { CHANGESETS_FOLDER, ensurePrettierIgnoresChangesets, prettierIgnoreNote } from "../core/prettier-ignore.js";
+import {
+  ensureDotDrIgnored,
+  dotDrDecisionLines,
+  dotDrIgnoreNotes,
+  dotDrIgnoreWarnings,
+  DOT_DR_TRACKED_CHOICES,
+  type DotDrTrackedChoice,
+} from "../core/dot-dr-ignore.js";
+import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles, prettierIgnoreNote } from "../core/prettier-ignore.js";
 import {
   summarizeRetiredAttributeChanges,
   type RetiredAttributeChange,
@@ -45,9 +68,7 @@ import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { hasLayerReports, regenerateLayerReports } from "./reports.js";
-import { Model } from "../core/model.js";
-import { errorsByElement, validateBaseModel } from "../core/upgrade-validation.js";
-import type { ValidationIssue } from "../validators/types.js";
+import { errorsByElement } from "../core/upgrade-validation.js";
 
 // Build-time constant for telemetry feature detection
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -57,72 +78,71 @@ export interface UpgradeOptions {
   yes?: boolean;
   dryRun?: boolean;
   force?: boolean;
+  /**
+   * Upgrade the model (and the per-checkout spec reference it is validated against) and nothing
+   * else: no integration files, no reports, no ignore-file lines.
+   */
+  modelOnly?: boolean;
+  /** What to do about files git tracks under .dr/; without it the upgrade asks, or leaves them */
+  dotDr?: DotDrTrackedChoice;
+  /** Remove stale DR-named integration files without asking */
+  removeStale?: boolean;
 }
 
+/** The managers of the per-project integrations, by name */
+const INTEGRATIONS = [
+  { name: "claude" as const, label: "Claude Code", create: () => new ClaudeIntegrationManager() },
+  { name: "copilot" as const, label: "GitHub Copilot", create: () => new CopilotIntegrationManager() },
+];
+
 /**
- * Build integration upgrade actions and collect up-to-date status lines
+ * Build integration upgrade actions, collect up-to-date status lines, and plan what each
+ * installed integration's upgrade would change (plus the stale DR-named entries it would leave)
  */
 async function buildIntegrationActions(
   cliVersion: string,
   force: boolean
-): Promise<{ actions: UpgradeAction[]; upToDate: string[] }> {
+): Promise<{ actions: UpgradeAction[]; upToDate: string[]; plans: IntegrationPlan[] }> {
   const actions: UpgradeAction[] = [];
   const upToDate: string[] = [];
+  const plans: IntegrationPlan[] = [];
 
-  // Check Claude integration
-  const claudeManager = new ClaudeIntegrationManager();
-  if (await claudeManager.isInstalled()) {
-    const claudeVersion = await claudeManager.loadVersionFile();
-    const installedVersion = claudeVersion?.version;
-    const needsUpgrade = installedVersion && installedVersion !== cliVersion;
+  for (const { name, label, create } of INTEGRATIONS) {
+    const manager = create();
+    if (!(await manager.isInstalled())) continue;
 
-    if (force || needsUpgrade) {
+    const installedVersion = (await manager.loadVersionFile())?.version;
+    const needsUpgrade = Boolean(installedVersion && installedVersion !== cliVersion);
+    const upgrade = force || needsUpgrade;
+
+    if (upgrade) {
       actions.push({
         type: "integration",
-        description: force
-          ? "Reinstall Claude Code integration (forced)"
-          : "Upgrade Claude Code integration",
+        description: force ? `Reinstall ${label} integration (forced)` : `Upgrade ${label} integration`,
         fromVersion: installedVersion,
         toVersion: cliVersion,
-        integrationName: "claude",
+        integrationName: name,
       });
     } else if (installedVersion) {
-      upToDate.push(
-        `  ${ansis.green("✓")} Claude Code integration up to date (v${installedVersion})`
-      );
+      upToDate.push(`  ${ansis.green("✓")} ${label} integration up to date (v${installedVersion})`);
+    }
+
+    try {
+      // dr upgrade runs the integration upgrade with force, which replaces files edited in the project
+      const plan = await manager.planUpgrade({ force: true });
+      if (plan) plans.push({ ...plan, name, label, toVersion: cliVersion, upgrade });
+    } catch (error) {
+      console.log(ansis.yellow(`⚠ Could not plan the ${label} integration upgrade: ${getErrorMessage(error)}`));
     }
   }
 
-  // Check Copilot integration
-  const copilotManager = new CopilotIntegrationManager();
-  if (await copilotManager.isInstalled()) {
-    const copilotVersion = await copilotManager.loadVersionFile();
-    const installedVersion = copilotVersion?.version;
-    const needsUpgrade = installedVersion && installedVersion !== cliVersion;
-
-    if (force || needsUpgrade) {
-      actions.push({
-        type: "integration",
-        description: force
-          ? "Reinstall GitHub Copilot integration (forced)"
-          : "Upgrade GitHub Copilot integration",
-        fromVersion: installedVersion,
-        toVersion: cliVersion,
-        integrationName: "copilot",
-      });
-    } else if (installedVersion) {
-      upToDate.push(
-        `  ${ansis.green("✓")} GitHub Copilot integration up to date (v${installedVersion})`
-      );
-    }
-  }
-
-  return { actions, upToDate };
+  return { actions, upToDate, plans };
 }
 
 /**
  * Check if layer reports exist; if not, offer to generate them.
  * Defaults to generating (yes) — including in non-interactive/programmatic mode.
+ * The plan has already listed them (printOutsideModelPlan); a dry run never gets here.
  */
 async function checkAndGenerateReports(
   projectRoot: string,
@@ -133,11 +153,6 @@ async function checkAndGenerateReports(
   }
 
   console.log(ansis.yellow("\n⚠ No layer reports found"));
-
-  if (options.dryRun) {
-    console.log(ansis.yellow("[DRY RUN] Would generate all 13 layer reports\n"));
-    return;
-  }
 
   // Determine whether to generate: default is yes
   let shouldGenerate: boolean;
@@ -168,6 +183,14 @@ async function checkAndGenerateReports(
     // Warn but don't block upgrade success
     console.warn(ansis.yellow(`\n⚠ Failed to generate reports: ${getErrorMessage(error)}\n`));
   }
+}
+
+/** What the run found outside the model before it wrote anything */
+interface OutsideContext {
+  outside: OutsideModel;
+  integrations: IntegrationPlan[];
+  /** Status lines for integrations that need no upgrade */
+  upToDate: string[];
 }
 
 export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
@@ -221,6 +244,23 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     const actions: UpgradeAction[] = [...scan.actions];
     const currentSpecVersion = scan.installedSpecVersion;
 
+    // ============================================================================
+    // STEP 3: Check integration versions and everything else outside the model
+    // ============================================================================
+
+    const integration = await buildIntegrationActions(cliVersion, options.force ?? false);
+    if (!options.modelOnly) {
+      actions.push(...integration.actions);
+    }
+    const context: OutsideContext = {
+      outside: await scanOutsideModel(projectRoot, scan, { dotDr: options.dotDr }),
+      integrations: integration.plans,
+      upToDate: integration.upToDate,
+    };
+    for (const error of context.outside.errors) {
+      console.log(ansis.yellow(`⚠ ${error}`));
+    }
+
     if (scan.model.state !== "found") {
       if (scan.model.state === "missing") {
         console.log(ansis.yellow("⚠ No model found"));
@@ -232,10 +272,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        const { actions: integrationActions, upToDate: integrationUpToDate } =
-          await buildIntegrationActions(cliVersion, options.force ?? false);
-        actions.push(...integrationActions);
-        await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan);
+        await handleUpgrade(projectRoot, actions, options, context, commandSpan);
       }
       // No readable model — report generation not applicable
       return;
@@ -268,14 +305,6 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     }
 
     // ============================================================================
-    // STEP 3: Check integration versions
-    // ============================================================================
-
-    const { actions: integrationActions, upToDate: integrationUpToDate } =
-      await buildIntegrationActions(cliVersion, options.force ?? false);
-    actions.push(...integrationActions);
-
-    // ============================================================================
     // STEP 4: Display upgrade plan and execute
     // ============================================================================
 
@@ -287,8 +316,12 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       console.log(ansis.green("✓ Everything is up to date!\n"));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
-      if (!options.dryRun) await keepPrettierOffChangesets(projectRoot);
-      await checkAndGenerateReports(projectRoot, options);
+      // Still due outside the model: ignore-file lines, reports, stale integration files
+      printOutsideModelPlan(context, options);
+      if (!options.dryRun && !options.modelOnly) {
+        await applyOutsideModel(projectRoot, options, context);
+        await printCommitHookNote(projectRoot);
+      }
       return;
     }
 
@@ -306,10 +339,10 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
         "upgrade.has_integration_upgrade",
         actions.some((a) => a.type === "integration")
       );
+      commandSpan.setAttribute("upgrade.model_only", options.modelOnly || false);
     }
 
-    await handleUpgrade(projectRoot, actions, options, integrationUpToDate, commandSpan, scan);
-    await checkAndGenerateReports(projectRoot, options);
+    await handleUpgrade(projectRoot, actions, options, context, commandSpan, scan);
 
     if (commandSpan) {
       commandSpan.setAttribute("upgrade.result", "success");
@@ -330,6 +363,17 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
   }
 }
 
+/** upgradeModel's options for a model action */
+function modelUpgradeOptions(action: UpgradeAction, options: UpgradeOptions): ModelUpgradeOptions {
+  return {
+    fromVersion: action.fromVersion!,
+    toVersion: action.toVersion,
+    ...(action.versionBumpOnly ? { versionBumpOnly: true } : {}),
+    ...(action.catalogOnly ? { catalogOnly: true } : {}),
+    validate: !options.force,
+  };
+}
+
 /**
  * Handle the upgrade process
  */
@@ -337,7 +381,7 @@ async function handleUpgrade(
   projectRoot: string,
   actions: UpgradeAction[],
   options: UpgradeOptions,
-  integrationUpToDate: string[] = [],
+  context: OutsideContext,
   parentSpan: any = null,
   scan?: UpgradeScan
 ): Promise<void> {
@@ -363,15 +407,21 @@ async function handleUpgrade(
     }
   }
 
-  // Before anything is written, say which relationships the migration would drop
-  if (scan && actions.some((a) => a.type === "model") && (options.dryRun || !options.yes)) {
+  // Every file outside the model the run would touch, before anything is written
+  printOutsideModelPlan(context, options);
+
+  // Before anything is written, say which relationships the migration would drop, and rehearse
+  // the model step on a copy: the files it would write and what the model would still need
+  const modelAction = actions.find((a) => a.type === "model");
+  if (scan && modelAction && (options.dryRun || !options.yes)) {
     await printDroppedRelationshipPreview(projectRoot, scan);
+    await printRehearsal(projectRoot, modelAction, options);
   }
 
   // Display integration status for up-to-date integrations
-  if (integrationUpToDate.length > 0) {
+  if (context.upToDate.length > 0 && !options.modelOnly) {
     console.log(ansis.bold("Integration Status:"));
-    integrationUpToDate.forEach((msg) => console.log(msg));
+    context.upToDate.forEach((msg) => console.log(msg));
     console.log();
   }
 
@@ -419,84 +469,305 @@ async function handleUpgrade(
   console.log(ansis.bold("\nExecuting upgrades...\n"));
 
   // Execute actions in order: spec, model, then integrations
-  let drifted: ChangesetRef[] = [];
-  let modelUpgraded = false;
+  let modelResult: ModelUpgradeResult | undefined;
   for (const action of actions) {
     if (action.type === "spec") {
       await executeSpecUpgrade(projectRoot, action);
     } else if (action.type === "model") {
-      drifted = (await executeModelMigration(projectRoot, action, options)).drifted;
-      modelUpgraded = true;
+      // Hash the project's DR folder around the step, to name every file it wrote
+      const before = await hashFiles(projectRoot, DR_FOLDER);
+      modelResult = await executeModelMigration(projectRoot, action, options);
+      printFilesWritten(diffFiles(before, await hashFiles(projectRoot, DR_FOLDER)));
     } else if (action.type === "integration") {
       await executeIntegrationUpdate(action.description, async () => {
-        if (action.integrationName === "claude") {
-          const m = new ClaudeIntegrationManager();
-          await m.upgrade({ force: true }); // force=true skips internal prompts (user confirmed above)
-        } else {
-          const m = new CopilotIntegrationManager();
-          await m.upgrade({ force: true });
-        }
+        const manager = INTEGRATIONS.find((integration) => integration.name === action.integrationName)!.create();
+        await manager.upgrade({ force: true }); // force=true skips internal prompts (user confirmed above)
       });
     }
   }
 
-  await keepPrettierOffChangesets(projectRoot);
+  if (!options.modelOnly) {
+    // The scan is passed only when the project has a readable model
+    await applyOutsideModel(projectRoot, options, context, scan !== undefined);
+  }
 
-  if (modelUpgraded) {
-    await printValidationChecklist(projectRoot);
+  if (modelResult) {
+    printValidationChecklist(modelResult);
+    printFills(modelResult.fills);
   }
 
   // Drifted changesets lead the summary, where they can't be missed at the end of a long log
-  printDriftedChangesets(drifted);
+  printDriftedChangesets(modelResult?.changesets.drifted ?? []);
   await printUpgradeOutcome(projectRoot);
+  if (!options.modelOnly) {
+    await printCommitHookNote(projectRoot);
+  }
+}
+
+/** The project's DR folder: the model, its changesets and its reports */
+const DR_FOLDER = "documentation-robotics";
+const MODEL_PREFIX = `${DR_FOLDER}/model/`;
+
+/** At most this many files are listed per group in the plan and the summary */
+const MAX_FILES_LISTED = 30;
+
+function printFileList(files: FilesChanged): void {
+  const entries = [
+    ...files.modified.map((file) => `write   ${file}`),
+    ...files.added.map((file) => `add     ${file}`),
+    ...files.removed.map((file) => `remove  ${file}`),
+  ];
+  for (const entry of entries.slice(0, MAX_FILES_LISTED)) {
+    console.log(ansis.dim(`   ${entry}`));
+  }
+  if (entries.length > MAX_FILES_LISTED) {
+    console.log(ansis.dim(`   ...and ${entries.length - MAX_FILES_LISTED} more file(s)`));
+  }
+}
+
+/** After the model step: every file under documentation-robotics/ it wrote, model files first */
+function printFilesWritten(written: FilesChanged): void {
+  const model = filesUnder(written, MODEL_PREFIX);
+  const other = filesOutside(written, MODEL_PREFIX);
+  console.log(ansis.dim(`Model files written (${countFiles(model)}):`));
+  printFileList(model);
+  if (countFiles(other) > 0) {
+    console.log(ansis.dim(`Changeset files written (${countFiles(other)}):`));
+    printFileList(other);
+  }
 }
 
 /**
- * dr writes changeset files in its own layout: when the project uses prettier, list the
- * changesets folder in .prettierignore so prettier doesn't reformat them (#1155).
+ * What the run touches outside the model, by group, before it writes: or, with --model-only,
+ * what it leaves alone. Says nothing when there is nothing.
  */
-async function keepPrettierOffChangesets(projectRoot: string): Promise<void> {
+function printOutsideModelPlan(context: OutsideContext, options: UpgradeOptions): void {
+  const { outside, integrations } = context;
+  if (!touchesOutsideModel(outside, integrations)) {
+    return;
+  }
+
+  if (options.modelOnly) {
+    const lines = outsideModelLines(outside, integrations, { skipped: true });
+    if (outside.specReference) {
+      console.log(ansis.dim(`Spec reference: ${outside.specReference.description}`));
+    }
+    if (lines.length > 0) {
+      console.log(ansis.bold("Left alone (--model-only); dr upgrade without it would change:"));
+      lines.forEach((line) => console.log(ansis.dim(line)));
+    }
+    console.log();
+    return;
+  }
+
+  console.log(ansis.bold(`Outside the model (${MODEL_PREFIX}), this upgrade also changes:`));
+  outsideModelLines(outside, integrations).forEach((line) => console.log(ansis.dim(line)));
+  if (outside.gitignore?.decision) {
+    dotDrDecisionLines(outside.gitignore.decision).forEach((line) => console.log(ansis.yellow(`  ${line}`)));
+  }
+  console.log(ansis.dim("  --model-only leaves all of these alone except the spec reference.\n"));
+}
+
+/**
+ * The steps outside the model, after the actions ran: the ignore files, the stale integration
+ * files (an offer, never a silent removal) and the layer reports.
+ */
+async function applyOutsideModel(
+  projectRoot: string,
+  options: UpgradeOptions,
+  context: OutsideContext,
+  hasModel: boolean = true
+): Promise<void> {
+  await keepDotDrOutOfGit(projectRoot, options);
+  await keepPrettierOffDrFiles(projectRoot);
+  await offerStaleRemoval(options, context.integrations);
+  // No readable model: there is nothing to report on
+  if (hasModel) {
+    await checkAndGenerateReports(projectRoot, options);
+  }
+}
+
+/**
+ * .dr/ is per-checkout state: make sure the project doesn't commit it. When git already tracks
+ * files there, an ignore rule alone leaves a half state (#1185), so that is the user's decision:
+ * --dot-dr, a prompt in a terminal, or nothing changes and the choices are printed.
+ */
+async function keepDotDrOutOfGit(projectRoot: string, options: UpgradeOptions): Promise<void> {
   try {
-    const note = prettierIgnoreNote(await ensurePrettierIgnoresChangesets(projectRoot));
+    let ignore = await ensureDotDrIgnored(projectRoot, { tracked: options.dotDr });
+    if (ignore.decision) {
+      const lines = dotDrDecisionLines(ignore.decision);
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (isInteractive && !options.yes) {
+        console.log(ansis.yellow(`\n⚠ ${lines[0]}`));
+        console.log(ansis.dim(lines[1]));
+        const choice = await select({
+          message: "What should happen to the files git tracks under .dr/?",
+          options: ignore.decision.options.map((option) => ({
+            value: option.choice,
+            label: option.choice,
+            hint: option.effect,
+          })),
+        });
+        if (isCancel(choice)) {
+          console.log(ansis.dim("Left .gitignore and the tracked files under .dr/ as they are"));
+          return;
+        }
+        ignore = await ensureDotDrIgnored(projectRoot, { tracked: choice as DotDrTrackedChoice });
+      } else {
+        console.log(ansis.yellow(`\n⚠ ${lines[0]}`));
+        lines.slice(1).forEach((line) => console.log(ansis.dim(line)));
+        console.log(
+          ansis.dim(`  Nothing was changed. Choose with: dr upgrade --dot-dr <${DOT_DR_TRACKED_CHOICES.join("|")}>`)
+        );
+        return;
+      }
+    }
+    for (const note of dotDrIgnoreNotes(ignore)) console.log(ansis.dim(note));
+    for (const warning of dotDrIgnoreWarnings(ignore)) console.warn(ansis.yellow(`⚠ Warning: ${warning}`));
+  } catch (error) {
+    console.warn(ansis.yellow(`⚠ Warning: could not update .gitignore: ${getErrorMessage(error)}. Add /.dr/ to it by hand.`));
+  }
+}
+
+/**
+ * dr writes model and changeset files in its own layout: when the project uses prettier, list
+ * both folders in .prettierignore so prettier doesn't reformat them (#1155, #1246).
+ */
+async function keepPrettierOffDrFiles(projectRoot: string): Promise<void> {
+  try {
+    const note = prettierIgnoreNote(await ensurePrettierIgnoresDrFiles(projectRoot), projectRoot);
     if (note) console.log(ansis.dim(note));
   } catch (error) {
     console.warn(
-      ansis.yellow(`⚠ Warning: could not update .prettierignore: ${getErrorMessage(error)}. Add ${CHANGESETS_FOLDER}/ to it by hand.`)
+      ansis.yellow(`⚠ Warning: could not update .prettierignore: ${getErrorMessage(error)}. Add ${PRETTIER_IGNORE_BY_HAND} to it by hand.`)
     );
   }
+}
+
+/**
+ * Stale DR-named integration files (see BaseIntegrationManager.findStaleEntries): removed with
+ * --remove-stale or on a yes in a terminal, else listed with how to remove them.
+ */
+async function offerStaleRemoval(options: UpgradeOptions, integrations: IntegrationPlan[]): Promise<void> {
+  for (const plan of integrations) {
+    if (plan.stale.length === 0) continue;
+    const manager = INTEGRATIONS.find((integration) => integration.name === plan.name)!.create();
+
+    let remove = options.removeStale === true;
+    console.log(
+      ansis.yellow(
+        `\n⚠ ${plan.stale.length} DR-named entr${plan.stale.length === 1 ? "y" : "ies"} in ${plan.folder}/ ${plan.stale.length === 1 ? "is" : "are"} not part of this dr's ${plan.label} integration, so no upgrade updates or removes ${plan.stale.length === 1 ? "it" : "them"}:`
+      )
+    );
+    plan.stale.forEach((entry) => console.log(ansis.dim(`   ${entry}`)));
+
+    if (!remove && !options.yes && process.stdin.isTTY && process.stdout.isTTY) {
+      const response = await confirm({ message: `Remove ${plan.stale.length === 1 ? "it" : "them"}?`, initialValue: false });
+      remove = response === true;
+    }
+    if (!remove) {
+      console.log(ansis.dim("   Left in place. Remove them with: dr upgrade --remove-stale"));
+      continue;
+    }
+    try {
+      const removed = await manager.removeStaleEntries(plan.stale);
+      console.log(ansis.green(`✓ Removed ${removed.length} stale entr${removed.length === 1 ? "y" : "ies"} from ${plan.folder}/`));
+    } catch (error) {
+      console.warn(ansis.yellow(`⚠ Warning: could not remove the stale entries: ${getErrorMessage(error)}`));
+    }
+  }
+}
+
+/** What the project's large-file commit hook would do to the files dr writes; dr changes nothing */
+async function printCommitHookNote(projectRoot: string): Promise<void> {
+  try {
+    const note = largeFileHookNote(await largeFileHook(projectRoot));
+    if (note) console.log(ansis.yellow(`⚠ ${note}\n`));
+  } catch {
+    // The note is advice: a config that can't be read says nothing
+  }
+}
+
+/**
+ * Run the model step on a copy of the model and say what it did there: the model files it would
+ * write, the changesets it would touch, and how the upgraded model would validate.
+ */
+async function printRehearsal(projectRoot: string, action: UpgradeAction, options: UpgradeOptions): Promise<void> {
+  let rehearsal;
+  try {
+    rehearsal = await rehearseModelUpgrade(projectRoot, modelUpgradeOptions(action, options));
+  } catch (error) {
+    console.log(ansis.yellow(`⚠ Could not rehearse the model upgrade on a copy: ${getErrorMessage(error)}\n`));
+    return;
+  }
+
+  const { result, modelFiles, otherFiles } = rehearsal;
+  console.log(ansis.bold("Rehearsed on a copy of the model:"));
+  console.log(ansis.dim(`Model files it would write (${countFiles(modelFiles)}):`));
+  printFileList(modelFiles);
+  if (countFiles(otherFiles) > 0) {
+    console.log(ansis.dim(`Changesets (${DR_FOLDER}/changesets/), ${countFiles(otherFiles)} file(s):`));
+    if (result.changesets.rebaselined.length > 0) {
+      console.log(
+        ansis.dim(
+          `   re-baseline ${stagedChangesets(result.changesets.rebaselined.length)} on the upgraded model: ${changesetNames(result.changesets.rebaselined)}`
+        )
+      );
+    }
+    if (result.dropRecord) {
+      console.log(ansis.dim(`   add '${result.dropRecord.name}', the record of ${result.dropRecord.count} dropped relationship(s)`));
+    }
+    if (result.fills) {
+      console.log(
+        ansis.dim(`   add '${result.fills.name}', ${result.fills.count} derived value(s) on ${result.fills.elements} element(s), for review`)
+      );
+    }
+  }
+  printValidationChecklist(result, true);
+  printFills(result.fills, true);
+  console.log();
 }
 
 /** At most this many elements are listed in the post-upgrade validation checklist */
 const MAX_CHECKLIST_ELEMENTS = 50;
 
 /**
- * Validate the upgraded base model and list its errors per element: the required attributes each
- * element leaves empty, then its other errors. The upgrade fills nothing in; this is what's left.
+ * The upgraded base model's validation errors per element: the required attributes each element
+ * leaves empty, then its other errors. Attributes with a derived value staged for review are
+ * marked; the rest are what's left to fill in by hand.
+ *
+ * @param would - the result is a rehearsal's: say what would be, not what is
  */
-async function printValidationChecklist(projectRoot: string): Promise<void> {
-  let errors: ValidationIssue[];
-  try {
-    const model = await Model.load(projectRoot, { lazyLoad: false });
-    errors = (await validateBaseModel(model)).errors;
-  } catch (error) {
-    console.warn(ansis.yellow(`\n⚠ Could not validate the upgraded model: ${getErrorMessage(error)}`));
+function printValidationChecklist(result: ModelUpgradeResult, would: boolean = false): void {
+  if (result.validationError !== undefined) {
+    console.warn(ansis.yellow(`\n⚠ Could not validate the upgraded model: ${result.validationError}`));
     return;
   }
+  const errors = result.validationErrors ?? [];
   if (errors.length === 0) {
-    console.log(ansis.green("\n✓ The upgraded model validates without errors"));
+    console.log(
+      ansis.green(would ? "✓ The upgraded model would validate without errors" : "\n✓ The upgraded model validates without errors")
+    );
     return;
   }
 
+  const derived = new Set((result.fills?.error ? [] : result.fills?.fills ?? []).map((fill) => `${fill.elementId} ${fill.attribute}`));
   const groups = errorsByElement(errors);
   console.log(
     ansis.yellow(
-      `\n⚠ The upgraded model has ${errors.length} validation error(s) on ${groups.length} element(s):`
+      `${would ? "" : "\n"}⚠ The upgraded model ${would ? "would have" : "has"} ${errors.length} validation error(s) on ${groups.length} element(s):`
     )
   );
   for (const group of groups.slice(0, MAX_CHECKLIST_ELEMENTS)) {
     console.log(`  ${group.elementId ?? `(${group.layer} layer)`}`);
-    if (group.missingAttributes.length > 0) {
-      console.log(ansis.dim(`    required, left empty: ${group.missingAttributes.join(", ")}`));
+    const staged = group.missingAttributes.filter((attribute) => derived.has(`${group.elementId} ${attribute}`));
+    const empty = group.missingAttributes.filter((attribute) => !derived.has(`${group.elementId} ${attribute}`));
+    if (empty.length > 0) {
+      console.log(ansis.dim(`    required, left empty: ${empty.join(", ")}`));
+    }
+    if (staged.length > 0) {
+      console.log(ansis.dim(`    required, value ${would ? "would be " : ""}staged for review: ${staged.join(", ")}`));
     }
     for (const message of group.messages) {
       console.log(ansis.dim(`    ${message}`));
@@ -505,6 +776,42 @@ async function printValidationChecklist(projectRoot: string): Promise<void> {
   if (groups.length > MAX_CHECKLIST_ELEMENTS) {
     console.log(
       ansis.dim(`  ...and ${groups.length - MAX_CHECKLIST_ELEMENTS} more element(s); dr validate lists them all`)
+    );
+  }
+}
+
+/** At most this many derived values are listed */
+const MAX_FILLS_LISTED = 20;
+
+/** The values derived for required attributes, and the changeset they are staged in for review */
+function printFills(fills: UpgradeFills | undefined, would: boolean = false): void {
+  if (!fills) {
+    return;
+  }
+  if (fills.error) {
+    console.log(
+      ansis.yellow(`⚠ Derived ${fills.count} value(s) for required attributes but could not stage them in a changeset: ${fills.error}`)
+    );
+    return;
+  }
+  console.log(
+    ansis.yellow(
+      would
+        ? `⚠ ${fills.count} value(s) for required attributes on ${fills.elements} element(s) would be derived and staged in the changeset '${fills.name}' for review:`
+        : `\n⚠ Staged ${fills.count} derived value(s) for required attributes on ${fills.elements} element(s) in the changeset '${fills.name}'. Nothing was written to the base model.`
+    )
+  );
+  for (const fill of fills.fills.slice(0, MAX_FILLS_LISTED)) {
+    console.log(ansis.dim(`   ${fill.elementId}: ${fill.attribute} = ${JSON.stringify(fill.value)}`));
+  }
+  if (fills.fills.length > MAX_FILLS_LISTED) {
+    console.log(ansis.dim(`   ...and ${fills.fills.length - MAX_FILLS_LISTED} more`));
+  }
+  if (!would) {
+    console.log(
+      ansis.dim(
+        `   Review it in the viewer's changesets view, or with dr changeset activate ${fills.name} then dr changeset diff. Fix or unstage what is wrong, then land it: dr changeset commit ${fills.name}`
+      )
     );
   }
 }
@@ -550,17 +857,6 @@ async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): P
     await installSpecReference(projectRoot, true);
     console.log(ansis.green(`✓ Spec reference upgraded to v${action.toVersion}`));
 
-    // .dr/ is per-checkout state: make sure the project doesn't commit it.
-    try {
-      const ignore = await ensureDotDrIgnored(projectRoot);
-      if (ignore.added) {
-        console.log(ansis.dim(`Added /.dr/ to ${ignore.path} (DR's per-checkout state; commit the .gitignore change)`));
-      }
-      for (const warning of dotDrIgnoreWarnings(ignore)) console.warn(ansis.yellow(`⚠ Warning: ${warning}`));
-    } catch (error) {
-      console.warn(ansis.yellow(`⚠ Warning: could not update .gitignore: ${getErrorMessage(error)}. Add /.dr/ to it by hand.`));
-    }
-
     if (operationSpan) {
       operationSpan.setAttribute("upgrade.spec.result", "success");
     }
@@ -591,7 +887,7 @@ async function executeModelMigration(
   projectRoot: string,
   action: UpgradeAction,
   options: UpgradeOptions
-): Promise<ChangesetRebaselineResult> {
+): Promise<ModelUpgradeResult> {
   const operationSpan = isTelemetryEnabled
     ? startSpan("upgrade.model", {
         "upgrade.model.from_version": action.fromVersion || "unknown",
@@ -606,11 +902,7 @@ async function executeModelMigration(
       console.log(
         ansis.dim(`Bumping model spec version from v${action.fromVersion} to v${action.toVersion}...`)
       );
-      const result = await upgradeModel(projectRoot, {
-        fromVersion: action.fromVersion!,
-        toVersion: action.toVersion,
-        versionBumpOnly: true,
-      });
+      const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, options));
       console.log(ansis.green(`✓ Model spec version updated to v${action.toVersion}`));
       printChangesetRebaseline(result.changesets);
 
@@ -621,7 +913,7 @@ async function executeModelMigration(
           result.changesets.rebaselined.length
         );
       }
-      return result.changesets;
+      return result;
     }
 
     console.log(
@@ -633,12 +925,7 @@ async function executeModelMigration(
     );
 
     // Apply migrations, save the model and re-baseline staged changesets on it
-    const result = await upgradeModel(projectRoot, {
-      fromVersion: action.fromVersion!,
-      toVersion: action.toVersion,
-      validate: !options.force,
-      catalogOnly: action.catalogOnly,
-    });
+    const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, options));
     const applied = result.migration?.applied ?? [];
 
     // Display migration results
@@ -672,8 +959,9 @@ async function executeModelMigration(
         "upgrade.model.changesets_rebaselined",
         result.changesets.rebaselined.length
       );
+      operationSpan.setAttribute("upgrade.model.fills_staged", result.fills?.count ?? 0);
     }
-    return result.changesets;
+    return result;
   } catch (error) {
     if (operationSpan) {
       operationSpan.recordException(error as Error);

@@ -8,8 +8,9 @@ import { hasModel, initProject } from "../core/project-init.js";
 import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
-import { CHANGESETS_FOLDER, prettierIgnoreNote } from "../core/prettier-ignore.js";
+import { dotDrDecisionLines, dotDrIgnoreNotes, dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
+import { largeFileHook, largeFileHookNote } from "../core/commit-size-hook.js";
+import { PRETTIER_IGNORE_BY_HAND, prettierIgnoreNote } from "../core/prettier-ignore.js";
 
 export interface InitOptions {
   name?: string;
@@ -103,16 +104,30 @@ export async function initCommand(options: InitOptions): Promise<void> {
       author: (author as string) || undefined,
     });
 
-    if (result.gitignore?.added) {
-      console.log(ansis.dim(`Added /.dr/ to ${result.gitignore.path} (DR's per-checkout state; commit the .gitignore change)`));
+    for (const note of result.gitignore ? dotDrIgnoreNotes(result.gitignore) : []) {
+      console.log(ansis.dim(note));
     }
-    const prettierNote = result.prettierignore ? prettierIgnoreNote(result.prettierignore) : null;
+    const prettierNote = result.prettierignore ? prettierIgnoreNote(result.prettierignore, rootPath) : null;
     if (prettierNote) console.log(ansis.dim(prettierNote));
+    // git already tracks files under .dr/: the user's decision, taken with dr upgrade (#1185)
+    if (result.gitignore?.decision) {
+      const lines = dotDrDecisionLines(result.gitignore.decision);
+      console.warn(ansis.yellow(`⚠ ${lines[0]}`));
+      lines.slice(1).forEach((line) => console.warn(ansis.dim(line)));
+      console.warn(ansis.dim("  Nothing was changed. Choose with: dr upgrade --dot-dr <untrack|keep-tracked|skip>"));
+    }
+    // A large-file commit hook would refuse a big changeset: say so now, change nothing
+    try {
+      const hookNote = largeFileHookNote(await largeFileHook(rootPath));
+      if (hookNote) console.warn(ansis.yellow(`⚠ ${hookNote}`));
+    } catch {
+      // advice only
+    }
     for (const warning of [
       ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
       ...(result.gitignoreError !== undefined ? [`Could not update .gitignore: ${result.gitignoreError}. Add /.dr/ to it by hand.`] : []),
       ...(result.prettierignoreError !== undefined
-        ? [`Could not update .prettierignore: ${result.prettierignoreError}. Add ${CHANGESETS_FOLDER}/ to it by hand.`]
+        ? [`Could not update .prettierignore: ${result.prettierignoreError}. Add ${PRETTIER_IGNORE_BY_HAND} to it by hand.`]
         : []),
     ]) {
       console.warn(ansis.yellow(`⚠ Warning: ${warning}`));

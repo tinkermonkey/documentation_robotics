@@ -10,7 +10,9 @@
  * keeps its base snapshot, so that drift still blocks its commit.
  *
  * Relationships the migration dropped for want of a replacement are written to a staged
- * changeset of their own, the upgrade record (upgrade-drop-record.ts).
+ * changeset of their own, the upgrade record (upgrade-drop-record.ts). Required attributes the new
+ * spec version leaves empty are listed, and the values that follow plainly from the element itself
+ * are staged in another, for review (upgrade-fills.ts).
  */
 
 import { readdir } from "fs/promises";
@@ -24,6 +26,9 @@ import {
   type DroppedRelationship,
   type UpgradeDropRecord,
 } from "./upgrade-drop-record.js";
+import { deriveFills, stageFills, type UpgradeFills } from "./upgrade-fills.js";
+import { unfilledRequired, validateBaseModel, type UnfilledRequired } from "./upgrade-validation.js";
+import type { ValidationIssue } from "../validators/types.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
@@ -42,6 +47,11 @@ export interface ModelUpgradeOptions {
   catalogOnly?: boolean;
   /** Passed to the migrations (default true) */
   validate?: boolean;
+  /**
+   * Derive values for the required attributes the upgraded model leaves empty and stage them in a
+   * changeset for review (default true). Never done when the spec version doesn't change.
+   */
+  stageFills?: boolean;
 }
 
 /** A staged changeset, by directory id and name */
@@ -69,6 +79,19 @@ export interface ModelUpgradeResult {
    * `migration`'s details.
    */
   dropRecord?: UpgradeDropRecord;
+  /**
+   * The upgraded base model's validation errors; absent when it could not be validated
+   * (`validationError` says why).
+   */
+  validationErrors?: ValidationIssue[];
+  validationError?: string;
+  /**
+   * The staged changeset holding the values derived for required attributes the upgraded model
+   * leaves empty; absent when none could be derived. With `error` set it could not be written.
+   */
+  fills?: UpgradeFills;
+  /** The required attributes still empty after the derived values, per element */
+  unfilled?: UnfilledRequired[];
 }
 
 /** Staged changesets sorted by whether they match the model before an upgrade */
@@ -135,7 +158,43 @@ export async function upgradeModel(
 
   const changesets = await rebaselineChangesets(startPath, baselines);
   const dropRecord = await recordDrops(model.rootPath, options, droppedByMigration(migration));
-  return { migration, changesets, ...(dropRecord ? { dropRecord } : {}) };
+  const filled = await fillRequired(model.rootPath, options);
+  return { migration, changesets, ...(dropRecord ? { dropRecord } : {}), ...filled };
+}
+
+/**
+ * Validate the upgraded model as it is on disk, derive the values that follow plainly from each
+ * element for the required attributes it leaves empty, and stage them for review. The migration
+ * is already saved, so a failure here is reported with the result, not thrown.
+ */
+async function fillRequired(
+  rootPath: string,
+  options: ModelUpgradeOptions
+): Promise<Pick<ModelUpgradeResult, "validationErrors" | "validationError" | "fills" | "unfilled">> {
+  let upgraded: Model;
+  let errors: ValidationIssue[];
+  try {
+    upgraded = await Model.load(rootPath, { lazyLoad: false });
+    errors = (await validateBaseModel(upgraded)).errors;
+  } catch (error) {
+    return { validationError: getErrorMessage(error) };
+  }
+  const unfilled = unfilledRequired(errors);
+  if (unfilled.length === 0 || options.stageFills === false || options.fromVersion === options.toVersion) {
+    return { validationErrors: errors, ...(unfilled.length > 0 ? { unfilled } : {}) };
+  }
+  const derived = deriveFills(upgraded, unfilled);
+  const fills = await stageFills(rootPath, options, derived.fills);
+  return {
+    validationErrors: errors,
+    ...(fills ? { fills } : {}),
+    // A changeset that could not be written fills nothing
+    ...(fills && !fills.error
+      ? derived.left.length > 0
+        ? { unfilled: derived.left }
+        : {}
+      : { unfilled }),
+  };
 }
 
 /** The relationships the applied migration steps dropped for want of a replacement */

@@ -11,6 +11,7 @@ import { Validator } from "../validators/validator.js";
 import { ValidationFormatter } from "../validators/validation-formatter.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { getCliBundledSpecVersion, modelSpecStanding } from "../utils/spec-version.js";
+import { specReferenceNotice, specReferenceStanding } from "../utils/spec-installer.js";
 import { RELATIONSHIPS_BY_SOURCE, RELATIONSHIPS_BY_DESTINATION } from "../generated/relationship-index.js";
 import { getActiveSpan } from "../telemetry/index.js";
 import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
@@ -450,6 +451,11 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     const model = await Model.load(options.model, options.layers ? { layers: options.layers } : {});
     if (!options.quiet) {
       printSpecVersionNotice(model.manifest.specVersion);
+      // A checkout without .dr/spec validates the same: say so in one line, with the fix (#1168)
+      const referenceNotice = specReferenceNotice(await specReferenceStanding(model.rootPath));
+      if (referenceNotice) {
+        console.log(ansis.dim(`ℹ ${referenceNotice}`));
+      }
     }
 
     // --orphans mode: focused orphan report, skip full validation

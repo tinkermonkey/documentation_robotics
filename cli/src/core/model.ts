@@ -23,6 +23,7 @@ import { readReconciledStamp } from "./reconciliation.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 
 /**
  * The `changeset_history` value of the manifest on disk, or undefined when there is no manifest
@@ -43,6 +44,19 @@ async function readChangesetHistoryOnDisk(
     return parsed?.changeset_history;
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Whether two YAML texts hold the same data, whatever their layout (line folding, quoting, key
+ * order). Text that doesn't parse is never the same, so the writer replaces it.
+ */
+export function sameYamlData(a: string, b: string, parse: (text: string) => unknown): boolean {
+  if (a === b) return true;
+  try {
+    return isDeepStrictEqual(parse(a), parse(b));
+  } catch {
+    return false;
   }
 }
 
@@ -574,13 +588,14 @@ export class Model {
       }
     }
 
-    // Delete all existing YAML files in the layer directory to ensure
-    // we don't keep stale files after element deletion
+    // What is on disk now. A file whose data would not change keeps its bytes (#1246): loading
+    // leaves every layer dirty, and a rewrite in dr's layout of a file prettier or a person laid
+    // out differently shows up as a diff with no data change.
+    const existingFiles = new Map<string, string>();
     try {
-      const existingFiles = await fs.readdir(layerPath);
-      for (const file of existingFiles) {
+      for (const file of await fs.readdir(layerPath)) {
         if (file.endsWith(".yaml") || file.endsWith(".yml")) {
-          await fs.unlink(`${layerPath}/${file}`);
+          existingFiles.set(file, await fs.readFile(`${layerPath}/${file}`, "utf-8"));
         }
       }
     } catch (err) {
@@ -588,7 +603,7 @@ export class Model {
       const isNotFoundError = (err as any)?.code === "ENOENT";
       if (!isNotFoundError) {
         throw new Error(
-          `Failed to clean existing YAML files: ${err instanceof Error ? err.message : String(err)}`
+          `Failed to read existing YAML files: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }
@@ -605,6 +620,7 @@ export class Model {
     }
 
     // Write each type to its own YAML file
+    const written = new Set<string>();
     for (const [, { stem, elements }] of elementsByType) {
       const filename = `${stem}.yaml`;
       const filePath = `${layerPath}/${filename}`;
@@ -644,7 +660,20 @@ export class Model {
         };
       }
 
-      await writeFile(filePath, yaml.stringify(yamlData));
+      written.add(filename);
+      const text = yaml.stringify(yamlData);
+      const onDisk = existingFiles.get(filename);
+      if (onDisk !== undefined && sameYamlData(onDisk, text, yaml.parse)) {
+        continue;
+      }
+      await writeFile(filePath, text);
+    }
+
+    // Remove the files of types the layer no longer has, so no stale file outlives a deletion
+    for (const file of existingFiles.keys()) {
+      if (!written.has(file)) {
+        await fs.unlink(`${layerPath}/${file}`);
+      }
     }
 
     layer.markClean();

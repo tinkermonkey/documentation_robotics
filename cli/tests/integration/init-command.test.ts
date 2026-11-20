@@ -23,15 +23,30 @@ describe('init command', () => {
     }
   });
 
-  it('adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)', async () => {
+  it('adds the changesets and model folders to .prettierignore when the project uses prettier, and says so (#1155, #1246)', async () => {
     const { runDr } = await import('../helpers/cli-runner.js');
     await fs.writeFile(path.join(tempDir, 'package.json'), JSON.stringify({ devDependencies: { prettier: '^3.0.0' } }));
 
     const result = await runDr(['init', '--name', 'Pretty Project'], { cwd: tempDir });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('Added documentation-robotics/changesets/ to');
-    expect(await fs.readFile(path.join(tempDir, '.prettierignore'), 'utf-8')).toContain('documentation-robotics/changesets/\n');
+    expect(result.stdout).toContain('Added documentation-robotics/changesets/ and documentation-robotics/model/ to .prettierignore');
+    expect(await fs.readFile(path.join(tempDir, '.prettierignore'), 'utf-8')).toContain(
+      'documentation-robotics/changesets/\ndocumentation-robotics/model/\n'
+    );
+  });
+
+  it('says when a large-file commit hook would refuse a changeset, and leaves the hook config alone', async () => {
+    const { runDr } = await import('../helpers/cli-runner.js');
+    const config =
+      'repos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks\n    hooks:\n      - id: check-added-large-files\n';
+    await fs.writeFile(path.join(tempDir, '.pre-commit-config.yaml'), config);
+
+    const result = await runDr(['init', '--name', 'Hooked Project'], { cwd: tempDir });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout + result.stderr).toContain('check-added-large-files pre-commit hook refuses a new file over 500 KB');
+    expect(await fs.readFile(path.join(tempDir, '.pre-commit-config.yaml'), 'utf-8')).toBe(config);
   });
 
   it('leaves .prettierignore alone when the project does not use prettier', async () => {

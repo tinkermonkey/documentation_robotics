@@ -8,7 +8,7 @@
  * Telemetry is controlled by the TELEMETRY_ENABLED build-time constant.
  */
 
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, Option } from "commander";
 import { setGlobalOptions } from "./utils/globals.js";
 import { installAnsiSuppressor } from "./utils/ansi-suppressor.js";
 import { initCommand } from "./commands/init.js";
@@ -865,13 +865,25 @@ program
   .option("-y, --yes", "Automatically upgrade without prompting")
   .option("--dry-run", "Show what would be upgraded without making changes")
   .option("--force", "Force all upgrades regardless of current versions; skips migration validation")
+  .option(
+    "--model-only",
+    "Upgrade the model and the per-checkout spec reference only: no integration files, reports or ignore-file lines"
+  )
+  .addOption(
+    new Option(
+      "--dot-dr <choice>",
+      "What to do when git tracks files under .dr/: untrack them, keep them tracked (ignore the rest of .dr/), or skip"
+    ).choices(["untrack", "keep-tracked", "skip"])
+  )
+  .option("--remove-stale", "Remove DR-named integration files this dr's integration no longer has, without asking")
   .addHelpText(
     "after",
     `
 Examples:
   $ dr upgrade              # Scan, show plan, and prompt for upgrades
-  $ dr upgrade --dry-run    # Preview available upgrades
+  $ dr upgrade --dry-run    # Preview: every file it would touch, in and outside the model
   $ dr upgrade --yes        # Upgrade without prompting
+  $ dr upgrade --model-only # Migrate the model; leave integrations, reports and ignore files alone
   $ dr upgrade --force      # Force all upgrades, ignoring version checks`
   )
   .action(async (options) => {
@@ -879,6 +891,9 @@ Examples:
       yes: options.yes,
       dryRun: options.dryRun,
       force: options.force,
+      modelOnly: options.modelOnly,
+      dotDr: options.dotDr,
+      removeStale: options.removeStale,
     });
   });
 

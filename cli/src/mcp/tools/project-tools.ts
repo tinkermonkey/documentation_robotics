@@ -8,22 +8,44 @@
  *
  * project_upgrade mirrors `dr upgrade` for the spec reference and the model. It previews by
  * default: the version path, the element type renames and relationship rewrites the generated
- * migration table makes, and anything it can't migrate. `apply: true` runs the migration, then
- * reloads and validates the model with the warnings `dr validate` reports, and lists every model
- * file it wrote. Per-project integration files are left alone (the dr plugin replaces them).
+ * migration table makes, anything it can't migrate, and (from a rehearsal on a copy) the model
+ * files it would write and the required attributes it would leave empty or derive values for.
+ * `apply: true` runs the migration, then reloads and validates the model with the warnings
+ * `dr validate` reports, and lists every file it wrote, the model's apart from the rest. Values
+ * derived for required attributes are staged in a changeset for review, never written to the base
+ * model. Per-project integration files are left alone (the dr plugin replaces them). Files git
+ * tracks under .dr/ are the caller's decision to put to the user (`gitignore`).
  *
  * Both write outside a changeset, so changeset-only mode refuses them (mcp/changeset-only.ts),
  * and DrBot is not given them (coding-agents/drbot-mcp.ts).
  */
 
 import { z } from "zod";
-import { createHash } from "node:crypto";
-import { readdir, readFile, stat } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { stat } from "node:fs/promises";
+import { isAbsolute, join, resolve } from "node:path";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { initProject, hasModel } from "../../core/project-init.js";
-import { ensureDotDrIgnored, dotDrIgnoreWarnings, DOT_DR_IGNORE_LINE } from "../../core/dot-dr-ignore.js";
-import { CHANGESETS_FOLDER, ensurePrettierIgnoresChangesets } from "../../core/prettier-ignore.js";
+import {
+  ensureDotDrIgnored,
+  dotDrDecisionLines,
+  dotDrIgnoreNotes,
+  dotDrIgnoreWarnings,
+  DOT_DR_IGNORE_LINE,
+  type DotDrIgnoreResult,
+} from "../../core/dot-dr-ignore.js";
+import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles } from "../../core/prettier-ignore.js";
+import { largeFileHook, largeFileHookNote } from "../../core/commit-size-hook.js";
+import { scanOutsideModel } from "../../core/upgrade-outside-model.js";
+import {
+  countFiles,
+  diffFiles,
+  filesOutside,
+  filesUnder,
+  hashFiles,
+  rehearseModelUpgrade,
+  type FilesChanged,
+} from "../../core/upgrade-rehearsal.js";
+import type { UpgradeFills } from "../../core/upgrade-fills.js";
 import { trackModelWrite } from "../../core/model-write-tracker.js";
 import {
   countDroppedRelationships,
@@ -46,7 +68,12 @@ import {
   type RelationshipRewriteChange,
   type StagedRelationshipRewriteChange,
 } from "../../core/relationship-migration.js";
-import { upgradeModel, type ChangesetRebaselineResult } from "../../core/model-upgrade.js";
+import {
+  upgradeModel,
+  type ChangesetRebaselineResult,
+  type ModelUpgradeOptions,
+  type ModelUpgradeResult,
+} from "../../core/model-upgrade.js";
 import { formatRoutes, type UpgradeDropRecord } from "../../core/upgrade-drop-record.js";
 import type { Model } from "../../core/model.js";
 import { installSpecReference } from "../../utils/spec-installer.js";
@@ -54,7 +81,7 @@ import { findProjectRoot } from "../../utils/project-paths.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { isDebug, isVerbose } from "../../utils/globals.js";
-import { validationSummary } from "../../core/upgrade-validation.js";
+import { unfilledRequired, validationSummary, type UnfilledRequired } from "../../core/upgrade-validation.js";
 import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
@@ -196,15 +223,22 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       logToStderr(`after project_init, loading the new model failed: ${getErrorMessage(error)}`);
     }
 
+    const commitHook = await commitHookNote(root);
     const initWarnings = [
       ...(result.reportError !== undefined ? [`Layer reports and README were not generated: ${result.reportError}`] : []),
       ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
+      ...(result.gitignore?.decision
+        ? [
+            `${dotDrDecisionLines(result.gitignore.decision)[0]} Put the choice to the user, then call project_upgrade with apply: true and gitignore: "untrack", "keep-tracked" or "skip".`,
+          ]
+        : []),
       ...(result.gitignoreError !== undefined
         ? [`.gitignore was not updated: ${result.gitignoreError}. Ask the user to add /.dr/ to it.`]
         : []),
       ...(result.prettierignoreError !== undefined
-        ? [`.prettierignore was not updated: ${result.prettierignoreError}. Ask the user to add ${CHANGESETS_FOLDER}/ to it.`]
+        ? [`.prettierignore was not updated: ${result.prettierignoreError}. Ask the user to add ${PRETTIER_IGNORE_BY_HAND} to it.`]
         : []),
+      ...(commitHook ? [commitHook] : []),
     ];
 
     return jsonResult({
@@ -218,7 +252,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       },
       ...(result.gitignore?.added ? { gitignore: { path: result.gitignore.path, added: [DOT_DR_IGNORE_LINE] } } : {}),
       ...(result.prettierignore?.status === "added"
-        ? { prettierignore: { path: result.prettierignore.path, added: [result.prettierignore.entry] } }
+        ? { prettierignore: { path: result.prettierignore.path, added: result.prettierignore.entries } }
         : {}),
       ...(initWarnings.length > 0 ? { warnings: initWarnings } : {}),
       next: "The model is empty. Ask the user whether to bootstrap it from the code now (codebase_index, then codebase_extract) or let it grow with each change (changeset_create), and wait for their answer.",
@@ -229,7 +263,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
 export const projectInitTool: McpToolDefinition<typeof initInputSchema> = {
   name: "project_init",
   description:
-    "Create an empty DR model at the current spec version in the project folder (documentation-robotics/), with its spec reference (.dr/) and layer reports. Before calling it, propose a name (usually the project's) and confirm it with the user. Fails if the folder already has a model. Installs no integration files.",
+    "Create an empty DR model at the current spec version in the project folder (documentation-robotics/), with its spec reference (.dr/) and layer reports. Before calling it, propose a name (usually the project's) and confirm it with the user. Fails if the folder already has a model. Installs no integration files. Lists the model and changesets folders in .prettierignore when the project uses prettier, and warns when a large-file commit hook would refuse a changeset's changes.yaml.",
   inputSchema: initInputSchema,
   handler: projectInitHandler,
 };
@@ -250,6 +284,18 @@ const upgradeInputSchema = {
     .optional()
     .describe(
       "Only with apply: true. As `dr upgrade --force`: stamp the new spec version when no migration leads to it (additive spec changes), reinstall the spec reference, and skip migration validation. Use it only when the user approves."
+    ),
+  gitignore: z
+    .enum(["untrack", "keep-tracked", "skip"])
+    .optional()
+    .describe(
+      "Only with apply: true, and only the user's choice. When git tracks files under .dr/ (the preview's gitignore.wouldIgnoreTracked), an ignore rule alone leaves them tracked and unstageable, so nothing is changed until this is passed: untrack removes them from git's index and ignores .dr/; keep-tracked ignores the rest of .dr/ and keeps them tracked; skip leaves .gitignore and the index as they are."
+    ),
+  modelOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      "Only with apply: true. Upgrade the model and the per-checkout spec reference and nothing else: no layer reports, no .gitignore or .prettierignore lines."
     ),
   rootPath: z
     .string()
@@ -280,41 +326,188 @@ async function integrationsNote(projectRoot: string): Promise<{ integrations?: s
   return notes.length > 0 ? { integrations: notes.join(" ") } : {};
 }
 
-/** Every file under `dir` with a hash of its content, by path relative to `root`. */
-async function hashFiles(root: string, dir: string): Promise<Map<string, string>> {
-  const hashes = new Map<string, string>();
-  let entries;
-  try {
-    entries = await readdir(join(root, dir), { recursive: true, withFileTypes: true });
-  } catch {
-    return hashes;
-  }
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    const file = join(entry.parentPath, entry.name);
-    try {
-      hashes.set(relative(root, file).split(sep).join("/"), createHash("sha1").update(await readFile(file)).digest("hex"));
-    } catch {
-      // gone since the listing
-    }
-  }
-  return hashes;
+const MODEL_PREFIX = "documentation-robotics/model/";
+
+/** At most this many files are listed per group; the rest are counted. */
+const MAX_FILES_LISTED = 100;
+
+function cappedFiles(files: FilesChanged) {
+  const cap = (list: string[]) => list.slice(0, MAX_FILES_LISTED);
+  const omitted =
+    Math.max(0, files.modified.length - MAX_FILES_LISTED) +
+    Math.max(0, files.added.length - MAX_FILES_LISTED) +
+    Math.max(0, files.removed.length - MAX_FILES_LISTED);
+  return {
+    modified: cap(files.modified),
+    added: cap(files.added),
+    removed: cap(files.removed),
+    ...(omitted > 0 ? { omitted } : {}),
+  };
 }
 
-/** The files written, added and removed between two hashFiles snapshots. */
+/**
+ * The files written under documentation-robotics/ between two hashFiles snapshots: the model's
+ * (filesModified, files) apart from the rest (otherFiles: changesets, reports), so a reviewer can
+ * tell the migration from everything else.
+ */
 function filesChanged(before: Map<string, string>, after: Map<string, string>) {
-  const modified: string[] = [];
-  const added: string[] = [];
-  for (const [file, hash] of after) {
-    const old = before.get(file);
-    if (old === undefined) added.push(file);
-    else if (old !== hash) modified.push(file);
-  }
-  const removed = [...before.keys()].filter((file) => !after.has(file));
+  const changed = diffFiles(before, after);
+  const model = filesUnder(changed, MODEL_PREFIX);
+  const other = filesOutside(changed, MODEL_PREFIX);
   return {
-    filesModified: modified.length + added.length + removed.length,
-    files: { modified: modified.sort(), added: added.sort(), removed: removed.sort() },
+    filesModified: countFiles(model),
+    files: cappedFiles(model),
+    ...(countFiles(other) > 0
+      ? { otherFilesModified: countFiles(other), otherFiles: cappedFiles(other) }
+      : {}),
   };
+}
+
+/** What the project's large-file commit hook would do to the files dr writes; null when nothing. */
+async function commitHookNote(projectRoot: string): Promise<string | null> {
+  try {
+    return largeFileHookNote(await largeFileHook(projectRoot));
+  } catch {
+    return null;
+  }
+}
+
+/** At most this many derived values are listed. */
+const MAX_FILLS_LISTED = 100;
+
+/**
+ * The values derived for required attributes (core/upgrade-fills.ts) and the changeset they are
+ * staged in for review (`written` false in a preview).
+ */
+function fillsReport(fills: UpgradeFills | undefined, written: boolean) {
+  if (!fills) return {};
+  const listed = fills.fills.slice(0, MAX_FILLS_LISTED).map((fill) => ({
+    elementId: fill.elementId,
+    attribute: fill.attribute,
+    value: fill.value,
+    rule: fill.rule,
+  }));
+  const base = {
+    changeset: fills.name,
+    values: fills.count,
+    elements: fills.elements,
+    fills: listed,
+    ...(fills.fills.length > listed.length ? { omitted: fills.fills.length - listed.length } : {}),
+  };
+  if (fills.error) {
+    return {
+      derivedValues: {
+        ...base,
+        error: `The derived values could not be staged in a changeset: ${fills.error}. They are listed here; nothing was written.`,
+      },
+    };
+  }
+  return {
+    derivedValues: {
+      ...base,
+      // A preview's id is the rehearsal copy's: only a written changeset has one to give
+      ...(written && fills.id ? { id: fills.id } : {}),
+      note: written
+        ? "Values derived from each element's own name or description for required attributes it left empty, staged in this changeset (changeset_show). Nothing was written to the base model. Show them to the user; fix or unstage what is wrong (changeset_activate, then model_update or changeset_unstage); land it with changeset_commit only when the user asks."
+        : "Applying stages these derived values in this changeset for review. Nothing is written to the base model until the user lands it.",
+    },
+  };
+}
+
+/** The required attributes no derivation covers, per element. */
+function unfilledReport(unfilled: UnfilledRequired[] | undefined) {
+  if (!unfilled || unfilled.length === 0) return {};
+  const { items, omitted } = capped(unfilled);
+  return {
+    unfilledRequired: {
+      note: "Required attributes these elements would leave empty with no value to derive. Fill them in from the code or the user after the upgrade.",
+      elementCount: unfilled.length,
+      attributeCount: unfilled.reduce((n, item) => n + item.attributes.length, 0),
+      elements: items,
+      ...(omitted ? { omitted } : {}),
+    },
+  };
+}
+
+/** upgradeModel's options for a scanned model action. */
+function modelUpgradeOptions(action: UpgradeAction, force: boolean): ModelUpgradeOptions {
+  return {
+    fromVersion: action.fromVersion!,
+    toVersion: action.toVersion,
+    // As `dr upgrade --force`: skip migration validation
+    validate: !force,
+    catalogOnly: action.catalogOnly,
+    versionBumpOnly: action.versionBumpOnly,
+  };
+}
+
+/**
+ * The model step rehearsed on a copy (core/upgrade-rehearsal.ts): the model files it would write,
+ * the changeset files, the validation errors the upgraded model would have, the values it would
+ * derive and the required attributes it would leave empty.
+ */
+async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: boolean) {
+  const action = scan.actions.find((candidate) => candidate.type === "model");
+  if (!action) return {};
+  try {
+    const { result, modelFiles, otherFiles } = await rehearseModelUpgrade(projectRoot, modelUpgradeOptions(action, force));
+    const errors = result.validationErrors;
+    return {
+      wouldWrite: {
+        note: "From running the migration on a copy of documentation-robotics/. The project was not written.",
+        modelFiles: { count: countFiles(modelFiles), ...cappedFiles(modelFiles) },
+        ...(countFiles(otherFiles) > 0 ? { changesetFiles: { count: countFiles(otherFiles), ...cappedFiles(otherFiles) } } : {}),
+        ...(errors
+          ? { validationErrorsAfter: errors.length }
+          : { validationError: `The upgraded copy could not be validated: ${result.validationError}` }),
+      },
+      ...fillsReport(result.fills, false),
+      ...unfilledReport(result.unfilled ?? (errors && !result.fills ? unfilledRequired(errors) : undefined)),
+    };
+  } catch (error) {
+    return { wouldWrite: { error: `Could not rehearse the migration on a copy: ${getErrorMessage(error)}` } };
+  }
+}
+
+/** The choices for files git tracks under .dr/, as the preview and an apply without a choice return them. */
+function gitignoreDecision(ignore: DotDrIgnoreResult, projectRoot: string) {
+  const decision = ignore.decision!;
+  return {
+    path: join(projectRoot, ".gitignore"),
+    wouldIgnoreTracked: decision.wouldIgnoreTracked,
+    trackedFiles: decision.files,
+    alreadyIgnored: decision.alreadyIgnored,
+    options: decision.options,
+    note: 'Nothing changes until the user chooses. Put the options to them, then call project_upgrade with apply: true and gitignore: "untrack", "keep-tracked" or "skip".',
+  };
+}
+
+/**
+ * Keep .dr/ out of git on apply, with the caller's choice for files git already tracks there.
+ * Returns the `gitignore` field of the result (what changed, or the decision still open) and
+ * pushes warnings.
+ */
+async function applyGitignore(projectRoot: string, choice: ProjectUpgradeArgs["gitignore"], warnings: string[]) {
+  try {
+    const ignore = await ensureDotDrIgnored(projectRoot, { tracked: choice });
+    warnings.push(...dotDrIgnoreWarnings(ignore));
+    if (ignore.decision) return { gitignore: gitignoreDecision(ignore, projectRoot) };
+    const notes = dotDrIgnoreNotes(ignore);
+    if (notes.length === 0) return {};
+    return {
+      gitignore: {
+        path: ignore.path,
+        ...(ignore.added ? { added: ignore.keptTracked ? ["/.dr/*", ...ignore.keptTracked] : [DOT_DR_IGNORE_LINE] } : {}),
+        ...(ignore.applied ? { applied: ignore.applied } : {}),
+        ...(ignore.untracked ? { untracked: ignore.untracked } : {}),
+        ...(ignore.replaced?.length ? { replaced: ignore.replaced } : {}),
+        notes,
+      },
+    };
+  } catch (error) {
+    warnings.push(`.gitignore was not updated: ${getErrorMessage(error)}. Ask the user to add /.dr/ to it.`);
+    return {};
+  }
 }
 
 async function upgradeRoot(rootPath: string | undefined): Promise<string> {
@@ -592,6 +785,39 @@ function catalogCheckErrors(scan: UpgradeScan): string[] {
 }
 
 /**
+ * What applying would touch outside the model (core/upgrade-outside-model.ts): the spec reference,
+ * layer reports, the ignore files (or the decision about files git tracks under .dr/) and what a
+ * large-file commit hook would do. Empty when it touches nothing there.
+ */
+async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
+  const outside = await scanOutsideModel(projectRoot, scan);
+  let decision: ReturnType<typeof gitignoreDecision> | undefined;
+  if (outside.gitignore?.decision) {
+    const ignore = await ensureDotDrIgnored(projectRoot, { dryRun: true });
+    if (ignore.decision) decision = gitignoreDecision(ignore, projectRoot);
+  }
+  const groups = {
+    ...(outside.specReference ? { specReference: outside.specReference.description } : {}),
+    ...(outside.reports ? { reports: { generate: outside.reports.files, note: "No layer reports yet; applying generates them." } } : {}),
+    ...(outside.gitignore?.add ? { gitignore: { path: outside.gitignore.path, add: outside.gitignore.add } } : {}),
+    ...(outside.prettierignore ? { prettierignore: { path: outside.prettierignore.path, add: outside.prettierignore.add } } : {}),
+  };
+  return {
+    ...(Object.keys(groups).length > 0
+      ? {
+          outsideModel: {
+            note: "What applying also writes outside documentation-robotics/model/. modelOnly: true (with apply) skips all of it except the spec reference.",
+            ...groups,
+          },
+        }
+      : {}),
+    ...(decision ? { gitignore: decision } : {}),
+    ...(outside.commitHook ? { commitHook: outside.commitHook } : {}),
+    ...(outside.errors.length > 0 ? { outsideModelErrors: outside.errors } : {}),
+  };
+}
+
+/**
  * Applying holds the project's write lock from the scan through the reread after it, so no other
  * tool's write lands in the middle of a migration or saves a model read before it over it. A
  * preview only reads, and doesn't take it.
@@ -659,26 +885,61 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           errors: checkErrors,
         });
       }
-      // A model already on this spec still gets the .prettierignore entry, as dr upgrade gives it:
-      // a preview says it is missing, apply adds it.
-      let ignore: Awaited<ReturnType<typeof ensurePrettierIgnoresChangesets>> | undefined;
-      try {
-        ignore = await ensurePrettierIgnoresChangesets(projectRoot, { dryRun: !args.apply });
-      } catch (error) {
-        console.error(`[mcp] project_upgrade could not check .prettierignore: ${getErrorMessage(error)}`);
+      // A model already on this spec still gets what dr upgrade gives it outside the model: the
+      // .prettierignore entries and the .dr/ ignore rule. A preview says what is missing, apply
+      // adds it; files git tracks under .dr/ wait for the user's choice either way.
+      const warnings: string[] = [];
+      const outside = await scanOutsideModel(projectRoot, scan, { dotDr: args.gitignore });
+      for (const error of outside.errors) console.error(`[mcp] project_upgrade: ${error}`);
+      const pending: string[] = [];
+      let gitignore: Record<string, unknown> = {};
+      let prettierignore: Record<string, unknown> = {};
+      if (args.apply && !args.modelOnly) {
+        gitignore = await applyGitignore(projectRoot, args.gitignore, warnings);
+        try {
+          const ignore = await ensurePrettierIgnoresDrFiles(projectRoot);
+          if (ignore.status === "added") prettierignore = { prettierignore: { path: ignore.path, added: ignore.entries } };
+        } catch (error) {
+          warnings.push(`.prettierignore was not updated: ${getErrorMessage(error)}. Ask the user to add ${PRETTIER_IGNORE_BY_HAND} to it.`);
+        }
+      } else if (!args.modelOnly) {
+        if (outside.gitignore?.add) {
+          gitignore = { gitignore: { path: join(projectRoot, outside.gitignore.path), missing: outside.gitignore.add } };
+          pending.push(`${outside.gitignore.path} doesn't ignore .dr/ (dr's per-checkout state)`);
+        }
+        if (outside.prettierignore) {
+          prettierignore = {
+            prettierignore: { path: join(projectRoot, outside.prettierignore.path), missing: outside.prettierignore.add },
+          };
+          pending.push(
+            `the project uses prettier, which reformats the files dr writes, and ${outside.prettierignore.path} doesn't ignore ${outside.prettierignore.add.join(" and ")}`
+          );
+        }
       }
+      if (!args.modelOnly && outside.gitignore?.decision && !("gitignore" in gitignore)) {
+        const ignore = await ensureDotDrIgnored(projectRoot, { dryRun: true });
+        if (ignore.decision) gitignore = { gitignore: gitignoreDecision(ignore, projectRoot) };
+      }
+      const decisionOpen = Boolean((gitignore.gitignore as { options?: unknown } | undefined)?.options);
       return jsonResult({
         status: "up-to-date",
         rootPath: projectRoot,
         ...versions(scan),
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
-        ...(ignore?.status === "added" ? { prettierignore: { path: ignore.path, added: [ignore.entry] } } : {}),
-        ...(ignore?.status === "missing"
+        ...gitignore,
+        ...prettierignore,
+        ...(outside.commitHook && !args.modelOnly ? { commitHook: outside.commitHook } : {}),
+        ...(warnings.length > 0 ? { warnings } : {}),
+        ...(pending.length > 0 || decisionOpen
           ? {
-              prettierignore: { path: ignore.path, missing: [ignore.entry] },
-              next:
-                `The project uses prettier, which reformats dr's changeset files; ${ignore.path} doesn't ignore ` +
-                `${ignore.entry}. Calling project_upgrade with apply: true adds it, once the user approves.`,
+              next: [
+                ...(pending.length > 0
+                  ? [`${pending.join("; ")}. Calling project_upgrade with apply: true adds the missing lines, once the user approves.`]
+                  : []),
+                ...(decisionOpen
+                  ? ['git tracks files under .dr/: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.']
+                  : []),
+              ].join(" "),
             }
           : {}),
       });
@@ -697,7 +958,8 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           ...catalogReport(catalog.details, errors),
           ...dropRecordReport(await previewDropRecord(projectRoot, scan, catalog.details).catch(() => undefined), false),
           ...(await wouldOrphan(projectRoot, catalog.details)),
-          ...(!(await hasLayerReports(projectRoot)) ? { reports: "No layer reports yet; applying generates them." } : {}),
+          ...(await rehearsalReport(projectRoot, scan, force)),
+          ...(await outsideModelReport(projectRoot, scan)),
           ...(await integrationsNote(projectRoot)),
           next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
         },
@@ -712,6 +974,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
     const details = emptyCatalogDetails();
     let changesets: ChangesetRebaselineResult | undefined;
     let dropRecord: UpgradeDropRecord | undefined;
+    let modelResult: ModelUpgradeResult | undefined;
     try {
       // One tracked write: the server's other calls don't read the model while it is half migrated.
       await trackModelWrite(projectRoot, undefined, async () => {
@@ -720,14 +983,8 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
             await installSpecReference(projectRoot, true);
             applied.push(actionSummary(action));
           } else if (action.type === "model") {
-            const result = await upgradeModel(projectRoot, {
-              fromVersion: action.fromVersion!,
-              toVersion: action.toVersion,
-              // As `dr upgrade --force`: skip migration validation
-              validate: !force,
-              catalogOnly: action.catalogOnly,
-              versionBumpOnly: action.versionBumpOnly,
-            });
+            const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, force));
+            modelResult = result;
             changesets = result.changesets;
             dropRecord = result.dropRecord;
             if (action.versionBumpOnly) {
@@ -780,52 +1037,59 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
       ...rewrites,
       ...(cannotMigrate.length > 0 ? { dropped: cannotMigrate } : {}),
       ...dropRecordReport(dropRecord, true),
+      ...fillsReport(modelResult?.fills, true),
       ...(changesets ? { changesets: changesetSummary(changesets) } : {}),
     };
     const warnings = [...checkErrors];
 
-    // .dr/ is per-checkout state: make sure the project doesn't commit it.
-    let gitignoreAdded: { path: string; added: string[] } | undefined;
-    try {
-      const ignore = await ensureDotDrIgnored(projectRoot);
-      if (ignore.added) gitignoreAdded = { path: ignore.path, added: [DOT_DR_IGNORE_LINE] };
-      warnings.push(...dotDrIgnoreWarnings(ignore));
-    } catch (error) {
-      warnings.push(`.gitignore was not updated: ${getErrorMessage(error)}. Ask the user to add /.dr/ to it.`);
-    }
-
-    // dr writes changeset files in its own layout: keep prettier from reformatting them (#1155).
+    // Outside the model: .dr/ kept out of git (files git already tracks there are the user's
+    // choice, #1185) and prettier kept off the files dr writes (#1155, #1246). Not with modelOnly.
+    let gitignore: Record<string, unknown> = {};
     let prettierignoreAdded: { path: string; added: string[] } | undefined;
-    try {
-      const ignore = await ensurePrettierIgnoresChangesets(projectRoot);
-      if (ignore.status === "added") prettierignoreAdded = { path: ignore.path!, added: [ignore.entry!] };
-    } catch (error) {
-      warnings.push(
-        `.prettierignore was not updated: ${getErrorMessage(error)}. Ask the user to add ${CHANGESETS_FOLDER}/ to it.`
-      );
+    if (!args.modelOnly) {
+      gitignore = await applyGitignore(projectRoot, args.gitignore, warnings);
+      try {
+        const ignore = await ensurePrettierIgnoresDrFiles(projectRoot);
+        if (ignore.status === "added") prettierignoreAdded = { path: ignore.path!, added: ignore.entries! };
+      } catch (error) {
+        warnings.push(
+          `.prettierignore was not updated: ${getErrorMessage(error)}. Ask the user to add ${PRETTIER_IGNORE_BY_HAND} to it.`
+        );
+      }
     }
+    const commitHook = args.modelOnly ? null : await commitHookNote(projectRoot);
 
     // The migration is on disk from here: a failure in the follow-up steps is reported with it.
     try {
-      if (!(await hasLayerReports(projectRoot))) {
+      let reports: { reports: string } | Record<string, never> = {};
+      if (!args.modelOnly && !(await hasLayerReports(projectRoot))) {
         try {
           await regenerateLayerReports(projectRoot, logToStderr);
+          reports = { reports: "Generated documentation-robotics/reports/ (13 layer reports) and documentation-robotics/README.md: the project had none." };
         } catch (error) {
           warnings.push(`Layer reports were not generated: ${getErrorMessage(error)}`);
         }
       }
       const model = await reloadModel(args.rootPath);
-      const validation = await validationSummary(model);
+      const validation = await validationSummary(model, undefined, modelResult?.fills);
+      const decisionOpen = Boolean((gitignore.gitignore as { options?: unknown } | undefined)?.options);
       return jsonResult(
         {
           status: "applied",
           ...appliedResult,
           to: model.manifest.specVersion,
           validation,
-          ...(gitignoreAdded ? { gitignore: gitignoreAdded } : {}),
+          ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
+          ...reports,
+          ...(commitHook ? { commitHook } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
+          ...(decisionOpen
+            ? {
+                next: 'The model is upgraded. git tracks files under .dr/, so .gitignore was left alone: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.',
+              }
+            : {}),
         },
         { compact: true }
       );
@@ -835,6 +1099,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
           status: "applied-with-errors",
           ...appliedResult,
           followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
+          ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
@@ -849,7 +1114,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), and the elements the dropped relationships would leave orphaned (wouldOrphan). apply: true runs the migration, writes that record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it. The applied result counts the model files written and the warnings dr validate reports, and lists the required attributes the migrated elements leave empty (validation.unfilledRequired), per element; it fills in no values.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what a large-file commit hook would refuse (commitHook). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

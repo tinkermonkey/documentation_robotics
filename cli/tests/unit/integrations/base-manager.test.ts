@@ -774,4 +774,68 @@ components:
       expect(versionData?.version).toBe("0.1.1");
     });
   });
+  describe("planUpgrade and stale entries (#1165)", () => {
+    async function install() {
+      await manager.testInstallComponent("commands");
+      await manager.testInstallComponent("agents");
+      await manager.testUpdateVersionFile("0.1.0");
+    }
+
+    it("returns null when the integration isn't installed", async () => {
+      expect(await manager.planUpgrade()).toBeNull();
+    });
+
+    it("lists every file an upgrade would add, update, overwrite or remove, and changes none", async () => {
+      await install();
+      // This dr changed one file, added one and dropped one; the project edited another
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Command 1, revised", "utf-8");
+      await writeFile(join(sourceDir, "commands", "cmd3.md"), "Command 3", "utf-8");
+      await rm(join(sourceDir, "commands", "cmd2.md"));
+      await writeFile(join(targetDir, "agents", "dr-agent1.md"), "Agent 1, edited here", "utf-8");
+
+      const plan = await manager.planUpgrade();
+      expect(plan).toMatchObject({ folder: "target", fromVersion: "0.1.0", versionFile: "target/.dr-test-version" });
+      expect(plan!.files).toEqual([
+        { path: "target/commands/cmd1.md", action: "update" },
+        { path: "target/commands/cmd2.md", action: "remove" },
+        { path: "target/commands/cmd3.md", action: "add" },
+      ]);
+      // Without force the edited file is kept; with it (as dr upgrade runs) it is overwritten
+      expect(plan!.kept).toEqual(["target/agents/dr-agent1.md"]);
+      const forced = await manager.planUpgrade({ force: true });
+      expect(forced!.files).toContainEqual({ path: "target/agents/dr-agent1.md", action: "overwrite" });
+      expect(forced!.kept).toEqual([]);
+
+      // Planning wrote nothing
+      expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1");
+      expect(await readFile(join(targetDir, "commands", "cmd2.md"), "utf-8")).toBe("Command 2");
+    });
+
+    it("finds DR-named entries the integration doesn't have and never recorded, and removes only those", async () => {
+      await install();
+      // Left by a layout older than the version file: a file and a folder
+      await writeFile(join(targetDir, "agents", "dr-old-agent.md"), "old", "utf-8");
+      await mkdir(join(targetDir, "commands", "dr_layer_02_business"), { recursive: true });
+      await writeFile(join(targetDir, "commands", "dr_layer_02_business", "SKILL.md"), "old", "utf-8");
+      // Not DR-named: the project's own
+      await writeFile(join(targetDir, "agents", "my-agent.md"), "mine", "utf-8");
+      // In the untracked component: never looked at
+      await mkdir(join(targetDir, "templates"), { recursive: true });
+      await writeFile(join(targetDir, "templates", "dr-template.md"), "mine", "utf-8");
+      // Recorded and dropped from this dr: the upgrade removes it, so it is not stale
+      await rm(join(sourceDir, "commands", "cmd2.md"));
+
+      const stale = ["target/agents/dr-old-agent.md", "target/commands/dr_layer_02_business/"];
+      expect(await manager.findStaleEntries()).toEqual(stale);
+      expect((await manager.planUpgrade())!.stale).toEqual(stale);
+
+      // A path that isn't stale is ignored, whatever the caller passes
+      const removed = await manager.removeStaleEntries([...stale, "target/agents/my-agent.md", "target/commands/cmd1.md"]);
+      expect(removed).toEqual(stale);
+      expect(await manager.findStaleEntries()).toEqual([]);
+      expect(await readFile(join(targetDir, "agents", "my-agent.md"), "utf-8")).toBe("mine");
+      expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1");
+      expect(await readFile(join(targetDir, "templates", "dr-template.md"), "utf-8")).toBe("mine");
+    });
+  });
 });

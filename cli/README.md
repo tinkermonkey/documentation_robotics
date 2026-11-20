@@ -348,7 +348,7 @@ your-project/
 │       └── ...
 ```
 
-**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths. `dr upgrade` also applies catalog changes (renamed element types, retired relationship types) to a model already at the current spec version, since the catalog can change between version bumps; see `cli/src/core/catalog-migration.ts`. A relationship whose type was retired with no replacement is dropped from the model and written to a staged changeset, `upgrade-drops-<spec version>`: a record that never lands, listing each dropped relationship and the relationship types the catalog still has between the same element types, to restore from by hand. `dr upgrade --dry-run` counts the drops and names that changeset. See [What an upgrade drops](../docs/CHANGE_MODELING.md#what-an-upgrade-drops).
+**Spec-version migrations**: When the model's spec version is older than the CLI's bundled spec (e.g. after a layer renumbering), run `dr upgrade` to migrate the on-disk model in place — see `MigrationRegistry` in `cli/src/core/migration-registry.ts` for the supported version paths. `dr upgrade` also applies catalog changes (renamed element types, retired relationship types) to a model already at the current spec version, since the catalog can change between version bumps; see `cli/src/core/catalog-migration.ts`. A relationship whose type was retired with no replacement is dropped from the model and written to a staged changeset, `upgrade-drops-<spec version>`: a record that never lands, listing each dropped relationship and the relationship types the catalog still has between the same element types, to restore from by hand. `dr upgrade --dry-run` counts the drops and names that changeset. See [What an upgrade drops](../docs/CHANGE_MODELING.md#what-an-upgrade-drops). The plan and `dr upgrade --dry-run` list every file the run would touch outside `documentation-robotics/model/`, by group (the spec reference, each installed integration's files, layer reports, `.gitignore` and `.prettierignore` lines), and the dry run rehearses the model step on a copy, so it names the model files that would change and what the upgraded model would still fail validation on. `dr upgrade --model-only` migrates the model (and installs the per-checkout spec reference) and leaves the rest alone. A model file whose data does not change is not rewritten, so an upgrade that only stamps the version changes only the manifest. When the new spec requires attributes the model leaves empty, the values that follow plainly from the element itself (an operation's `operationId` from its name, say) are staged in a changeset, `upgrade-fills-<spec version>`, to review and land with `dr changeset commit`; they are never written to the base model, and what has no such value is listed per element. DR-named files in an integration folder that this CLI's integration does not have and no install recorded are listed, and removed only on a yes or with `--remove-stale`.
 
 ### Specification Reference
 
@@ -378,10 +378,14 @@ your-project/
 **Important:**
 
 - The `.dr/` directory is ephemeral and should be git-ignored. `dr init` and `dr upgrade` add
-  `/.dr/` to the project's `.gitignore` when nothing ignores it yet (commit that change); they
-  leave a `!/.dr/` line alone and warn when git already tracks files under `.dr/`
-  (`git rm -r --cached .dr` untracks them)
-- It will be recreated automatically by the CLI when needed
+  `/.dr/` to the project's `.gitignore` when nothing ignores it yet (commit that change), in place
+  of any `.dr` rule or comment already there, and leave a `!/.dr/` line alone
+- When git already tracks files under `.dr/`, an ignore rule alone would leave them tracked and
+  unstageable, so nothing is changed until you choose: `dr upgrade` asks in a terminal, and takes
+  `--dot-dr untrack` (remove them from the index and ignore `.dr/`), `--dot-dr keep-tracked`
+  (ignore the rest of `.dr/`, keep those paths tracked) or `--dot-dr skip` otherwise
+- A fresh clone or worktree has no `.dr/spec`. `dr validate` says so in one line and validates all
+  the same, against the spec the CLI carries; `dr upgrade` installs the reference
 - Run `dr upgrade` to update the spec reference after CLI updates
 
 ### Tier 1 Classification (Opt-In, Per Checkout)

@@ -15,7 +15,7 @@ import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { regenerateLayerReports } from "../commands/reports.js";
 import { ensureDotDrIgnored, type DotDrIgnoreResult } from "./dot-dr-ignore.js";
-import { ensurePrettierIgnoresChangesets, type PrettierIgnoreResult } from "./prettier-ignore.js";
+import { ensurePrettierIgnoresDrFiles, type PrettierIgnoreResult } from "./prettier-ignore.js";
 
 export interface ProjectInitOptions {
   name: string;
@@ -41,7 +41,7 @@ export interface ProjectInitResult {
   gitignore?: DotDrIgnoreResult;
   /** Set when `.gitignore` could not be read or written. Not fatal: the model was created. */
   gitignoreError?: string;
-  /** Whether the changesets folder was added to `.prettierignore`; unset when that failed (prettierignoreError). */
+  /** Whether the model and changesets folders were added to `.prettierignore`; unset when that failed (prettierignoreError). */
   prettierignore?: PrettierIgnoreResult;
   /** Set when `.prettierignore` could not be read or written. Not fatal: the model was created. */
   prettierignoreError?: string;
@@ -111,8 +111,8 @@ export async function initProject(rootPath: string, options: ProjectInitOptions)
   let prettierignore: PrettierIgnoreResult | undefined;
   let prettierignoreError: string | undefined;
   try {
-    prettierignore = await ensurePrettierIgnoresChangesets(rootPath);
-    if (prettierignore.status === "added") logVerbose(`Added ${prettierignore.entry} to ${prettierignore.path}`);
+    prettierignore = await ensurePrettierIgnoresDrFiles(rootPath);
+    if (prettierignore.status === "added") logVerbose(`Added ${prettierignore.entries?.join(" and ")} to ${prettierignore.path}`);
   } catch (error) {
     prettierignoreError = getErrorMessage(error);
     logDebug(`Updating .prettierignore failed (non-fatal): ${prettierignoreError}`);

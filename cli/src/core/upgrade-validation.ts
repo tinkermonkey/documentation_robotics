@@ -3,8 +3,9 @@
  * `project_upgrade` MCP tool applied a migration.
  *
  * A new spec version can make attributes required that the migrated elements don't have. The
- * upgrade doesn't invent values for them: it lists what is left to fill in, per element and
- * attribute, so the follow-up is a checklist rather than a validation run.
+ * upgrade doesn't invent values for them: it stages the ones that follow plainly from the element
+ * for review (upgrade-fills.ts) and lists what is left to fill in, per element and attribute, so
+ * the follow-up is a checklist rather than a validation run.
  */
 
 import type { Model } from "./model.js";
@@ -91,11 +92,28 @@ export function unfilledRequired(errors: ValidationIssue[]): UnfilledRequired[] 
     .map((group) => ({ elementId: group.elementId!, layer: group.layer, attributes: group.missingAttributes }));
 }
 
+/** Drop the attributes that have a value staged for review; elements left with none are dropped too */
+export function withoutStaged(
+  unfilled: UnfilledRequired[],
+  staged: Array<{ elementId: string; attribute: string }>
+): UnfilledRequired[] {
+  const keys = new Set(staged.map((fill) => `${fill.elementId} ${fill.attribute}`));
+  return unfilled
+    .map((item) => ({ ...item, attributes: item.attributes.filter((attribute) => !keys.has(`${item.elementId} ${attribute}`)) }))
+    .filter((item) => item.attributes.length > 0);
+}
+
 /**
  * The base model's validation as the upgrade reports it: counts, the first errors and warnings,
- * and every required attribute left empty (unfilledRequired), per element.
+ * and every required attribute left empty (unfilledRequired), per element. Attributes with a
+ * derived value staged for review (`fills`, upgrade-fills.ts) still fail validation until that
+ * changeset lands, but are counted apart (stagedForReview), not listed as left to fill in.
  */
-export async function validationSummary(model: Model, maxIssues: number = MAX_VALIDATION_ISSUES) {
+export async function validationSummary(
+  model: Model,
+  maxIssues: number = MAX_VALIDATION_ISSUES,
+  fills?: { name: string; error?: string; fills: Array<{ elementId: string; attribute: string }> }
+) {
   const result = await validateBaseModel(model);
   const issue = (item: { layer: string; elementId?: string; message: string }) => ({
     layer: item.layer,
@@ -104,16 +122,26 @@ export async function validationSummary(model: Model, maxIssues: number = MAX_VA
   });
   const errors = result.errors.slice(0, maxIssues).map(issue);
   const warnings = result.warnings.slice(0, maxIssues).map(issue);
-  const unfilled = unfilledRequired(result.errors);
+  const staged = fills && !fills.error ? fills.fills : [];
+  const unfilled = withoutStaged(unfilledRequired(result.errors), staged);
   return {
     scope: "base model (staged changesets not included)",
     valid: result.isValid(),
     errorCount: result.errors.length,
     warningCount: result.warnings.length,
+    ...(staged.length > 0
+      ? {
+          stagedForReview: {
+            note: "Required attributes with a derived value staged in this changeset. They stay validation errors on the base model until the user lands it.",
+            changeset: fills!.name,
+            attributeCount: staged.length,
+          },
+        }
+      : {}),
     ...(unfilled.length > 0
       ? {
           unfilledRequired: {
-            note: "Required attributes these elements leave empty. The upgrade doesn't invent values: fill them in from the code or the user.",
+            note: "Required attributes these elements leave empty and the upgrade has no value to derive for. It doesn't invent values: fill them in from the code or the user.",
             elementCount: unfilled.length,
             attributeCount: unfilled.reduce((n, item) => n + item.attributes.length, 0),
             elements: unfilled.slice(0, MAX_UNFILLED_LISTED),
