@@ -192,6 +192,8 @@ describe("ids that differ only by hyphens", () => {
     // Not only hyphens: the root route sat at `get` before it was `get-root`.
     const routes = [{ id: "api.operation.get", name: "GET /" }];
     expect(elementUnderEarlierId("api.operation.get-root", "GET /", routes)).toBe(routes[0]);
+    // Extraction's lookup (planElements) never hands the root route the catch-all route's element.
+    expect(elementUnderEarlierId("api.operation.get-root", "GET /", [{ id: "api.operation.get", name: "GET /*" }])).toBeUndefined();
   });
 
   it("compactId ignores hyphens and case in the type and name, not the layer", () => {
@@ -240,13 +242,13 @@ describe("ids that differ only by hyphens", () => {
     );
   });
 
-  it("namesShareAnId: names that gave one id under some rule, and only those", () => {
+  it("namesShareAnId: the same name, or one that gives the same id today, and only those", () => {
     const share = (a: string, b: string) => namesShareAnId("api", "operation", a, b);
     expect(share("Tier1Status", "TIER1Status")).toBe(true);
     expect(share("GET /", "GET  /")).toBe(true);
-    expect(share("GET /", "GET /*")).toBe(true);
-    expect(share("Order.processPayment", "Orderprocess Payment")).toBe(true);
-    // Never one id: two elements.
+    // Earlier rules merged these; today's rule tells them apart, so they are two elements.
+    expect(share("GET /", "GET /*")).toBe(false);
+    expect(share("Version 1.2", "Version 12")).toBe(false);
     expect(share("Tier1Status", "Tier 1 Status")).toBe(false);
     expect(share("Create Order", "Cancel Order")).toBe(false);
   });
@@ -264,12 +266,12 @@ describe("ids that differ only by hyphens", () => {
     // Differs by more: the root route, and slashes that were dropped.
     expect(check("api", "operation", "GET /")).toEqual({ existing: "api.operation.get" });
     expect(check("api", "operation", "GET /owners/{ownerId}")).toEqual({ existing: "api.operation.get-ownersowner-id" });
-    // "GET /*" and "GET /" gave one id through 0.6.0, so adding one beside the other was refused
-    // then and is refused now, naming the element and the name it has.
-    expect(existingUnderEarlierId("api", "operation", "GET /", "api.operation.get-root", existingElementsIn([{ id: "api.operation.get", name: "GET /*" }]))).toEqual({
-      existing: "api.operation.get",
-      existingName: "GET /*",
-    });
+    // "GET /*" at `get` is the catch-all route: the root route "GET /" (get-root today) is another
+    // element, though the rules through 0.6.0 gave both `get`. So is "Version 1.2" beside "Version 12".
+    expect(existingUnderEarlierId("api", "operation", "GET /", "api.operation.get-root", existingElementsIn([{ id: "api.operation.get", name: "GET /*" }]))).toEqual({});
+    const version = existingUnderEarlierId("api", "operation", "Version 1.2", "api.operation.version-1-2", existingElementsIn([{ id: "api.operation.version-12", name: "Version 12" }]));
+    expect(version.existing).toBeUndefined();
+    expect(version.warning).toContain("differs only by hyphens from api.operation.version-12");
     // Names that differ in case, spacing or punctuation gave one id too.
     expect(check("data-model", "objectschema", "TIER1Status")).toEqual({ existing: "data-model.objectschema.tier1status", existingName: "Tier1Status" });
     expect(check("api", "operation", "GET  /")).toEqual({ existing: "api.operation.get", existingName: "GET /" });

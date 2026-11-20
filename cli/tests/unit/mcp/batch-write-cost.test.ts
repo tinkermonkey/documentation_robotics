@@ -877,7 +877,7 @@ describe("existing ids are never renamed", () => {
         { layer: "api", type: "operation", name: "GET /", attributes: { operationId: "get", summary: "GET /", tags: "x" } },
         fn(long),
         fn(`${long} twice`),
-        // "GET /*" was `get` under the earlier rule as well, and is another route: it is added.
+        // "GET /*" gives `get` today, the id the "GET /" element holds: refused as taken by another name.
         { layer: "api", type: "operation", name: "GET /*", attributes: { operationId: "get-all", summary: "GET /*", tags: "x" } },
       ],
     });
@@ -895,6 +895,23 @@ describe("existing ids are never renamed", () => {
       await modelAddHandler({ layer: "api", type: "operation", name: "GET /", attributes: { operationId: "get", summary: "GET /", tags: "x" }, rootPath } as any)
     );
     expect(single.error).toContain("Element api.operation.get already exists with this name");
+  });
+
+  it("adds a name an earlier rule merged with an existing element's, when today's rule tells them apart", async () => {
+    // The catch-all route at `get` (what 0.5/0.6 extraction gave "GET /*"), and "Version 12".
+    await seed("api", "operation", "api.operation.get", "GET /*", { operationId: "get-all", summary: "GET /*", tags: "x" });
+    await seed("api", "operation", "api.operation.version-12", "Version 12", { operationId: "v12", summary: "v12", tags: "x" });
+    await createChangeset();
+    const op = (name: string, operationId: string) => ({ layer: "api", type: "operation", name, attributes: { operationId, summary: name, tags: "x" } });
+    const list = await add({ elements: [op("GET /", "get-root"), op("Version 1.2", "v1-2")], verbose: true });
+    expect(list.elements.counts).toEqual({ staged: 2 });
+    expect(list.elements.results.map((r: any) => r.id)).toEqual(["api.operation.get-root", "api.operation.version-1-2"]);
+    // "Version 1.2" and "Version 12" differ only by hyphens: staged, with a warning to check.
+    expect(list.elements.results[1].warnings[0]).toContain("differs only by hyphens from api.operation.version-12");
+    // The single form agrees, and the catch-all element is untouched.
+    await (await import("../../../src/mcp/tools/changeset-editing.js")).changesetUnstageHandler({ elementId: "api.operation.get-root", rootPath } as any);
+    expect((await add(op("GET /", "get-root"))).id).toBe("api.operation.get-root");
+    expect((await show("api.operation.get")).element.name).toBe("GET /*");
   });
 
   it("refuses names whose elements releases before 0.6.0 made, single and in a list", async () => {

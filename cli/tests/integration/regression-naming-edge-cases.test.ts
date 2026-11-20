@@ -424,11 +424,23 @@ describe("regression: naming-edge-cases", () => {
       expect(root.exitCode).not.toBe(0);
       expect(root.stdout + root.stderr).toContain("Element api.operation.options already exists with this name");
 
+      // A name an earlier rule merged with an existing element's, which today's rule tells apart,
+      // is another element: "Version 1.2" beside "Version 12" (both `version-12` through 0.6.0).
+      await put("data-model", "objectschema", "data-model.objectschema.version-12", "Version 12", { type: "object" });
+      await seeded.saveManifest();
+      const other = await runDr(
+        ["add", "data-model", "objectschema", "Version 1.2", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+      expect(other.exitCode).toBe(0);
+      expect(other.stdout + other.stderr).toContain("differs only by hyphens from data-model.objectschema.version-12");
+
       // Neither got a second copy.
       const after = await Model.load(workdir.path);
       expect((await after.getLayer("api"))!.getElement("api.operation.options-root")).toBeUndefined();
       expect((await after.getLayer("api"))!.getElement("api.operation.options")).toBeDefined();
       expect((await after.getLayer("data-model"))!.getElement("data-model.objectschema.tier9-status")).toBeUndefined();
+      expect((await after.getLayer("data-model"))!.getElement("data-model.objectschema.version-1-2")).toBeDefined();
     });
   });
 });

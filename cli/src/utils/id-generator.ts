@@ -175,6 +175,10 @@ function cutSlug(slug: string): string {
  * None of them breaks a word after a digit or prefixes a leading digit; those are 0.7.0's. The
  * analyzer's suggested names (cbm-analyzer) were names, turned into ids by `dr add`.
  *
+ * Not listed: the Python CLI and the TypeScript CLI before 0.1.4 kept dots and other characters
+ * in ids. A short such id differs from today's only in separators and is found by the hyphen
+ * comparison below; a name long enough to be cut today is not.
+ *
  * When {@link deriveElementId} changes again, add the rule it replaces here: the guard below and
  * the sweep in tests/unit/utils/id-rules-existing-model.test.ts depend on every past rule being
  * listed.
@@ -208,18 +212,15 @@ export function earlierElementIds(layer: string, elementType: string, name: stri
 }
 
 /**
- * Whether two names would have given one id, under today's rule or any earlier one: "TIER1Status"
- * and "Tier1Status", "GET  /" and "GET /", or "GET /" and "GET /*" (one id through 0.6.0). Such a
- * pair was one element when the second was added, and is refused now as then. "Tier 1 Status" and
- * "Tier1Status" never gave one id, so they are two elements.
+ * Whether two names are one element's name: the same text, or text that gives the same id under
+ * today's rule ("TIER1Status" and "Tier1Status", "GET  /" and "GET /"). An earlier rule is not
+ * asked: those rules merged names that are different things ("GET /" and "GET /*" both gave
+ * `get`; "Version 1.2" and "Version 12" both gave `version-12`), and today's rule tells them apart.
  */
 export function namesShareAnId(layer: string, elementType: string, a: string, b: string): boolean {
   if (a === b) return true;
-  if (deriveElementId(layer, elementType, a).slug === deriveElementId(layer, elementType, b).slug) return true;
-  return EARLIER_ID_RULES.some(({ slug }) => {
-    const left = slug(a);
-    return left !== "" && left === slug(b);
-  });
+  const slug = deriveElementId(layer, elementType, a).slug;
+  return slug !== "" && slug === deriveElementId(layer, elementType, b).slug;
 }
 
 /**
@@ -246,8 +247,8 @@ export interface ExistingElements {
  * Whether the element a new add describes already exists under another id, for a name whose id
  * (`id`, as {@link deriveElementId} gives it today) is free.
  *
- * `existing` is the id of an element with the same name (or one {@link namesShareAnId} with it;
- * `existingName` then says which) that sits where an earlier rule would
+ * `existing` is the id of an element with the same name (or one {@link namesShareAnId} with it:
+ * the same id under today's rule; `existingName` then says which) that sits where an earlier rule would
  * have put it: at one of {@link earlierElementIds}, or at any id that differs from today's only
  * by hyphens. It is the same element, and the add is refused as it was when the two ids were
  * equal, so a change to the derivation never adds a second copy of an element. An element with
