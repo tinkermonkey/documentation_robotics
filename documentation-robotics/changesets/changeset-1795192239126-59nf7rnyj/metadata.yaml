@@ -9,14 +9,227 @@ description: "changeset_brief's sections return compact forms that share a 40 KB
   and the acceptance criteria of #1183, #1221, #1231 and #1232 are met with
   tests."
 created: 2026-11-20T16:30:39.144Z
-modified: 2026-11-20T16:47:09.821Z
+modified: 2026-11-20T16:58:29.149Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 24
+  additions: 26
   modifications: 4
   deletions: 0
-lastSequence: 27
+lastSequence: 38
+unstaged:
+  - sequence: 1
+    removedAt: 28
+    change:
+      type: add
+      elementId: application.applicationfunction.compact-intent
+      layerName: application
+      after:
+        id: a303a922-e040-43b6-8602-c9b8c8f82df3
+        path: application.applicationfunction.compact-intent
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: compactIntent
+        description: "The intent section's compact form: counts always, the untraced and
+          unanchored elements listed (per type with the first ids when the list
+          is long), traced elements as lines only when there are few, elements
+          whose type has no catalog route to intent counted apart, and a note
+          when nothing was traced because every change is an intent element."
+        metadata:
+          created_at: 2026-11-20T16:31:14.121Z
+          updated_at: 2026-11-20T16:31:14.121Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 29
+    change:
+      type: add
+      elementId: application.applicationfunction.has-catalog-route-to-intent
+      layerName: application
+      after:
+        id: 4785a996-f184-4f4a-91f6-1869364011d4
+        path: application.applicationfunction.has-catalog-route-to-intent
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: hasCatalogRouteToIntent
+        description: Whether the relationship catalog defines any relationship between a
+          node type and a motivation, business or product type. A type without
+          one can trace to intent only through a neighbour.
+        metadata:
+          created_at: 2026-11-20T16:31:14.130Z
+          updated_at: 2026-11-20T16:31:14.130Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 21
+    removedAt: 30
+    change:
+      type: add
+      elementId: data-model.objectschema.compact-code-file
+      layerName: data-model
+      after:
+        id: 12ec4a2e-532b-45d1-9f2f-7c1d5827f1d2
+        path: data-model.objectschema.compact-code-file
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CompactCodeFile
+        description: "A touched file in the compact codeTouched section: its changed
+          elements and a count of the existing elements next to the change."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.780Z
+          updated_at: 2026-11-20T16:47:09.780Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 31
+    change:
+      type: add
+      elementId: data-model.objectschema.compact-intent
+      layerName: data-model
+      after:
+        id: e1f3021e-590b-4eb6-a790-12d543a43103
+        path: data-model.objectschema.compact-intent
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CompactIntent
+        description: "The intent section as the compact brief and sections return it:
+          counts, untraced ids or untraced by type, unanchored lines, traced
+          lines when few, noCatalogRoute by type, and a note."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.130Z
+          updated_at: 2026-11-20T16:31:14.130Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 32
+    change:
+      type: add
+      elementId: data-model.objectschema.compact-layer-change
+      layerName: data-model
+      after:
+        id: 7a6b69e3-6ee1-4152-8570-49f4b9a01bf0
+        path: data-model.objectschema.compact-layer-change
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CompactLayerChange
+        description: "A changed element in the compact layers section: its type, name,
+          description, attributes and changed fields, with changed connections
+          as lines and every other connection counted per direction, predicate
+          and other layer."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.138Z
+          updated_at: 2026-11-20T16:31:14.138Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 20
+    removedAt: 33
+    change:
+      type: add
+      elementId: data-model.objectschema.ids-by-type
+      layerName: data-model
+      after:
+        id: 4c25d332-4f60-42bb-9353-f2b0aff26320
+        path: data-model.objectschema.ids-by-type
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IdsByType
+        description: "Ids of one layer.type: how many, and the first of them."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.779Z
+          updated_at: 2026-11-20T16:47:09.779Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 34
+    change:
+      type: add
+      elementId: data-model.objectschema.section-cut
+      layerName: data-model
+      after:
+        id: f89c3804-d625-46d7-81ab-e1e97fa384a2
+        path: data-model.objectschema.section-cut
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionCut
+        description: "What a sections answer left out to stay within the size budget:
+          the section, how many items it shows of how many, and the call that
+          returns the rest."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.138Z
+          updated_at: 2026-11-20T16:31:14.138Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 23
+    removedAt: 35
+    change:
+      type: add
+      elementId: data-model.objectschema.sections-options
+      layerName: data-model
+      after:
+        id: 48c2d87c-7262-4b11-ad33-cdbc0e88131a
+        path: data-model.objectschema.sections-options
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionsOptions
+        description: "How briefSections renders: the delta, the filter, full or compact,
+          the offset into changes and layers, the size budget and how bytes are
+          measured."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.780Z
+          updated_at: 2026-11-20T16:47:09.780Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 22
+    removedAt: 36
+    change:
+      type: add
+      elementId: data-model.objectschema.unwired-by-type
+      layerName: data-model
+      after:
+        id: 406dbbcc-231e-4f29-83aa-7c08af3422b2
+        path: data-model.objectschema.unwired-by-type
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UnwiredByType
+        description: "Unwired connections per element type, for more elements than are
+          worth listing one by one: each connection with how many elements lack
+          it."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.780Z
+          updated_at: 2026-11-20T16:47:09.780Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true

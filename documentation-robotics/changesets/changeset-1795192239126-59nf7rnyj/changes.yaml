@@ -48,7 +48,12 @@
       created_at: 2026-11-20T16:31:14.121Z
       updated_at: 2026-11-20T16:31:14.121Z
       version: 1
-  timestamp: 2026-11-20T16:31:14.176Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: compactIntent
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.has-catalog-route-to-intent
@@ -67,7 +72,12 @@
       created_at: 2026-11-20T16:31:14.130Z
       updated_at: 2026-11-20T16:31:14.130Z
       version: 1
-  timestamp: 2026-11-20T16:31:14.176Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-analysis.ts
+          symbol: hasCatalogRouteToIntent
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 2
 - type: add
   elementId: data-model.objectschema.compact-intent
@@ -88,7 +98,12 @@
       created_at: 2026-11-20T16:31:14.130Z
       updated_at: 2026-11-20T16:31:14.130Z
       version: 1
-  timestamp: 2026-11-20T16:31:14.176Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: CompactIntent
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 3
 - type: add
   elementId: data-model.objectschema.section-cut
@@ -109,7 +124,12 @@
       created_at: 2026-11-20T16:31:14.138Z
       updated_at: 2026-11-20T16:31:14.138Z
       version: 1
-  timestamp: 2026-11-20T16:31:14.176Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionCut
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 4
 - type: add
   elementId: data-model.objectschema.compact-layer-change
@@ -131,7 +151,12 @@
       created_at: 2026-11-20T16:31:14.138Z
       updated_at: 2026-11-20T16:31:14.138Z
       version: 1
-  timestamp: 2026-11-20T16:31:14.176Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: CompactLayerChange
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 5
 - type: relationship-add
   elementId: motivation.requirement.a-brief-answer-fits-one-tool-result::realizes::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
@@ -428,7 +453,12 @@
       created_at: 2026-11-20T16:47:09.779Z
       updated_at: 2026-11-20T16:47:09.779Z
       version: 1
-  timestamp: 2026-11-20T16:47:09.815Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: IdsByType
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 20
 - type: add
   elementId: data-model.objectschema.compact-code-file
@@ -448,7 +478,12 @@
       created_at: 2026-11-20T16:47:09.780Z
       updated_at: 2026-11-20T16:47:09.780Z
       version: 1
-  timestamp: 2026-11-20T16:47:09.815Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: CompactCodeFile
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 21
 - type: add
   elementId: data-model.objectschema.unwired-by-type
@@ -468,7 +503,12 @@
       created_at: 2026-11-20T16:47:09.780Z
       updated_at: 2026-11-20T16:47:09.780Z
       version: 1
-  timestamp: 2026-11-20T16:47:09.815Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: UnwiredByType
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 22
 - type: add
   elementId: data-model.objectschema.sections-options
@@ -489,7 +529,12 @@
       created_at: 2026-11-20T16:47:09.780Z
       updated_at: 2026-11-20T16:47:09.780Z
       version: 1
-  timestamp: 2026-11-20T16:47:09.815Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-brief-compact.ts
+          symbol: SectionsOptions
+  timestamp: 2026-11-20T16:58:06.102Z
   sequenceNumber: 23
 - type: relationship-add
   elementId: application.applicationfunction.compact-intent::accesses::data-model.objectschema.ids-by-type
@@ -539,3 +584,26 @@
     category: structural
   timestamp: 2026-11-20T16:47:09.815Z
   sequenceNumber: 27
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.gap-lines
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: application.applicationfunction.gap-lines
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:58:29.141Z
+  sequenceNumber: 37
+- type: relationship-add
+  elementId: application.applicationfunction.compact-intent::accesses::data-model.objectschema.changeset-brief
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-intent
+    target: data-model.objectschema.changeset-brief
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:58:29.141Z
+  sequenceNumber: 38
