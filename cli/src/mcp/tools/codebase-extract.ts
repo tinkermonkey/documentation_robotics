@@ -1384,8 +1384,9 @@ function pendingSteps(
     verify
       ? `Nothing was staged, so no as-built changeset was created and '${active!.name}' is still active. Before you stage a card or delete a candidate, call changeset_create with name: "${name}" ` +
         `(it becomes active, so model_add and model_delete stage into it and not into the plan).`
-      : `Nothing was staged, so no changeset was created or activated. Before you model a card or delete a candidate, call changeset_create with name: "${name}" ` +
-        `(it becomes active, and model_add and model_delete stage into it); without it they would ${active ? `stage into '${active.name}'` : "write the base model"}.`,
+      : `Nothing was staged, so no changeset was created or activated. Before you model a card or delete a candidate, call codebase_extract again with ` +
+        `changeset: "${name}" and intent (what the user confirmed it is for): it creates that changeset with the extraction's purpose and makes it active, ` +
+        `so model_add and model_delete stage into it. changeset_create with name: "${name}" does the same with no intent; without either they would ${active ? `stage into '${active.name}'` : "write the base model"}.`,
   ];
   if (changedCards > 0) {
     steps.push(`${changedCards} card(s) have changedInRange: their lines are new or changed in the range, so they come first. The rest are symbols in the same files that the range didn't touch.`);

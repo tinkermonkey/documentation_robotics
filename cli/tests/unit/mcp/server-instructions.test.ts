@@ -84,10 +84,9 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(SERVER_INSTRUCTIONS).toContain("If it reports ignoreFile, tell the user to commit it");
   });
 
-  it("says an extract that stages nothing makes no changeset, and which one to create (track B)", () => {
-    expect(SERVER_INSTRUCTIONS).toContain(
-      "If it staged nothing it makes no changeset: call changeset_create with the name it gives before model_add"
-    );
+  it("says how to get a changeset for an extract that stages nothing, and to decide grouped cards by rule (track B, #1154)", () => {
+    expect(SERVER_INSTRUCTIONS).toContain("with intent it makes one even if it stages nothing");
+    expect(SERVER_INSTRUCTIONS).toContain("Many cards come grouped: decide them by rule");
   });
 
   it("review_open's description never sends the human to the CLI", () => {
