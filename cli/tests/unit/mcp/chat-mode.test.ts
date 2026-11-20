@@ -14,7 +14,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
-import { CHAT_MODE_ENV } from "../../../src/coding-agents/chat-guard.js";
+import { CHAT_MODE_ENV, CHAT_PROJECT_ROOT_ENV } from "../../../src/coding-agents/chat-guard.js";
 import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-root.js";
@@ -170,6 +170,18 @@ describe("dr mcp in a chat process", () => {
     expect(refused.isError).toBe(true);
     expect(text(refused)).toContain("no changeset is active");
     expect(await manifest(served)).toBe(before);
+  });
+
+  it("measures rootPath against the chat's project root (DR_CHAT_PROJECT_ROOT) when the launch sets one", async () => {
+    process.env[CHAT_MODE_ENV] = "read-safe";
+    process.env[CHAT_PROJECT_ROOT_ENV] = served;
+    markEnvProjectRoot(other);
+    try {
+      expect((await call("model_stats", { rootPath: served })).isError).toBeFalsy();
+      expect(text(await call("model_stats", { rootPath: other }))).toContain("is not the project this viewer serves");
+    } finally {
+      delete process.env[CHAT_PROJECT_ROOT_ENV];
+    }
   });
 
   it("decides nothing outside a chat", async () => {

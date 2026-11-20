@@ -82,7 +82,7 @@ import { codebaseExtractTool, tier1StatusTool } from "./tools/index.js";
 import { gapAcceptTool, gapReopenTool } from "./tools/index.js";
 import { errorResult, loadModel, rootPathSchema } from "./tools/shared.js";
 import { changesetOnlyRefusal } from "./changeset-only.js";
-import { chatToolRefusal } from "../coding-agents/chat-guard.js";
+import { CHAT_PROJECT_ROOT_ENV, chatToolRefusal } from "../coding-agents/chat-guard.js";
 import { DR_MCP_CHANGESET_TOOLS, DR_MCP_READ_TOOLS } from "../coding-agents/drbot-mcp.js";
 import { currentProjectRoot } from "./project-root.js";
 import { whenProjectRootSettled } from "./project-root.js";
@@ -181,7 +181,7 @@ export class McpToolRegistry {
               // Changeset-only mode (DR_CHANGESET_ONLY): refuse base-model writes up front.
               const rootPath = (args as { rootPath?: string }).rootPath;
               const refusal =
-                chatToolRefusal(tool.name, rootPath, currentProjectRoot().root, {
+                chatToolRefusal(tool.name, rootPath, process.env[CHAT_PROJECT_ROOT_ENV]?.trim() || currentProjectRoot().root, {
                   read: DR_MCP_READ_TOOLS,
                   staging: DR_MCP_CHANGESET_TOOLS,
                 }) ?? (await changesetOnlyRefusal(tool.name, rootPath, loadModel));

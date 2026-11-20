@@ -171,7 +171,7 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
     // The hook that refuses anything but one plain dr command, with the reason.
     const settings = JSON.parse(valueOf(args, "--settings")!);
     expect(settings.hooks.PreToolUse[0].matcher).toBe("Bash");
-    expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe("dr chat-permission-hook");
+    expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe("dr chat-permission-hook || exit 2");
     expect(settings.permissions).toBeUndefined();
     server.stop();
   });

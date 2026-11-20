@@ -175,7 +175,7 @@ describe("drBotLaunchSettings: the one settings source a launch under an allowli
     expect(settings.hooks.PreToolUse).toEqual([
       {
         matcher: "Bash",
-        hooks: [{ type: "command", command: "/usr/bin/node '/opt/dr tools/dist/cli.js' chat-permission-hook" }],
+        hooks: [{ type: "command", command: "/usr/bin/node '/opt/dr tools/dist/cli.js' chat-permission-hook || exit 2" }],
       },
     ]);
     expect(Object.keys(settings)).toEqual(["hooks"]);
@@ -200,6 +200,15 @@ describe("drBotLaunchSettings: the one settings source a launch under an allowli
     expect(settings.enabledPlugins).toBeUndefined();
     expect(settings.hooks.PreToolUse).toHaveLength(1);
     expect(settings.hooks.PreToolUse[0].matcher).toBe("Bash");
+  });
+
+  it("blocks the call when the hook itself can't run (exit 2), and runs it when it can", () => {
+    if (process.platform === "win32") return;
+    const broken = JSON.parse(drBotLaunchSettings("changesets", { command: "/nonexistent/node", args: [] })!);
+    const run = (command: string) => Bun.spawnSync(["sh", "-c", command], { stdin: new Blob(["{}"]) });
+    expect(run(broken.hooks.PreToolUse[0].hooks[0].command).exitCode).toBe(2);
+    const ok = JSON.parse(drBotLaunchSettings("changesets", { command: "true", args: [] })!);
+    expect(run(ok.hooks.PreToolUse[0].hooks[0].command).exitCode).toBe(0);
   });
 
   it("passes nothing in danger mode", () => {

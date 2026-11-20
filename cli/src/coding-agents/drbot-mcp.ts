@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
 import { CHANGESET_ORIGIN_ENV } from "../core/changeset-review.js";
-import { CHAT_MODE_ENV, type ChatMode } from "./chat-guard.js";
+import { CHAT_MODE_ENV, CHAT_PROJECT_ROOT_ENV, type ChatMode } from "./chat-guard.js";
 
 /** Name the dr MCP server is registered under; Claude Code exposes its tools as mcp__dr__<tool>. */
 export const DR_MCP_SERVER_NAME = "dr";
@@ -168,6 +168,7 @@ export function buildDrMcpConfig(options: DrMcpConfigOptions): {
   }
   if (options.chatMode) {
     env[CHAT_MODE_ENV] = options.chatMode;
+    env[CHAT_PROJECT_ROOT_ENV] = options.rootPath;
   }
   return {
     mcpServers: {

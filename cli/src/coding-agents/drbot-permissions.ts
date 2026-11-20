@@ -143,7 +143,10 @@ export function drBotLaunchSettings(
         hooks: [
           {
             type: "command",
-            command: [drCommand.command, ...drCommand.args, CHAT_PERMISSION_HOOK_COMMAND].map(shellQuote).join(" "),
+            // `|| exit 2`: any failure of the hook (a broken install, a crash before its own
+            // handler runs) blocks the call; Claude Code lets a call through on any other exit.
+            command:
+              [drCommand.command, ...drCommand.args, CHAT_PERMISSION_HOOK_COMMAND].map(shellQuote).join(" ") + " || exit 2",
           },
         ],
       },

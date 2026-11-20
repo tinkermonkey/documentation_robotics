@@ -188,6 +188,16 @@ describe("prepareDrMcpLaunch", () => {
     await launch.cleanup(); // idempotent
   });
 
+  it("gives the server the chat's mode and project root, only for a chat under an allowlist", () => {
+    const drCommand = { command: "dr", args: [] };
+    const chat = buildDrMcpConfig({ drCommand, rootPath: "/work/project", changesetOnly: true, chatMode: "changesets" });
+    expect(chat.mcpServers.dr.env.DR_CHAT_MODE).toBe("changesets");
+    expect(chat.mcpServers.dr.env.DR_CHAT_PROJECT_ROOT).toBe("/work/project");
+    const danger = buildDrMcpConfig({ drCommand, rootPath: "/work/project", changesetOnly: false });
+    expect(danger.mcpServers.dr.env.DR_CHAT_MODE).toBeUndefined();
+    expect(danger.mcpServers.dr.env.DR_CHAT_PROJECT_ROOT).toBeUndefined();
+  });
+
   it("writes a private dr that runs this installation, for the front of the chat's PATH", async () => {
     if (process.platform === "win32") return;
     const script = join(scratch, "fake-cli.js");

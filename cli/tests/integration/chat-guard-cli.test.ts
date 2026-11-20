@@ -6,7 +6,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
@@ -134,9 +135,26 @@ describe("dr in a chat process", () => {
   });
 
   it("refuses dr mcp with options, and lets the plain form the launch runs through", async () => {
-    const result = await chat("read-safe", ["mcp", "--regenerate-key"]);
-    expect(result.exitCode).not.toBe(0);
-    expect(output(result)).toContain("`dr mcp` runs only as the viewer starts it, with no options");
+    // A scratch home and config path: were the guard ever to let this through, it would rotate
+    // this scratch key, never the developer's real one.
+    const home = await mkdtemp(join(tmpdir(), "dr-chat-guard-home-"));
+    try {
+      const result = await runDr(["mcp", "--regenerate-key"], {
+        cwd: workdir.path,
+        env: {
+          DR_CHAT_MODE: "read-safe",
+          HOME: home,
+          USERPROFILE: home,
+          XDG_CONFIG_HOME: join(home, ".config"),
+          DR_CONFIG_PATH: join(home, ".dr-config.yaml"),
+        },
+      });
+      expect(result.exitCode).not.toBe(0);
+      expect(output(result)).toContain("`dr mcp` runs only as the viewer starts it, with no options");
+      expect(readdirSync(home)).toEqual([]);
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
   });
 
   it("answers the permission hook: a deny decision with the reason, or nothing", async () => {
