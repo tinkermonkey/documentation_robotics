@@ -9,7 +9,7 @@
  * orphans alone without running the pipeline, and `detail: "full"` returns every warning whole.
  *
  * Nothing is cut off: the list a call returns (errors, the warnings asked for, or orphans) is paged
- * with `limit` and `offset` (tools/paging.ts). `valid`, the summary and every count are of the
+ * with `limit` and `offset` (core/paging.ts). `valid`, the summary and every count are of the
  * whole set, whatever the page.
  */
 
@@ -24,7 +24,7 @@ import type { ValidationIssue } from "../../validators/types.js";
 import { getCliBundledSpecVersion, modelSpecStanding } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { countByLayerAndType, modelView, orphanIds, validateView } from "./model-view.js";
-import { nextPageHint, pageOf, pagingFields, wholePage } from "./paging.js";
+import { nextPageHint, pageOf, pagingFields, wholePage } from "../../core/paging.js";
 
 /** The kinds of warning `warnings` can list. */
 const WARNING_KINDS: WarningKind[] = [

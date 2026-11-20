@@ -18,7 +18,7 @@ import { CANONICAL_LAYER_NAMES } from "../../core/layers.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { modelView, orphanIds } from "./model-view.js";
-import { nextPageHint, pageOf, pagingFields } from "./paging.js";
+import { nextPageHint, pageOf, pagingFields } from "../../core/paging.js";
 
 const inputSchema = {
   layer: z
