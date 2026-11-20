@@ -15,7 +15,7 @@ import { mkdir, readdir, readFile, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { viewerRecordPath } from "../../src/server/viewer-registry.js";
-import { portAllocator, stopServerProcess } from "../helpers.ts";
+import { isProcessRunning, portAllocator, stopServerProcess } from "../helpers.ts";
 
 const CLI_ROOT = join(import.meta.dir, "../..");
 const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
@@ -23,14 +23,8 @@ const VIEWER_INDEX = join(CLI_ROOT, "dist/viewer/index.html");
 const PROTOCOL_VERSION = "2025-06-18";
 const ready = existsSync(CLI_PATH) && existsSync(VIEWER_INDEX);
 
-function isAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
+/** Not a signal-0 check alone: an orphan that exited stays a zombie where PID 1 does not reap. */
+const isAlive = isProcessRunning;
 
 async function waitFor(check: () => boolean | Promise<boolean>, timeoutMs: number): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
@@ -107,14 +101,17 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     mcp.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
   }, 30000);
 
-  /** Every viewer pid this test's state dir knows of: records and "starting" markers. */
-  async function recordedViewerPids(): Promise<number[]> {
+  /**
+   * Every viewer pid this test's state dir knows of: records and "starting" markers. With
+   * "serverPid", the server pids the records name instead.
+   */
+  async function recordedViewerPids(field: "pid" | "serverPid" = "pid"): Promise<number[]> {
     const dir = join(stateDir, "viewers");
     const pids: number[] = [];
     for (const name of await readdir(dir).catch(() => [] as string[])) {
       if (!name.endsWith(".json") && !name.endsWith(".starting")) continue;
       try {
-        const pid = JSON.parse(await readFile(join(dir, name), "utf8")).pid;
+        const pid = JSON.parse(await readFile(join(dir, name), "utf8"))[field];
         if (Number.isInteger(pid)) pids.push(pid);
       } catch {
         // Half-written or gone.
@@ -123,9 +120,14 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
     return pids;
   }
 
-  /** Kills every viewer the test started (its process group: dr visualize and its server). */
+  /**
+   * Kills every viewer the test started (its process group: dr visualize and its server) and waits
+   * until they have exited. kill() returns before they have, and the next test may need the port:
+   * on Linux, the clash test cannot hold *:8080 while the last viewer still listens on 127.0.0.1:8080.
+   */
   async function killViewers(): Promise<void> {
     const pids = new Set([...viewerPids, ...(await recordedViewerPids())]);
+    const servers = await recordedViewerPids("serverPid");
     for (const pid of pids) {
       for (const target of [-pid, pid]) {
         try {
@@ -136,6 +138,10 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
       }
     }
     viewerPids.clear();
+    const killed = [...pids, ...servers];
+    if (!(await waitFor(() => killed.every((pid) => !isAlive(pid)), 10000))) {
+      throw new Error(`Viewer processes still running after SIGKILL: ${killed.filter(isAlive).join(", ")}`);
+    }
   }
 
   afterEach(killViewers);
@@ -312,6 +318,8 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
   it("starts the viewer on another port when another server holds 8080 on every interface", async () => {
     // What the validators hit: another project's viewer on *:8080. If something on this machine
     // already holds 8080, that does just as well.
+    // (afterEach waited for the earlier tests' viewers on 8080 to exit, so a failed hold here
+    // means another process holds the port.)
     const holder = createServer();
     const holding = await new Promise<boolean>((resolve) => {
       holder.once("error", () => resolve(false));
