@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-  ensurePrettierIgnoresChangesets,
+  ensurePrettierIgnoresDrFiles,
   prettierIgnoreNote,
   prettierSignals,
 } from "../../../src/core/prettier-ignore.js";
@@ -28,7 +28,7 @@ afterAll(async () => {
   await Promise.all(folders.map((folder) => rm(folder, { recursive: true, force: true })));
 });
 
-describe("ensurePrettierIgnoresChangesets", () => {
+describe("ensurePrettierIgnoresDrFiles", () => {
 
   describe("detection", () => {
     it("finds a .prettierrc file in any of its spellings, and prettier.config.*", async () => {
@@ -82,30 +82,34 @@ describe("ensurePrettierIgnoresChangesets", () => {
 
       const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
       await writeFile(path.join(dir, "package.json"), JSON.stringify({ devDependencies: { eslint: "^9" } }), "utf-8");
-      const result = await ensurePrettierIgnoresChangesets(dir);
+      const result = await ensurePrettierIgnoresDrFiles(dir);
       expect(result).toEqual({ status: "not-using-prettier", signals: [] });
       expect(await Bun.file(ignoreFile()).exists()).toBe(false);
       expect(prettierIgnoreNote(result)).toBeNull();
     });
   });
 
-  it("creates .prettierignore with the changesets folder", async () => {
+  it("creates .prettierignore with the whole documentation-robotics folder (#1155, #1246)", async () => {
 
     const dir = await freshDir();
 
     const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
-    const result = await ensurePrettierIgnoresChangesets(dir);
+    const result = await ensurePrettierIgnoresDrFiles(dir);
     expect(result).toEqual({
       status: "added",
       path: ignoreFile(),
-      entry: "documentation-robotics/changesets/",
+      entries: ["documentation-robotics/"],
       signals: [".prettierrc"],
     });
     const text = await readFile(ignoreFile(), "utf-8");
     expect(text.startsWith("# Documentation Robotics")).toBe(true);
-    expect(text.endsWith("\ndocumentation-robotics/changesets/\n")).toBe(true);
-    expect(prettierIgnoreNote(result)).toContain(`Added documentation-robotics/changesets/ to ${ignoreFile()}`);
+    expect(text.endsWith("\ndocumentation-robotics/\n")).toBe(true);
+    expect(prettierIgnoreNote(result)).toContain(
+      `Added documentation-robotics/ to ${ignoreFile()}`
+    );
+    // Named relative to the project when the caller gives its root
+    expect(prettierIgnoreNote(result, dir)).toContain("documentation-robotics/ to .prettierignore so");
   });
 
   it("appends to an existing file, keeping its lines, and doesn't add the entry twice", async () => {
@@ -116,13 +120,72 @@ describe("ensurePrettierIgnoresChangesets", () => {
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
     await writeFile(ignoreFile(), "dist\n# generated\ncoverage", "utf-8");
 
-    expect((await ensurePrettierIgnoresChangesets(dir)).status).toBe("added");
+    expect((await ensurePrettierIgnoresDrFiles(dir)).status).toBe("added");
     const text = await readFile(ignoreFile(), "utf-8");
     expect(text.startsWith("dist\n# generated\ncoverage\n\n# Documentation Robotics")).toBe(true);
-    expect(text.endsWith("documentation-robotics/changesets/\n")).toBe(true);
+    expect(text.endsWith("documentation-robotics/\n")).toBe(true);
 
-    expect((await ensurePrettierIgnoresChangesets(dir)).status).toBe("present");
+    const again = await ensurePrettierIgnoresDrFiles(dir);
+    expect(again.status).toBe("present");
+    expect(again.entries).toEqual(["documentation-robotics/"]);
     expect(await readFile(ignoreFile(), "utf-8")).toBe(text);
+  });
+
+  it("replaces the block dr 0.6.0 wrote for the changesets alone with the folder entry (#1246)", async () => {
+    const dir = await freshDir();
+    const ignoreFile = path.join(dir, ".prettierignore");
+    await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
+    // What dr 0.6.0 wrote (#1155), with the developer's own lines around it
+    await writeFile(
+      ignoreFile,
+      "dist\n\n# Documentation Robotics: dr writes its changeset files in its own layout\ndocumentation-robotics/changesets/\n\n# mine\ncoverage\n",
+      "utf-8"
+    );
+
+    // The dry run names what the entry takes the place of, as the run does
+    const dry = await ensurePrettierIgnoresDrFiles(dir, { dryRun: true });
+    expect(dry).toMatchObject({
+      status: "missing",
+      entries: ["documentation-robotics/"],
+      replaced: [
+        "# Documentation Robotics: dr writes its changeset files in its own layout",
+        "documentation-robotics/changesets/",
+      ],
+    });
+
+    const result = await ensurePrettierIgnoresDrFiles(dir);
+    expect(result).toMatchObject({
+      status: "added",
+      entries: ["documentation-robotics/"],
+      replaced: [
+        "# Documentation Robotics: dr writes its changeset files in its own layout",
+        "documentation-robotics/changesets/",
+      ],
+    });
+    // dr's own heading and line are replaced; the developer's lines around them are untouched
+    expect(await readFile(ignoreFile, "utf-8")).toBe(
+      "dist\n\n# Documentation Robotics: dr writes the files in this folder in its own layout\ndocumentation-robotics/\n\n# mine\ncoverage\n"
+    );
+    expect(prettierIgnoreNote(result, dir)).toContain(
+      "Added documentation-robotics/ to .prettierignore, in place of # Documentation Robotics: dr writes its changeset files in its own layout and documentation-robotics/changesets/"
+    );
+    expect((await ensurePrettierIgnoresDrFiles(dir)).status).toBe("present");
+  });
+
+  it("leaves a narrower line the developer wrote and adds the folder entry beside it", async () => {
+    const dir = await freshDir();
+    const ignoreFile = path.join(dir, ".prettierignore");
+    await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
+    // No dr heading above them: these are the developer's
+    const own = "dist\ndocumentation-robotics/changesets/\ndocumentation-robotics/model/\n";
+    await writeFile(ignoreFile, own, "utf-8");
+
+    const result = await ensurePrettierIgnoresDrFiles(dir);
+    expect(result).toMatchObject({ status: "added", entries: ["documentation-robotics/"] });
+    expect(result.replaced).toBeUndefined();
+    const text = await readFile(ignoreFile, "utf-8");
+    expect(text.startsWith(own)).toBe(true);
+    expect(text.endsWith("\ndocumentation-robotics/\n")).toBe(true);
   });
 
   it("keeps a CRLF file's line endings", async () => {
@@ -132,8 +195,8 @@ describe("ensurePrettierIgnoresChangesets", () => {
     const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
     await writeFile(ignoreFile(), "dist\r\n", "utf-8");
-    await ensurePrettierIgnoresChangesets(dir);
-    expect(await readFile(ignoreFile(), "utf-8")).toMatch(/^dist\r\n\r\n# Documentation Robotics[^\n]*\r\ndocumentation-robotics\/changesets\/\r\n$/);
+    await ensurePrettierIgnoresDrFiles(dir);
+    expect(await readFile(ignoreFile(), "utf-8")).toMatch(/^dist\r\n\r\n# Documentation Robotics[^\n]*\r\ndocumentation-robotics\/\r\n$/);
   });
 
   it("treats an equivalent spelling, or a folder above, as already present", async () => {
@@ -142,18 +205,16 @@ describe("ensurePrettierIgnoresChangesets", () => {
 
     const ignoreFile = (root = dir) => path.join(root, ".prettierignore");
     await writeFile(path.join(dir, ".prettierrc"), "{}", "utf-8");
-    for (const line of [
-      "/documentation-robotics/changesets",
-      "documentation-robotics/changesets/**",
-      "documentation-robotics/",
-    ]) {
-      await writeFile(ignoreFile(), `dist\n${line}\n`, "utf-8");
-      expect((await ensurePrettierIgnoresChangesets(dir)).status).toBe("present");
-      expect(await readFile(ignoreFile(), "utf-8")).toBe(`dist\n${line}\n`);
+    // This repository's own entry (the whole folder) is among them: an upgrade here adds nothing
+    for (const lines of ["documentation-robotics/", "/documentation-robotics", "documentation-robotics/**", "/documentation-robotics/*"]) {
+      await writeFile(ignoreFile(), `dist\n${lines}\n`, "utf-8");
+      expect((await ensurePrettierIgnoresDrFiles(dir)).status).toBe("present");
+      expect(await readFile(ignoreFile(), "utf-8")).toBe(`dist\n${lines}\n`);
     }
-    // A comment or a sibling folder doesn't count.
-    await writeFile(ignoreFile(), "# documentation-robotics/changesets/\ndocumentation-robotics/model/\n", "utf-8");
-    expect((await ensurePrettierIgnoresChangesets(dir)).status).toBe("added");
+    // A comment doesn't count, and neither does a folder inside it or a negation.
+    await writeFile(ignoreFile(), "# documentation-robotics/\ndocumentation-robotics/reports/\n!documentation-robotics/\n", "utf-8");
+    const result = await ensurePrettierIgnoresDrFiles(dir);
+    expect(result).toMatchObject({ status: "added", entries: ["documentation-robotics/"] });
   });
 
   it.serial("writes at the repository root, with the path from there, when prettier is configured there", async () => {
@@ -166,11 +227,11 @@ describe("ensurePrettierIgnoresChangesets", () => {
     const project = path.join(dir, "services", "api");
     await mkdir(project, { recursive: true });
 
-    const result = await ensurePrettierIgnoresChangesets(project);
+    const result = await ensurePrettierIgnoresDrFiles(project);
     expect(result).toMatchObject({
       status: "added",
       path: ignoreFile(dir),
-      entry: "services/api/documentation-robotics/changesets/",
+      entries: ["services/api/documentation-robotics/"],
     });
     expect(await Bun.file(ignoreFile(project)).exists()).toBe(false);
   });
@@ -185,11 +246,11 @@ describe("ensurePrettierIgnoresChangesets", () => {
     await mkdir(project, { recursive: true });
     await writeFile(path.join(project, "package.json"), JSON.stringify({ devDependencies: { prettier: "^3" } }), "utf-8");
 
-    const result = await ensurePrettierIgnoresChangesets(project);
+    const result = await ensurePrettierIgnoresDrFiles(project);
     expect(result).toMatchObject({
       status: "added",
       path: ignoreFile(project),
-      entry: "documentation-robotics/changesets/",
+      entries: ["documentation-robotics/"],
     });
     expect(await Bun.file(ignoreFile(dir)).exists()).toBe(false);
   });

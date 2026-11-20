@@ -4,6 +4,7 @@
 
 import ansis from "ansis"
 import { spawn } from "child_process"
+import { randomUUID } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import { dirname } from "node:path"
 import { Model } from "../core/model.js"
@@ -11,8 +12,18 @@ import { logVerbose, logDebug } from "../utils/globals.js"
 import { CLIError } from "../utils/errors.js"
 import { getSpecReferencePath, getModelPath } from "../utils/project-paths.js"
 import { getErrorMessage } from "../utils/errors.js"
-import { removeViewerRecord, removeViewerRecordSync, writeViewerRecord } from "../server/viewer-registry.js"
+import {
+  EXIT_WITH_PARENT_ENV,
+  VIEWER_STARTED_BY_ENV,
+  describeSweep,
+  describeUnreadable,
+  removeViewerRecord,
+  removeViewerRecordSync,
+  writeViewerRecord,
+} from "../server/viewer-registry.js"
 import { hasExited, stopChildProcess } from "../utils/stop-child-process.js"
+import { watchParent } from "../utils/parent-watch.js"
+import { getCliVersion } from "../utils/spec-version.js"
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined
@@ -26,8 +37,38 @@ export interface VisualizeOptions {
   verbose?: boolean
   debug?: boolean
   withDanger?: boolean
+  /** The old name for the default (changeset staging); accepted and ignored. */
   withChangesets?: boolean
+  /** Limit the chat agent to reading the model: no changeset staging. */
+  readOnly?: boolean
   viewerPath?: string
+  /** Hours without a browser tab or a request after which the viewer exits (0 or absent: never). */
+  idleExit?: string | number
+  /** Exit when the process that started this one is gone. */
+  exitWithParent?: boolean
+}
+
+/** Parses --idle-exit: hours as a number, 0 for never. Throws on anything else. */
+export function parseIdleExitHours(value: string | number | undefined): number {
+  if (value === undefined || value === "") return 0
+  const hours = Number(value)
+  if (!Number.isFinite(hours) || hours < 0) {
+    throw new Error(`Invalid --idle-exit value: ${value}. Give a number of hours (0 means never).`)
+  }
+  return hours
+}
+
+/**
+ * The chat agent's permission mode for these options. It stages changes in a changeset by default
+ * (#1240): --read-only turns that off, and danger mode already allows everything, so it wins over
+ * both. --with-changesets is the old name for the default and changes nothing.
+ */
+export function resolveChatMode(options: Pick<VisualizeOptions, "withDanger" | "readOnly">): {
+  withDanger: boolean
+  withChangesets: boolean
+} {
+  const withDanger = options.withDanger || false
+  return { withDanger, withChangesets: !withDanger && !options.readOnly }
 }
 
 /** How long the server process gets to exit on a signal before it is force-killed. */
@@ -89,6 +130,13 @@ export async function visualizeCommand(
       port = portNum
     }
 
+    const idleExitHours = parseIdleExitHours(options.idleExit)
+    const exitWithParent = options.exitWithParent || process.env[EXIT_WITH_PARENT_ENV] === "1"
+    const startedBy = process.env[VIEWER_STARTED_BY_ENV] === "review_open" ? "review_open" : "cli"
+    // This viewer's id: in its registry record and on its server's /health, so a reader can tell
+    // this viewer from another one that later holds its port or its pid.
+    const viewerId = randomUUID()
+
     // Find an available port starting from the requested port
     port = await findAvailablePort(port)
     if (port !== (options.port ? parseInt(String(options.port), 10) : 8080)) {
@@ -98,9 +146,7 @@ export async function visualizeCommand(
     // Determine auth settings
     const authEnabled = !options.noAuth // Auth enabled by default unless --no-auth flag
     const authToken = options.token // Optional token for testing
-    const withDanger = options.withDanger || false // Danger mode disabled by default
-    // Changeset-only writes; danger mode already allows everything, so it wins
-    const withChangesets = (options.withChangesets || false) && !withDanger
+    const { withDanger, withChangesets } = resolveChatMode(options)
 
     logDebug(`Starting visualization server on port ${port}`)
     logDebug(`Authentication: ${authEnabled ? "enabled" : "disabled"}`)
@@ -143,6 +189,8 @@ export async function visualizeCommand(
       DR_AUTH_ENABLED: String(authEnabled),
       DR_WITH_DANGER: String(withDanger),
       DR_WITH_CHANGESETS: String(withChangesets),
+      DR_VIEWER_IDLE_EXIT_HOURS: String(idleExitHours),
+      DR_VIEWER_ID: viewerId,
     }
 
     // Pass debug/verbose flags to subprocess
@@ -184,7 +232,8 @@ export async function visualizeCommand(
     let serverStartupShown = false
 
     // Record this viewer (port, token) in the user's state directory once it is listening, so
-    // tools like review_open can reuse it; removed again on exit.
+    // tools like review_open can reuse it; removed again on exit. The record is this viewer's
+    // own (it names this pid): another viewer for the same project keeps its own.
     const projectRoot = model.rootPath
     // Written (atomically) once the server is listening and the token is known, and awaited before
     // the startup lines are printed; shutdown waits for a write in flight, so no half-written,
@@ -201,7 +250,21 @@ export async function visualizeCommand(
         projectRoot,
         startedAt: new Date().toISOString(),
         withChangesets,
-      })
+        viewerId,
+        cliVersion: getCliVersion(),
+        ...(serverProcess.pid ? { serverPid: serverProcess.pid } : {}),
+        startedBy,
+        ...(idleExitHours > 0 ? { idleExitHours } : {}),
+      }, process.env, (swept) =>
+        logVerbose(
+          [
+            describeSweep(swept) && `Removed ${describeSweep(swept)} that viewers no longer running left in the viewer registry.`,
+            describeUnreadable(swept),
+          ]
+            .filter(Boolean)
+            .join(" ")
+        )
+      )
         .then((path) => logDebug(`Viewer record written: ${path}`))
         .catch((error) => logVerbose(`Could not write the viewer record: ${getErrorMessage(error)}`))
       return recordWrite
@@ -298,13 +361,24 @@ export async function visualizeCommand(
               console.log(
                 ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`)
               )
-              if (options.withChangesets) {
-                console.log(ansis.dim(`   (--with-changesets ignored: danger mode already allows all writes)`))
+              if (options.withChangesets || options.readOnly) {
+                console.log(
+                  ansis.dim(
+                    `   (${options.readOnly ? "--read-only" : "--with-changesets"} ignored: danger mode already allows all writes)`
+                  )
+                )
               }
             } else if (withChangesets) {
               console.log(
-                ansis.yellow(`   ⚠ Changeset mode enabled - chat can stage model changes in a changeset (no commit/apply/delete)`)
+                ansis.dim(
+                  `   Chat can stage model changes in a changeset (no commit/apply/delete; Claude Code only, Copilot stays read-only); --read-only turns that off`
+                )
               )
+            } else {
+              console.log(ansis.dim(`   Chat is read-only (--read-only): it cannot change the model`))
+              if (options.withChangesets) {
+                console.log(ansis.dim(`   (--with-changesets ignored: --read-only was given)`))
+              }
             }
 
             console.log(ansis.blueBright(`Model name: ${model.manifest.name}`))
@@ -342,6 +416,11 @@ export async function visualizeCommand(
             }
           }
 
+          // Why the server is ending on its own (idle, project folder gone, launcher gone)
+          if (line.startsWith("[viewer] ")) {
+            console.log(ansis.yellow(line.substring("[viewer] ".length)))
+          }
+
           // Log other output
           if (!line.startsWith("TOKEN:")) {
             logDebug(`[server] ${line}`)
@@ -364,6 +443,10 @@ export async function visualizeCommand(
 
     // Handle process close (fires after all stdio streams have closed)
     let rejectKeepAlive: ((reason: Error) => void) | null = null
+    let resolveKeepAlive: (() => void) | null = null
+    let shuttingDown = false
+    let flushInterval: NodeJS.Timeout | null = null
+    let parentWatch: ReturnType<typeof watchParent> | null = null
 
     serverProcess.on("close", (code) => {
       // The server is gone, whatever the code: this viewer no longer answers.
@@ -395,6 +478,17 @@ export async function visualizeCommand(
         if (rejectKeepAlive) {
           rejectKeepAlive(error)
         }
+      } else if (!shuttingDown) {
+        // The server ended on its own (idle, or its project folder is gone): this launcher has
+        // nothing left to run. Without this it would stay behind, serving nothing.
+        logDebug("Server exited on its own; exiting")
+        forgetViewer()
+        if (flushInterval) {
+          clearInterval(flushInterval)
+          flushInterval = null
+        }
+        parentWatch?.stop()
+        resolveKeepAlive?.()
       }
     })
 
@@ -441,7 +535,6 @@ export async function visualizeCommand(
     // Since the visualize command never completes (keep-alive pattern),
     // the cli.execute span would never end and export. We flush periodically
     // to ensure active spans are exported to the telemetry backend.
-    let flushInterval: NodeJS.Timeout | null = null
     if (isTelemetryEnabled) {
       logDebug("[Telemetry] Setting up periodic flush (every 15 seconds)")
       const { flushTelemetry } = await import("../telemetry/index.js")
@@ -460,6 +553,9 @@ export async function visualizeCommand(
 
     // Handle graceful shutdown on SIGINT (Ctrl-C) and SIGTERM
     const handleShutdown = async (signal: string) => {
+      if (shuttingDown) return
+      shuttingDown = true
+      parentWatch?.stop()
       logDebug(`\n[${signal}] Shutting down visualization server gracefully...`)
 
       // Clear periodic flush interval
@@ -490,12 +586,24 @@ export async function visualizeCommand(
       process.exit(0)
     }
 
-    // Register signal handlers
+    // Register signal handlers. SIGHUP (a closing terminal) is left alone, so `nohup dr visualize`
+    // still works; a launcher it ends leaves a record the next registry read sweeps, and its
+    // server exits when it sees the launcher gone.
     process.on("SIGINT", () => handleShutdown("SIGINT"))
     process.on("SIGTERM", () => handleShutdown("SIGTERM"))
 
-    // Keep parent process alive - reject promise if server fails
-    await new Promise((_, reject) => {
+    // With --exit-with-parent, stop when whatever started this viewer is gone (a test run that
+    // was interrupted, a script that died), instead of running on with nobody to stop it.
+    if (exitWithParent) {
+      parentWatch = watchParent(() => {
+        console.log(ansis.yellow("The process that started this viewer is gone; stopping"))
+        void handleShutdown("SIGTERM")
+      })
+    }
+
+    // Keep parent process alive - reject promise if server fails, resolve if it ends on its own
+    await new Promise<void>((resolve, reject) => {
+      resolveKeepAlive = resolve
       rejectKeepAlive = reject
     })
   } catch (error) {

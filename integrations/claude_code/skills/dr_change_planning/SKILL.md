@@ -145,7 +145,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `sections: ["changes"]`: each changed element's attributes and changed fields, and its
    connections as `predicate → id` lines. For a large plan, read one layer at a time with
    `sections: ["changes"], layers: ["<layer>"]`, taking the layers from the default brief's
-   `byLayer`. The default brief's "code touched" list is what you will edit or must not
+   `byLayer`. A long list comes a page at a time: `page` gives each list's total (`totals`) and how
+   many items the answer holds (`returned`), so while `page` has a `nextOffset`, repeat the call with
+   `offset` set to it (`more` names the call) until it has none. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
    with the code. Don't add the whole `changesets/` directory.
@@ -202,8 +204,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is
    not copied: confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
    Its `unreferenced` list names planned adds with no source reference and no as-built match, so
-   nothing can copy one (a product feature extraction can't see, say): for each one the build has
-   code for, set `sourceFile` and `sourceSymbol` with `model_update` (`sourceProvenance: "manual"`).
+   nothing can copy one (a product feature extraction can't see, say), with `candidates`, the build's
+   files that name it: for each one the build has code for, confirm the file in the code and pass
+   `{id, sourceFile, sourceSymbol}` in `references` to `changeset_adopt_source_references`.
    `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
    changeset: it is the plan's verification record, and `changeset_commit` refuses to land it,

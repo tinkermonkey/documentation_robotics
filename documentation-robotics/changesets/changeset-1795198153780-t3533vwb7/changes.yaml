@@ -1,0 +1,2065 @@
+- type: add
+  elementId: motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: motivation
+  after:
+    id: 04a8d749-4b94-43f8-9117-b2d9c525be78
+    path: motivation.requirement.an-upgrade-changes-only-what-it-says
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: An upgrade changes only what it says
+    description: Before it writes, an upgrade names every file it would change, in
+      the model and outside it (spec reference, integration files, reports,
+      ignore files, git's index), with every list's true total and a way to see
+      all of it. It writes nothing it did not name, and a model file whose data
+      does not change keeps its bytes, so an upgrade that only stamps the spec
+      version changes only the manifest.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Issues #1246 and #1165. Verified when a version-stamp upgrade of
+        a model in prettier's layout changes only manifest.yaml, and the dry run
+        on a copy names the same model files the real run writes."
+    metadata:
+      created_at: 2026-11-20T18:10:01.918Z
+      updated_at: 2026-11-20T18:10:01.918Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 0
+- type: add
+  elementId: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+  layerName: motivation
+  after:
+    id: 9562292e-2589-4351-90f4-12422b54c9cb
+    path: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Derived values are reviewed before they reach the model
+    description: When a new spec version requires attributes the model leaves empty,
+      values that follow plainly from the element itself may be derived, but
+      they go into a staged changeset for the user to review and land, never
+      into the base model directly. What has no such value is listed per
+      element.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Issue #1166, maintainer decision 2026-11-18. Verified when an
+        upgrade leaves the base model's element files unchanged and stages the
+        derived values in upgrade-fills-<spec version>, and a second run stages
+        none of them again."
+    metadata:
+      created_at: 2026-11-20T18:10:01.964Z
+      updated_at: 2026-11-20T18:10:01.964Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 1
+- type: add
+  elementId: motivation.requirement.a-decision-about-tracked-files-is-the-users
+  layerName: motivation
+  after:
+    id: e0d9e0fb-956e-4580-9d72-d7c29c49701b
+    path: motivation.requirement.a-decision-about-tracked-files-is-the-users
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A decision about tracked files is the user's
+    description: When git tracks files that an ignore rule would cover, the tool
+      does not add the rule over them. It puts the choice to the person
+      (untrack, keep tracked, or leave as is) with what each choice changes, and
+      acts only on their answer.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Issue #1185. Verified when dr upgrade and project_upgrade leave
+        .gitignore and the index alone without a choice, and after untrack the
+        next git add -A of the upgrade succeeds."
+    metadata:
+      created_at: 2026-11-20T18:10:01.964Z
+      updated_at: 2026-11-20T18:10:01.964Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 2
+- type: add
+  elementId: product.feature.upgrade-fills
+  layerName: product
+  after:
+    id: 6db99cc3-d10f-427b-a823-9fc284a55f64
+    path: product.feature.upgrade-fills
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Upgrade fills
+    description: dr upgrade and project_upgrade derive values for required
+      attributes the new spec leaves empty, only where the element itself gives
+      them (operationId from the name, summary from the description, title,
+      label, description), and stage them in a plan changeset,
+      upgrade-fills-<spec version>, one update per element with the rule in its
+      origin. Nothing is written to the base model. A second run stages nothing
+      an unlanded fills changeset already holds.
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "cli/src/core/upgrade-fills.ts; called from upgradeModel
+        (cli/src/core/model-upgrade.ts). Issue #1166."
+    metadata:
+      created_at: 2026-11-20T18:10:01.964Z
+      updated_at: 2026-11-20T18:10:01.964Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 3
+- type: add
+  elementId: product.feature.upgrade-plan-outside-the-model
+  layerName: product
+  after:
+    id: 57a14f8e-f266-486f-bf9b-fa5e69311379
+    path: product.feature.upgrade-plan-outside-the-model
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Upgrade plan outside the model
+    description: "The upgrade plan and dry run list every file the run touches
+      outside documentation-robotics/model/, by group: spec reference, each
+      installed integration's files, layer reports, .gitignore and
+      .prettierignore lines, git's index. The dry run rehearses the model step
+      on a copy and names the model files it would write. --model-only
+      (modelOnly) leaves the rest alone. Leftovers of older integration layouts
+      (names an earlier dr installed) are listed and removed only when chosen.
+      Long lists give their totals; --full (detail: full) lists all."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "cli/src/core/upgrade-outside-model.ts, upgrade-rehearsal.ts,
+        cli/src/integrations/shipped-entries.ts. Issue #1165."
+    metadata:
+      created_at: 2026-11-20T18:10:01.969Z
+      updated_at: 2026-11-20T18:10:01.969Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 4
+- type: add
+  elementId: product.feature.tracked-dot-dr-decision
+  layerName: product
+  after:
+    id: 4dbd63f2-d192-4956-aa64-b08fe6faf705
+    path: product.feature.tracked-dot-dr-decision
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Tracked dot-dr decision
+    description: When git tracks files under .dr/, dr upgrade and project_upgrade
+      add no ignore rule over them. The choice (untrack, keep-tracked, skip) is
+      asked in a terminal, taken from --dot-dr, or returned by project_upgrade
+      as gitignore.options and taken back as gitignore. Each option names the
+      lines it writes and removes and the files it takes out of git's index. An
+      existing .dr rule or comment is replaced, not added to.
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "cli/src/core/dot-dr-ignore.ts. Issue #1185."
+    metadata:
+      created_at: 2026-11-20T18:10:01.969Z
+      updated_at: 2026-11-20T18:10:01.969Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 5
+- type: add
+  elementId: product.feature.commit-hook-notes
+  layerName: product
+  after:
+    id: dba72624-dbca-4b0f-97df-63f358e6e170
+    path: product.feature.commit-hook-notes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit hook notes
+    description: "dr init, dr upgrade and their MCP tools say when a pre-commit hook
+      would get in the way of committing dr's files: a prettier hook that still
+      receives documentation-robotics/, or a check-added-large-files hook that
+      would refuse a large changes.yaml. Each note gives the exclude line to
+      add; the hook configuration is never edited."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: cli/src/core/commit-hooks.ts. From the tranche 9 brief and the
+        maintainer's ruling of 2026-11-20 on prettier and the DR folder.
+    metadata:
+      created_at: 2026-11-20T18:10:01.969Z
+      updated_at: 2026-11-20T18:10:01.969Z
+      version: 1
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: motivation.requirement.an-upgrade-changes-only-what-it-says::realizes::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.an-upgrade-changes-only-what-it-says
+    target: motivation.goal.model-stays-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model::realizes::motivation.principle.every-model-change-is-a-changeset
+  layerName: motivation
+  after:
+    source: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    target: motivation.principle.every-model-change-is-a-changeset
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model::realizes::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    target: motivation.goal.model-stays-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: motivation.requirement.a-decision-about-tracked-files-is-the-users::realizes::motivation.goal.model-stays-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-decision-about-tracked-files-is-the-users
+    target: motivation.goal.model-stays-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: product.feature.upgrade-fills::satisfies::motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+  layerName: product
+  after:
+    source: product.feature.upgrade-fills
+    target: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: product.feature.upgrade-fills::realizes::product.softwarecapability.spec-migration
+  layerName: product
+  after:
+    source: product.feature.upgrade-fills
+    target: product.softwarecapability.spec-migration
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: product.feature.upgrade-fills::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.upgrade-fills
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: product.feature.upgrade-fills::depends-on::product.feature.model-upgrade
+  layerName: product
+  after:
+    source: product.feature.upgrade-fills
+    target: product.feature.model-upgrade
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: product.feature.upgrade-fills::depends-on::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.feature.upgrade-fills
+    target: product.feature.changeset-lifecycle
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: product.feature.upgrade-plan-outside-the-model::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: product
+  after:
+    source: product.feature.upgrade-plan-outside-the-model
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: product.feature.upgrade-plan-outside-the-model::realizes::product.softwarecapability.spec-migration
+  layerName: product
+  after:
+    source: product.feature.upgrade-plan-outside-the-model
+    target: product.softwarecapability.spec-migration
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: product.feature.upgrade-plan-outside-the-model::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.upgrade-plan-outside-the-model
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: product.feature.upgrade-plan-outside-the-model::depends-on::product.feature.model-upgrade
+  layerName: product
+  after:
+    source: product.feature.upgrade-plan-outside-the-model
+    target: product.feature.model-upgrade
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: product.feature.tracked-dot-dr-decision::satisfies::motivation.requirement.a-decision-about-tracked-files-is-the-users
+  layerName: product
+  after:
+    source: product.feature.tracked-dot-dr-decision
+    target: motivation.requirement.a-decision-about-tracked-files-is-the-users
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: product.feature.tracked-dot-dr-decision::realizes::product.softwarecapability.spec-migration
+  layerName: product
+  after:
+    source: product.feature.tracked-dot-dr-decision
+    target: product.softwarecapability.spec-migration
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: product.feature.tracked-dot-dr-decision::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.tracked-dot-dr-decision
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: product.feature.tracked-dot-dr-decision::depends-on::product.feature.model-upgrade
+  layerName: product
+  after:
+    source: product.feature.tracked-dot-dr-decision
+    target: product.feature.model-upgrade
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: product.feature.commit-hook-notes::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: product
+  after:
+    source: product.feature.commit-hook-notes
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: product.feature.commit-hook-notes::realizes::product.softwarecapability.spec-migration
+  layerName: product
+  after:
+    source: product.feature.commit-hook-notes
+    target: product.softwarecapability.spec-migration
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: product.feature.commit-hook-notes::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.commit-hook-notes
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: product.feature.model-upgrade::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: product
+  after:
+    source: product.feature.model-upgrade
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration::uses::product.feature.upgrade-plan-outside-the-model
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    target: product.feature.upgrade-plan-outside-the-model
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration::uses::product.feature.upgrade-fills
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-preview-the-migration
+    target: product.feature.upgrade-fills
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 29
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration::uses::product.feature.upgrade-fills
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    target: product.feature.upgrade-fills
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 30
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration::uses::product.feature.tracked-dot-dr-decision
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    target: product.feature.tracked-dot-dr-decision
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 31
+- type: relationship-add
+  elementId: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration::uses::product.feature.commit-hook-notes
+  layerName: product
+  after:
+    source: product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration
+    target: product.feature.commit-hook-notes
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T18:10:01.987Z
+  sequenceNumber: 32
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set;
+      leaves installed integrations alone. CLI: dr upgrade."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts),
+        previews the migration unless apply is set; leaves installed
+        integrations alone and says when a project still has them. CLI: dr
+        upgrade, which also brings installed integration files up to date."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set
+      (from a rehearsal on a copy: the model files it would write, the values it
+      would derive, what it would leave empty); leaves installed integrations
+      alone. CLI: dr upgrade, which also brings installed integration files up
+      to date unless --model-only. A model file whose data does not change keeps
+      its bytes, and documentation-robotics/ is listed in .prettierignore when
+      the project uses prettier."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts),
+        previews the migration unless apply is set; leaves installed
+        integrations alone and says when a project still has them. CLI: dr
+        upgrade (cli/src/commands/upgrade.ts), which also brings installed
+        integration files up to date. Model writes skip unchanged files
+        (writeLayer, cli/src/core/model.ts). Issues #1246, #1165, #1168."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T18:10:10.725Z
+  sequenceNumber: 33
+- type: update
+  elementId: application.applicationfunction.ensure-dot-dr-ignored
+  layerName: application
+  before:
+    id: 12ec6a52-f643-4329-853f-e2a32b46189b
+    path: application.applicationfunction.ensure-dot-dr-ignored
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureDotDrIgnored
+    description: Make sure the project's `.dr/` is git-ignored.
+    source_reference: &a3
+      provenance: extracted
+      locations:
+        - file: cli/src/core/dot-dr-ignore.ts
+          symbol: ensureDotDrIgnored
+    metadata: &a4
+      created_at: 2026-11-20T15:08:21.758Z
+      updated_at: 2026-11-20T15:08:21.758Z
+      version: 1
+  after:
+    id: 12ec6a52-f643-4329-853f-e2a32b46189b
+    path: application.applicationfunction.ensure-dot-dr-ignored
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureDotDrIgnored
+    description: Make sure the project's `.dr/` is git-ignored; when git tracks
+      files there, change nothing until the caller passes the user's choice
+      (untrack, keep-tracked, skip).
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T18:10:11.720Z
+  sequenceNumber: 35
+- type: add
+  elementId: application.applicationfunction.derive-fills
+  layerName: application
+  after:
+    id: 7d1894f0-2b55-41b9-8101-9e12d69eff80
+    path: application.applicationfunction.derive-fills
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: deriveFills
+    description: Derive values for the required attributes the model's elements
+      leave empty, only where the element itself gives them; returns the fills
+      and what is still empty.
+    metadata:
+      created_at: 2026-11-20T18:10:42.341Z
+      updated_at: 2026-11-20T18:10:42.341Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-fills.ts
+          symbol: deriveFills
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 36
+- type: add
+  elementId: application.applicationfunction.stage-fills
+  layerName: application
+  after:
+    id: 96347f4c-f8fb-49f6-aeed-30a5d89b3136
+    path: application.applicationfunction.stage-fills
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: stageFills
+    description: Stage the derived values in a new plan changeset,
+      upgrade-fills-<spec version>, one update per element; never writes the
+      base model.
+    metadata:
+      created_at: 2026-11-20T18:10:42.350Z
+      updated_at: 2026-11-20T18:10:42.350Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-fills.ts
+          symbol: stageFills
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 37
+- type: add
+  elementId: application.applicationfunction.fills-staged-earlier
+  layerName: application
+  after:
+    id: 08976ae0-829e-4a1e-abd2-a6180c4b5d00
+    path: application.applicationfunction.fills-staged-earlier
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: fillsStagedEarlier
+    description: The values unlanded upgrade-fills changesets already stage, so a
+      later run does not stage them again.
+    metadata:
+      created_at: 2026-11-20T18:10:42.350Z
+      updated_at: 2026-11-20T18:10:42.350Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-fills.ts
+          symbol: fillsStagedEarlier
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 38
+- type: add
+  elementId: application.applicationfunction.rehearse-model-upgrade
+  layerName: application
+  after:
+    id: 16c83269-60c0-4e1d-b03c-a03a029e689b
+    path: application.applicationfunction.rehearse-model-upgrade
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: rehearseModelUpgrade
+    description: Run the model upgrade on a temporary copy of
+      documentation-robotics/ and report the files it wrote and what it
+      returned; the project is not written.
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-rehearsal.ts
+          symbol: rehearseModelUpgrade
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 39
+- type: add
+  elementId: application.applicationfunction.scan-outside-model
+  layerName: application
+  after:
+    id: 2a869482-da08-4bf0-a2cd-d836df940434
+    path: application.applicationfunction.scan-outside-model
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: scanOutsideModel
+    description: "What an upgrade would touch outside the model, apart from
+      integrations: spec reference, reports, .gitignore and git's index,
+      .prettierignore, commit hook notes. Reads only."
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-outside-model.ts
+          symbol: scanOutsideModel
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 40
+- type: add
+  elementId: application.applicationfunction.outside-model-lines
+  layerName: application
+  after:
+    id: ff48b877-fb60-48e9-8418-4ba91a07684b
+    path: application.applicationfunction.outside-model-lines
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: outsideModelLines
+    description: The outside-the-model plan as terminal lines, one group per kind of
+      file, shortened lists with their totals.
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-outside-model.ts
+          symbol: outsideModelLines
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 41
+- type: add
+  elementId: application.applicationfunction.commit-hook-notes
+  layerName: application
+  after:
+    id: 83c2c7e6-40a9-4cbc-af98-fcf7d72c1bba
+    path: application.applicationfunction.commit-hook-notes
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: commitHookNotes
+    description: "Notes about pre-commit hooks that would get in the way of
+      committing dr's files: a prettier hook that still receives the DR folder,
+      a large-file hook that would refuse a file."
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/commit-hooks.ts
+          symbol: commitHookNotes
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 42
+- type: add
+  elementId: application.applicationfunction.plan-layer-files
+  layerName: application
+  after:
+    id: 4442990b-70b7-4b78-b572-966c4e7e532f
+    path: application.applicationfunction.plan-layer-files
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planLayerFiles
+    description: "What a layer save does to the YAML files already in its folder:
+      case variants of wanted names to rename first, stale files to remove
+      after."
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: planLayerFiles
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 43
+- type: add
+  elementId: application.applicationfunction.same-yaml-data
+  layerName: application
+  after:
+    id: 09877381-a9df-4dc4-b607-aea04e360478
+    path: application.applicationfunction.same-yaml-data
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sameYamlData
+    description: Whether two YAML texts hold the same data whatever their layout;
+      key order is not data, list order is.
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: sameYamlData
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 44
+- type: add
+  elementId: application.applicationfunction.base-integration-manager-plan-upgrade
+  layerName: application
+  after:
+    id: 58793e8a-af9c-47fd-bccc-0fc6b4258f44
+    path: application.applicationfunction.base-integration-manager-plan-upgrade
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: BaseIntegrationManager planUpgrade
+    description: What an integration upgrade would add, update, overwrite or remove,
+      the edited files it would keep, and the leftovers of older layouts.
+      Changes nothing.
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/base-manager.ts
+          symbol: BaseIntegrationManager.planUpgrade
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 45
+- type: add
+  elementId: application.applicationfunction.base-integration-manager-find-stale-entries
+  layerName: application
+  after:
+    id: 3dba90cc-e740-4de1-bea5-33ac30d56c37
+    path: application.applicationfunction.base-integration-manager-find-stale-entries
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: BaseIntegrationManager findStaleEntries
+    description: "Leftovers of older integration layouts: entries a released dr
+      installed whose contents are a version it shipped (stale), and entries
+      with such a name but other contents (changed, removed only when named)."
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/base-manager.ts
+          symbol: BaseIntegrationManager.findStaleEntries
+  timestamp: 2026-11-20T18:39:28.779Z
+  sequenceNumber: 46
+- type: add
+  elementId: application.applicationfunction.base-integration-manager-remove-stale-entries
+  layerName: application
+  after:
+    id: b8db47c7-dd57-4678-8555-194bf5100acb
+    path: application.applicationfunction.base-integration-manager-remove-stale-entries
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: BaseIntegrationManager removeStaleEntries
+    description: Remove the leftovers the caller names, one path each; a path that
+      is not a leftover now is skipped.
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/base-manager.ts
+          symbol: BaseIntegrationManager.removeStaleEntries
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 47
+- type: add
+  elementId: application.applicationfunction.spec-reference-standing
+  layerName: application
+  after:
+    id: ff543a3c-6151-4ac0-a6d5-349e612e2616
+    path: application.applicationfunction.spec-reference-standing
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: specReferenceStanding
+    description: "How the spec reference (.dr/spec) stands in a checkout: installed,
+      missing or stale."
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/spec-installer.ts
+          symbol: specReferenceStanding
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 48
+- type: add
+  elementId: application.applicationfunction.spec-reference-notice
+  layerName: application
+  after:
+    id: 2617e684-f8c2-4ee6-8993-6026ac14f7ec
+    path: application.applicationfunction.spec-reference-notice
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: specReferenceNotice
+    description: One line when the spec reference isn't the one this dr carries,
+      saying validation is unaffected and how to install it.
+    metadata:
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/spec-installer.ts
+          symbol: specReferenceNotice
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 49
+- type: relationship-add
+  elementId: application.applicationfunction.upgrade-model::depends-on::application.applicationfunction.derive-fills
+  layerName: application
+  after:
+    source: application.applicationfunction.upgrade-model
+    target: application.applicationfunction.derive-fills
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 50
+- type: relationship-add
+  elementId: application.applicationfunction.upgrade-model::depends-on::application.applicationfunction.stage-fills
+  layerName: application
+  after:
+    source: application.applicationfunction.upgrade-model
+    target: application.applicationfunction.stage-fills
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 51
+- type: relationship-add
+  elementId: application.applicationfunction.upgrade-model::depends-on::application.applicationfunction.fills-staged-earlier
+  layerName: application
+  after:
+    source: application.applicationfunction.upgrade-model
+    target: application.applicationfunction.fills-staged-earlier
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 52
+- type: relationship-add
+  elementId: application.applicationfunction.derive-fills::satisfies::motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-fills
+    target: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 53
+- type: relationship-add
+  elementId: application.applicationfunction.stage-fills::satisfies::motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+  layerName: application
+  after:
+    source: application.applicationfunction.stage-fills
+    target: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 54
+- type: relationship-add
+  elementId: application.applicationfunction.fills-staged-earlier::satisfies::motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+  layerName: application
+  after:
+    source: application.applicationfunction.fills-staged-earlier
+    target: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 55
+- type: relationship-add
+  elementId: application.applicationfunction.rehearse-model-upgrade::depends-on::application.applicationfunction.upgrade-model
+  layerName: application
+  after:
+    source: application.applicationfunction.rehearse-model-upgrade
+    target: application.applicationfunction.upgrade-model
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 56
+- type: relationship-add
+  elementId: application.applicationfunction.rehearse-model-upgrade::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.rehearse-model-upgrade
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 57
+- type: relationship-add
+  elementId: application.applicationfunction.rehearse-model-upgrade::realizes::application.applicationservice.project-upgrade-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.rehearse-model-upgrade
+    target: application.applicationservice.project-upgrade-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 58
+- type: relationship-add
+  elementId: application.applicationfunction.rehearse-model-upgrade::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.rehearse-model-upgrade
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 59
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::depends-on::application.applicationfunction.ensure-dot-dr-ignored
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: application.applicationfunction.ensure-dot-dr-ignored
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 60
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::depends-on::application.applicationfunction.commit-hook-notes
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: application.applicationfunction.commit-hook-notes
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 62
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 63
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::realizes::application.applicationservice.project-upgrade-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: application.applicationservice.project-upgrade-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 64
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 65
+- type: relationship-add
+  elementId: application.applicationfunction.outside-model-lines::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.outside-model-lines
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 66
+- type: relationship-add
+  elementId: application.applicationfunction.commit-hook-notes::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.commit-hook-notes
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 67
+- type: relationship-add
+  elementId: application.applicationfunction.commit-hook-notes::realizes::application.applicationservice.project-upgrade-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.commit-hook-notes
+    target: application.applicationservice.project-upgrade-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 68
+- type: relationship-add
+  elementId: application.applicationfunction.plan-layer-files::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-layer-files
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 69
+- type: relationship-add
+  elementId: application.applicationfunction.same-yaml-data::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.same-yaml-data
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 70
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-plan-upgrade::depends-on::application.applicationfunction.base-integration-manager-find-stale-entries
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-plan-upgrade
+    target: application.applicationfunction.base-integration-manager-find-stale-entries
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 71
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-plan-upgrade::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-plan-upgrade
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 72
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-plan-upgrade::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-plan-upgrade
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 73
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-remove-stale-entries::depends-on::application.applicationfunction.base-integration-manager-find-stale-entries
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-remove-stale-entries
+    target: application.applicationfunction.base-integration-manager-find-stale-entries
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 74
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-remove-stale-entries::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-remove-stale-entries
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 75
+- type: relationship-add
+  elementId: application.applicationfunction.ensure-dot-dr-ignored::satisfies::motivation.requirement.a-decision-about-tracked-files-is-the-users
+  layerName: application
+  after:
+    source: application.applicationfunction.ensure-dot-dr-ignored
+    target: motivation.requirement.a-decision-about-tracked-files-is-the-users
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 76
+- type: relationship-add
+  elementId: application.applicationfunction.spec-reference-notice::depends-on::application.applicationfunction.spec-reference-standing
+  layerName: application
+  after:
+    source: application.applicationfunction.spec-reference-notice
+    target: application.applicationfunction.spec-reference-standing
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:10:42.374Z
+  sequenceNumber: 77
+- type: add
+  elementId: data-model.objectschema.upgrade-fills
+  layerName: data-model
+  after:
+    id: dabedeef-43ff-44d7-9482-9c128c9a0036
+    path: data-model.objectschema.upgrade-fills
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: UpgradeFills
+    description: The values an upgrade derived and the changeset it staged them in
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:10:52.413Z
+      updated_at: 2026-11-20T18:10:52.413Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-fills.ts
+          symbol: UpgradeFills
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 78
+- type: add
+  elementId: data-model.objectschema.derived-fill
+  layerName: data-model
+  after:
+    id: 7f4e28f8-b7c4-46c8-b720-700b0aa92479
+    path: data-model.objectschema.derived-fill
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DerivedFill
+    description: A value derived for one required attribute an element leaves empty,
+      with its rule
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:10:52.413Z
+      updated_at: 2026-11-20T18:10:52.413Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-fills.ts
+          symbol: DerivedFill
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 79
+- type: add
+  elementId: data-model.objectschema.upgrade-rehearsal
+  layerName: data-model
+  after:
+    id: 6163e955-16cc-483a-bfe4-68b0db63c0d8
+    path: data-model.objectschema.upgrade-rehearsal
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: UpgradeRehearsal
+    description: "What the model upgrade did on a copy: its result and the files it wrote"
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:10:52.413Z
+      updated_at: 2026-11-20T18:10:52.413Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-rehearsal.ts
+          symbol: UpgradeRehearsal
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 80
+- type: add
+  elementId: data-model.objectschema.outside-model
+  layerName: data-model
+  after:
+    id: be33b879-1bc7-4a8e-8f8b-75898b809405
+    path: data-model.objectschema.outside-model
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: OutsideModel
+    description: What an upgrade touches outside the model, by group
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:10:52.413Z
+      updated_at: 2026-11-20T18:10:52.413Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-outside-model.ts
+          symbol: OutsideModel
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 81
+- type: add
+  elementId: data-model.objectschema.integration-upgrade-plan
+  layerName: data-model
+  after:
+    id: 5560031e-fe0f-4eef-bc1c-31f66a7ad309
+    path: data-model.objectschema.integration-upgrade-plan
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: IntegrationUpgradePlan
+    description: What an integration upgrade would change, without changing it
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:10:52.414Z
+      updated_at: 2026-11-20T18:10:52.414Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/base-manager.ts
+          symbol: IntegrationUpgradePlan
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 82
+- type: add
+  elementId: data-model.objectschema.dot-dr-decision
+  layerName: data-model
+  after:
+    id: bcee3ad5-a198-49ef-b653-20f7dace170d
+    path: data-model.objectschema.dot-dr-decision
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DotDrDecision
+    description: "A choice for the user: git tracks files under .dr/; each option
+      with what it writes, removes and untracks"
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:10:52.414Z
+      updated_at: 2026-11-20T18:10:52.414Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/dot-dr-ignore.ts
+          symbol: DotDrDecision
+  timestamp: 2026-11-20T18:13:06.911Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.derive-fills::accesses::data-model.objectschema.derived-fill
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-fills
+    target: data-model.objectschema.derived-fill
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: application.applicationfunction.stage-fills::accesses::data-model.objectschema.upgrade-fills
+  layerName: application
+  after:
+    source: application.applicationfunction.stage-fills
+    target: data-model.objectschema.upgrade-fills
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: application.applicationfunction.rehearse-model-upgrade::accesses::data-model.objectschema.upgrade-rehearsal
+  layerName: application
+  after:
+    source: application.applicationfunction.rehearse-model-upgrade
+    target: data-model.objectschema.upgrade-rehearsal
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 86
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::accesses::data-model.objectschema.outside-model
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: data-model.objectschema.outside-model
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 87
+- type: relationship-add
+  elementId: application.applicationfunction.outside-model-lines::accesses::data-model.objectschema.outside-model
+  layerName: application
+  after:
+    source: application.applicationfunction.outside-model-lines
+    target: data-model.objectschema.outside-model
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 88
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-plan-upgrade::accesses::data-model.objectschema.integration-upgrade-plan
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-plan-upgrade
+    target: data-model.objectschema.integration-upgrade-plan
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 89
+- type: relationship-add
+  elementId: application.applicationfunction.ensure-dot-dr-ignored::accesses::data-model.objectschema.dot-dr-decision
+  layerName: application
+  after:
+    source: application.applicationfunction.ensure-dot-dr-ignored
+    target: data-model.objectschema.dot-dr-decision
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:10:52.440Z
+  sequenceNumber: 90
+- type: relationship-add
+  elementId: motivation.requirement.an-upgrade-changes-only-what-it-says::realizes::motivation.principle.every-model-change-is-a-changeset
+  layerName: motivation
+  after:
+    source: motivation.requirement.an-upgrade-changes-only-what-it-says
+    target: motivation.principle.every-model-change-is-a-changeset
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 91
+- type: relationship-add
+  elementId: application.applicationservice.upgrade-command::realizes::product.feature.upgrade-fills
+  layerName: application
+  after:
+    source: application.applicationservice.upgrade-command
+    target: product.feature.upgrade-fills
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 92
+- type: relationship-add
+  elementId: application.applicationservice.project-upgrade-handler::realizes::product.feature.upgrade-fills
+  layerName: application
+  after:
+    source: application.applicationservice.project-upgrade-handler
+    target: product.feature.upgrade-fills
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 93
+- type: relationship-add
+  elementId: application.applicationservice.upgrade-command::realizes::product.feature.upgrade-plan-outside-the-model
+  layerName: application
+  after:
+    source: application.applicationservice.upgrade-command
+    target: product.feature.upgrade-plan-outside-the-model
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 94
+- type: relationship-add
+  elementId: application.applicationservice.project-upgrade-handler::realizes::product.feature.upgrade-plan-outside-the-model
+  layerName: application
+  after:
+    source: application.applicationservice.project-upgrade-handler
+    target: product.feature.upgrade-plan-outside-the-model
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 95
+- type: relationship-add
+  elementId: application.applicationservice.upgrade-command::realizes::product.feature.tracked-dot-dr-decision
+  layerName: application
+  after:
+    source: application.applicationservice.upgrade-command
+    target: product.feature.tracked-dot-dr-decision
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 96
+- type: relationship-add
+  elementId: application.applicationservice.project-upgrade-handler::realizes::product.feature.tracked-dot-dr-decision
+  layerName: application
+  after:
+    source: application.applicationservice.project-upgrade-handler
+    target: product.feature.tracked-dot-dr-decision
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 97
+- type: relationship-add
+  elementId: application.applicationservice.upgrade-command::realizes::product.feature.commit-hook-notes
+  layerName: application
+  after:
+    source: application.applicationservice.upgrade-command
+    target: product.feature.commit-hook-notes
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 98
+- type: relationship-add
+  elementId: application.applicationservice.project-upgrade-handler::realizes::product.feature.commit-hook-notes
+  layerName: application
+  after:
+    source: application.applicationservice.project-upgrade-handler
+    target: product.feature.commit-hook-notes
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 99
+- type: relationship-add
+  elementId: application.applicationfunction.stage-fills::depends-on::application.applicationfunction.model-load
+  layerName: application
+  after:
+    source: application.applicationfunction.stage-fills
+    target: application.applicationfunction.model-load
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 100
+- type: relationship-add
+  elementId: application.applicationfunction.derive-fills::accesses::data-model.objectschema.upgrade-fills
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-fills
+    target: data-model.objectschema.upgrade-fills
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 101
+- type: relationship-add
+  elementId: application.applicationfunction.fills-staged-earlier::accesses::data-model.objectschema.upgrade-fills
+  layerName: application
+  after:
+    source: application.applicationfunction.fills-staged-earlier
+    target: data-model.objectschema.upgrade-fills
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 102
+- type: relationship-add
+  elementId: application.applicationfunction.spec-reference-notice::realizes::application.applicationservice.validate-command
+  layerName: application
+  after:
+    source: application.applicationfunction.spec-reference-notice
+    target: application.applicationservice.validate-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 103
+- type: relationship-add
+  elementId: application.applicationfunction.spec-reference-standing::realizes::application.applicationservice.validate-command
+  layerName: application
+  after:
+    source: application.applicationfunction.spec-reference-standing
+    target: application.applicationservice.validate-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 104
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-remove-stale-entries::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-remove-stale-entries
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 105
+- type: relationship-add
+  elementId: application.applicationfunction.outside-model-lines::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.outside-model-lines
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:11:10.456Z
+  sequenceNumber: 106
+- type: delete
+  elementId: application.applicationfunction.ensure-prettier-ignores-changesets
+  layerName: application
+  before:
+    id: bcd54183-b6ef-4a45-a228-a94f3fefea26
+    path: application.applicationfunction.ensure-prettier-ignores-changesets
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensurePrettierIgnoresChangesets
+    description: List the project's changeset folder in `.prettierignore` when the
+      project uses prettier.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/prettier-ignore.ts
+          symbol: ensurePrettierIgnoresChangesets
+    metadata:
+      created_at: 2026-11-20T15:04:10.839Z
+      updated_at: 2026-11-20T15:04:10.839Z
+      version: 1
+  timestamp: 2026-11-20T18:13:26.743Z
+  sequenceNumber: 128
+- type: relationship-delete
+  elementId: application.applicationfunction.ensure-prettier-ignores-changesets::accesses::data-model.objectschema.prettier-ignore-result
+  layerName: application
+  before:
+    source: application.applicationfunction.ensure-prettier-ignores-changesets
+    target: data-model.objectschema.prettier-ignore-result
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+  timestamp: 2026-11-20T18:13:26.790Z
+  sequenceNumber: 129
+- type: relationship-delete
+  elementId: application.applicationfunction.ensure-prettier-ignores-changesets::depends-on::application.applicationfunction.prettier-signals
+  layerName: application
+  before:
+    source: application.applicationfunction.ensure-prettier-ignores-changesets
+    target: application.applicationfunction.prettier-signals
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-20T18:13:26.867Z
+  sequenceNumber: 130
+- type: relationship-delete
+  elementId: application.applicationfunction.init-project::depends-on::application.applicationfunction.ensure-prettier-ignores-changesets
+  layerName: application
+  before:
+    source: application.applicationfunction.init-project
+    target: application.applicationfunction.ensure-prettier-ignores-changesets
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-20T18:13:26.974Z
+  sequenceNumber: 131
+- type: add
+  elementId: application.applicationfunction.ensure-prettier-ignores-dr-files
+  layerName: application
+  after:
+    id: d0fafb71-a31a-4df2-9d26-103a4a3e0183
+    path: application.applicationfunction.ensure-prettier-ignores-dr-files
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensurePrettierIgnoresDrFiles
+    description: List the folder dr writes (documentation-robotics/) in
+      `.prettierignore` when the project uses prettier, in place of the
+      changesets line dr 0.6.0 wrote.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/prettier-ignore.ts
+          symbol: ensurePrettierIgnoresDrFiles
+    metadata:
+      created_at: 2026-11-20T18:13:28.348Z
+      updated_at: 2026-11-20T18:13:28.348Z
+      version: 1
+  timestamp: 2026-11-20T18:13:28.414Z
+  sequenceNumber: 132
+- type: relationship-add
+  elementId: application.applicationfunction.ensure-prettier-ignores-dr-files::accesses::data-model.objectschema.prettier-ignore-result
+  layerName: application
+  after:
+    source: application.applicationfunction.ensure-prettier-ignores-dr-files
+    target: data-model.objectschema.prettier-ignore-result
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:13:28.414Z
+  sequenceNumber: 133
+- type: relationship-add
+  elementId: application.applicationfunction.ensure-prettier-ignores-dr-files::depends-on::application.applicationfunction.prettier-signals
+  layerName: application
+  after:
+    source: application.applicationfunction.ensure-prettier-ignores-dr-files
+    target: application.applicationfunction.prettier-signals
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:28.414Z
+  sequenceNumber: 134
+- type: relationship-add
+  elementId: application.applicationfunction.init-project::depends-on::application.applicationfunction.ensure-prettier-ignores-dr-files
+  layerName: application
+  after:
+    source: application.applicationfunction.init-project
+    target: application.applicationfunction.ensure-prettier-ignores-dr-files
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:28.414Z
+  sequenceNumber: 135
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::depends-on::application.applicationfunction.ensure-prettier-ignores-dr-files
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: application.applicationfunction.ensure-prettier-ignores-dr-files
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:13:28.414Z
+  sequenceNumber: 136
+- type: relationship-add
+  elementId: application.applicationfunction.ensure-prettier-ignores-dr-files::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.ensure-prettier-ignores-dr-files
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:13:28.414Z
+  sequenceNumber: 137
+- type: add
+  elementId: data-model.objectschema.layer-file-record
+  layerName: data-model
+  after:
+    id: b82cdf07-e026-4c56-9195-cb64f177d7c2
+    path: data-model.objectschema.layer-file-record
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: LayerFileRecord
+    description: What loading made of one YAML file in a layer folder (loaded,
+      failed, partial) and its text then; decides what a later save may replace
+      or remove
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:39:26.255Z
+      updated_at: 2026-11-20T18:39:26.255Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: LayerFileRecord
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 138
+- type: add
+  elementId: data-model.objectschema.shipped-versions
+  layerName: data-model
+  after:
+    id: b04264fd-7ae8-418e-a3c6-27a9625476f2
+    path: data-model.objectschema.shipped-versions
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ShippedVersions
+    description: Content hashes of every version dr shipped of one integration
+      entry, by path inside it
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/shipped-entries.ts
+          symbol: ShippedVersions
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 139
+- type: add
+  elementId: application.applicationfunction.shipped-versions
+  layerName: application
+  after:
+    id: 59f72a71-e34c-4888-a4d4-c14685b5db23
+    path: application.applicationfunction.shipped-versions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: shippedVersions
+    description: The versions dr shipped of one entry of an integration folder, from
+      the table generated from git history; undefined when dr never installed
+      that name there.
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/shipped-entries.ts
+          symbol: shippedVersions
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 140
+- type: add
+  elementId: application.applicationfunction.prettier-hook
+  layerName: application
+  after:
+    id: d8164515-6e35-4a7b-8588-88ecf601bb90
+    path: application.applicationfunction.prettier-hook
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: prettierHook
+    description: The project's prettier pre-commit hook and whether pre-commit keeps
+      the files dr writes away from it.
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/commit-hooks.ts
+          symbol: prettierHook
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 141
+- type: add
+  elementId: application.applicationfunction.large-file-hook
+  layerName: application
+  after:
+    id: f7bc5467-8ffe-413e-b2e0-0a3b8c25c1fe
+    path: application.applicationfunction.large-file-hook
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: largeFileHook
+    description: The project's check-added-large-files hook and the files dr wrote
+      that a commit could add and the hook would refuse.
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/commit-hooks.ts
+          symbol: largeFileHook
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 142
+- type: relationship-add
+  elementId: application.applicationfunction.model-load-layer::accesses::data-model.objectschema.layer-file-record
+  layerName: application
+  after:
+    source: application.applicationfunction.model-load-layer
+    target: data-model.objectschema.layer-file-record
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 143
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::accesses::data-model.objectschema.layer-file-record
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: data-model.objectschema.layer-file-record
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 144
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::depends-on::application.applicationfunction.plan-layer-files
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: application.applicationfunction.plan-layer-files
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 145
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::depends-on::application.applicationfunction.same-yaml-data
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: application.applicationfunction.same-yaml-data
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 146
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 147
+- type: relationship-add
+  elementId: application.applicationfunction.shipped-versions::accesses::data-model.objectschema.shipped-versions
+  layerName: application
+  after:
+    source: application.applicationfunction.shipped-versions
+    target: data-model.objectschema.shipped-versions
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 148
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-find-stale-entries::depends-on::application.applicationfunction.shipped-versions
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-find-stale-entries
+    target: application.applicationfunction.shipped-versions
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 149
+- type: relationship-add
+  elementId: application.applicationfunction.shipped-versions::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.shipped-versions
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 150
+- type: relationship-add
+  elementId: application.applicationfunction.commit-hook-notes::depends-on::application.applicationfunction.prettier-hook
+  layerName: application
+  after:
+    source: application.applicationfunction.commit-hook-notes
+    target: application.applicationfunction.prettier-hook
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 151
+- type: relationship-add
+  elementId: application.applicationfunction.commit-hook-notes::depends-on::application.applicationfunction.large-file-hook
+  layerName: application
+  after:
+    source: application.applicationfunction.commit-hook-notes
+    target: application.applicationfunction.large-file-hook
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 152
+- type: update
+  elementId: application.applicationfunction.model-save-layer
+  layerName: application
+  before:
+    id: 53aaa882-3254-4af1-a0b7-aee5029bd861
+    path: application.applicationfunction.model-save-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model saveLayer
+    description: Save a layer to disk (model/XX_layername/ .yaml)
+    source_reference: &a5
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: Model.saveLayer
+    metadata: &a6
+      created_at: 2026-11-20T15:04:10.839Z
+      updated_at: 2026-11-20T15:04:10.839Z
+      version: 1
+  after:
+    id: 53aaa882-3254-4af1-a0b7-aee5029bd861
+    path: application.applicationfunction.model-save-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model saveLayer
+    description: "Save a layer to disk (model/XX_layername/ .yaml): writes only the
+      type files whose data changed, and replaces or removes only files whose
+      every entry the model loaded; a file that failed to parse, holds other
+      content or was added since the load is kept, and writing over one is
+      refused."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T18:39:27.208Z
+  sequenceNumber: 153
+- type: update
+  elementId: application.applicationfunction.model-load-layer
+  layerName: application
+  before:
+    id: d907f35a-1c21-4ce0-bfbe-ad7e8a67fe18
+    path: application.applicationfunction.model-load-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model loadLayer
+    description: Load a layer from disk (model/XX_layername/ .yaml files)
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: Model.loadLayer
+    metadata: &a8
+      created_at: 2026-11-20T15:04:10.839Z
+      updated_at: 2026-11-20T15:04:10.839Z
+      version: 1
+  after:
+    id: d907f35a-1c21-4ce0-bfbe-ad7e8a67fe18
+    path: application.applicationfunction.model-load-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model loadLayer
+    description: Load a layer from disk (model/XX_layername/ .yaml files, any letter
+      case of the extension), recording for each file whether it was fully
+      loaded, failed to parse, or holds content that is not an element.
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T18:39:27.943Z
+  sequenceNumber: 154

@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -86,15 +87,27 @@ describe("project_init", () => {
     expect(body.prettierignore).toBeUndefined();
   });
 
-  it("adds the changesets folder to .prettierignore when the project uses prettier, and says so (#1155)", async () => {
+  it("adds the documentation-robotics folder to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
     await writeFile(join(dir, "package.json"), JSON.stringify({ devDependencies: { prettier: "^3.0.0" } }), "utf8");
     const body = parse(await projectInitHandler({ name: "Pretty", rootPath: dir }));
     expect(body.status).toBe("created");
     expect(body.prettierignore).toEqual({
       path: join(dir, ".prettierignore"),
-      added: ["documentation-robotics/changesets/"],
+      added: ["documentation-robotics/"],
     });
-    expect(await readFile(join(dir, ".prettierignore"), "utf8")).toContain("documentation-robotics/changesets/\n");
+    expect(await readFile(join(dir, ".prettierignore"), "utf8")).toContain(
+      "documentation-robotics/\n"
+    );
+  });
+
+  it("warns when a large-file commit hook would refuse a changeset, and leaves the hook config alone", async () => {
+    const config =
+      "repos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks\n    hooks:\n      - id: check-added-large-files\n        args: [--maxkb=1000]\n";
+    await writeFile(join(dir, ".pre-commit-config.yaml"), config, "utf8");
+    const body = parse(await projectInitHandler({ name: "Hooked", rootPath: dir }));
+    expect(body.status).toBe("created");
+    expect(body.warnings.join(" ")).toContain("check-added-large-files pre-commit hook refuses a new file over 1000 KB");
+    expect(await readFile(join(dir, ".pre-commit-config.yaml"), "utf8")).toBe(config);
   });
 });
 
@@ -229,7 +242,7 @@ describe("project_upgrade review fixes", () => {
     expect(await specVersionOf(dir)).toBe(getCliBundledSpecVersion());
   });
 
-  it("adds the changesets folder to .prettierignore on apply when the project uses prettier (#1155)", async () => {
+  it("adds the documentation-robotics folder to .prettierignore on apply when the project uses prettier (#1155, #1246)", async () => {
     await Model.init(dir, { name: "Pretty", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
     await setSpecVersion(dir, "0.4.0");
     await writeFile(join(dir, ".prettierrc.json"), "{}", "utf8");
@@ -242,7 +255,7 @@ describe("project_upgrade review fixes", () => {
     expect(applied.status).toBe("applied");
     expect(applied.prettierignore).toEqual({
       path: join(dir, ".prettierignore"),
-      added: ["documentation-robotics/changesets/"],
+      added: ["documentation-robotics/"],
     });
   });
 
@@ -478,5 +491,219 @@ describe("project_upgrade preview: wouldOrphan (round 2, friction)", () => {
     expect((result as any).wouldOrphan?.elements).toEqual([
       { elementId: "business.businessfunction.b", loses: ["business.businessfunction.a --[flows-to]--> business.businessfunction.b"] },
     ]);
+  });
+});
+
+describe("project_upgrade: what it writes, derived values and files git tracks under .dr/ (#1165, #1166, #1185, #1246)", () => {
+  function git(cwd: string, ...args: string[]): string {
+    const result = spawnSync("git", args, { cwd, stdio: "pipe", encoding: "utf-8" });
+    if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+    return result.stdout;
+  }
+
+  function gitInit(cwd: string): void {
+    git(cwd, "init", "-q");
+    git(cwd, "config", "user.email", "test@example.com");
+    git(cwd, "config", "user.name", "Test");
+    // A global excludes file on the machine running the tests must not decide the outcome.
+    git(cwd, "config", "core.excludesFile", join(cwd, ".no-global-excludes"));
+  }
+
+  /** A model one spec version behind with one API operation that has no attributes, in dr's own file layout */
+  async function behindModel(root: string): Promise<void> {
+    await Model.init(root, { name: "Behind", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    await setSpecVersion(root, "0.13.0");
+    const path = "api.operation.create-order";
+    await mkdir(join(root, "documentation-robotics/model/07_api"), { recursive: true });
+    await writeFile(
+      join(root, "documentation-robotics/model/07_api/operation.yaml"),
+      yaml.stringify({
+        [path]: {
+          id: "00000000-0000-4000-8000-000000000001",
+          path,
+          spec_node_id: "api.operation",
+          type: "operation",
+          layer_id: "api",
+          name: "Create order",
+          description: "Creates an order. Reserves stock first.",
+        },
+      })
+    );
+  }
+
+  it("previews, from a rehearsal, the model files it would write and the values it would derive; writes nothing", async () => {
+    await behindModel(dir);
+    const operationsBefore = await readFile(join(dir, "documentation-robotics/model/07_api/operation.yaml"), "utf8");
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.status).toBe("preview");
+    // A version stamp: the manifest and nothing else in the model
+    expect(preview.wouldWrite.modelFiles).toMatchObject({
+      count: 1,
+      modified: ["documentation-robotics/model/manifest.yaml"],
+      added: [],
+      removed: [],
+    });
+    expect(preview.wouldWrite.validationErrorsAfter).toBe(3);
+    expect(preview.derivedValues).toMatchObject({ changeset: "upgrade-fills-0.14.0", values: 2, elements: 1 });
+    expect(preview.derivedValues.id).toBeUndefined();
+    expect(preview.derivedValues.fills.map((fill: any) => [fill.attribute, fill.value])).toEqual([
+      ["operationId", "createOrder"],
+      ["summary", "Creates an order."],
+    ]);
+    expect(preview.unfilledRequired.elements).toEqual([
+      { elementId: "api.operation.create-order", layer: "api", attributes: ["tags"] },
+    ]);
+    expect(preview.outsideModel.specReference).toContain(".dr/spec/");
+
+    expect(await specVersionOf(dir)).toBe("0.13.0");
+    expect(await readFile(join(dir, "documentation-robotics/model/07_api/operation.yaml"), "utf8")).toBe(operationsBefore);
+    expect(await fileExists(join(dir, "documentation-robotics/changesets"))).toBe(false);
+  });
+
+  it("stages the derived values in a changeset on apply and lists the model's files apart from the rest", async () => {
+    await behindModel(dir);
+    const operationsBefore = await readFile(join(dir, "documentation-robotics/model/07_api/operation.yaml"), "utf8");
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.files).toEqual({ modified: ["documentation-robotics/model/manifest.yaml"], added: [], removed: [] });
+    expect(applied.filesModified).toBe(1);
+    expect(applied.otherFiles.added.some((file: string) => file.endsWith("/changes.yaml"))).toBe(true);
+
+    expect(applied.derivedValues).toMatchObject({ changeset: "upgrade-fills-0.14.0", values: 2, elements: 1 });
+    expect(applied.derivedValues.note).toContain("Nothing was written to the base model");
+    expect(applied.validation.stagedForReview).toMatchObject({ changeset: "upgrade-fills-0.14.0", attributeCount: 2 });
+    expect(applied.validation.unfilledRequired.elements).toEqual([
+      { elementId: "api.operation.create-order", layer: "api", attributes: ["tags"] },
+    ]);
+    // The base model was not filled in
+    expect(await readFile(join(dir, "documentation-robotics/model/07_api/operation.yaml"), "utf8")).toBe(operationsBefore);
+
+    const list = parse(await changesetListHandler({ rootPath: dir }));
+    expect(list.changesets[applied.derivedValues.id]).toMatchObject({
+      name: "upgrade-fills-0.14.0",
+      status: "staged",
+      changes_count: 1,
+      purpose: "plan",
+      actions: ["commit", "discard"],
+    });
+  });
+
+  it("modelOnly writes nothing outside the model but the spec reference", async () => {
+    await behindModel(dir);
+    await writeFile(join(dir, ".prettierrc.json"), "{}", "utf8");
+    await rm(join(dir, "documentation-robotics/reports"), { recursive: true, force: true });
+    await rm(join(dir, ".gitignore"), { force: true });
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.outsideModel.prettierignore.add).toEqual(["documentation-robotics/"]);
+    expect(preview.outsideModel.reports.generate).toHaveLength(2);
+    expect(preview.outsideModel.gitignore).toEqual({ path: ".gitignore", add: ["/.dr/"] });
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, modelOnly: true }));
+    expect(applied.status).toBe("applied");
+    expect(await specVersionOf(dir)).toBe(getCliBundledSpecVersion());
+    expect(applied.prettierignore).toBeUndefined();
+    expect(applied.gitignore).toBeUndefined();
+    expect(applied.reports).toBeUndefined();
+    expect(await fileExists(join(dir, ".prettierignore"))).toBe(false);
+    expect(await fileExists(join(dir, ".gitignore"))).toBe(false);
+    expect(await fileExists(join(dir, "documentation-robotics/reports"))).toBe(false);
+    expect(await fileExists(join(dir, ".dr/spec/manifest.json"))).toBe(true);
+  });
+
+  it("returns files git tracks under .dr/ as a decision and changes nothing there until the caller passes the choice", async () => {
+    await behindModel(dir);
+    // A project from before .dr/ was ignored: the spec reference is committed
+    await installSpecReference(dir);
+    await rm(join(dir, ".gitignore"), { force: true });
+    gitInit(dir);
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", "model with .dr tracked");
+    const tracked = git(dir, "ls-files", "--", ".dr").trim().split("\n").length;
+    expect(tracked).toBeGreaterThan(2);
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.gitignore).toMatchObject({ wouldIgnoreTracked: tracked, alreadyIgnored: false });
+    expect(preview.gitignore.options.map((option: any) => option.choice)).toEqual(["untrack", "keep-tracked", "skip"]);
+    // More tracked files than the list holds by default: the rest are in git, and the hint says how to list them
+    expect(preview.gitignore.trackedFiles).toHaveLength(10);
+    expect(preview.gitignore).toMatchObject({ shown: 10, omitted: tracked - 10 });
+    expect(preview.gitignore.more).toContain("git ls-files .dr lists them all");
+    const full = parse(await projectUpgradeHandler({ rootPath: dir, detail: "full" }));
+    expect(full.gitignore.trackedFiles).toHaveLength(tracked);
+    expect(preview.outsideModel.gitignore).toBeUndefined();
+
+    // Apply without a choice: the model moves, .gitignore and the index don't
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.gitignore.options).toHaveLength(3);
+    expect(applied.next).toContain("put gitignore.options to the user");
+    expect(await fileExists(join(dir, ".gitignore"))).toBe(false);
+    expect(git(dir, "ls-files", "--", ".dr").trim().split("\n")).toHaveLength(tracked);
+
+    // The model is up to date now; the decision is still open, and the choice settles it
+    const still = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(still.status).toBe("up-to-date");
+    expect(still.gitignore.wouldIgnoreTracked).toBe(tracked);
+
+    const chosen = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, gitignore: "untrack" }));
+    expect(chosen.status).toBe("up-to-date");
+    expect(chosen.gitignore).toMatchObject({ applied: "untrack", untracked: tracked, added: ["/.dr/"] });
+    expect(git(dir, "ls-files", "--", ".dr").trim()).toBe("");
+    expect(await readFile(join(dir, ".gitignore"), "utf8")).toContain("/.dr/\n");
+    // The next git add of the upgrade just works
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", "upgrade");
+    expect(git(dir, "status", "--short").trim()).toBe("");
+  });
+  it("shortens long lists by default with their true counts and the way to the rest; detail: full returns every item", async () => {
+    await Model.init(dir, { name: "Many", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    await setSpecVersion(dir, "0.13.0");
+    // 130 operations with nothing the spec requires: 260 derivable values, 130 elements left with one empty
+    const operations: Record<string, unknown> = {};
+    for (let i = 1; i <= 130; i++) {
+      const path = `api.operation.get-item-${String(i).padStart(3, "0")}`;
+      operations[path] = {
+        id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+        path,
+        spec_node_id: "api.operation",
+        type: "operation",
+        layer_id: "api",
+        name: `Get item ${i}`,
+      };
+    }
+    await mkdir(join(dir, "documentation-robotics/model/07_api"), { recursive: true });
+    await writeFile(join(dir, "documentation-robotics/model/07_api/operation.yaml"), yaml.stringify(operations));
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    // Counts are of everything
+    expect(preview.wouldWrite.validationErrorsAfter).toBe(390);
+    expect(preview.derivedValues).toMatchObject({ values: 260, elements: 130, shown: 100, omitted: 160 });
+    expect(preview.derivedValues.fills).toHaveLength(100);
+    expect(preview.derivedValues.more).toContain('detail: "full"');
+    expect(preview.unfilledRequired).toMatchObject({ elementCount: 130, attributeCount: 130 });
+    expect(preview.unfilledRequired.elements).toHaveLength(130);
+
+    const full = parse(await projectUpgradeHandler({ rootPath: dir, detail: "full" }));
+    expect(full.derivedValues.values).toBe(260);
+    expect(full.derivedValues.fills).toHaveLength(260);
+    expect(full.derivedValues.omitted).toBeUndefined();
+    expect(full.derivedValues.more).toBeUndefined();
+
+    // Applied: the summary is shortened and says so; the changeset holds every value
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.derivedValues).toMatchObject({ values: 260, shown: 100, omitted: 160 });
+    expect(applied.derivedValues.more).toContain("changeset_show upgrade-fills-0.14.0 lists every staged value");
+    expect(applied.validation).toMatchObject({ valid: false, errorCount: 390 });
+    expect(applied.validation.errors).toHaveLength(20);
+    expect(applied.validation.moreErrors).toBe(370);
+    expect(applied.validation.more).toContain("model_validate lists every error and warning");
+    expect(applied.validation.stagedForReview.attributeCount).toBe(260);
+    // One staged update per element, all 130 of them
+    const list = parse(await changesetListHandler({ rootPath: dir }));
+    expect(list.changesets[applied.derivedValues.id].changes_count).toBe(130);
   });
 });

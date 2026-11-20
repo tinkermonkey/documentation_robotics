@@ -19,7 +19,7 @@ import { extractionConfigFrom } from "../../../src/analyzers/cards/extract.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
-import { LAYER_CHECKS, readRecordedDecisions, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
+import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
 import { getValidRelationships } from "../../../src/generated/relationship-index.js";
 import { normalizeIndexCoverage } from "../../../src/analyzers/cbm-responses.js";
 import { VERIFIABLE_LAYERS } from "../../../src/analyzers/active-analyzer.js";
@@ -253,11 +253,21 @@ describe("layer-verify (#1082)", () => {
     // Decided not an element: not in the code only.
     expect(technology.buckets.in_graph_only.map((e) => e.id)).toEqual([]);
     expect(technology.buckets.in_model_only.map((e) => e.id)).toEqual(["technology.node.deployment-api"]);
+    // What a recorded rejection or a rule covers is listed with why, never dropped unseen.
     expect(technology.buckets.ignored!.map((e) => [e.id, e.reason]).sort()).toEqual([
+      ["k8s/web.yml#Service/web", "recorded as not an element (codebase_extract reject)"],
       ["technology.artifact.secret-creds", "secrets are modelled by hand"],
       ["technology.node.deployment-worker", "being retired"],
     ]);
-    expect(technology.summary).toMatchObject({ gap_count: 0, drift_count: 1, ignored_count: 2 });
+    expect(technology.summary).toMatchObject({ gap_count: 0, drift_count: 1, ignored_count: 3 });
+    // The report says which decisions it had, and how many each layer applied.
+    const applied = rejectionsApplied(
+      { notElements: new Set(["k8s/web.yml#Service/web"]), notRelationships: new Set(), file: ".dr/analyzers/extract/decisions.json", found: true },
+      [technology]
+    );
+    expect(applied).toMatchObject({ found: true, recorded: { elements: 1, relationships: 0 }, applied: { technology: 1 } });
+    expect(applied.note).toContain("1 recorded rejection(s) were read and 1 kept an entry out");
+    expect(applied.note).toContain("is not in git");
   });
 
   it("reports a layer whose check fails as not verified, and keeps the other layers' results", async () => {
@@ -309,6 +319,197 @@ describe("layer-verify (#1082)", () => {
   });
 });
 
+describe("layer status: checked and in step, checked and drifted, or not checked (#1180)", () => {
+  it("says not checked, with why, when nothing in the layer could be compared", async () => {
+    // A frontend's stores: a key-value store and files, none of them SQL.
+    await add("data-store", "collection", "auth token", { collectionType: "COLLECTION" }, "src/stores/authStore.ts", "authStore");
+    await add("data-store", "collection", "layer files", { collectionType: "COLLECTION" }, "model/manifest.yaml");
+    await add("data-store", "collection", "notes", { collectionType: "COLLECTION" });
+
+    const graph = fakeGraph();
+    const noTables: CardGraph = { ...graph, search: async (label, filePattern, fields) => (label === "Table" ? [] : graph.search(label, filePattern, fields)) };
+    const [dataStore] = await verify(["data-store"], new Map(), { graph: noTables });
+    expect(dataStore.status).toBe("not_checked");
+    expect(dataStore.status_text).toContain("none of the model's 3 data-store collections could be compared");
+    expect(dataStore.coverage).toEqual({ model_elements: 3, checked: 0, not_checked: 3, code_entries: 0 });
+    // Every element that was not compared is listed under a reason, with what would make it checkable.
+    expect(dataStore.not_checked!.map((g) => [g.count, g.ids])).toEqual([
+      [2, ["data-store.collection.auth-token", "data-store.collection.layer-files"]],
+      [1, ["data-store.collection.notes"]],
+    ]);
+    expect(dataStore.not_checked![0].reason).toContain("this check reads SQL tables only");
+    expect(dataStore.not_checked![0].to_check).toContain("nothing to change when the store is not SQL");
+    expect(dataStore.not_checked![1].reason).toContain("no source reference");
+  });
+
+  it("says the technology layer was not checked when none of its elements is where the check reads", async () => {
+    // A frontend's technology layer, modelled by hand: nothing in a compose file or a manifest.
+    await add("technology", "systemsoftware", "Node", { softwareType: "middleware" }, ".nvmrc");
+    await add("technology", "node", "CDN", { nodeType: "container" }, "docs/hosting.md", "CDN");
+    await add("technology", "artifact", "Bundle", { artifactType: "configuration" });
+    const graph = fakeGraph();
+    const noInfra: CardGraph = { ...graph, search: async () => [] };
+    const [technology] = await verify(["technology"], new Map(), { graph: noInfra });
+    expect(technology.status).toBe("not_checked");
+    expect(technology.status_text).toContain("none of the model's 3 technology nodes, services, artifacts and system software could be compared");
+    expect(technology.coverage).toEqual({ model_elements: 3, checked: 0, not_checked: 3, code_entries: 0 });
+    const reasons = Object.fromEntries(technology.not_checked!.map((g) => [g.ids[0], g]));
+    expect(reasons["technology.systemsoftware.node"].reason).toContain("not a dependency manifest");
+    expect(reasons["technology.systemsoftware.node"].to_check).toContain("dependencies.<name>");
+    expect(reasons["technology.node.cdn"].reason).toContain("not a compose file or a Kubernetes manifest");
+    expect(reasons["technology.artifact.bundle"].reason).toContain("no source reference");
+    // Nothing is in the model only: an element the check can't read is not drift.
+    expect(technology.buckets.in_model_only).toEqual([]);
+  });
+
+  it("says the testing layer was not checked when no sketch is in a test file the check read", async () => {
+    await add("testing", "testcasesketch", "manual smoke test", { status: "automated" });
+    await add("testing", "testcasesketch", "checkout flow", { status: "automated" }, "docs/test-plan.md", "checkout flow");
+    // A TypeScript test file the analyzer has no module for: its cases were not read.
+    await add("testing", "testcasesketch", "renders the list", { status: "automated" }, "web/list.test.ts", "list > renders the list");
+    const graph = fakeGraph();
+    const noTests: CardGraph = {
+      ...graph,
+      search: async () => [],
+      rows: async (cypher) => (/^MATCH \(f:File\)/.test(cypher) ? [] : graph.rows(cypher)),
+    };
+    const [testing] = await verify(["testing"], new Map(), { graph: noTests });
+    expect(testing.status).toBe("not_checked");
+    expect(testing.coverage).toEqual({ model_elements: 3, checked: 0, not_checked: 3, code_entries: 0 });
+    expect(testing.status_text).toContain("none of the model's 3 test case sketches could be compared");
+    const why = testing.not_checked!.map((g) => [g.ids, g.reason] as const);
+    expect(why.find(([ids]) => ids.includes("testing.testcasesketch.manual-smoke-test"))![1]).toContain("no source reference");
+    expect(why.find(([ids]) => ids.includes("testing.testcasesketch.checkout-flow"))![1]).toContain("not a test file by its path");
+    // The file is a test file by its path, but its cases were not read: said, not reported as drift.
+    expect(why.find(([ids]) => ids.includes("testing.testcasesketch.renders-the-list"))![1]).toContain("JavaScript and TypeScript test cases");
+    expect(testing.buckets.in_model_only).toEqual([]);
+  });
+
+  it("says in step only by an ignore rule when what differs is covered by one", async () => {
+    await add("data-store", "collection", "owners", { collectionType: "TABLE" }, "db/h2/schema.sql", "owners");
+    await add("data-store", "collection", "legacy", { collectionType: "TABLE" }, "db/h2/schema.sql", "legacy");
+    const [dataStore] = await verify(["data-store"], new Map(), {
+      ignoreRules: [{ patterns: [], element_ids: ["data-store.collection.legacy"], reason: "being retired", match: "model_only" }],
+    });
+    expect(dataStore.status).toBe("in_step");
+    expect(dataStore.status_text).toBe(
+      "Checked 2 of the model's 2 data-store collections: in step with the code, apart from 1 in the model only that an ignore rule covers."
+    );
+  });
+
+  it("says not checked when the model and the code both have nothing, naming what the check reads", async () => {
+    const graph = fakeGraph();
+    const empty: CardGraph = { ...graph, search: async () => [] };
+    const [dataStore] = await verify(["data-store"], new Map(), { graph: empty });
+    expect(dataStore.status).toBe("not_checked");
+    expect(dataStore.status_text).toContain("nothing to compare");
+    expect(dataStore.status_text).toContain("CREATE TABLE statements in .sql files");
+    expect(dataStore.not_checked).toBeUndefined();
+  });
+
+  it("says in step only for what it compared, and counts the rest as not checked", async () => {
+    await add("data-store", "collection", "owners", { collectionType: "TABLE" }, "db/h2/schema.sql", "owners");
+    await add("data-store", "collection", "pets", { collectionType: "TABLE" }, "src/Pet.java", "Pet");
+    const [dataStore] = await verify(["data-store"]);
+    expect(dataStore.status).toBe("in_step");
+    expect(dataStore.status_text).toContain("Checked 1 of the model's 2 data-store collections: in step");
+    expect(dataStore.status_text).toContain("1 of the model's 2 data-store collections could not be checked");
+    expect(dataStore.coverage).toEqual({ model_elements: 2, checked: 1, not_checked: 1, code_entries: 1 });
+  });
+
+  it("says drifted when the code has what the model lacks, even with no model element of the layer", async () => {
+    const [technology] = await verify(["technology"]);
+    expect(technology.status).toBe("drifted");
+    expect(technology.status_text).toContain("the model has no technology nodes, services, artifacts and system software");
+    expect(technology.coverage.code_entries).toBe(technology.buckets.in_graph_only.length);
+  });
+
+  it("lists every entry of a long bucket: the report itself is never cut (the tool pages it)", async () => {
+    const graph = fakeGraph();
+    const tables = Array.from({ length: 230 }, (_, i) => ({
+      label: "Table",
+      name: `t_${i}`,
+      qualified_name: `${P}.db.big.schema.t_${i}`,
+      file_path: "db/big/schema.sql",
+      start_line: i * 3 + 1,
+      end_line: i * 3 + 3,
+    }));
+    const manyTables: CardGraph = { ...graph, search: async (label, filePattern, fields) => (label === "Table" ? (tables as any) : graph.search(label, filePattern, fields)) };
+    const [dataStore] = await verify(["data-store"], new Map(), { graph: manyTables });
+    expect(dataStore.buckets.in_graph_only).toHaveLength(230);
+    expect(dataStore.summary.gap_count).toBe(230);
+    expect(dataStore.coverage.code_entries).toBe(230);
+    expect((dataStore as any).omitted).toBeUndefined();
+  });
+
+  it("checks system software sourced to a dependency manifest against what the manifest lists", async () => {
+    await add("technology", "systemsoftware", "React", { softwareType: "middleware" }, "package.json", "dependencies.react");
+    await add("technology", "systemsoftware", "Router", { softwareType: "middleware" }, "package.json", "dependencies.@tanstack/react-router");
+    await add("technology", "systemsoftware", "Vite", { softwareType: "middleware" }, "package.json", "devDependencies.vite");
+    await add("technology", "systemsoftware", "Zustand", { softwareType: "middleware" }, "package.json", "dependencies.zustand");
+    await add("technology", "systemsoftware", "Requests", { softwareType: "middleware" }, "requirements.txt", "requests");
+    await add("technology", "systemsoftware", "Node", { softwareType: "middleware" }, "package.json");
+    await add("technology", "systemsoftware", "Bash", { softwareType: "middleware" }, "scripts/run.yml", "bash");
+    const manifest = JSON.stringify({
+      name: "viewer",
+      dependencies: { react: "^19.0.0", "@tanstack/react-router": "^1.0.0" },
+      devDependencies: { vite: "^6.0.0" },
+    });
+    const graph = fakeGraph();
+    const noInfra: CardGraph = { ...graph, search: async () => [] };
+    const [technology] = await verify(["technology"], new Map(), {
+      graph: noInfra,
+      fileText: (file) => (file === "package.json" ? manifest : file === "requirements.txt" ? "flask==3.0\nrequests>=2.31\n" : null),
+    });
+    expect(technology.buckets.matched.map((e) => e.id).sort()).toEqual([
+      "technology.systemsoftware.react",
+      "technology.systemsoftware.requests",
+      "technology.systemsoftware.router",
+      "technology.systemsoftware.vite",
+    ]);
+    expect(technology.buckets.in_model_only.map((e) => [e.id, e.reason])).toEqual([
+      ["technology.systemsoftware.zustand", "package.json doesn't list it any more"],
+    ]);
+    expect(technology.status).toBe("drifted");
+    // No symbol to look for, and a file that is no manifest: not checked, each with its reason.
+    expect(technology.not_checked!.map((g) => g.ids)).toEqual([["technology.systemsoftware.node"], ["technology.systemsoftware.bash"]]);
+    expect(technology.not_checked![0].to_check).toContain("dependencies.<name>");
+    expect(technology.coverage).toEqual({ model_elements: 7, checked: 5, not_checked: 2, code_entries: 4 });
+  });
+
+  it("compares the it() / test() cases of a JavaScript or TypeScript test file with the model's", async () => {
+    const file = "web/list.test.ts";
+    await mkdir(join(rootPath, "web"), { recursive: true });
+    await writeFile(
+      join(rootPath, file),
+      'import { describe, it, expect } from "vitest";\n' +
+        'describe("list", () => {\n' +
+        '  it("renders the list", () => {\n    expect(1).toBe(1);\n  });\n' +
+        '  it("sorts by name", () => {\n    expect(2).toBe(2);\n  });\n' +
+        "});\n"
+    );
+    await add("testing", "testcasesketch", "list renders the list", { status: "automated" }, file, "list > renders the list");
+    await add("testing", "testcasesketch", "list filters", { status: "automated" }, file, "list > filters");
+
+    const graph = fakeGraph();
+    const withTestFile: CardGraph = {
+      ...graph,
+      rows: async (cypher) => {
+        if (/^MATCH \(m:Module\) RETURN m\.file_path, m\.qualified_name, m\.is_test$/.test(cypher)) return [[file, `${P}.web.list.test`, "true"]];
+        if (/^MATCH \(f:File\) RETURN f\.file_path$/.test(cypher)) return [...(await graph.rows(cypher)), [file]];
+        return graph.rows(cypher);
+      },
+    };
+    const [testing] = await verify(["testing"], new Map(), { graph: withTestFile });
+    // Before: no JS/TS case was read, so every one of these was "not checked" and the layer read empty.
+    expect(testing.buckets.matched.map((e) => e.id)).toEqual(["testing.testcasesketch.list-renders-the-list"]);
+    expect(testing.buckets.in_model_only.map((e) => e.id)).toEqual(["testing.testcasesketch.list-filters"]);
+    expect(testing.buckets.in_graph_only.map((e) => e.name)).toContain("list > sorts by name");
+    expect(testing.summary.elements_not_checked).toBe(0);
+    expect(testing.status).toBe("drifted");
+  });
+});
+
 describe("readRecordedDecisions (#1107 review)", () => {
   it("keeps an unstaged decision only while codebase_extract would: its changeset staged, or landed for a relationship", async () => {
     const dir = await mkdtemp(join(tmpdir(), "dr-decisions-"));
@@ -341,6 +542,22 @@ describe("readRecordedDecisions (#1107 review)", () => {
       expect([...pruned.notRelationships].sort()).toEqual(["x::uses::landed", "x::uses::staged", "x::uses::y"]);
       // Without the changesets, every recorded decision is kept.
       expect((await readRecordedDecisions(dir)).notElements.size).toBe(4);
+      expect(pruned).toMatchObject({ file: join(".dr", "analyzers", "extract", "decisions.json"), found: true });
+      expect(pruned.error).toBeUndefined();
+
+      // No file: nothing recorded here, and that is said, not an error.
+      const none = await readRecordedDecisions(join(dir, "elsewhere"));
+      expect(none).toMatchObject({ found: false });
+      expect(none.error).toBeUndefined();
+      expect(rejectionsApplied(none, []).note).toContain("This checkout has no recorded rejections");
+
+      // A file that can't be parsed is an error the report carries: no decision was applied.
+      await writeFile(join(dir, ".dr", "analyzers", "extract", "decisions.json"), "{ not json");
+      const broken = await readRecordedDecisions(dir);
+      expect(broken.found).toBe(true);
+      expect(broken.notElements.size).toBe(0);
+      expect(broken.error).toContain("is not valid JSON, so no recorded rejection was applied");
+      expect(rejectionsApplied(broken, []).note).toContain("No recorded rejection was applied");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

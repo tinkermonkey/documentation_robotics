@@ -1,0 +1,476 @@
+id: changeset-1795192239126-59nf7rnyj
+name: brief-sections-fit-one-response
+description: "changeset_brief's sections return compact forms in which every
+  list in an answer is the same page: the answer's page gives each list's true
+  total, how many items it holds and the next offset, so no limit leaves an
+  answer looking complete when it is not. The page is sized to a 40 KB target
+  the caller can change (targetBytes) or replace with a fixed limit; detail:
+  \"full\" with sections returns those sections in full at once.
+  changeset_impact counts everything it reaches and pages what it lists. Intent
+  traces a part through the whole that composes it and an element through what
+  it realizes (hubs included, the maintainer's ruling of 2026-11-20), names its
+  walk's bounds and what the hub rule leaves untraced, counts types with no
+  catalog route to intent apart from untraced, and explains an empty intent.
+  Done: on a 2,364-element changeset the default brief and the filtered calls of
+  #1183 and #1232 each come back near 40 KB with true totals; for every list
+  that can be shortened, a test shows the total is right and the pages together
+  equal the whole set; and the acceptance criteria of #1183, #1221, #1231 and
+  #1232 are met."
+created: 2026-11-20T16:30:39.144Z
+modified: 2026-11-20T18:21:22.071Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 30
+  modifications: 11
+  deletions: 0
+lastSequence: 67
+unstaged:
+  - sequence: 1
+    removedAt: 28
+    change:
+      type: add
+      elementId: application.applicationfunction.compact-intent
+      layerName: application
+      after:
+        id: a303a922-e040-43b6-8602-c9b8c8f82df3
+        path: application.applicationfunction.compact-intent
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: compactIntent
+        description: "The intent section's compact form: counts always, the untraced and
+          unanchored elements listed (per type with the first ids when the list
+          is long), traced elements as lines only when there are few, elements
+          whose type has no catalog route to intent counted apart, and a note
+          when nothing was traced because every change is an intent element."
+        metadata:
+          created_at: 2026-11-20T16:31:14.121Z
+          updated_at: 2026-11-20T16:31:14.121Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 29
+    change:
+      type: add
+      elementId: application.applicationfunction.has-catalog-route-to-intent
+      layerName: application
+      after:
+        id: 4785a996-f184-4f4a-91f6-1869364011d4
+        path: application.applicationfunction.has-catalog-route-to-intent
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: hasCatalogRouteToIntent
+        description: Whether the relationship catalog defines any relationship between a
+          node type and a motivation, business or product type. A type without
+          one can trace to intent only through a neighbour.
+        metadata:
+          created_at: 2026-11-20T16:31:14.130Z
+          updated_at: 2026-11-20T16:31:14.130Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 21
+    removedAt: 30
+    change:
+      type: add
+      elementId: data-model.objectschema.compact-code-file
+      layerName: data-model
+      after:
+        id: 12ec4a2e-532b-45d1-9f2f-7c1d5827f1d2
+        path: data-model.objectschema.compact-code-file
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CompactCodeFile
+        description: "A touched file in the compact codeTouched section: its changed
+          elements and a count of the existing elements next to the change."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.780Z
+          updated_at: 2026-11-20T16:47:09.780Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 31
+    change:
+      type: add
+      elementId: data-model.objectschema.compact-intent
+      layerName: data-model
+      after:
+        id: e1f3021e-590b-4eb6-a790-12d543a43103
+        path: data-model.objectschema.compact-intent
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CompactIntent
+        description: "The intent section as the compact brief and sections return it:
+          counts, untraced ids or untraced by type, unanchored lines, traced
+          lines when few, noCatalogRoute by type, and a note."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.130Z
+          updated_at: 2026-11-20T16:31:14.130Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 32
+    change:
+      type: add
+      elementId: data-model.objectschema.compact-layer-change
+      layerName: data-model
+      after:
+        id: 7a6b69e3-6ee1-4152-8570-49f4b9a01bf0
+        path: data-model.objectschema.compact-layer-change
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CompactLayerChange
+        description: "A changed element in the compact layers section: its type, name,
+          description, attributes and changed fields, with changed connections
+          as lines and every other connection counted per direction, predicate
+          and other layer."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.138Z
+          updated_at: 2026-11-20T16:31:14.138Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 20
+    removedAt: 33
+    change:
+      type: add
+      elementId: data-model.objectschema.ids-by-type
+      layerName: data-model
+      after:
+        id: 4c25d332-4f60-42bb-9353-f2b0aff26320
+        path: data-model.objectschema.ids-by-type
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IdsByType
+        description: "Ids of one layer.type: how many, and the first of them."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.779Z
+          updated_at: 2026-11-20T16:47:09.779Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 34
+    change:
+      type: add
+      elementId: data-model.objectschema.section-cut
+      layerName: data-model
+      after:
+        id: f89c3804-d625-46d7-81ab-e1e97fa384a2
+        path: data-model.objectschema.section-cut
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionCut
+        description: "What a sections answer left out to stay within the size budget:
+          the section, how many items it shows of how many, and the call that
+          returns the rest."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.138Z
+          updated_at: 2026-11-20T16:31:14.138Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 23
+    removedAt: 35
+    change:
+      type: add
+      elementId: data-model.objectschema.sections-options
+      layerName: data-model
+      after:
+        id: 48c2d87c-7262-4b11-ad33-cdbc0e88131a
+        path: data-model.objectschema.sections-options
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionsOptions
+        description: "How briefSections renders: the delta, the filter, full or compact,
+          the offset into changes and layers, the size budget and how bytes are
+          measured."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.780Z
+          updated_at: 2026-11-20T16:47:09.780Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 22
+    removedAt: 36
+    change:
+      type: add
+      elementId: data-model.objectschema.unwired-by-type
+      layerName: data-model
+      after:
+        id: 406dbbcc-231e-4f29-83aa-7c08af3422b2
+        path: data-model.objectschema.unwired-by-type
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UnwiredByType
+        description: "Unwired connections per element type, for more elements than are
+          worth listing one by one: each connection with how many elements lack
+          it."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:47:09.780Z
+          updated_at: 2026-11-20T16:47:09.780Z
+          version: 1
+      timestamp: 2026-11-20T16:47:09.815Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 39
+    change:
+      type: add
+      elementId: data-model.objectschema.section-cut
+      layerName: data-model
+      after:
+        id: f89c3804-d625-46d7-81ab-e1e97fa384a2
+        path: data-model.objectschema.section-cut
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionCut
+        description: "What a sections answer left out to stay within the size budget:
+          the section, how many items it shows of how many, and the call that
+          returns the rest."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:14.138Z
+          updated_at: 2026-11-20T16:31:14.138Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/changeset-brief-compact.ts
+              symbol: SectionCut
+      timestamp: 2026-11-20T16:58:06.102Z
+  - sequence: 14
+    removedAt: 40
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.section-cut
+      layerName: application
+      after:
+        source: application.applicationfunction.brief-sections
+        target: data-model.objectschema.section-cut
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:31:14.176Z
+  - sequence: 0
+    removedAt: 45
+    change:
+      type: add
+      elementId: motivation.requirement.a-brief-answer-fits-one-tool-result
+      layerName: motivation
+      after:
+        id: 95599476-9522-4b7a-9bdc-93ecc9ba57ca
+        path: motivation.requirement.a-brief-answer-fits-one-tool-result
+        spec_node_id: motivation.requirement
+        type: requirement
+        layer_id: motivation
+        name: A brief answer fits one tool result
+        description: "Every changeset_brief answer an agent asks for while
+          pressure-testing or building (the default brief, and any section
+          narrowed by layers or ids) comes back within one MCP tool result. Past
+          a size budget the answer summarises, says what it cut and names the
+          call that returns the rest. A filtered section costs in proportion to
+          what the filter keeps (#1183, #1232)."
+        attributes:
+          requirementType: non-functional
+          priority: high
+          documentation: "Every changeset_brief answer an agent asks for while
+            pressure-testing or building (the default brief, and any section
+            narrowed by layers or ids) comes back within one MCP tool result.
+            Past a size budget the answer summarises, says what it cut and names
+            the call that returns the rest. A filtered section costs in
+            proportion to what the filter keeps (#1183, #1232)."
+        metadata:
+          created_at: 2026-11-20T16:31:14.079Z
+          updated_at: 2026-11-20T16:31:14.079Z
+          version: 1
+      timestamp: 2026-11-20T16:31:14.176Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 49
+    change:
+      type: add
+      elementId: motivation.requirement.a-brief-answer-fits-one-tool-result
+      layerName: motivation
+      after:
+        id: 95599476-9522-4b7a-9bdc-93ecc9ba57ca
+        path: motivation.requirement.a-brief-answer-fits-one-tool-result
+        spec_node_id: motivation.requirement
+        type: requirement
+        layer_id: motivation
+        name: A limit never hides part of an answer
+        description: "A count or size limit in a changeset_brief or changeset_impact
+          answer is a default the caller can change, never a silent cut-off. A
+          list too long for one tool result comes a page at a time, with its
+          true total, how many items the answer holds and the call for the next
+          page; counts and summaries are over the whole list, not the page. No
+          answer reads as complete when it is not (#1183, #1232)."
+        attributes:
+          requirementType: non-functional
+          priority: high
+          documentation: "A count or size limit in a changeset_brief or changeset_impact
+            answer is a default the caller can change, never a silent cut-off. A
+            list too long for one tool result comes a page at a time, with its
+            true total, how many items the answer holds and the call for the
+            next page; counts and summaries are over the whole list, not the
+            page. No answer reads as complete when it is not (#1183, #1232)."
+        metadata:
+          created_at: 2026-11-20T16:31:14.079Z
+          updated_at: 2026-11-20T16:31:14.079Z
+          version: 1
+      timestamp: 2026-11-20T17:16:14.828Z
+  - sequence: 6
+    removedAt: 50
+    change:
+      type: relationship-add
+      elementId: motivation.requirement.a-brief-answer-fits-one-tool-result::realizes::motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+      layerName: motivation
+      after:
+        source: motivation.requirement.a-brief-answer-fits-one-tool-result
+        target: motivation.outcome.pressure-testing-catches-what-prose-plans-miss
+        predicate: realizes
+        layer: motivation
+        category: structural
+      timestamp: 2026-11-20T16:31:14.176Z
+  - sequence: 7
+    removedAt: 51
+    change:
+      type: relationship-add
+      elementId: product.feature.changeset-brief::satisfies::motivation.requirement.a-brief-answer-fits-one-tool-result
+      layerName: product
+      after:
+        source: product.feature.changeset-brief
+        target: motivation.requirement.a-brief-answer-fits-one-tool-result
+        predicate: satisfies
+        layer: product
+        targetLayer: motivation
+        category: structural
+      timestamp: 2026-11-20T16:31:14.176Z
+  - sequence: 41
+    removedAt: 55
+    change:
+      type: add
+      elementId: data-model.objectschema.section-page
+      layerName: data-model
+      after:
+        id: fed666a5-2a0e-4bda-87c3-b6e449e29878
+        path: data-model.objectschema.section-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SectionPage
+        description: "How much of one section's list a sections answer holds: the true
+          total, how many items were returned, where the next page starts and
+          the call that returns it, and a summary of the whole list when the
+          answer is a page."
+        attributes:
+          type: object
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/changeset-brief-compact.ts
+              symbol: SectionPage
+        metadata:
+          created_at: 2026-11-20T17:16:07.747Z
+          updated_at: 2026-11-20T17:16:07.747Z
+          version: 1
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 42
+    removedAt: 55
+    change:
+      type: add
+      elementId: data-model.objectschema.delta-page
+      layerName: data-model
+      after:
+        id: 24a34d56-e9e8-40b4-86ac-ff9dc9bd74d7
+        path: data-model.objectschema.delta-page
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DeltaPage
+        description: "How a delta's lists were paged: the entries there are in all, how
+          many the answer holds, and where the next page starts."
+        attributes:
+          type: object
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/changeset-brief-compact.ts
+              symbol: DeltaPage
+        metadata:
+          created_at: 2026-11-20T17:16:07.794Z
+          updated_at: 2026-11-20T17:16:07.794Z
+          version: 1
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 43
+    removedAt: 55
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.brief-sections::accesses::data-model.objectschema.section-page
+      layerName: application
+      after:
+        source: application.applicationfunction.brief-sections
+        target: data-model.objectschema.section-page
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 44
+    removedAt: 55
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.compact-delta::accesses::data-model.objectschema.delta-page
+      layerName: application
+      after:
+        source: application.applicationfunction.compact-delta
+        target: data-model.objectschema.delta-page
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 37
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.gap-lines
+      layerName: application
+      after:
+        source: application.applicationfunction.brief-sections
+        target: application.applicationfunction.gap-lines
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:58:29.141Z

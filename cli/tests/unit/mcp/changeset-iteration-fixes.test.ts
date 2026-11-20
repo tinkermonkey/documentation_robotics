@@ -368,16 +368,33 @@ describe("changeset_brief intent trace", () => {
     expect(op).toMatchObject({ tracesTo: GOAL, distance: 3, path: [OPERATION, FUNCTION, SERVICE, GOAL] });
   });
 
-  it("does not walk through a hub", async () => {
+  it("traces through a hub it realizes, and walks through no other hub", async () => {
     // The service becomes a hub: realized by many existing functions.
     for (let i = 0; i < 16; i++) {
       await add({ layer: "application", type: "applicationfunction", name: `peer-${i}` });
       await relate(`application.applicationfunction.peer-${i}`, "realizes", SERVICE);
     }
     await planExportOrders();
+    // The maintainer's ruling (2026-11-20): an element traces through what it realizes, hub or not.
     const result = await brief();
-    expect(result.intent.untraced).toEqual(expect.arrayContaining([FUNCTION, OPERATION]));
-    expect(result.intent.traced.map((t: any) => t.element)).not.toContain(FUNCTION);
+    expect(result.intent.untraced).toEqual([]);
+    expect(result.intent.traced.find((t: any) => t.element === FUNCTION)).toMatchObject({
+      tracesTo: GOAL,
+      through: SERVICE,
+      path: [FUNCTION, SERVICE, GOAL],
+    });
+    // The operation realizes the function, which realizes the service: carried up both links.
+    expect(result.intent.traced.find((t: any) => t.element === OPERATION)).toMatchObject({
+      through: SERVICE,
+      path: [OPERATION, FUNCTION, SERVICE, GOAL],
+    });
+
+    // A link other than realizes still stops at the hub: a schema the function accesses does not trace.
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
+    await relate("application.applicationfunction.peer-0", "accesses", SCHEMA);
+    const accessed = await brief();
+    expect(accessed.intent.untraced).toEqual([SCHEMA]);
+    expect(accessed.intent.walk.blockedByHub).toEqual([SCHEMA]);
   });
 
   it("counts an added intent element only when it traces to an existing one", async () => {

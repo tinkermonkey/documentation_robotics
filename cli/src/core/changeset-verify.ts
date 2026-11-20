@@ -8,7 +8,8 @@
  *   `codebase_extract`. The built world is the base model with that changeset applied, and what the
  *   build changed is known, so unplanned changes are reported in full. When it came from extraction,
  *   planned changes extraction can't produce are unverifiable, not missing (see
- *   `extraction-observability.ts`).
+ *   `extraction-observability.ts`), as is a planned element the build's files name only as a
+ *   string, something the code registers by name (see `build-evidence.ts`).
  * - the base model (`builtFromBase`): e.g. after an as-built changeset was committed on the branch.
  *   What the build changed is not known, so unplanned changes are limited to relationships the build
  *   gave the elements the plan adds.
@@ -38,6 +39,16 @@ import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
+import {
+  readBuildFiles,
+  registeredByName,
+  sourceCandidates,
+  SOURCE_CANDIDATES_SHOWN,
+  type BuildFile,
+  type RegisteredByName,
+  type SourceCandidate,
+} from "./build-evidence.js";
+import { PagedLists, type MultiListPage } from "./list-page.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
@@ -221,6 +232,12 @@ export interface UnverifiableElement {
   reason: string;
   /** For a planned update of a found element: the fields extraction doesn't write. */
   fields?: FieldDifference[];
+  /**
+   * Set when it is unverifiable only because a code file's text may register it by name: where,
+   * and by which string. Evidence from text, not from the code graph: the verdict names the
+   * element, and a clean match never rests on it.
+   */
+  registeredByName?: RegisteredByName;
 }
 
 export interface UnplannedElement {
@@ -282,6 +299,11 @@ export interface CategoryCounts {
   deletionsNotDone: number;
   /** Planned changes extraction can't see; not part of the verdict. */
   unverifiable: number;
+  /**
+   * Of `unverifiable`, the planned elements a code file may register by name: missing unless it
+   * does. Present only when there are some; the verdict text leads with them.
+   */
+  missingUnlessRegisteredByName?: number;
 }
 
 export type Verdict = "match" | "probable-match" | "diverges" | "incomplete" | "unverifiable" | "empty-plan";
@@ -532,6 +554,13 @@ export interface UnreferencedPlannedAdd {
   planned: string;
   /** How verify reported it: extraction can't see it (intent, for one), or it isn't in the build. */
   result: "unverifiable" | "missing";
+  /**
+   * Every file of the build that may hold its code, best first (a file that names it, a file named
+   * after it, files that carry the words of its name): for the agent to confirm in the code and
+   * pass to changeset_adopt_source_references as `references`. Absent when no file of the build
+   * names it, as for most goals and requirements.
+   */
+  candidates?: SourceCandidate[];
 }
 
 export interface SourceReferenceGaps {
@@ -621,7 +650,10 @@ export interface CompactSourceReferences {
    * copied; `(built by the agent: not copied)` for one that is never copied.
    */
   missing: string[];
-  /** `planned (missing|unverifiable)`: planned adds with no source reference and nothing to copy one from. */
+  /**
+   * `planned (missing|unverifiable)`: planned adds with no source reference and nothing to copy one
+   * from, each followed by the build's files that may hold its code (`: may be file#symbol (evidence), ...`).
+   */
   unreferenced?: string[];
   next?: string;
 }
@@ -669,13 +701,21 @@ export interface CompactVerifyReport extends VerifyHeader {
   /** Accepted gaps the build contradicts, one line each; `preexisting` counted. */
   acceptedGaps?: { checked: number; contradicted: string[]; preexisting?: number };
   notes: string[];
-  /** Set when a list was cut at VERIFY_LIST_LIMIT: each list's full length. */
+  /** Set when a list is not whole here: each such list's full length. */
   counts?: Record<string, number>;
+  /**
+   * The page this result holds of its lists: one offset pages every list, `totals` gives each
+   * list's true length, and `nextOffset` is absent on the last page.
+   */
+  page: MultiListPage;
   /** Set when the call had arguments this form doesn't use (`layers` or `ids` without `sections`). */
   note?: string;
   /** How to get more. */
   more: string;
 }
+
+/** Items returned per section list by default (`sections`): each is a whole object, with its notes. */
+export const VERIFY_SECTION_PAGE_SIZE = 50;
 
 /** Narrows `sections` output: items whose elements are in these layers, or have these ids. */
 export interface VerifyFilter {
@@ -685,7 +725,7 @@ export interface VerifyFilter {
 
 type Pair<E, R> = { elements: E[]; relationships: R[] };
 
-/** Named sections only, each in full, under the header. */
+/** Named sections only, each item in full, a page of each list, under the header. */
 export interface VerifySectionsReport extends VerifyHeader {
   detail: "compact";
   /** The sections returned, in the order asked. */
@@ -703,6 +743,8 @@ export interface VerifySectionsReport extends VerifyHeader {
   extraction?: VerifyExtraction;
   acceptedGaps?: AcceptedGapsCheck;
   notes?: string[];
+  /** The page this result holds of its lists (`unplanned.elements`, ...): see CompactVerifyReport.page. */
+  page: MultiListPage;
   more: string;
 }
 
@@ -715,6 +757,13 @@ export interface CompactVerifyOptions {
   layers?: string[];
   /** With sections: only items touching these element ids. */
   ids?: string[];
+  /**
+   * The most lines (compact, default VERIFY_LIST_LIMIT) or items (sections, default
+   * VERIFY_SECTION_PAGE_SIZE) to return from each list. A page size, not a cut-off.
+   */
+  limit?: number;
+  /** Skip this many lines or items of each list. */
+  offset?: number;
 }
 
 const relLine = (r: VerifyRelationship) => `${r.source} --${r.predicate}--> ${r.target}`;
@@ -751,11 +800,24 @@ const countBy = <T>(items: T[], key: (item: T) => string): Record<string, number
 const firstIds = (ids: string[]) =>
   `${ids.slice(0, IDS_PER_LINE).join(", ")}${ids.length > IDS_PER_LINE ? `, +${ids.length - IDS_PER_LINE} more` : ""}`;
 
-/** A list cut at VERIFY_LIST_LIMIT, recording its full length in `counts` under `name` when it was cut. */
-function cappedList(list: string[], name: string, counts: Record<string, number>): string[] {
-  if (list.length <= VERIFY_LIST_LIMIT) return list;
-  counts[name] = list.length;
-  return list.slice(0, VERIFY_LIST_LIMIT);
+/** The page of a list, recording its full length in `counts` under `name` when the page is not all of it. */
+function cappedList(list: string[], name: string, counts: Record<string, number>, pager: PagedLists): string[] {
+  const page = pager.list(name, list);
+  if (pager.pages[name]) counts[name] = list.length;
+  return page;
+}
+
+/** The sentence naming the call for the next page, or that this is the last one. */
+function nextPageSentence(pager: PagedLists): string {
+  if (Object.keys(pager.pages).length === 0) return "";
+  const next = pager.nextOffset;
+  return (
+    `Lists are pages of ${pager.limit} from ${pager.offset}; the verdict and summary counts are over everything. ` +
+    `Not whole here: ${pager.describe()}. ` +
+    (next !== undefined
+      ? `For the next page call changeset_verify again with the same arguments and offset: ${next}; limit takes any size, for more at once. `
+      : "This is the last page: call again with offset: 0 for the start. ")
+  );
 }
 
 /** Lines that share a reason grouped: `id (op): reason` for one, `reason (n elements: ids)` for several. */
@@ -822,9 +884,12 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     ...(options.ids?.length ? { ids: options.ids } : {}),
   };
   const filtered = Object.keys(filter).length > 0;
-  if (options.sections && options.sections.length > 0) return verifySections(report, options.sections, filtered ? filter : undefined);
+  if (options.sections && options.sections.length > 0) {
+    return verifySections(report, options.sections, filtered ? filter : undefined, { limit: options.limit, offset: options.offset });
+  }
 
   const counts: Record<string, number> = {};
+  const pager = new PagedLists({ limit: options.limit, offset: options.offset }, VERIFY_LIST_LIMIT);
   const missing = [
     ...report.elements.missing.map(
       (m) =>
@@ -872,13 +937,26 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
         (g.builtByAgent ? "(built by the agent: not copied)" : g.match === "probable" ? `(probable: ${g.matchReason})` : "(exact)")
     );
     sourceReferences = {
-      missing: cappedList(lines, "sourceReferences.missing", counts),
+      missing: cappedList(lines, "sourceReferences.missing", counts, pager),
       ...(refs.unreferenced?.length
         ? {
             unreferenced: cappedList(
-              refs.unreferenced.map((u) => `${u.planned} (${u.result})`),
+              refs.unreferenced.map(
+                (u) =>
+                  `${u.planned} (${u.result})` +
+                  (u.candidates?.length
+                    ? `: may be ${u.candidates
+                        .slice(0, SOURCE_CANDIDATES_SHOWN)
+                        .map((c) => `${c.file}${c.symbol ? `#${c.symbol}` : ""} (${c.evidence})`)
+                        .join(", ")}` +
+                      (u.candidates.length > SOURCE_CANDIDATES_SHOWN
+                        ? `, +${u.candidates.length - SOURCE_CANDIDATES_SHOWN} more (sections: ["sourceReferences"] lists them)`
+                        : "")
+                    : "")
+              ),
               "sourceReferences.unreferenced",
-              counts
+              counts,
+              pager
             ),
           }
         : {}),
@@ -890,11 +968,11 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     detail: "compact",
     ...headerOf(report),
     ...(report.warning ? { warning: report.warning } : {}),
-    missing: cappedList(missing, "missing", counts),
-    divergent: cappedList(divergent, "divergent", counts),
-    probable: cappedList(probable, "probable", counts),
-    ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts) } : {}),
-    unverifiable: cappedList(unverifiable, "unverifiable", counts),
+    missing: cappedList(missing, "missing", counts, pager),
+    divergent: cappedList(divergent, "divergent", counts, pager),
+    probable: cappedList(probable, "probable", counts, pager),
+    ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts, pager) } : {}),
+    unverifiable: cappedList(unverifiable, "unverifiable", counts, pager),
     unplanned,
     ...(sourceReferences ? { sourceReferences } : {}),
     ...(report.extraction ? { extraction: compactExtraction(report.extraction) } : {}),
@@ -908,9 +986,11 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
         }
       : {}),
     notes: report.notes,
+    page: pager.page(),
     more: "",
   };
   if (Object.keys(counts).length > 0) out.counts = counts;
+  out.page = pager.page();
   if (filtered) {
     out.note =
       "layers and ids narrow sections output only, so the whole compact report is returned. Pass sections too, " +
@@ -923,8 +1003,9 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
       ? 'The as-built share is in counts: sections: ["extraction"] lists extraction.asBuilt.agentAdded (why each one ' +
         "doesn't count). "
       : "") +
-    (out.counts
-      ? `Lists are cut at ${VERIFY_LIST_LIMIT} lines (counts has their lengths; the section of the same name has them all). `
+    nextPageSentence(pager) +
+    (unverifiable.some((line) => line.includes(" more)")) || missing.some((line) => line.includes(" more]"))
+      ? `A line that groups several items shows its first ${IDS_PER_LINE} ids (sections: ["unverifiable"] or ["missing"] lists every one). `
       : "") +
     `Pass detail: "full" for the whole report, or sections: [...] for only some sections, in full (${VERIFY_SECTIONS.join(", ")}).`;
   return out;
@@ -938,9 +1019,16 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
 export function verifySections(
   report: VerifyReport & { plannedChangeset?: { id: string; name: string } },
   sections: readonly VerifySection[],
-  filter?: VerifyFilter
+  filter?: VerifyFilter,
+  page: { limit?: number; offset?: number } = {}
 ): VerifySectionsReport {
   const names = [...new Set(sections)];
+  const pager = new PagedLists(page, VERIFY_SECTION_PAGE_SIZE);
+  /** A section's two lists, each a page, named `<section>.elements` and `<section>.relationships`. */
+  const paged = <E, R>(section: string, lists: { elements: E[]; relationships: R[] }) => ({
+    elements: pager.list(`${section}.elements`, lists.elements),
+    relationships: pager.list(`${section}.relationships`, lists.relationships),
+  });
   const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
   const layers = filter?.layers?.length ? new Set(filter.layers) : undefined;
   const keep = (...elementIds: string[]): boolean =>
@@ -958,6 +1046,7 @@ export function verifySections(
     ...headerOf(report),
     sections: names,
     ...(filter && (ids || layers) ? { filter } : {}),
+    page: pager.page(),
     more: "",
   };
   const notes: string[] = [];
@@ -966,30 +1055,33 @@ export function verifySections(
   for (const name of names) {
     switch (name) {
       case "missing":
-        out.missing = pick(e.missing, r.missing, (m) => [m.planned], (m) => [m.planned]);
+        out.missing = paged("missing", pick(e.missing, r.missing, (m) => [m.planned], (m) => [m.planned]));
         break;
       case "divergent":
-        out.divergent = pick(e.divergent, r.divergent, matchIds, relMatch);
+        out.divergent = paged("divergent", pick(e.divergent, r.divergent, matchIds, relMatch));
         break;
       case "probable":
-        out.probable = pick<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>(
-          [...e.matched, ...e.divergent].filter((m) => m.match === "probable"),
-          [...r.matched, ...r.divergent].filter((m) => m.match === "probable"),
-          matchIds,
-          relMatch
+        out.probable = paged(
+          "probable",
+          pick<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>(
+            [...e.matched, ...e.divergent].filter((m) => m.match === "probable"),
+            [...r.matched, ...r.divergent].filter((m) => m.match === "probable"),
+            matchIds,
+            relMatch
+          )
         );
         break;
       case "matched":
-        out.matched = pick(e.matched, r.matched, matchIds, relMatch);
+        out.matched = paged("matched", pick(e.matched, r.matched, matchIds, relMatch));
         break;
       case "unverifiable":
-        out.unverifiable = pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]);
+        out.unverifiable = paged("unverifiable", pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]));
         break;
       case "unplanned":
-        out.unplanned = pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]);
+        out.unplanned = paged("unplanned", pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]));
         break;
       case "deletionsNotDone":
-        out.deletionsNotDone = pick(e.deletionsNotDone, r.deletionsNotDone, matchIds, relMatch);
+        out.deletionsNotDone = paged("deletionsNotDone", pick(e.deletionsNotDone, r.deletionsNotDone, matchIds, relMatch));
         break;
       case "sourceReferences":
         if (!report.sourceReferences) {
@@ -998,15 +1090,34 @@ export function verifySections(
         }
         out.sourceReferences = {
           ...report.sourceReferences,
-          missing: report.sourceReferences.missing.filter((g) => keep(g.planned, g.built)),
+          missing: pager.list(
+            "sourceReferences.missing",
+            report.sourceReferences.missing.filter((g) => keep(g.planned, g.built))
+          ),
           ...(report.sourceReferences.unreferenced
-            ? { unreferenced: report.sourceReferences.unreferenced.filter((u) => keep(u.planned)) }
+            ? { unreferenced: pager.list("sourceReferences.unreferenced", report.sourceReferences.unreferenced.filter((u) => keep(u.planned))) }
             : {}),
         };
         break;
       case "extraction":
-        if (report.extraction) out.extraction = report.extraction;
-        else notes.push("No extraction section: the report has none.");
+        if (report.extraction) {
+          const share = report.extraction.asBuilt;
+          out.extraction = {
+            ...report.extraction,
+            ...(share
+              ? {
+                  asBuilt: {
+                    ...share,
+                    ...(share.agentAdded ? { agentAdded: pager.list("extraction.asBuilt.agentAdded", share.agentAdded) } : {}),
+                    ...(share.editedAfterExtraction
+                      ? { editedAfterExtraction: pager.list("extraction.asBuilt.editedAfterExtraction", share.editedAfterExtraction) }
+                      : {}),
+                    ...(share.copiedFromPlan ? { copiedFromPlan: pager.list("extraction.asBuilt.copiedFromPlan", share.copiedFromPlan) } : {}),
+                  },
+                }
+              : {}),
+          };
+        } else notes.push("No extraction section: the report has none.");
         break;
       case "acceptedGaps":
         if (!report.acceptedGaps) {
@@ -1015,23 +1126,30 @@ export function verifySections(
         }
         out.acceptedGaps = {
           ...report.acceptedGaps,
-          contradicted: report.acceptedGaps.contradicted.filter((g) => keep(g.element, g.builtElement)),
+          contradicted: pager.list(
+            "acceptedGaps.contradicted",
+            report.acceptedGaps.contradicted.filter((g) => keep(g.element, g.builtElement))
+          ),
           ...(report.acceptedGaps.preexisting
-            ? { preexisting: report.acceptedGaps.preexisting.filter((g) => keep(g.element, g.builtElement)) }
+            ? { preexisting: pager.list("acceptedGaps.preexisting", report.acceptedGaps.preexisting.filter((g) => keep(g.element, g.builtElement))) }
             : {}),
         };
         break;
       case "notes":
-        out.notes = report.notes;
+        out.notes = pager.list("notes", report.notes);
         break;
     }
   }
+  out.page = pager.page();
   out.more = [
     ...notes,
+    nextPageSentence(pager).trim(),
     `Only the sections asked for are returned (${names.join(", ")})` +
       (out.filter ? ", for the items the filter keeps" : "") +
       '. Call without sections for the compact report, or with detail: "full" for everything.',
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
   return out;
 }
 
@@ -1825,9 +1943,83 @@ export async function verifyChangesetInModel(
     }
   }
 
+  // The build's own files, for what extraction can't stage: something the code registers by a
+  // name string (unverifiable, not missing), and the files a planned add with no source reference
+  // may live in (build-evidence.ts). Read only when the built side came from extraction.
+  let buildFiles: BuildFile[] = [];
+  /** Why the build's files were not all searched, when they were not. */
+  let unsearched: string | undefined;
+  /** Planned elements reported unverifiable only because a file's text may register them by name. */
+  const mayBeRegistered = new Map<string, RegisteredByName>();
+  if (observability) {
+    const since = "changeset" in options.against ? options.against.changeset.scope?.since : undefined;
+    const adds = plan.elements.filter((e) => e.op === "add");
+    const read = await readBuildFiles(model.codebaseRoot, since, adds.flatMap((e) => sourceFiles(e)));
+    buildFiles = read.files;
+    if (read.note) {
+      notes.push(read.note);
+      unsearched = read.note;
+    }
+    const builtIds = new Set(built.elements.map((e) => e.id));
+    const byName = new Map(
+      adds
+        .filter((e) => !builtIds.has(e.id))
+        .map((e) => [e.id, registeredByName(e, buildFiles)] as const)
+        .filter((entry): entry is readonly [string, NonNullable<ReturnType<typeof registeredByName>>] => entry[1] !== null)
+    );
+    if (byName.size > 0) {
+      const inner = observability;
+      observability = {
+        ...inner,
+        element: (element) => {
+          const verdict = inner.element(element);
+          const hit = verdict.observable ? byName.get(element.id) : undefined;
+          if (!hit) return verdict;
+          // Asked only for a planned element no as-built element matched: it is reported as
+          // unverifiable, and named in the verdict so that a match never rests on it.
+          mayBeRegistered.set(element.id, hit);
+          return {
+            observable: false,
+            reason:
+              `it may be registered by name: the build names it only as a string ("${hit.string}", ` +
+              `${hit.how === "call-argument" ? "an argument of a call" : "the value of a name property"} at ${hit.file}:${hit.line}), with no ` +
+              "declaration of that name for extraction to stage. This is read from the file's text, not from the code graph: confirm it " +
+              "there. If it is the element, changeset_adopt_source_references takes it in references ({id, sourceFile, sourceSymbol}); " +
+              "if it is not, the element is missing",
+          };
+        },
+      };
+    }
+  }
+
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
+  // "May be registered by name" is read from a file's text. It keeps the element out of "missing",
+  // and it is never grounds for a clean match: the verdict names each one to confirm.
+  const registered = report.elements.unverifiable.filter((u) => mayBeRegistered.has(u.planned));
+  for (const u of registered) u.registeredByName = mayBeRegistered.get(u.planned);
+  if (registered.length > 0) {
+    // Never a headline of "missing: 0" with these behind it: they are missing unless the code
+    // registers them by name, and the verdict leads with them.
+    report.summary.elements.missingUnlessRegisteredByName = registered.length;
+    if (report.verdict === "match") report.verdict = "probable-match";
+    const lead =
+      `${registered.length} planned ${registered.length === 1 ? "element is" : "elements are"} missing unless the code registers ` +
+      `${registered.length === 1 ? "it" : "them"} by name (${registered
+        .map((u) => `${u.planned}: "${u.registeredByName!.string}" at ${u.registeredByName!.file}:${u.registeredByName!.line}`)
+        .join("; ")}): confirm each in its file, since extraction can't show it.`;
+    const rest = report.verdictText
+      .replace(/^The build matches what extraction can see of the plan\./, "Apart from that, the build matches what extraction can see of the plan.")
+      .replace(/^Everything extraction can see was found\./, "Apart from that, everything extraction can see was found.")
+      .replace(/^Everything planned was found\./, "Apart from that, everything planned was found.");
+    report.verdictText = `${lead} ${rest}`;
+  }
+  // A missing element was looked for in the build's files too. When not all of them were searched,
+  // "missing" may be "registered by name in a file that was not read": the verdict says so.
+  if (unsearched && report.elements.missing.some((m) => m.op === "add")) {
+    report.verdictText += ` Not every file of the build was searched for the missing elements: ${unsearched}`;
+  }
   if ("changeset" in options.against) {
     // Said with the as-built share's warning below (an as-built changeset always has a share).
     const thin = thinAsBuiltWarning(report, built);
@@ -1868,6 +2060,13 @@ export async function verifyChangesetInModel(
   }
   const gaps = sourceReferenceGaps(plan, built, report);
   const unreferenced = unreferencedPlannedAdds(plan, report);
+  if (buildFiles.length > 0) {
+    const plannedById = new Map(plan.elements.map((e) => [e.id, e]));
+    for (const u of unreferenced) {
+      const candidates = sourceCandidates(plannedById.get(u.planned)!, buildFiles);
+      if (candidates.length > 0) u.candidates = candidates;
+    }
+  }
   if (gaps.length > 0 || unreferenced.length > 0) {
     const copyable = gaps.filter((g) => !g.builtByAgent);
     const probable = copyable.filter((g) => g.match === "probable").length;
@@ -1888,8 +2087,10 @@ export async function verifyChangesetInModel(
       unreferenced.length === 0
         ? undefined
         : `${unreferenced.length} planned add(s) have no source reference and no as-built match to copy one from ` +
-          "(sourceReferences.unreferenced). For each one the build has code for, set sourceFile and sourceSymbol on the " +
-          'plan with model_update (sourceProvenance: "manual"; changeset_activate the plan first) before it lands, or the ' +
+          "(sourceReferences.unreferenced" +
+          (unreferenced.some((u) => u.candidates?.length) ? ", each with the build's files that may hold its code as candidates" : "") +
+          "). For each one the build has code for, confirm the file in the code and pass it to " +
+          "changeset_adopt_source_references in references ({id, sourceFile, sourceSymbol}) before the plan lands, or the " +
           "landed model can't tie it to the code. Leave the ones with no code of their own (a goal, a requirement) as they are.";
     report.sourceReferences = {
       missing: gaps,

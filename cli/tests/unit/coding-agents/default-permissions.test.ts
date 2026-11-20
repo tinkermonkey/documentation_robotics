@@ -16,8 +16,8 @@ import {
   formatForCopilot,
   applyCopilotPermissions,
   validatePermissions,
-} from "../../src/coding-agents/default-permissions.js";
-import { assertBaseModelWritable } from "../../src/core/changeset-only-guard.js";
+} from "../../../src/coding-agents/default-permissions.js";
+import { assertBaseModelWritable } from "../../../src/core/changeset-only-guard.js";
 
 // Store original functions for restoration
 let originalConsoleWarn: typeof console.warn;
@@ -181,7 +181,8 @@ describe("Default Read-Safe Permissions", () => {
       expect(bashRules).toContain("Bash(dr show:*)");
       expect(bashRules).toContain("Bash(dr list:*)");
       bashRules.forEach((rule) => {
-        expect(rule).toMatch(/^Bash\(dr [a-z-]+:\*\)$/);
+        // One command, or a group and its subcommand (dr changeset list); `dr --help` is the one flag.
+        expect(rule).toMatch(/^Bash\(dr (--help|[a-z-]+( [a-z-]+)?):\*\)$/);
         expect(rule).not.toContain("|");
       });
     });

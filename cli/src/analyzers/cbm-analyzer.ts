@@ -40,7 +40,7 @@ import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./v
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
 import { VerifyEngine, apiLayerReport } from "./verify-engine.js";
-import { LAYER_CHECKS, readRecordedDecisions, verifyLayers } from "./layer-verify.js";
+import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, verifyLayers, type RecordedDecisions } from "./layer-verify.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { Model } from "../core/model.js";
 import { Changeset } from "../core/changeset.js";
@@ -2495,16 +2495,29 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // convention. Nodes that don't match are graph artifacts (documentation
       // strings, base URLs, etc.) that were incidentally labelled Route by the
       // indexer — not actual HTTP routes.
-      const nodes = allNodes
+      const routeNodes = allNodes
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
-        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")))
-        // Served here: a file or handler, not on another host, not only declared in an OpenAPI file.
-        .filter(isServedRoute);
+        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
+      // Served here: a file or handler, not on another host, not only declared in an OpenAPI file.
+      const nodes = routeNodes.filter(isServedRoute);
 
       // Shape routes via mapping; drop unattributed nodes (same filter as endpoints())
       const routes = nodes
         .map((node) => this.shapeRoute(node))
         .filter((r) => r.source_file);
+
+      // Routes an OpenAPI file declares (CBM `source: "openapi"`, with the file as their own):
+      // kept apart from the served ones, and compared only with the operations sourced to that
+      // file, as codebase_extract stages them. A frontend that consumes an API has only these.
+      const declaredRoutes = routeNodes
+        .filter((n) => (n.properties?.source ?? n.source) === "openapi" && !!n.file_path)
+        .map((node) => {
+          const route = this.shapeRoute(node);
+          // search_graph gives a route's name without its path when the node has no path of its
+          // own: CBM's route name (`__route__GET__/users/{}`) always carries it.
+          const named = /^__route__[A-Z]+__(\/.*)$/.exec(String(node.qualified_name ?? ""));
+          return named && route.http_path === "/" ? { ...route, http_path: named[1] } : route;
+        });
 
       // Files the analyzer didn't index or parsed only in part: what's sourced only there is a
       // parse gap, not drift. check_index_coverage is optional; without it nothing is.
@@ -2521,7 +2534,28 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const engine = new VerifyEngine();
       const indexMeta = status.index_meta;
       const analyzerName = this.name;
-      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed);
+      // What codebase_extract was told is not an element holds for routes as it does for the
+      // other layers' symbols. Unreadable decisions leave every route in.
+      // Read once for every layer. A failure to read them is reported with the result, never
+      // swallowed: without it a checkout with no decisions and one that could not read its
+      // decisions would look the same, and both differ from a checkout that applied them.
+      let recorded: RecordedDecisions;
+      try {
+        const decisionModel = await Model.load(projectRoot);
+        recorded = await readRecordedDecisions(projectRoot, await new StagingAreaManager(decisionModel.rootPath, decisionModel).list());
+      } catch (error) {
+        recorded = {
+          notElements: new Set(),
+          notRelationships: new Set(),
+          file: path.join(".dr", "analyzers", "extract", "decisions.json"),
+          found: false,
+          error: `could not read the recorded rejections: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
+      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed, {
+        declaredRoutes,
+        notElements: recorded.notElements,
+      });
 
       // The other layers: what extraction makes of the code's tables, infrastructure and test
       // cases against the model's elements of those types (layer-verify.ts).
@@ -2541,7 +2575,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           const graph = await ChangesetGraph.build(model, active ?? base);
           // What codebase_extract was told is not an element or relationship, and the ignore file,
           // hold here as they do for extraction and the API check.
-          const decisions = await readRecordedDecisions(projectRoot, await manager.list());
+          const decisions = recorded;
           const ignoreRules = await IgnoreFileLoader.load(options?.ignoreFilePath || path.join(projectRoot, ".dr-verify-ignore.yaml"));
           const result = await verifyLayers({
             graph: cbmCardGraph(tools, projectName),
@@ -2577,11 +2611,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
       layers.sort((a, b) => requested.indexOf(a.layer) - requested.indexOf(b.layer));
       // A layer whose check failed was not verified: it is listed under layers_not_verified only.
       const failed = new Set(layersNotVerified.map((n) => n.layer));
+      // Nor was a layer whose check ran and compared nothing: its status is not_checked, and it
+      // is in layers with why, not among the layers verified.
+      for (const layer of layers) if (layer.status === "not_checked") failed.add(layer.layer);
       return {
         ...report,
         ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
         layers,
         ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}),
+        rejections: rejectionsApplied(recorded, layers),
       };
     } finally {
       client.close();

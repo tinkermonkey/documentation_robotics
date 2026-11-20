@@ -18,10 +18,15 @@
  *   ignored        in the code only or in the model only, but a rule in .dr-verify-ignore.yaml
  *                  covers it
  *
- * The testing layer also compares the `tests` relationships of the test cases that matched.
- * Elements that can't be checked (no source file, a location of another kind, a type with no
- * file such as system software or an image, a type extraction doesn't produce there such as a
- * TypeScript test case) are counted, not listed. Recorded "not an element" and "not a
+ * The testing layer also compares the `tests` relationships of the test cases that matched, and
+ * reads the it() / test() cases of JavaScript and TypeScript test files (extraction's TestCase
+ * cards). System software sourced to a dependency manifest is compared with what the manifest
+ * lists, from the model's side only (extraction makes no element from a manifest).
+ *
+ * Elements that can't be checked (no source file, a location of another kind, a type extraction
+ * doesn't produce there) are listed under `not_checked`, grouped by why, with what would make each
+ * group checkable. Each layer's report leads with its status (verify-status.ts): in step, drifted,
+ * or not checked; a layer that compared nothing is never in step. Recorded "not an element" and "not a
  * relationship" decisions (codebase_extract's decisions.json) hold here too: a symbol decided not
  * to be an element is not in the code only, nor is a relationship decided not to be one.
  */
@@ -32,10 +37,12 @@ import type { ExtractionCoverage } from "../core/extraction-observability.js";
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "./cards/build.js";
 import { collectExtraction, type ExtractionConfig, type ExtractionGraph } from "./cards/extract.js";
 import { TEST_PATH } from "./cards/routes.js";
+import { TEST_CASE_LABEL } from "./cards/test-cases.js";
 import type { CardGraph } from "./cards/types.js";
-import { planElements, planRelationships, type ElementPlan } from "./extraction-plan.js";
-import type { LayerVerifyEntry, LayerVerifyRelationship, LayerVerifyReport } from "./types.js";
+import { decisionKey, planElements, planRelationships, sourceSymbolOf, type ElementPlan } from "./extraction-plan.js";
+import type { LayerVerifyEntry, LayerVerifyRelationship, LayerVerifyReport, VerifyRejections } from "./types.js";
 import { IgnoreFileLoader, type IgnoreRule } from "./verify-ignore.js";
+import { groupNotChecked, layerStatus, REJECTED_REASON, type LayerNouns, type NotCheckedElement } from "./verify-status.js";
 
 /** A model element's source location. */
 interface Location {
@@ -64,6 +71,53 @@ export interface LayerCheck {
   sources: Readonly<Record<string, (l: Location) => boolean>>;
   /** What the check compares, for the report. */
   checks: string;
+  /** How the check names what it compares, for the layer's status. */
+  nouns: LayerNouns;
+  /**
+   * Per type, why an element sourced only to files the check doesn't read can't be compared, and
+   * what would make it checkable; `*` for the types not listed.
+   */
+  outOfScope: Readonly<Record<string, { reason: string; to_check: string }>>;
+}
+
+/** Why an element with no source reference can't be checked, and what would make it checkable. */
+const NO_SOURCE = {
+  reason: "no source reference: nothing ties it to a file to find it in",
+  to_check: "set the element's source file and symbol",
+};
+
+/**
+ * A dependency manifest: where a system software element that is a library or a runtime, not a
+ * launched program, is declared (`package.json` with `dependencies.react` as its symbol).
+ * Extraction makes no element from a manifest, so this is read here, from the model's side only:
+ * the manifest still lists the dependency, or it doesn't.
+ */
+const DEPENDENCY_MANIFEST =
+  /(^|\/)(package\.json|composer\.json|requirements[^/]*\.txt|pyproject\.toml|Pipfile|go\.mod|Cargo\.toml|Gemfile|pom\.xml|build\.gradle(\.kts)?|[^/]+\.csproj)$/i;
+const dependencyManifest = (l: Location) => DEPENDENCY_MANIFEST.test(l.file);
+/** The sections of a manifest a dependency's symbol may start with (`devDependencies.vite`). */
+const MANIFEST_SECTION = /^(?:[\w-]*dependencies|require(?:-dev)?|packages?|tool\.poetry(?:\.[\w-]+)*|project(?:\.[\w-]+)*)\./i;
+
+/**
+ * Whether a manifest lists the dependency a symbol names (`dependencies.react`, `react`): by key
+ * in a JSON manifest's dependency sections, else by name in the file's text. Null when the file
+ * can't be read or the symbol names nothing to look for.
+ */
+export function manifestLists(file: string, text: string | null | undefined, symbol: string | undefined): boolean | null {
+  if (text === null || text === undefined || !symbol) return null;
+  const name = symbol.replace(MANIFEST_SECTION, "");
+  if (!name) return null;
+  if (/\.json$/i.test(file)) {
+    try {
+      const json = JSON.parse(text) as Record<string, unknown>;
+      const sections = Object.entries(json).filter(([key, value]) => /dependencies$|^require(-dev)?$|^engines$/i.test(key) && value && typeof value === "object");
+      return sections.some(([, deps]) => Object.prototype.hasOwnProperty.call(deps, name));
+    } catch {
+      return null;
+    }
+  }
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\w$-])${escaped}($|[^\\w$-])`, "i").test(text);
 }
 
 export const LAYER_CHECKS: Readonly<Record<string, LayerCheck>> = Object.freeze({
@@ -72,6 +126,14 @@ export const LAYER_CHECKS: Readonly<Record<string, LayerCheck>> = Object.freeze(
     labels: ["Table"],
     sources: { collection: sqlFile },
     checks: "SQL tables the analyzer found (CBM Table nodes) against the model's data-store collections",
+    nouns: { model: "data-store collections", code: "SQL tables", reads: "SQL tables only: CREATE TABLE statements in .sql files" },
+    outOfScope: {
+      "*": {
+        reason:
+          "sourced to a file that is not a SQL schema: this check reads SQL tables only, so a collection kept another way (a key-value store, files, a document database) can't be compared",
+        to_check: "nothing to change when the store is not SQL; a SQL table is checked once its collection is sourced to the .sql file that creates it",
+      },
+    },
   },
   technology: {
     types: ["node", "technologyservice", "artifact", "systemsoftware"],
@@ -83,19 +145,49 @@ export const LAYER_CHECKS: Readonly<Record<string, LayerCheck>> = Object.freeze(
       artifact: (l) => (manifest(l) && l.symbol!.startsWith("Secret/")) || helmChart(l),
     },
     checks:
-      "compose services, Kubernetes objects (a Secret as a configuration artifact), container images, Helm charts and launched programs (CBM Resource, Image, Chart and Process nodes) against the model's technology nodes, services, artifacts and system software",
+      "compose services, Kubernetes objects (a Secret as a configuration artifact), container images, Helm charts and launched programs (CBM Resource, Image, Chart and Process nodes) against the model's technology nodes, services, artifacts and system software; and system software sourced to a dependency manifest (package.json, requirements.txt, go.mod, ...) against what that manifest lists",
+    nouns: {
+      model: "technology nodes, services, artifacts and system software",
+      code: "infrastructure objects, images and launched programs",
+      reads: "compose files, Kubernetes manifests, Helm charts, image references and the programs the code launches",
+    },
+    outOfScope: {
+      systemsoftware: {
+        reason:
+          "system software sourced to a file that is not a dependency manifest: it is compared only with the programs the code launches, and none is it",
+        to_check: "source it to the manifest that declares it, with the dependency as the symbol (package.json and dependencies.<name>)",
+      },
+      artifact: {
+        reason: "an artifact sourced to a file that is not a Kubernetes Secret manifest or a Helm chart: it is compared only with the images the code names, and none is it",
+        to_check: "source a chart to its Chart.yaml and a Secret to its manifest with Secret/<name> as the symbol",
+      },
+      "*": {
+        reason: "sourced to a file that is not a compose file or a Kubernetes manifest with a Kind/name symbol",
+        to_check: "source it to the compose file or manifest that declares it, with its kind and name as the symbol (Service/db, Deployment/web)",
+      },
+    },
   },
   testing: {
     types: ["testcasesketch"],
-    labels: ["Function", "Method"],
+    // TestCase is extraction's own label for a JavaScript or TypeScript it() / test() call, read
+    // from the test file's text (cards/test-cases.ts): without it no JS/TS test case is compared.
+    labels: ["Function", "Method", TEST_CASE_LABEL],
     sources: { testcasesketch: (l) => TEST_PATH.test(l.file) },
     checks:
-      "test cases the analyzer found in test files (annotated or runner-named test functions and methods) against the model's test case sketches, and their tests relationships",
+      "test cases the analyzer found in test files (annotated or runner-named test functions and methods, and the it() / test() calls of JavaScript and TypeScript test files) against the model's test case sketches, and their tests relationships",
+    nouns: {
+      model: "test case sketches",
+      code: "test cases",
+      reads: "test files by their path (tests/, *.test.ts, *.spec.ts, test_*.py, *_test.go, *Test.java): test functions and methods, and it() / test() calls",
+    },
+    outOfScope: {
+      "*": {
+        reason: "sourced to a file that is not a test file by its path (tests/, *.test.ts, *.spec.ts, test_*.py, *_test.go, *Test.java)",
+        to_check: "source it to the test file that holds the case, with the case's title (suite > case) or function as the symbol",
+      },
+    },
   },
 });
-
-/** Entries listed per bucket; the summary counts all of them. */
-const LIST_LIMIT = 200;
 
 export interface LayerVerifyInput {
   graph: CardGraph;
@@ -143,13 +235,43 @@ export interface LayerVerifyResult {
  * decision inferred from an unstage (`how: "unstaged"`) holds only as codebase_extract keeps it:
  * while its changeset is staged, and for a relationship also once that changeset landed. Others
  * are left out here (codebase_extract drops them from the file on its next run).
+ *
+ * The result also says where the decisions live, whether the file was found, and why it could not
+ * be read when it could not: the file is under `.dr/`, which git ignores, so two checkouts of one
+ * commit can hold different decisions, and a verdict that depends on them has to say which it used.
  */
+export interface RecordedDecisions {
+  notElements: Set<string>;
+  notRelationships: Set<string>;
+  /** The decisions file, relative to the project root. */
+  file: string;
+  /** Whether the file exists in this checkout. */
+  found: boolean;
+  /** Set when the file exists and could not be read or parsed: no decision was applied. */
+  error?: string;
+}
+
 export async function readRecordedDecisions(
   projectRoot: string,
   changesets?: ReadonlyArray<{ id: string; status: string }>
-): Promise<{ notElements: Set<string>; notRelationships: Set<string> }> {
+): Promise<RecordedDecisions> {
+  const file = path.join(".dr", "analyzers", "extract", "decisions.json");
+  let text: string;
   try {
-    const stored = JSON.parse(await readFile(path.join(projectRoot, ".dr", "analyzers", "extract", "decisions.json"), "utf-8"));
+    text = await readFile(path.join(projectRoot, file), "utf-8");
+  } catch (error) {
+    // No file: nothing was recorded in this checkout. Anything else is a read error, and is said.
+    const missing = (error as NodeJS.ErrnoException).code === "ENOENT";
+    return {
+      notElements: new Set(),
+      notRelationships: new Set(),
+      file,
+      found: false,
+      ...(missing ? {} : { error: `could not read ${file}: ${error instanceof Error ? error.message : String(error)}` }),
+    };
+  }
+  try {
+    const stored = JSON.parse(text);
     const staged = new Set((changesets ?? []).filter((c) => c.status === "staged").map((c) => c.id));
     const landed = new Set((changesets ?? []).filter((c) => c.status === "committed").map((c) => c.id));
     const keys = (o: unknown, holds: (changesetId: string | undefined) => boolean) =>
@@ -163,10 +285,43 @@ export async function readRecordedDecisions(
     return {
       notElements: keys(stored?.notElements, (id) => !!id && staged.has(id)),
       notRelationships: keys(stored?.notRelationships, (id) => !!id && (staged.has(id) || landed.has(id))),
+      file,
+      found: true,
     };
-  } catch {
-    return { notElements: new Set(), notRelationships: new Set() };
+  } catch (error) {
+    return {
+      notElements: new Set(),
+      notRelationships: new Set(),
+      file,
+      found: true,
+      error: `${file} is not valid JSON, so no recorded rejection was applied: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
+}
+
+/**
+ * What a verification says about the recorded rejections it used: the file, how many decisions it
+ * read, how many entries each layer left out because of one (listed under that layer's `ignored`),
+ * and the read error when there was one.
+ */
+export function rejectionsApplied(recorded: RecordedDecisions, layers: LayerVerifyReport[]): VerifyRejections {
+  const applied: Record<string, number> = {};
+  for (const layer of layers) applied[layer.layer] = (layer.buckets.ignored ?? []).filter((e) => e.reason === REJECTED_REASON).length;
+  const total = Object.values(applied).reduce((n, c) => n + c, 0);
+  const counts = { elements: recorded.notElements.size, relationships: recorded.notRelationships.size };
+  const local = `${recorded.file} is not in git (.dr/ is ignored), so another checkout of this commit may hold other decisions and report differently.`;
+  return {
+    file: recorded.file,
+    found: recorded.found,
+    recorded: counts,
+    applied,
+    ...(recorded.error ? { error: recorded.error } : {}),
+    note: recorded.error
+      ? `No recorded rejection was applied: ${recorded.error}. Entries someone rejected may be listed as in the code only.`
+      : !recorded.found
+        ? `This checkout has no recorded rejections, so nothing was left out because of one. ${local}`
+        : `${counts.elements} recorded rejection(s) were read and ${total} kept an entry out of "in the code only" (each is under its layer's ignored bucket). ${local}`,
+  };
 }
 
 /**
@@ -298,28 +453,86 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
     }
   }
 
-  // The model's elements of the checked types that no symbol matched.
+  // Symbols a recorded rejection keeps out of "in the code only": listed under ignored with why,
+  // as the API layer lists its rejected routes, so a rejection never changes a status unseen.
+  const rejected: LayerVerifyEntry[] = [];
+  if (planned && input.notElements?.size) {
+    const seen = new Set<string>();
+    for (const s of planned.extraction.symbols) {
+      const t = s.tier0;
+      if (t?.kind !== "decide" || !checked(t.layer, t.type) || planned.plan.elementOf.has(s.qualifiedName)) continue;
+      const symbol = sourceSymbolOf(s);
+      const key = decisionKey(s.card.file_path, symbol);
+      if (!input.notElements.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      rejected.push({
+        id: key,
+        type: `${t.layer}.${t.type}`,
+        name: s.card.name,
+        files: s.card.file_path ? [s.card.file_path] : [],
+        symbol,
+        reason: REJECTED_REASON,
+      });
+    }
+  }
+
+  // The model's elements of the checked types that no symbol matched: each ends in the model only
+  // (drift), not indexed, or not checked with why. None is only counted.
   const candidates: Array<{ e: GraphElement; files: string[]; symbol?: string }> = [];
+  const uncompared: NotCheckedElement[] = [];
+  const inModel: LayerVerifyEntry[] = [];
   let notChecked = 0;
   let withoutSource = 0;
+  // JavaScript and TypeScript test files extraction read for their it() / test() calls: a case
+  // sourced to one of them is compared here, whatever the plan-side coverage says of such cases.
+  const testFilesRead = new Set(layer === "testing" ? (planned?.extraction.testFiles ?? []) : []);
   for (const e of live) {
     if (!checked(e.layer, e.type) || matched.has(e.id)) continue;
     const locations = locationsOf(e);
     if (!locations.length) {
       withoutSource++;
+      uncompared.push({ id: e.id, ...NO_SOURCE });
+      continue;
+    }
+    // System software declared in a dependency manifest: the manifest lists it, or it doesn't.
+    const declaredIn = layer === "technology" && e.type === "systemsoftware" ? locations.find(dependencyManifest) : undefined;
+    if (declaredIn) {
+      const entry: LayerVerifyEntry = { id: e.id, type: `${e.layer}.${e.type}`, name: e.name, files: [declaredIn.file], ...(declaredIn.symbol ? { symbol: declaredIn.symbol } : {}) };
+      if (!input.fileExists(declaredIn.file)) {
+        inModel.push({ ...entry, reason: "its source file is gone" });
+        continue;
+      }
+      const listed = manifestLists(declaredIn.file, input.fileText?.(declaredIn.file), declaredIn.symbol);
+      if (listed === true) matched.set(e.id, entry);
+      else if (listed === false) inModel.push({ ...entry, reason: `${declaredIn.file} doesn't list it any more` });
+      else {
+        notChecked++;
+        uncompared.push({
+          id: e.id,
+          reason: "sourced to a dependency manifest with no symbol naming the dependency, or one that can't be read",
+          to_check: "give its source reference the dependency as the symbol (package.json and dependencies.<name>)",
+        });
+      }
       continue;
     }
     const accepts = check.sources[e.type];
     const inScope = accepts ? locations.filter(accepts) : [];
     const files = [...new Set(inScope.map((l) => l.file))];
-    if (!files.length || (input.coverage && !input.coverage.element(e).observable)) {
+    if (!files.length) {
       notChecked++;
+      uncompared.push({ id: e.id, ...(check.outOfScope[e.type] ?? check.outOfScope["*"]) });
+      continue;
+    }
+    const readAsTests = files.some((f) => testFilesRead.has(f));
+    const verdict = input.coverage && !readAsTests ? input.coverage.element(e) : null;
+    if (verdict && !verdict.observable) {
+      notChecked++;
+      uncompared.push({ id: e.id, reason: verdict.reason ?? "extraction can't produce an element of this type from its source file" });
       continue;
     }
     candidates.push({ e, files, symbol: inScope.find((l) => l.symbol)?.symbol });
   }
   const gaps = candidates.length ? await input.notIndexed([...new Set(candidates.flatMap((c) => c.files))]) : new Map<string, string>();
-  const inModel: LayerVerifyEntry[] = [];
   const notIndexed: LayerVerifyEntry[] = [];
   for (const { e, files, symbol } of candidates) {
     const entry: LayerVerifyEntry = { id: e.id, type: `${e.layer}.${e.type}`, name: e.name, files, ...(symbol ? { symbol } : {}) };
@@ -334,7 +547,7 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
   }
 
   // What .dr-verify-ignore.yaml covers is neither a gap nor drift.
-  const ignored: LayerVerifyEntry[] = [];
+  const ignored: LayerVerifyEntry[] = [...rejected];
   const unlessIgnored = (entries: LayerVerifyEntry[], as: "route" | "element") =>
     entries.filter((entry) => {
       const reason = input.ignoreRules?.length ? IgnoreFileLoader.matches({ element_id: entry.id, handler: entry.symbol }, as, input.ignoreRules) : null;
@@ -344,8 +557,24 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
   const inGraphOnly = unlessIgnored([...inCode.values()], "route");
   const inModelOnly = unlessIgnored(inModel, "element");
 
+  // The testing layer also compares the matched test cases' tests relationships.
+  const rels = layer === "testing" && planned ? testsRelationships(planned, new Set(matched.keys()), input) : null;
+  const notCheckedGroups = groupNotChecked(uncompared);
   const report: LayerVerifyReport = {
     layer,
+    ...layerStatus(
+      {
+        matched: matched.size,
+        inCodeOnly: inGraphOnly.length,
+        inModelOnly: inModelOnly.length,
+        notIndexed: notIndexed.length,
+        notChecked: uncompared.length,
+        ignoredInModel: inModel.length - inModelOnly.length,
+        ...(rels ? { relationshipDifferences: rels.in_graph_only.length + rels.in_model_only.length } : {}),
+      },
+      check.nouns
+    ),
+    ...(notCheckedGroups.length ? { not_checked: notCheckedGroups } : {}),
     checks: check.checks,
     buckets: {
       matched: [...matched.values()],
@@ -365,19 +594,11 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
     },
   };
 
-  if (layer === "testing" && planned) {
-    const rels = testsRelationships(planned, new Set(matched.keys()), input);
+  if (rels) {
     report.relationships = rels;
     report.summary.relationships = { matched_count: rels.matched.length, gap_count: rels.in_graph_only.length, drift_count: rels.in_model_only.length };
   }
 
-  for (const key of ["matched", "in_graph_only", "in_model_only", "not_indexed", "ignored"] as const) {
-    const list = report.buckets[key];
-    if (list && list.length > LIST_LIMIT) {
-      (report.omitted ??= {})[key] = list.length - LIST_LIMIT;
-      report.buckets[key] = list.slice(0, LIST_LIMIT);
-    }
-  }
   return report;
 }
 

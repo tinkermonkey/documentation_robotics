@@ -90,11 +90,13 @@ get-user:
         { changesetAware: false }
       );
 
-      // The critical assertion: the element should be in in_model_only
-      // because the file exists in codebaseRoot (so it passes file-existence check)
-      // If codebaseRoot were not being used and we looked in modelRoot instead,
-      // the file wouldn't exist and the element would NOT be in in_model_only
-      expect(report.buckets.in_model_only.length).toBeGreaterThan(0);
+      // The critical assertion: the file is found in codebaseRoot and still names the handler, and
+      // no route was read from it, so the operation could not be checked either way. If modelRoot
+      // were used instead, the file would be missing and the operation would be in the model only
+      // ("its source file is gone").
+      expect(report.buckets.in_model_only).toEqual([]);
+      expect(report.buckets.not_checked?.[0]).toMatchObject({ count: 1, ids: ["api.operation.get-user"] });
+      expect(report.buckets.not_checked?.[0].reason).toContain("reads no HTTP route from");
     });
 
     it("should exclude elements when files exist only in modelRoot, not codebaseRoot", async () => {
@@ -158,11 +160,13 @@ handle-request:
         { changesetAware: false }
       );
 
-      // CRITICAL: The element should NOT be in in_model_only because the file
-      // doesn't exist at codebaseRoot/src/handler.ts (only at modelRoot/src/handler.ts).
-      // This proves that codebaseRoot is actually being used for file resolution.
-      // If modelRoot were being used instead, the element would be in in_model_only.
-      expect(report.buckets.in_model_only.length).toBe(0);
+      // CRITICAL: the file doesn't exist at codebaseRoot/src/handler.ts (only at
+      // modelRoot/src/handler.ts), so the operation is in the model only because its source file is
+      // gone. This proves that codebaseRoot is used for file resolution: against modelRoot the file
+      // would be found, still naming `handler`, and the operation would be not checked instead.
+      // (It used to be left out of every bucket, which read as "in step".)
+      expect(report.buckets.in_model_only.map((e) => e.reason)).toEqual(["its source file is gone"]);
+      expect(report.buckets.not_checked).toBeUndefined();
     });
   });
 
@@ -218,8 +222,10 @@ get-service:
         { changesetAware: false }
       );
 
-      // File should be found in co-located model (codebaseRoot defaults to modelRoot)
-      expect(report.buckets.in_model_only.length).toBeGreaterThan(0);
+      // File should be found in co-located model (codebaseRoot defaults to modelRoot): it still
+      // names `Service` and no route was read from it, so the operation is not checked, not drift.
+      expect(report.buckets.in_model_only).toEqual([]);
+      expect(report.buckets.not_checked?.[0]).toMatchObject({ count: 1, ids: ["api.operation.get-service"] });
     });
   });
 });
