@@ -194,6 +194,27 @@ describe("ensureDotDrIgnored", () => {
       expect(await readFile(path.join(dir, ".gitignore"), "utf-8")).toBe(`${DOT_DR_IGNORE_LINE}\n`);
     });
 
+    it.serial("the decision holds every tracked file; its lines name the first ten and say how to list the rest", async () => {
+      gitInit(dir);
+      await mkdir(path.join(dir, ".dr", "spec"), { recursive: true });
+      const names = Array.from({ length: 14 }, (_, i) => `layer-${String(i + 1).padStart(2, "0")}.json`);
+      for (const name of names) await writeFile(path.join(dir, ".dr", "spec", name), "{}", "utf-8");
+      git(dir, "add", ".dr");
+      git(dir, "commit", "-q", "-m", "track .dr");
+
+      const { decision } = await ensureDotDrIgnored(dir);
+      expect(decision!.wouldIgnoreTracked).toBe(14);
+      expect(decision!.files).toEqual(names.map((name) => `.dr/spec/${name}`));
+
+      const lines = dotDrDecisionLines(decision!);
+      expect(lines[0]).toContain("git tracks 14 file(s) under .dr/");
+      expect(lines[1]).toContain(".dr/spec/layer-10.json, and 4 more of 14 (git ls-files .dr lists them all)");
+      expect(lines[1]).not.toContain("layer-11.json");
+      const full = dotDrDecisionLines(decision!, { full: true });
+      expect(full[1]).toContain("layer-14.json");
+      expect(full[1]).not.toContain("more of");
+    });
+
     it.serial("a dry run reports the choice and writes nothing", async () => {
       await trackDotDr();
       const result = await ensureDotDrIgnored(dir, { tracked: "untrack", dryRun: true });

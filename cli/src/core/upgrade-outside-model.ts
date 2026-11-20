@@ -122,8 +122,11 @@ export function touchesOutsideModel(outside: OutsideModel, integrations: Integra
   );
 }
 
-/** How many files of an integration plan are listed before the rest are counted */
-const MAX_INTEGRATION_FILES = 40;
+/**
+ * How many files of an integration plan are listed by default. The group's heading always gives
+ * the true count, and `full` lists every file.
+ */
+export const INTEGRATION_FILES_SHOWN = 40;
 
 const ACTION_LABEL: Record<IntegrationUpgradePlan["files"][number]["action"], string> = {
   add: "add",
@@ -139,7 +142,7 @@ const ACTION_LABEL: Record<IntegrationUpgradePlan["files"][number]["action"], st
 export function outsideModelLines(
   outside: OutsideModel,
   integrations: IntegrationPlan[],
-  options: { skipped?: boolean } = {}
+  options: { skipped?: boolean; full?: boolean } = {}
 ): string[] {
   const lines: string[] = [];
   const group = (title: string, entries: string[]) => {
@@ -155,13 +158,17 @@ export function outsideModelLines(
   for (const plan of integrations) {
     const entries: string[] = [];
     if (plan.upgrade) {
-      const listed = plan.files.slice(0, MAX_INTEGRATION_FILES);
+      const listed = options.full ? plan.files : plan.files.slice(0, INTEGRATION_FILES_SHOWN);
       for (const file of listed) {
         entries.push(
           `${ACTION_LABEL[file.action].padEnd(9)} ${file.path}${file.action === "overwrite" ? "  (edited in this project; the edit is replaced)" : ""}`
         );
       }
-      if (plan.files.length > listed.length) entries.push(`...and ${plan.files.length - listed.length} more file(s)`);
+      if (plan.files.length > listed.length) {
+        entries.push(
+          `...and ${plan.files.length - listed.length} more of ${plan.files.length} file(s); dr upgrade --dry-run --full lists them all`
+        );
+      }
       for (const file of plan.kept) entries.push(`${"keep".padEnd(9)} ${file}  (edited in this project)`);
       entries.push(`${"update".padEnd(9)} ${plan.versionFile}`);
     }

@@ -655,4 +655,52 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     git(dir, "commit", "-q", "-m", "upgrade");
     expect(git(dir, "status", "--short").trim()).toBe("");
   });
+  it("shortens long lists by default with their true counts and the way to the rest; detail: full returns every item", async () => {
+    await Model.init(dir, { name: "Many", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    await setSpecVersion(dir, "0.13.0");
+    // 130 operations with nothing the spec requires: 260 derivable values, 130 elements left with one empty
+    const operations: Record<string, unknown> = {};
+    for (let i = 1; i <= 130; i++) {
+      const path = `api.operation.get-item-${String(i).padStart(3, "0")}`;
+      operations[path] = {
+        id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+        path,
+        spec_node_id: "api.operation",
+        type: "operation",
+        layer_id: "api",
+        name: `Get item ${i}`,
+      };
+    }
+    await mkdir(join(dir, "documentation-robotics/model/07_api"), { recursive: true });
+    await writeFile(join(dir, "documentation-robotics/model/07_api/operation.yaml"), yaml.stringify(operations));
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    // Counts are of everything
+    expect(preview.wouldWrite.validationErrorsAfter).toBe(390);
+    expect(preview.derivedValues).toMatchObject({ values: 260, elements: 130, shown: 100, omitted: 160 });
+    expect(preview.derivedValues.fills).toHaveLength(100);
+    expect(preview.derivedValues.more).toContain('detail: "full"');
+    expect(preview.unfilledRequired).toMatchObject({ elementCount: 130, attributeCount: 130 });
+    expect(preview.unfilledRequired.elements).toHaveLength(130);
+
+    const full = parse(await projectUpgradeHandler({ rootPath: dir, detail: "full" }));
+    expect(full.derivedValues.values).toBe(260);
+    expect(full.derivedValues.fills).toHaveLength(260);
+    expect(full.derivedValues.omitted).toBeUndefined();
+    expect(full.derivedValues.more).toBeUndefined();
+
+    // Applied: the summary is shortened and says so; the changeset holds every value
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.derivedValues).toMatchObject({ values: 260, shown: 100, omitted: 160 });
+    expect(applied.derivedValues.more).toContain("changeset_show upgrade-fills-0.14.0 lists every staged value");
+    expect(applied.validation).toMatchObject({ valid: false, errorCount: 390 });
+    expect(applied.validation.errors).toHaveLength(20);
+    expect(applied.validation.moreErrors).toBe(370);
+    expect(applied.validation.more).toContain("model_validate lists every error and warning");
+    expect(applied.validation.stagedForReview.attributeCount).toBe(260);
+    // One staged update per element, all 130 of them
+    const list = parse(await changesetListHandler({ rootPath: dir }));
+    expect(list.changesets[applied.derivedValues.id].changes_count).toBe(130);
+  });
 });

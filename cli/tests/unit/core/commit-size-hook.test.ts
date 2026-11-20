@@ -62,8 +62,30 @@ describe("largeFileHook", () => {
       expect(hook!.limitKb).toBe(500);
       expect(hook!.overLimit).toEqual([{ path: "documentation-robotics/changesets/changeset-1/changes.yaml", kb: 600 }]);
       expect(largeFileHookNote(hook)).toContain(
-        "Over the limit now: documentation-robotics/changesets/changeset-1/changes.yaml (600 KB)"
+        "1 file(s) over the limit now, largest first: documentation-robotics/changesets/changeset-1/changes.yaml (600 KB)"
       );
+    });
+  });
+
+  it("counts every file over the limit, names the largest few, and names them all when asked", async () => {
+    await withProject(async (dir) => {
+      await writeFile(path.join(dir, ".pre-commit-config.yaml"), config("      - id: check-added-large-files\n"), "utf-8");
+      for (let i = 1; i <= 5; i++) {
+        const folder = path.join(dir, "documentation-robotics", "changesets", `changeset-${i}`);
+        await mkdir(folder, { recursive: true });
+        await writeFile(path.join(folder, "changes.yaml"), "x".repeat((500 + i * 10) * 1024), "utf-8");
+      }
+      const hook = await largeFileHook(dir);
+      expect(hook!.overLimit.map((file) => file.kb)).toEqual([550, 540, 530, 520, 510]);
+
+      const note = largeFileHookNote(hook)!;
+      expect(note).toContain("5 file(s) over the limit now, largest first:");
+      expect(note).toContain("changeset-3/changes.yaml (530 KB), and 2 more.");
+      expect(note).not.toContain("changeset-1/changes.yaml");
+
+      const full = largeFileHookNote(hook, { full: true })!;
+      expect(full).toContain("changeset-1/changes.yaml (510 KB).");
+      expect(full).not.toContain("more.");
     });
   });
 

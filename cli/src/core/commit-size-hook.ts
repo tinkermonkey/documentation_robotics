@@ -14,6 +14,9 @@ import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import yaml from "yaml";
 
+/** How many over-limit files the note names by default; `overLimit` holds them all */
+const OVER_LIMIT_NAMED = 3;
+
 /** pre-commit's default for `check-added-large-files` when `--maxkb` isn't given */
 const DEFAULT_LIMIT_KB = 500;
 
@@ -166,15 +169,16 @@ export async function largeFileHook(projectRoot: string): Promise<LargeFileHook 
  * changesets folder (whose files grow largest) is excluded and no file dr wrote is over the limit.
  * dr changes nothing: the note says what to add.
  */
-export function largeFileHookNote(hook: LargeFileHook | null): string | null {
+export function largeFileHookNote(hook: LargeFileHook | null, options: { full?: boolean } = {}): string | null {
   if (!hook || (hook.excludesChangesets && hook.overLimit.length === 0)) return null;
 
+  // The count is of every file over the limit; the largest few are named unless all are asked for
+  const named = options.full ? hook.overLimit : hook.overLimit.slice(0, OVER_LIMIT_NAMED);
   const now =
     hook.overLimit.length > 0
-      ? ` Over the limit now: ${hook.overLimit
-          .slice(0, 3)
+      ? ` ${hook.overLimit.length} file(s) over the limit now, largest first: ${named
           .map((file) => `${file.path} (${file.kb} KB)`)
-          .join(", ")}${hook.overLimit.length > 3 ? `, and ${hook.overLimit.length - 3} more` : ""}.`
+          .join(", ")}${hook.overLimit.length > named.length ? `, and ${hook.overLimit.length - named.length} more` : ""}.`
       : "";
   const folder = hook.excludesChangesets ? `${hook.folder}/model/` : `${hook.folder}/changesets/`;
   return (

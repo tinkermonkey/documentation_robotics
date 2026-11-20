@@ -40,14 +40,14 @@ export type DotDrTrackedChoice = "untrack" | "keep-tracked" | "skip";
 
 export const DOT_DR_TRACKED_CHOICES: readonly DotDrTrackedChoice[] = ["untrack", "keep-tracked", "skip"];
 
-/** How many tracked files a decision lists by name. */
-const MAX_FILES_LISTED = 10;
+/** How many tracked files the decision's lines name by default; the decision itself holds them all. */
+export const DOT_DR_FILES_SHOWN = 10;
 
 /** A choice the caller takes to the user: git tracks files under `.dr/`. */
 export interface DotDrDecision {
   /** Files git tracks under `.dr/` that an ignore rule covers, or would. */
   wouldIgnoreTracked: number;
-  /** The first of them, by path. */
+  /** All of them, by path. */
   files: string[];
   /** `.dr/` is already ignored: an earlier run added the rule and left the files tracked. */
   alreadyIgnored: boolean;
@@ -174,7 +174,7 @@ function decisionFor(tracked: string[], alreadyIgnored: boolean): DotDrDecision 
   const n = tracked.length;
   return {
     wouldIgnoreTracked: n,
-    files: tracked.slice(0, MAX_FILES_LISTED),
+    files: tracked,
     alreadyIgnored,
     options: [
       {
@@ -302,14 +302,19 @@ export async function ensureDotDrIgnored(
   return { ...result, added: true, ignored: after ?? true, ...withReplaced(replaced) };
 }
 
-/** The decision as lines for a person: the count, the first files, and each choice with its effect. */
-export function dotDrDecisionLines(decision: DotDrDecision): string[] {
-  const more = decision.wouldIgnoreTracked - decision.files.length;
+/**
+ * The decision as lines for a person: the count, the files and each choice with its effect. The
+ * first {@link DOT_DR_FILES_SHOWN} files are named, with how many more there are and how to list
+ * them, unless `full` asks for all.
+ */
+export function dotDrDecisionLines(decision: DotDrDecision, options: { full?: boolean } = {}): string[] {
+  const shown = options.full ? decision.files : decision.files.slice(0, DOT_DR_FILES_SHOWN);
+  const more = decision.files.length - shown.length;
   return [
     decision.alreadyIgnored
       ? `git tracks ${decision.wouldIgnoreTracked} file(s) under .dr/, which .gitignore already ignores: they stay tracked and modified, and git add .dr refuses them.`
       : `git tracks ${decision.wouldIgnoreTracked} file(s) under .dr/, which is per-checkout state dr recreates. An ignore rule alone would not untrack them, so .gitignore was left alone.`,
-    `  ${decision.files.join(", ")}${more > 0 ? `, and ${more} more` : ""}`,
+    `  ${shown.join(", ")}${more > 0 ? `, and ${more} more of ${decision.files.length} (git ls-files .dr lists them all)` : ""}`,
     ...decision.options.map((option) => `  ${option.choice}: ${option.effect}`),
   ];
 }

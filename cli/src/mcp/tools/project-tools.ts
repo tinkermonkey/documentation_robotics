@@ -21,6 +21,7 @@
  */
 
 import { z } from "zod";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -31,6 +32,7 @@ import {
   dotDrIgnoreNotes,
   dotDrIgnoreWarnings,
   DOT_DR_IGNORE_LINE,
+  DOT_DR_FILES_SHOWN,
   type DotDrIgnoreResult,
 } from "../../core/dot-dr-ignore.js";
 import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles } from "../../core/prettier-ignore.js";
@@ -138,8 +140,28 @@ function absoluteRootPath(rootPath: string): string {
   return resolve(rootPath);
 }
 
-/** At most this many relationship rewrites or element renames are listed; the rest are counted. */
+/**
+ * How many items a list in a project_upgrade result holds by default (relationship rewrites,
+ * element renames, elements with empty attributes, orphans). A default, not a cut-off: each list
+ * comes with its true count, a shortened one says how many it shows and leaves out and how to get
+ * the rest, and `detail: "full"` lists every item.
+ */
 const MAX_LISTED = 200;
+
+/** The call in progress: whether it asked for every item (`detail: "full"`), and whether it applies. */
+const callDetail = new AsyncLocalStorage<{ full: boolean; apply: boolean }>();
+
+const wantsFull = (): boolean => callDetail.getStore()?.full === true;
+
+/**
+ * How to get what a shortened list leaves out. A preview can simply be asked again. An apply
+ * can't be repeated, so its hint points at what is still there afterwards.
+ */
+function more(): string {
+  return callDetail.getStore()?.apply
+    ? 'This list is shortened. git diff of documentation-robotics/ shows every change this apply made; pass detail: "full" with apply: true to get every item in the result.'
+    : 'Call project_upgrade again with detail: "full" for every item.';
+}
 
 // ---------------------------------------------------------------------------
 // project_init
@@ -291,6 +313,12 @@ const upgradeInputSchema = {
     .describe(
       "Only with apply: true, and only the user's choice. When git tracks files under .dr/ (the preview's gitignore.wouldIgnoreTracked), an ignore rule alone leaves them tracked and unstageable, so nothing is changed until this is passed: untrack removes them from git's index and ignores .dr/; keep-tracked ignores the rest of .dr/ and keeps them tracked; skip leaves .gitignore and the index as they are."
     ),
+  detail: z
+    .enum(["compact", "full"])
+    .optional()
+    .describe(
+      'compact (default): each long list holds its first items, with its true count, how many it shows and leaves out, and how to get the rest. full: every item of every list. Counts and the validation verdict always cover the whole model, whichever is asked for.'
+    ),
   modelOnly: z
     .boolean()
     .optional()
@@ -328,20 +356,20 @@ async function integrationsNote(projectRoot: string): Promise<{ integrations?: s
 
 const MODEL_PREFIX = "documentation-robotics/model/";
 
-/** At most this many files are listed per group; the rest are counted. */
+/** How many files each of modified, added and removed lists by default; see {@link capped}. */
 const MAX_FILES_LISTED = 100;
 
+/** The three lists, each shortened on its own; the caller gives the true count of all three. */
 function cappedFiles(files: FilesChanged) {
-  const cap = (list: string[]) => list.slice(0, MAX_FILES_LISTED);
-  const omitted =
-    Math.max(0, files.modified.length - MAX_FILES_LISTED) +
-    Math.max(0, files.added.length - MAX_FILES_LISTED) +
-    Math.max(0, files.removed.length - MAX_FILES_LISTED);
+  const modified = capped(files.modified, MAX_FILES_LISTED);
+  const added = capped(files.added, MAX_FILES_LISTED);
+  const removed = capped(files.removed, MAX_FILES_LISTED);
+  const omitted = (modified.rest.omitted ?? 0) + (added.rest.omitted ?? 0) + (removed.rest.omitted ?? 0);
   return {
-    modified: cap(files.modified),
-    added: cap(files.added),
-    removed: cap(files.removed),
-    ...(omitted > 0 ? { omitted } : {}),
+    modified: modified.items,
+    added: added.items,
+    removed: removed.items,
+    ...(omitted > 0 ? { shown: countFiles(files) - omitted, omitted, more: more() } : {}),
   };
 }
 
@@ -366,13 +394,13 @@ function filesChanged(before: Map<string, string>, after: Map<string, string>) {
 /** What the project's large-file commit hook would do to the files dr writes; null when nothing. */
 async function commitHookNote(projectRoot: string): Promise<string | null> {
   try {
-    return largeFileHookNote(await largeFileHook(projectRoot));
+    return largeFileHookNote(await largeFileHook(projectRoot), { full: wantsFull() });
   } catch {
     return null;
   }
 }
 
-/** At most this many derived values are listed. */
+/** How many derived values are listed by default; see {@link capped}. The changeset holds them all. */
 const MAX_FILLS_LISTED = 100;
 
 /**
@@ -381,18 +409,22 @@ const MAX_FILLS_LISTED = 100;
  */
 function fillsReport(fills: UpgradeFills | undefined, written: boolean) {
   if (!fills) return {};
-  const listed = fills.fills.slice(0, MAX_FILLS_LISTED).map((fill) => ({
-    elementId: fill.elementId,
-    attribute: fill.attribute,
-    value: fill.value,
-    rule: fill.rule,
-  }));
+  const { items, rest } = capped(fills.fills, MAX_FILLS_LISTED);
   const base = {
     changeset: fills.name,
     values: fills.count,
     elements: fills.elements,
-    fills: listed,
-    ...(fills.fills.length > listed.length ? { omitted: fills.fills.length - listed.length } : {}),
+    fills: items.map((fill) => ({
+      elementId: fill.elementId,
+      attribute: fill.attribute,
+      value: fill.value,
+      rule: fill.rule,
+    })),
+    ...rest,
+    // Once written, the changeset itself is the complete list
+    ...(rest.omitted && written && !fills.error
+      ? { more: `changeset_show ${fills.name} lists every staged value.` }
+      : {}),
   };
   if (fills.error) {
     return {
@@ -417,14 +449,14 @@ function fillsReport(fills: UpgradeFills | undefined, written: boolean) {
 /** The required attributes no derivation covers, per element. */
 function unfilledReport(unfilled: UnfilledRequired[] | undefined) {
   if (!unfilled || unfilled.length === 0) return {};
-  const { items, omitted } = capped(unfilled);
+  const { items, rest } = capped(unfilled);
   return {
     unfilledRequired: {
       note: "Required attributes these elements would leave empty with no value to derive. Fill them in from the code or the user after the upgrade.",
       elementCount: unfilled.length,
       attributeCount: unfilled.reduce((n, item) => n + item.attributes.length, 0),
       elements: items,
-      ...(omitted ? { omitted } : {}),
+      ...rest,
     },
   };
 }
@@ -472,10 +504,12 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
 /** The choices for files git tracks under .dr/, as the preview and an apply without a choice return them. */
 function gitignoreDecision(ignore: DotDrIgnoreResult, projectRoot: string) {
   const decision = ignore.decision!;
+  const { items, rest } = capped(decision.files, DOT_DR_FILES_SHOWN);
   return {
     path: join(projectRoot, ".gitignore"),
     wouldIgnoreTracked: decision.wouldIgnoreTracked,
-    trackedFiles: decision.files,
+    trackedFiles: items,
+    ...rest,
     alreadyIgnored: decision.alreadyIgnored,
     options: decision.options,
     note: 'Nothing changes until the user chooses. Put the options to them, then call project_upgrade with apply: true and gitignore: "untrack", "keep-tracked" or "skip".',
@@ -536,8 +570,17 @@ function formatRelationship(rel: { source: string; predicate: string; target: st
   return `${rel.source} --[${rel.predicate}]--> ${rel.target}`;
 }
 
-function capped<T>(items: T[]): { items: T[]; omitted?: number } {
-  return items.length > MAX_LISTED ? { items: items.slice(0, MAX_LISTED), omitted: items.length - MAX_LISTED } : { items };
+/**
+ * A list as a result carries it: all of it when it is within the default size or the call asked
+ * for `detail: "full"`, else its first `max` items with `rest` saying how many are shown, how many
+ * are left out and how to get them. Callers give the true count beside it.
+ */
+function capped<T>(
+  items: T[],
+  max: number = MAX_LISTED
+): { items: T[]; rest: { shown?: number; omitted?: number; more?: string } } {
+  if (wantsFull() || items.length <= max) return { items, rest: {} };
+  return { items: items.slice(0, max), rest: { shown: max, omitted: items.length - max, more: more() } };
 }
 
 function elementTypeRenames(changes: ElementTypeRenameChange[]) {
@@ -549,20 +592,20 @@ function elementTypeRenames(changes: ElementTypeRenameChange[]) {
     byType.set(key, group);
   }
   return [...byType.values()].map((group) => {
-    const { items, omitted } = capped(group.elements);
+    const { items, rest } = capped(group.elements);
     return {
       fromType: group.fromType,
       toType: group.toType,
       count: group.elements.length,
       elements: items,
-      ...(omitted ? { omitted } : {}),
+      ...rest,
     };
   });
 }
 
 /** Elements (or staged changes) that lose attributes the spec removed from their type */
 function retiredAttributeRemovals(changes: Array<RetiredAttributeChange | StagedRetiredAttributeChange>, noun?: string) {
-  const { items, omitted } = capped(changes);
+  const { items, rest } = capped(changes);
   return {
     summary: summarizeRetiredAttributeChanges(changes, noun),
     count: changes.length,
@@ -572,7 +615,7 @@ function retiredAttributeRemovals(changes: Array<RetiredAttributeChange | Staged
       attributes: change.attributes,
       ...("changeset" in change ? { changeset: change.changeset, stagedAs: change.stagedAs } : {}),
     })),
-    ...(omitted ? { omitted } : {}),
+    ...rest,
   };
 }
 
@@ -589,11 +632,12 @@ function relationshipChange(change: RelationshipRewriteChange | StagedRelationsh
 }
 
 function relationshipRewrites(changes: RelationshipRewriteChange[], label?: string) {
-  const { items, omitted } = capped(changes);
+  const { items, rest } = capped(changes);
   return {
     summary: summarizeRelationshipChanges(changes, label),
+    count: changes.length,
     changes: items.map(relationshipChange),
-    ...(omitted ? { omitted } : {}),
+    ...rest,
   };
 }
 
@@ -688,13 +732,13 @@ export async function wouldOrphan(projectRoot: string, catalog: CatalogMigration
       return { wouldOrphan: { error: "Could not predict orphaned elements: the dry run didn't produce the migrated relationships." } };
     }
     if (orphans.length === 0) return {};
-    const { items, omitted } = capped(orphans);
+    const { items, rest } = capped(orphans);
     return {
       wouldOrphan: {
         count: orphans.length,
         note: "These elements lose their last relationship with the dropped ones; validation reports them as orphaned after apply. Relink them, or accept them as they are.",
         elements: items,
-        ...(omitted ? { omitted } : {}),
+        ...rest,
       },
     };
   } catch (error) {
@@ -827,6 +871,10 @@ function lockedWhenApplying(args: ProjectUpgradeArgs, fn: () => Promise<CallTool
 }
 
 export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<CallToolResult> {
+  return callDetail.run({ full: args.detail === "full", apply: args.apply === true }, () => runProjectUpgrade(args));
+}
+
+async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResult> {
   return runTool(() => withConsoleOnStderr(() => lockedWhenApplying(args, async () => {
     if (args.force && !args.apply) {
       throw new CLIError("force is only used together with apply: true", ErrorCategory.USER, [
@@ -1071,7 +1119,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
         }
       }
       const model = await reloadModel(args.rootPath);
-      const validation = await validationSummary(model, undefined, modelResult?.fills);
+      const validation = await validationSummary(model, undefined, modelResult?.fills, { full: args.detail === "full" });
       const decisionOpen = Boolean((gitignore.gitignore as { options?: unknown } | undefined)?.options);
       return jsonResult(
         {
@@ -1114,7 +1162,7 @@ export async function projectUpgradeHandler(args: ProjectUpgradeArgs): Promise<C
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what a large-file commit hook would refuse (commitHook). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what a large-file commit hook would refuse (commitHook). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

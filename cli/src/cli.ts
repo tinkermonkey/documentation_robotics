@@ -876,12 +876,14 @@ program
     ).choices(["untrack", "keep-tracked", "skip"])
   )
   .option("--remove-stale", "Remove DR-named integration files this dr's integration no longer has, without asking")
+  .option("--full", "List every file, element and derived value; long lists otherwise show their first entries with the total")
   .addHelpText(
     "after",
     `
 Examples:
   $ dr upgrade              # Scan, show plan, and prompt for upgrades
   $ dr upgrade --dry-run    # Preview: every file it would touch, in and outside the model
+  $ dr upgrade --dry-run --full  # The same, with no list shortened
   $ dr upgrade --yes        # Upgrade without prompting
   $ dr upgrade --model-only # Migrate the model; leave integrations, reports and ignore files alone
   $ dr upgrade --force      # Force all upgrades, ignoring version checks`
@@ -894,6 +896,7 @@ Examples:
       modelOnly: options.modelOnly,
       dotDr: options.dotDr,
       removeStale: options.removeStale,
+      full: options.full,
     });
   });
 

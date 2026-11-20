@@ -117,6 +117,25 @@ describe("outsideModelLines (#1165)", () => {
     expect(text).toContain("    add       documentation-robotics/changesets/ and documentation-robotics/model/ to .prettierignore");
   });
 
+  it("shortens a long integration list by default, with the true count and the way to see it all", () => {
+    const files = Array.from({ length: 110 }, (_, i) => ({
+      path: `.github/skills/dr_skill_${String(i + 1).padStart(3, "0")}/SKILL.md`,
+      action: "update" as const,
+    }));
+    const lines = outsideModelLines({ errors: [] }, [copilot({ files, stale: [] })]);
+    // The heading counts every file (and the version file), whatever is listed under it
+    expect(lines[0]).toBe("  GitHub Copilot integration (.github/): 0.5.0 → 0.6.0, 111 file(s)");
+    expect(lines.filter((line) => line.includes("dr_skill_"))).toHaveLength(40);
+    expect(lines.join("\n")).toContain("...and 70 more of 110 file(s); dr upgrade --dry-run --full lists them all");
+    expect(lines.join("\n")).toContain("update    .github/.dr-copilot-version");
+
+    const full = outsideModelLines({ errors: [] }, [copilot({ files, stale: [] })], { full: true });
+    expect(full[0]).toBe(lines[0]);
+    expect(full.filter((line) => line.includes("dr_skill_"))).toHaveLength(110);
+    expect(full.join("\n")).toContain("dr_skill_110/SKILL.md");
+    expect(full.join("\n")).not.toContain("more of");
+  });
+
   it("lists only the stale entries of an integration that needs no upgrade", () => {
     const lines = outsideModelLines({ errors: [] }, [copilot({ upgrade: false, files: [] })]);
     expect(lines[0]).toBe("  GitHub Copilot integration (.github/): up to date (v0.6.0)");

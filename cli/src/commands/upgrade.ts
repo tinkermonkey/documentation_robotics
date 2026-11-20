@@ -87,6 +87,12 @@ export interface UpgradeOptions {
   dotDr?: DotDrTrackedChoice;
   /** Remove stale DR-named integration files without asking */
   removeStale?: boolean;
+  /**
+   * List every file, element and derived value, however many. Without it long lists show their
+   * first entries with the true total and say how to see the rest; nothing is ever touched that
+   * the full list would not name.
+   */
+  full?: boolean;
 }
 
 /** The managers of the per-project integrations, by name */
@@ -320,7 +326,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       printOutsideModelPlan(context, options);
       if (!options.dryRun && !options.modelOnly) {
         await applyOutsideModel(projectRoot, options, context);
-        await printCommitHookNote(projectRoot);
+        await printCommitHookNote(projectRoot, options);
       }
       return;
     }
@@ -477,7 +483,7 @@ async function handleUpgrade(
       // Hash the project's DR folder around the step, to name every file it wrote
       const before = await hashFiles(projectRoot, DR_FOLDER);
       modelResult = await executeModelMigration(projectRoot, action, options);
-      printFilesWritten(diffFiles(before, await hashFiles(projectRoot, DR_FOLDER)));
+      printFilesWritten(diffFiles(before, await hashFiles(projectRoot, DR_FOLDER)), options);
     } else if (action.type === "integration") {
       await executeIntegrationUpdate(action.description, async () => {
         const manager = INTEGRATIONS.find((integration) => integration.name === action.integrationName)!.create();
@@ -492,15 +498,15 @@ async function handleUpgrade(
   }
 
   if (modelResult) {
-    printValidationChecklist(modelResult);
-    printFills(modelResult.fills);
+    printValidationChecklist(modelResult, options);
+    printFills(modelResult.fills, options);
   }
 
   // Drifted changesets lead the summary, where they can't be missed at the end of a long log
   printDriftedChangesets(modelResult?.changesets.drifted ?? []);
   await printUpgradeOutcome(projectRoot);
   if (!options.modelOnly) {
-    await printCommitHookNote(projectRoot);
+    await printCommitHookNote(projectRoot, options);
   }
 }
 
@@ -508,32 +514,44 @@ async function handleUpgrade(
 const DR_FOLDER = "documentation-robotics";
 const MODEL_PREFIX = `${DR_FOLDER}/model/`;
 
-/** At most this many files are listed per group in the plan and the summary */
-const MAX_FILES_LISTED = 30;
+/**
+ * How many files a group lists by default in the plan and the summary. The heading always gives
+ * the true count, and --full lists every file.
+ */
+const FILES_SHOWN = 30;
 
-function printFileList(files: FilesChanged): void {
+/** How to see the rest of a shortened list: before the run, the dry run with --full */
+const FULL_DRY_RUN = "dr upgrade --dry-run --full lists them all";
+
+/**
+ * @param rest - how the reader gets the entries a shortened list leaves out
+ */
+function printFileList(files: FilesChanged, options: UpgradeOptions, rest: string): void {
   const entries = [
     ...files.modified.map((file) => `write   ${file}`),
     ...files.added.map((file) => `add     ${file}`),
     ...files.removed.map((file) => `remove  ${file}`),
   ];
-  for (const entry of entries.slice(0, MAX_FILES_LISTED)) {
+  const shown = options.full ? entries : entries.slice(0, FILES_SHOWN);
+  for (const entry of shown) {
     console.log(ansis.dim(`   ${entry}`));
   }
-  if (entries.length > MAX_FILES_LISTED) {
-    console.log(ansis.dim(`   ...and ${entries.length - MAX_FILES_LISTED} more file(s)`));
+  if (entries.length > shown.length) {
+    console.log(ansis.dim(`   ...and ${entries.length - shown.length} more of ${entries.length} file(s); ${rest}`));
   }
 }
 
 /** After the model step: every file under documentation-robotics/ it wrote, model files first */
-function printFilesWritten(written: FilesChanged): void {
+function printFilesWritten(written: FilesChanged, options: UpgradeOptions): void {
   const model = filesUnder(written, MODEL_PREFIX);
   const other = filesOutside(written, MODEL_PREFIX);
+  // After the run git has the whole list
+  const rest = `git status --short ${DR_FOLDER} lists them all`;
   console.log(ansis.dim(`Model files written (${countFiles(model)}):`));
-  printFileList(model);
+  printFileList(model, options, rest);
   if (countFiles(other) > 0) {
     console.log(ansis.dim(`Changeset files written (${countFiles(other)}):`));
-    printFileList(other);
+    printFileList(other, options, rest);
   }
 }
 
@@ -548,7 +566,7 @@ function printOutsideModelPlan(context: OutsideContext, options: UpgradeOptions)
   }
 
   if (options.modelOnly) {
-    const lines = outsideModelLines(outside, integrations, { skipped: true });
+    const lines = outsideModelLines(outside, integrations, { skipped: true, full: options.full });
     if (outside.specReference) {
       console.log(ansis.dim(`Spec reference: ${outside.specReference.description}`));
     }
@@ -561,9 +579,11 @@ function printOutsideModelPlan(context: OutsideContext, options: UpgradeOptions)
   }
 
   console.log(ansis.bold(`Outside the model (${MODEL_PREFIX}), this upgrade also changes:`));
-  outsideModelLines(outside, integrations).forEach((line) => console.log(ansis.dim(line)));
+  outsideModelLines(outside, integrations, { full: options.full }).forEach((line) => console.log(ansis.dim(line)));
   if (outside.gitignore?.decision) {
-    dotDrDecisionLines(outside.gitignore.decision).forEach((line) => console.log(ansis.yellow(`  ${line}`)));
+    dotDrDecisionLines(outside.gitignore.decision, { full: options.full }).forEach((line) =>
+      console.log(ansis.yellow(`  ${line}`))
+    );
   }
   console.log(ansis.dim("  --model-only leaves all of these alone except the spec reference.\n"));
 }
@@ -596,7 +616,7 @@ async function keepDotDrOutOfGit(projectRoot: string, options: UpgradeOptions): 
   try {
     let ignore = await ensureDotDrIgnored(projectRoot, { tracked: options.dotDr });
     if (ignore.decision) {
-      const lines = dotDrDecisionLines(ignore.decision);
+      const lines = dotDrDecisionLines(ignore.decision, { full: options.full });
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
       if (isInteractive && !options.yes) {
         console.log(ansis.yellow(`\n⚠ ${lines[0]}`));
@@ -680,9 +700,9 @@ async function offerStaleRemoval(options: UpgradeOptions, integrations: Integrat
 }
 
 /** What the project's large-file commit hook would do to the files dr writes; dr changes nothing */
-async function printCommitHookNote(projectRoot: string): Promise<void> {
+async function printCommitHookNote(projectRoot: string, options: UpgradeOptions): Promise<void> {
   try {
-    const note = largeFileHookNote(await largeFileHook(projectRoot));
+    const note = largeFileHookNote(await largeFileHook(projectRoot), { full: options.full });
     if (note) console.log(ansis.yellow(`⚠ ${note}\n`));
   } catch {
     // The note is advice: a config that can't be read says nothing
@@ -705,7 +725,7 @@ async function printRehearsal(projectRoot: string, action: UpgradeAction, option
   const { result, modelFiles, otherFiles } = rehearsal;
   console.log(ansis.bold("Rehearsed on a copy of the model:"));
   console.log(ansis.dim(`Model files it would write (${countFiles(modelFiles)}):`));
-  printFileList(modelFiles);
+  printFileList(modelFiles, options, FULL_DRY_RUN);
   if (countFiles(otherFiles) > 0) {
     console.log(ansis.dim(`Changesets (${DR_FOLDER}/changesets/), ${countFiles(otherFiles)} file(s):`));
     if (result.changesets.rebaselined.length > 0) {
@@ -724,13 +744,16 @@ async function printRehearsal(projectRoot: string, action: UpgradeAction, option
       );
     }
   }
-  printValidationChecklist(result, true);
-  printFills(result.fills, true);
+  printValidationChecklist(result, options, true);
+  printFills(result.fills, options, true);
   console.log();
 }
 
-/** At most this many elements are listed in the post-upgrade validation checklist */
-const MAX_CHECKLIST_ELEMENTS = 50;
+/**
+ * How many elements the validation checklist lists by default. Its heading counts every error and
+ * every element; --full (or dr validate, after the run) lists them all.
+ */
+const CHECKLIST_ELEMENTS_SHOWN = 50;
 
 /**
  * The upgraded base model's validation errors per element: the required attributes each element
@@ -739,7 +762,7 @@ const MAX_CHECKLIST_ELEMENTS = 50;
  *
  * @param would - the result is a rehearsal's: say what would be, not what is
  */
-function printValidationChecklist(result: ModelUpgradeResult, would: boolean = false): void {
+function printValidationChecklist(result: ModelUpgradeResult, options: UpgradeOptions, would: boolean = false): void {
   if (result.validationError !== undefined) {
     console.warn(ansis.yellow(`\n⚠ Could not validate the upgraded model: ${result.validationError}`));
     return;
@@ -759,7 +782,8 @@ function printValidationChecklist(result: ModelUpgradeResult, would: boolean = f
       `${would ? "" : "\n"}⚠ The upgraded model ${would ? "would have" : "has"} ${errors.length} validation error(s) on ${groups.length} element(s):`
     )
   );
-  for (const group of groups.slice(0, MAX_CHECKLIST_ELEMENTS)) {
+  const shownGroups = options.full ? groups : groups.slice(0, CHECKLIST_ELEMENTS_SHOWN);
+  for (const group of shownGroups) {
     console.log(`  ${group.elementId ?? `(${group.layer} layer)`}`);
     const staged = group.missingAttributes.filter((attribute) => derived.has(`${group.elementId} ${attribute}`));
     const empty = group.missingAttributes.filter((attribute) => !derived.has(`${group.elementId} ${attribute}`));
@@ -773,18 +797,23 @@ function printValidationChecklist(result: ModelUpgradeResult, would: boolean = f
       console.log(ansis.dim(`    ${message}`));
     }
   }
-  if (groups.length > MAX_CHECKLIST_ELEMENTS) {
+  if (groups.length > shownGroups.length) {
     console.log(
-      ansis.dim(`  ...and ${groups.length - MAX_CHECKLIST_ELEMENTS} more element(s); dr validate lists them all`)
+      ansis.dim(
+        `  ...and ${groups.length - shownGroups.length} more of ${groups.length} element(s); ${would ? FULL_DRY_RUN : "dr validate lists them all"}`
+      )
     );
   }
 }
 
-/** At most this many derived values are listed */
-const MAX_FILLS_LISTED = 20;
+/**
+ * How many derived values are listed by default. The heading counts them all; --full lists them
+ * all, and after the run the changeset holds every one.
+ */
+const FILLS_SHOWN = 20;
 
 /** The values derived for required attributes, and the changeset they are staged in for review */
-function printFills(fills: UpgradeFills | undefined, would: boolean = false): void {
+function printFills(fills: UpgradeFills | undefined, options: UpgradeOptions, would: boolean = false): void {
   if (!fills) {
     return;
   }
@@ -801,11 +830,16 @@ function printFills(fills: UpgradeFills | undefined, would: boolean = false): vo
         : `\n⚠ Staged ${fills.count} derived value(s) for required attributes on ${fills.elements} element(s) in the changeset '${fills.name}'. Nothing was written to the base model.`
     )
   );
-  for (const fill of fills.fills.slice(0, MAX_FILLS_LISTED)) {
+  const shownFills = options.full ? fills.fills : fills.fills.slice(0, FILLS_SHOWN);
+  for (const fill of shownFills) {
     console.log(ansis.dim(`   ${fill.elementId}: ${fill.attribute} = ${JSON.stringify(fill.value)}`));
   }
-  if (fills.fills.length > MAX_FILLS_LISTED) {
-    console.log(ansis.dim(`   ...and ${fills.fills.length - MAX_FILLS_LISTED} more`));
+  if (fills.fills.length > shownFills.length) {
+    console.log(
+      ansis.dim(
+        `   ...and ${fills.fills.length - shownFills.length} more of ${fills.fills.length}; ${would ? FULL_DRY_RUN : `the changeset '${fills.name}' holds them all`}`
+      )
+    );
   }
   if (!would) {
     console.log(

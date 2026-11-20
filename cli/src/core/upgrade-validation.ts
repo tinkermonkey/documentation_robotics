@@ -14,11 +14,15 @@ import { Validator } from "../validators/validator.js";
 import { addModelWarnings } from "../validators/model-warnings.js";
 import type { ValidationIssue, ValidationResult } from "../validators/types.js";
 
-/** How many errors and warnings validationSummary lists before it only counts them */
+/** How many errors and warnings validationSummary lists by default; errorCount and warningCount are of all of them */
 export const MAX_VALIDATION_ISSUES = 20;
 
-/** How many elements validationSummary lists under unfilledRequired */
+/** How many elements validationSummary lists under unfilledRequired by default */
 const MAX_UNFILLED_LISTED = 200;
+
+/** How to get what a shortened validation list leaves out */
+const VALIDATION_MORE =
+  'model_validate lists every error and warning; project_upgrade with detail: "full" returns every item with its result.';
 
 /** Required attributes an element leaves out */
 export interface UnfilledRequired {
@@ -112,16 +116,22 @@ export function withoutStaged(
 export async function validationSummary(
   model: Model,
   maxIssues: number = MAX_VALIDATION_ISSUES,
-  fills?: { name: string; error?: string; fills: Array<{ elementId: string; attribute: string }> }
+  fills?: { name: string; error?: string; fills: Array<{ elementId: string; attribute: string }> },
+  options: { full?: boolean } = {}
 ) {
+  // The counts and the verdict are of the whole model. The lists are shortened by default and say
+  // so; `full` lists every error, warning and element.
+  const issueLimit = options.full ? Infinity : maxIssues;
+  const unfilledLimit = options.full ? Infinity : MAX_UNFILLED_LISTED;
   const result = await validateBaseModel(model);
   const issue = (item: { layer: string; elementId?: string; message: string }) => ({
     layer: item.layer,
     ...(item.elementId ? { elementId: item.elementId } : {}),
     message: item.message,
   });
-  const errors = result.errors.slice(0, maxIssues).map(issue);
-  const warnings = result.warnings.slice(0, maxIssues).map(issue);
+  const errors = result.errors.slice(0, issueLimit).map(issue);
+  const warnings = result.warnings.slice(0, issueLimit).map(issue);
+  const shortened = result.errors.length > errors.length || result.warnings.length > warnings.length;
   const staged = fills && !fills.error ? fills.fills : [];
   const unfilled = withoutStaged(unfilledRequired(result.errors), staged);
   return {
@@ -144,8 +154,10 @@ export async function validationSummary(
             note: "Required attributes these elements leave empty and the upgrade has no value to derive for. It doesn't invent values: fill them in from the code or the user.",
             elementCount: unfilled.length,
             attributeCount: unfilled.reduce((n, item) => n + item.attributes.length, 0),
-            elements: unfilled.slice(0, MAX_UNFILLED_LISTED),
-            ...(unfilled.length > MAX_UNFILLED_LISTED ? { omitted: unfilled.length - MAX_UNFILLED_LISTED } : {}),
+            elements: unfilled.slice(0, unfilledLimit),
+            ...(unfilled.length > unfilledLimit
+              ? { shown: unfilledLimit, omitted: unfilled.length - unfilledLimit, more: VALIDATION_MORE }
+              : {}),
           },
         }
       : {}),
@@ -153,5 +165,6 @@ export async function validationSummary(
     ...(result.errors.length > errors.length ? { moreErrors: result.errors.length - errors.length } : {}),
     ...(warnings.length > 0 ? { warnings } : {}),
     ...(result.warnings.length > warnings.length ? { moreWarnings: result.warnings.length - warnings.length } : {}),
+    ...(shortened ? { more: VALIDATION_MORE } : {}),
   };
 }

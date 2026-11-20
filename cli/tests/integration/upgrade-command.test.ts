@@ -1488,6 +1488,52 @@ describe("upgrade command - unified flow", () => {
       expect(landed.attributes).toEqual({ operationId: "createOrder", summary: "Creates an order." });
     });
 
+    it("shortens a long list with its total and the way to see it all, and --full lists every item", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      // 30 operations with nothing the spec requires: 60 values to derive, 30 elements to list
+      const operations: Record<string, unknown> = {};
+      for (let i = 1; i <= 30; i++) {
+        const path = `api.operation.get-item-${String(i).padStart(2, "0")}`;
+        operations[path] = {
+          id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+          path,
+          spec_node_id: "api.operation",
+          type: "operation",
+          layer_id: "api",
+          name: `Get item ${i}`,
+        };
+      }
+      await mkdir(join(tempDir.path, "documentation-robotics/model/07_api"), { recursive: true });
+      await writeFile(join(tempDir.path, "documentation-robotics/model/07_api/operation.yaml"), yaml.stringify(operations));
+      await setModelSpecVersion(tempDir.path, "0.13.0");
+
+      const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
+      expect(dryRun.exitCode).toBe(0);
+      // The counts are of everything; the list is the first 20 and says so
+      assertOutputContains(dryRun, "would have 90 validation error(s) on 30 element(s)");
+      assertOutputContains(dryRun, "60 value(s) for required attributes on 30 element(s) would be derived");
+      assertOutputContains(dryRun, "...and 40 more of 60; dr upgrade --dry-run --full lists them all");
+      expect(dryRun.stdout).not.toContain('api.operation.get-item-30: operationId = "getItem30"');
+
+      const full = await runDr(["upgrade", "--dry-run", "--full"], { cwd: tempDir.path });
+      expect(full.exitCode).toBe(0);
+      assertOutputContains(full, 'api.operation.get-item-30: operationId = "getItem30"');
+      assertOutputContains(full, 'api.operation.get-item-30: summary = "Get item 30"');
+      expect(full.stdout).not.toContain("more of 60");
+
+      // The run itself: shortened the same way, pointing at the changeset, which holds all 60
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      assertOutputContains(result, "...and 40 more of 60; the changeset 'upgrade-fills-0.14.0' holds them all");
+      const dir = join(tempDir.path, "documentation-robotics/changesets");
+      const [id] = (await readdir(dir, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory() && !entry.name.endsWith(".lock"))
+        .map((entry) => entry.name);
+      const changes = yaml.parse(await readFile(join(dir, id, "changes.yaml"), "utf-8"));
+      expect(changes).toHaveLength(30);
+      expect(changes.every((change: any) => change.after.attributes.operationId && change.after.attributes.summary)).toBe(true);
+    });
+
     it("leaves .gitignore and the index alone while git tracks files under .dr/, until --dot-dr says what to do (#1185)", async () => {
       await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
       await setModelSpecVersion(tempDir.path, "0.13.0");
