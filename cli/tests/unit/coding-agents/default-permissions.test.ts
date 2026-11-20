@@ -16,8 +16,8 @@ import {
   formatForCopilot,
   applyCopilotPermissions,
   validatePermissions,
-} from "../../src/coding-agents/default-permissions.js";
-import { assertBaseModelWritable } from "../../src/core/changeset-only-guard.js";
+} from "../../../src/coding-agents/default-permissions.js";
+import { assertBaseModelWritable } from "../../../src/core/changeset-only-guard.js";
 
 // Store original functions for restoration
 let originalConsoleWarn: typeof console.warn;

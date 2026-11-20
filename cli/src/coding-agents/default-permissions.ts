@@ -53,8 +53,18 @@ export interface ToolPermission {
  * up` and `dr trace --help` both match `dr trace`. `dr help <command>` gives the help of any
  * command, including the ones a mode doesn't allow.
  *
- * Left out on purpose: `dr analyzer` (the code index is the user's to build and query, as with the
- * codebase_* MCP tools), `dr catalog docs` and `dr docs generate` (they write files).
+ * Left out on purpose:
+ * - `dr analyzer`: the code index is the user's to build and query, as with the codebase_* MCP tools.
+ * - `dr catalog docs` and `dr docs generate`: they write files.
+ * - `dr chat`: it starts another agent, and `dr chat <client> with-danger` an unrestricted one.
+ * - `dr changeset verify`: its `--adopt-source-references` writes the plan (the MCP
+ *   `changeset_verify` reads, and adopting is its own staging tool).
+ * - `dr changeset show`: it only prints which subcommand to use.
+ *
+ * Several of these commands take `--output <path>` (export, validate, stats, report, audit) or
+ * `--save-snapshot` (audit), which write a file wherever the path points. A prefix rule can't
+ * leave an option out, so the launch denies those flags (drBotDisallowedTools) and dr refuses
+ * them itself in a chat process (chat-guard.ts).
  */
 export const READ_SAFE_DR_COMMANDS: readonly string[] = Object.freeze([
   "dr query",
@@ -68,7 +78,6 @@ export const READ_SAFE_DR_COMMANDS: readonly string[] = Object.freeze([
   "dr stats",
   "dr report",
   "dr audit",
-  "dr chat",
   "dr version",
   "dr conformance",
   "dr element list",
@@ -83,11 +92,9 @@ export const READ_SAFE_DR_COMMANDS: readonly string[] = Object.freeze([
   "dr docs validate",
   "dr changeset list",
   "dr changeset status",
-  "dr changeset show",
   "dr changeset staged",
   "dr changeset preview",
   "dr changeset diff",
-  "dr changeset verify",
   "dr help",
   "dr --help",
 ]);
@@ -186,6 +193,7 @@ export const USER_ONLY_DR_COMMANDS: Readonly<Record<string, string>> = Object.fr
   "dr changeset delete": "deleting a changeset is the person's step",
   "dr init": "creating a model is the person's step",
   "dr upgrade": "migrating the model to a new spec version is the person's step",
+  "dr chat": "starting another chat agent is the person's step",
 });
 
 export { CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";

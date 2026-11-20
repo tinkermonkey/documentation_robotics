@@ -322,7 +322,7 @@ export async function visualizeCommand(
             } else if (withChangesets) {
               console.log(
                 ansis.dim(
-                  `   Chat can stage model changes in a changeset (no commit/apply/delete); --read-only turns that off`
+                  `   Chat can stage model changes in a changeset (no commit/apply/delete; Claude Code only, Copilot stays read-only); --read-only turns that off`
                 )
               )
             } else {

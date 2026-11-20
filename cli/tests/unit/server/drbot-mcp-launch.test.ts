@@ -118,16 +118,86 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
     server.stop();
   });
 
-  it("leaves an installed project copy in charge (no --agents)", async () => {
+  it("passes an installed project copy as it is: under an allowlist claude loads no agent file itself", async () => {
     const { server } = await createServer({
       agentTools: "Bash, mcp__dr",
+      agentDescription: "The project's architect",
     });
     await chat(server, "req-project-agent");
 
     const args: string[] = (server as any)._testLastClaudeChatArgs;
-    expect(args).not.toContain("--agents");
+    expect(args.slice(0, 3)).toEqual(["claude", "--agent", "dr-architect"]);
+    expect(JSON.parse(valueOf(args, "--agents")!)["dr-architect"]).toEqual({
+      description: "The project's architect",
+      prompt: "Installed body",
+      tools: ["Bash", "mcp__dr"],
+    });
     expect(args).toContain("--mcp-config");
+    expect([...(server as any).drBotWarnings]).toEqual([]);
     server.stop();
+  });
+
+  it("launches under an allowlist that no settings file can widen (the three rules, #1240 review)", async () => {
+    const { server } = await createServer();
+    await chat(server, "req-hardened");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    // No user, project or local settings; no editing or network tool; nothing is ever asked.
+    expect(args).toContain("--restricted");
+    expect(valueOf(args, "--tools")).toBe("Bash,Read,Glob,Grep");
+    expect(valueOf(args, "--permission-mode")).toBe("dontAsk");
+    expect(args).toContain("--strict-mcp-config");
+    expect(args).not.toContain("--dangerously-skip-permissions");
+    // What DrBot must never do is denied outright.
+    const denied = valueOf(args, "--disallowedTools")!.split(",");
+    for (const rule of [
+      "Edit",
+      "Write",
+      "WebFetch",
+      "Bash(dr changeset commit:*)",
+      "Bash(dr changeset apply:*)",
+      "Bash(dr changeset discard:*)",
+      "Bash(dr changeset delete:*)",
+      "Bash(dr changeset revert:*)",
+      "Bash(*--output*)",
+      "mcp__dr__changeset_commit",
+      "mcp__dr__changeset_discard",
+    ]) {
+      expect(denied).toContain(rule);
+    }
+    // No rule both allows and denies.
+    const allowed = valueOf(args, "--allowedTools")!.split(",");
+    expect(allowed.filter((rule) => denied.includes(rule))).toEqual([]);
+    // The hook that refuses anything but one plain dr command, with the reason.
+    const settings = JSON.parse(valueOf(args, "--settings")!);
+    expect(settings.hooks.PreToolUse[0].matcher).toBe("Bash");
+    expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe("dr chat-permission-hook");
+    expect(settings.permissions).toBeUndefined();
+    server.stop();
+  });
+
+  it("denies every staging command and tool in a read-only viewer", async () => {
+    const { server } = await createServer({ readOnly: true });
+    await chat(server, "req-hardened-readonly");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    const denied = valueOf(args, "--disallowedTools")!.split(",");
+    for (const rule of ["Bash(dr add:*)", "Bash(dr changeset create:*)", "mcp__dr__model_add", "mcp__dr__changeset_create"]) {
+      expect(denied).toContain(rule);
+    }
+    const allowed = valueOf(args, "--allowedTools")!.split(",");
+    expect(allowed).not.toContain("mcp__dr__model_add");
+    expect(allowed.filter((rule) => denied.includes(rule))).toEqual([]);
+    server.stop();
+  });
+
+  it("gives every process of the launch the chat mode, so dr and dr mcp refuse on their own", async () => {
+    const { server } = await createServer();
+    expect((server as any).buildChatEnv().DR_CHAT_MODE).toBe("changesets");
+    const readOnly = (await createServer({ readOnly: true })).server;
+    expect((readOnly as any).buildChatEnv().DR_CHAT_MODE).toBe("read-safe");
+    server.stop();
+    readOnly.stop();
   });
 
   it("passes the prepared MCP config to claude and removes it after the agent exits", async () => {
@@ -213,37 +283,60 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
     server.stop();
   });
 
-  it("skips MCP and warns once when the installed dr-architect agent can't be passed with the dr tools", async () => {
-    // No description: --agents can't carry it, so Claude Code runs the file as it is.
-    const { server, tempRoot } = await createServer({
+  it("runs the bundled dr-architect, and warns once, when the installed one can't be passed", async () => {
+    // No description: --agents can't carry it, and under an allowlist claude loads no agent file.
+    const { server } = await createServer({
       agentTools: "Bash, Read, Edit, Write",
     });
     await chat(server, "req-stale-1");
     await chat(server, "req-stale-2");
 
     const args: string[] = (server as any)._testLastClaudeChatArgs;
-    expect(args).not.toContain("--mcp-config");
-    expect(args).not.toContain("--agents");
-    expect(valueOf(args, "--append-system-prompt")).toContain("dr MCP server is not connected");
-    expect(readdirSync(tempRoot)).toEqual([]);
+    expect(args).toContain("--mcp-config");
+    const definition = JSON.parse(valueOf(args, "--agents")!)["dr-architect"];
+    expect(definition.prompt).not.toBe("Installed body");
+    expect(definition.tools).toContain("mcp__dr__changeset_create");
 
     const warnings = [...(server as any).drBotWarnings] as string[];
     expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("can't be passed to the chat (agent file has no description)");
     expect(warnings[0]).toContain("dr claude upgrade");
     server.stop();
   });
 
-  it("connects MCP but warns about the tools a partly current agent leaves out", async () => {
+  it("launches as plain claude, on the Bash rules, when no dr-architect can be passed at all", async () => {
+    const { server, tempRoot } = await createServer({
+      agentTools: "Bash, Read, Edit, Write",
+      bundledPath: null,
+    });
+    await chat(server, "req-no-agent");
+
+    const args: string[] = (server as any)._testLastClaudeChatArgs;
+    // `--agent dr-architect` would fail: under an allowlist claude finds no installed agent.
+    expect(args).not.toContain("--agent");
+    expect(args).not.toContain("--agents");
+    expect(args).not.toContain("--mcp-config");
+    expect(args).toContain("--restricted");
+    expect(valueOf(args, "--append-system-prompt")).toContain("dr MCP server is not connected");
+    expect(readdirSync(tempRoot)).toEqual([]);
+    expect([...(server as any).drBotWarnings]).toHaveLength(1);
+    server.stop();
+  });
+
+  it("connects MCP, adds the tools a partly current agent leaves out, and warns about them", async () => {
     const { server } = await createServer({
       agentTools: "Bash, mcp__dr__model_search, mcp__dr__model_show",
+      agentDescription: "The project's architect",
     });
     await chat(server, "req-partial");
 
     const args: string[] = (server as any)._testLastClaudeChatArgs;
     expect(args).toContain("--mcp-config");
+    expect(JSON.parse(valueOf(args, "--agents")!)["dr-architect"].tools).toContain("mcp__dr__changeset_create");
     const warnings = [...(server as any).drBotWarnings] as string[];
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("mcp__dr__changeset_create");
+    expect(warnings[0]).toContain("the chat adds them");
     expect(warnings[0]).not.toContain("mcp__dr__model_search,");
     server.stop();
   });

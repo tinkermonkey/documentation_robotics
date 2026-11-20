@@ -48,6 +48,12 @@ import { initTelemetry, startActiveSpan, shutdownTelemetry } from "./telemetry/i
 import { installConsoleInterceptor } from "./telemetry/console-interceptor.js";
 import { getErrorMessage, CLIError } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
+import {
+  CHAT_PERMISSION_HOOK_COMMAND,
+  assertChatCommandAllowed,
+  chatPermissionHookDecision,
+  chatPermissionHookOutput,
+} from "./coding-agents/chat-guard.js";
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -132,7 +138,10 @@ program
   .option("--codebase-path <path>", "Override codebase root path (default: resolved from manifest or project root)")
   .exitOverride() // Prevent Commander from calling process.exit() - we handle exit ourselves
   .showSuggestionAfterError() // "Did you mean X?" on unknown commands/options
-  .hook("preAction", async (thisCommand) => {
+  .hook("preAction", async (thisCommand, actionCommand) => {
+    // In a process the viewer's chat agent started (DR_CHAT_MODE), refuse what its mode does not
+    // allow before the command touches the model or the disk (coding-agents/chat-guard.ts).
+    assertChatCommandAllowed(actionCommand);
     // Set up global state (verbose/debug/json flags)
     const options = thisCommand.opts();
     setGlobalOptions({
@@ -678,10 +687,10 @@ Default mode (changeset staging, Claude Code) lets chat:
   - Never commit, apply, revert, discard or delete a changeset: those stay
     with you (Apply in the viewer). Writes outside an active changeset are
     refused.
-  - Run one 'dr' command per shell call: a call that adds pipes, &&, ; or
-    redirects needs approval nobody can give in the chat, so it is denied.
-    The chat is told these rules, and a refused call says which rule
-    refused it and how to allow it.
+  - Run one plain 'dr' command per shell call, inside this project: no
+    other command, pipe, redirect or --output flag. Claude settings files
+    are not read, so none can widen this. The chat is told these rules,
+    and a refused call says which rule refused it and how to allow it.
 
 Read-only mode (--read-only; always the mode for GitHub Copilot):
   - The reads above, and no changes to the model at all
@@ -706,6 +715,24 @@ The --viewer-path option allows loading a local build of the web UI:
       readOnly: options.readOnly,
       viewerPath: options.viewerPath,
     });
+  });
+
+// Claude Code's PreToolUse hook for the viewer's chat (see coding-agents/chat-guard.ts): reads
+// one tool call as JSON on stdin and prints a deny decision, with the reason, or nothing.
+program
+  .command(CHAT_PERMISSION_HOOK_COMMAND, { hidden: true })
+  .description("Decide one chat tool call (used by dr visualize; not for direct use)")
+  .action(async () => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+    let input: unknown = null;
+    try {
+      input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+      // Not a hook call: decide nothing, and Claude Code's own rules apply.
+    }
+    const reason = chatPermissionHookDecision(input);
+    if (reason) process.stdout.write(chatPermissionHookOutput(reason));
   });
 
 program

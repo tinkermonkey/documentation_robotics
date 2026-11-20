@@ -11,7 +11,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import chokidar from "chokidar";
 import { randomBytes, randomUUID } from "crypto";
-import { existsSync, mkdirSync, realpathSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync } from "fs";
 import { realpath } from "fs/promises";
 import { homedir } from "os";
 import { createRequire } from "module";
@@ -57,6 +57,7 @@ import {
 import {
   DR_ARCHITECT_AGENT,
   drMcpAllowedTools,
+  resolveDrCommand,
   prepareDrMcpLaunch,
   prepareDrBotAgent,
   type AgentMcpToolCheck,
@@ -66,10 +67,15 @@ import {
   type PrepareDrMcpLaunchOptions,
 } from "../coding-agents/drbot-mcp.js";
 import {
+  DRBOT_BUILT_IN_TOOLS,
+  drBotDisallowedTools,
+  drBotLaunchSettings,
   drBotSessionPrompt,
   explainDeniedToolCall,
+  isExplainedRefusal,
   isPermissionDenial,
 } from "../coding-agents/drbot-permissions.js";
+import { CHAT_MODE_ENV, REFUSAL_MARKER } from "../coding-agents/chat-guard.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { hasExited } from "../utils/stop-child-process.js";
 import {
@@ -210,8 +216,7 @@ interface ClaudeTurnState {
    * The turn's `result` event lists the refused calls, so one of these may still turn out to be one.
    */
   failedTools: Map<string, { name: unknown; input: unknown; result: unknown }>;
-  /** The dr MCP server was connected for this launch. */
-  mcpConnected: boolean;
+
   /** The conversation's Claude Code session, when the send named a conversation. */
   session?: ChatSession;
   /** Claude Code printed at least one stream-json event. */
@@ -2757,9 +2762,12 @@ export class VisualizationServer {
   private buildClaudeChatArgs(
     mcpConfigPath?: string,
     session?: ChatSession,
-    agentArgs: string[] = []
+    agentArgs: string[] = [],
+    omitAgent: boolean = false
   ): string[] {
-    const cmd = ["claude", "--agent", DR_ARCHITECT_AGENT, ...agentArgs, "--print"];
+    // Under an allowlist claude loads no installed agent, so `--agent` names one only when the
+    // launch passes its definition (agentArgs); with none to pass, DrBot runs as plain claude.
+    const cmd = ["claude", ...(omitAgent ? [] : ["--agent", DR_ARCHITECT_AGENT]), ...agentArgs, "--print"];
     const mode = this.drBotMode();
 
     // Apply permissions: full access, changeset-only writes, or the read-safe allowlist.
@@ -2770,7 +2778,28 @@ export class VisualizationServer {
       cmd.push("--dangerously-skip-permissions");
     } else {
       const bashRules = mode === "changesets" ? formatForClaudeCodeWithChangesets() : formatForClaudeCode();
-      cmd.push("--allowedTools", [bashRules, ...mcpRules].join(","));
+      // The allowlist is the only thing that allows (each flag checked against claude 2.1.328):
+      // - --restricted: no user, project or local settings file is read, so none can add allow
+      //   rules or a permissive default mode; the file tools are confined to the project.
+      // - --tools: no editing or network tool exists in the session at all.
+      // - --permission-mode dontAsk: anything not allowed is denied, never asked about.
+      // - --disallowedTools: what DrBot must never do is denied outright, which wins over an
+      //   allow rule from any source (managed settings are still read).
+      cmd.push(
+        "--restricted",
+        "--tools",
+        DRBOT_BUILT_IN_TOOLS.join(","),
+        "--permission-mode",
+        "dontAsk",
+        "--allowedTools",
+        [bashRules, ...mcpRules].join(","),
+        "--disallowedTools",
+        drBotDisallowedTools(mode).join(",")
+      );
+      // --settings is still read under --restricted: it carries the hook that refuses, with the
+      // reason, any Bash call that is not one plain dr command, and the user's sign-in settings.
+      const settings = drBotLaunchSettings(mode, this._testDrMcpOptions?.drCommand ?? resolveDrCommand(), this.userClaudeSettings());
+      if (settings) cmd.push("--settings", settings);
     }
 
     if (mcpConfigPath) {
@@ -2904,16 +2933,23 @@ export class VisualizationServer {
     // ones an installed copy leaves out (check.added), the chat works and the warning only asks
     // for the upgrade. Otherwise a copy that lists none of them can't use the server: say so, and
     // launch without MCP rather than tell the agent about tools it can't call.
+    if (check?.replaced) {
+      this.warnDrBotOnce(
+        `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.replaced.path}) can't be passed to the ` +
+          `chat (${check.replaced.reason}), so the chat runs the one bundled with this dr. ` +
+          "Run `dr claude upgrade` to update the file."
+      );
+    }
     if (check?.added) {
       this.warnDrBotOnce(
         `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) ` +
           (check.noneVisible ? "predates the dr MCP tools" : `doesn't list ${check.missing.join(", ")}`) +
           "; the chat adds them for its own sessions. Run `dr claude upgrade` to update the file."
       );
-    } else if (check) {
+    } else if (check && (check.error || check.missing.length > 0)) {
       this.warnDrBotOnce(
         check.error
-          ? `[Claude Code] Could not pass the bundled ${DR_ARCHITECT_AGENT} agent (${check.path}: ${check.error}), ` +
+          ? `[Claude Code] Could not pass the ${check.source === "bundled" ? "bundled " : ""}${DR_ARCHITECT_AGENT} agent (${check.path}: ${check.error}), ` +
               "so the chat may run one that can't see the dr MCP tools; it falls back to Bash dr commands."
           : check.noneVisible
             ? `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) predates the dr MCP ` +
@@ -2930,6 +2966,7 @@ export class VisualizationServer {
       return await prepareDrMcpLaunch({
         rootPath: this.model.rootPath,
         changesetOnly: mode === "changesets",
+        chatMode: mode === "danger" ? undefined : mode,
         drCommand: overrides.drCommand,
         tempRoot: overrides.tempRoot,
       });
@@ -2959,7 +2996,30 @@ export class VisualizationServer {
     if (this.withChangesets && !this.withDanger) {
       env[CHANGESET_ONLY_ENV] = "true";
     }
+    // Every `dr` the agent runs then refuses, itself, what the mode does not allow
+    // (coding-agents/chat-guard.ts). Danger mode has no mode to enforce.
+    const mode = this.chatPermissionMode();
+    if (mode === "danger") {
+      delete env[CHAT_MODE_ENV];
+    } else {
+      env[CHAT_MODE_ENV] = mode;
+    }
     return env;
+  }
+
+  /**
+   * The user's own Claude Code settings (`<config dir>/settings.json`), or null when there is
+   * none or it can't be read. Only its sign-in keys are carried into a launch (drBotLaunchSettings).
+   */
+  private userClaudeSettings(): Record<string, unknown> | null {
+    const configDir =
+      this._testClaudeConfigDir ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(homedir(), ".claude");
+    try {
+      const parsed = JSON.parse(readFileSync(path.join(configDir, "settings.json"), "utf8"));
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -3002,7 +3062,13 @@ export class VisualizationServer {
       }
       const usedSessionIdFlag = session !== undefined && !session.started;
       if (session && usedSessionIdFlag) session.attempted = true;
-      const cmd = this.buildClaudeChatArgs(drMcp?.configPath, session, agent?.args ?? []);
+      const cmd = this.buildClaudeChatArgs(
+        drMcp?.configPath,
+        session,
+        agent?.args ?? [],
+        // No definition to pass, and under an allowlist claude would not find an installed one.
+        agent !== null && agent.args.length === 0 && this.drBotMode() !== "danger"
+      );
       this._testLastClaudeChatArgs = [...cmd];
 
       // Test hook: allow tests to substitute a fixture command for the real claude binary
@@ -3080,7 +3146,6 @@ export class VisualizationServer {
           accumulatedText: "",
           pendingTools: new Map(),
           failedTools: new Map(),
-          mcpConnected: drMcp !== null,
           session,
           sawEvent: false,
         };
@@ -3359,13 +3424,17 @@ export class VisualizationServer {
     if (isError && !denied && tool) {
       turn.failedTools.set(toolUseId, { name: tool.name, input: tool.input, result });
     }
-    const explanation = denied
-      ? explainDeniedToolCall(
-          this.drBotMode(),
-          { toolName: tool?.name, toolInput: tool?.input },
-          { mcpConnected: turn.mcpConnected }
-        )
-      : undefined;
+    // A refusal from the chat's own hook or from dr itself already says why: nothing is added.
+    const explained = denied && isExplainedRefusal(text);
+    const explanation = !denied
+      ? undefined
+      : explained
+        ? text.slice(text.indexOf(REFUSAL_MARKER)).trim()
+        : explainDeniedToolCall(
+            this.drBotMode(),
+            { toolName: tool?.name, toolInput: tool?.input },
+            this.model.rootPath
+          );
     this.sendChatNotification(ws, "chat.tool.invoke", {
       conversation_id: conversationId,
       tool_use_id: toolUseId,
@@ -3374,7 +3443,9 @@ export class VisualizationServer {
       status: isError ? "failed" : "completed",
       is_error: isError,
       result,
-      ...(isError ? { error: [text || "Tool call failed", explanation].filter(Boolean).join("\n\n") } : {}),
+      ...(isError
+        ? { error: [text || "Tool call failed", explained ? undefined : explanation].filter(Boolean).join("\n\n") }
+        : {}),
       ...(denied ? { permission_denied: true, permission_explanation: explanation } : {}),
       timestamp: new Date().toISOString(),
     });
@@ -3437,9 +3508,11 @@ export class VisualizationServer {
         }
       }
 
-      // Launch GitHub Copilot
+      // Launch GitHub Copilot. It gets the chat's mode in its environment too, so any `dr` it
+      // runs keeps to the read-only rules whatever Copilot's own permission flags do.
       const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
+        env: this.buildChatEnv(),
         stdio: ["pipe", "pipe", "pipe"],
       });
 
