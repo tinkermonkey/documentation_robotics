@@ -114,6 +114,13 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
   return lines.join("\n");
 }
 
+/** A layer's status as the reports print it. */
+const STATUS_LABEL: Record<NonNullable<VerifyReport["layers"]>[number]["status"], string> = {
+  in_step: "In step",
+  drifted: "Drifted",
+  not_checked: "Not checked",
+};
+
 /**
  * Format the per-layer checks beyond the API layer, the API layer's parse gaps, and the layers
  * whose check failed, for markdown output
@@ -131,9 +138,24 @@ function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
     if (entries.length > 50) lines.push(`| _... and ${entries.length - 50} more_ | | | |`);
     lines.push("");
   };
+  const status = (layer: NonNullable<VerifyReport["layers"]>[number]) => {
+    lines.push(`**${STATUS_LABEL[layer.status]}:** ${escapeMarkdown(layer.status_text)}`);
+    lines.push("");
+    for (const group of layer.not_checked ?? []) {
+      const more = group.count > group.ids.length ? `, ... (${group.count - group.ids.length} more)` : "";
+      lines.push(
+        `- Not checked (${group.count}): ${escapeMarkdown(group.reason)}${group.to_check ? `. To check: ${escapeMarkdown(group.to_check)}` : ""}: ` +
+          `${escapeMarkdown(group.ids.join(", "))}${more}`
+      );
+    }
+    if (layer.not_checked?.length) lines.push("");
+  };
   for (const layer of report.layers ?? []) {
     const { summary, buckets } = layer;
     if (layer.layer === "api") {
+      lines.push("## Layer: api");
+      lines.push("");
+      status(layer);
       table("API operations not indexed (parse gaps, not drift)", buckets.not_indexed);
       continue;
     }
@@ -141,6 +163,7 @@ function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
     lines.push("");
     lines.push(`_${escapeMarkdown(layer.checks)}_`);
     lines.push("");
+    status(layer);
     lines.push("| Metric | Count |");
     lines.push("|--------|-------|");
     lines.push(`| Matched | ${summary.matched_count} |`);
@@ -207,7 +230,10 @@ function formatSummaryMarkdown(lines: string[], report: VerifyReport): void {
   lines.push("");
   lines.push(`**Total Model Entries (API Layer):** ${summary.total_model_entries}`);
   if (summary.elements_without_source_ref > 0) {
-    lines.push(`_(${summary.elements_without_source_ref} element(s) excluded from drift detection — no source attribution)_`);
+    lines.push(`_(${summary.elements_without_source_ref} element(s) not checked — no source attribution)_`);
+  }
+  if (summary.elements_not_checked) {
+    lines.push(`_(${summary.elements_not_checked} element(s) not checked — sourced to a file the analyzer reads no route from)_`);
   }
 }
 
@@ -399,10 +425,16 @@ export function formatVerifyText(report: VerifyReport): string {
 function formatLayersText(lines: string[], report: VerifyReport): void {
   for (const layer of report.layers ?? []) {
     const { summary, buckets } = layer;
-    if (layer.layer === "api" && buckets.not_indexed.length === 0) continue;
     lines.push(ansis.bold.blue(`Layer: ${layer.layer}`));
     lines.push(ansis.dim("─".repeat(60)));
     lines.push(ansis.dim(layer.checks));
+    // Checked and in step, checked and drifted, or not checked: never left to be read off the counts.
+    const paint = layer.status === "in_step" ? ansis.green : layer.status === "drifted" ? ansis.red : ansis.yellow;
+    lines.push(`${paint(STATUS_LABEL[layer.status])}: ${layer.status_text}`);
+    for (const group of layer.not_checked ?? []) {
+      lines.push(`  Not checked (${group.count}): ${group.reason}${group.to_check ? `. To check: ${group.to_check}` : ""}`);
+      lines.push(ansis.dim(`    ${group.ids.join(", ")}${group.count > group.ids.length ? `, ... (${group.count - group.ids.length} more)` : ""}`));
+    }
     lines.push(
       `Matched: ${summary.matched_count}   In code only: ${summary.gap_count}   In model only (drift): ${summary.drift_count}   ` +
         `Not indexed: ${summary.not_indexed_count}${summary.ignored_count ? `   Ignored: ${summary.ignored_count}` : ""}`
@@ -468,7 +500,10 @@ function formatSummaryText(lines: string[], report: VerifyReport): void {
   lines.push(`Total Graph Entries Analyzed:   ${summary.total_graph_entries}`);
   lines.push(`Total Model Entries (API Layer): ${summary.total_model_entries}`);
   if (summary.elements_without_source_ref > 0) {
-    lines.push(ansis.dim(`  (${summary.elements_without_source_ref} element(s) excluded from drift detection — no source attribution)`));
+    lines.push(ansis.dim(`  (${summary.elements_without_source_ref} element(s) not checked — no source attribution)`));
+  }
+  if (summary.elements_not_checked) {
+    lines.push(ansis.dim(`  (${summary.elements_not_checked} element(s) not checked — sourced to a file the analyzer reads no route from)`));
   }
 }
 

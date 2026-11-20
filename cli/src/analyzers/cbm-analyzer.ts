@@ -2495,16 +2495,29 @@ export class CbmAnalyzer implements AnalyzerBackend {
       // convention. Nodes that don't match are graph artifacts (documentation
       // strings, base URLs, etc.) that were incidentally labelled Route by the
       // indexer — not actual HTTP routes.
-      const nodes = allNodes
+      const routeNodes = allNodes
         .filter((n) => /^__route__[A-Z]+__\//.test(String(n.qualified_name ?? "")))
-        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")))
-        // Served here: a file or handler, not on another host, not only declared in an OpenAPI file.
-        .filter(isServedRoute);
+        .filter((n) => isLikelyHttpRoute(String(n.qualified_name ?? "")));
+      // Served here: a file or handler, not on another host, not only declared in an OpenAPI file.
+      const nodes = routeNodes.filter(isServedRoute);
 
       // Shape routes via mapping; drop unattributed nodes (same filter as endpoints())
       const routes = nodes
         .map((node) => this.shapeRoute(node))
         .filter((r) => r.source_file);
+
+      // Routes an OpenAPI file declares (CBM `source: "openapi"`, with the file as their own):
+      // kept apart from the served ones, and compared only with the operations sourced to that
+      // file, as codebase_extract stages them. A frontend that consumes an API has only these.
+      const declaredRoutes = routeNodes
+        .filter((n) => (n.properties?.source ?? n.source) === "openapi" && !!n.file_path)
+        .map((node) => {
+          const route = this.shapeRoute(node);
+          // search_graph gives a route's name without its path when the node has no path of its
+          // own: CBM's route name (`__route__GET__/users/{}`) always carries it.
+          const named = /^__route__[A-Z]+__(\/.*)$/.exec(String(node.qualified_name ?? ""));
+          return named && route.http_path === "/" ? { ...route, http_path: named[1] } : route;
+        });
 
       // Files the analyzer didn't index or parsed only in part: what's sourced only there is a
       // parse gap, not drift. check_index_coverage is optional; without it nothing is.
@@ -2521,7 +2534,19 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const engine = new VerifyEngine();
       const indexMeta = status.index_meta;
       const analyzerName = this.name;
-      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed);
+      // What codebase_extract was told is not an element holds for routes as it does for the
+      // other layers' symbols. Unreadable decisions leave every route in.
+      let recorded: Awaited<ReturnType<typeof readRecordedDecisions>> | null = null;
+      try {
+        const decisionModel = await Model.load(projectRoot);
+        recorded = await readRecordedDecisions(projectRoot, await new StagingAreaManager(decisionModel.rootPath, decisionModel).list());
+      } catch {
+        recorded = null;
+      }
+      const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed, {
+        declaredRoutes,
+        ...(recorded ? { notElements: recorded.notElements } : {}),
+      });
 
       // The other layers: what extraction makes of the code's tables, infrastructure and test
       // cases against the model's elements of those types (layer-verify.ts).

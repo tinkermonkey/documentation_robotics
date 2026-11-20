@@ -8,7 +8,8 @@
  *   `codebase_extract`. The built world is the base model with that changeset applied, and what the
  *   build changed is known, so unplanned changes are reported in full. When it came from extraction,
  *   planned changes extraction can't produce are unverifiable, not missing (see
- *   `extraction-observability.ts`).
+ *   `extraction-observability.ts`), as is a planned element the build's files name only as a
+ *   string, something the code registers by name (see `build-evidence.ts`).
  * - the base model (`builtFromBase`): e.g. after an as-built changeset was committed on the branch.
  *   What the build changed is not known, so unplanned changes are limited to relationships the build
  *   gave the elements the plan adds.
@@ -38,6 +39,7 @@ import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
+import { readBuildFiles, registeredByName, sourceCandidates, type BuildFile, type SourceCandidate } from "./build-evidence.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
@@ -532,6 +534,13 @@ export interface UnreferencedPlannedAdd {
   planned: string;
   /** How verify reported it: extraction can't see it (intent, for one), or it isn't in the build. */
   result: "unverifiable" | "missing";
+  /**
+   * Files of the build that may hold its code, best first (a file that names it, a file named
+   * after it, files that carry the words of its name): for the agent to confirm in the code and
+   * pass to changeset_adopt_source_references as `references`. Absent when no file of the build
+   * names it, as for most goals and requirements.
+   */
+  candidates?: SourceCandidate[];
 }
 
 export interface SourceReferenceGaps {
@@ -621,7 +630,10 @@ export interface CompactSourceReferences {
    * copied; `(built by the agent: not copied)` for one that is never copied.
    */
   missing: string[];
-  /** `planned (missing|unverifiable)`: planned adds with no source reference and nothing to copy one from. */
+  /**
+   * `planned (missing|unverifiable)`: planned adds with no source reference and nothing to copy one
+   * from, each followed by the build's files that may hold its code (`: may be file#symbol (evidence), ...`).
+   */
   unreferenced?: string[];
   next?: string;
 }
@@ -876,7 +888,13 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
       ...(refs.unreferenced?.length
         ? {
             unreferenced: cappedList(
-              refs.unreferenced.map((u) => `${u.planned} (${u.result})`),
+              refs.unreferenced.map(
+                (u) =>
+                  `${u.planned} (${u.result})` +
+                  (u.candidates?.length
+                    ? `: may be ${u.candidates.map((c) => `${c.file}${c.symbol ? `#${c.symbol}` : ""} (${c.evidence})`).join(", ")}`
+                    : "")
+              ),
               "sourceReferences.unreferenced",
               counts
             ),
@@ -1825,6 +1843,43 @@ export async function verifyChangesetInModel(
     }
   }
 
+  // The build's own files, for what extraction can't stage: something the code registers by a
+  // name string (unverifiable, not missing), and the files a planned add with no source reference
+  // may live in (build-evidence.ts). Read only when the built side came from extraction.
+  let buildFiles: BuildFile[] = [];
+  if (observability) {
+    const since = "changeset" in options.against ? options.against.changeset.scope?.since : undefined;
+    const adds = plan.elements.filter((e) => e.op === "add");
+    const read = await readBuildFiles(model.codebaseRoot, since, adds.flatMap((e) => sourceFiles(e)));
+    buildFiles = read.files;
+    if (read.note) notes.push(read.note);
+    const builtIds = new Set(built.elements.map((e) => e.id));
+    const byName = new Map(
+      adds
+        .filter((e) => !builtIds.has(e.id))
+        .map((e) => [e.id, registeredByName(e, buildFiles)] as const)
+        .filter((entry): entry is readonly [string, NonNullable<ReturnType<typeof registeredByName>>] => entry[1] !== null)
+    );
+    if (byName.size > 0) {
+      const inner = observability;
+      observability = {
+        ...inner,
+        element: (element) => {
+          const verdict = inner.element(element);
+          const hit = verdict.observable ? byName.get(element.id) : undefined;
+          if (!hit) return verdict;
+          return {
+            observable: false,
+            reason:
+              `the build names it only as a string ("${hit.string}" in ${hit.file}): it is registered by name, with no declaration of ` +
+              "that name for extraction to stage. Confirm it in that file; changeset_adopt_source_references takes it in references " +
+              "({id, sourceFile, sourceSymbol}) to tie the element to the code",
+          };
+        },
+      };
+    }
+  }
+
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
@@ -1868,6 +1923,13 @@ export async function verifyChangesetInModel(
   }
   const gaps = sourceReferenceGaps(plan, built, report);
   const unreferenced = unreferencedPlannedAdds(plan, report);
+  if (buildFiles.length > 0) {
+    const plannedById = new Map(plan.elements.map((e) => [e.id, e]));
+    for (const u of unreferenced) {
+      const candidates = sourceCandidates(plannedById.get(u.planned)!, buildFiles);
+      if (candidates.length > 0) u.candidates = candidates;
+    }
+  }
   if (gaps.length > 0 || unreferenced.length > 0) {
     const copyable = gaps.filter((g) => !g.builtByAgent);
     const probable = copyable.filter((g) => g.match === "probable").length;
@@ -1888,8 +1950,10 @@ export async function verifyChangesetInModel(
       unreferenced.length === 0
         ? undefined
         : `${unreferenced.length} planned add(s) have no source reference and no as-built match to copy one from ` +
-          "(sourceReferences.unreferenced). For each one the build has code for, set sourceFile and sourceSymbol on the " +
-          'plan with model_update (sourceProvenance: "manual"; changeset_activate the plan first) before it lands, or the ' +
+          "(sourceReferences.unreferenced" +
+          (unreferenced.some((u) => u.candidates?.length) ? ", each with the build's files that may hold its code as candidates" : "") +
+          "). For each one the build has code for, confirm the file in the code and pass it to " +
+          "changeset_adopt_source_references in references ({id, sourceFile, sourceSymbol}) before the plan lands, or the " +
           "landed model can't tie it to the code. Leave the ones with no code of their own (a goal, a requirement) as they are.";
     report.sourceReferences = {
       missing: gaps,

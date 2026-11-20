@@ -164,8 +164,8 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "wrote (with since, the branch's base), or the base model. Elements match by id, then by layer + type + name " +
     "ignoring case and separators, then by source file; relationships match through those element matches. The " +
     "verdict counts matched, missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, " +
-    "re-exports, planned JavaScript and TypeScript test cases, relationships no code edge maps to; not part of the " +
-    "verdict), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
+    "re-exports, planned JavaScript and TypeScript test cases, something the code registers by a name string such as " +
+    "an MCP tool, relationships no code edge maps to; not part of the verdict; each with its reason), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
     "values), and planned deletions that still exist. Description differences are notes on a match, not divergence: " +
     "don't edit the plan to match extracted text. By default the result is compact: the verdict and counts; missing, " +
     "divergent and probable matches one line each (confirm probable ones in the code); unverifiable items one line " +
@@ -173,8 +173,9 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "by extraction, from its own record); extraction's as-built share in counts; and sourceReferences. " +
     "sourceReferences.missing lists matched plan elements whose as-built match has a source file and symbol the plan " +
     "lacks: changeset_adopt_source_references copies them onto the plan before it lands. sourceReferences.unreferenced " +
-    "lists planned adds with no source reference and no as-built match: set sourceFile and sourceSymbol on those the " +
-    "build has code for with model_update. For more, pass sections: [...] for only some sections in full (unplanned " +
+    "lists planned adds with no source reference and no as-built match, with the build's files that may hold their code " +
+    "as candidates: confirm those the build has code for and pass them to changeset_adopt_source_references in " +
+    "references. For more, pass sections: [...] for only some sections in full (unplanned " +
     "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
     "for the whole report. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,

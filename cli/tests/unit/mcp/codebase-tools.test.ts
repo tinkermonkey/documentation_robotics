@@ -16,7 +16,7 @@ import { Model } from "../../../src/core/model.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
-import { codebaseVerifyTool, createCodebaseVerifyHandler } from "../../../src/mcp/tools/codebase-verify.js";
+import { codebaseVerifyTool, createCodebaseVerifyHandler, IN_CODE_ONLY_HINT } from "../../../src/mcp/tools/codebase-verify.js";
 import { describeIndex, isIndexedSource, judgeIndex, requireFreshIndex, type CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { finishIndexJob, readIndexJob, recordIndexJobFill, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readSession, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
@@ -413,6 +413,49 @@ describe("codebase_verify", () => {
     expect(report.summary.matched_count).toBe(1);
     expect(report.summary.gap_count).toBe(1);
     expect(report.layers_not_verified).toBeUndefined();
+    // The result leads with each layer's status: here, checked and drifted (a route the model lacks).
+    expect(Object.keys(report)[0]).toBe("status");
+    expect(report.status).toEqual([
+      {
+        layer: "api",
+        status: "drifted",
+        text: "Checked 1 of the model's 1 API operations: drifted, 1 HTTP routes in the code only.",
+        coverage: { model_elements: 1, checked: 1, not_checked: 0, code_entries: 2 },
+      },
+    ]);
+    // The hint names the tools that close the gap, and no dr command or deprecated skill.
+    expect(report.hints).toEqual([IN_CODE_ONLY_HINT]);
+    expect(report.hints[0]).toContain("codebase_extract");
+    expect(report.hints[0]).not.toMatch(/\/dr-map|`dr |dr analyzer/);
+  });
+
+  it("says not checked, never in step, when no operation could be compared (#1180)", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    await addOperation();
+    // The handler file is there and names the handler; the analyzer read no route from it.
+    await mkdir(join(rootPath, "src", "handlers"), { recursive: true });
+    await writeFile(join(rootPath, "src", "handlers", "users.ts"), "export function getUsers() {}\n");
+    const h = harness();
+    h.routes = [];
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.status[0]).toMatchObject({ layer: "api", status: "not_checked", coverage: { model_elements: 1, checked: 0, not_checked: 1 } });
+    expect(report.status[0].text).toContain("none of the model's 1 API operations could be compared");
+    expect(report.summary).toMatchObject({ drift_count: 0, elements_without_source_ref: 0, elements_not_checked: 1 });
+    expect(report.buckets.not_checked[0]).toMatchObject({ count: 1, ids: ["api.operation.get-users"] });
+    expect(report.hints).toBeUndefined();
+  });
+
+  it("gives a layer with no check the status not_checked", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["api", "ux"], rootPath }));
+    expect(report.status.map((s: any) => [s.layer, s.status])).toEqual([
+      ["api", "not_checked"],
+      ["ux", "not_checked"],
+    ]);
+    expect(report.status[1].text).toBe("Not checked: No verification available for this layer.");
   });
 
   it("lists layers it can't verify", async () => {
@@ -831,7 +874,8 @@ describe("codebase_verify wording (D6)", () => {
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
     expect(report.scope).toContain("checks the api, data-store, technology, testing layers");
     expect(report.scope).toContain("not_indexed");
-    expect(report.note).toContain("not drift");
+    expect(report.scope).toContain("A layer that was not checked is not in step");
+    expect(report.note).toContain("not as drift");
 
     const tool = codebaseVerifyTool;
     expect(tool.description).not.toContain("API layer only");
@@ -886,8 +930,18 @@ describe("codebase_verify wording (D6)", () => {
     );
     expect(report.buckets.in_model_only.map((e) => e.source_file)).toEqual(["src/handlers/users.ts"]);
     expect(report.buckets.not_indexed).toEqual([
-      { id: expect.any(String), type: "operation", source_file: "src/legacy/old.ts", source_symbol: "get-legacy", reason: "the analyzer does not index it (excluded subtree)" },
+      {
+        id: expect.any(String),
+        type: "operation",
+        source_file: "src/legacy/old.ts",
+        source_symbol: "get-legacy",
+        reason: "the analyzer does not index it (excluded subtree)",
+        path: "api.operation.get-legacy",
+        name: "get-legacy",
+      },
     ]);
+    // In the model only says why: the file is there and no longer names the operation.
+    expect(report.buckets.in_model_only[0].reason).toContain("doesn't name its path or symbol any more");
     expect(report.summary).toMatchObject({ drift_count: 1, not_indexed_count: 1, total_model_entries: 2 });
     expect(apiLayerReport(report).buckets.not_indexed.map((e) => e.files)).toEqual([["src/legacy/old.ts"]]);
   });

@@ -794,6 +794,19 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
     layers: [
       {
         layer: "data-store",
+        status: "drifted",
+        status_text:
+          "Checked 2 of the model's 4 data-store collections: drifted, 1 SQL tables in the code only, 1 data-store collections in the model only. " +
+          "2 of the model's 4 data-store collections could not be checked (not_checked says why).",
+        coverage: { model_elements: 4, checked: 2, not_checked: 2, code_entries: 2 },
+        not_checked: [
+          {
+            reason: "sourced to a file that is not a SQL schema",
+            to_check: "source the collection to the .sql file that creates it",
+            count: 2,
+            ids: ["data-store.collection.sessions", "data-store.collection.cache"],
+          },
+        ],
         checks: "SQL tables against data-store collections",
         buckets: {
           matched: [{ id: "data-store.collection.owners", type: "data-store.collection", name: "owners", files: ["db/schema.sql"] }],
@@ -819,6 +832,12 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
     expect(output).toContain("data-store.collection.legacy");
     expect(output).toContain("## Layers Not Verified");
     expect(output).toContain("search_graph timed out");
+    // The layer's status leads its section, and what was not checked is listed with why.
+    expect(output).toContain("**Drifted:** Checked 2 of the model's 4 data-store collections");
+    expect(output).toContain(
+      "- Not checked (2): sourced to a file that is not a SQL schema. To check: source the collection to the .sql file that creates it: " +
+        "data-store.collection.sessions, data-store.collection.cache"
+    );
   });
 
   it("leaves out the all-zero API summary in text when the API layer wasn't asked for", () => {
@@ -827,6 +846,8 @@ describe("Verify formatters: layers beyond the API layer (#1082)", () => {
     expect(output).not.toContain("operations found in both graph and model");
     expect(output).toContain("Layer: data-store");
     expect(output).toContain("Layer: technology not verified");
+    expect(output).toContain("Drifted: Checked 2 of the model's 4 data-store collections");
+    expect(output).toContain("Not checked (2): sourced to a file that is not a SQL schema");
   });
 
   it("keeps the API sections when the API layer was asked for", () => {

@@ -456,6 +456,11 @@ export interface MatchedEntry {
   source_file: string;
   /** Source symbol */
   source_symbol: string;
+  /** Set when it matched a route an API description (an OpenAPI file) declares, not one code here serves. */
+  declared_in?: string;
+  /** The element's dotted id (`api.operation.get-users`) and name, when the model gives them. */
+  path?: string;
+  name?: string;
 }
 
 /**
@@ -472,6 +477,8 @@ export interface GraphOnlyEntry {
   source_file: string;
   /** Source symbol */
   source_symbol: string;
+  /** Set when the route is declared in an API description (an OpenAPI file), not served by code here. */
+  declared_in?: string;
 }
 
 /**
@@ -486,6 +493,11 @@ export interface ModelOnlyEntry {
   source_file: string;
   /** Source symbol referenced in the model */
   source_symbol: string;
+  /** Why it counts as in the model only (its file is gone, its API description no longer declares it). */
+  reason?: string;
+  /** The element's dotted id (`api.operation.get-users`) and name, when the model gives them. */
+  path?: string;
+  name?: string;
 }
 
 /**
@@ -535,9 +547,50 @@ export interface LayerVerifyRelationship {
 
 export type LayerVerifyBucket = "matched" | "in_graph_only" | "in_model_only" | "not_indexed" | "ignored";
 
+/**
+ * What a layer's check can say. `not_checked` is never folded into `in_step`: a layer none of whose
+ * elements could be compared, with nothing found in the code either, was not checked.
+ *
+ * - `in_step`: at least one element was compared, and nothing is in the code only or the model only;
+ * - `drifted`: something is in the code only or in the model only (the buckets say what);
+ * - `not_checked`: nothing could be compared (`status_text` and `not_checked` say why, and what
+ *   would make it checkable).
+ */
+export type LayerVerifyStatus = "in_step" | "drifted" | "not_checked";
+
+/** Model elements a check could not compare with the code, for one reason. */
+export interface NotCheckedGroup {
+  /** Why they could not be checked. */
+  reason: string;
+  /** What would make them checkable, when something would. */
+  to_check?: string;
+  count: number;
+  /** The first ids (at most 20); `count` is all of them. */
+  ids: string[];
+}
+
+/** How much of a layer a check covered. */
+export interface LayerVerifyCoverage {
+  /** Model elements of the types the check covers. */
+  model_elements: number;
+  /** Of those, compared with the code: matched, or in the model only. */
+  checked: number;
+  /** Of those, not compared: no source reference, a file the check doesn't read, a file not indexed. */
+  not_checked: number;
+  /** What the check found in the code: matched, or in the code only (ignored entries left out). */
+  code_entries: number;
+}
+
 /** One layer's verification, in the API check's buckets plus not_indexed. */
 export interface LayerVerifyReport {
   layer: string;
+  /** Checked and in step, checked and drifted, or not checked. */
+  status: LayerVerifyStatus;
+  /** The status in a sentence: what was compared, what differs, and what was not checked and why. */
+  status_text: string;
+  coverage: LayerVerifyCoverage;
+  /** The model elements that could not be compared, by reason. Absent when every one was. */
+  not_checked?: NotCheckedGroup[];
   /** What the check compares. */
   checks: string;
   /** `ignored` (what .dr-verify-ignore.yaml covers) is present only when a rule covered something. */
@@ -587,6 +640,12 @@ export interface VerifySummary {
   /** Elements excluded from drift detection because they have no source_reference.
    *  These are documentation-only elements with no code linkage. */
   elements_without_source_ref: number;
+  /**
+   * Operations with a source reference that still could not be compared: sourced to a file the
+   * analyzer reads no route from (a document that is not an API description, a code file whose
+   * routes it can't read). Not drift, and not missing source data.
+   */
+  elements_not_checked?: number;
   /** Operations sourced to files the analyzer didn't index or parsed only in part (not drift). */
   not_indexed_count?: number;
 }
@@ -623,6 +682,8 @@ export interface VerifyBuckets {
   ignored: IgnoredEntry[];
   /** Operations sourced to files the analyzer didn't index or parsed only in part: not drift. */
   not_indexed?: NotIndexedEntry[];
+  /** Operations that could not be compared with the code, by reason: not drift, and not in step. */
+  not_checked?: NotCheckedGroup[];
 }
 
 /**
@@ -658,3 +719,6 @@ export interface VerifyReport {
   /** Requested layers whose check failed, with why; the others' results stand. */
   layers_not_verified?: Array<{ layer: string; reason: string }>;
 }
+
+/** Ids listed per not-checked reason; the group's count is all of them. */
+export const NOT_CHECKED_ID_LIMIT = 20;
