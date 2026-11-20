@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { mkdir, rm } from "fs/promises";
 import { join } from "path";
 import { spawnSync } from "bun";
-import { portAllocator } from "../helpers.ts";
+import { portAllocator, stopServerProcess } from "../helpers.ts";
 
 const TEMP_DIR = "/tmp/dr-api-test";
 const STARTUP_TIMEOUT = 10000;
@@ -147,15 +147,9 @@ describe.serial("Visualization Server API Endpoints", () => {
   });
 
   afterEach(async () => {
-    // Stop server if running
-    if (serverProcess) {
-      try {
-        serverProcess.kill();
-      } catch {
-        // ignore
-      }
-      serverProcess = null;
-    }
+    // Stop the server and wait for it to exit, before its project folder is deleted below
+    await stopServerProcess(serverProcess);
+    serverProcess = null;
 
     // Release the allocated port
     portAllocator.releasePort(testPort);
@@ -371,6 +365,45 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(html).toContain("/assets/");
       expect(html).toContain('type="module"');
     });
+  });
+
+  describe("Shutdown", () => {
+    /** Pids of the launcher's children: the server process it spawned. */
+    function childPidsOf(pid: number): number[] {
+      const result = spawnSync({ cmd: ["pgrep", "-P", String(pid)], stdio: ["ignore", "pipe", "ignore"] });
+      return result.stdout
+        .toString()
+        .split("\n")
+        .map((line) => Number(line.trim()))
+        .filter((childPid) => Number.isInteger(childPid) && childPid > 0);
+    }
+
+    function isRunning(pid: number): boolean {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // #1235: a server that hung in its own shutdown was left running, because the launcher's
+    // SIGKILL fallback was guarded by `killed`, which is true as soon as a signal was sent.
+    // A suspended server cannot act on SIGTERM, which stands in for the hang (under Bun, closing
+    // the file watcher while its folder was being deleted deadlocked the main thread).
+    it("force-kills a server that does not exit when the viewer is stopped", async () => {
+      const launcher = await startServer(testDir, testPort);
+      const serverPids = childPidsOf(launcher.pid);
+      expect(serverPids.length).toBeGreaterThan(0);
+      try {
+        for (const pid of serverPids) process.kill(pid, "SIGSTOP");
+
+        expect(await stopServerProcess(launcher)).toBe(true);
+        expect(serverPids.filter(isRunning)).toEqual([]);
+      } finally {
+        for (const pid of serverPids.filter(isRunning)) process.kill(pid, "SIGKILL");
+      }
+    }, 30000);
   });
 
   describe("Error Handling", () => {

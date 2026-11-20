@@ -19,7 +19,7 @@ import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { mkdir, rm } from "fs/promises";
 import { join } from "path";
 import { spawnSync } from "bun";
-import { portAllocator } from "../helpers.ts";
+import { portAllocator, stopServerProcess } from "../helpers.ts";
 
 const CLI_ROOT = join(import.meta.dir, "../..");
 const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
@@ -95,10 +95,9 @@ describe.serial("Visualization Server — authenticated token flow", () => {
   });
 
   afterAll(async () => {
-    if (serverProc) {
-      try { serverProc.kill(); } catch { /* ignore */ }
-      serverProc = null;
-    }
+    // Wait for the server to exit before its project folder is deleted
+    await stopServerProcess(serverProc);
+    serverProc = null;
     portAllocator.releasePort(testPort);
     try { await rm(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
   });

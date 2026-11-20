@@ -23,7 +23,7 @@ import { spawn, spawnSync } from "child_process";
 import { existsSync } from "fs";
 import { mkdir, rm } from "fs/promises";
 import { delimiter, join } from "path";
-import { portAllocator } from "../helpers.ts";
+import { portAllocator, stopServerProcess } from "../helpers.ts";
 
 const CLI_ROOT = join(import.meta.dir, "../..");
 const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
@@ -111,9 +111,8 @@ describe.serial("dr visualize under a literal pure-Node runtime with Bun entirel
   }, STARTUP_TIMEOUT + 5000);
 
   afterAll(async () => {
-    if (serverProc && !serverProc.killed) {
-      serverProc.kill();
-    }
+    // Wait for the server to exit before its project folder is deleted
+    await stopServerProcess(serverProc);
     portAllocator.releasePort(port);
     await rm(testDir, { recursive: true, force: true });
   });
