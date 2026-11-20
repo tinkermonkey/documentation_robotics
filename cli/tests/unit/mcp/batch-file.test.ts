@@ -150,17 +150,24 @@ describe("readBatchFile", () => {
         expect(error.suggestions?.[0]).toContain(join(root, ".dr", "batch.json"));
       }
 
-      // A link inside the root that points out of it is refused too.
+      // A link inside the root that points out of it gets the same answer, whatever is at the
+      // other end: a file, a directory, nothing, or a linked directory on the way.
       await symlink(join(outside, "secrets.json"), join(root, "link.json"));
-      const linked = await refusal("link.json");
-      expect(linked.message).toContain("is a link, and the file it points to is outside the project root");
-      expect(linked.message).not.toContain("client_secret");
+      await symlink(outside, join(root, "linked-dir"));
+      await symlink(join(outside, "not-there.json"), join(root, "dangling.json"));
+      for (const file of ["link.json", "linked-dir", "dangling.json", "linked-dir/secrets.json", "linked-dir/not-there.json"]) {
+        const linked = await refusal(file);
+        expect(linked.message).toBe(`model_add: ${file} is outside the project root (${root}); a batch file must be inside it`);
+      }
 
       // An absolute path inside the root is fine, and so is a link that stays inside it.
       await writeFile(join(root, "batches", "one.json"), JSON.stringify({ elements: [] }));
       await symlink(join(root, "batches", "one.json"), join(root, "inner-link.json"));
       expect(await readBatchFile("model_add", join(root, "batches", "one.json"), root, lists)).toEqual({ elements: [] });
       expect(await readBatchFile("model_add", "inner-link.json", root, lists)).toEqual({ elements: [] });
+      // A name that starts with two dots is inside.
+      await writeFile(join(root, "..notes.json"), JSON.stringify({ elements: [] }));
+      expect(await readBatchFile("model_add", "..notes.json", root, lists)).toEqual({ elements: [] });
     } finally {
       await rm(outside, { recursive: true, force: true });
     }

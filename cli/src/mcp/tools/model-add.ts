@@ -315,7 +315,7 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     existingElementsIn(layerObj.listElements().map((e) => ({ id: e.path || e.id, name: e.name })))
   );
   if (near.existing) {
-    throw new CLIError(...alreadyExistsUnderEarlierId(near.existing, elementPath));
+    throw new CLIError(...alreadyExistsUnderEarlierId(near.existing, elementPath, near.existingName));
   }
   const warnings = [...prepared.warnings, ...(near.warning ? [near.warning] : [])];
 
@@ -360,9 +360,16 @@ function otherNameNote(existingName: string | undefined, sentName: string): stri
 }
 
 /** The refusal for a name whose element exists under an id an earlier derivation gave it. */
-function alreadyExistsUnderEarlierId(existingId: string, derivedId: string): [string, ErrorCategory, string[]] {
+function alreadyExistsUnderEarlierId(
+  existingId: string,
+  derivedId: string,
+  existingName?: string
+): [string, ErrorCategory, string[]] {
   return [
-    `Element ${existingId} already exists with this name (the name gives ${derivedId} today; the element keeps its id)`,
+    existingName === undefined
+      ? `Element ${existingId} already exists with this name (the name gives ${derivedId} today; the element keeps its id)`
+      : `Element ${existingId} already exists, named "${existingName}": that name and this one gave one id when it was ` +
+        `made (this one gives ${derivedId} today; the element keeps its id)`,
     ErrorCategory.USER,
     [`Use "model_update" with id ${existingId} to change it`, `Name the element ${existingId} in relationships`],
   ];
@@ -471,7 +478,7 @@ async function addElementBatch(
     }
     const near = existingUnderEarlierId(item.layer, item.type, spec.name, item.id, alreadyThere);
     if (near.existing) {
-      const [reason, , suggestions] = alreadyExistsUnderEarlierId(near.existing, item.id);
+      const [reason, , suggestions] = alreadyExistsUnderEarlierId(near.existing, item.id, near.existingName);
       results.push({ ...asSent, id: near.existing, status: "invalid", reason, suggestions });
       continue;
     }

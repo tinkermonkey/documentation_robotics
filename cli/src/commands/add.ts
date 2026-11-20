@@ -231,7 +231,10 @@ export async function addCommand(
     );
     if (near.existing) {
       throw new CLIError(
-        `Element ${near.existing} already exists with this name (the name gives ${elementPath} today; the element keeps its id)`,
+        near.existingName === undefined
+          ? `Element ${near.existing} already exists with this name (the name gives ${elementPath} today; the element keeps its id)`
+          : `Element ${near.existing} already exists, named "${near.existingName}": that name and this one gave one id when ` +
+            `it was made (this one gives ${elementPath} today; the element keeps its id)`,
         ErrorCategory.USER,
         [`Use "dr show ${near.existing}" to view it`, `Use "dr update ${near.existing}" to modify it`],
         { operation: "add", context: `Duplicate element under an earlier id` }

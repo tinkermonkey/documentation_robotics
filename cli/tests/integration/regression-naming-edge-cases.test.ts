@@ -397,7 +397,16 @@ describe("regression: naming-edge-cases", () => {
       };
       await put("data-model", "objectschema", "data-model.objectschema.tier9status", "Tier9Status", { type: "object" });
       await put("api", "operation", "api.operation.options", "OPTIONS /", { operationId: "options", summary: "OPTIONS /", tags: "x" });
+      // dr add through 0.3.x: every dot dropped, a long name left whole.
+      const steps = `Order.processPayment ${"Step ".repeat(20).trim()}`;
+      const { EARLIER_ID_RULES } = await import("../../src/utils/id-generator.js");
+      const oldSteps = `application.applicationfunction.${EARLIER_ID_RULES.find((r) => r.rule === "add-0.1")!.slug(steps)}`;
+      await put("application", "applicationfunction", oldSteps, steps, {});
       await seeded.saveManifest();
+
+      const long = await runDr(["add", "application", "function", steps], { cwd: workdir.path });
+      expect(long.exitCode).not.toBe(0);
+      expect(long.stdout + long.stderr).toContain(`Element ${oldSteps} already exists with this name`);
 
       // Differs only by hyphens (the digit rule).
       const digit = await runDr(

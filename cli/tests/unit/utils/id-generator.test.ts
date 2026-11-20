@@ -10,7 +10,9 @@ import {
   compactId,
   deriveElementId,
   elementUnderEarlierId,
+  EARLIER_ID_RULES,
   earlierElementIds,
+  namesShareAnId,
   existingElementsIn,
   existingUnderEarlierId,
   generateElementId,
@@ -221,6 +223,34 @@ describe("ids that differ only by hyphens", () => {
     expect(today.slice(-8)).not.toBe(extracted.slice(-8));
   });
 
+  it("EARLIER_ID_RULES holds every rule a released CLI used (0.1.4 to 0.6.0)", () => {
+    expect(EARLIER_ID_RULES.map((r) => r.rule)).toEqual(["add-0.1", "add-0.4", "extract-0.4", "extract-0.5"]);
+    const slug = (rule: string, name: string) => EARLIER_ID_RULES.find((r) => r.rule === rule)!.slug(name);
+    // dr add through 0.3.x dropped every dot; 0.4.0 broke the word between camelCase parts.
+    expect(slug("add-0.1", "Order.processPayment")).toBe("orderprocess-payment");
+    expect(slug("add-0.4", "Order.processPayment")).toBe("order-process-payment");
+    // Extraction 0.4.0 did not cut; 0.5.0 cut past 100 characters with a hash of the uncut slug.
+    const suite = `Suite/${"Case ".repeat(25)}.spec.ts`;
+    expect(slug("extract-0.4", suite).length).toBeGreaterThan(100);
+    expect(slug("extract-0.5", suite)).toMatch(/^suite-case-.*-[0-9a-f]{8}$/);
+    // None broke a word after a digit or prefixed one.
+    for (const { slug: rule } of EARLIER_ID_RULES) expect(rule("Tier1Status")).toBe("tier1status");
+    expect(earlierElementIds("api", "operation", "Order.processPayment Step")).toEqual(
+      expect.arrayContaining(["api.operation.orderprocess-payment-step"])
+    );
+  });
+
+  it("namesShareAnId: names that gave one id under some rule, and only those", () => {
+    const share = (a: string, b: string) => namesShareAnId("api", "operation", a, b);
+    expect(share("Tier1Status", "TIER1Status")).toBe(true);
+    expect(share("GET /", "GET  /")).toBe(true);
+    expect(share("GET /", "GET /*")).toBe(true);
+    expect(share("Order.processPayment", "Orderprocess Payment")).toBe(true);
+    // Never one id: two elements.
+    expect(share("Tier1Status", "Tier 1 Status")).toBe(false);
+    expect(share("Create Order", "Cancel Order")).toBe(false);
+  });
+
   it("existingUnderEarlierId names the same-named element at an earlier id, and warns about another name", () => {
     const elements = [
       { id: "data-model.objectschema.tier1status", name: "Tier1Status" },
@@ -234,8 +264,15 @@ describe("ids that differ only by hyphens", () => {
     // Differs by more: the root route, and slashes that were dropped.
     expect(check("api", "operation", "GET /")).toEqual({ existing: "api.operation.get" });
     expect(check("api", "operation", "GET /owners/{ownerId}")).toEqual({ existing: "api.operation.get-ownersowner-id" });
-    // Another name at the earlier id is another element: "GET /*" was `get` too, and is not "GET /".
-    expect(existingUnderEarlierId("api", "operation", "GET /", "api.operation.get-root", existingElementsIn([{ id: "api.operation.get", name: "GET /*" }]))).toEqual({});
+    // "GET /*" and "GET /" gave one id through 0.6.0, so adding one beside the other was refused
+    // then and is refused now, naming the element and the name it has.
+    expect(existingUnderEarlierId("api", "operation", "GET /", "api.operation.get-root", existingElementsIn([{ id: "api.operation.get", name: "GET /*" }]))).toEqual({
+      existing: "api.operation.get",
+      existingName: "GET /*",
+    });
+    // Names that differ in case, spacing or punctuation gave one id too.
+    expect(check("data-model", "objectschema", "TIER1Status")).toEqual({ existing: "data-model.objectschema.tier1status", existingName: "Tier1Status" });
+    expect(check("api", "operation", "GET  /")).toEqual({ existing: "api.operation.get", existingName: "GET /" });
     // Another name whose id differs only by hyphens gets a warning.
     expect(check("data-model", "objectschema", "Tier 1 Status").warning).toContain(
       "data-model.objectschema.tier-1-status differs only by hyphens from data-model.objectschema.tier1status"

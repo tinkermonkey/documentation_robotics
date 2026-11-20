@@ -24,18 +24,19 @@ import crypto from "node:crypto";
  * toKebabCase("Vector3D")            // "vector3d"
  */
 export function toKebabCase(text: string): string {
-  return kebabCase(text, { digitBreak: true });
+  return kebabCase(text, { digitBreak: true, camelDotBreak: true });
 }
 
 /**
  * {@link toKebabCase}, with the rules that came later switchable, so the ids of an earlier release
  * can still be derived ({@link earlierElementIds}).
  */
-function kebabCase(text: string, rules: { digitBreak: boolean }): string {
+function kebabCase(text: string, rules: { digitBreak: boolean; camelDotBreak?: boolean }): string {
   // A dot between code-symbol parts is a word break: "Repo.findAll" → "Repo-findAll". A part is a
   // code symbol when it is camelCase (a lowercase letter followed by an uppercase one). Other dots
-  // are dropped below, so "Node.js", "ASP.NET" and "1.2.3" join as before.
-  let result = text.replace(/[A-Za-z0-9$]+(?:\.[A-Za-z0-9$]+)+/g, (chain) => {
+  // are dropped below, so "Node.js", "ASP.NET" and "1.2.3" join as before. (Through CLI 0.3.x
+  // every dot was dropped: camelDotBreak false.)
+  let result = rules.camelDotBreak === false ? text : text.replace(/[A-Za-z0-9$]+(?:\.[A-Za-z0-9$]+)+/g, (chain) => {
     const parts = chain.split(".");
     const camel = (part: string) => /[a-z][A-Z]/.test(part);
     return parts.reduce((joined, part, i) => {
@@ -160,29 +161,65 @@ function cutSlug(slug: string): string {
 }
 
 /**
- * The ids earlier releases derived from this name, where they differ from today's. An element
- * keeps the id of the release that created it, so these are the ids under which the element a
- * name describes may already exist:
+ * Every rule a released CLI used to derive an id from a name, read from the code at each `cli-v*`
+ * tag (0.1.4 to 0.6.0). An element keeps the id of the release that made it, so these are the ids
+ * under which the element a name describes may already exist.
  *
- * - `dr add` and model_add through CLI 0.6.0: plain kebab case with no word break after a digit,
- *   dots dropped unless between camelCase parts, no prefix, no cut ("Tier1Status" →
- *   `tier1status`, "Node.js" → `nodejs`, "GET /" → `get`).
- * - codebase_extract through CLI 0.6.0: dots, slashes and braces as word breaks, the root route,
- *   and the cut with a hash, but no word break after a digit (so a long name with such a digit
- *   has another hash) and no prefix.
+ * | Rule | Releases | Used by | How |
+ * | --- | --- | --- | --- |
+ * | `add-0.1` | 0.1.4–0.3.x | `dr add`, model_add (0.2.0+) | kebab case, every dot dropped |
+ * | `add-0.4` | 0.4.0–0.6.0 | `dr add`, model_add | as above, but a dot between camelCase parts is a word break |
+ * | `extract-0.4` | 0.4.0 | codebase_extract | dots, slashes and braces as word breaks, the root route; no cut |
+ * | `extract-0.5` | 0.5.0–0.6.0 | codebase_extract | as 0.4.0, cut past 100 characters with a hash of the uncut slug |
+ *
+ * None of them breaks a word after a digit or prefixes a leading digit; those are 0.7.0's. The
+ * analyzer's suggested names (cbm-analyzer) were names, turned into ids by `dr add`.
  *
  * When {@link deriveElementId} changes again, add the rule it replaces here: the guard below and
  * the sweep in tests/unit/utils/id-rules-existing-model.test.ts depend on every past rule being
  * listed.
  */
+export const EARLIER_ID_RULES: ReadonlyArray<{ rule: string; slug: (name: string) => string }> = [
+  { rule: "add-0.1", slug: (name) => kebabCase(name, { digitBreak: false, camelDotBreak: false }) },
+  { rule: "add-0.4", slug: (name) => kebabCase(name, { digitBreak: false, camelDotBreak: true }) },
+  { rule: "extract-0.4", slug: (name) => kebabCase(extractionText(name), { digitBreak: false, camelDotBreak: true }) },
+  {
+    rule: "extract-0.5",
+    slug: (name) => {
+      const slug = kebabCase(extractionText(name), { digitBreak: false, camelDotBreak: true });
+      return slug.length > MAX_ID_SLUG ? cutSlug(slug) : slug;
+    },
+  },
+];
+
+/** What extraction kebab-cases for a name: a root route as `<method> root`, and dots, slashes and braces as spaces. */
+function extractionText(name: string): string {
+  const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
+  return root ? `${root[1]} root` : name.replace(/[./{}]+/g, " ");
+}
+
+/** The ids earlier releases derived from this name ({@link EARLIER_ID_RULES}), where they differ from today's. */
 export function earlierElementIds(layer: string, elementType: string, name: string): string[] {
   const today = deriveElementId(layer, elementType, name).id;
-  const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
-  const added060 = kebabCase(name, { digitBreak: false });
-  const extracted060raw = kebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " "), { digitBreak: false });
-  const extracted060 = extracted060raw.length > MAX_ID_SLUG ? cutSlug(extracted060raw) : extracted060raw;
-  const ids = [added060, extracted060].filter((slug) => slug !== "").map((slug) => `${layer}.${elementType}.${slug}`);
+  const ids = EARLIER_ID_RULES.map(({ slug }) => slug(name))
+    .filter((slug) => slug !== "")
+    .map((slug) => `${layer}.${elementType}.${slug}`);
   return [...new Set(ids)].filter((id) => id !== today);
+}
+
+/**
+ * Whether two names would have given one id, under today's rule or any earlier one: "TIER1Status"
+ * and "Tier1Status", "GET  /" and "GET /", or "GET /" and "GET /*" (one id through 0.6.0). Such a
+ * pair was one element when the second was added, and is refused now as then. "Tier 1 Status" and
+ * "Tier1Status" never gave one id, so they are two elements.
+ */
+export function namesShareAnId(layer: string, elementType: string, a: string, b: string): boolean {
+  if (a === b) return true;
+  if (deriveElementId(layer, elementType, a).slug === deriveElementId(layer, elementType, b).slug) return true;
+  return EARLIER_ID_RULES.some(({ slug }) => {
+    const left = slug(a);
+    return left !== "" && left === slug(b);
+  });
 }
 
 /**
@@ -209,7 +246,8 @@ export interface ExistingElements {
  * Whether the element a new add describes already exists under another id, for a name whose id
  * (`id`, as {@link deriveElementId} gives it today) is free.
  *
- * `existing` is the id of an element with the same name that sits where an earlier rule would
+ * `existing` is the id of an element with the same name (or one {@link namesShareAnId} with it;
+ * `existingName` then says which) that sits where an earlier rule would
  * have put it: at one of {@link earlierElementIds}, or at any id that differs from today's only
  * by hyphens. It is the same element, and the add is refused as it was when the two ids were
  * equal, so a change to the derivation never adds a second copy of an element. An element with
@@ -223,14 +261,18 @@ export function existingUnderEarlierId(
   elements: ExistingElements,
   /** The name the element carries, when it is not the name its id comes from (`dr add <id-name> --name <shown>`). */
   shownName: string = name
-): { existing?: string; warning?: string } {
+): { existing?: string; existingName?: string; warning?: string } {
   const key = compactId(id);
   const near = (key ? elements.byCompactId(key) : []).filter((e) => e.id !== id);
   const earlier = earlierElementIds(layer, elementType, name)
     .map((earlierId) => elements.byId(earlierId))
     .filter((e): e is { id: string; name?: string } => e !== undefined && e.id !== id);
-  const same = [...earlier, ...near].find((e) => e.name === shownName);
-  if (same) return { existing: same.id };
+  // The same name, or one that would have given the same id under some rule.
+  const candidates = [...earlier, ...near];
+  const same =
+    candidates.find((e) => e.name === shownName) ??
+    candidates.find((e) => e.name !== undefined && namesShareAnId(layer, elementType, e.name, shownName));
+  if (same) return { existing: same.id, ...(same.name !== shownName && same.name !== undefined ? { existingName: same.name } : {}) };
   if (near.length === 0) return {};
   return {
     warning: `${id} differs only by hyphens from ${near.map((e) => e.id).join(", ")}: check that they are not the same element.`,

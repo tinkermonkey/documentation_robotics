@@ -18,7 +18,7 @@ import { describe, it, expect } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { deriveElementId, earlierElementIds, existingElementsIn, existingUnderEarlierId } from "../../../src/utils/id-generator.js";
+import { EARLIER_ID_RULES, deriveElementId, earlierElementIds, existingElementsIn, existingUnderEarlierId } from "../../../src/utils/id-generator.js";
 
 const MODEL_DIR = join(import.meta.dir, "..", "..", "..", "..", "documentation-robotics", "model");
 
@@ -99,6 +99,44 @@ describe("id rules against this repository's model", () => {
       expect(root.name).toBe("GET /");
       expect(deriveElementId("api", "operation", root.name).id).toBe("api.operation.get-root");
       expect(earlier(root)).toBe(true);
+    }
+  });
+
+  // Names whose id each earlier rule made differently from today, including the ones a re-review
+  // seeded: a 0.4.0 extraction id for a test path (uncut), a 0.4.0 extraction id with a dot and a
+  // slash, and a long name `dr add` made through 0.3.x (every dot dropped, uncut).
+  const CASES: Array<{ rule: string; layer: string; type: string; name: string }> = [
+    { rule: "extract-0.4", layer: "testing", type: "testcasesketch", name: `Suite/${"Case".repeat(25)}.spec.ts` },
+    { rule: "extract-0.4", layer: "application", type: "applicationfunction", name: `${"word ".repeat(20)}.then slash/part` },
+    { rule: "add-0.1", layer: "application", type: "applicationfunction", name: `Order.processPayment ${"Step ".repeat(20).trim()}` },
+    { rule: "add-0.1", layer: "api", type: "operation", name: "GET /" },
+    { rule: "add-0.1", layer: "data-model", type: "objectschema", name: "Tier1Status" },
+    // dr add / model_add 0.4.0 to 0.6.0: a camelCase dot as a break, a slash dropped, uncut.
+    { rule: "add-0.4", layer: "application", type: "applicationfunction", name: `Repo.findAll ${"step ".repeat(20)}a/b` },
+    { rule: "extract-0.5", layer: "testing", type: "testcasesketch", name: `reads Tier1Status ${"and keeps going ".repeat(8)}to the end` },
+  ];
+
+  it("finds an element made under each earlier rule when its name is added again", () => {
+    for (const c of CASES) {
+      const oldSlug = EARLIER_ID_RULES.find((r) => r.rule === c.rule)!.slug(c.name);
+      const oldId = `${c.layer}.${c.type}.${oldSlug}`;
+      const today = deriveElementId(c.layer, c.type, c.name).id;
+      expect(today).not.toBe(oldId);
+      const found = existingUnderEarlierId(c.layer, c.type, c.name, today, existingElementsIn([{ id: oldId, name: c.name }]));
+      expect({ name: c.name, found: found.existing }).toEqual({ name: c.name, found: oldId });
+    }
+  });
+
+  it("needs every rule it lists: without any one of them, a case is not found", () => {
+    for (const dropped of EARLIER_ID_RULES) {
+      const others = EARLIER_ID_RULES.filter((r) => r !== dropped);
+      const caught = CASES.filter((c) => c.rule === dropped.rule).every((c) => {
+        const oldId = `${c.layer}.${c.type}.${dropped.slug(c.name)}`;
+        const today = deriveElementId(c.layer, c.type, c.name).id;
+        const hyphensOnly = (a: string, b: string) => a.replace(/-/g, "") === b.replace(/-/g, "");
+        return others.some((r) => `${c.layer}.${c.type}.${r.slug(c.name)}` === oldId) || hyphensOnly(today, oldId);
+      });
+      expect({ rule: dropped.rule, caughtWithoutIt: caught }).toEqual({ rule: dropped.rule, caughtWithoutIt: false });
     }
   });
 });

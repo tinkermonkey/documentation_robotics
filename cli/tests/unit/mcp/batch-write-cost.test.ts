@@ -219,7 +219,7 @@ describe("batch results: counts and the items that need attention (#1182)", () =
         const full = whole.results[item.index];
         const values = item.values ?? [];
         const reasonValues = values.slice(0, (group.reason.match(/<id>|"<name>"|\[n\]/g) ?? []).length);
-        expect(fill(group.reason, reasonValues)).toBe(full.reason.replace(/\s+/g, " ").trim());
+        expect(fill(group.reason, reasonValues)).toBe(full.reason);
       }
     }
 
@@ -311,6 +311,43 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(batchReport(results, { verbose: true, written: ["staged"] }).results).toHaveLength(500);
   });
 
+  it("batchReport: every grouped item's text comes back exactly, placeholder spellings and leading zeros included", () => {
+    const reasons = [
+      "Source element <id> not found",
+      "Source element api.operation.x not found",
+      'Target "a [n] b" is at x[07]',
+      'Target "c" is at x[7]',
+      "Element api.operation.y has invalid attributes:\n  At /attributes: missing required property 'tags'",
+    ];
+    const results = reasons.map((reason, index) => ({
+      index,
+      status: "invalid",
+      reason,
+      suggestions: [index === 0 ? 'Use "model_search" to find <id>' : 'Use "model_search" to find elements'],
+    }));
+    const report = batchReport(results, { limit: 0, written: ["staged"] });
+    const fill = (text: string, values: Array<string | number>, at: { i: number }) =>
+      text.replace(/<id>|"<name>"|\[n\]/g, (token) => {
+        const v = values[at.i++];
+        return token === "<id>" ? String(v) : token === "[n]" ? `[${v}]` : `"${v}"`;
+      });
+    const rebuilt = new Map<number, { reason: string; suggestions: string[] }>();
+    for (const group of report.attentionNotListed!.groups) {
+      for (const item of group.items) {
+        if (group.literal) {
+          rebuilt.set(item.index, { reason: group.reason, suggestions: group.suggestions ?? [] });
+          continue;
+        }
+        const at = { i: 0 };
+        const values = item.values ?? [];
+        rebuilt.set(item.index, { reason: fill(group.reason, values, at), suggestions: (group.suggestions ?? []).map((t) => fill(t, values, at)) });
+      }
+    }
+    for (const r of results) expect(rebuilt.get(r.index)).toEqual({ reason: r.reason, suggestions: r.suggestions });
+    // Only the texts that held a placeholder's spelling outside quotes are kept whole.
+    expect(report.attentionNotListed!.groups.filter((g) => g.literal).flatMap((g) => g.items.map((i) => i.index))).toEqual([0, 2]);
+  });
+
   it("reasonPattern takes out what differs between items and keeps the cause, and reasonParts keeps what it took", () => {
     expect(reasonParts('Element api.operation.get already exists, named "GET /": "GET /x" gives the same id as elements[4]')).toEqual({
       pattern: 'Element <id> already exists, named "<name>": "<name>" gives the same id as elements[n]',
@@ -320,9 +357,13 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(reasonPattern('"GET *" gives the same id as elements[1] "GET /*" (api.operation.get)')).toBe(
       '"<name>" gives the same id as elements[n] "<name>" (<id>)'
     );
+    // The text is kept exactly, line breaks and all.
     expect(reasonPattern("Element api.operation.x has invalid attributes:\n  At /attributes: missing required property 'tags'")).toBe(
-      "Element <id> has invalid attributes: At /attributes: missing required property 'tags'"
+      "Element <id> has invalid attributes:\n  At /attributes: missing required property 'tags'"
     );
+    // A position keeps its spelling, and a text that already holds a placeholder's spelling is kept whole.
+    expect(reasonParts("x[07] and x[7]")).toEqual({ pattern: "x[n] and x[n]", values: ["07", 7] });
+    expect(reasonParts("Source element <id> not found")).toEqual({ pattern: "Source element <id> not found", values: [], literal: true });
   });
 
   it("documents the result shape and verbose in the tool descriptions", () => {
@@ -856,6 +897,28 @@ describe("existing ids are never renamed", () => {
     expect(single.error).toContain("Element api.operation.get already exists with this name");
   });
 
+  it("refuses names whose elements releases before 0.6.0 made, single and in a list", async () => {
+    const { EARLIER_ID_RULES } = await import("../../../src/utils/id-generator.js");
+    const old = (rule: string, name: string) => EARLIER_ID_RULES.find((r) => r.rule === rule)!.slug(name);
+    const suite = `Suite/${"Case".repeat(25)}.spec.ts`;
+    const words = `${"word ".repeat(20)}.then slash/part`;
+    const steps = `Order.processPayment ${"Step ".repeat(20).trim()}`;
+    const seeded = [
+      { id: `application.applicationfunction.${old("extract-0.4", suite)}`, name: suite },
+      { id: `application.applicationfunction.${old("extract-0.4", words)}`, name: words },
+      { id: `application.applicationfunction.${old("add-0.1", steps)}`, name: steps },
+    ];
+    for (const e of seeded) await seed("application", "applicationfunction", e.id, e.name);
+    await createChangeset();
+    const list = await add({ elements: seeded.map((e) => fn(e.name)) });
+    expect(list.elements.counts).toEqual({ invalid: 3 });
+    expect(list.elements.attention.map((r: any) => r.id)).toEqual(seeded.map((e) => e.id));
+    for (const e of seeded) {
+      const single = errorOf(await modelAddHandler({ ...fn(e.name), rootPath } as any));
+      expect(single.error).toContain(`Element ${e.id} already exists with this name`);
+    }
+  });
+
   it("says when an id is taken by an element of another name, from an earlier call", async () => {
     await createChangeset();
     await add({ elements: [fn("3D Object Effect")] });
@@ -866,12 +929,24 @@ describe("existing ids are never renamed", () => {
     );
   });
 
+  it("refuses a name that gave the existing element's id under an earlier rule, in case, spacing or punctuation", async () => {
+    await createChangeset();
+    const result = await add({ elements: [schema("TIER1Status"), schema("Tier1 Status")] });
+    // "TIER1Status" and "Tier1 Status" both gave tier1status's id under some rule: one element.
+    expect(result.elements.counts).toEqual({ invalid: 2 });
+    expect(result.elements.attention[0].reason).toBe(
+      `Element ${OLD_STATUS} already exists, named "Tier1Status": that name and this one gave one id when it was made ` +
+        "(this one gives data-model.objectschema.tier1-status today; the element keeps its id)"
+    );
+  });
+
   it("warns when a different name gives an id that differs from an existing one only by hyphens", async () => {
     await createChangeset();
-    const result = await add({ elements: [schema("Tier1 Status")] });
+    // "Tier 1 Status" (tier-1-status) never gave Tier1Status's id: another element, worth a warning.
+    const result = await add({ elements: [schema("Tier 1 Status")] });
     expect(result.elements.counts).toEqual({ staged: 1 });
     expect(result.elements.attention[0].warnings).toEqual([
-      `data-model.objectschema.tier1-status differs only by hyphens from ${OLD_STATUS}: check that they are not the same element.`,
+      `data-model.objectschema.tier-1-status differs only by hyphens from ${OLD_STATUS}: check that they are not the same element.`,
     ]);
   });
 });

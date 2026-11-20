@@ -84,6 +84,11 @@ export interface BatchAttentionGroup {
   reason: string;
   /** The items' suggestions, with the same replacements. */
   suggestions?: string[];
+  /**
+   * The reason and suggestions are each item's own text, with nothing replaced: it already held a
+   * placeholder's spelling (a reference sent as "<id>"), so it is kept whole to come back exactly.
+   */
+  literal?: true;
   count: number;
   items: BatchAttentionGroupItem[];
 }
@@ -110,10 +115,12 @@ const VARYING = /(@?\b[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9-]*\b)|"(
  * `"<name>"` and positions `[n]`, and `values` holds what each stood for, in order. Items refused
  * for the same cause share a pattern, and a pattern with an item's values is that item's text.
  */
-export function reasonParts(text: string): { pattern: string; values: Array<string | number> } {
+export function reasonParts(text: string): { pattern: string; values: Array<string | number>; literal?: true } {
+  // A text that already holds a placeholder's spelling (a reference sent as "<id>") would not come
+  // back as it was: such a text is kept whole, and its group says so (`literal`).
+  if (/<id>|\[n\]/.test(text)) return { pattern: text, values: [], literal: true };
   const values: Array<string | number> = [];
-  const pattern = text
-    .replace(VARYING, (_match, id: string | undefined, name: string | undefined, position: string | undefined) => {
+  const pattern = text.replace(VARYING, (_match, id: string | undefined, name: string | undefined, position: string | undefined) => {
       if (id !== undefined) {
         values.push(id);
         return "<id>";
@@ -122,11 +129,10 @@ export function reasonParts(text: string): { pattern: string; values: Array<stri
         values.push(name);
         return '"<name>"';
       }
-      values.push(Number(position));
+      // Kept as written when a number would not give it back ("07").
+      values.push(String(Number(position)) === position ? Number(position) : position!);
       return "[n]";
-    })
-    .replace(/\s+/g, " ")
-    .trim();
+    });
   return { pattern, values };
 }
 
@@ -208,14 +214,29 @@ export function batchReport<T extends BatchItemResult>(
   if (rest.length > 0) {
     const groups = new Map<string, BatchAttentionGroup>();
     for (const item of rest) {
-      const said = reasonParts(item.reason ?? [...(item.warnings ?? []), ...(item.notes ?? [])].join(" "));
-      const hints = (item.suggestions ?? []).map(reasonParts);
+      const rawReason = item.reason ?? [...(item.warnings ?? []), ...(item.notes ?? [])].join(" ");
+      const rawSuggestions = item.suggestions ?? [];
+      let said = reasonParts(rawReason);
+      let hints = rawSuggestions.map(reasonParts);
+      // One literal piece makes the whole item literal, so its values never shift.
+      const literal = said.literal === true || hints.some((hint) => hint.literal);
+      if (literal) {
+        said = { pattern: rawReason, values: [] };
+        hints = rawSuggestions.map((text) => ({ pattern: text, values: [] }));
+      }
       const reason = said.pattern || item.status;
       const suggestions = hints.map((hint) => hint.pattern);
-      const key = [item.status, reason, ...suggestions].join("\n");
+      const key = [literal ? "literal" : "", item.status, reason, ...suggestions].join("\n");
       let group = groups.get(key);
       if (!group) {
-        group = { status: item.status, reason, ...(suggestions.length ? { suggestions } : {}), count: 0, items: [] };
+        group = {
+          status: item.status,
+          reason,
+          ...(suggestions.length ? { suggestions } : {}),
+          ...(literal ? { literal: true as const } : {}),
+          count: 0,
+          items: [],
+        };
         groups.set(key, group);
       }
       const values = [...said.values, ...hints.flatMap((hint) => hint.values)];
