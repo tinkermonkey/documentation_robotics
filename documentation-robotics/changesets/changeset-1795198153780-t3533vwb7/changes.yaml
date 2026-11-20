@@ -815,9 +815,9 @@
     type: applicationfunction
     layer_id: application
     name: BaseIntegrationManager findStaleEntries
-    description: "Leftovers of older integration layouts: names a released dr
-      installed in a component folder that this dr's integration no longer has
-      and the version file does not record."
+    description: "Leftovers of older integration layouts: entries a released dr
+      installed whose contents are a version it shipped (stale), and entries
+      with such a name but other contents (changed, removed only when named)."
     metadata:
       created_at: 2026-11-20T18:10:42.351Z
       updated_at: 2026-11-20T18:10:42.351Z
@@ -827,7 +827,7 @@
       locations:
         - file: cli/src/integrations/base-manager.ts
           symbol: BaseIntegrationManager.findStaleEntries
-  timestamp: 2026-11-20T18:13:06.911Z
+  timestamp: 2026-11-20T18:39:28.779Z
   sequenceNumber: 46
 - type: add
   elementId: application.applicationfunction.base-integration-manager-remove-stale-entries
@@ -1757,3 +1757,309 @@
     category: structural
   timestamp: 2026-11-20T18:13:28.414Z
   sequenceNumber: 137
+- type: add
+  elementId: data-model.objectschema.layer-file-record
+  layerName: data-model
+  after:
+    id: b82cdf07-e026-4c56-9195-cb64f177d7c2
+    path: data-model.objectschema.layer-file-record
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: LayerFileRecord
+    description: What loading made of one YAML file in a layer folder (loaded,
+      failed, partial) and its text then; decides what a later save may replace
+      or remove
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:39:26.255Z
+      updated_at: 2026-11-20T18:39:26.255Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: LayerFileRecord
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 138
+- type: add
+  elementId: data-model.objectschema.shipped-versions
+  layerName: data-model
+  after:
+    id: b04264fd-7ae8-418e-a3c6-27a9625476f2
+    path: data-model.objectschema.shipped-versions
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ShippedVersions
+    description: Content hashes of every version dr shipped of one integration
+      entry, by path inside it
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/shipped-entries.ts
+          symbol: ShippedVersions
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 139
+- type: add
+  elementId: application.applicationfunction.shipped-versions
+  layerName: application
+  after:
+    id: 59f72a71-e34c-4888-a4d4-c14685b5db23
+    path: application.applicationfunction.shipped-versions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: shippedVersions
+    description: The versions dr shipped of one entry of an integration folder, from
+      the table generated from git history; undefined when dr never installed
+      that name there.
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/shipped-entries.ts
+          symbol: shippedVersions
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 140
+- type: add
+  elementId: application.applicationfunction.prettier-hook
+  layerName: application
+  after:
+    id: d8164515-6e35-4a7b-8588-88ecf601bb90
+    path: application.applicationfunction.prettier-hook
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: prettierHook
+    description: The project's prettier pre-commit hook and whether pre-commit keeps
+      the files dr writes away from it.
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/commit-hooks.ts
+          symbol: prettierHook
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 141
+- type: add
+  elementId: application.applicationfunction.large-file-hook
+  layerName: application
+  after:
+    id: f7bc5467-8ffe-413e-b2e0-0a3b8c25c1fe
+    path: application.applicationfunction.large-file-hook
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: largeFileHook
+    description: The project's check-added-large-files hook and the files dr wrote
+      that a commit could add and the hook would refuse.
+    metadata:
+      created_at: 2026-11-20T18:39:26.256Z
+      updated_at: 2026-11-20T18:39:26.256Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/commit-hooks.ts
+          symbol: largeFileHook
+  timestamp: 2026-11-20T18:41:39.454Z
+  sequenceNumber: 142
+- type: relationship-add
+  elementId: application.applicationfunction.model-load-layer::accesses::data-model.objectschema.layer-file-record
+  layerName: application
+  after:
+    source: application.applicationfunction.model-load-layer
+    target: data-model.objectschema.layer-file-record
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 143
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::accesses::data-model.objectschema.layer-file-record
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: data-model.objectschema.layer-file-record
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 144
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::depends-on::application.applicationfunction.plan-layer-files
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: application.applicationfunction.plan-layer-files
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 145
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::depends-on::application.applicationfunction.same-yaml-data
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: application.applicationfunction.same-yaml-data
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 146
+- type: relationship-add
+  elementId: application.applicationfunction.model-save-layer::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.model-save-layer
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 147
+- type: relationship-add
+  elementId: application.applicationfunction.shipped-versions::accesses::data-model.objectschema.shipped-versions
+  layerName: application
+  after:
+    source: application.applicationfunction.shipped-versions
+    target: data-model.objectschema.shipped-versions
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 148
+- type: relationship-add
+  elementId: application.applicationfunction.base-integration-manager-find-stale-entries::depends-on::application.applicationfunction.shipped-versions
+  layerName: application
+  after:
+    source: application.applicationfunction.base-integration-manager-find-stale-entries
+    target: application.applicationfunction.shipped-versions
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 149
+- type: relationship-add
+  elementId: application.applicationfunction.shipped-versions::satisfies::motivation.requirement.an-upgrade-changes-only-what-it-says
+  layerName: application
+  after:
+    source: application.applicationfunction.shipped-versions
+    target: motivation.requirement.an-upgrade-changes-only-what-it-says
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 150
+- type: relationship-add
+  elementId: application.applicationfunction.commit-hook-notes::depends-on::application.applicationfunction.prettier-hook
+  layerName: application
+  after:
+    source: application.applicationfunction.commit-hook-notes
+    target: application.applicationfunction.prettier-hook
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 151
+- type: relationship-add
+  elementId: application.applicationfunction.commit-hook-notes::depends-on::application.applicationfunction.large-file-hook
+  layerName: application
+  after:
+    source: application.applicationfunction.commit-hook-notes
+    target: application.applicationfunction.large-file-hook
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:39:26.307Z
+  sequenceNumber: 152
+- type: update
+  elementId: application.applicationfunction.model-save-layer
+  layerName: application
+  before:
+    id: 53aaa882-3254-4af1-a0b7-aee5029bd861
+    path: application.applicationfunction.model-save-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model saveLayer
+    description: Save a layer to disk (model/XX_layername/ .yaml)
+    source_reference: &a5
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: Model.saveLayer
+    metadata: &a6
+      created_at: 2026-11-20T15:04:10.839Z
+      updated_at: 2026-11-20T15:04:10.839Z
+      version: 1
+  after:
+    id: 53aaa882-3254-4af1-a0b7-aee5029bd861
+    path: application.applicationfunction.model-save-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model saveLayer
+    description: "Save a layer to disk (model/XX_layername/ .yaml): writes only the
+      type files whose data changed, and replaces or removes only files whose
+      every entry the model loaded; a file that failed to parse, holds other
+      content or was added since the load is kept, and writing over one is
+      refused."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T18:39:27.208Z
+  sequenceNumber: 153
+- type: update
+  elementId: application.applicationfunction.model-load-layer
+  layerName: application
+  before:
+    id: d907f35a-1c21-4ce0-bfbe-ad7e8a67fe18
+    path: application.applicationfunction.model-load-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model loadLayer
+    description: Load a layer from disk (model/XX_layername/ .yaml files)
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/core/model.ts
+          symbol: Model.loadLayer
+    metadata: &a8
+      created_at: 2026-11-20T15:04:10.839Z
+      updated_at: 2026-11-20T15:04:10.839Z
+      version: 1
+  after:
+    id: d907f35a-1c21-4ce0-bfbe-ad7e8a67fe18
+    path: application.applicationfunction.model-load-layer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Model loadLayer
+    description: Load a layer from disk (model/XX_layername/ .yaml files, any letter
+      case of the extension), recording for each file whether it was fully
+      loaded, failed to parse, or holds content that is not an element.
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T18:39:27.943Z
+  sequenceNumber: 154
