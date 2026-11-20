@@ -1,10 +1,11 @@
 /**
  * Base drift on the changeset endpoints: GET /api/changesets and GET /api/changesets/:id report
  * whether the base model changed under a changeset, with no commit attempt, so the viewer can show
- * it before Apply. The state is the one a commit acts on (blocksCommit is true exactly when POST
- * .../commit answers 409 for drift), and it is read by the changeset's purpose: content-free drift
+ * it before Apply. The state is the one a commit reports. Drift never refuses a commit (#1200): a
+ * drifted changeset lands through POST .../commit, whose result says what the base overlapped, and
+ * blocksCommit is always false. The state is read by the changeset's purpose: content-free drift
  * (#1169: a base change that overlaps nothing the changeset stages) and a verification record whose
- * plan landed (#1171) never read as blocking.
+ * plan landed (#1171) have nothing to warn about.
  */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
@@ -16,7 +17,7 @@ import { driftDetail, driftStatus } from "../../../src/core/changeset-drift-stat
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
-import { ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
+import { ChangesetActionResultSchema, ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
 import type { VisualizationServer } from "../../../src/server/server.js";
 import { createServerWithoutChatDetection } from "./helpers.js";
 
@@ -82,7 +83,8 @@ async function api() {
   const request = (path: string, init?: RequestInit) => (server as any).app.request(path, init) as Promise<Response>;
   return {
     list: async () => ChangesetsListSchema.parse(await (await request("/api/changesets")).json()).changesets,
-    detail: async (id: string) => ChangesetDetailSchema.parse(await (await request(`/api/changesets/${id}`)).json()),
+    detail: async (id: string, query = "") =>
+      ChangesetDetailSchema.parse(await (await request(`/api/changesets/${id}${query}`)).json()),
     commit: (id: string) => request(`/api/changesets/${id}/commit`, { method: "POST" }),
   };
 }
@@ -111,13 +113,13 @@ describe("base drift on the changeset endpoints", () => {
     expect(summary).toEqual({
       state: "none",
       blocksCommit: false,
-      message: "The base model has not changed since this changeset was created.",
+      message: "The base model has not changed under this changeset.",
     });
     // Nothing changed, so there is nothing to describe: the detail is the summary.
     expect((await detail(id)).drift).toEqual(summary);
   });
 
-  it.serial("a plan whose base element changed under it reads drifted and blocking, with what changed, and commit agrees (409)", async () => {
+  it.serial("a plan whose base element changed under it reads drifted, with what landing does about it, and commit lands it", async () => {
     const { model, manager } = await fresh();
     const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
     const update = (description: string) => ({
@@ -137,13 +139,16 @@ describe("base drift on the changeset endpoints", () => {
     const { list, detail, commit } = await api();
     const summary = (await list())[planId];
     expect(summary.drift.state).toBe("drifted");
-    expect(summary.drift.blocksCommit).toBe(true);
-    expect(summary.drift.message).toContain("changed under what this changeset stages");
+    expect(summary.drift.blocksCommit).toBe(false);
+    expect(summary.drift.message).toContain("overlaps what this changeset stages");
+    expect(summary.drift.message).toContain("It still lands");
     expect(summary.actions).toContain("commit");
 
     const { drift } = await detail(planId);
-    expect(drift).toMatchObject({ state: "drifted", blocksCommit: true, baseIndex: "recorded" });
-    expect(drift.overlapping!.elements).toEqual([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(drift).toMatchObject({ state: "drifted", blocksCommit: false, baseIndex: "recorded" });
+    expect(drift.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(drift.overlapping!.elements[0].consequence).toContain("landing replaces the base's edit with the plan's version");
+    expect(drift.overlapping!.elements[0].resolve).toContain("stage it again");
     expect(drift.baseChanges).toMatchObject({
       counts: { elementsAdded: 0, elementsRemoved: 0, elementsChanged: 1, relationshipsAdded: 0, relationshipsRemoved: 0 },
       elementsChanged: [GOAL],
@@ -153,13 +158,47 @@ describe("base drift on the changeset endpoints", () => {
     // The overlap is in `overlapping`; `warnings` holds only what could not be told.
     expect(drift.warnings).toEqual([]);
 
-    // The report and the commit read the same check.
-    const refused = await commit(planId);
-    expect(refused.status).toBe(409);
-    expect((await refused.json()).error).toContain("drifted");
+    // Apply lands it (the route has no force and needs none), and says what it landed over.
+    const landed = await commit(planId);
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    expect(result).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+    expect(result.drift!.message).toContain("overlapped 1 staged change(s)");
+    expect(result.drift!.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(result.drift!.overlapping!.elements[0].consequence).toContain("replaces the base's edit");
+    const after = (await fresh()).model.layers.get("motivation")!.getElement(GOAL)!.toJSON();
+    expect(after.description).toBe("Checkout in under a minute");
   });
 
-  it.serial("content-free drift (another changeset landed elsewhere) reads content-free, not blocking, and commit lands it (#1169)", async () => {
+  it.serial("a reviewed commit (a body with drop) lands a drifted changeset too, and puts nothing back", async () => {
+    const { model, manager } = await fresh();
+    const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
+    const update = (description: string) => ({ type: "update" as const, elementId: GOAL, layerName: "motivation", before, after: { ...before, description } });
+    const planId = (await manager.create("reword-goal")).id!;
+    await manager.stage(planId, update("Checkout in under a minute"));
+    const added = service(SERVICE);
+    await manager.stage(planId, { type: "add", elementId: added.path, layerName: added.layer_id, after: added });
+    const otherId = (await manager.create("other-reword")).id!;
+    await manager.stage(otherId, update("Checkout in thirty seconds"));
+    await land(otherId);
+
+    // The reviewer leaves the overlapping update out: what lands overlaps nothing.
+    const { detail } = await api();
+    const overlappingUpdate = (await detail(planId)).changes.find((change) => change.elementId === GOAL)!;
+    const landed = await (server as any).app.request(`/api/changesets/${planId}/commit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ drop: [(overlappingUpdate as { sequenceNumber: number }).sequenceNumber] }),
+    });
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    expect(result).toMatchObject({ status: "committed", committed: 1 });
+    expect(result.drift).toBeUndefined();
+    const after = (await fresh()).model.layers.get("motivation")!.getElement(GOAL)!.toJSON();
+    expect(after.description).toBe("Checkout in thirty seconds");
+  });
+
+  it.serial("content-free drift (another changeset landed elsewhere) reads content-free, and commit lands it with no drift in the result (#1169)", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     await land(await planAdding("lower-costs", goal(OTHER_GOAL, "Track costs")));
 
@@ -167,7 +206,7 @@ describe("base drift on the changeset endpoints", () => {
     const summary = (await list())[planId].drift;
     expect(summary.state).toBe("content-free");
     expect(summary.blocksCommit).toBe(false);
-    expect(summary.message).toContain("nothing it was staged against changed");
+    expect(summary.message).toContain("nothing it stages overlaps the change");
     expect(summary.message).toContain("In the base since: 1 element(s) added");
 
     const { drift } = await detail(planId);
@@ -179,10 +218,12 @@ describe("base drift on the changeset endpoints", () => {
       layers: ["motivation"],
     });
 
-    // The commit lands it: what the report said would not block did not.
+    // The commit lands it, with nothing to warn about.
     const landed = await commit(planId);
     expect(landed.status).toBe(200);
-    expect(await landed.json()).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+    const result = await landed.json();
+    expect(result).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+    expect(result.drift).toBeUndefined();
   });
 
   it.serial("an edit to a base element the plan neither edits nor links to reads content-free, and commit lands it", async () => {
@@ -209,7 +250,7 @@ describe("base drift on the changeset endpoints", () => {
     expect((await commit(planId)).status).toBe(200);
   });
 
-  it.serial("an update of an element the base removed reads drifted with removed-in-base, and commit agrees (409)", async () => {
+  it.serial("an update of an element the base removed reads drifted with removed-in-base, and commit lands and reports it", async () => {
     const { model, manager } = await fresh();
     const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
     const planId = (await manager.create("reword-goal")).id!;
@@ -227,10 +268,15 @@ describe("base drift on the changeset endpoints", () => {
     const { detail, commit } = await api();
     // Parsed with the documented schema, which lists the overlap reasons by hand.
     const { drift } = await detail(planId);
-    expect(drift).toMatchObject({ state: "drifted", blocksCommit: true });
-    expect(drift.overlapping!.elements).toEqual([{ id: GOAL, reason: "removed-in-base" }]);
+    expect(drift).toMatchObject({ state: "drifted", blocksCommit: false });
+    expect(drift.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "removed-in-base" }]);
     expect(drift.baseChanges!.counts).toMatchObject({ elementsRemoved: 1 });
-    expect((await commit(planId)).status).toBe(409);
+    const landed = await commit(planId);
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    // The update had nothing to apply to, as its consequence said.
+    expect(result).toMatchObject({ status: "committed", committed: 0, failed: 1 });
+    expect(result.drift!.overlapping!.elements[0].consequence).toContain("reported as failed");
   });
 
   it.serial("a verification record whose plan has landed reads not-applicable, never as a problem (#1171)", async () => {
@@ -275,19 +321,48 @@ describe("base drift on the changeset endpoints", () => {
     expect((await list())[planId].drift.message).toContain("committed");
   });
 
-  it.serial("without a base index a changed hash stays drifted, and the detail says what it cannot list", async () => {
+  it.serial("without a base index a changed hash stays drifted, the detail says what it cannot list, and commit still lands", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     await rm(join(rootPath, "documentation-robotics", "changesets", planId, BASE_INDEX_FILE));
     await land(await planAdding("lower-costs", goal(OTHER_GOAL, "Track costs")));
 
-    const { list, detail } = await api();
-    expect((await list())[planId].drift).toMatchObject({ state: "drifted", blocksCommit: true });
+    const { list, detail, commit } = await api();
+    expect((await list())[planId].drift).toMatchObject({ state: "drifted", blocksCommit: false });
     const { drift } = await detail(planId);
     expect(drift.baseIndex).toBe("not-recorded");
     expect(drift.warnings).toHaveLength(1);
     expect(drift.warnings![0]).toContain("No base index was recorded");
     expect(drift.baseChanges).toBeUndefined();
     expect(drift.overlapping).toEqual({ elements: [], relationships: [] });
+
+    const landed = await commit(planId);
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    expect(result.drift!.message).toContain("could not be listed");
+    expect(result.drift!.overlapping).toBeUndefined();
+  });
+
+  it.serial("a re-baselined changeset reads none, and the detail of one that still overlaps says it was re-baselined", async () => {
+    const { model, manager } = await fresh();
+    const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
+    const update = (description: string) => ({ type: "update" as const, elementId: GOAL, layerName: "motivation", before, after: { ...before, description } });
+    const staleId = (await manager.create("reword-goal")).id!;
+    await manager.stage(staleId, update("Checkout in under a minute"));
+    const cleanId = await planAdding("export-orders", service(SERVICE));
+    const otherId = (await manager.create("other-reword")).id!;
+    await manager.stage(otherId, update("Checkout in thirty seconds"));
+    await land(otherId);
+    await (await fresh()).manager.rebaseline(staleId);
+    await (await fresh()).manager.rebaseline(cleanId);
+
+    const { list, detail } = await api();
+    expect((await list())[cleanId].drift).toMatchObject({ state: "none", blocksCommit: false });
+    // The stale update is still an overlap: a re-baseline does not hide what landing would replace.
+    const { drift } = await detail(staleId);
+    expect(drift.state).toBe("drifted");
+    expect(drift.rebaselined).toMatchObject({ times: 1 });
+    expect(drift.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(drift.baseChanges!.counts).toMatchObject({ elementsChanged: 0 });
   });
 
   it.serial("a changeset with no base snapshot reads unknown and is not blocked", async () => {
@@ -322,7 +397,7 @@ describe("base drift on the changeset endpoints", () => {
     });
   });
 
-  it.serial("baseChanges.layers is whole when the lists are cut, and counts the ends of relationships", async () => {
+  it.serial("the baseChanges lists are a page with true totals, readable to the end; layers and counts are whole", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     // The base gains more application services than a list holds, one product feature that sorts
     // after all of them (so it is cut from elementsAdded), and a relationship whose only
@@ -361,6 +436,35 @@ describe("base drift on the changeset endpoints", () => {
     expect(drift.baseChanges!.elementsAdded).not.toContain(feature.path);
     expect(drift.baseChanges!.truncated).toBe(true);
     expect(drift.baseChanges!.layers).toEqual(["application", "motivation", "product"]);
+    // The default length is a page, not a cut-off: the page says what there is and how to go on.
+    expect(drift.baseChanges!.page).toEqual({
+      offset: 0,
+      limit: DRIFT_LIST_LIMIT,
+      totals: { elementsAdded: count + 1, elementsRemoved: 0, elementsChanged: 0, relationshipsAdded: 1, relationshipsRemoved: 0 },
+      returned: { elementsAdded: DRIFT_LIST_LIMIT, elementsRemoved: 0, elementsChanged: 0, relationshipsAdded: 1, relationshipsRemoved: 0 },
+      nextOffset: DRIFT_LIST_LIMIT,
+      // The call that reads on from any reader, the brief's included.
+      more: expect.stringContaining(`sections: ["drift"], driftLimit: ${DRIFT_LIST_LIMIT}, driftOffset: ${DRIFT_LIST_LIMIT}`),
+    });
+
+    // The next page carries the rest, the feature that was cut included, and ends the lists.
+    const next = (await detail(planId, `?driftOffset=${drift.baseChanges!.page.nextOffset}`)).drift.baseChanges!;
+    expect(next.elementsAdded).toHaveLength(count + 1 - DRIFT_LIST_LIMIT);
+    expect(next.elementsAdded).toContain(feature.path);
+    expect(next.page).toMatchObject({ offset: DRIFT_LIST_LIMIT, returned: { elementsAdded: count + 1 - DRIFT_LIST_LIMIT, relationshipsAdded: 0 } });
+    expect(next.page.nextOffset).toBeUndefined();
+    // Counts and layers are computed over everything, whatever the page.
+    expect(next.counts).toEqual(drift.baseChanges!.counts);
+    expect(next.layers).toEqual(drift.baseChanges!.layers);
+
+    // Everything at once, on request.
+    const whole = (await detail(planId, "?driftLimit=1000")).drift.baseChanges!;
+    expect(whole.elementsAdded).toHaveLength(count + 1);
+    expect(whole.truncated).toBe(false);
+    expect(whole.page.nextOffset).toBeUndefined();
+
+    const bad = await (server as any).app.request(`/api/changesets/${planId}?driftLimit=0`);
+    expect(bad.status).toBe(400);
   });
 });
 
@@ -392,7 +496,7 @@ describe("drift status when the check itself fails", () => {
     } as unknown as Model;
 
     const detail = await driftDetail(unreadable, drifted, { changeset, purpose: "plan" });
-    expect(detail).toMatchObject({ state: "drifted", blocksCommit: true });
+    expect(detail).toMatchObject({ state: "drifted", blocksCommit: false });
     expect(detail.warnings).toEqual(["Could not name what changed in the base: layers unreadable"]);
     expect(detail.overlapping).toBeUndefined();
   });
@@ -418,5 +522,57 @@ describe("model reloads", () => {
 
     expect((server as any).model).toBe(newer);
     expect(sent.filter((m) => m.type === "model.updated")).toHaveLength(1);
+  });
+});
+
+// The maintainer's rule for the viewer API (review of PR 1272): every API call is authenticated, and
+// an authenticated call is trusted. Nothing proves a person clicked Apply: the token is what
+// permits it, and an unauthenticated request is refused. The MCP path keeps its own confirmation.
+describe("the changeset routes need the token", () => {
+  const TOKEN = "test-token-1272";
+
+  async function authed() {
+    server?.stop();
+    const { model } = await fresh();
+    server = createServerWithoutChatDetection(model, { authEnabled: true, authToken: TOKEN });
+    return (path: string, init: RequestInit = {}) => (server as any).app.request(path, init) as Promise<Response>;
+  }
+
+  it.serial("refuses commit and discard without a token (401) or with a wrong one (403), and writes nothing", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    const request = await authed();
+    for (const action of ["commit", "discard"]) {
+      expect((await request(`/api/changesets/${planId}/${action}`, { method: "POST" })).status).toBe(401);
+      const wrong = await request(`/api/changesets/${planId}/${action}`, { method: "POST", headers: { Authorization: "Bearer nope" } });
+      expect(wrong.status).toBe(403);
+      expect((await request(`/api/changesets/${planId}/${action}?token=nope`, { method: "POST" })).status).toBe(403);
+    }
+    const { manager } = await fresh();
+    expect((await manager.load(planId))!.status).toBe("staged");
+  });
+
+  it.serial("lands with the token, as Apply does", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    const request = await authed();
+    const landed = await request(`/api/changesets/${planId}/commit`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } });
+    expect(landed.status).toBe(200);
+    expect((await landed.json()).status).toBe("committed");
+  });
+
+  it.serial("every registered API route refuses a request with no token", async () => {
+    const request = await authed();
+    const routes = ((server as any).app.routes as Array<{ method: string; path: string }>).filter(
+      (route) => route.path.startsWith("/api/") && route.method !== "ALL"
+    );
+    expect(routes.length).toBeGreaterThan(20);
+    const open: string[] = [];
+    for (const route of routes) {
+      const path = route.path.replace(/:[A-Za-z]+/g, "x");
+      const status = (await request(path, { method: route.method })).status;
+      if (status !== 401) open.push(`${route.method} ${route.path} -> ${status}`);
+    }
+    expect(open).toEqual([]);
+    // The websocket too.
+    expect((await request("/ws")).status).not.toBe(200);
   });
 });

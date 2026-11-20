@@ -71,7 +71,7 @@ gaps (#1026); _tier 1_ is Tier 1 in `codebase_extract` ([TIER1_DESIGN.md](analyz
 | Frame         | `changeset_create`                                           | slice 1  | Create a changeset from a name and the change's intent, and activate it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Frame         | `changeset_activate`                                         | slice 1  | Make an existing staged changeset the one mutations stage into.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Frame         | `changeset_deactivate`                                       | slice 1  | Stop staging; mutations write the base model again.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Frame         | `changeset_update`                                           | slice 2  | Rename a changeset or change its description (the intent). Names stay unique.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Frame         | `changeset_update`                                           | slice 2  | Rename a changeset or change its description (the intent). Names stay unique. With `rebaseline: true` it re-baselines: the base as it is now becomes the changeset's base, and it returns what moved under it (see [Landing](#landing)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Frame         | `changeset_list` / `changeset_show`                          | existing | All changesets and which is active; one changeset with its staged changes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | Orient        | `spec_type`                                                  | slice 1  | A node type's definition, attributes (required, enums), and the relationships the catalog allows to and from it. Without `type`: the layer's types with their required attributes and enum values, or, with `otherLayers`, `otherType`, `predicate`, `types`, `direction` or `relationships: true`, the relationships the catalog allows across the layer's types in one call.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Orient        | `model_search` / `model_show` / `model_trace` / `model_list` | existing | Find and read elements. Inside a changeset they read the plan (slice 2): `model_show` lists relationships with a status, `model_search` gives a `changeStatus`, `model_trace` follows staged edges. `model_list` fits one result by default (id, name and the first sentence of the description per element, or counts by layer and type past 150 elements); `detail: "full"` returns whole elements. `model_list` with `orphans: true` lists only the elements with no relationship. `model_trace` and `dr trace` read which end depends on the other from the predicate: an element depends on what `serves`, `realizes`, `satisfies`, `delivers` or `supports` it, as on what it uses. `model_trace`'s `changedEdges` holds only the staged edges the trace walked. Listings and traces are paged with `limit` and `offset`, never cut off: `page` gives the true totals and `nextOffset`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -134,7 +134,7 @@ to it:
   `GET /api/changesets/:id` adds what changed when the hash did: the staged changes the base now
   overlaps and the elements and relationships added, removed or changed in the base, with their
   layers (`describeDrift`, as in `changeset_brief`).
-- `StagingAreaManager.commit` refuses a verification record, `force` or not, so the CLI,
+- `StagingAreaManager.commit` refuses a verification record, so the CLI,
   `changeset_commit` (and its preview) and the viewer's Apply (409) all refuse it the same way. The
   refusal names the plan and says what to do: land the plan; keep or discard the record; to
   reconcile drift, extract without a plan active.
@@ -191,34 +191,73 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
 - From Claude Code (v2.1.199 or later, by the `clientInfo` it sends), a confirmation token can stand
   in for the dialog. `changeset_commit_preview` runs the same checks, writes nothing, and returns
   the dialog's text as `summary` with a `confirmToken`: an HMAC, keyed per server process, over the
-  changeset id, `force`, an expiry (10 minutes) and the confirmed state (the staged changes and the
-  base model). The agent shows the person the summary, and `changeset_commit` with the token is the
-  call they approve in the permission prompt. The token is good once, and is refused from any other
-  client, after it expires, or when the changeset, the base or `force` changed since the preview.
-  This is how a changeset lands from the Claude desktop app, which runs Claude Code in print mode:
-  print mode declines every elicitation at once while still advertising the capability.
+  changeset id, an expiry (one hour: long enough for an answer relayed through another session, too
+  short for a summary read yesterday to land today) and the confirmed state (the staged changes and the base model). The agent shows the person
+  the summary, and `changeset_commit` with the token is the call they approve in the permission
+  prompt. The token is good once, and is refused from any other client, after it expires, or when
+  the changeset or the base changed since the preview. This is how a changeset lands from the
+  Claude desktop app, which runs Claude Code in print mode (print mode declines every elicitation
+  at once while still advertising the capability), and from a session the person follows over
+  Remote Control, where the dialog doesn't reach them.
 - It refuses, and writes nothing, when the person declines or cancels, when the client doesn't
   support elicitation, and in changeset-only mode (DrBot), where no person can answer. A decline or
   cancel that comes back within a second is reported as a dialog the client couldn't show, not as
-  the person's answer. The refusal points Claude Code at the preview and token, then at the
-  viewer's Apply (`review_open`), then an interactive session; never the CLI.
-- Drift and validation follow the CLI and are checked with a dry run before the person is asked. A
-  drifted changeset is refused unless `force: true` is passed, and the dialog then shows the drift;
-  errors the changeset introduces always block. The commit is `StagingAreaManager.commit`, the same
+  the person's answer. A later cancel is reported as no confirmation coming back, and a later
+  decline says it may have been the client's: a client that can't show the dialog answers for the
+  person, so neither claims the person declined. Each refusal points Claude Code at the preview
+  and token, then at the viewer's Apply (`review_open`), then an interactive session; never the
+  CLI.
+- Validation is checked with a dry run before the person is asked; errors the changeset introduces
+  always block. Drift does not refuse a landing: the dialog and the preview's summary give the true
+  count of staged changes the base overlaps and, for every kind of overlap, what landing does about
+  it. A kind with many overlaps names the first ten, says how many it did not name, and names the
+  call that lists them all (`changeset_brief` with `sections: ["drift"]`); the preview repeats that
+  in `overlaps` (`total`, `named`) and `more`. The token is bound to the whole changeset and base,
+  whatever the summary names. The changeset lands when the person confirms, and the result names
+  every overlap it landed over in `drift` (`total`, and `kinds` with their `items`). `force` is accepted and ignored
+  here and on the viewer API, since a person confirms there. The viewer's Apply lands a drifted
+  changeset the same way and reports the same overlaps. The commit is `StagingAreaManager.commit`, the same
   code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
   of the model. An active changeset is deactivated afterwards.
+- The viewer API trusts its token: every `/api` route and the websocket require it (401 without,
+  403 with a wrong one), and an authenticated `POST /api/changesets/:id/commit` lands. Nothing
+  proves a person clicked Apply; whoever holds the token, the agent holding `review_open`'s link
+  included, can commit and discard through the API. `dr visualize --no-auth` turns auth off, at
+  the person's choice; `review_open` always starts the viewer with auth.
 - It commits only what the person saw. After they accept, it re-reads the changeset (its staged
   changes, modified time and status) and the base model (elements and relationships), and refuses
   if anything changed while the dialog was open.
 - `dr changeset commit [changeset]` takes the changeset's id or name too. A named changeset that
-  isn't active is activated for the commit, with the same drift, `--force` and validation handling,
-  and the changeset active before is active again afterwards (also when the commit fails).
+  isn't active is activated for the commit, with the same validation handling, and the changeset
+  active before is active again afterwards (also when the commit fails).
+- On the CLI someone still has to have read what landing does about an overlap, as a person does
+  in the dialog or the viewer. With a terminal attached, `dr changeset commit` lists the overlaps
+  (the true count, every one named, with what landing does about each kind) and asks. With no
+  terminal (a script, CI) and one or more overlaps it refuses with a non-zero exit and the same
+  list, unless `--force` is passed. With no overlap (the base is as it was, or changed elsewhere)
+  it lands and exits 0. So `--force` is not retired on the CLI: it means "land over the overlaps
+  without being asked". `dr changeset apply` follows the same rule. `force` on `changeset_commit`
+  and on the viewer API is the one that is ignored.
 - Land the plan, not the as-built changeset. After verify, the as-built changeset from
   `codebase_extract` is the plan's verification record, which is never landed (see
   [What a changeset is for](#what-a-changeset-is-for)): it is discarded or kept as a record. When
   another changeset from `codebase_extract` (a bootstrap or reconcile) is committed while a plan is
   staged, the dialog warns that the plan should land instead, since landing it first changes the
-  plan's base (the plan then needs `force`), and the result carries the warning in `warnings`.
+  plan's base (the plan's adds of the same elements are then skipped), and the result carries the
+  warning in `warnings`.
+- A changeset whose base moved can be re-baselined: `changeset_update` with `rebaseline: true`
+  records the base as it is now (its hash and base index) and returns what moved under the
+  changeset (`moved`), the overlaps that cleared and the ones that remain, each with how the plan
+  resolves it. A re-baseline clears the list of base changes and nothing a landing would do: every
+  element overlap is read from the base as it is now and from what the staged change recorded, so
+  the overlaps that remain are still in the landing summary, which also says the changeset was
+  re-baselined (the base index records when, from which base hash and to which). `rebaseline: "preview"`
+  returns the same and writes nothing. The lists in `moved`
+  are a page (`limit`, default 50, and `offset`; `moved.page` has each list's true total and the
+  `nextOffset`), and what moved can't be read again once a re-baseline is applied, so preview first
+  when much has moved. It changes no staged change and never hides an overlap that is still true against
+  the base as it is now: an update staged on older content of an element stays `changed-in-base`
+  until it is restaged. The landing summary says when a changeset was re-baselined.
 - A commit regenerates the reports of the layers it changed: each changed element's layer and the
   layers at the other end of its relationships (read before and after the changes apply, so a
   relationship a delete purges still refreshes its other end), and both ends of each relationship change. A report
@@ -845,19 +884,37 @@ The full brief:
 - **Feedback.** Unresolved annotations on changed elements and their neighbours.
 - **Drift.** Whether the base model changed since the changeset was created (`isDrifted`), which
   staged changes the base now overlaps (`overlapping`: adds the base already has, deletes of what
-  it no longer has, any staged change of an element changed in or removed from the base, deletes
-  of elements the base has since linked (`linked-in-base`), and relationships the plan adds or
-  deletes with an end on a base element that changed or was removed since, as
-  `endpoint-changed-in-base` or `endpoint-removed-in-base` with the `endpoints`) and, when the
+  it no longer has, any staged change of an element whose base content is not what that change was
+  staged on (`changed-in-base`) or that the base removed, deletes of elements the base has since
+  linked (`linked-in-base`), and relationships the plan adds or deletes with an end on a base
+  element that was removed since, as `endpoint-removed-in-base` with the `endpoints`) and, when the
   changeset has a base index, what was added, removed or changed in the base (`baseChanges`). The
-  plan doesn't edit an element it only links to, but that element is not what the plan saw. Staged
+  overlaps are always all of them; the five `baseChanges` lists are a page of 50 entries each by
+  default, with exact `counts` and a `page` (`totals`, `returned`, `nextOffset`) that says what
+  there is, and `describeDrift` takes `limit` and `offset` to read the rest (the viewer API passes
+  them as `driftLimit` and `driftOffset`). Each
+  overlap carries a `consequence` (what landing does about it) and a `resolve` (how the plan
+  clears it). An edit to an element the plan only links to is not an overlap: the element keeps
+  its id, and with it its layer and type. An update restaged on the base as it is now is not one
+  either: a staged change is compared with the base through the `before` it recorded. Staged
   adds the base already has are counted as `alreadyInBase`, apart from the adds, for elements and
   relationships alike. New changesets record the base index (`base-index.json` in the changeset's directory);
-  older ones report `baseIndex: "not-recorded"`. Only an overlap blocks a landing: with a base
-  index, a commit is refused for drift when `overlapping` is not empty, and any other base change
-  (another plan landing that adds, edits or removes other elements) is content-free and lands
-  without `force`. Without a base index a changed hash still blocks, since the two can't be told
-  apart.
+  older ones report `baseIndex: "not-recorded"`. Only an overlap is a drift warning, and no drift
+  refuses a landing: a commit lands the changeset and reports `overlapping`, and any other base
+  change (another plan landing that adds, edits or removes other elements) is content-free. Without
+  a base index a changed base hash warns without a full list, since the two can't be told apart.
+  What could not be checked is said, not left to read as "no overlap": `notChecked` names staged
+  changes that record no element they were made on (compared through the base index alone, and
+  listed when the index can't tell), and, without a base index, the relationship changes that
+  could not be checked against what the base removed. The landing summary, the CLI and the viewer
+  API's drift carry it. A changeset without a base index still lands; `notChecked` says
+  `changeset_update` with `rebaseline: true` records one. A re-baseline keeps the earlier index
+  entry for an element whose change records no element, so it can't make a base edit read as
+  current.
+  The base hash (`baseSnapshot`, `v2:sha256:...`) covers the content of the base's elements and its
+  relationships only, so a landing or an upgrade that changes no content is not drift; a hash
+  recorded before CLI 0.7.0 (`sha256:...`, the whole model with its manifest) is compared with one
+  made the same way.
 
 ### What `changeset_verify` reports
 

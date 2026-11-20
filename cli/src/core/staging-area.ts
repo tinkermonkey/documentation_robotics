@@ -23,6 +23,8 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest, ReconciledStamp } from "../types/index.js";
 import { reconciliationStamp } from "./reconciliation.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { FileLock } from "../utils/file-lock.js";
+import type { BaseRead, ChangesetDrift } from "./changeset-base-index.js";
 import { Layer } from "./layer.js";
 import { canonicalStagedSnapshot } from "./staged-source-reference.js";
 import { elementIdentifiers, Relationships } from "./relationships.js";
@@ -53,29 +55,57 @@ import {
  * Options for commit operation
  */
 export interface CommitOptions {
-  force?: boolean; // Ignore drift warnings
+  /**
+   * @deprecated Ignored. Drift no longer refuses a commit (#1200), so there is nothing to force:
+   * a drifted changeset lands and the result says what overlapped. Accepted for one release.
+   */
+  force?: boolean;
   validate?: boolean; // Run validation (default: true)
   dryRun?: boolean; // Preview without applying
 }
 
 /**
- * Drift report for change detection
- *
- * NOTE: Detects whether the base model has drifted (changed) since the changeset was created.
- * Current implementation only identifies that drift occurred (isDrifted flag).
- * Element-level change tracking is not implemented; detailed diff detection would require
- * storing complete snapshot data, not just hashes.
+ * Whether the base model moved under a changeset in a way that matters to it
+ * (`StagingAreaManager.detectDrift`). A warning for the landing, never a refusal: what overlaps,
+ * and what landing does about it, is `describeDrift`'s to say (changeset-base-index.ts).
  */
 export interface DriftReport {
+  /**
+   * True when the base overlaps a staged change, or its hash changed and there is no base index to
+   * tell whether it does. The landing goes ahead and reports it.
+   */
   isDrifted: boolean;
   baseSnapshotId: string;
+  /** The base's hash now, in the format `baseSnapshotId` was recorded in. */
   currentSnapshotId: string;
   warnings: string[];
   /**
-   * Set when the base hash differs but nothing the changeset was staged against changed (see
-   * `contentFreeDrift` in changeset-base-index.ts): isDrifted is false and landing is not blocked.
+   * Set when the base hash differs but the base overlaps nothing the changeset stages (see
+   * `contentFreeDrift` in changeset-base-index.ts): isDrifted is false and the landing has no
+   * drift warning.
    */
   contentFree?: true;
+  /**
+   * What the check read to decide: the staged changes the base overlaps and what changed in the
+   * base (`describeDrift`, without its one-line summary of the overlaps). Present whenever the base
+   * hash changed or the changeset was re-baselined, so a caller that wants the detail does not
+   * describe the same drift a second time.
+   */
+  described?: ChangesetDrift;
+}
+
+/** What `StagingAreaManager.rebaseline` did: the changeset's drift before and after, and its base hashes. */
+export interface RebaselineResult {
+  changeset: { id: string; name: string };
+  /** False for a preview: nothing was written, and the changeset's base is still the previous one. */
+  applied: boolean;
+  previousBaseSnapshot: string | null;
+  /** The base hash the changeset has now, or would have (a preview). */
+  baseSnapshot: string;
+  /** The drift as it read before the re-baseline: what moved under the changeset since its previous base. */
+  before: ChangesetDrift;
+  /** The drift as it reads now. Its overlaps are true against the base as it is, and stay until the plan resolves them. */
+  after: ChangesetDrift;
 }
 
 /**
@@ -102,7 +132,14 @@ export interface CommitResult {
     /** Set when the base model could not be validated, so every error blocked. */
     baseValidationFailure?: string;
   };
+  /** Set when the base drifted under the changeset (it lands all the same; see driftDetail). */
   driftWarning?: DriftReport;
+  /**
+   * With driftWarning: the staged changes the base overlapped when this landed (or would, on a dry
+   * run), each with what landing does about it, and what changed in the base. Absent when the
+   * drift could not be described.
+   */
+  driftDetail?: ChangesetDrift;
   /**
    * True when the landed changeset was the active one and its active marker was cleared. False
    * when it was not active, on a dry run, or when clearing failed (see deactivationError).
@@ -215,7 +252,10 @@ export class StagingAreaManager {
       throw new Error("Model required for creating changesets");
     }
     const id = this.generateChangesetId();
-    const baseSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
+    // The base hash is the hash of the base index, so both come from one read of the base.
+    const { captureBaseIndex, writeBaseIndex, snapshotOfIndex } = await import("./changeset-base-index.js");
+    const baseIndex = await captureBaseIndex(this.model);
+    const baseSnapshotId = snapshotOfIndex(baseIndex);
     const declared = purpose ?? (await creationPurpose(this.rootPath, name, origin));
 
     const changeset = await this.storage.create(id, name, description, baseSnapshotId, origin, declared);
@@ -229,8 +269,7 @@ export class StagingAreaManager {
     // predates the plan. Optional: without it they fall back and say so, so a failure is reported,
     // not fatal.
     try {
-      const { captureBaseIndex, writeBaseIndex } = await import("./changeset-base-index.js");
-      await writeBaseIndex(this.rootPath, changeset.id, await captureBaseIndex(this.model));
+      await writeBaseIndex(this.rootPath, changeset.id, baseIndex);
     } catch (error) {
       console.warn(
         `Warning: could not record the base index for changeset '${name}': ${getErrorMessage(error)}. ` +
@@ -621,29 +660,36 @@ export class StagingAreaManager {
   }
 
   /**
-   * Detect drift by comparing base snapshot hash to current model state.
-   * Identifies whether the base model has changed since the changeset was created.
+   * Whether the base model moved under a changeset in a way that matters to it.
    *
    * @param changesetId - ID of the changeset to check for drift
    * @returns DriftReport with isDrifted flag, snapshot hashes, and warnings
    * @throws Error if changeset ID is invalid, changeset not found, or model not available
    *
    * @remarks
-   * Drift detection uses hash-based comparison of the entire model snapshot, manifest included.
-   * When the hash differs, the changeset's base index decides whether anything it was staged
-   * against changed: if not, the drift is content-free (isDrifted=false, contentFree=true), so
-   * landing one changeset doesn't block every other one. Without a base index it stays drift.
+   * Compares the base hash recorded for the changeset with the base's hash now, made the same way
+   * (a changeset created before CLI 0.7.0 recorded a hash of the whole model, manifest included;
+   * see base-snapshot-manager.ts). When they differ, the changeset's base index decides whether
+   * the base overlaps anything it stages: if not, the drift is content-free (isDrifted=false,
+   * contentFree=true). Without a base index it stays drift, since the two can't be told apart.
    * Returns isDrifted=false and warnings if no base snapshot was captured.
+   *
+   * The answer never refuses a landing (#1200): commit reports it in its result.
    */
-  async detectDrift(changesetId: string): Promise<DriftReport> {
-    this.validateChangesetId(changesetId);
-
+  async detectDrift(changesetOrId: string | Changeset, options: { base?: BaseRead } = {}): Promise<DriftReport> {
     if (!this.model) {
       throw new Error("Model required for drift detection");
     }
-    const changeset = await this.load(changesetId);
-    if (!changeset) {
-      throw new Error(`Changeset '${changesetId}' not found`);
+    // A caller that already holds the changeset passes it, and it is not read from disk again.
+    let changeset: Changeset | null;
+    if (typeof changesetOrId === "string") {
+      this.validateChangesetId(changesetOrId);
+      changeset = await this.load(changesetOrId);
+      if (!changeset) {
+        throw new Error(`Changeset '${changesetOrId}' not found`);
+      }
+    } else {
+      changeset = changesetOrId;
     }
 
     if (!changeset.baseSnapshot) {
@@ -655,40 +701,59 @@ export class StagingAreaManager {
       };
     }
 
-    // Capture current model snapshot to compare against base
-    const currentSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
-
-    // Compare snapshot hashes to detect drift
-    // isDrifted=true indicates base model has changed since changeset creation
-    const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
-
+    // With a shared read of the base (readBase), the base is indexed and hashed once for every
+    // changeset checked against it.
+    const currentSnapshotId = options.base
+      ? await options.base.snapshotLike(changeset.baseSnapshot)
+      : await this.snapshotManager.captureSnapshotLike(this.model, changeset.baseSnapshot);
+    const hashChanged = changeset.baseSnapshot !== currentSnapshotId;
     const warnings: string[] = [];
 
-    // The hash covers the manifest and every element, so landing another changeset changes it
-    // whether or not it touched anything this one stages. The base index tells the two apart (only
-    // a base change that overlaps a staged change is drift); without one it stays drift.
-    if (isDrifted) {
-      let contentFree: string | undefined;
-      try {
-        const { contentFreeDrift } = await import("./changeset-base-index.js");
-        contentFree = await contentFreeDrift(this.model, changeset);
-      } catch (error) {
-        warnings.push(`Could not compare the base with the changeset's base index: ${getErrorMessage(error)}`);
+    // The base index tells a base change that overlaps a staged change from one that doesn't
+    // (another changeset landing elsewhere in the model). With the hash unchanged there is nothing
+    // to tell, except after a re-baseline: a staged change made on older content of an element
+    // is still an overlap then, though the base is as the changeset last recorded it.
+    let contentFree: string | undefined;
+    let overlaps = false;
+    let described: ChangesetDrift | undefined;
+    try {
+      const { describeDrift, contentFreeSentence, tryReadBaseIndex } = await import("./changeset-base-index.js");
+      if (hashChanged || (await tryReadBaseIndex(this.rootPath, changeset.id!)).index?.rebaselined) {
+        const { ChangesetGraph } = await import("./changeset-graph.js");
+        described = await describeDrift(this.model, await ChangesetGraph.build(this.model, changeset), undefined, {
+          overlapWarning: false,
+          base: options.base,
+        });
+        // Something that could not be checked is never reported as no drift (review of PR 1272):
+        // every confirmation states it.
+        overlaps =
+          described.overlapping.elements.length + described.overlapping.relationships.length > 0 ||
+          described.notChecked !== undefined;
+        if (hashChanged) contentFree = contentFreeSentence(described);
       }
-      if (contentFree) {
-        return {
-          isDrifted: false,
-          baseSnapshotId: changeset.baseSnapshot,
-          currentSnapshotId,
-          warnings: [contentFree],
-          contentFree: true,
-        };
-      }
+    } catch (error) {
+      warnings.push(`Could not compare the base with the changeset's base index: ${getErrorMessage(error)}`);
     }
 
+    if (hashChanged && contentFree) {
+      return {
+        isDrifted: false,
+        baseSnapshotId: changeset.baseSnapshot,
+        currentSnapshotId,
+        warnings: [contentFree],
+        contentFree: true,
+        ...(described ? { described } : {}),
+      };
+    }
+
+    const isDrifted = hashChanged || overlaps;
     if (isDrifted) {
       warnings.push(
-        `Model has drifted since changeset creation (base snapshot hash differs from current)`
+        described?.notChecked && described.overlapping.elements.length + described.overlapping.relationships.length === 0
+          ? `Part of what this changeset stages could not be checked against the base. ${described.notChecked.sentence}`
+          : overlaps
+          ? "The base model overlaps what this changeset stages"
+          : "The base model changed since this changeset was created, and it has no base index to tell whether that overlaps what it stages"
       );
     }
 
@@ -697,7 +762,141 @@ export class StagingAreaManager {
       baseSnapshotId: changeset.baseSnapshot,
       currentSnapshotId: currentSnapshotId,
       warnings,
+      ...(described ? { described } : {}),
     };
+  }
+
+  /**
+   * Reads the base model once, to share across the drift checks of several changesets
+   * (`detectDrift`'s `base`, and `driftStatus` / `driftDetail`): the base is indexed and hashed
+   * once instead of once per changeset. Good for as long as the model in hand is: read it again
+   * after anything writes the model.
+   */
+  async readBase(): Promise<BaseRead> {
+    if (!this.model) {
+      throw new Error("Model required for reading the base");
+    }
+    const { BaseRead } = await import("./changeset-base-index.js");
+    return BaseRead.of(this.model);
+  }
+
+  /**
+   * Re-baseline a staged changeset: make the base model as it is now its base. Records the current
+   * base hash and base index, and returns the drift as it read before (what moved under the
+   * changeset since its previous base) and as it reads after.
+   *
+   * It changes no staged change. An overlap that is true against the base as it is now stays one:
+   * a change made on older content of an element (`changed-in-base`), an add of what the base has,
+   * a delete of what it lacks, a delete that would purge a relationship the plan stages no delete
+   * for (`linked-in-base`), a link to an element it removed. Every element overlap is read from the
+   * base as it is now and from what the staged change recorded, not from the base index, so no
+   * re-baseline clears one. What it clears is what only the previous base could say: the list of
+   * base changes since. It is a visible act: the base index records when it happened and from
+   * which base hash to which, the drift detail carries that (`rebaselined`), and the landing
+   * summary says so.
+   *
+   * What moved (`before.baseChanges`) cannot be read again once the re-baseline is applied, so
+   * `preview` returns the same result and writes nothing, and `limit` and `offset` page its lists
+   * (`before.baseChanges.page`). The counts and the overlaps are whole whatever the page.
+   *
+   * @throws Error for a changeset that is not staged, or a record (which never lands)
+   */
+  async rebaseline(
+    changesetId: string,
+    options: { preview?: boolean; limit?: number; offset?: number } = {}
+  ): Promise<RebaselineResult> {
+    this.validateChangesetId(changesetId);
+    if (!this.model) {
+      throw new Error("Model required for re-baselining a changeset");
+    }
+    const model = this.model;
+    const { BaseRead, describeDrift, elementsWithoutRecordedBase, readBaseIndex, snapshotOfIndex, writeBaseIndex } =
+      await import("./changeset-base-index.js");
+    const { ChangesetGraph } = await import("./changeset-graph.js");
+
+    const id = (await this.load(changesetId))?.id;
+    if (!id) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    // Under the changeset's file lock, on a fresh read: nothing staged meanwhile is saved over.
+    return new FileLock(this.storage.getChangesetPath(id)).withLock(async () => {
+      const changeset = await this.storage.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${changesetId}' not found`);
+      }
+      if (changeset.status !== "staged") {
+        throw new Error(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can be re-baselined`);
+      }
+      const refusal = await this.landingRefusal(changeset);
+      if (refusal) {
+        throw new Error(`Changeset '${changeset.name}' is a record, which never lands, so it has no base to move`);
+      }
+
+      // One read of the base serves the description before, the new index and the description after.
+      const base = await BaseRead.of(model);
+      const graph = await ChangesetGraph.build(model, changeset);
+      const before = await describeDrift(model, graph, undefined, {
+        overlapWarning: false,
+        base,
+        limit: options.limit,
+        offset: options.offset,
+      });
+
+      let previous: Awaited<ReturnType<typeof readBaseIndex>>;
+      try {
+        previous = await readBaseIndex(this.rootPath, id);
+      } catch {
+        // An unreadable index is replaced.
+      }
+      const previousBaseSnapshot = changeset.baseSnapshot || null;
+      // A staged change that records no element it was made on is compared with the base through
+      // the index alone. The new index keeps the old entry for such an element, so a base edit since
+      // still reads as one; with no old entry it lists the element as unchecked. Either way a
+      // re-baseline can't make it read as current (review of PR 1272, finding 1).
+      const elements = { ...base.index.elements };
+      const unchecked = new Set(previous?.unchecked ?? []);
+      for (const id of elementsWithoutRecordedBase(changeset, (ref) => graph.resolve(ref))) {
+        if (!(id in elements)) continue;
+        // The earlier entry is kept whenever there is one, unchecked or not: it is the content seen
+        // at the first re-baseline, so a base edit after it reads as changed-in-base, however many
+        // re-baselines follow. With no earlier entry the content now is recorded, and the element is
+        // listed as unchecked, since what the change was made on is unknown.
+        if (previous && id in previous.elements) elements[id] = previous.elements[id];
+        else unchecked.add(id);
+      }
+      const index = {
+        ...base.index,
+        elements,
+        ...(unchecked.size > 0 ? { unchecked: [...unchecked].sort() } : {}),
+        rebaselined: {
+          at: base.index.captured,
+          from: previousBaseSnapshot ?? "unknown",
+          to: base.contentSnapshot,
+          times: (previous?.rebaselined?.times ?? 0) + 1,
+        },
+      };
+      const baseSnapshot = snapshotOfIndex(index);
+      // The drift as it reads with the base as it is now for a base: what a re-baseline leaves.
+      const after = await describeDrift(model, graph, undefined, { overlapWarning: false, base, since: index });
+
+      if (options.preview !== true) {
+        // The index first: if the hash's save fails, the changeset still reads as drifted, with an
+        // index that says the base is as it is now.
+        await writeBaseIndex(this.rootPath, id, index);
+        changeset.baseSnapshot = baseSnapshot;
+        changeset.updateModified();
+        await this.storage.save(changeset);
+      }
+
+      return {
+        changeset: { id, name: changeset.name },
+        applied: options.preview !== true,
+        previousBaseSnapshot,
+        baseSnapshot,
+        before,
+        after,
+      };
+    });
   }
 
   /**
@@ -705,7 +904,7 @@ export class StagingAreaManager {
    * Applies all staged changes and persists them to the base model.
    *
    * Implements atomic commit with the following steps:
-   * 1. Detect drift in base model (fail unless force=true)
+   * 1. Detect drift in base model (reported in the result; never a refusal)
    * 2. Validate projected model (schema, references, semantics)
    * 3. Create backup of current model state
    * 4. Apply all changes in sequence order
@@ -715,14 +914,15 @@ export class StagingAreaManager {
    *
    * @param model - The model to commit changes to
    * @param changesetId - ID of the changeset to commit
-   * @param options - Commit options (force, validate, dryRun)
-   * @returns CommitResult with count of committed/failed changes and validation status
-   * @throws Error if validation fails, drift detected without --force, or commit fails
+   * @param options - Commit options (validate, dryRun; force is ignored)
+   * @returns CommitResult with count of committed/failed changes, validation status and any drift
+   * @throws Error if validation fails or the commit fails
    *
    * @remarks
-   * Validation errors always block commit (force flag does not override).
-   * Drift warnings can be bypassed with --force flag.
-   * A record (purpose `verification` or `upgrade-record`) is refused, force or not (landingRefusal).
+   * Validation errors always block commit.
+   * Drift never does (#1200): a drifted changeset lands, and the result's driftWarning and
+   * driftDetail say what the base overlapped and what landing did about it.
+   * A record (purpose `verification` or `upgrade-record`) is refused (landingRefusal).
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
@@ -753,7 +953,7 @@ export class StagingAreaManager {
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
 
-      // Step 0: A record never lands, dry run or not; force is for drift, not purpose.
+      // Step 0: A record never lands, dry run or not.
       const refusal = await this.landingRefusal(changeset);
       if (refusal) {
         emitLog(SeverityNumber.ERROR, "Commit refused: the changeset is a record, which never lands", {
@@ -765,7 +965,8 @@ export class StagingAreaManager {
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;
 
-      // Step 1: Detect drift and throw if drifted without --force
+      // Step 1: Detect drift. It is a warning, not a refusal (#1200): the landing goes ahead and
+      // the result says what overlapped, read here, before the changes apply.
       const driftSpan = isTelemetryEnabled ? startSpan("staging.detectDrift") : null;
       const drift = await this.detectDrift(changesetId);
       if (isTelemetryEnabled && driftSpan) {
@@ -776,21 +977,29 @@ export class StagingAreaManager {
       }
       endSpan(driftSpan);
 
+      let driftDetail: ChangesetDrift | undefined;
       if (drift.isDrifted) {
         (span as any).setAttribute("commit.driftDetected", true);
-        if (options.force) {
-          emitLog(SeverityNumber.WARN, "Drift detected but overridden with --force", {
-            "drift.baseSnapshot": drift.baseSnapshotId,
-            "drift.currentSnapshot": drift.currentSnapshotId,
+        emitLog(SeverityNumber.WARN, "Drift detected; the changeset lands with a warning", {
+          "drift.baseSnapshot": drift.baseSnapshotId,
+          "drift.currentSnapshot": drift.currentSnapshotId,
+        });
+        try {
+          // detectDrift described it to decide; without that (its comparison failed) describe it here.
+          const { describeDrift, describedAsDrifted } = await import("./changeset-base-index.js");
+          if (drift.described) {
+            driftDetail = describedAsDrifted(drift.described);
+          } else {
+            const { ChangesetGraph } = await import("./changeset-graph.js");
+            driftDetail = await describeDrift(model, await ChangesetGraph.build(model, changeset), drift, {
+              overlapWarning: false,
+            });
+          }
+        } catch (error) {
+          emitLog(SeverityNumber.WARN, "Could not describe the drift a changeset lands over", {
+            "changeset.id": changesetId,
+            "error.message": getErrorMessage(error),
           });
-        } else {
-          emitLog(SeverityNumber.ERROR, "Drift detected, commit blocked", {
-            "drift.baseSnapshot": drift.baseSnapshotId,
-            "drift.currentSnapshot": drift.currentSnapshotId,
-          });
-          throw new Error(
-            `Base model has drifted since changeset creation. ` + `Use --force to commit anyway.`
-          );
         }
       }
 
@@ -806,9 +1015,11 @@ export class StagingAreaManager {
           ran: shouldValidate,
         },
         deactivated: false,
+        ...(drift.isDrifted ? { driftWarning: drift } : {}),
+        ...(driftDetail ? { driftDetail } : {}),
       };
 
-      // Step 2: Validate the change (force cannot override validation). Only errors the
+      // Step 2: Validate the change (nothing overrides validation). Only errors the
       // changeset introduces block; errors already in the base model are counted and
       // reported, so a model with old problems can still take a change.
       if (shouldValidate) {
@@ -872,9 +1083,6 @@ export class StagingAreaManager {
       // Step 3: Dry run early exit (before making any changes)
       if (isDryRun) {
         result.committed = changeset.changes.length;
-        if (drift.isDrifted) {
-          result.driftWarning = drift;
-        }
         // What the landing would stamp (nothing is written on a dry run).
         const wouldReconcile = await reconciliationStamp(model.rootPath, changeset, model.codebaseRoot ?? model.rootPath);
         if (wouldReconcile) result.reconciled = wouldReconcile;
@@ -996,9 +1204,15 @@ export class StagingAreaManager {
                 const elementData = change.after as Record<string, unknown>;
                 const elementId = elementData.id as string;
 
-                // Check if element already exists using the UUID from elementData
+                // The base already has the element when it holds this UUID, or another element at
+                // this path: one added there after this add was staged (another plan, or the
+                // as-built changeset landing first) has its own UUID. Either way the add is
+                // skipped and the base's element stands, as the brief and the drift warning say
+                // (`already-in-base`); adding it again would replace the base's element.
                 const elements = layer.listElements();
-                const elementExists = elements.some((e) => e.id === elementId);
+                const elementPath = typeof elementData.path === "string" ? elementData.path : change.elementId;
+                const elementExists =
+                  elements.some((e) => e.id === elementId) || (!!elementPath && !!layer.getElement(elementPath));
 
                 if (!elementExists) {
                   // Pass the entire elementData to Element constructor - it already has all fields from toJSON()
@@ -1237,7 +1451,7 @@ export class StagingAreaManager {
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);
         if (drift.isDrifted) {
-          (span as any).setAttribute("commit.driftOverridden", true);
+          (span as any).setAttribute("commit.landedWithDrift", true);
         }
         (span as any).setStatus({ code: 0 });
 

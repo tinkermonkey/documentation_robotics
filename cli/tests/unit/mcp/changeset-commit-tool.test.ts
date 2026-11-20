@@ -26,11 +26,14 @@ import {
   changesetDeactivateHandler,
 } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
+import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
 import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
-import { changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
+import { changesetUnstageHandler, changesetUpdateHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import {
+  CONFIRM_TOKEN_TTL_MS,
+  OVERLAPS_NAMED_PER_KIND,
   checkConfirmToken,
   confirmationTiming,
   issueConfirmToken,
@@ -97,6 +100,11 @@ async function baseModelText(): Promise<string> {
     .sort();
   const texts = await Promise.all(files.map((f) => readFile(f, "utf-8")));
   return texts.join("\n");
+}
+
+/** The id of the plan the tests stage. */
+async function planId(): Promise<string> {
+  return parse(await changesetShowHandler({ changesetId: "export-orders", rootPath })).id;
 }
 
 async function changesetStatus(): Promise<string> {
@@ -203,31 +211,57 @@ describe("changeset_commit confirmation", () => {
     await writeFile(manifestPath, yaml.stringify(manifest));
     clearModelCache();
 
-    // Stamping the manifest after the changeset was created changes its base hash, not its content.
+    // Stamping the manifest after the changeset was created changes no content, so it is not drift
+    // (the base hash covers content only, #1169) and nothing is said about it.
     const c = await connect({ elicitation: true, answer: ACCEPT });
-    const result = parse(await commit(c, { force: true }));
+    const result = parse(await commit(c));
     expect(result.status).toBe("committed");
+    expect(result.drift).toBeUndefined();
+    expect((elicitations[0] as any).message).toContain("Drift: none");
     expect(result.reconciled).toBeUndefined();
     expect(result.codeDrift).toContain("doesn't reconcile");
     expect(result.codeDrift).toContain('"extract-bootstrap"');
   });
 
-  for (const [label, answer] of [
-    ["declined", { action: "decline" }],
-    ["cancelled", { action: "cancel" }],
-    ["did not confirm it", { action: "accept", content: { confirm: false } }],
+  // #1207: a dialog can come back unanswered by any person (the client declined or cancelled it
+  // for them), so no refusal claims more than the tool knows, and each names a route with no dialog.
+  for (const [label, answer, says] of [
+    ["the dialog comes back declined", { action: "decline" }, "the confirmation dialog came back declined"],
+    ["no confirmation comes back (cancel)", { action: "cancel" }, "no confirmation came back"],
+    ["the user answers without confirming", { action: "accept", content: { confirm: false } }, "without confirming it"],
   ] as const) {
-    it(`refuses and writes nothing when the user ${label}`, async () => {
+    it(`refuses and writes nothing when ${label}`, async () => {
       const before = await baseModelText();
       const c = await connect({ elicitation: true, answer: answer as ElicitResult });
       const result = await commit(c);
       expect(result.isError).toBe(true);
-      expect(text(result)).toContain(`the user ${label}`);
+      expect(text(result)).toContain(says);
+      expect(text(result)).toContain("Nothing was written");
       expect(elicitations).toHaveLength(1);
       expect(await changesetStatus()).toBe("staged");
       expect(await baseModelText()).toBe(before);
     });
   }
+
+  it("does not say the user declined when no confirmation came back, and names the viewer's Apply (#1207)", async () => {
+    const c = await connect({ elicitation: true, answer: { action: "cancel" } });
+    const result = await commit(c);
+    expect(text(result)).not.toContain("the user declined");
+    expect(text(result)).toContain("may not have been shown");
+    expect(text(result)).toContain("Remote Control");
+    expect(text(result)).toContain("review_open");
+    expect(text(result)).toContain("Apply");
+    expect(text(result)).not.toContain("dr changeset");
+  });
+
+  it("says a decline may have been the client's, and points Claude Code at the preview and its token (#1239)", async () => {
+    const c = await connect({ elicitation: true, answer: { action: "decline" }, clientInfo: CLAUDE_CODE });
+    const result = await commit(c);
+    expect(text(result)).toContain("If the user did not decline it themselves");
+    expect(text(result)).toContain("changeset_commit_preview");
+    expect(text(result)).toContain("Apply");
+    expect(text(result)).not.toMatch(/\bdr changeset\b|--force|force: true/);
+  });
 
   it("refuses a client without the elicitation capability, pointing at the viewer and an interactive session, never the CLI", async () => {
     const before = await baseModelText();
@@ -261,32 +295,209 @@ describe("changeset_commit drift and edge cases", () => {
     await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
   }
 
-  it("refuses a drifted changeset without force, naming the drift, and does not ask", async () => {
-    await driftTheBase();
-    const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
+  /** The plan rewords the goal, and so does the base afterwards: the staged update is on older content. */
+  async function overlapTheGoal(): Promise<void> {
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in one step", rootPath } as any);
+    await changesetDeactivateHandler({ rootPath });
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
+  }
+
+  // #1200: drift warns, it does not refuse. The dialog is where the person decides, so it names
+  // each overlap and what landing does about it; the result repeats it.
+  it("lands a drifted changeset without force: the dialog names the overlap and what landing does, and so does the result", async () => {
+    await overlapTheGoal();
+    const c = await connect({ elicitation: true, answer: ACCEPT });
     const result = await commit(c);
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("the base model changed");
-    expect(text(result)).toContain("force: true");
-    expect(elicitations).toHaveLength(0);
-    expect(await changesetStatus()).toBe("staged");
+    expect(result.isError).toBeFalsy();
+    const landed = parse(result);
+    expect(landed).toMatchObject({ status: "committed", deactivated: false, confirmedBy: "dialog" });
+    expect(landed.driftOverridden).toBeUndefined();
+    expect(landed.drift.landedOver).toContain("overlapped 1 staged change(s)");
+    expect(landed.drift.total).toBe(1);
+    expect(landed.drift.kinds).toHaveLength(1);
+    expect(landed.drift.kinds[0]).toMatchObject({ reason: "changed-in-base", of: "element", count: 1, items: [GOAL] });
+    expect(landed.drift.kinds[0].consequence).toContain("landing replaces the base's edit with the plan's version");
+    expect(landed.warnings).toBeUndefined();
+
+    const message = (elicitations[0] as any).message as string;
+    expect(message).toContain("Drift: the base model changed under this changeset.");
+    expect(message).toContain("1 staged change(s) overlap the base. Landing goes ahead, and does this:");
+    expect(message).toContain("- changed-in-base, 1 element(s): The base edited this element");
+    expect(message).toContain(`      ${GOAL}`);
+    // Everything is named, so nothing points elsewhere.
+    expect(message).not.toContain("not named here");
+    expect(message).not.toContain("force");
+    expect(await baseModelText()).toContain("Checkout in one step");
   });
 
-  it("with force, shows the drift in the dialog and commits a changeset that is not active", async () => {
+  // The maintainer's rule on limits: a default length never passes for completeness. With more
+  // overlaps than the summary names, it gives the true count, what landing does for every kind, how
+  // many it did not name and the call that names them all; the result names every one.
+  describe("with more overlaps than the summary names", () => {
+    const MANY = OVERLAPS_NAMED_PER_KIND + 4;
+    const goals = Array.from({ length: MANY }, (_, i) => `motivation.goal.goal-${String(i).padStart(2, "0")}`);
+
+    /** MANY goals in the base, each reworded by the plan and then by the base, plus one add the base already has. */
+    async function overlapManyGoals(): Promise<void> {
+      await changesetDeactivateHandler({ rootPath });
+      for (const id of goals) {
+        await modelAddHandler({ layer: "motivation", type: "goal", name: id.split(".")[2], attributes: { priority: "low" }, rootPath });
+      }
+      await changesetCreateHandler({ name: "reword-goals", description: "Reword every goal", rootPath });
+      for (const id of goals) await modelUpdateHandler({ id, description: "The plan's wording", rootPath } as any);
+      await modelAddHandler({ layer: "motivation", type: "goal", name: "shared-goal", attributes: { priority: "low" }, rootPath });
+      await changesetDeactivateHandler({ rootPath });
+      for (const id of goals) await modelUpdateHandler({ id, description: "The base's wording", rootPath } as any);
+      await modelAddHandler({ layer: "motivation", type: "goal", name: "shared-goal", attributes: { priority: "high" }, rootPath });
+    }
+
+    it("the summary gives the true count and every kind, says how many it did not name, and where they all are", async () => {
+      await overlapManyGoals();
+      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+      const shown = parse(await preview(c, { changeset: "reword-goals" }));
+
+      expect(shown.overlaps).toEqual({ total: MANY + 1, named: OVERLAPS_NAMED_PER_KIND + 1 });
+      expect(shown.summary).toContain(`${MANY + 1} staged change(s) overlap the base.`);
+      // Every kind is there with its own count and consequence, the short one too.
+      expect(shown.summary).toContain(`- changed-in-base, ${MANY} element(s): The base edited this element`);
+      expect(shown.summary).toContain("- already-in-base, 1 element(s): The base already has this element");
+      expect(shown.summary).toContain("      motivation.goal.shared-goal");
+      expect(shown.summary).toContain(`      ${goals[OVERLAPS_NAMED_PER_KIND - 1]}`);
+      expect(shown.summary).not.toContain(`      ${goals[OVERLAPS_NAMED_PER_KIND]}`);
+      expect(shown.summary).toContain("      and 4 more");
+      expect(shown.summary).toContain(`4 of the ${MANY + 1} are not named here.`);
+      expect(shown.summary).toContain('changeset_brief with changeset: "reword-goals" and sections: ["drift"] names every one');
+      expect(shown.more).toContain(`names ${OVERLAPS_NAMED_PER_KIND + 1} of the ${MANY + 1} overlaps`);
+      expect(shown.more).toContain('sections: ["drift"]');
+
+      // The call it names does list every one.
+      const brief = parse(await changesetBriefHandler({ changeset: "reword-goals", sections: ["drift"], rootPath } as any));
+      expect(brief.drift.overlapping.elements).toHaveLength(MANY + 1);
+    });
+
+    it("the token covers the whole set, and the result names every overlap it landed over", async () => {
+      await overlapManyGoals();
+      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+      const { confirmToken } = parse(await preview(c, { changeset: "reword-goals" }));
+
+      // A change to an overlap the summary did not name still refuses the token.
+      await modelUpdateHandler({ id: goals[MANY - 1], description: "Reworded again in the base", rootPath } as any);
+      const refused = await commit(c, { changeset: "reword-goals", confirmToken });
+      expect(refused.isError).toBe(true);
+      expect(text(refused)).toContain("changed since the preview");
+
+      const again = parse(await preview(c, { changeset: "reword-goals" }));
+      const landed = parse(await commit(c, { changeset: "reword-goals", confirmToken: again.confirmToken }));
+      expect(landed.status).toBe("committed");
+      expect(landed.drift.total).toBe(MANY + 1);
+      const changed = landed.drift.kinds.find((kind: any) => kind.reason === "changed-in-base");
+      expect(changed.count).toBe(MANY);
+      expect(changed.items).toEqual(goals);
+      expect(landed.drift.kinds.find((kind: any) => kind.reason === "already-in-base").items).toEqual(["motivation.goal.shared-goal"]);
+    });
+
+    it("changeset_brief pages what changed in the base to the end, by the call its more line names", async () => {
+      await overlapManyGoals();
+      const read = async (args: Record<string, unknown>) =>
+        parse(await changesetBriefHandler({ changeset: "reword-goals", sections: ["drift"], rootPath, ...args } as any)).drift;
+
+      const seen: string[] = [];
+      let drift = await read({ driftLimit: 5 });
+      expect(drift.overlapping.elements).toHaveLength(MANY + 1);
+      expect(drift.baseChanges.counts.elementsChanged).toBe(MANY);
+      for (;;) {
+        seen.push(...drift.baseChanges.elementsChanged);
+        const next = drift.baseChanges.page.nextOffset;
+        if (next === undefined) break;
+        expect(drift.baseChanges.page.more).toContain(`driftLimit: 5, driftOffset: ${next}`);
+        drift = await read({ driftLimit: 5, driftOffset: next });
+      }
+      expect(seen.sort()).toEqual([...goals].sort());
+    });
+
+    it("the dialog says the same", async () => {
+      await overlapManyGoals();
+      const c = await connect({ elicitation: true, answer: ACCEPT });
+      expect(parse(await commit(c, { changeset: "reword-goals" })).status).toBe("committed");
+      const message = (elicitations[0] as any).message as string;
+      expect(message).toContain(`${MANY + 1} staged change(s) overlap the base.`);
+      expect(message).toContain(`4 of the ${MANY + 1} are not named here.`);
+    });
+  });
+
+  it("says in the summary what could not be checked without a base index, and does not claim nothing overlaps", async () => {
+    await rm(join(rootPath, "documentation-robotics", "changesets", await planId(), "base-index.json"));
+    await changesetDeactivateHandler({ rootPath });
+    await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
+
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.summary).toContain("No overlap was found in what could be checked.");
+    expect(shown.summary).toContain("Not checked: 1 staged relationship change(s) were not checked");
+    expect(shown.summary).toContain("rebaseline: true records a base index");
+    expect(shown.summary).not.toContain("Nothing this changeset stages overlaps it");
+    const landed = parse(await commit(c, { confirmToken: shown.confirmToken }));
+    expect(landed.status).toBe("committed");
+    expect(landed.drift.notChecked).toContain("Not checked:");
+  });
+
+  it("never says Drift: none while something could not be checked, also with the base hash matching (review 2)", async () => {
+    // The plan's change to the goal with no `before`, no base index, then a re-baseline.
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in one step", rootPath } as any);
+    const dir = join(rootPath, "documentation-robotics", "changesets", await planId());
+    const changes = yaml.parse(await readFile(join(dir, "changes.yaml"), "utf-8"));
+    for (const change of changes) if (change.elementId === GOAL) delete change.before;
+    await writeFile(join(dir, "changes.yaml"), yaml.stringify(changes));
+    await rm(join(dir, "base-index.json"));
+    clearModelCache();
+    await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any);
+
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.summary).not.toContain("Drift: none");
+    expect(shown.summary).toContain("Not checked:");
+    expect(shown.summary).toContain(GOAL);
+  });
+
+  it("accepts force, ignores it and says so", async () => {
+    await overlapTheGoal();
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = parse(await commit(c, { force: true }));
+    expect(landed.status).toBe("committed");
+    expect(landed.warnings.join(" ")).toContain("force is deprecated and was ignored");
+    expect((elicitations[0] as any).message).not.toContain("force");
+  });
+
+  it("writes nothing for a drifted changeset the user declines", async () => {
+    await overlapTheGoal();
+    const before = await baseModelText();
+    const c = await connect({ elicitation: true, answer: { action: "decline" } });
+    const result = await commit(c);
+    expect(result.isError).toBe(true);
+    expect(elicitations).toHaveLength(1);
+    expect(await changesetStatus()).toBe("staged");
+    expect(await baseModelText()).toBe(before);
+  });
+
+  // #1208: an edit to an element the changeset only links to is not an overlap, so it is not
+  // something the person is warned about at confirmation.
+  it("does not warn about an edit to an element the changeset only links to", async () => {
     await driftTheBase();
-    const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
-    const result = await commit(c, { force: true });
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    const result = await commit(c);
     expect(result.isError).toBeFalsy();
-    expect(parse(result)).toMatchObject({ status: "committed", deactivated: false, driftOverridden: true });
+    expect(parse(result).status).toBe("committed");
+    expect(parse(result).drift).toBeUndefined();
     const message = (elicitations[0] as any).message as string;
-    expect(message).toContain("Drift: the base model changed");
-    expect(message).toContain("Committing anyway: force was passed");
+    expect(message).toContain("In the base: 1 elements changed");
+    expect(message).toContain("Nothing this changeset stages overlaps it");
+    expect(message).not.toContain("overlap the base");
     expect(await baseModelText()).toContain(FUNCTION);
   });
 
-  // #1169: landing one changeset rewrote the manifest, which every other changeset's base hash
-  // covers, so each of them then needed force although nothing it was staged against changed.
-  it("lands a changeset staged before another one landed, without force, when the other touched other elements", async () => {
+  // #1169: landing one changeset moved every other changeset's base hash, so each of them then
+  // needed force although nothing it was staged against changed.
+  it("lands a changeset staged before another one landed when the other touched other elements, with no warning", async () => {
     await changesetDeactivateHandler({ rootPath });
     await changesetCreateHandler({ name: "lower-costs", description: "Track costs", rootPath });
     await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
@@ -298,27 +509,130 @@ describe("changeset_commit drift and edge cases", () => {
     const result = await commit(c);
     expect(result.isError).toBeFalsy();
     expect(parse(result).status).toBe("committed");
-    expect(parse(result).driftOverridden).toBeUndefined();
+    expect(parse(result).drift).toBeUndefined();
     const message = (elicitations[1] as any).message as string;
     expect(message).toContain("In the base: 1 elements added");
-    expect(message).toContain("Nothing this changeset was staged against changed");
+    expect(message).toContain("Nothing this changeset stages overlaps it");
     expect(await baseModelText()).toContain(FUNCTION);
   });
 
-  it("still refuses without force when what landed first changed an element the changeset links to", async () => {
-    await changesetDeactivateHandler({ rootPath });
-    await changesetCreateHandler({ name: "reword-goal", rootPath });
-    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
-    await changesetDeactivateHandler({ rootPath });
+  // #1239: an update restaged on the current base is current. Before, it still read
+  // changed-in-base (the overlap check compared against the base index from creation), and force
+  // was the only way to land it.
+  it("stops warning once the overlapping update is restaged on the base as it is now", async () => {
+    await overlapTheGoal();
+    await changesetActivateHandler({ changesetId: "export-orders", rootPath });
+    await changesetUnstageHandler({ elementId: GOAL, rootPath });
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute, in one step", rootPath } as any);
 
     const c = await connect({ elicitation: true, answer: ACCEPT });
-    expect(parse(await commit(c, { changeset: "reword-goal" })).status).toBe("committed");
-
     const result = await commit(c);
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("the base model changed");
-    expect(text(result)).toContain(GOAL);
-    expect(await changesetStatus()).toBe("staged");
+    expect(parse(result).status).toBe("committed");
+    expect(parse(result).drift).toBeUndefined();
+    expect((elicitations[0] as any).message).toContain("Nothing this changeset stages overlaps it");
+    expect(await baseModelText()).toContain("Checkout in under a minute, in one step");
+  });
+
+  // #1169: changeset_update re-baselines, showing what moved; it never hides a true overlap.
+  it("re-baselines through changeset_update: says what moved, keeps the overlap that is still true, and the summary says it was re-baselined", async () => {
+    await overlapTheGoal();
+    const updated = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any));
+    expect(updated.rebaselined.moved.counts).toMatchObject({ elementsChanged: 1 });
+    expect(updated.rebaselined.moved.elementsChanged).toEqual([GOAL]);
+    expect(updated.rebaselined.overlapsCleared).toEqual([]);
+    expect(updated.rebaselined.overlapsRemaining).toMatchObject([{ element: GOAL, reason: "changed-in-base" }]);
+    expect(updated.rebaselined.overlapsRemaining[0].resolve).toContain("stage it again");
+    expect(updated.rebaselined.baseSnapshot).not.toBe(updated.rebaselined.previousBaseSnapshot);
+    expect(updated.rebaselined.next).toContain("still overlaps");
+
+    // The safety line for a re-baseline: an agent can't use it to clear what the person reads when
+    // confirming. The preview after it still states the overlap, and says the changeset was
+    // re-baselined; so does the dialog; and the landing reports it.
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.drifted).toBe(true);
+    expect(shown.summary).toContain("Re-baselined ");
+    expect(shown.summary).toContain("- changed-in-base, 1 element(s)");
+    expect(shown.summary).toContain(`      ${GOAL}`);
+    expect(shown.overlaps).toEqual({ total: 1, named: 1 });
+    await c.close();
+
+    // A second re-baseline changes nothing about it.
+    const again = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any));
+    expect(again.rebaselined.overlapsRemaining).toMatchObject([{ element: GOAL, reason: "changed-in-base" }]);
+
+    const asked = await connect({ elicitation: true, answer: ACCEPT });
+    const landed = parse(await commit(asked));
+    const message = (elicitations[0] as any).message as string;
+    expect(message).toContain("Re-baselined ");
+    expect(message).toContain("(2 times)");
+    expect(message).toContain("- changed-in-base, 1 element(s)");
+    expect(landed.drift.kinds[0]).toMatchObject({ reason: "changed-in-base", items: [GOAL] });
+  });
+
+  it("re-baselines a changeset the base overlaps nowhere to drift none", async () => {
+    await driftTheBase();
+    const updated = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any));
+    expect(updated.rebaselined.moved.counts).toMatchObject({ elementsChanged: 1 });
+    expect(updated.rebaselined.overlapsRemaining).toEqual([]);
+    expect(updated.rebaselined.next).toContain("Nothing the changeset stages overlaps the base");
+    expect(updated.changes).toBe(3);
+
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.drifted).toBe(false);
+    expect(shown.summary).toContain("Drift: none");
+    expect(shown.summary).toContain("Re-baselined ");
+    expect(shown.summary).not.toContain("In the base:");
+  });
+
+  it("previews a re-baseline without writing, and pages what moved with true totals", async () => {
+    await driftTheBase();
+    for (let i = 0; i < 5; i++) {
+      await modelAddHandler({ layer: "motivation", type: "goal", name: `moved-${i}`, attributes: { priority: "low" }, rootPath });
+    }
+    const before = await readFile(join(rootPath, "documentation-robotics", "changesets", await planId(), "metadata.yaml"), "utf-8");
+
+    const first = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: "preview", limit: 2, rootPath } as any));
+    expect(first.rebaselined.applied).toBe(false);
+    expect(first.rebaselined.moved.elementsAdded).toHaveLength(2);
+    expect(first.rebaselined.moved.counts).toMatchObject({ elementsAdded: 5, elementsChanged: 1 });
+    expect(first.rebaselined.moved.page).toMatchObject({ offset: 0, limit: 2, nextOffset: 2, totals: { elementsAdded: 5, elementsChanged: 1 } });
+    expect(first.rebaselined.more).toContain('rebaseline: "preview", offset: 2');
+    expect(first.rebaselined.next).toContain("Nothing was written");
+    // Nothing moved on disk, and the drift is as it was.
+    expect(await readFile(join(rootPath, "documentation-robotics", "changesets", await planId(), "metadata.yaml"), "utf-8")).toBe(before);
+
+    // Reading on reaches the end, and the last page says so by having no more.
+    const second = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: "preview", limit: 2, offset: 2, rootPath } as any));
+    expect(second.rebaselined.moved.page.nextOffset).toBe(4);
+    const last = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: "preview", limit: 2, offset: 4, rootPath } as any));
+    expect(last.rebaselined.moved.elementsAdded).toHaveLength(1);
+    expect(last.rebaselined.moved.page.nextOffset).toBeUndefined();
+    expect(last.rebaselined.more).toBeUndefined();
+
+    // Applying from an offset would lose the first entries for good, so it is refused.
+    const refused = await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, offset: 2, rootPath } as any);
+    expect(refused.isError).toBe(true);
+    expect(text(refused)).toContain("offset pages a preview");
+
+    // Applied with a short page, it says the rest can no longer be read rather than pass for whole.
+    const applied = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, limit: 2, rootPath } as any));
+    expect(applied.rebaselined.applied).toBe(true);
+    expect(applied.rebaselined.moved.page.totals).toMatchObject({ elementsAdded: 5 });
+    expect(applied.rebaselined.more).toContain("can no longer be read");
+    const after = parse(await changesetUpdateHandler({ changeset: "export-orders", rebaseline: "preview", rootPath } as any));
+    expect(after.rebaselined.moved.counts).toMatchObject({ elementsAdded: 0, elementsChanged: 0 });
+  });
+
+  it("refuses to re-baseline a changeset that is not staged, and changeset_update with nothing to do", async () => {
+    const c = await connect({ elicitation: true, answer: ACCEPT });
+    expect(parse(await commit(c)).status).toBe("committed");
+    const refused = await changesetUpdateHandler({ changeset: "export-orders", rebaseline: true, rootPath } as any);
+    expect(refused.isError).toBe(true);
+    expect(text(refused)).toContain("is committed");
+    const nothing = await changesetUpdateHandler({ changeset: "export-orders", rootPath } as any);
+    expect(text(nothing)).toContain("rebaseline: true");
   });
 
   it("reports an empty changeset as nothing to commit, without asking", async () => {
@@ -356,7 +670,7 @@ describe("changeset_commit checks what was confirmed", () => {
     expect(await baseModelText()).toBe(before);
   });
 
-  it("refuses when the base model changed while the dialog was open, even with force", async () => {
+  it("refuses when the base model changed while the dialog was open", async () => {
     const c = await connect({
       elicitation: true,
       answer: ACCEPT,
@@ -365,7 +679,7 @@ describe("changeset_commit checks what was confirmed", () => {
         await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
       },
     });
-    const result = await commit(c, { force: true });
+    const result = await commit(c);
     expect(result.isError).toBe(true);
     expect(text(result)).toContain("changed while the user was confirming");
     expect(await changesetStatus()).toBe("staged");
@@ -402,8 +716,8 @@ describe("changeset_commit with another changeset active", () => {
   });
 });
 
-// Round-2 friction: landing the as-built changeset first drifted the plan's base, so the plan then
-// needed force and its descriptions didn't apply. The dialog now says the plan should land instead.
+// Round-2 friction: landing the as-built changeset first drifted the plan's base, and the plan's
+// descriptions then didn't apply. The dialog says the plan should land instead.
 describe("changeset_commit of an as-built changeset while a plan is staged", () => {
   async function stageAsBuilt(): Promise<void> {
     await changesetCreateHandler({
@@ -618,27 +932,89 @@ describe("changeset_commit with a confirmation token from changeset_commit_previ
     expect(await baseModelText()).toBe(before);
   });
 
-  it("refuses the token when force differs from the preview's", async () => {
+  it("ignores force with a token: the token binds the changeset and the base, not a flag", async () => {
     const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
     const { confirmToken } = parse(await preview(c));
-    const result = await commit(c, { confirmToken, force: true });
-    expect(result.isError).toBe(true);
-    expect(text(result)).toContain("force changed since the preview");
-    expect(await changesetStatus()).toBe("staged");
+    const landed = parse(await commit(c, { confirmToken, force: true }));
+    expect(landed.status).toBe("committed");
+    expect(landed.warnings.join(" ")).toContain("force is deprecated and was ignored");
   });
 
   it("refuses the token when the base model changed after the preview", async () => {
     const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
-    // force: true, so the base change reaches the token check instead of the drift refusal.
-    const { confirmToken } = parse(await preview(c, { force: true }));
+    const { confirmToken } = parse(await preview(c));
     await changesetDeactivateHandler({ rootPath });
     await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
     const before = await baseModelText();
-    const result = await commit(c, { confirmToken, force: true });
+    const result = await commit(c, { confirmToken });
     expect(result.isError).toBe(true);
     expect(text(result)).toContain("changed since the preview");
     expect(await changesetStatus()).toBe("staged");
     expect(await baseModelText()).toBe(before);
+  });
+
+  // #1239, the keystone: a changeset the base overlaps lands from a session where no dialog can be
+  // shown (the desktop app, Remote Control), with no force and no CLI. The person reads the overlap
+  // in the preview's summary and approves the commit call in the permission prompt.
+  it("lands a drifted changeset with the preview's token and no dialog, the summary naming the overlap", async () => {
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in one step", rootPath } as any);
+    await changesetDeactivateHandler({ rootPath });
+    await modelUpdateHandler({ id: GOAL, description: "Checkout in under a minute", rootPath } as any);
+
+    // The client declines every dialog, as print mode does; the token path never asks.
+    const c = await connect({ elicitation: true, answer: { action: "decline" }, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.status).toBe("ready-to-commit");
+    expect(shown.drifted).toBe(true);
+    expect(shown.force).toBeUndefined();
+    expect(shown.summary).toContain("1 staged change(s) overlap the base. Landing goes ahead, and does this:");
+    expect(shown.summary).toContain("- changed-in-base, 1 element(s)");
+    expect(shown.summary).toContain(`      ${GOAL}`);
+    expect(shown.overlaps).toEqual({ total: 1, named: 1 });
+    expect(shown.more).toBeUndefined();
+    expect(shown.next).toContain("its drift lines included");
+    expect(shown.next).not.toContain("force");
+
+    const result = await commit(c, { confirmToken: shown.confirmToken });
+    expect(result.isError).toBeFalsy();
+    const landed = parse(result);
+    expect(landed).toMatchObject({ status: "committed", confirmedBy: "permission-prompt" });
+    expect(landed.drift.kinds[0]).toMatchObject({ reason: "changed-in-base", items: [GOAL] });
+    expect(elicitations).toHaveLength(0);
+    expect(await baseModelText()).toContain("Checkout in one step");
+  });
+
+  it("gives a token good for an hour: long enough for a relayed answer, too short for yesterday's preview", async () => {
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    const lifetime = new Date(shown.expiresAt).getTime() - Date.now();
+    expect(lifetime).toBeGreaterThan(59 * 60_000);
+    expect(lifetime).toBeLessThanOrEqual(60 * 60_000);
+    expect(CONFIRM_TOKEN_TTL_MS).toBe(60 * 60_000);
+    expect(confirmationTiming.tokenTtlMs).toBe(CONFIRM_TOKEN_TTL_MS);
+    expect(shown.next).toContain("good for an hour");
+    const { tools } = await c.listTools();
+    expect(tools.find((t) => t.name === "changeset_commit_preview")!.description).toContain("good for an hour");
+  });
+
+  it("says an expired token expired and that a new preview is needed, not that the user declined", async () => {
+    const saved = confirmationTiming.tokenTtlMs;
+    try {
+      const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+      // The lifetime is one setting: a token issued under it has passed it by the time it is used.
+      confirmationTiming.tokenTtlMs = -1;
+      const { confirmToken } = parse(await preview(c));
+      const before = await baseModelText();
+      const result = await commit(c, { confirmToken });
+      expect(result.isError).toBe(true);
+      expect(text(result)).toContain("the confirmToken expired");
+      expect(text(result)).toContain("the user did not decline");
+      expect(text(result)).toContain("changeset_commit_preview again");
+      expect(await changesetStatus()).toBe("staged");
+      expect(await baseModelText()).toBe(before);
+    } finally {
+      confirmationTiming.tokenTtlMs = saved;
+    }
   });
 
   it("refuses a token changeset_commit_preview did not issue", async () => {
@@ -655,7 +1031,7 @@ describe("changeset_commit with a confirmation token from changeset_commit_previ
     const shown = parse(await preview(c));
     expect(shown.confirmToken).toBeUndefined();
     expect(shown.next).toContain("Apply");
-    const { token } = issueConfirmToken("x", false, "state");
+    const { token } = issueConfirmToken("x", "state");
     const result = await commit(c, { confirmToken: token });
     expect(result.isError).toBe(true);
     expect(text(result)).toContain("changeset-only mode");
@@ -664,25 +1040,26 @@ describe("changeset_commit with a confirmation token from changeset_commit_previ
 });
 
 describe("confirmation tokens", () => {
-  it("are good once, for the state, changeset and force they were issued for, until they expire", () => {
+  it("are good once, for the state and changeset they were issued for, until they expire", () => {
     const now = Date.now();
-    const { token } = issueConfirmToken("cs-1", false, "state-a", now);
-    expect(checkConfirmToken(token, "cs-1", false, "state-b", now)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-2", false, "state-a", now)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-1", true, "state-a", now)).toBe("mismatch");
-    expect(checkConfirmToken(token, "cs-1", false, "state-a", now + confirmationTiming.tokenTtlMs + 1)).toBe("expired");
-    expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("ok");
-    expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("used");
-    expect(checkConfirmToken("abc", "cs-1", false, "state-a", now)).toBe("malformed");
+    const { token } = issueConfirmToken("cs-1", "state-a", now);
+    expect(checkConfirmToken(token, "cs-1", "state-b", now)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-2", "state-a", now)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-1", "state-a", now + confirmationTiming.tokenTtlMs + 1)).toBe("expired");
+    // Still good most of an hour on: the answer may be relayed through another session.
+    expect(checkConfirmToken(token, "cs-1", "state-b", now + 55 * 60_000)).toBe("mismatch");
+    expect(checkConfirmToken(token, "cs-1", "state-a", now + 55 * 60_000)).toBe("ok");
+    expect(checkConfirmToken(token, "cs-1", "state-a", now)).toBe("used");
+    expect(checkConfirmToken("abc", "cs-1", "state-a", now)).toBe("malformed");
   });
 
   it("can't be reused by spelling the expiry another way", () => {
     const now = Date.now();
-    const { token } = issueConfirmToken("cs-1", false, "state-a", now);
+    const { token } = issueConfirmToken("cs-1", "state-a", now);
     const [expiry, digest] = token.split(".");
-    expect(checkConfirmToken(token, "cs-1", false, "state-a", now)).toBe("ok");
+    expect(checkConfirmToken(token, "cs-1", "state-a", now)).toBe("ok");
     for (const respelled of [`${expiry.toUpperCase()}.${digest}`, `0${expiry}.${digest}`, `${expiry}~.${digest}`]) {
-      expect(["malformed", "used"]).toContain(checkConfirmToken(respelled, "cs-1", false, "state-a", now));
+      expect(["malformed", "used"]).toContain(checkConfirmToken(respelled, "cs-1", "state-a", now));
     }
   });
 });
@@ -713,7 +1090,7 @@ describe("changeset_commit when the client declines the dialog at once", () => {
     expect(text(result)).not.toContain("changeset_commit_preview");
   });
 
-  it("still reports a decline a person took time over as declined", async () => {
+  it("reports a decline that took time as declined, without claiming who declined it", async () => {
     confirmationTiming.instantDeclineMs = 20;
     const c = await connect({
       elicitation: true,
@@ -722,6 +1099,7 @@ describe("changeset_commit when the client declines the dialog at once", () => {
       clientInfo: CLAUDE_CODE,
     });
     const result = await commit(c);
-    expect(text(result)).toContain("the user declined");
+    expect(text(result)).toContain("the confirmation dialog came back declined");
+    expect(text(result)).not.toContain("could not be shown. The client");
   });
 });

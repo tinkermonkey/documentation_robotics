@@ -10,28 +10,35 @@
  *   intent, counts by operation, the layers it touches and any drift. It commits only on `accept`
  *   with `confirm: true`. A decline, a cancel, a client without form elicitation, or a
  *   changeset-only session (DrBot, where no person can answer) is refused, and nothing is written.
- *   A decline or cancel that comes back at once is reported as a dialog the client couldn't show.
+ *   A dialog can come back unanswered by any person: a client that can't show it declines or
+ *   cancels for them (at once in print mode; later when the person follows over Remote Control,
+ *   #1207). So no refusal claims more than the tool knows: a cancel reads "no confirmation came
+ *   back", a decline says it may have been the client's, and both name the routes below.
  * - Or, from a client that forces the permission prompt (Claude Code), it takes a confirmToken
  *   from changeset_commit_preview instead of the dialog. The preview returns the same summary and
- *   a token bound to the changeset, force and the base as previewed; the agent shows the person
- *   the summary and they approve the commit call in the prompt. This lands from the Claude desktop
- *   app, whose print-mode Claude Code declines every dialog. Any change since the preview, an
- *   expired or reused token, or a token from another client is refused.
+ *   a token bound to the changeset and the base as previewed; the agent shows the person the
+ *   summary and they approve the commit call in the prompt. This lands from the Claude desktop
+ *   app and over Remote Control, where the dialog does not reach the person. Any change since the
+ *   preview, an expired or reused token, or a token from another client is refused.
+ * Whatever the route, the last step is one only the person takes: the dialog, the permission
+ * prompt, or Apply in the viewer. Nothing here lets the agent approve its own landing.
  *
  * The commit itself is `StagingAreaManager.commit`, the code `dr changeset commit` and the viewer's
  * Apply (`POST /api/changesets/:id/commit`) run. Like the viewer, it works on a freshly loaded model
- * and may commit any staged changeset, active or not. Like the CLI, it validates (errors the
- * changeset introduces block; the base model's own are counted) and refuses a drifted changeset
- * unless `force` is passed. Landing an as-built changeset from codebase_extract while a plan is
- * staged is allowed, but the dialog warns that the plan should land instead. Both are checked with a dry run before the person is asked, so they are
- * never asked to confirm a commit that would fail. After they accept, the changeset and the base are
+ * and may commit any staged changeset, active or not. It validates (errors the changeset introduces
+ * block; the base model's own are counted). Drift does not refuse it (#1200): the summary the
+ * person confirms lists each staged change the base overlaps with what landing does about it, and
+ * the result repeats it. `force` is accepted and ignored. Landing an as-built changeset from
+ * codebase_extract while a plan is staged is allowed, but the dialog warns that the plan should
+ * land instead. Validation is checked with a dry run before the person is asked, so they are never
+ * asked to confirm a commit that would fail. After they accept, the changeset and the base are
  * read again and compared with what the dialog showed; any change refuses the commit.
  *
  * Only a bootstrap or reconcile landing (a changeset codebase_extract staged from the whole code,
  * or from a branch's changes with no plan active) reconciles the model with the code:
  * StagingAreaManager.commit stamps the manifest's `reconciled` block for it, and the result carries
  * the stamp. A plan's landing doesn't (see core/reconciliation.ts). A plan's verification record is
- * refused here and in the preview, force or not: it is never landed (core/changeset-purpose.ts).
+ * refused here and in the preview: it is never landed (core/changeset-purpose.ts).
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
@@ -41,7 +48,13 @@ import { Model } from "../../core/model.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
-import { describeDrift, type ChangesetDrift } from "../../core/changeset-base-index.js";
+import {
+  describeDrift,
+  describedAsDrifted,
+  overlapKinds,
+  type ChangesetDrift,
+  type OverlapKind,
+} from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
@@ -62,12 +75,32 @@ import { isExtractionChangeset } from "./codebase-extract.js";
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
 
 /**
+ * How long a confirmation token from changeset_commit_preview is good for by default: an hour.
+ * Long enough for the person's answer to come back through another session, which ten minutes was
+ * not (the agent had to preview again before each landing); short enough that a summary read
+ * yesterday can't land today. It is one setting (`confirmationTiming.tokenTtlMs`), and the tool
+ * descriptions state it. Whatever its length, the token is bound to the changeset and the base as
+ * previewed, so anything that changes meanwhile refuses it, and the person still approves the
+ * commit call itself in the permission prompt.
+ */
+export const CONFIRM_TOKEN_TTL_MS = 60 * 60_000;
+
+/**
+ * How many overlaps of one kind the landing summary names by default. A display default, not a
+ * cut-off on what is known: the summary always gives the true count of every kind and what landing
+ * does about it, says how many it did not name, and names the call that lists them all. The
+ * commit's result names every overlap.
+ */
+export const OVERLAPS_NAMED_PER_KIND = 10;
+
+/**
  * How the user can land the changeset without this tool: the viewer, or an interactive session.
  * Never the CLI: the developer types no dr command (round 3 found agents passing it on).
  */
 export function otherWaysToLand(): string[] {
   return [
-    "Ask the user to commit it in the viewer: call review_open, give them its url, and they press Apply on the changeset",
+    "Ask the user to commit it in the viewer: call review_open, give them its url, and they press Apply on the " +
+      "changeset (Apply lands a drifted changeset too)",
     "Or ask them to run changeset_commit again from an interactive Claude Code session, where the confirmation dialog can be shown",
   ];
 }
@@ -81,8 +114,8 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe(
-      "Commit even though the base model changed since the changeset was created (drift). The confirmation " +
-        "dialog shows the drift. Validation still blocks."
+      "Deprecated and ignored: drift no longer refuses a commit, so there is nothing to force. The confirmation " +
+        "shows what the base overlaps and what landing does about it."
     ),
   confirmToken: z
     .string()
@@ -90,8 +123,8 @@ const inputSchema = {
     .optional()
     .describe(
       "From Claude Code only: the confirmToken changeset_commit_preview returned, after the user read its summary. " +
-        "It replaces the confirmation dialog; the user approves this call in the permission prompt instead. Pass the " +
-        "same force as the preview."
+        "It replaces the confirmation dialog; the user approves this call in the permission prompt instead. Good for " +
+        "an hour, and only for the changeset and base as previewed."
     ),
   rootPath: rootPathSchema,
 };
@@ -117,10 +150,50 @@ export function summarizeChangeset(changeset: Changeset): { byOperation: Record<
   return { byOperation, layers: [...layers].sort() };
 }
 
-function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport, forced: boolean): string[] {
-  const overlapping = drift ? drift.overlapping.elements.length + drift.overlapping.relationships.length : 0;
-  if (!hash.isDrifted && !drift?.isDrifted) return ["Drift: none. The base model has not changed under this changeset."];
-  const lines = ["Drift: the base model changed since this changeset was created."];
+/** How the landing summary shows the overlaps: every kind, and how many of the overlaps it names. */
+function overlapSummary(
+  drift: ChangesetDrift | undefined,
+  namedPerKind: number
+): { total: number; named: number; kinds: OverlapKind[] } {
+  const kinds = drift ? overlapKinds(drift) : [];
+  return {
+    total: kinds.reduce((n, kind) => n + kind.items.length, 0),
+    named: kinds.reduce((n, kind) => n + Math.min(kind.items.length, namedPerKind), 0),
+    kinds,
+  };
+}
+
+/** The call that lists every overlap of a staged changeset, for when the summary names only some. */
+function everyOverlapCall(changeset: string): string {
+  return `changeset_brief with changeset: "${changeset}" and sections: ["drift"]`;
+}
+
+/**
+ * The drift section of the landing summary: what changed in the base, and for each staged change
+ * the base overlaps, what landing does about it. This is where the person decides, so it names the
+ * outcomes (#1200), not only that the base changed.
+ *
+ * With drift no longer refusing, this text is all that stands between the person and an overwrite,
+ * so it never claims more than was read: the count of overlaps is the true one, every kind is
+ * shown with what landing does about it, and when a kind has more overlaps than are named here it
+ * says how many and where to read them all.
+ */
+export function driftLines(
+  drift: ChangesetDrift | undefined,
+  hash: DriftReport,
+  changeset = "",
+  namedPerKind = OVERLAPS_NAMED_PER_KIND
+): string[] {
+  const rebaselined = drift?.rebaselined
+    ? [
+        `  Re-baselined ${drift.rebaselined.at}${drift.rebaselined.times > 1 ? ` (${drift.rebaselined.times} times)` : ""}: ` +
+          "base changes before then are not listed here.",
+      ]
+    : [];
+  if (!hash.isDrifted && !hash.contentFree && !drift?.isDrifted && !drift?.notChecked) {
+    return ["Drift: none. The base model has not changed under this changeset.", ...rebaselined];
+  }
+  const lines = ["Drift: the base model changed under this changeset.", ...rebaselined];
   const counts = drift?.baseChanges?.counts;
   if (counts) {
     const parts = [
@@ -134,20 +207,33 @@ function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport, forced
       .map(([n, label]) => `${n} ${label}`);
     if (parts.length > 0) lines.push(`  In the base: ${parts.join(", ")}.`);
   }
-  if (drift && overlapping > 0) {
-    const listed = [
-      ...drift.overlapping.elements.map((e) => `${e.id} (${e.reason})`),
-      ...drift.overlapping.relationships.map((r) => `${r.source} --${r.predicate}--> ${r.target} (${r.reason})`),
-    ];
+  const overlaps = overlapSummary(drift, namedPerKind);
+  // What could not be checked is said wherever overlaps are, so a count is never read as complete.
+  const notChecked = drift?.notChecked ? [`  ${drift.notChecked.sentence}`] : [];
+  if (overlaps.total > 0) {
     lines.push(
-      `  ${overlapping} staged change(s) overlap the base: ${listed.slice(0, 5).join(", ")}${overlapping > 5 ? ", ..." : ""}.`
+      `  ${overlaps.total} staged change(s) overlap the base${notChecked.length > 0 ? " (of those that could be checked)" : ""}. ` +
+        "Landing goes ahead, and does this:"
     );
+    for (const kind of overlaps.kinds) {
+      lines.push(`  - ${kind.reason}, ${kind.items.length} ${kind.of}(s): ${kind.consequence}`);
+      for (const item of kind.items.slice(0, namedPerKind)) lines.push(`      ${item}`);
+      if (kind.items.length > namedPerKind) lines.push(`      and ${kind.items.length - namedPerKind} more`);
+    }
+    if (overlaps.named < overlaps.total) {
+      lines.push(
+        `  ${overlaps.total - overlaps.named} of the ${overlaps.total} are not named here. ` +
+          `${everyOverlapCall(changeset)} names every one, as does the changeset in the viewer.`
+      );
+    }
+  } else if (!drift) {
+    lines.push("  What it overlaps could not be read. Landing goes ahead all the same.");
+  } else if (notChecked.length > 0) {
+    lines.push("  No overlap was found in what could be checked. Landing goes ahead.");
+  } else {
+    lines.push("  Nothing this changeset stages overlaps it.");
   }
-  if (hash.contentFree) {
-    lines.push("  Nothing this changeset was staged against changed, so this does not block the commit.");
-  } else if (!hash.isDrifted) lines.push("  The drift check still passes, so this does not block the commit.");
-  else if (forced) lines.push("  Committing anyway: force was passed.");
-  return lines;
+  return [...lines, ...notChecked];
 }
 
 /** The description codebase_extract gives the changesets it creates. */
@@ -165,8 +251,8 @@ async function madeByExtraction(rootPath: string, changeset: Changeset): Promise
 /**
  * The warning shown when an extraction (as-built) changeset is about to land while a plan is
  * staged. The verify workflow lands the plan and discards the as-built changeset (or keeps it as a
- * record); landing the as-built first drifts the plan's base, so the plan then needs force, and
- * its descriptions don't apply to the elements the as-built side already added.
+ * record); landing the as-built first drifts the plan's base: the plan's adds of the same elements
+ * are then skipped, so its descriptions don't apply to the elements the as-built side added.
  */
 export async function asBuiltFirstWarning(
   manager: StagingAreaManager,
@@ -184,8 +270,8 @@ export async function asBuiltFirstWarning(
   return (
     `Warning: "${changeset.name}" is an as-built changeset from codebase_extract, and the plan ${names} is still ` +
     `staged. After verify, land the plan instead, and discard this one or keep it as a record. Landing this one ` +
-    `first changes the plan's base: the plan then needs force, and its descriptions won't apply to the elements ` +
-    `this one adds.`
+    `first changes the plan's base: the plan's adds of the same elements are then skipped, so its descriptions ` +
+    `won't apply to the elements this one adds.`
   );
 }
 
@@ -195,7 +281,6 @@ export function confirmationMessage(
   drift: ChangesetDrift | undefined,
   hash: DriftReport,
   preExistingErrors: number,
-  forced: boolean,
   warnings: string[] = []
 ): string {
   const { byOperation, layers } = summarizeChangeset(changeset);
@@ -209,7 +294,7 @@ export function confirmationMessage(
     `Intent: ${changeset.description?.trim() || "(no description)"}`,
     `Changes: ${changeset.changes.length} (${counts})`,
     `Layers: ${layers.join(", ") || "none"}`,
-    ...driftLines(drift, hash, forced),
+    ...driftLines(drift, hash, changeset.name),
     preExistingErrors > 0
       ? `Validation: passed. ${preExistingErrors} error(s) already in the base model are not counted.`
       : "Validation: passed.",
@@ -220,7 +305,8 @@ export function confirmationMessage(
 
 /**
  * A fingerprint of what the person confirms: the changeset's staged changes, its modified time and
- * status, and the base model's elements (the drift snapshot) and committed relationships.
+ * status, and the base model's manifest, elements as stored (the full snapshot: any change to the
+ * model files counts here, not only content) and committed relationships.
  */
 async function confirmedState(model: Model, changeset: Changeset): Promise<string> {
   return JSON.stringify({
@@ -228,7 +314,7 @@ async function confirmedState(model: Model, changeset: Changeset): Promise<strin
     lastSequence: changeset.lastSequence ?? null,
     modified: changeset.modified,
     status: changeset.status,
-    baseElements: await new BaseSnapshotManager().captureSnapshot(model),
+    baseElements: await new BaseSnapshotManager().captureFullSnapshot(model),
     baseRelationships: model
       .getBaseRelationships()
       .map((r) => `${r.source}::${r.predicate}::${r.target}`)
@@ -244,12 +330,6 @@ function refusal(message: string, suggestions: string[]): CLIError {
 function commitError(error: unknown, name: string): CLIError {
   if (error instanceof CLIError) return error;
   const message = getErrorMessage(error);
-  if (message.includes("drifted")) {
-    return new CLIError(`Changeset '${name}' was not committed: ${message.replace(/Use --force/, "Pass force: true")}`, ErrorCategory.USER, [
-      'Read the drift with "changeset_brief" and tell the user what changed in the base',
-      "If they still want it landed, call changeset_commit again with force: true",
-    ]);
-  }
   if (message.startsWith("Validation failed")) {
     return new CLIError(
       `Changeset '${name}' was not committed. ${message.replace(/, or skip validation with --no-validate\./, ".")}`,
@@ -296,39 +376,39 @@ export function asksBeforeEachCall(server: McpToolContext["server"]): boolean {
  *   once while still advertising it can show one).
  * - tokenTtlMs: how long a confirmation token from changeset_commit_preview is good for.
  */
-export const confirmationTiming = { instantDeclineMs: 1_000, tokenTtlMs: CONFIRMATION_TIMEOUT_MS };
+export const confirmationTiming = { instantDeclineMs: 1_000, tokenTtlMs: CONFIRM_TOKEN_TTL_MS };
 
 /** Keys the confirmation tokens: one per server process, so a token only works where it was issued. */
 const TOKEN_KEY = randomBytes(32);
 /**
  * Digests of tokens already used to land a changeset, each lands at most once, with their expiry.
- * Keyed by digest, which the HMAC makes unique to its changeset, force, expiry and state. An entry
+ * Keyed by digest, which the HMAC makes unique to its changeset, expiry and state. An entry
  * is dropped once its token has expired, since an expired token is refused anyway.
  */
 const usedTokens = new Map<string, number>();
 
-function tokenDigest(changesetId: string, force: boolean, expires: number, state: string): string {
+function tokenDigest(changesetId: string, expires: number, state: string): string {
   const stateHash = createHash("sha256").update(state).digest("hex");
   return createHmac("sha256", TOKEN_KEY)
-    .update(JSON.stringify([changesetId, force, expires, stateHash]))
+    .update(JSON.stringify([changesetId, expires, stateHash]))
     .digest("base64url");
 }
 
 /**
- * A confirmation token for landing this changeset as it is now: bound to its id, the force flag
- * and the confirmed state (the changeset's staged changes and the base model), and good until it
- * expires. Not a secret from the person: it proves only that a preview of this exact state was
- * made in this server process.
+ * A confirmation token for landing this changeset as it is now: bound to its id and the confirmed
+ * state (the changeset's staged changes and the base model), and good until it expires. Not a
+ * secret from the person: it proves only that a preview of this exact state was made in this
+ * server process. It binds no force flag: drift does not refuse a landing, and the summary the
+ * person read lists what the base overlaps.
  */
 export function issueConfirmToken(
   changesetId: string,
-  force: boolean,
   state: string,
   now = Date.now()
 ): { token: string; expiresAt: string } {
   const expires = now + confirmationTiming.tokenTtlMs;
   return {
-    token: `${expires.toString(36)}.${tokenDigest(changesetId, force, expires, state)}`,
+    token: `${expires.toString(36)}.${tokenDigest(changesetId, expires, state)}`,
     expiresAt: new Date(expires).toISOString(),
   };
 }
@@ -339,7 +419,6 @@ export type TokenCheck = "ok" | "malformed" | "expired" | "used" | "mismatch";
 export function checkConfirmToken(
   token: string,
   changesetId: string,
-  force: boolean,
   state: string,
   now = Date.now()
 ): TokenCheck {
@@ -352,22 +431,31 @@ export function checkConfirmToken(
   for (const [used, until] of usedTokens) if (now > until) usedTokens.delete(used);
   if (usedTokens.has(digest)) return "used";
   if (now > expires) return "expired";
-  const expected = Buffer.from(tokenDigest(changesetId, force, expires, state));
+  const expected = Buffer.from(tokenDigest(changesetId, expires, state));
   const given = Buffer.from(digest);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return "mismatch";
   usedTokens.set(digest, expires);
   return "ok";
 }
 
+/** The token's lifetime in words, from the setting, for the texts that state it. */
+function tokenLifetime(): string {
+  const minutes = Math.round(confirmationTiming.tokenTtlMs / 60_000);
+  if (minutes % 60 === 0) return minutes === 60 ? "an hour" : `${minutes / 60} hours`;
+  return `${minutes} minutes`;
+}
+
 /** Why a token was refused, for the agent to pass on. */
 function tokenRefusal(name: string, check: Exclude<TokenCheck, "ok">): CLIError {
   const why: Record<Exclude<TokenCheck, "ok">, string> = {
     malformed: "the confirmToken is not one changeset_commit_preview issued",
-    expired: "the confirmToken expired",
+    expired:
+      `the confirmToken expired (a token is good for ${tokenLifetime()}); the user did not decline, the preview they ` +
+      "read is too old to land on",
     used: "the confirmToken was already used",
     mismatch:
-      "the changeset, the base model or force changed since the preview the user approved (or the token is " +
-      "from another changeset or another server process)",
+      "the changeset or the base model changed since the preview the user approved (or the token is from another " +
+      "changeset or another server process, such as one restarted since)",
   };
   return refusal(`Changeset '${name}' was not committed: ${why[check]}. Nothing was written.`, [
     "Call changeset_commit_preview again, show the user its summary, and ask whether to land the changeset as it is now",
@@ -416,7 +504,6 @@ interface LandingTarget {
   manager: StagingAreaManager;
   changeset: Changeset;
   hash: DriftReport;
-  force: boolean;
 }
 
 /** What the person confirms: the landing checked by a dry run, and its summary. */
@@ -426,10 +513,14 @@ interface LandingSummary {
   state: string;
   /** The landing summary: the dialog's text and the preview's summary. */
   message: string;
+  /** The overlaps the summary reports: how many there are, and how many of them it names. */
+  overlaps: { total: number; named: number };
 }
 
 async function describeDriftSafely(target: LandingTarget, toolName: string): Promise<ChangesetDrift | undefined> {
   try {
+    // The drift check described it to decide; describe it here only when it could not.
+    if (target.hash.described) return target.hash.isDrifted ? describedAsDrifted(target.hash.described) : target.hash.described;
     return await describeDrift(target.model, await ChangesetGraph.build(target.model, target.changeset), target.hash);
   } catch (error) {
     console.error(`[mcp] ${toolName} could not describe drift: ${getErrorMessage(error)}`);
@@ -444,12 +535,11 @@ async function landingWarnings(target: LandingTarget): Promise<string[]> {
 }
 
 /**
- * Finds the staged changeset to land and refuses drift without force. Returns a result instead when
- * there is nothing to commit. Writes nothing.
+ * Finds the staged changeset to land and reads its drift, which never refuses the landing. Returns
+ * a result instead when there is nothing to commit. Writes nothing.
  */
 async function prepareLanding(
-  args: { changeset: string; force?: boolean; rootPath?: string },
-  toolName: string
+  args: { changeset: string; rootPath?: string }
 ): Promise<{ landing: LandingTarget } | { result: CallToolResult }> {
   // The cached model names the project; the commit runs on a fresh read, like the viewer's.
   const rootPath = (await loadModel(args.rootPath)).rootPath;
@@ -461,31 +551,15 @@ async function prepareLanding(
       'Use "changeset_list" to find a staged changeset',
     ]);
   }
-  // A record (verification or upgrade) never lands, force or not (StagingAreaManager.commit refuses it too).
+  // A record (verification or upgrade) never lands (StagingAreaManager.commit refuses it too).
   const purposeRefusal = await manager.landingRefusal(changeset);
   if (purposeRefusal) throw purposeRefusal;
   if (changeset.changes.length === 0) {
     return { result: jsonResult({ id: changeset.id, name: changeset.name, status: "nothing-to-commit", stagedChanges: 0 }) };
   }
 
-  const force = args.force === true;
   const hash = await manager.detectDrift(changeset.id);
-  const target: LandingTarget = { rootPath, model, manager, changeset, hash, force };
-  if (hash.isDrifted && !force) {
-    const drift = await describeDriftSafely(target, toolName);
-    // The CLI's rule: a drifted changeset needs --force. Say what drifted so the person can decide.
-    throw new CLIError(
-      `Changeset '${changeset.name}' was not committed: the base model changed since it was created.\n` +
-        driftLines(drift, hash, false).slice(1).join("\n"),
-      ErrorCategory.USER,
-      [
-        'Read the drift with "changeset_brief" and tell the user what changed in the base',
-        "If they still want it landed, call it again with force: true; the confirmation will show the drift",
-      ],
-      { operation: toolName }
-    );
-  }
-  return { landing: target };
+  return { landing: { rootPath, model, manager, changeset, hash } };
 }
 
 /**
@@ -493,20 +567,23 @@ async function prepareLanding(
  * fail, and builds the summary they confirm. Writes nothing.
  */
 async function summarizeLanding(target: LandingTarget, toolName: string): Promise<LandingSummary> {
-  const { model, manager, changeset, hash, force } = target;
+  const { model, manager, changeset, hash } = target;
   let preExistingErrors = 0;
   try {
-    const dryRun = await manager.commit(model, changeset.id, { dryRun: true, validate: true, force });
+    const dryRun = await manager.commit(model, changeset.id, { dryRun: true, validate: true });
     preExistingErrors = dryRun.validation.preExistingErrors ?? 0;
   } catch (error) {
     throw commitError(error, changeset.name);
   }
   const drift = await describeDriftSafely(target, toolName);
   const warnings = await landingWarnings(target);
+  const { total, named } = overlapSummary(drift, OVERLAPS_NAMED_PER_KIND);
   return {
     warnings,
+    // The whole changeset and the whole base, whatever part of the overlaps the summary names.
     state: await confirmedState(model, changeset),
-    message: confirmationMessage(changeset, drift, hash, preExistingErrors, force, warnings),
+    message: confirmationMessage(changeset, drift, hash, preExistingErrors, warnings),
+    overlaps: { total, named },
   };
 }
 
@@ -543,10 +620,10 @@ export async function changesetCommitHandler(
       );
     }
 
-    const prepared = await prepareLanding(args, "changeset_commit");
+    const prepared = await prepareLanding(args);
     if ("result" in prepared) return prepared.result;
     const target = prepared.landing;
-    const { rootPath, changeset, hash, force } = target;
+    const { rootPath, changeset } = target;
 
     // How the landing state is checked under the write lock: against the token, or against what
     // the dialog showed.
@@ -556,7 +633,7 @@ export async function changesetCommitHandler(
       // The preview already ran the dry run and showed the summary, and the token binds the state it
       // checked; the commit below validates again.
       warnings = await landingWarnings(target);
-      confirmed = (state) => checkConfirmToken(token, changeset.id, force, state);
+      confirmed = (state) => checkConfirmToken(token, changeset.id, state);
     } else {
       const summary = await summarizeLanding(target, "changeset_commit");
       warnings = summary.warnings;
@@ -579,11 +656,33 @@ export async function changesetCommitHandler(
           landingRoutes(server)
         );
       }
-      if (answer.action !== "accept" || answer.content?.confirm !== true) {
-        const how = answer.action === "accept" ? "did not confirm it" : answer.action === "decline" ? "declined" : "cancelled";
-        throw refusal(`Changeset '${changeset.name}' was not committed: the user ${how}. Nothing was written.`, [
-          "Ask the user what should change before landing it, or leave it staged",
-        ]);
+      if (answer.action === "cancel") {
+        // No answer either way: the person closed it, or the client did without showing it (#1207).
+        throw refusal(
+          `Changeset '${changeset.name}' was not committed: no confirmation came back. The dialog was cancelled or ` +
+            "closed without an answer, and may not have been shown to the user (it does not reach a person following " +
+            "the session over Remote Control or in the Claude desktop app). Nothing was written.",
+          ["Ask the user whether they saw a confirmation dialog. If they did not, use a route that needs none:", ...landingRoutes(server)]
+        );
+      }
+      if (answer.action === "decline") {
+        // A decline is the person's, or a client's that could not show the dialog: it looks the same
+        // from here, so say both and name the routes that need no dialog (#1207, #1239).
+        throw refusal(
+          `Changeset '${changeset.name}' was not committed: the confirmation dialog came back declined. If the user ` +
+            "did not decline it themselves, the client could not show it to them and answered for them. Nothing was written.",
+          [
+            "If the user declined, ask what should change before landing it, or leave it staged",
+            "If they saw no dialog, use a route that needs none:",
+            ...landingRoutes(server),
+          ]
+        );
+      }
+      if (answer.content?.confirm !== true) {
+        throw refusal(
+          `Changeset '${changeset.name}' was not committed: the user answered the dialog without confirming it. Nothing was written.`,
+          ["Ask the user what should change before landing it, or leave it staged"]
+        );
       }
       const shown = summary.state;
       confirmed = (state) => (state === shown ? "ok" : "mismatch");
@@ -609,7 +708,7 @@ export async function changesetCommitHandler(
       }
       let landed;
       try {
-        landed = await manager.commit(model, changeset.id, { validate: true, force });
+        landed = await manager.commit(model, changeset.id, { validate: true });
       } catch (error) {
         throw commitError(error, changeset.name);
       }
@@ -624,6 +723,14 @@ export async function changesetCommitHandler(
       );
     }
 
+    if (args.force !== undefined) {
+      warnings.push("force is deprecated and was ignored: drift does not refuse a landing, so there is nothing to force.");
+    }
+    // What the base overlapped when this landed, read by the commit before it applied the changes.
+    // Every overlap is named: once it has landed, no other call can list them.
+    const landedOver = result.driftDetail ? overlapKinds(result.driftDetail) : [];
+    const overlapTotal = landedOver.reduce((n, kind) => n + kind.items.length, 0);
+
     return jsonResult({
       id: changeset.id,
       name: changeset.name,
@@ -631,12 +738,26 @@ export async function changesetCommitHandler(
       confirmedBy: token !== undefined ? "permission-prompt" : "dialog",
       committed: result.committed,
       skipped: result.skipped ?? 0,
-      ...(result.skippedDetails?.length ? { skippedDetails: result.skippedDetails.slice(0, 10) } : {}),
+      // Every one: a landed changeset's skips can't be read again anywhere else.
+      ...(result.skippedDetails?.length ? { skippedDetails: result.skippedDetails } : {}),
       failed: result.failed,
       preExistingErrors: result.validation.preExistingErrors ?? 0,
       deactivated: result.deactivated,
-      // StagingAreaManager.commit reports driftWarning only on a dry run, so use the check made above.
-      ...(result.driftWarning || hash.isDrifted ? { driftOverridden: true } : {}),
+      ...(result.driftWarning
+        ? {
+            drift: {
+              landedOver:
+                overlapTotal > 0
+                  ? `The base overlapped ${overlapTotal} staged change(s); the changeset landed, and did this about each kind.`
+                  : "The base had changed under this changeset and what it overlapped could not be listed; the changeset landed all the same.",
+              total: overlapTotal,
+              ...(result.driftDetail?.notChecked ? { notChecked: result.driftDetail.notChecked.sentence } : {}),
+              ...(overlapTotal > 0
+                ? { kinds: landedOver.map((kind) => ({ reason: kind.reason, of: kind.of, count: kind.items.length, consequence: kind.consequence, items: kind.items })) }
+                : {}),
+            },
+          }
+        : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
       // Only an as-built landing reconciles the model with the code (code drift in project_status).
       ...(result.reconciled
@@ -672,10 +793,12 @@ export const changesetCommitTool: McpToolDefinition<typeof inputSchema> = {
     "confirms it. By default the server asks the user in a confirmation dialog (MCP elicitation) showing the " +
     "changeset's intent, counts, layers and drift, and commits only if they confirm. From Claude Code, pass instead " +
     "the confirmToken from changeset_commit_preview, after showing the user its summary: they approve this call in " +
-    "the permission prompt, which works where the dialog can't be shown (print mode, the Claude desktop app). " +
-    "Refused when no person can confirm, when the user declines or cancels, in changeset-only sessions, and when " +
-    "the changeset or base changed since the preview. Validation errors the changeset introduces block it; drift " +
-    "blocks it unless force is passed. Call it only when the user asks to land the change.",
+    "the permission prompt, which works where the dialog can't be shown (print mode, the Claude desktop app, a " +
+    "session followed over Remote Control). Refused when no person can confirm, when the user declines or no " +
+    "confirmation comes back, in changeset-only sessions, and when the changeset or base changed since the preview. " +
+    "Validation errors the changeset introduces block it. Drift does not: a drifted changeset lands, and the " +
+    "confirmation and the result say what the base overlapped and what landing did about it (force is ignored). " +
+    "Call it only when the user asks to land the change.",
   inputSchema,
   _meta: { "anthropic/requiresUserInteraction": true },
   handler: changesetCommitHandler,
@@ -683,10 +806,7 @@ export const changesetCommitTool: McpToolDefinition<typeof inputSchema> = {
 
 const previewInputSchema = {
   changeset: z.string().min(1).describe("Changeset ID or name to land."),
-  force: z
-    .boolean()
-    .optional()
-    .describe("Preview landing it despite drift; pass the same force to changeset_commit with the token."),
+  force: z.boolean().optional().describe("Deprecated and ignored: drift no longer refuses a commit."),
   rootPath: rootPathSchema,
 };
 
@@ -697,11 +817,27 @@ export async function changesetCommitPreviewHandler(
   context?: McpToolContext
 ): Promise<CallToolResult> {
   return runTool(async () => {
-    const prepared = await prepareLanding(args, "changeset_commit_preview");
+    const prepared = await prepareLanding(args);
     if ("result" in prepared) return prepared.result;
-    const { changeset, force } = prepared.landing;
-    const { state, message } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
-    const base = { id: changeset.id, name: changeset.name, status: "ready-to-commit", force, summary: message };
+    const { changeset, hash } = prepared.landing;
+    const { state, message, overlaps } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
+    const base = {
+      id: changeset.id,
+      name: changeset.name,
+      status: "ready-to-commit",
+      // Drift is in the summary; it does not stop the landing.
+      drifted: hash.isDrifted,
+      summary: message,
+      // The true count, and how many of them the summary names (every kind is in it either way).
+      overlaps,
+      ...(overlaps.named < overlaps.total
+        ? {
+            more:
+              `The summary names ${overlaps.named} of the ${overlaps.total} overlaps. ${everyOverlapCall(changeset.name)} ` +
+              "names every one: read them, and tell the user what the rest are, before they decide.",
+          }
+        : {}),
+    };
     if (isChangesetOnly()) {
       return jsonResult({
         ...base,
@@ -716,15 +852,16 @@ export async function changesetCommitPreviewHandler(
           "A confirmToken is accepted only from Claude Code, which asks the person before each changeset_commit call.",
       });
     }
-    const { token, expiresAt } = issueConfirmToken(changeset.id, force, state);
+    const { token, expiresAt } = issueConfirmToken(changeset.id, state);
     return jsonResult({
       ...base,
       confirmToken: token,
       expiresAt,
       next:
-        "Show the user the summary above, in full. If they want it landed, call changeset_commit with this changeset, " +
-        `force: ${force} and this confirmToken; they approve that call in the permission prompt. The token lands this ` +
-        "changeset only as previewed: any change to it or to the base refuses it.",
+        "Show the user the summary above, in full, its drift lines included. If they want it landed, call " +
+        "changeset_commit with this changeset and this confirmToken; they approve that call in the permission prompt. " +
+        "The token lands this changeset only as previewed: any change to it or to the base refuses it, and then you " +
+        `preview again. Until then it is good for ${tokenLifetime()} (expiresAt); after that, preview again.`,
     });
   });
 }
@@ -732,11 +869,13 @@ export async function changesetCommitPreviewHandler(
 export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSchema> = {
   name: "changeset_commit_preview",
   description:
-    "Check a staged changeset for landing without writing anything: drift, validation and the summary the person " +
-    "confirms (intent, counts, layers, drift). From Claude Code it also returns a confirmToken bound to the " +
-    "changeset and base as they are now: show the user the summary, and if they want it landed, call " +
-    "changeset_commit with the token, which they approve in the permission prompt. Use it to land from a client " +
-    "that can't show the confirmation dialog (print mode, the Claude desktop app).",
+    "Check a staged changeset for landing without writing anything: validation and the summary the person confirms " +
+    "(intent, counts, layers, and drift: the true count of staged changes the base overlaps, and for every kind " +
+    "of overlap what landing does about it; when a kind has many it names the first and says where the rest are). " +
+    "Drift does not stop a landing. From Claude Code it also returns a confirmToken bound to the changeset and base " +
+    "as they are now, good for an hour: show the user the summary, and if they want it landed, call changeset_commit " +
+    "with the token, which they approve in the permission prompt. Use it to land from a client that can't show the " +
+    "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control).",
   inputSchema: previewInputSchema,
   handler: changesetCommitPreviewHandler,
 };

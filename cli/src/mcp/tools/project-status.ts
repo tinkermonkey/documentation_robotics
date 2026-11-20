@@ -27,7 +27,6 @@ import {
   collectTier1,
   collectViewer,
   compareVersions,
-  LANDING_WHEN_DRIFT_BLOCKS,
   LIST_DEFAULTS,
   pageOf,
   RESTART_SERVER,
@@ -568,19 +567,12 @@ function baseChangeCounts(counts: NonNullable<ChangesetDriftEntry["baseChanges"]
     .join(", ");
 }
 
-/**
- * What landing a changeset takes while its drift blocks a commit: with LANDING_WHEN_DRIFT_BLOCKS,
- * the one place that says so. After #1200 a landing through changeset_commit or the viewer warns
- * and proceeds (force is accepted and ignored there), and only an unattended `dr changeset commit`
- * still refuses without --force: this sentence is the one to reword then.
- */
-const BLOCKED_LANDING = "changeset_commit refuses to land it unless the user agrees to force: true (the viewer's Apply has no force).";
-
 /** What a landing does about a changeset's base drift. */
 function landingSentence(drift: ChangesetDriftEntry): string {
-  if (drift.landing === LANDING_WHEN_DRIFT_BLOCKS) return BLOCKED_LANDING;
   if (drift.landing === "unknown") return "Whether it can land can't be told until its drift can be checked.";
-  return drift.landing === "allowed-with-warning" ? "Landing it is allowed, with a warning." : "Landing it is not blocked.";
+  return drift.landing === "allowed-with-warning"
+    ? "Landing it is allowed, with a warning: the person confirming is shown what overlaps (an unattended `dr changeset commit` needs --force)."
+    : "Landing it is not blocked.";
 }
 
 /** A changeset's base drift in a sentence or two: what moved, what overlaps, what a landing does. */

@@ -199,7 +199,11 @@ describe("BaseSnapshotManager", () => {
     const manager = new BaseSnapshotManager();
     const snapshot = await manager.captureSnapshot(testModel);
 
-    expect(snapshot).toMatch(/^sha256:[a-f0-9]{64}$/);
+    // The content snapshot carries its version prefix (#1169); the full snapshot is the earlier format.
+    expect(snapshot).toMatch(/^v2:sha256:[a-f0-9]{64}$/);
+    expect(await manager.captureFullSnapshot(testModel)).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(await manager.captureSnapshotLike(testModel, "sha256:abc")).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(await manager.captureSnapshotLike(testModel, snapshot)).toBe(snapshot);
   });
 
   it("should produce consistent snapshot hash", async () => {

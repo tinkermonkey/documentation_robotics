@@ -315,8 +315,8 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
         hash = { isDrifted: false, warnings: [`Drift check failed: ${getErrorMessage(error)}`] };
       }
       try {
-        // The drift's base-change lists page with driftLimit and driftOffset. describeDrift takes them
-        // as limit and offset once PR 1272 is on main; until then it ignores them and cuts at 50.
+        // The drift's base-change lists page with driftLimit and driftOffset, which describeDrift takes
+        // as limit and offset.
         const driftPage: Parameters<typeof describeDrift>[3] & { limit?: number; offset?: number } = {
           ...(args.driftLimit !== undefined ? { limit: args.driftLimit } : {}),
           ...(args.driftOffset !== undefined ? { offset: args.driftOffset } : {}),

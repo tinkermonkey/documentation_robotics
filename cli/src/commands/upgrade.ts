@@ -1369,7 +1369,7 @@ function printDriftedChangesets(drifted: ChangesetRef[]): void {
   }
   console.log(
     ansis.yellow(
-      `\n⚠ ${stagedChangesets(drifted.length)} had drifted from the model before the upgrade and still ${drifted.length === 1 ? "needs" : "need"} --force to commit: ${changesetNames(drifted)}`
+      `\n⚠ ${stagedChangesets(drifted.length)} had drifted from the model before the upgrade: a commit lists what the base overlaps and asks (with no terminal it needs --force when something does): ${changesetNames(drifted)}`
     )
   );
 }

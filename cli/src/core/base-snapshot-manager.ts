@@ -1,12 +1,33 @@
 /**
- * BaseSnapshotManager - Manages model snapshots and drift detection
+ * BaseSnapshotManager - the base model's hash, recorded on a changeset when it is created (its
+ * `baseSnapshot`) and compared at landing to tell whether the base moved under it.
  *
- * Captures the state of a model at a specific point in time (e.g., when a changeset is created)
- * and detects if the base model has drifted from that state (allowing drift warnings on commit).
+ * Two formats:
+ * - The content snapshot (`v2:sha256:<hex>`, `captureSnapshot`): the content of every base element
+ *   (type, name, description, attributes, source reference) and every base relationship, and
+ *   nothing else. It is the hash of the changeset's base index (changeset-base-index.ts), so the
+ *   hash differs exactly when the index would list a change. The manifest (its `modified`,
+ *   `cliVersion`, `changeset_history`, `reconciled`) and element metadata are not in it: landing
+ *   another changeset or stamping an upgrade that changes no content leaves it as it was (#1169).
+ * - The full snapshot (`sha256:<hex>`, `captureFullSnapshot`): the manifest and every element as
+ *   stored. It is what changesets created before CLI 0.7.0 recorded, and it misses relationships.
+ *   It is kept to compare those changesets with the base in their own format, and for callers
+ *   that want any change to the model files to count (the commit confirmation's fingerprint).
+ *
+ * The version prefix says which format a recorded hash is in, so a hash is only ever compared with
+ * one made the same way (`captureSnapshotLike`): a format change is never read as drift.
  */
 
 import { createHash } from "crypto";
 import type { Model } from "./model.js";
+
+/** The prefix of a content snapshot. A recorded hash without it is a full snapshot. */
+export const CONTENT_SNAPSHOT_PREFIX = "v2:sha256:";
+
+/** Whether a recorded hash is a content snapshot (`captureSnapshot`), not a full one. */
+export function isContentSnapshot(snapshotId: string): boolean {
+  return snapshotId.startsWith(CONTENT_SNAPSHOT_PREFIX);
+}
 
 /**
  * Report on model drift between snapshots
@@ -31,14 +52,28 @@ export interface DriftReport {
  */
 export class BaseSnapshotManager {
   /**
-   * Capture current model state as a SHA-256 hash
-   *
-   * Hashes:
-   * 1. Manifest content
-   * 2. All loaded layer data in sorted order
-   * 3. Creates reproducible snapshot hash
+   * The base model's content snapshot: the hash of its base index, with the version prefix. Always
+   * the base model, never an active changeset's projection.
    */
   async captureSnapshot(model: Model): Promise<string> {
+    // Imported here: changeset-base-index reads the model through the changeset graph.
+    const { captureBaseIndex, snapshotOfIndex } = await import("./changeset-base-index.js");
+    return snapshotOfIndex(await captureBaseIndex(model));
+  }
+
+  /**
+   * The model's hash in the format `recorded` was made in, to compare the two: a content snapshot
+   * for a content snapshot, a full snapshot for a hash recorded before CLI 0.7.0.
+   */
+  async captureSnapshotLike(model: Model, recorded: string): Promise<string> {
+    return isContentSnapshot(recorded) ? this.captureSnapshot(model) : this.captureFullSnapshot(model);
+  }
+
+  /**
+   * The full snapshot: a SHA-256 of the manifest and of every loaded layer's elements as stored,
+   * in sorted order. Any change to them changes it, a landing's manifest history included.
+   */
+  async captureFullSnapshot(model: Model): Promise<string> {
     const hash = createHash("sha256");
 
     // Hash manifest data first (stable ordering)
@@ -70,17 +105,17 @@ export class BaseSnapshotManager {
   /**
    * Detect drift between expected snapshot and current model
    *
-   * Returns a report indicating whether drift occurred.
+   * Returns a report indicating whether drift occurred. The model is hashed in the expected
+   * snapshot's format.
    *
    * NOTE: This method only identifies that the model has changed (hasDrift: true/false).
    * It cannot determine which specific layers/elements changed without storing
    * detailed snapshot data. When drift is detected, potentiallyAffectedLayers and
    * potentiallyAffectedElements contain ALL current layers/elements as a conservative
-   * estimate. For precise change detection, implement snapshot comparison with
-   * stored layer/element state data.
+   * estimate. What changed is the base index's to say (changeset-base-index.ts).
    */
   async detectDrift(expectedSnapshot: string, currentModel: Model): Promise<DriftReport> {
-    const currentSnapshot = await this.captureSnapshot(currentModel);
+    const currentSnapshot = await this.captureSnapshotLike(currentModel, expectedSnapshot);
     const hasDrift = expectedSnapshot !== currentSnapshot;
 
     // If no drift, return quickly
