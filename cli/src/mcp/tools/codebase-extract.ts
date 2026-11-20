@@ -15,7 +15,14 @@
  *    in `unchanged.tier1NotElement`. In hide mode (the not-element band alone is verified) that band is
  *    hidden the same way and the accept band stays a suggestion, as in suggest mode. Staged adds and relationship-adds carry `origin` (who decided
  *    them). See codebase-extract-tier1.ts.
- * 3. The calling agent gets the rest as cards, paged, and stages its own decisions with model_add.
+ * 3. The calling agent gets the rest: grouped and counted when there are more than a page
+ *    (src/analyzers/triage.ts), to decide in bulk with `decide` by a stated rule
+ *    (codebase-extract-decide.ts), then as cards by view and page for what is left, which it
+ *    stages with model_add or decides one at a time.
+ *
+ * A project's own rules (`documentation-robotics/extraction-rules.yaml`, src/analyzers/project-rules.ts)
+ * are applied before cards are made: a rule that says `none` ahead of Tier 0, a rule that names a
+ * type for what Tier 0 left open. `decide` with `keep: true` writes them.
  *
  * Only what differs from the model is staged (src/analyzers/extraction-plan.ts): existing elements
  * are matched by source file and symbol; a changed match is an update, no match is an add, and an
@@ -52,7 +59,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { minimatch } from "minimatch";
 import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -76,8 +82,11 @@ import {
   needsAttributesCard,
   planElements,
   planRelationships,
+  findBySymbol,
+  indexExisting,
   sortUndecided,
   sourceSymbolOf,
+  symbolChangedInRange,
   type ElementPlan,
   type PlannedElement,
   type PlannedRelationship,
@@ -130,6 +139,42 @@ import {
   type ExtractTier1Result,
 } from "./codebase-extract-tier1.js";
 import { runningFill } from "../../analyzers/index-job.js";
+import {
+  PROJECT_RULES_FILE,
+  applyProjectRules,
+  filesMatcher,
+  isProjectRule,
+  loadProjectRules,
+  relationshipRuleFor,
+  saveProjectRule,
+  type CompiledRule,
+} from "../../analyzers/project-rules.js";
+import {
+  DEFAULT_GROUP_DEPTH,
+  DEFAULT_SHARED_BY,
+  filterCards,
+  groupCards,
+  kindRows,
+  pageOf,
+  planCoverage,
+  sharedHelperGroups,
+  type CardFilter,
+  type PlanCoverageItem,
+  type PlannedElementRef,
+  type SharedHelpers,
+} from "../../analyzers/triage.js";
+import { symbolSpellings } from "../../analyzers/cards/extract.js";
+import { BATCH_FILE_DESCRIPTION, readBatchFile } from "../batch-file.js";
+import { batchReport, verboseSchema, type BatchItemResult } from "./batch-result.js";
+import {
+  compileDecide,
+  decideItemSchema,
+  ruleReport,
+  cardRuleName,
+  withCardDecisions,
+  type DecideResult,
+  type RuleReport,
+} from "./codebase-extract-decide.js";
 import { loadSpecCriteria } from "../../analyzers/classifier/criteria.js";
 import type { Tier1Session } from "../../analyzers/classifier/session.js";
 import type { Tier1Block } from "../../analyzers/classifier/types.js";
@@ -143,14 +188,39 @@ import {
 } from "./codebase-shared.js";
 
 const DEFAULT_PAGE_SIZE = 25;
-/** The most cards a page holds, whatever pageSize asks: more than this rarely fits the response budget. */
-const MAX_PAGE_SIZE = 50;
 /**
  * The size a response with cards aims to stay under. Clients save larger tool results to a file
  * (Claude Code does above about 25-30 KB), which the agent then has to search.
  */
 const RESPONSE_BUDGET_BYTES = 28 * 1024;
 const MAX_LISTED = 100;
+/** Groups of cards a response lists by default. */
+const DEFAULT_GROUPS = 50;
+/** Layers that hold intent, not code: a planned element there has no declaration for extraction to find. */
+const INTENT_LAYERS: ReadonlySet<string> = new Set(["motivation", "business", "product"]);
+
+const rejectItemSchema = strictItem("A reject[] item", {
+        card: z
+          .string()
+          .min(1)
+          .optional()
+          .describe("The card's cardId, its symbol (or file#symbol), or the id of an element this extraction staged."),
+        files: z
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            "A file, a folder or a glob relative to the codebase root (docs/**, scripts/, src/test-pages/**/*.tsx): every undecided card of the last run in matching files."
+          ),
+        relationship: strictItem("A reject[] item's relationship", {
+          source: z.string().min(1).describe("The source element id."),
+          predicate: z.string().min(1).describe("The predicate, e.g. depends-on."),
+          target: z.string().min(1).describe("The target element id."),
+        })
+          .optional()
+          .describe("A relationship extraction staged (or would stage) that the code doesn't have."),
+        reason: z.string().min(1).describe("Why it is not a model element (or relationship), in a few words."),
+      });
 
 const inputSchema = {
   changeset: z
@@ -177,8 +247,8 @@ const inputSchema = {
     .max(200)
     .optional()
     .describe(
-      `Undecided cards per page (default ${DEFAULT_PAGE_SIZE}, at most ${MAX_PAGE_SIZE}). A page that would make the response larger than about ` +
-        `${RESPONSE_BUDGET_BYTES / 1024} KB has its cards shortened, and says so.`
+      `Undecided cards per page (default ${DEFAULT_PAGE_SIZE}). A page that would make the response larger than about ` +
+        `${RESPONSE_BUDGET_BYTES / 1024} KB has its cards shortened, then is cut to its first cards, and says so with the call that reads on.`
     ),
   page: z
     .number()
@@ -189,30 +259,7 @@ const inputSchema = {
       "Page of undecided cards (default 1). Page 2 and later read the last run's cards, with its since and layers: nothing is extracted or staged."
     ),
   reject: z
-    .array(
-      strictItem("A reject[] item", {
-        card: z
-          .string()
-          .min(1)
-          .optional()
-          .describe("The card's cardId, its symbol (or file#symbol), or the id of an element this extraction staged."),
-        files: z
-          .string()
-          .min(1)
-          .optional()
-          .describe(
-            "A file, a folder or a glob relative to the codebase root (docs/**, scripts/, src/test-pages/**/*.tsx): every undecided card of the last run in matching files."
-          ),
-        relationship: strictItem("A reject[] item's relationship", {
-          source: z.string().min(1).describe("The source element id."),
-          predicate: z.string().min(1).describe("The predicate, e.g. depends-on."),
-          target: z.string().min(1).describe("The target element id."),
-        })
-          .optional()
-          .describe("A relationship extraction staged (or would stage) that the code doesn't have."),
-        reason: z.string().min(1).describe("Why it is not a model element (or relationship), in a few words."),
-      })
-    )
+    .array(rejectItemSchema)
     .optional()
     .describe(
       "What is not in the model, each item with one of card, files or relationship, and a reason. card: a card of this " +
@@ -221,7 +268,7 @@ const inputSchema = {
         "instead of one call per card. " +
         "relationship: {source, predicate, target} of a wrong relationship. Recorded for the project until cleared, so " +
         "later runs leave them out; what is still staged for them in the changeset is unstaged (an element with its relationships). " +
-        "An item that names nothing (a pattern no card is in, an unknown card) is listed in notApplied and the others are still recorded; " +
+        "An item that names nothing (a pattern no card is in, an unknown card) is listed in reject.attention and the others are still recorded; " +
         "the call is refused only when no item applies. A call with only reject or clearRejected records and runs nothing."
     ),
   clearRejected: z
@@ -261,6 +308,79 @@ const inputSchema = {
         "this changeset's since and layers. Uses cached answers only, so it stages exactly what you were shown and sends nothing. " +
         "Pass it only after the user agreed; reject (or model_add differently) any accept card they disagree with first. " +
         "Suggest mode (tier1.mode \"suggest\"): in stage mode the run stages the accept band itself, so acceptTier1 is ignored (next says so)."
+    ),
+  decide: z
+    .array(decideItemSchema)
+    .optional()
+    .describe(
+      "Decide cards in bulk, by a stated rule: each item names where (files, label, visibility, nested, name, declaration, ownerType), " +
+        "or one card, or a relationship, and says as (a layer.type, or none) with a reason. The run applies them ahead of the project's " +
+        "rules file: a typed item stages every card it covers as that type, named from the card as Tier 0 names them (in a since run, only " +
+        "the symbols the range changed); none records them as not elements. With preview: true nothing is written and each item's count " +
+        "and a sample come back, which is the step to review before applying. keep: true also writes the item to " +
+        `documentation-robotics/${PROJECT_RULES_FILE}, so later runs and other checkouts apply it. The result (decide) gives counts and the items that need attention.`
+    ),
+  file: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(`${BATCH_FILE_DESCRIPTION} For codebase_extract the object is {"reject": [...], "decide": [...]}, either or both.`),
+  verbose: verboseSchema,
+  intent: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "What this extraction is for, once the user confirmed it: the description of the changeset the run creates. With it the run creates the " +
+        "changeset (under changeset, or the default name) even when it stages nothing, so model_add has a changeset of the right purpose to stage into."
+    ),
+  view: strictItem("view", {
+    files: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("A file, a folder or a glob from the codebase root, or a list."),
+    label: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("Function, Method, Class, Interface, Type, Enum, Route, ..."),
+    visibility: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("exported, local, public, private, protected."),
+    kind: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("no-rule, narrowed, ambiguous, needs-attributes, unhandled-route, decision-record."),
+    nested: z.boolean().optional().describe("Declared inside another function."),
+    changed: z.boolean().optional().describe("With a since run: true for symbols the range changed (the default pile), false for the ones it did not touch."),
+  })
+    .optional()
+    .describe(
+      "Read the last run's cards by filter, a page at a time (page, pageSize): nothing is extracted or staged. {} lists every card. " +
+        "Its groups are those of the filtered cards, so a folder can be opened a level at a time (with groupDepth)."
+    ),
+  list: z
+    .enum(["groups", "candidateDeletes", "updated", "retyped", "impacted", "ruleDecided", "sharedHelpers", "planCoverage", "unwiredTests", "notElements"])
+    .optional()
+    .describe(
+      "Read one list of the last run in full, a page at a time (limit, offset): nothing is extracted or staged. Each list a run shortens says " +
+        "which name to pass here. ruleDecided needs rule (the rule's name)."
+    ),
+  rule: z.string().min(1).optional().describe("With list: \"ruleDecided\": the project rule whose decisions to list."),
+  limit: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      "With list, or for a run's groups: how many items a page holds (default 50 groups, 100 for other lists). For reject and decide: how many of " +
+        "the items that need attention come back in full (default 50); the rest are never dropped, each is listed by position under its reason."
+    ),
+  offset: z.number().int().min(0).optional().describe("With list (or a run's groups): where the page starts (default 0)."),
+  groupDepth: z
+    .number()
+    .int()
+    .min(1)
+    .max(12)
+    .optional()
+    .describe(`How many leading folders name a group of cards (default ${DEFAULT_GROUP_DEPTH}, e.g. src/ui/). Raise it, with view.files, to open a folder; groupBy: "file" goes to its files.`),
+  groupBy: z.enum(["folder", "file"]).optional().describe('With list: "groups": "file" gives one group per file (default "folder").'),
+  sharedBy: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      `A function or component that realizes more than this many services is listed in sharedHelpers (default ${DEFAULT_SHARED_BY}): ` +
+        "a shared helper, probably, for you to decide with a relationship rule. Nothing is left out because of it."
     ),
   rootPath: rootPathSchema,
 };
@@ -312,6 +432,14 @@ interface StoredCards {
   }>;
   /** Ids extraction listed as candidate deletes for this changeset, accumulated across runs. */
   candidateDeletes?: string[];
+  /** A since run whose changed lines were known: the default pile is the cards the range changed. */
+  rangeOnly?: boolean;
+  /**
+   * The last run's lists in full, by the name `list` reads them under (candidateDeletes, updated,
+   * retyped, impacted, sharedHelpers, planCoverage, unwiredTests, ruleDecided:<rule>, ...), so a
+   * list the response shortened is still reachable.
+   */
+  lists?: Record<string, unknown[]>;
   /**
    * The relationships extraction staged into this changeset (`source::predicate::target`), while
    * they are staged. One that goes while both its ends stay was unstaged: a not-a-relationship
@@ -447,8 +575,17 @@ function page<T>(items: T[], pageNumber: number, pageSize: number) {
   };
 }
 
-function capped<T>(items: T[], limit = MAX_LISTED): { total: number; items: T[]; truncated?: true } {
-  return items.length > limit ? { total: items.length, items: items.slice(0, limit), truncated: true } : { total: items.length, items };
+/** How to read a named list of the last run from an offset: the `more` of a shortened list. */
+function listCall(name: string, nextOffset: number): string {
+  return `Call codebase_extract with list: "${name}" and offset: ${nextOffset} for the rest (nothing is extracted or staged).`;
+}
+
+/**
+ * A list of the response at its default length: its true total, the items shown, and, when it is
+ * shortened, the call that returns the rest (`list: <name>`, which reads the run's record).
+ */
+function capped<T>(items: T[], limit = MAX_LISTED, name?: string) {
+  return pageOf(items, limit, 0, name ? (next) => listCall(name, next) : undefined);
 }
 
 /** The clusters report, its proposals shortened with the other lists and its communities left out when they are. */
@@ -547,10 +684,10 @@ type CardPage = ReturnType<typeof page<UndecidedCard>>;
 const LIST_LIMITS = [MAX_LISTED, 20, 5, 0];
 
 /** The paging call that continues after a page cut to its first `shown` cards. */
-function cutInstruction(p: CardPage, shown: number): string {
+function cutInstruction(p: CardPage, shown: number, prefix = ""): string {
   const next = (p.page - 1) * p.pageSize + shown;
   return (
-    `call codebase_extract with page: ${Math.floor(next / shown) + 1} and pageSize: ${shown}` +
+    `call codebase_extract with ${prefix}page: ${Math.floor(next / shown) + 1} and pageSize: ${shown}` +
     `${next % shown ? " (its first cards may repeat ones you have)" : ""}`
   );
 }
@@ -562,7 +699,13 @@ function cutInstruction(p: CardPage, shown: number): string {
  * compact card and empty lists don't fit, the smallest response is returned with `overBudget`.
  * `render` builds the whole response from the page's cards and how it fitted them.
  */
-function fitCards(cards: UndecidedCard[], p: CardPage, render: (items: Array<Partial<UndecidedCard>>, fit: PageFit) => Record<string, unknown>): Record<string, unknown> {
+function fitCards(
+  cards: UndecidedCard[],
+  p: CardPage,
+  render: (items: Array<Partial<UndecidedCard>>, fit: PageFit) => Record<string, unknown>,
+  /** What the paging call needs before `page` to read the same cards (`view: {...}, `). */
+  prefix = ""
+): Record<string, unknown> {
   const fits = (result: Record<string, unknown>) => Buffer.byteLength(compactJson(result), "utf-8") <= RESPONSE_BUDGET_BYTES;
   let lists: PageFit = {};
   let listsFit = false;
@@ -578,7 +721,7 @@ function fitCards(cards: UndecidedCard[], p: CardPage, render: (items: Array<Par
     render(compact.slice(0, 1), {
       ...lists,
       ...(cards.length ? { detail: "compact", note: PAGE_NOTES.compact } : {}),
-      ...(cards.length > 1 ? { shown: 1, readOn: cutInstruction(p, 1) } : {}),
+      ...(cards.length > 1 ? { shown: 1, readOn: cutInstruction(p, 1, prefix) } : {}),
       overBudget: true,
     });
   if (!listsFit) return smallest();
@@ -592,7 +735,7 @@ function fitCards(cards: UndecidedCard[], p: CardPage, render: (items: Array<Par
     if (fits(result)) return result;
   }
   for (let shown = compact.length - 1; shown >= 1; shown--) {
-    result = render(compact.slice(0, shown), { ...lists, detail: "compact", note: PAGE_NOTES.compact, shown, readOn: cutInstruction(p, shown) });
+    result = render(compact.slice(0, shown), { ...lists, detail: "compact", note: PAGE_NOTES.compact, shown, readOn: cutInstruction(p, shown, prefix) });
     if (fits(result)) return result;
   }
   return smallest();
@@ -604,8 +747,8 @@ function fitNotes(fit: PageFit): Record<string, unknown> {
     ...(fit.listLimit !== undefined
       ? {
           listsShortened:
-            `candidateDeletes, staged.updated, retyped and notElements.recorded list at most ${fit.listLimit} item(s) here, to keep the response small; ` +
-            "each total is the full count. Narrow the run with layers or since to list the rest.",
+            `The lists other than the cards (candidateDeletes, staged.updated, retyped, impacted and the like) show at most ${fit.listLimit} item(s) here, to keep the response small; ` +
+            "each total is the full count, and each shortened list's more names the call that reads the rest.",
         }
       : {}),
     ...(fit.overBudget ? { overBudget: `Even shortened, this response is over about ${RESPONSE_BUDGET_BYTES / 1024} KB.` } : {}),
@@ -854,7 +997,7 @@ function documentationResult(plan: ElementPlan, describe: DescribeItem[], error:
   return {
     documentation: {
       ...(decisions
-        ? { decisionRecords: { cards: decisions.cards, modelled: decisions.modelled, ...(decisions.retired.length ? { retired: capped(decisions.retired, listLimit) } : {}) } }
+        ? { decisionRecords: { cards: decisions.cards, modelled: decisions.modelled, ...(decisions.retired.length ? { retired: capped(decisions.retired, listLimit, "retiredDecisions") } : {}) } }
         : {}),
       ...(describe.length ? { describe: { total: describe.length, items: shown, ...(shown.length < describe.length ? { truncated: true } : {}) } } : {}),
       ...(error ? { error: `Decision records and doc sections couldn't be read, so no card carries them: ${error}` } : {}),
@@ -863,12 +1006,31 @@ function documentationResult(plan: ElementPlan, describe: DescribeItem[], error:
   };
 }
 
+/**
+ * What a call recorded, as counts (#1182): the decisions the caller asked for are counted, not
+ * echoed; the ones this tool inferred (an element or relationship it staged that was unstaged) are
+ * listed, since nobody sent them. `verbose` lists every one.
+ */
+function recordedSummary<T extends { how: "rejected" | "unstaged" }>(recorded: T[], verbose: boolean | undefined) {
+  const inferred = recorded.filter((r) => r.how === "unstaged");
+  const listed = verbose ? recorded : inferred;
+  return {
+    total: recorded.length,
+    rejected: recorded.length - inferred.length,
+    unstaged: inferred.length,
+    // Never shortened: an inferred decision is one nobody sent, so each is shown.
+    ...(listed.length ? { items: listed } : {}),
+    ...(!verbose && recorded.length > inferred.length ? { note: "The rejected ones are counted, not listed; verbose: true lists every one." } : {}),
+  };
+}
+
 function notElementsResult(
   decisions: DecisionsFile,
   skipped: number,
   recorded: Array<{ symbol: string; file: string | null; how: NotElementDecision["how"] }>,
   cleared: number,
-  listLimit = MAX_LISTED
+  _listLimit = MAX_LISTED,
+  verbose?: boolean
 ) {
   const total = Object.keys(decisions.notElements).length;
   if (!total && !skipped && !recorded.length && !cleared) return {};
@@ -876,19 +1038,19 @@ function notElementsResult(
     notElements: {
       total,
       skipped,
-      ...(recorded.length ? { recorded: capped(recorded, listLimit) } : {}),
+      ...(recorded.length ? { recorded: recordedSummary(recorded, verbose) } : {}),
       ...(cleared ? { cleared } : {}),
-      note: "Symbols decided not to be elements (rejected, or unstaged after this tool staged them). Runs leave them out; clearRejected forgets them.",
+      note: 'Symbols decided not to be elements (rejected, or unstaged after this tool staged them). Runs leave them out; clearRejected forgets them; list: "notElements" lists them.',
     },
   };
 }
 
 /** Verify mode, the card step: stage cards as the code names them, never as the plan does. */
-function verifyCardStep(undecidedPages: number, readOn?: string): string {
+function verifyCardStep(undecidedPages: number, readOn?: string, grouped = false): string {
   return (
     "Stage the element cards with model_add, named after the card's symbol (the card's name when it has one), never the plan's element, and never copy plan elements here: " +
     'a layer and type from its candidates or hint, sourceFile = file, sourceSymbol = symbol, sourceProvenance: "extracted". ' +
-    `Ask the user about cards you can't place, in one short list. ${readFurther(undecidedPages, readOn)}`
+    `Ask the user about cards you can't place, in one short list. ${readFurther(undecidedPages, readOn, grouped)}`
   );
 }
 
@@ -1094,8 +1256,43 @@ function verifyNothingSteps(plan: { id: string; name: string }, since: string): 
   ];
 }
 
+/** The step for a run whose cards are grouped: decide in bulk before reading any card. */
+function triageStep(cards: number, anyNoElement: boolean): string {
+  return (
+    `${cards} cards is more than a page, so decide them by group first (undecided.groups and byKind), not one at a time: call codebase_extract with ` +
+    "decide: [{where: {files, label, visibility, nested, name, ownerType}, as: \"none\" or a layer.type, reason}] and preview: true to get each item's count and a sample, " +
+    "then the same without preview to apply it. Add keep: true for a decision that should hold on every later run and checkout (it is written to " +
+    `documentation-robotics/${PROJECT_RULES_FILE}). ` +
+    (anyNoElement ? "A group marked noElement is in a folder no model element names: ask the user whether it is product code, and decide it none by files when it is not. " : "") +
+    "Read what is left with view."
+  );
+}
+
+function untouchedStep(untouched: number): string {
+  return (
+    `The cards are the symbols the range changed. ${untouched} more symbol(s) in the changed files have no element and were not touched by the range: ` +
+    "they are counted (undecided.untouched), not listed, and rules that name a type did not stage them. view: {changed: false} lists them."
+  );
+}
+
+function coverageStep(c: { total: number; staged: number; candidates: number; none: number }): string {
+  return (
+    `Of the ${c.total} element(s) the plan adds that code can show, the as-built side has ${c.staged}: ${c.candidates} have candidate cards and ${c.none} have none (planCoverage). ` +
+    "Stage the candidates that are those elements before verifying, at the plan's granularity (one element per module, not one symbol picked to stand for a file); " +
+    "a thin as-built makes verify report planned elements and their relationships as missing when they were built."
+  );
+}
+
+function helpersStep(h: SharedHelpers): string {
+  return (
+    `${h.helpers.length} function(s) or component(s) each realize more than ${h.sharedBy} services (sharedHelpers: ${h.links} links, ${h.staging} staged by this run). ` +
+    "Ask the user whether shared helpers belong to every service that calls them; to leave one's links out, decide its relationship as none with keep: true."
+  );
+}
+
 /** How to read the cards after this page: the cut's paging call when the page was cut. */
-function readFurther(undecidedPages: number, readOn?: string): string {
+function readFurther(undecidedPages: number, readOn?: string, grouped = false): string {
+  if (grouped) return `view: {} lists the cards a page at a time (${undecidedPages} pages).`;
   return readOn
     ? `This page was cut to keep the response small: for the cards after it, ${readOn}, and page on with that pageSize.`
     : `Read further pages with page: 2 and on (${undecidedPages} in all).`;
@@ -1108,7 +1305,8 @@ function nextSteps(
   plan: Pick<ElementPlan, "candidateDeletes" | "retyped">,
   changedCards = 0,
   since?: string,
-  readOn?: string
+  readOn?: string,
+  grouped = false
 ): string[] {
   const steps = [
     `The as-built changeset '${changeset.name}' is active: model_add, model_update, model_delete and relationship_add stage into it. Nothing reaches the base model until the user lands it.`,
@@ -1125,10 +1323,10 @@ function nextSteps(
   if (undecidedPages > 0) {
     steps.push(
       verify
-        ? verifyCardStep(undecidedPages, readOn)
+        ? verifyCardStep(undecidedPages, readOn, grouped)
         : "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
             "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
-            readFurther(undecidedPages, readOn),
+            readFurther(undecidedPages, readOn, grouped),
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
       verify
         ? `Call ${rerun} for their relationships.`
@@ -1173,7 +1371,8 @@ function pendingSteps(
   plan: Pick<ElementPlan, "candidateDeletes">,
   changedCards: number,
   since?: string,
-  readOn?: string
+  readOn?: string,
+  grouped = false
 ): string[] {
   // A since run with a plan active is the verify workflow: the changeset to create is the
   // as-built side, and creating it deactivates the plan.
@@ -1191,9 +1390,9 @@ function pendingSteps(
   if (undecidedPages > 0) {
     steps.push(
       verify
-        ? verifyCardStep(undecidedPages, readOn)
+        ? verifyCardStep(undecidedPages, readOn, grouped)
         : "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), a name (the card's name when it has one), " +
-            `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn)}`,
+            `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn, grouped)}`,
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out; that needs no changeset.",
       verify
         ? `Call codebase_extract again with changeset: "${name}", since: "${since}" for their relationships.`
@@ -1666,17 +1865,6 @@ function splitRejects(items: RejectItem[]) {
   return { cards, files, relationships, problems };
 }
 
-/** Whether a codebase-relative file is in a reject's `files`: the file, a folder it is in, or a glob it (or its folder) matches. */
-function filesMatcher(pattern: string): (file: string) => boolean {
-  const p = pattern.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
-  if (/[*?[\]{}]/.test(p)) {
-    const folder = `${p.replace(/\/+$/, "")}/**`;
-    return (file) => minimatch(file, p, { dot: true }) || minimatch(file, folder, { dot: true });
-  }
-  const dir = p.replace(/\/+$/, "");
-  return (file) => file === dir || file.startsWith(`${dir}/`);
-}
-
 /**
  * The cards a `files` reject names: every undecided card of the last run in matching files, as
  * card refs (the first reason wins for a card two patterns match). A pattern that matches no card
@@ -1770,7 +1958,8 @@ function notRelationshipsResult(
   skipped: number,
   recorded: Array<RelationshipRef & { how: NotRelationshipDecision["how"] }>,
   cleared: number,
-  listLimit = MAX_LISTED
+  _listLimit = MAX_LISTED,
+  verbose?: boolean
 ) {
   const total = Object.keys(decisions.notRelationships).length;
   if (!total && !skipped && !recorded.length && !cleared) return {};
@@ -1778,7 +1967,7 @@ function notRelationshipsResult(
     notRelationships: {
       total,
       skipped,
-      ...(recorded.length ? { recorded: capped(recorded, listLimit) } : {}),
+      ...(recorded.length ? { recorded: recordedSummary(recorded, verbose) } : {}),
       ...(cleared ? { cleared } : {}),
       note: "Relationships decided not to be in the code (rejected, or unstaged after this tool staged them). Runs don't stage them; clearRejected with source::predicate::target forgets one.",
     },
@@ -1918,11 +2107,35 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
       const manager = new StagingAreaManager(model.rootPath, model);
       const pageSize = args.pageSize ?? DEFAULT_PAGE_SIZE;
-      const effectivePageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+      // The page size asked for is the page size: a page too large for the response budget is cut, and says how to read on.
+      const effectivePageSize = pageSize;
       const baseModified = model.manifest.modified;
-      const paging = (args.page ?? 1) > 1;
+      // reject and decide items, inline or from a file (batch-file.ts: one JSON object holding the lists).
+      let rejectItems: RejectItem[] = args.reject ?? [];
+      let decideItems = args.decide ?? [];
+      if (args.file) {
+        if (args.reject?.length || args.decide?.length) {
+          throw new CLIError("codebase_extract: send either file or the inline reject and decide lists, not both", ErrorCategory.USER, [
+            'Put both lists in the file ({"reject": [...], "decide": [...]}), or send them inline',
+          ]);
+        }
+        const fromFile = await readBatchFile("codebase_extract", args.file, model.rootPath, {
+          reject: z.array(rejectItemSchema).optional(),
+          decide: z.array(decideItemSchema).optional(),
+        });
+        rejectItems = fromFile.reject ?? [];
+        decideItems = fromFile.decide ?? [];
+      }
+      // A view or a list reads the last run's record, as a later page does: nothing is extracted or staged.
+      const reading = args.view !== undefined || args.list !== undefined;
+      const paging = (args.page ?? 1) > 1 || reading;
+      if (paging && decideItems.length) {
+        throw new CLIError("decide is applied in a run; it can't be combined with page, view or list", ErrorCategory.USER, [
+          "Call codebase_extract with decide and the run's own arguments (changeset, or since and layers)",
+        ]);
+      }
       // A call that only rejects cards or clears decisions records them and runs nothing.
-      const decisionsOnly = !paging && (!!args.reject?.length || args.clearRejected !== undefined);
+      const decisionsOnly = !paging && !decideItems.length && (rejectItems.length > 0 || args.clearRejected !== undefined);
       // A preview counts what a run would do, and stages and records nothing.
       const preview = args.preview === true;
       if (preview && (paging || decisionsOnly)) {
@@ -1939,7 +2152,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           "Call codebase_extract with acceptTier1: true and the run's own arguments (changeset, or since and layers)",
         ]);
       }
-      const rejects = args.reject?.length ? splitRejects(args.reject) : null;
+      const rejects = rejectItems.length ? splitRejects(rejectItems) : null;
+      // The project's own rules (documentation-robotics/extraction-rules.yaml), for a run.
+      const fileRules = paging || decisionsOnly ? [] : await loadProjectRules(projectRoot);
 
       // The changeset: the one named; else, for a page or decisions call, the active extraction
       // changeset (it has a cards file); else the default name for this commit (and range).
@@ -2139,6 +2354,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const relationshipsToUnstage: Array<RelationshipRef & { key: string }> = [];
         const relationshipsInBase: string[] = [];
         const rejectProblems: RejectProblem[] = [];
+        /** Cards a files item covered, by the item's index. */
+        const rejectedPerItem = new Map<number, number>();
         if (rejects) {
           const now = new Date().toISOString();
           const changesetLabel = changeset?.name ?? stored?.changesetName ?? name;
@@ -2171,6 +2388,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           }
           const rejectedRelationships = fromRelationships.found;
           const rejected = fromCards.found;
+          for (const ref of inFiles.refs) rejectedPerItem.set(ref.index, (rejectedPerItem.get(ref.index) ?? 0) + 1);
           // A relationship still staged in the extraction changeset is unstaged; one the base model
           // has stays (rejecting is about what extraction stages).
           const stagedNow = stagedRelationshipAdds(extractionChangeset, relationshipGraph);
@@ -2280,23 +2498,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (wasPending) await rm(path.join(extractDir(projectRoot), PENDING_FILE), { force: true });
         }
         if (unstaged.length || unstagedRels.length) await reloadModel(args.rootPath);
+        // Each reject item's result, in the shape of the other batch writes (batch-result.ts): counts
+        // over the whole call, and in full only the items that did nothing.
+        const problemAt = new Map(rejectProblems.map((p) => [p.index, p] as const));
+        const rejectResults: Array<BatchItemResult & { item?: string; recorded?: number }> = rejectItems.map((item, index) => {
+          const problem = problemAt.get(index);
+          if (problem) return { index, status: problem.status, item: problem.item, reason: problem.message };
+          return { index, status: "recorded", ...(item.files !== undefined ? { recorded: rejectedPerItem.get(index) ?? 0 } : {}) };
+        });
         const rejectResult = {
-          ...(rejectProblems.length
-            ? {
-                notApplied: {
-                  total: rejectProblems.length,
-                  of: args.reject!.length,
-                  // Never shortened: each one is an item the caller believes it sent and that did nothing.
-                  byStatus: Object.fromEntries(
-                    (["malformed", "no-match", "unknown", "ambiguous"] as const)
-                      .map((status) => [status, rejectProblems.filter((p) => p.status === status).map((p) => p.index)] as const)
-                      .filter(([, indexes]) => indexes.length)
-                  ),
-                  items: rejectProblems,
-                  note: "These reject items named nothing, so they recorded nothing (index counts from 0). The other items were recorded.",
-                },
-              }
-            : {}),
+          ...(rejectItems.length ? { reject: batchReport(rejectResults, { verbose: args.verbose, limit: args.limit, written: ["recorded"] }) } : {}),
           ...(unstaged.length
             ? {
                 unstaged: {
@@ -2336,8 +2547,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           return jsonResult(
             {
               changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
-              ...notElementsResult(decisions, 0, recordedNow, cleared),
-              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships),
+              ...notElementsResult(decisions, 0, recordedNow, cleared, MAX_LISTED, args.verbose),
+              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships, MAX_LISTED, args.verbose),
               ...rejectResult,
               message:
                 unstaged.length || unstagedRels.length
@@ -2346,7 +2557,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                       ...(unstagedRels.length ? [`${unstagedRels.length} relationship(s)`] : []),
                     ].join(" and ")} it had staged; nothing was extracted.`
                   : rejectProblems.length
-                    ? `Recorded ${args.reject!.length - new Set(rejectProblems.map((p) => p.index)).size} of ${args.reject!.length} reject item(s); ${new Set(rejectProblems.map((p) => p.index)).size} named nothing (notApplied). Nothing was extracted or staged.`
+                    ? `Recorded ${rejectItems.length - problemAt.size} of ${rejectItems.length} reject item(s); ${problemAt.size} named nothing (reject.attention). Nothing was extracted or staged.`
                     : "Recorded; nothing was extracted or staged.",
               next: [`Call codebase_extract with ${rerun} to refresh the cards: it leaves out what is recorded, and says how many.`],
             },
@@ -2354,53 +2565,115 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           );
         }
 
-        // Later pages: the last run's cards, marking any the agent has modelled since.
+        // Later pages, views and lists: the last run's record, marking any card the agent has modelled since.
         if (paging) {
           if (!stored) {
             throw new CLIError(
               changeset ? `No cards recorded for '${changeset.name}'` : `No extraction changeset '${name}' yet`,
               ErrorCategory.USER,
-              ["Call codebase_extract without page first"]
+              ["Call codebase_extract without page, view or list first"]
             );
           }
           const runName = changeset?.name ?? stored.changesetName;
           if (stored.gitHead !== head) {
             throw new CLIError(`The cards for '${runName}' were read at ${stored.gitHead.slice(0, 7)}; the code is now at ${head.slice(0, 7)}`, ErrorCategory.USER, [
-              "Call codebase_extract without page to extract again",
+              "Call codebase_extract without page, view or list to extract again",
             ]);
           }
           const graph = await ChangesetGraph.build(model, changeset ?? emptyChangeset());
           const modelledAt = new Map<string, string>();
+          const referencedCount = new Map<string, number>();
           for (const e of graph.elements.values()) {
             if (e.status === "deleted") continue;
-            for (const l of e.sourceReference?.locations ?? []) if (l.symbol) modelledAt.set(`${l.file}#${l.symbol}`, e.id);
+            for (const l of e.sourceReference?.locations ?? []) {
+              if (l.symbol) modelledAt.set(`${l.file}#${l.symbol}`, e.id);
+              const file = normFile(l.file);
+              if (file) referencedCount.set(file, (referencedCount.get(file) ?? 0) + 1);
+            }
           }
-          const cards = stored.cards
+          const live = stored.cards
             .filter((c) => !notElementKeys.has(decisionKey(c.file, c.symbol)))
             .map((c) => {
               const modelled = c.file ? modelledAt.get(`${c.file}#${c.symbol}`) : undefined;
               return modelled ? { ...c, modelled } : c;
             });
-          const p = page(cards, args.page!, effectivePageSize);
+          // A since run's pile is what the range changed, unless the view asks for the rest.
+          const view: CardFilter = { ...(args.view ?? {}) };
+          if (stored.rangeOnly && view.changed === undefined) view.changed = true;
+          const cards = filterCards(live, view);
+          // What the default pile leaves out: cards of the same view that the range did not touch.
+          const untouched = stored.rangeOnly && view.changed === true ? filterCards(live, { ...view, changed: false }).length : 0;
+          const readHeader = {
+            changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
+            ...(changeset ? {} : { pending: `No changeset yet: the run that read these cards staged nothing. Call changeset_create with name: "${runName}" before staging.` }),
+            scope: { since: stored.since, layers: stored.layers ?? "all" },
+            ...(stored.baseModified !== baseModified
+              ? { warning: "The base model changed since these cards were read; call codebase_extract without page, view or list to refresh them." }
+              : {}),
+          };
+          const filtered = args.view && Object.keys(args.view).length ? { view: args.view } : {};
+          if (args.list !== undefined) {
+            const limit = args.limit ?? (args.list === "groups" ? DEFAULT_GROUPS : MAX_LISTED);
+            const offset = args.offset ?? 0;
+            const storedLists: Record<string, unknown[]> = {
+              ...(stored.lists ?? {}),
+              groups: groupCards(cards, referencedCount, { depth: args.groupDepth ?? DEFAULT_GROUP_DEPTH, since: !!stored.since, byFile: args.groupBy === "file" }),
+              notElements: Object.entries(decisions.notElements).map(([key, d]) => ({ key, symbol: d.symbol, file: d.file, how: d.how, reason: d.reason })),
+            };
+            const listName = args.list === "ruleDecided" ? (args.rule ? `ruleDecided:${args.rule}` : "") : args.list;
+            const items = storedLists[listName];
+            if (!items) {
+              const available = Object.keys(storedLists).sort();
+              throw new CLIError(
+                args.list === "ruleDecided"
+                  ? args.rule
+                    ? `No rule '${args.rule}' decided anything in the last run of '${runName}'`
+                    : 'list: "ruleDecided" needs rule: the name of the project rule whose decisions to list'
+                  : `The last run of '${runName}' has no list '${args.list}'`,
+                ErrorCategory.USER,
+                [`Lists it has: ${available.join(", ") || "none"}`]
+              );
+            }
+            const extra =
+              args.list === "groups"
+                ? `${args.groupBy ? `, groupBy: "${args.groupBy}"` : ""}${args.groupDepth ? `, groupDepth: ${args.groupDepth}` : ""}${args.view ? `, view: ${JSON.stringify(args.view)}` : ""}`
+                : args.rule
+                  ? `, rule: "${args.rule}"`
+                  : "";
+            return jsonResult(
+              {
+                ...readHeader,
+                list: args.list,
+                ...(args.rule ? { rule: args.rule } : {}),
+                ...filtered,
+                ...(args.list === "groups" ? { cards: cards.length, ...(untouched ? { untouched } : {}) } : {}),
+                ...pageOf(items, limit, offset, (next) => `Call codebase_extract with list: "${args.list}"${extra}, limit: ${limit} and offset: ${next} for the next ones.`),
+              },
+              { compact: true }
+            );
+          }
+          const pageNumber = args.page ?? 1;
+          const p = page(cards, pageNumber, effectivePageSize);
+          const viewArg = args.view ? `view: ${JSON.stringify(args.view)}, ` : "";
           return jsonResult(
             fitCards(p.items, p, (items, fit) => ({
-              changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
-              ...(changeset ? {} : { pending: `No changeset yet: the run that read these cards staged nothing. Call changeset_create with name: "${runName}" before staging.` }),
+              ...readHeader,
               ...fitNotes(fit),
-              scope: { since: stored!.since, layers: stored!.layers ?? "all" },
-              undecided: undecidedSection(p, items, fit, pageSize),
-              ...notElementsResult(decisions, stored!.cards.length - cards.length, recordedNow, cleared, fit.listLimit),
-              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships, fit.listLimit),
+              ...filtered,
+              undecided: undecidedSection(p, items, fit, pageSize, {
+                ...(untouched
+                  ? { untouched: { total: untouched, more: `Symbols in the changed files that the range did not touch: call codebase_extract with view: ${JSON.stringify({ ...(args.view ?? {}), changed: false })} to list them.` } }
+                  : {}),
+              }),
+              ...notElementsResult(decisions, stored!.cards.length - live.length, recordedNow, cleared, fit.listLimit, args.verbose),
+              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships, fit.listLimit, args.verbose),
               ...rejectResult,
-              ...(stored!.baseModified !== baseModified
-                ? { warning: "The base model changed since these cards were read; call codebase_extract without page to refresh them." }
-                : {}),
               ...(fit.readOn
                 ? { next: `This page was cut to keep the response small: for the cards after it, ${fit.readOn}.` }
-                : args.page! < p.pages
-                  ? { next: `Call codebase_extract with page: ${args.page! + 1} for the next cards.` }
+                : pageNumber < p.pages
+                  ? { next: `Call codebase_extract with ${viewArg}page: ${pageNumber + 1} for the next cards.` }
                   : {}),
-            })),
+            }), viewArg),
             { compact: true }
           );
         }
@@ -2411,6 +2684,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // What the model has: the base, plus the extraction changeset's own changes when it exists.
         const before = await ChangesetGraph.build(model, changeset ?? emptyChangeset());
         const referenced = new Set<string>();
+        /** Elements sourced to each file: what the triage groups say the model already has there. */
+        const referencedCount = new Map<string, number>();
         const liveKeys = new Set<string>();
         const liveIds = new Set<string>();
         // The elements this changeset adds, by the symbols they name: a card the agent staged.
@@ -2420,7 +2695,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           liveIds.add(e.id);
           for (const l of e.sourceReference?.locations ?? []) {
             const file = l.file?.replace(/\\/g, "/").replace(/^\.\//, "");
-            if (file) referenced.add(file);
+            if (file) {
+              referenced.add(file);
+              referencedCount.set(file, (referencedCount.get(file) ?? 0) + 1);
+            }
             if (!l.symbol) continue;
             const key = decisionKey(file || null, l.symbol);
             liveKeys.add(key);
@@ -2562,7 +2840,32 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
         const descriptionsFile = path.join(extractDir(projectRoot), DESCRIPTIONS_FILE);
         const extractedDescriptions = (await readJson<Record<string, string>>(descriptionsFile)) ?? {};
-        const planFrom = (graph: ExtractionGraph) =>
+        // The call's decide items, as rules ahead of the project's file, and decisions on single cards.
+        const decided = compileDecide(decideItems, storedBefore?.cards ?? pendingFor(name)?.cards ?? [], new Set(fileRules.map((r) => r.rule.name)));
+        const rules: CompiledRule[] = [...decided.rules.map((r) => r.compiled), ...fileRules];
+        // A member's owner for ownerType: the element the model (or this changeset) has for its class.
+        const existingIndex = indexExisting(before);
+        const ownerTypeOf = (s: ExtractionGraph["symbols"][number]): string | undefined => {
+          if (s.card.label !== "Method") return undefined;
+          const cut = s.qualifiedName.lastIndexOf(".");
+          if (cut <= 0) return "none";
+          const parent = s.qualifiedName.slice(0, cut);
+          const owner = findBySymbol(existingIndex, s.card.file_path, symbolSpellings(parent, parent.slice(parent.lastIndexOf(".") + 1), extraction.project));
+          return owner ? `${owner.layer}.${owner.type}` : "none";
+        };
+        // With a range whose changed lines are known, a rule that names a type stages only what the range changed.
+        // Without the changed lines (git couldn't give them) nothing says which symbols the range touched: every card is listed.
+        const rangeChanged = changes && changes.hunks && !changes.hunksError ? changes : null;
+        let ruleUntouched = new Map<string, number>();
+        const planFrom = (graph: ExtractionGraph) => {
+          const applied = applyProjectRules(withCardDecisions(graph, decided.byCard), rules, {
+            ownerTypeOf,
+            ...(rangeChanged ? { changed: (s) => symbolChangedInRange(s, rangeChanged.hunks, rangeChanged) } : {}),
+          });
+          ruleUntouched = applied.untouched;
+          return planWith(applied.extraction);
+        };
+        const planWith = (graph: ExtractionGraph) =>
           planElements(graph, before, {
             layers,
             changes,
@@ -2661,6 +2964,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const now = new Date().toISOString();
         const { valid, invalid } = await validateAdds(plan.adds, now, changes?.hunks, changes ?? undefined);
         const adds = valid.map((v) => v.add);
+        // An add a rule decided whose attributes don't validate is a needs-attributes card, not something the rule staged.
+        const validAddIds = new Set(adds.map((a) => a.id));
+        const needsAttributesByRule = new Map<string, number>();
+        for (const [ruleName, d] of plan.byRule) {
+          const kept = d.staged.filter((id) => validAddIds.has(id));
+          if (kept.length !== d.staged.length) needsAttributesByRule.set(ruleName, d.staged.length - kept.length);
+          d.staged = kept;
+        }
         // Staged adds with no description that a doc section describes (cards carry their own docs).
         const describe: DescribeItem[] = adds.filter((a) => !a.description && a.symbol.docs?.length).map((a) => ({ id: a.id, docs: a.symbol.docs! }));
         // Stage and hide mode hide the not-element band (TIER1_DESIGN.md section 1.3): counted, not carded,
@@ -2669,6 +2980,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const hinted = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
         const undecided = hiddenByTier1.size ? hinted.filter((c) => !(hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element")) : hinted;
         const tier1NotElement = hinted.length - undecided.length;
+        // A since run's pile is what the range changed. Symbols it did not touch in the same files
+        // are counted and kept in the record (view: {changed: false} lists them), not listed.
+        const rangeOnly = !!rangeChanged;
+        const shown = rangeOnly ? undecided.filter((c) => c.changedInRange) : undecided;
+        const untouchedCards = undecided.length - shown.length;
         // What stage or hide mode hid, by name, so the agent can say what was left out (and show it if asked).
         const tier1NotElementCards = hiddenByTier1.size
           ? hinted.filter((c) => hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element").map((c) => ({ symbol: c.symbol, file: c.file, p: c.tier1?.p?.layer }))
@@ -2685,7 +3001,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const addOrigins = new Map<string, ChangeOrigin>();
         for (const a of adds) {
           const accepted = isTier1Rule(a.rule) ? tier1Run?.accepted.get(a.symbol.card.id) : undefined;
-          addOrigins.set(a.id, accepted ? accepted.origin : { by: "tier0", rule: a.rule });
+          // A project rule, or a decide item of this call, is the agent's decision applied by rule.
+          addOrigins.set(a.id, accepted ? accepted.origin : isProjectRule(a.rule) ? { by: "agent", rule: a.rule } : { by: "tier0", rule: a.rule });
         }
         if (tier1Block && tier1Run) tier1Block.staged = adds.filter((a) => isTier1Rule(a.rule)).length;
         recordedNow.push(...recordedByTier1);
@@ -2693,11 +3010,30 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const elements = new Map<string, { layer: string; type: string }>();
         for (const e of before.elements.values()) if (e.status !== "deleted") elements.set(e.id, { layer: e.layer, type: e.type });
         for (const a of adds) elements.set(a.id, { layer: a.layer, type: a.type });
-        const planned = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers);
+        const planned = planRelationships(extraction, before, plan.elementOf, elements, hasTriple, layers, { includePresent: true });
         const { alreadyPresent, weakCalls } = planned;
-        // Relationships decided not to be in the code are not staged again.
-        const notRejected = planned.relationships.filter((r) => !decisions.notRelationships[relationshipKey(r)]);
-        const relationshipsSkipped = planned.relationships.length - notRejected.length;
+        // Relationships decided not to be in the code are not staged again: by a recorded decision, or by a rule.
+        const notDecided = planned.relationships.filter((r) => !decisions.notRelationships[relationshipKey(r)]);
+        const relationshipsByRule = new Map<string, string[]>();
+        const notRejected = notDecided.filter((r) => {
+          const rule = relationshipRuleFor(rules, r);
+          if (!rule) return true;
+          (relationshipsByRule.get(rule.rule.name) ?? relationshipsByRule.set(rule.rule.name, []).get(rule.rule.name)!).push(relationshipKey(r));
+          return false;
+        });
+        const relationshipsSkipped = planned.relationships.length - notDecided.length;
+        // Relationships this extraction staged earlier that a decide item of this call now rules out: unstaged below.
+        const callRules = new Set(decided.rules.map((r) => r.compiled.rule.name));
+        const ruledOutStaged: Array<{ source: string; predicate: string; target: string; rule: string }> = [];
+        if (callRules.size && changeset) {
+          const stagedByExtraction = new Set(storedBefore?.stagedRelationships ?? []);
+          for (const r of planned.present ?? []) {
+            const rule = relationshipRuleFor(rules, r);
+            if (!rule || !callRules.has(rule.rule.name) || !stagedByExtraction.has(relationshipKey(r))) continue;
+            ruledOutStaged.push({ source: r.source, predicate: r.predicate, target: r.target, rule: rule.rule.name });
+            (relationshipsByRule.get(rule.rule.name) ?? relationshipsByRule.set(rule.rule.name, []).get(rule.rule.name)!).push(relationshipKey(r));
+          }
+        }
         // A relationship an accepted gap says is deliberately absent is not staged: it is reported
         // as contradicted (#1026).
         const { kept: relationships, contradicted: contradictedGaps } = splitByAcceptedGaps(
@@ -2708,6 +3044,63 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           },
           (id) => before.getElement(id)?.acceptedGaps
         );
+
+        // What each rule decided, and how each decide item of this call fared.
+        const ruleReports = rules.map((r) => ruleReport(r.rule, plan, ruleUntouched, relationshipsByRule)).filter((r): r is RuleReport => !!r);
+        const decideResults: DecideResult[] = [...decided.problems];
+        const NEEDS = (n: number) => `${n} card(s) it covers need attributes the code can't give: they are needs-attributes cards, not staged`;
+        for (const d of decided.rules) {
+          const r = d.compiled.rule;
+          const report = ruleReports.find((x) => x.rule === r.name);
+          const needs = needsAttributesByRule.get(r.name) ?? 0;
+          if (!report && !needs) {
+            decideResults.push({
+              index: d.index,
+              status: "no-match",
+              rule: r.name,
+              as: r.as,
+              reason: r.relationship
+                ? "covers no relationship this run would stage or has staged"
+                : "covers no undecided card (a symbol that already has an element is never touched by a rule)",
+              ...(d.keep ? { notes: ["Not kept: a rule that matches nothing now may be mistyped. Add it to the rules file by hand if it is meant for code to come."] } : {}),
+            });
+            continue;
+          }
+          decideResults.push({
+            index: d.index,
+            status: preview ? "would-apply" : d.keep ? "kept" : "applied",
+            rule: r.name,
+            as: r.as,
+            matched: (report?.notElements ?? 0) + (report?.staged ?? 0),
+            staged: report?.staged ?? 0,
+            notElements: report?.notElements ?? 0,
+            ...(report?.relationships ? { relationships: report.relationships } : {}),
+            ...(report?.untouched ? { untouched: report.untouched } : {}),
+            sample: report?.sample ?? [],
+            ...(needs ? { warnings: [NEEDS(needs)] } : {}),
+            ...(d.keep && !preview ? { kept: true } : {}),
+          });
+        }
+        for (const d of decided.byCard.values()) {
+          const got = plan.byRule.get(cardRuleName(d.index));
+          const needs = needsAttributesByRule.get(cardRuleName(d.index)) ?? 0;
+          const done = (got?.staged.length ?? 0) + (got?.none.length ?? 0);
+          decideResults.push({
+            index: d.index,
+            status: done ? (preview ? "would-apply" : "applied") : needs ? "needs-attributes" : "no-match",
+            as: d.decision.kind === "none" ? "none" : `${d.decision.layer}.${d.decision.type}`,
+            ...(got?.staged.length ? { id: got.staged[0], staged: 1 } : {}),
+            ...(got?.none.length ? { notElements: 1 } : {}),
+            ...(done
+              ? {}
+              : {
+                  reason: needs
+                    ? `${d.card.symbol} needs attributes the code can't give for that type: it is a needs-attributes card (spec_type says what the type requires; stage it with model_add)`
+                    : `${d.card.symbol} is no longer an undecided card of this run (it has an element, or a recorded decision)`,
+                }),
+          });
+        }
+        decideResults.sort((a, b) => a.index - b.index);
 
         // Everything staged in one write: adds, updates (an update of an element this changeset
         // adds rewrites the add in place), relationships.
@@ -2803,7 +3196,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           adds: adds.length,
           updates: stagedUpdates.length,
           relationships: relationships.length,
-          cards: undecided.length,
+          cards: shown.length,
           candidateDeletes: plan.candidateDeletes.length,
         };
         // Tier 1's time is left out: it stops asking at its own deadline, and a run that would have
@@ -2830,6 +3223,58 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           );
         }
         if (recordedByTier1.length) await writeDecisions(projectRoot, decisions);
+        // What this call's decide items settle beyond staging. A kept rule goes in the project's
+        // rules file; one not kept records each symbol or relationship it ruled out, as reject does,
+        // so later runs in this checkout leave them out.
+        if (!preview && !heldForWarming && (decided.rules.length || decided.byCard.size)) {
+          const decidedIn = changeset?.name ?? name;
+          let wrote = false;
+          const recordNone = (ruleName: string, reason: string) => {
+            for (const n of plan.byRule.get(ruleName)?.none ?? []) {
+              const key = decisionKey(n.file, n.symbol);
+              if (decisions.notElements[key]) continue;
+              decisions.notElements[key] = {
+                file: n.file,
+                symbol: n.symbol,
+                label: n.label,
+                reason,
+                how: "rejected",
+                changeset: decidedIn,
+                ...(changeset ? { changesetId: changeset.id! } : {}),
+                at: now,
+              };
+              recordedNow.push({ symbol: n.symbol, file: n.file, how: "rejected" });
+              wrote = true;
+            }
+          };
+          for (const d of decided.rules) {
+            const r = d.compiled.rule;
+            if (decideResults.find((x) => x.index === d.index)?.status === "no-match") continue;
+            if (d.keep) {
+              await saveProjectRule(projectRoot, { ...r, decided: { at: now, changeset: decidedIn } });
+              continue;
+            }
+            recordNone(r.name, r.reason);
+            for (const key of relationshipsByRule.get(r.name) ?? []) {
+              const [source, predicate, target] = key.split("::");
+              if (!source || !predicate || !target || decisions.notRelationships[key]) continue;
+              decisions.notRelationships[key] = {
+                source,
+                predicate,
+                target,
+                reason: r.reason,
+                how: "rejected",
+                changeset: decidedIn,
+                ...(changeset ? { changesetId: changeset.id! } : {}),
+                at: now,
+              };
+              recordedRelationshipsNow.push({ source, predicate, target, how: "rejected" });
+              wrote = true;
+            }
+          }
+          for (const d of decided.byCard.values()) if (d.decision.kind === "none") recordNone(cardRuleName(d.index), d.reason);
+          if (wrote) await writeDecisions(projectRoot, decisions);
+        }
 
         // How far a since range reaches (git can't say: just the counts), and the few folders that
         // hold most of the cards when no element names a file in them.
@@ -2838,19 +3283,86 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           let size: RangeSize | null = null;
           try {
             // Narrower ranges cost a git diff each: only for a long range, or a preview.
-            const wantSteps = (commits: number) => !!preview || commits > LONG_RANGE_COMMITS || undecided.length > LONG_RANGE_CARDS;
+            const wantSteps = (commits: number) => !!preview || commits > LONG_RANGE_COMMITS || shown.length > LONG_RANGE_CARDS;
             size = (deps.rangeSize ?? gitRangeSize)(codebaseRoot, changes.base, wantSteps);
           } catch {
             size = null;
           }
-          range = describeRange(size, changes.changed.size, undecided);
+          range = describeRange(size, changes.changed.size, shown);
         }
         const namedFiles = new Set(referenced);
         for (const a of adds) {
           const file = normFile(a.symbol.card.file_path);
           if (file) namedFiles.add(file);
         }
-        const ignore = ignoreCandidates(undecided, namedFiles);
+        const ignore = ignoreCandidates(shown, namedFiles);
+
+        // The triage views: the cards grouped and counted, the functions many services share, what
+        // each rule decided. All computed over the whole run, then listed a page at a time.
+        const isService = (id: string) => {
+          const e = elements.get(id);
+          return !!e && e.layer === "application" && e.type === "applicationservice";
+        };
+        const helpers: SharedHelpers = sharedHelperGroups([...relationships, ...(planned.present ?? [])], relationships, isService, args.sharedBy ?? DEFAULT_SHARED_BY);
+        const groupLimit = args.limit ?? DEFAULT_GROUPS;
+        const groupDepth = args.groupDepth ?? DEFAULT_GROUP_DEPTH;
+        const allGroups = groupCards(shown, referencedCount, { depth: groupDepth, since: !!since });
+        const byKind = kindRows(shown, !!since && !rangeOnly);
+        const untouchedSection = untouchedCards
+          ? {
+              untouched: {
+                total: untouchedCards,
+                more: "Symbols in the changed files that the range did not touch: they are not cards of this run. Call codebase_extract with view: {changed: false} to list them.",
+              },
+            }
+          : {};
+        const groupsSection = (listLimit?: number) => ({
+          groups: {
+            ...pageOf(
+              allGroups,
+              Math.min(groupLimit, listLimit ?? groupLimit),
+              args.offset ?? 0,
+              (next) => `Call codebase_extract with list: "groups"${args.groupDepth ? `, groupDepth: ${groupDepth}` : ""}, limit: ${groupLimit} and offset: ${next} for the next groups.`
+            ),
+            depth: groupDepth,
+          },
+          byKind,
+        });
+        const rulesSection = (listLimit?: number) =>
+          fileRules.length || ruleReports.length
+            ? {
+                rules: {
+                  file: `documentation-robotics/${PROJECT_RULES_FILE}`,
+                  inFile: fileRules.length,
+                  decided: capped(ruleReports, listLimit, "rules"),
+                  ...(ruleReports.length
+                    ? {
+                        note:
+                          "What each rule decided in this run, before cards were made: notElements, staged, relationships kept from staging, and a sample. " +
+                          'list: "ruleDecided" with rule: <name> lists everything one rule decided.',
+                      }
+                    : {}),
+                },
+              }
+            : {};
+        const decideSection = decideItems.length
+          ? { decide: batchReport(decideResults, { verbose: args.verbose, limit: args.limit, written: ["applied", "kept", "would-apply"] }) }
+          : {};
+        const helpersSection = (listLimit?: number) =>
+          helpers.helpers.length
+            ? {
+                sharedHelpers: {
+                  sharedBy: helpers.sharedBy,
+                  links: helpers.links,
+                  staging: helpers.staging,
+                  helpers: capped(helpers.helpers, Math.min(listLimit ?? 20, 20), "sharedHelpers"),
+                  note:
+                    `Each of these realizes more than ${helpers.sharedBy} services (sharedBy; pass another number to move the line): shared helpers, probably, not the behaviour of any one service. ` +
+                    `Nothing is left out because of it: ${helpers.staging} of their ${helpers.links} 'realizes' links are staged by this run. To leave a helper's links out, on record: ` +
+                    'decide: [{relationship: {source: "<its id>", predicate: "realizes"}, as: "none", reason, keep: true}] (preview: true counts what it removes).',
+                },
+              }
+            : {};
 
         // A preview, and a run held while the index job fills Tier 1's cache (warming), stage and
         // record nothing: they say what a run would do.
@@ -2899,7 +3411,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   }
                 : {}),
               candidateDeletes: summary.candidateDeletes,
-              undecided: { total: summary.cards, ...(changes ? { changedInRange: undecided.filter((c) => c.changedInRange).length } : {}) },
+              undecided: {
+                total: summary.cards,
+                ...(changes ? { changedInRange: shown.filter((c) => c.changedInRange).length } : {}),
+                ...untouchedSection,
+                ...groupsSection(),
+              },
+              ...rulesSection(),
+              ...decideSection,
+              ...helpersSection(),
               ...(ignore ? { ignoreCandidates: ignore } : {}),
               ...notElementsResult(decisions, plan.skipped, [], 0),
               ...notRelationshipsResult(decisions, relationshipsSkipped, [], 0),
@@ -2954,13 +3474,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const hasWork = stages || undecided.length > 0 || plan.candidateDeletes.length > 0;
         let created = false;
         let active = !!changeset && activeId === changeset.id;
-        if (changeset ? hasWork : stages) {
+        // With intent the caller has a confirmed purpose for the changeset: it is created for the
+        // cards too, so their elements are staged into one of the right purpose, with no changeset_create detour.
+        if (changeset ? hasWork : stages || (!!args.intent && hasWork)) {
           if (!changeset) {
             // Its purpose: a verification record of the plan active before (verify mode), a
             // reconcile (since, no plan) or a bootstrap (the whole code).
             changeset = await manager.create(
               name,
-              `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`,
+              args.intent ?? `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`,
               { kind: "extract" },
               extractionPurpose({ since, gitHead: head, previousActive: recordedPrevious })
             );
@@ -3018,6 +3540,76 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ...(updatedRecord.length ? { updated: updatedRecord } : {}),
           ...(candidateDeleteIds.length ? { candidateDeletes: candidateDeleteIds } : {}),
         };
+        // Verify mode: which planned elements the as-built side has, and which cards could be the others.
+        let coverage: PlanCoverageItem[] = [];
+        if (since && recordedPrevious) {
+          const planChangeset = await manager.load(recordedPrevious.id);
+          const plannedRefs: PlannedElementRef[] = [];
+          for (const c of (planChangeset?.changes ?? []) as StagedChange[]) {
+            // Only what code can show: an intent-layer element has no declaration to stage.
+            if (c.type !== "add" || !c.after || INTENT_LAYERS.has(c.layerName) || (layers && !layers.includes(c.layerName))) continue;
+            const after = c.after as Record<string, unknown>;
+            const id = typeof after.path === "string" && after.path ? after.path : c.elementId;
+            plannedRefs.push({
+              id,
+              layer: c.layerName,
+              type: typeof after.type === "string" ? after.type : (id.split(".")[1] ?? ""),
+              name: typeof after.name === "string" ? after.name : id,
+              locations: (stagedSourceReference(after)?.locations ?? [])
+                .filter((l) => !!l.file)
+                .map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
+            });
+          }
+          const asBuilt = [...before.elements.values()]
+            .filter((e) => e.status !== "deleted")
+            .map((e) => ({
+              id: e.id,
+              layer: e.layer,
+              type: e.type,
+              locations: (e.sourceReference?.locations ?? []).filter((l) => !!l.file).map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
+            }));
+          for (const a of adds) {
+            asBuilt.push({
+              id: a.id,
+              layer: a.layer,
+              type: a.type,
+              locations: (a.sourceReference?.locations ?? []).map((l) => ({ file: normFile(l.file)!, ...(l.symbol ? { symbol: l.symbol } : {}) })),
+            });
+          }
+          const rank = { candidates: 0, none: 1, staged: 2 } as const;
+          coverage = planCoverage(plannedRefs, asBuilt, undecided).sort((a, b) => rank[a.status] - rank[b.status] || a.planned.localeCompare(b.planned));
+        }
+        const coverageCounts = {
+          total: coverage.length,
+          staged: coverage.filter((c) => c.status === "staged").length,
+          candidates: coverage.filter((c) => c.status === "candidates").length,
+          none: coverage.filter((c) => c.status === "none").length,
+        };
+        // The run's lists in full, so one the response shortens is reachable with list: <name>.
+        const updatedList = stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) }));
+        const impactedList = impactHints.map(({ id, symbol, hop, via, viaEdge, rolledUp }) => ({ id, symbol, hop, via, viaEdge, ...(rolledUp ? { rolledUp } : {}) }));
+        const runLists: Record<string, unknown[]> = {};
+        const keepList = (listName: string, items: unknown[]) => {
+          if (items.length) runLists[listName] = items;
+        };
+        keepList("candidateDeletes", plan.candidateDeletes);
+        keepList("retyped", plan.retyped);
+        keepList("updated", updatedList);
+        keepList("impacted", impactedList);
+        keepList("rules", ruleReports);
+        keepList("sharedHelpers", helpers.helpers);
+        keepList("planCoverage", coverage);
+        keepList("tier1NotElementCards", tier1NotElementCards);
+        keepList("contradictedGaps", contradictedGaps);
+        keepList("retiredDecisions", plan.decisions?.retired ?? []);
+        for (const r of rules) {
+          const d = plan.byRule.get(r.rule.name);
+          keepList(`ruleDecided:${r.rule.name}`, [
+            ...(d?.staged ?? []).map((id) => ({ staged: id })),
+            ...(d?.none ?? []).map((n) => ({ notElement: `${n.file ?? ""}#${n.symbol}`, label: n.label })),
+            ...(relationshipsByRule.get(r.rule.name) ?? []).map((key) => ({ relationship: key })),
+          ]);
+        }
         const pendingPath = path.join(extractDir(projectRoot), PENDING_FILE);
         if (changeset) {
           const staged = [...stillStaged];
@@ -3045,6 +3637,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             staged,
             ...(earlierCards.size ? { earlierCards: [...earlierCards.values()] } : {}),
             ...accumulated,
+            ...(rangeOnly ? { rangeOnly: true } : {}),
+            ...(Object.keys(runLists).length ? { lists: runLists } : {}),
             ...(stagedRelationships.length ? { stagedRelationships } : {}),
           };
           await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(record), "utf-8");
@@ -3066,6 +3660,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             staged: [],
             ...(earlierCards.size ? { earlierCards: [...earlierCards.values()] } : {}),
             ...accumulated,
+            ...(rangeOnly ? { rangeOnly: true } : {}),
+            ...(Object.keys(runLists).length ? { lists: runLists } : {}),
             pending: true,
           };
           // Another run's waiting cards, whose changeset the agent may have created: it stays extraction's.
@@ -3077,8 +3673,32 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         await pruneCardFiles(projectRoot, manager);
 
-        const cards = page(undecided, 1, effectivePageSize);
-        const changedCards = undecided.filter((c) => c.changedInRange).length;
+        // Relationships this extraction staged in an earlier run that a decide item of this call
+        // rules out: unstaged now, so the decision holds in the changeset and not only in later runs.
+        let ruledOutUnstaged = 0;
+        if (ruledOutStaged.length && changeset) {
+          releaseWriteLock?.();
+          releaseWriteLock = undefined;
+          const result = await changesetUnstageHandler({
+            changes: ruledOutStaged.map(({ source, predicate, target }) => ({ source, predicate, target })),
+            changeset: changeset.id!,
+            rootPath: args.rootPath,
+          });
+          const body = JSON.parse((result.content[0] as { text: string }).text) as { results?: Array<{ status?: string }>; unstaged?: unknown[] };
+          ruledOutUnstaged = result.isError ? 0 : (body.results?.filter((r) => r.status === "unstaged").length ?? body.unstaged?.length ?? 0);
+          const gone = new Set(ruledOutStaged.map(relationshipKey));
+          const record = await readJson<StoredCards>(cardsPath(projectRoot, changeset.id!));
+          if (record?.stagedRelationships) {
+            record.stagedRelationships = record.stagedRelationships.filter((k) => !gone.has(k));
+            await writeFile(cardsPath(projectRoot, changeset.id!), JSON.stringify(record), "utf-8");
+          }
+          await reloadModel(args.rootPath);
+        }
+
+        const cards = page(shown, 1, effectivePageSize);
+        // More cards than a page: the answer is the groups, and the cards are read by view and page.
+        const grouped = shown.length > effectivePageSize;
+        const changedCards = rangeOnly ? 0 : shown.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
         const verifyMode = !!since && !!recordedPrevious;
         // Relationships held back because an accepted gap says they are absent: the model and the
@@ -3107,13 +3727,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 ? `Nothing staged, but the code disagrees with the model: ${contradiction} No changeset was created or activated.`
                 : "Nothing to stage: the model already says what this code says. No changeset was created or activated."
           : !changeset
-            ? `Nothing to stage, so no changeset was created or activated. ${undecided.length} card(s)` +
+            ? `Nothing to stage, so no changeset was created or activated. ${shown.length} card(s)` +
               `${changedCards ? ` (${changedCards} changed in the range)` : ""} and ${plan.candidateDeletes.length} candidate delete(s) are left for you to decide; ` +
               `to stage any, first call changeset_create with name: "${name}".`
             : undefined;
         const message = baseMessage && !hasWork ? `${baseMessage}${outsideNote}` : baseMessage;
         return jsonResult(
-          fitCards(cards.items, cards, (items, fit) => ({
+          fitCards(grouped ? [] : cards.items, cards, (items, fit) => ({
             changeset: changesetRef ? { ...changesetRef, created, active, ...(changeset?.purpose ? { purpose: changeset.purpose } : {}) } : null,
             previousActive,
             ...(message ? { message } : {}),
@@ -3146,10 +3766,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             ...(detection?.method === "detect_changes"
               ? {
                   impacted: {
-                    ...capped(
-                      impactHints.map(({ id, symbol, hop, via, viaEdge, rolledUp }) => ({ id, symbol, hop, via, viaEdge, ...(rolledUp ? { rolledUp } : {}) })),
-                      fit.listLimit
-                    ),
+                    ...capped(impactedList, fit.listLimit, "impacted"),
                     note: IMPACT_NOTE,
                   },
                 }
@@ -3160,7 +3777,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               updates: stagedUpdates.length,
               relationships: relationships.length,
               byLayer: byLayer(adds, stagedUpdates, relationships),
-              ...(stagedUpdates.length ? { updated: capped(stagedUpdates.map((u) => ({ id: u.id, fields: Object.keys(u.fields) })), fit.listLimit) } : {}),
+              ...(stagedUpdates.length ? { updated: capped(updatedList, fit.listLimit, "updated") } : {}),
             },
             ...(crossModel || crossWarnings.length
               ? {
@@ -3199,12 +3816,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
               // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.
-              ...(tier1NotElement ? { tier1NotElement, tier1NotElementCards: capped(tier1NotElementCards, fit.listLimit) } : {}),
+              ...(tier1NotElement ? { tier1NotElement, tier1NotElementCards: capped(tier1NotElementCards, fit.listLimit, "tier1NotElementCards") } : {}),
             },
             ...(contradictedGaps.length
               ? {
                   acceptedGaps: {
-                    contradicted: capped(contradictedGaps, fit.listLimit),
+                    contradicted: capped(contradictedGaps, fit.listLimit, "contradictedGaps"),
                     note:
                       "Not staged: the code shows a connection the element accepted as a gap. Either the decision is stale " +
                       "(gap_reopen in a changeset, then extract again) or the code drifted; ask the user which.",
@@ -3212,15 +3829,51 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 }
               : {}),
             candidateDeletes: {
-              ...capped(plan.candidateDeletes, fit.listLimit),
+              ...capped(plan.candidateDeletes, fit.listLimit, "candidateDeletes"),
               note: "Not staged: deleting is left to you. Each has its evidence.",
             },
-            ...(plan.retyped.length ? { retyped: capped(plan.retyped, fit.listLimit) } : {}),
-            ...notElementsResult(decisions, plan.skipped, recordedNow, cleared, fit.listLimit),
-            ...notRelationshipsResult(decisions, relationshipsSkipped, recordedRelationshipsNow, 0, fit.listLimit),
+            ...(plan.retyped.length ? { retyped: capped(plan.retyped, fit.listLimit, "retyped") } : {}),
+            ...notElementsResult(decisions, plan.skipped, recordedNow, cleared, fit.listLimit, args.verbose),
+            ...notRelationshipsResult(decisions, relationshipsSkipped, recordedRelationshipsNow, 0, fit.listLimit, args.verbose),
             ...(range?.long ? { range } : {}),
             ...(ignore ? { ignoreCandidates: ignore } : {}),
-            undecided: undecidedSection(cards, items, fit, pageSize, changes ? { changedInRange: changedCards } : {}),
+            undecided: grouped
+              ? {
+                  total: shown.length,
+                  pageSize: cards.pageSize,
+                  pages: cards.pages,
+                  ...(changes && !rangeOnly ? { changedInRange: changedCards } : {}),
+                  ...untouchedSection,
+                  ...groupsSection(fit.listLimit),
+                  cards:
+                    `${shown.length} cards are more than a page (${cards.pageSize}), so they are grouped here and not listed. ` +
+                    'Call codebase_extract with view: {} for the cards a page at a time, or view: {files: "<a group\'s path>"} (with label, visibility or kind) for some of them.',
+                }
+              : undecidedSection(cards, items, fit, pageSize, { ...(changes && !rangeOnly ? { changedInRange: changedCards } : {}), ...untouchedSection }),
+            ...rejectResult,
+            ...rulesSection(fit.listLimit),
+            ...decideSection,
+            ...helpersSection(fit.listLimit),
+            ...(coverage.length
+              ? {
+                  planCoverage: {
+                    plan: recordedPrevious!.name,
+                    ...coverageCounts,
+                    items: capped(
+                      coverage.filter((c) => c.status !== "staged"),
+                      Math.min(fit.listLimit ?? 30, 30),
+                      "planCoverage"
+                    ),
+                    note:
+                      "The plan's added elements that code can show, against this as-built side. candidates: no as-built element yet, and these cards could be it " +
+                      "(stage a card with decide: [{card, as: <the planned type>, reason}] when it is that element). none: nothing in the range is a candidate. " +
+                      "items lists those two; the staged ones are counted. One file can back elements in several layers, so staging one does not cover another.",
+                  },
+                }
+              : {}),
+            ...(ruledOutUnstaged
+              ? { unstagedByRule: { relationships: ruledOutUnstaged, note: `Staged by an earlier run and ruled out by this call's decide: unstaged from '${changeset!.name}'.` } }
+              : {}),
             ...documentationResult(plan, describe, extraction.docsError, fit.listLimit),
             ...(extraction.clusters ? { clusters: clustersSection(extraction.clusters, fit.listLimit) } : {}),
             ...(tier1Block ? { tier1: tier1Block } : {}),
@@ -3234,9 +3887,19 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   : []
                 : withCardHints(
                     changesetRef
-                      ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn)
-                      : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn),
-                    [...(range?.long && undecided.length ? [rangeStep(range, since!)] : []), ...(ignore ? [ignoreStep(ignore)] : [])]
+                      ? nextSteps(changesetRef, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn, grouped)
+                      : pendingSteps(name, recordedPrevious, cards.pages, plan, changedCards, since, fit.readOn, grouped),
+                    [
+                      ...(range?.long && shown.length ? [rangeStep(range, since!)] : []),
+                      ...(grouped ? [triageStep(shown.length, allGroups.some((g) => g.noElement))] : []),
+                      ...(untouchedCards ? [untouchedStep(untouchedCards)] : []),
+                      ...(coverageCounts.candidates || coverageCounts.none ? [coverageStep(coverageCounts)] : []),
+                      ...(helpers.helpers.length ? [helpersStep(helpers)] : []),
+                      ...(decided.rules.some((r) => r.keep) && decideResults.some((r) => r.status === "kept")
+                        ? [`This call kept rule(s) in documentation-robotics/${PROJECT_RULES_FILE}: commit that file with the model, so other checkouts apply them.`]
+                        : []),
+                      ...(ignore ? [ignoreStep(ignore)] : []),
+                    ]
                   )),
               ...impactStep(impactHints),
               ...tier1Steps(tier1Block, {
@@ -3264,23 +3927,32 @@ export const codebaseExtractHandler = createCodebaseExtractHandler();
 export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
   name: "codebase_extract",
   description:
-    "Model the indexed code as an as-built changeset: Tier-0 rules decide what they can and those elements and " +
-    "their relationships are staged; the rest come back as undecided cards (paged) for you to stage with model_add. " +
+    "Model the indexed code as an as-built changeset: the project's rules and the Tier-0 rules decide what they can and those elements and " +
+    "their relationships are staged; the rest come back as undecided cards for you to decide. " +
+    "More cards than a page come back grouped, not listed: undecided.groups (by folder: counts by label and visibility, what the model has there, " +
+    "noElement for a folder no element names) and byKind, with the totals over every card. Decide them in bulk with decide: [{where, as, reason}] " +
+    "(as: a layer.type, or none; where: files, label, visibility, nested, name, declaration, ownerType): with preview: true it returns each item's count " +
+    "and a sample and changes nothing; without, it stages or records what the items cover, and keep: true writes an item to " +
+    `documentation-robotics/${PROJECT_RULES_FILE} (commit it) so every later run and checkout applies it. Each run reports what every rule decided (rules). ` +
+    "Read cards with view (a filter; {} for all) and page; read any shortened list in full with list, limit and offset. Every list gives its true total " +
+    "and, when shortened, the call for the rest. " +
     "Stages only what differs from the model (matched by source file and symbol): new symbols are adds, changed ones " +
     "updates; elements whose code is gone are listed as candidateDeletes, not staged. since (a git ref) limits it to " +
-    "files changed since then, for verifying a branch; cards whose lines the range changed say changedInRange and come first. " +
+    "files changed since then, for verifying a branch: its cards are the symbols the range changed, and the symbols it did not touch are counted " +
+    "(undecided.untouched; view: {changed: false} lists them). With a plan active before a since run, planCoverage lists the plan's elements that have " +
+    "no as-built element yet, with the cards that could be them. " +
     "With since, scope.changedSymbols says how changed symbols were found (the analyzer's detect_changes, or git's changed " +
     "lines, with why), and impacted lists existing elements whose code calls changed code: review hints, never staged. " +
     "Code that is not an element goes in reject (with a reason): a card, or a symbol or element it staged, which is then " +
     "unstaged; or files (a path or glob) for every undecided card in them. A wrong relationship goes in reject as " +
-    "relationship: {source, predicate, target}. Kept until clearRejected, later runs leave them out. An element " +
+    "relationship: {source, predicate, target}. Kept until clearRejected in this checkout, later runs leave them out. An element " +
     "or relationship it staged that you unstage from a changeset is also left out, while that changeset is staged and " +
-    "after it lands; discarding it forgets that. " +
-    "A long since range says so (range) with narrower since refs; preview: true counts a run without staging anything. " +
-    "When most cards sit in a few folders no element names, next suggests .cbmignore. " +
+    "after it lands; discarding it forgets that. reject and decide items can come from a JSON file (file); their results are counts and the items " +
+    "that need attention (verbose: true for every item). sharedHelpers lists functions that realize more services than sharedBy: decide their relationship none if they are shared helpers. " +
+    "A long since range says so (range) with narrower since refs; preview: true counts a run, with its groups, without staging anything. " +
     "A run or page into an extraction changeset keeps that run's since and layers. " +
-    "The changeset (default extract-<sha>) is created and made active only when the run stages something; a run that only " +
-    "leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
+    "The changeset (default extract-<sha>) is created and made active when the run stages something, or when intent is given (the confirmed purpose, used as its description); " +
+    "a run that only leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
     "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits. " +
     "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
@@ -3288,9 +3960,9 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "(cached answers, nothing sent). In stage mode (the model's thresholds are verified on held-out labels) the accept band is staged " +
     "without you (origin.confirmed \"auto\") and the not-element band is hidden (unchanged.tier1NotElement counts it); in hide mode " +
     "only the not-element band is hidden and the accept band stays a suggestion for acceptTier1. The user turns " +
-    "either off with `dr analyzer tier1 set mode suggest`. tier1: false skips Tier 1.While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
+    "either off with `dr analyzer tier1 set mode suggest`. tier1: false skips Tier 1. While the codebase_index job fills Tier 1's cache, tier1.state is warming; " +
     "a run with more uncached cards than it could ask returns warming: true and stages nothing (wait for the fill, or tier1: false). " +
-    "Staged adds and relationships carry origin (tier0, tier1 or agent).",
+    "Staged adds and relationships carry origin (tier0, tier1 or agent; a rule's adds are the agent's, with the rule's name).",
   inputSchema,
   handler: codebaseExtractHandler,
 };

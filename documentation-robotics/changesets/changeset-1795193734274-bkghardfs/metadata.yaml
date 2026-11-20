@@ -1,0 +1,21 @@
+id: changeset-1795193734274-bkghardfs
+name: extraction-triage-by-rule
+description: codebase_extract answers with groups and a count of the decisions
+  needed, not a page loop, and takes decisions in bulk by a stated rule that the
+  project keeps in the repo. A run then asks an agent for tens of decisions, not
+  thousands, and the same rules hold in every checkout. Done when the
+  whole-codebase run of this repository and a since run over its last 20 commits
+  are measured before and after, and issues 1154, 1177, 1178, 1213, 1181, 1162
+  and the reject part of 1182 are closed with tests.
+created: 2026-11-20T16:55:34.307Z
+modified: 2026-11-20T16:57:54.108Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 64
+  modifications: 2
+  deletions: 0
+lastSequence: 65

@@ -173,6 +173,17 @@ async function addToBase(args: Record<string, unknown>): Promise<void> {
   clearModelCache();
 }
 
+/**
+ * Changed lines for a since range in which every line of these files is new (as git reports a file
+ * the range adds). A since run lists the cards the range changed, so a fixture says which lines
+ * changed, as codeChangesSince always does.
+ */
+function allLines(...files: string[]): NonNullable<CodeChangesResult["hunks"]> {
+  const hunks: NonNullable<CodeChangesResult["hunks"]> = new Map();
+  for (const file of files) hunks.set(file, "all");
+  return hunks;
+}
+
 const OPERATION = "api.operation.get-owners-owner-id";
 const HANDLER = "application.applicationfunction.owner-controller-show-owner";
 const INTERFACE = "application.applicationinterface.owner-controller";
@@ -380,8 +391,13 @@ describe("codebase_extract", () => {
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
     const first = ok(await handler({ pageSize: 1, rootPath }));
-    expect(first.undecided).toMatchObject({ total: 3, page: 1, pageSize: 1, pages: 3 });
-    const [narrowed] = first.undecided.items;
+    // Three cards are more than a page of one: the run groups them, and view reads the cards.
+    expect(first.undecided).toMatchObject({ total: 3, pageSize: 1, pages: 3, groups: { total: 2, returned: 2 } });
+    expect(first.undecided.items).toBeUndefined();
+    expect(first.next.join(" ")).toContain("view: {} lists the cards a page at a time (3 pages)");
+    const listed = ok(await handler({ view: {}, pageSize: 1, rootPath }));
+    expect(listed.undecided).toMatchObject({ total: 3, page: 1, pageSize: 1, pages: 3 });
+    const [narrowed] = listed.undecided.items;
     expect(narrowed).toMatchObject({
       kind: "narrowed",
       symbol: "OwnerService",
@@ -390,7 +406,7 @@ describe("codebase_extract", () => {
       rule: "tier0_spring_service",
     });
     expect(narrowed.reason).toContain("choosing needs judgment");
-    expect(first.next.join(" ")).toContain("page: 2");
+    expect(listed.next).toContain("page: 2");
 
     // The agent stages its decision for the first card; page 2 reads the stored cards.
     ok(
@@ -989,7 +1005,7 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
   it("bug 10: a page call without since pages the run's cards; naming another since is refused, quoting both", async () => {
     await indexed();
     const h = harness();
-    h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: allLines(OWNER_FILE, SERVICE_FILE, HELPERS_FILE) };
     const handler = createCodebaseExtractHandler(h.deps);
     const first = ok(await handler({ since: "main", pageSize: 1, rootPath }));
     expect(first.undecided.pages).toBe(3);
@@ -1006,22 +1022,28 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
     await indexed();
     const h = harness();
     h.changes.value = { base: "abc123", changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[5, 6]]]]) };
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    // The change is inside Helpers.format, so that card says so, and its class doesn't.
-    expect(result.undecided.changedInRange).toBe(1);
-    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
-      ["Helpers.format", true],
+    const handler = createCodebaseExtractHandler(h.deps);
+    const result = ok(await handler({ since: "main", rootPath }));
+    // The change is inside Helpers.format, so that card is the run's pile; its class and the other
+    // file's class are counted as untouched, not listed.
+    expect(result.undecided).toMatchObject({ total: 1, untouched: { total: 2 } });
+    expect(result.undecided.changedInRange).toBeUndefined();
+    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([["Helpers.format", true]]);
+    expect(result.next.join(" ")).toContain("The cards are the symbols the range changed. 2 more symbol(s)");
+    expect(result.next.join(" ")).toContain("view: {changed: false} lists them");
+    // The untouched ones are a read away, and don't say changedInRange.
+    const untouched = ok(await handler({ view: { changed: false }, rootPath }));
+    expect(untouched.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
       ["OwnerService", false],
       ["Helpers", false],
     ]);
-    expect(result.next.join(" ")).toContain("changedInRange");
   });
 });
 
 describe("codebase_extract review of PR 1061", () => {
   const sinceHarness = () => {
     const h = harness();
-    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: allLines(OWNER_FILE, SERVICE_FILE, HELPERS_FILE) };
     return h;
   };
 
@@ -1228,7 +1250,8 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     // Unstaged by the agent, then rejected by the cardId the first run gave it.
     ok(await changesetUnstageHandler({ elementId: "application.applicationcomponent.helpers", rootPath }));
     clearModelCache();
-    const byCard = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a static utility" }], rootPath }));
+    const byCard = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a static utility" }], verbose: true, rootPath }));
+    expect(byCard.notElements.recorded).toMatchObject({ total: 1, rejected: 1, unstaged: 0 });
     expect(byCard.notElements.recorded.items).toEqual([{ symbol: "Helpers", file: HELPERS_FILE, how: "rejected" }]);
     expect(byCard.unstaged).toBeUndefined();
 
@@ -1262,13 +1285,17 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
     const h = harness();
     // Only uncommitted edits: the range starts at HEAD. The files have no decided symbols.
-    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[5, 6]]]]) };
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE, HELPERS_FILE) };
     const handler = createCodebaseExtractHandler(h.deps);
     const result = ok(await handler({ since: "HEAD", pageSize: 2, rootPath }));
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
     expect(result.changeset).toBeNull();
     expect(result.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
-    expect(result.undecided).toMatchObject({ total: 3, changedInRange: 1 });
+    // The range changed all three symbols: they are the run's cards, grouped as they pass a page of two.
+    expect(result.undecided).toMatchObject({ total: 3, pages: 2, groups: { total: 2 } });
+    expect(result.undecided.items).toBeUndefined();
+    expect(result.undecided.changedInRange).toBeUndefined();
+    expect(result.undecided.untouched).toBeUndefined();
     expect(result.message).toContain(`changeset_create with name: "${name}"`);
     expect(result.next[0]).toContain(`'owner-page' is still active`);
     clearModelCache();
@@ -1277,12 +1304,16 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect((await manager.list()).map((c) => c.name)).toEqual(["owner-page"]);
     expect(existsSync(PENDING())).toBe(true);
 
-    // Page 2 and a reject work with no changeset.
+    // The pages and a reject work with no changeset.
+    const p1 = ok(await handler({ view: {}, pageSize: 2, rootPath }));
+    expect(p1.changeset).toBeNull();
+    expect(p1.undecided.items).toHaveLength(2);
     const p2 = ok(await handler({ page: 2, pageSize: 2, rootPath }));
     expect(p2.changeset).toBeNull();
     expect(p2.undecided.items).toHaveLength(1);
     expect(p2.pending).toContain(name);
-    const helpers = result.undecided.items.find((c: any) => c.symbol === "Helpers") ?? p2.undecided.items.find((c: any) => c.symbol === "Helpers");
+    const cards = [...p1.undecided.items, ...p2.undecided.items];
+    const helpers = cards.find((c: any) => c.symbol === "Helpers");
     const rejected = ok(await handler({ reject: [{ card: helpers.cardId, reason: "a utility" }], rootPath }));
     expect(rejected.changeset).toBeNull();
     expect(rejected.notElements.recorded.total).toBe(1);
@@ -1293,7 +1324,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const waitingFor = ok(await changesetCreateHandler({ name, rootPath }));
     expect(waitingFor.purpose).toBe("verification");
     expect(await changesetOf(waitingFor.id)).toMatchObject({ purpose: "verification", verifies: plan.id, scope: { since: "HEAD", codeCommit: HEAD } });
-    const format = result.undecided.items.find((c: any) => c.symbol === "Helpers.format");
+    const format = cards.find((c: any) => c.symbol === "Helpers.format");
     ok(
       await modelAddHandler({
         layer: "application",
@@ -1390,20 +1421,32 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const raw = await handler({ pageSize: 100, rootPath });
     const text = (raw.content[0] as any).text as string;
     expect(Buffer.byteLength(text)).toBeLessThanOrEqual(28 * 1024);
+    // 123 cards are more than the page of 100: the run groups them. The page size is not capped.
     const first = parse(raw);
-    expect(first.undecided.pageSize).toBe(50);
-    expect(first.undecided.pageSizeCapped).toContain("capped at 50");
-    expect(first.undecided.items).toHaveLength(50);
-    expect(first.undecided.cut).toBeUndefined();
-    expect(["shortened", "compact"]).toContain(first.undecided.detail);
-    expect(first.undecided.detailNote).toContain("smaller pageSize");
+    expect(first.undecided).toMatchObject({ total: 123, pageSize: 100, pages: 2 });
+    expect(first.undecided.pageSizeCapped).toBeUndefined();
+    expect(first.undecided.items).toBeUndefined();
+    expect(first.undecided.groups.total).toBeGreaterThan(0);
+
+    // The page itself: 100 cards don't fit, so they are shortened and the page is cut, and it says so.
+    const p1raw = await handler({ view: {}, pageSize: 100, rootPath });
+    expect(Buffer.byteLength((p1raw.content[0] as any).text)).toBeLessThanOrEqual(28 * 1024);
+    const p1 = parse(p1raw);
+    expect(p1.undecided.pageSize).toBe(100);
+    expect(p1.undecided.pageSizeCapped).toBeUndefined();
+    const shown = p1.undecided.items.length;
+    expect(shown).toBeGreaterThan(0);
+    expect(shown).toBeLessThan(100);
+    expect(p1.undecided.cut).toContain(`cut to its first ${shown} of 100 cards`);
+    expect(p1.undecided.detail).toBe("compact");
+    expect(p1.undecided.detailNote).toContain("smaller pageSize");
 
     const p2raw = await handler({ page: 2, pageSize: 100, rootPath });
     expect(Buffer.byteLength((p2raw.content[0] as any).text)).toBeLessThanOrEqual(28 * 1024);
     expect(parse(p2raw).undecided.page).toBe(2);
 
     // A small page is shown in full.
-    const small = ok(await handler({ page: 1, pageSize: 5, rootPath }));
+    const small = ok(await handler({ view: {}, pageSize: 5, rootPath }));
     expect(small.undecided.detail).toBeUndefined();
     expect(small.undecided.items.find((c: any) => c.symbol.startsWith("helper")).docstring).toContain("rather involved");
   });
@@ -1502,8 +1545,10 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const raw = await createCodebaseExtractHandler(h.deps)({ rootPath });
     expect(Buffer.byteLength((raw.content[0] as any).text)).toBeLessThanOrEqual(28 * 1024);
     const result = parse(raw);
-    expect(result.candidateDeletes).toMatchObject({ total: 120, truncated: true });
-    expect(result.candidateDeletes.items.length).toBeLessThan(100);
+    expect(result.candidateDeletes).toMatchObject({ total: 120, returned: 20, nextOffset: 20 });
+    expect(result.candidateDeletes.truncated).toBeUndefined();
+    expect(result.candidateDeletes.more).toContain('list: "candidateDeletes" and offset: 20');
+    expect(result.candidateDeletes.items).toHaveLength(20);
     expect(result.listsShortened).toContain(`at most ${result.candidateDeletes.items.length} item`);
     expect(result.overBudget).toBeUndefined();
   });
@@ -1575,7 +1620,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
   it("review: a reject through adopted waiting cards writes the changeset's own record", async () => {
     await indexed();
     const h = harness();
-    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE, HELPERS_FILE) };
     const handler = createCodebaseExtractHandler(h.deps);
     const first = ok(await handler({ since: "HEAD", rootPath }));
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
@@ -1653,7 +1698,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(one.unstaged).toBeUndefined();
     expect(one.kept.items).toEqual([{ id: "application.applicationcomponent.toolkit", alsoNames: [decisionKey(SERVICE_FILE, "OwnerService")] }]);
 
-    const both = ok(await handler({ reject: [{ card: "application.applicationcomponent.toolkit", reason: "not one thing" }], rootPath }));
+    const both = ok(await handler({ reject: [{ card: "application.applicationcomponent.toolkit", reason: "not one thing" }], verbose: true, rootPath }));
     expect(both.notElements.recorded.items.map((r: any) => r.symbol).sort()).toEqual(["Helpers", "OwnerService"]);
     expect(both.unstaged.items.map((u: any) => u.id)).toEqual(["application.applicationcomponent.toolkit"]);
   });
@@ -1685,11 +1730,13 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const h = harness();
     // Helpers is lines 1-20 and Helpers.format 4-8: code was removed after line 8.
     h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[8, 8, true]]]]) };
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
-      ["Helpers", true],
-      ["Helpers.format", false],
-    ]);
+    const handler = createCodebaseExtractHandler(h.deps);
+    const result = ok(await handler({ since: "main", rootPath }));
+    // The class is the run's card; the member is untouched, so it is counted and read by view.
+    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([["Helpers", true]]);
+    expect(result.undecided.untouched.total).toBe(1);
+    const untouched = ok(await handler({ view: { changed: false }, rootPath }));
+    expect(untouched.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([["Helpers.format", false]]);
   });
 
   it("review: a deletion inside a member is the member's change, not its class's", async () => {
@@ -1697,11 +1744,13 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     const h = harness();
     // Helpers.format is lines 4-8: code removed after line 5 is inside it.
     h.changes.value = { base: "abc123", changed: new Set([OWNER_FILE, HELPERS_FILE]), deleted: new Map(), hunks: new Map([[HELPERS_FILE, [[5, 5, true]]]]) };
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
-    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([
-      ["Helpers.format", true],
-      ["Helpers", false],
-    ]);
+    const handler = createCodebaseExtractHandler(h.deps);
+    const result = ok(await handler({ since: "main", rootPath }));
+    // The member is the run's card; its class is untouched, so it is counted and read by view.
+    expect(result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([["Helpers.format", true]]);
+    expect(result.undecided.untouched.total).toBe(1);
+    const untouched = ok(await handler({ view: { changed: false }, rootPath }));
+    expect(untouched.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false])).toEqual([["Helpers", false]]);
   });
 
   it("review: with no changeset and several extraction runs at this commit, a reject is refused and names them", async () => {
@@ -1885,7 +1934,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     await indexed();
     const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
     const h = harness();
-    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE, HELPERS_FILE) };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "HEAD", rootPath }));
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
     expect(result.changeset).toBeNull();
@@ -1904,7 +1953,7 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     await indexed();
     const plan = ok(await changesetCreateHandler({ name: "owner-page", rootPath }));
     const h = harness();
-    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map() };
+    h.changes.value = { base: "abc1234def", changed: new Set([OWNER_FILE, SERVICE_FILE, HELPERS_FILE]), deleted: new Map(), hunks: allLines(OWNER_FILE, SERVICE_FILE, HELPERS_FILE) };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
     const next = result.next.join(" ");
     expect(next).toContain("never the plan's element, and never copy plan elements here");
@@ -2015,10 +2064,11 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(fail(await handler({ reject: [{ card: "Helpers", relationship: WRONG, reason: "x" }], rootPath })).error).toContain("names card and relationship");
     expect(existsSync(decisionsFile())).toBe(false);
 
-    const rejected = ok(await handler({ reject: [{ relationship: WRONG, reason: "the code never calls it" }], rootPath }));
+    // A decision the caller sent is counted, not echoed; verbose lists it.
+    const rejected = ok(await handler({ reject: [{ relationship: WRONG, reason: "the code never calls it" }], verbose: true, rootPath }));
     expect(rejected.message).toContain("unstaged 1 relationship(s)");
     expect(rejected.unstagedRelationships.items).toEqual([WRONG_KEY]);
-    expect(rejected.notRelationships).toMatchObject({ total: 1, recorded: { total: 1, items: [{ ...WRONG, how: "rejected" }] } });
+    expect(rejected.notRelationships).toMatchObject({ total: 1, recorded: { total: 1, rejected: 1, unstaged: 0, items: [{ ...WRONG, how: "rejected" }] } });
     expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
     const stored = JSON.parse(await readFile(decisionsFile(), "utf-8"));
     expect(stored.notRelationships[WRONG_KEY]).toMatchObject({ ...WRONG, how: "rejected", reason: "the code never calls it" });
@@ -2048,7 +2098,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(handlerUuid).toBeTruthy();
     expect(handlerUuid).not.toBe(HANDLER);
 
-    const rejected = ok(await handler({ reject: [{ relationship: { ...WRONG, source: handlerUuid }, reason: "not in the code" }], rootPath }));
+    const rejected = ok(await handler({ reject: [{ relationship: { ...WRONG, source: handlerUuid }, reason: "not in the code" }], verbose: true, rootPath }));
     expect(rejected.unstagedRelationships.items).toEqual([WRONG_KEY]);
     expect(rejected.notRelationships.recorded.items).toEqual([{ ...WRONG, how: "rejected" }]);
     expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
@@ -2191,13 +2241,15 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(mixed.notElements).toMatchObject({ total: 26, recorded: { total: 26 } });
     expect(mixed.notRelationships).toBeUndefined();
     // The four that name nothing are listed by their place in the call, with why.
-    expect(mixed.notApplied).toMatchObject({ total: 4, of: 6, byStatus: { "no-match": [1, 3], unknown: [4, 5] } });
-    expect(mixed.notApplied.items.map((p: any) => [p.index, p.status, p.item])).toEqual([
+    expect(mixed.notApplied).toBeUndefined();
+    expect(mixed.reject).toMatchObject({ total: 6, counts: { recorded: 2, "no-match": 2, unknown: 2 }, attentionTotal: 4 });
+    expect(mixed.reject.attention.map((p: any) => [p.index, p.status, p.item])).toEqual([
       [1, "no-match", "files: barcut.html"],
       [3, "no-match", "files: *.js"],
       [4, "unknown", "card: NoSuchThing"],
       [5, "unknown", "relationship: a.b.c::uses::d.e.f"],
     ]);
+    for (const p of mixed.reject.attention) expect(p.reason).toBeTruthy();
     expect(mixed.message).toContain("Recorded 2 of 6 reject item(s); 4 named nothing");
     const recorded = JSON.parse(await readFile(decisionsFile(), "utf-8"));
     expect(Object.keys(recorded.notElements)).toHaveLength(26);
@@ -2206,25 +2258,38 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     const rerun = ok(await handler({ rootPath }));
     expect(rerun.notElements).toMatchObject({ total: 26, skipped: 26 });
     expect(rerun.notApplied).toBeUndefined();
+    expect(rerun.reject).toBeUndefined();
 
-    // Items that did nothing are never shortened: every one of 150 is listed, with its index.
+    // Items that did nothing are never dropped: each of 150 is accounted for by its index, the
+    // first 50 in full (limit) and the rest by position under their reason.
     const many = ok(
       await handler({
         reject: [{ card: "OwnerService", reason: "wiring" }, ...Array.from({ length: 150 }, (_, i) => ({ files: `missing-${i}/**`, reason: "x" }))],
         rootPath,
       })
     );
-    expect(many.notApplied.total).toBe(150);
-    expect(many.notApplied.items).toHaveLength(150);
-    expect(many.notApplied.byStatus["no-match"]).toEqual(Array.from({ length: 150 }, (_, i) => i + 1));
+    const everyIndex = Array.from({ length: 150 }, (_, i) => i + 1);
+    expect(many.reject).toMatchObject({ total: 151, counts: { recorded: 1, "no-match": 150 }, attentionTotal: 150 });
+    expect(many.reject.attention).toHaveLength(50);
+    expect(many.reject.attentionNotListed.count).toBe(100);
+    expect(
+      [...many.reject.attention.map((p: any) => p.index), ...many.reject.attentionNotListed.groups.flatMap((g: any) => g.indexes)].sort((a: number, b: number) => a - b)
+    ).toEqual(everyIndex);
+    expect(many.reject.attentionNotListed.groups.every((g: any) => g.status === "no-match")).toBe(true);
     expect(many.notElements.recorded.total).toBe(1);
+
+    // limit gives every one in full.
+    const full = ok(await handler({ reject: [{ card: "Helpers.format", reason: "a helper" }, ...Array.from({ length: 150 }, (_, i) => ({ files: `missing-${i}/**`, reason: "x" }))], limit: 150, rootPath }));
+    expect(full.reject.attention.map((p: any) => p.index)).toEqual(everyIndex);
+    expect(full.reject.attentionNotListed).toBeUndefined();
   }, SLOW);
 
   it("suggests .cbmignore for the few folders most undecided cards come from", async () => {
     await indexed();
     const h = harness();
     withDocsSite(h);
-    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    // A page that holds the 28 cards: grouped cards (more than a page) get the group step in its place.
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ pageSize: 50, rootPath }));
     expect(result.ignoreCandidates).toEqual({ folders: [{ folder: "docs/", cards: 25 }], cards: 25, of: 28 });
     const hint = result.next.find((s: string) => s.includes(".cbmignore"));
     expect(hint).toContain("docs/ (25)");
@@ -2243,7 +2308,8 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
   it("previews a long range without staging or recording, and says how far a run reaches with narrower options", async () => {
     await indexed();
     const h = harness();
-    h.changes.value = { base: "abc123", changed: new Set([CONTROLLER_FILE, OWNER_FILE, SERVICE_FILE, HELPERS_FILE, TEST_FILE]), deleted: new Map() };
+    const changedFiles = [CONTROLLER_FILE, OWNER_FILE, SERVICE_FILE, HELPERS_FILE, TEST_FILE];
+    h.changes.value = { base: "abc123", changed: new Set(changedFiles), deleted: new Map(), hunks: allLines(...changedFiles) };
     h.deps.rangeSize = (_root, base) => {
       expect(base).toBe("abc123");
       return {
@@ -2526,7 +2592,7 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
 
   /** A run that stages nothing (a since run over the service file), and the changeset the agent makes for its cards. */
   async function waitingCardsInAChangeset(handler: ReturnType<typeof createCodebaseExtractHandler>, h: Harness) {
-    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map() };
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE) };
     const run = ok(await handler({ since: "HEAD", rootPath }));
     expect(run.changeset).toBeNull();
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
@@ -2767,7 +2833,21 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     ],
     ...over,
   });
-  const changedCards = (result: any) => result.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false]);
+  /**
+   * Every card of the changed files as [symbol, changedInRange]: the run's own cards (what the
+   * range changed), then the ones it counts as untouched, read with view: {changed: false}.
+   */
+  const changedCards = async (h: Harness, result: any): Promise<Array<[string, boolean]>> => {
+    const flags = (r: any): Array<[string, boolean]> => r.undecided.items.map((c: any) => [c.symbol, c.changedInRange ?? false]);
+    const listed = flags(result);
+    if (!result.undecided.untouched) return listed;
+    // Known changed lines: the pile holds only what the range changed, and counts the rest.
+    expect(listed.every(([, changed]) => changed)).toBe(true);
+    const untouched = flags(ok(await createCodebaseExtractHandler(h.deps)({ view: { changed: false }, rootPath })));
+    expect(untouched).toHaveLength(result.undecided.untouched.total);
+    expect(untouched.every(([, changed]) => !changed)).toBe(true);
+    return [...listed, ...untouched];
+  };
 
   async function withCallers(): Promise<void> {
     await addToBase({
@@ -2811,7 +2891,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     expect(h.detectCalls).toEqual([{ since: "main", codebaseRoot: rootPath }]);
     expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 1, impactedCallers: 3 });
     // The seed is the method; the hunk alone would have marked the class.
-    expect(changedCards(result)).toEqual([
+    expect(await changedCards(h, result)).toEqual([
       ["Helpers.format", true],
       ["Helpers", false],
     ]);
@@ -2838,7 +2918,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     const h = await setup(async () => detected({ seeds: [whole("Helpers", 1, 20), whole("Helpers.format", 4, 8)], impacted: [] }));
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
     expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0, lineRuleFiles: 1 });
-    expect(changedCards(result)).toEqual([
+    expect(await changedCards(h, result)).toEqual([
       ["Helpers", true],
       ["Helpers.format", false],
     ]);
@@ -2853,7 +2933,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     h.changes.value = { ...range(), hunks: new Map() };
     const unplaced = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
     expect(unplaced.scope.changedSymbols).toMatchObject({ lineRuleFiles: 1 });
-    expect(changedCards(unplaced)).toEqual([
+    expect(await changedCards(h, unplaced)).toEqual([
       ["Helpers", false],
       ["Helpers.format", false],
     ]);
@@ -2862,7 +2942,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     h.changes.value = { ...range(), hunks: new Map([[HELPERS_FILE, "all"]]) };
     const added = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath, changeset: "extract-new-file" }));
     expect(added.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0 });
-    expect(changedCards(added).every(([, changed]: [string, boolean]) => changed)).toBe(true);
+    expect((await changedCards(h, added)).every(([, changed]: [string, boolean]) => changed)).toBe(true);
   });
 
   it("review: trusts whole-file seeds when git's diff failed, since no lines are left to check them by", async () => {
@@ -2871,7 +2951,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     h.changes.value = { ...range(), hunks: new Map(), hunksError: "stdout maxBuffer length exceeded" };
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
     expect(result.scope.changedSymbols).toEqual({ method: "detect_changes", seeds: 2, impactedCallers: 0 });
-    expect(changedCards(result).every(([, changed]: [string, boolean]) => changed)).toBe(true);
+    expect((await changedCards(h, result)).every(([, changed]: [string, boolean]) => changed)).toBe(true);
     expect(result.hunksWarning).toContain("maxBuffer");
     expect(result.hunksWarning).toContain("whole_file");
   });
@@ -2899,7 +2979,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     const h = await setup();
     const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
     expect(result.scope.changedSymbols).toEqual({ method: "git-hunks", fallback: "the analyzer has no detect_changes" });
-    expect(changedCards(result)).toEqual([
+    expect(await changedCards(h, result)).toEqual([
       ["Helpers", true],
       ["Helpers.format", false],
     ]);
@@ -2926,7 +3006,7 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
       const h = await setup(detect);
       const result = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
       expect(result.scope.changedSymbols).toEqual({ method: "git-hunks", fallback });
-      expect(changedCards(result)).toEqual([
+      expect(await changedCards(h, result)).toEqual([
         ["Helpers", true],
         ["Helpers.format", false],
       ]);

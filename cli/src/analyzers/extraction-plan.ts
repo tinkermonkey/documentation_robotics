@@ -38,6 +38,8 @@ import { INFRA_LABELS } from "./cards/build.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
 import type { Tier1Hint } from "./classifier/types.js";
+import type { Visibility } from "./cards/visibility.js";
+import { isProjectRule, projectRuleName } from "./project-rules.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -183,6 +185,12 @@ export interface UndecidedCard {
   hint?: string;
   /** With `clusters`: the cross-file component candidate the symbol is in (evidence, not a decision). */
   cluster?: ClusterEvidence;
+  /** Who can reach the symbol, read from its declaration: exported or local; for a member, public, private or protected. */
+  visibility?: Visibility;
+  /** Declared inside another function or method. */
+  nested?: true;
+  /** For a member: the element its class is, when it has one. */
+  owner?: string;
   rule?: string;
   reason: string;
   /**
@@ -236,6 +244,19 @@ export interface ElementPlan {
   descriptions: Record<string, string>;
   /** Decision records: how many became cards, how many are modelled, and the retired ones. */
   decisions?: { cards: number; modelled: number; retired: RetiredDecision[] };
+  /**
+   * What each project rule (src/analyzers/project-rules.ts) decided in this plan, by rule name:
+   * the symbols it said are not elements, and the elements it adds. Only symbols with no element.
+   */
+  byRule: Map<string, RuleDecided>;
+}
+
+/** What one project rule decided in a plan. */
+export interface RuleDecided {
+  /** Symbols the rule said are not elements. */
+  none: Array<{ symbol: string; file: string | null; label: string }>;
+  /** Elements the rule adds (their ids). */
+  staged: string[];
 }
 
 export interface PlanOptions {
@@ -615,6 +636,23 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
 /** Card labels the analyzer's changed symbols never cover: a route, and the cards DR makes itself. */
 const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL, TEST_SUITE_LABEL]);
 
+/**
+ * Whether a `since` range changed a symbol: by the analyzer's changed symbols when it gave them,
+ * else by the changed lines. The analyzer seeds only its own nodes: never a route, nor a card DR
+ * makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name is no CBM
+ * node's), so those keep the line rule.
+ */
+export function symbolChangedInRange(
+  s: ExtractedSymbol,
+  hunks?: Map<string, LineRanges>,
+  seeds?: Pick<CodeChanges, "seeds" | "lineRuleFiles">
+): boolean {
+  const { card } = s;
+  const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
+  const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
+  return bySeed ? seeds!.seeds!.has(s.qualifiedName) : changedInRange(ranges, card.start_line, card.end_line);
+}
+
 function cardOf(
   s: ExtractedSymbol,
   kind: UndecidedKind,
@@ -626,12 +664,7 @@ function cardOf(
   const { card } = s;
   const doc = describeDocstring(card.docstring);
   const name = modelAddName(baseNameOf(s));
-  // The analyzer's changed symbols when it gave them, else the changed lines. The analyzer seeds
-  // only its own nodes: never a route, nor a card DR makes itself (a TestCase or TestSuite from
-  // cards/test-cases.ts, whose qualified name is no CBM node's), so those keep the line rule.
-  const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
-  const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
-  const changed = bySeed ? seeds!.seeds!.has(s.qualifiedName) : changedInRange(ranges, card.start_line, card.end_line);
+  const changed = symbolChangedInRange(s, hunks, seeds);
   return {
     cardId: card.id,
     kind,
@@ -646,6 +679,8 @@ function cardOf(
     ...(doc ? { docstring: doc } : {}),
     ...(s.facts.decorator_names.length ? { decorators: s.facts.decorator_names } : {}),
     ...(s.cluster ? { cluster: s.cluster } : {}),
+    ...(s.triage?.visibility ? { visibility: s.triage.visibility } : {}),
+    ...(s.triage?.nested ? { nested: true as const } : {}),
     candidates: [],
     reason,
     ...(s.docs?.length ? { docs: s.docs } : {}),
@@ -672,11 +707,20 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     candidateDeletes: [],
     elementOf: new Map(),
     descriptions: {},
+    byRule: new Map(),
+  };
+  const ruleDecided = (rule: string): RuleDecided => {
+    const name = projectRuleName(rule);
+    return plan.byRule.get(name) ?? plan.byRule.set(name, { none: [], staged: [] }).get(name)!;
   };
   const matched = new Set<string>();
   const hunks = options.changes?.hunks;
-  const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
-    cardOf(s, kind, reason, extra, hunks, options.changes ?? undefined);
+  const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) => {
+    // A member's owner: the element its class is, when the class (which sorts before it) has one.
+    const cut = s.card.label === "Method" ? s.qualifiedName.lastIndexOf(".") : -1;
+    const owner = cut > 0 ? plan.elementOf.get(s.qualifiedName.slice(0, cut)) : undefined;
+    return cardOf(s, kind, reason, { ...(owner ? { owner } : {}), ...extra }, hunks, options.changes ?? undefined);
+  };
   const notElements = options.notElements ?? new Set<string>();
   const env = containerEnv(extraction.symbols);
   /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
@@ -863,7 +907,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       continue;
     }
 
-    if (s.unhandled) {
+    // A project rule may say a route nothing handles is not an element; otherwise it is a card.
+    if (s.unhandled && tier0?.kind !== "reject") {
       if (layers && !layers.has("api")) {
         plan.outsideLayers++;
         continue;
@@ -906,6 +951,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     }
     if (tier0.kind === "reject") {
       plan.rejected++;
+      if (isProjectRule(tier0.rule)) ruleDecided(tier0.rule).none.push({ symbol, file, label: card.label });
       continue;
     }
 
@@ -946,6 +992,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       rule: tier0.rule,
     };
     plan.adds.push(add);
+    if (isProjectRule(tier0.rule)) ruleDecided(tier0.rule).staged.push(id);
     if (mergeAs) mergedAdds.set(mergeAs, add);
     plan.elementOf.set(s.qualifiedName, id);
   }
