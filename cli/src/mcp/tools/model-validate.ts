@@ -1,6 +1,12 @@
 /**
  * model_validate — run the 5-stage validation pipeline against the model.
  * Mirrors `dr validate`, reusing the shared Validator and ValidationFormatter.
+ *
+ * Sized to fit one tool result by default: whether the model is valid, the errors in full, and
+ * the warnings counted by kind, layer and type. A model of a few thousand elements has hundreds of
+ * warnings of about 400 characters each, nearly all of one or two kinds, and the few that matter
+ * were lost among them (#1215). `warnings: [...]` lists the kinds named, `orphans: true` reports
+ * orphans alone without running the pipeline, and `detail: "full"` returns every warning whole.
  */
 
 import { z } from "zod";
@@ -8,41 +14,88 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Model } from "../../core/model.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions } from "../../utils/errors.js";
+import { warningKind, type WarningKind } from "../../validators/model-warnings.js";
 import { ValidationFormatter } from "../../validators/validation-formatter.js";
-import { Validator } from "../../validators/validator.js";
 import type { ValidationIssue } from "../../validators/types.js";
 import { getCliBundledSpecVersion, modelSpecStanding } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { countByLayerAndType, modelView, orphanIds, validateView } from "./model-view.js";
+
+/** The kinds of warning `warnings` can list. */
+const WARNING_KINDS: WarningKind[] = [
+  "orphan",
+  "no-source-reference",
+  "no-document-reference",
+  "no-description",
+  "schema",
+  "semantic",
+  "reference",
+  "expected",
+  "other",
+];
+
+/** Kinds that say one thing about one element: listed as ids, the message and fix given once. */
+const PER_ELEMENT_KINDS = new Set<WarningKind>(["orphan", "no-source-reference", "no-document-reference", "no-description"]);
+
+/**
+ * The most ids or issues one kind lists (about 8 KB of ids). A kind with more is counted by layer
+ * and type unless the caller passes `detail: "full"`.
+ */
+export const VALIDATE_LIST_LIMIT = 150;
+
+/** The most errors the default returns whole; the rest are counted. `detail: "full"` returns all. */
+export const VALIDATE_ERROR_LIMIT = 100;
 
 const inputSchema = {
   layers: z.array(z.string()).optional().describe("Restrict validation to these layers. Omit to validate the whole model."),
-  strict: z.boolean().optional().describe("Also flag elements with no description as warnings."),
+  strict: z
+    .boolean()
+    .optional()
+    .describe(
+      "Also warn about elements with no description, and about motivation, business and product elements with no " +
+        "reference to the document that states them. With strict, any warning makes valid false."
+    ),
+  warnings: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "List the warnings of these kinds, e.g. [\"orphan\"] or [\"all\"]; the default only counts them. Kinds: " +
+        `${WARNING_KINDS.join(", ")}. A kind about one element each (orphan, no-source-reference, ` +
+        "no-document-reference, no-description) is listed as element ids, with its message and fix once. A kind with " +
+        `more than ${VALIDATE_LIST_LIMIT} warnings is counted by layer and type instead: narrow it with layers, or pass detail: "full".`
+    ),
   orphans: z
     .boolean()
     .optional()
-    .describe("Return only the orphaned-elements report instead of running full validation."),
+    .describe(
+      "Return only the orphaned elements (no relationship and no cross-layer reference), counted by layer and type " +
+        `and listed by id when ${VALIDATE_LIST_LIMIT} or fewer match, without running validation. layers narrows it.`
+    ),
+  detail: z
+    .enum(["summary", "full"])
+    .optional()
+    .describe(
+      "summary (default): validity, the errors whole, warnings counted by kind, layer and type. full: nothing " +
+        "counted in place of listing: every error and warning whole (about 400 characters each), or with warnings / " +
+        "orphans every match listed however many."
+    ),
   rootPath: rootPathSchema,
 };
 
 export type ModelValidateArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
+/** Says what the summary left out and how to get it. */
+const SUMMARY_MORE =
+  "Warnings are counted by kind, layer and type, not listed. Pass warnings: [\"<kind>\"] to list a kind " +
+  "(layers narrows it), orphans: true for orphans alone, or detail: \"full\" for every warning whole. " +
+  "model_list with orphans: true lists orphaned elements with their names and descriptions.";
+
 export async function modelValidateHandler(args: ModelValidateArgs): Promise<CallToolResult> {
   return runTool(async () => {
+    const listed = listedKinds(args.warnings);
     const model = await loadModel(args.rootPath);
-
-    // `Validator` is typed to accept `Model`, but a projected changeset is a
-    // `ProjectedModel` (manifest/layers/relationships only, no `rootPath` or the
-    // mutation methods `Model` exposes). The validation pipeline only reads
-    // `rootPath` for telemetry (validator.ts), so it's carried over explicitly
-    // rather than left undefined. This mirrors the identical cast in
-    // `cli/src/commands/validate.ts`; a proper fix would give `Validator` a
-    // narrower "validatable model" interface shared by both types.
-    const activeChangesetId = model.getActiveChangesetId();
-    let modelToValidate = (
-      activeChangesetId
-        ? { ...(await model.getVirtualProjectionEngine().projectModel(model, activeChangesetId)), rootPath: model.rootPath }
-        : model
-    ) as unknown as Model;
+    const { model: whole, view } = await modelView(model);
+    let modelToValidate = whole;
 
     // Ends outside a `layers` scope that exist nowhere in the full model (see danglingOutOfScopeEnds).
     let outOfScopeIssues: Array<Omit<ValidationIssue, "severity">> = [];
@@ -77,58 +130,120 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
         loadedLayerFilter: [...requestedLayers],
       } as unknown as Model;
     }
+    const full = args.detail === "full";
+    const scope = args.layers && args.layers.length > 0 ? { layers: args.layers } : {};
 
     if (args.orphans) {
-      const stats = ValidationFormatter.calculateStats(modelToValidate);
-      return jsonResult({
-        orphanCount: stats.orphanedElements.length,
-        orphanedElements: stats.orphanedElements,
-      });
+      const orphans = orphanIds(modelToValidate);
+      const list = full || orphans.length <= VALIDATE_LIST_LIMIT;
+      return jsonResult(
+        {
+          view,
+          ...scope,
+          orphanCount: orphans.length,
+          byLayer: countByLayerAndType(orphans),
+          ...(list ? { orphanedElements: orphans } : {}),
+          ...(list
+            ? {}
+            : {
+                more:
+                  `${orphans.length} orphans, more than the ${VALIDATE_LIST_LIMIT} listed by id, so these are counts by layer and type. ` +
+                  'Pass layers to narrow it or detail: "full" to list them all; model_list with orphans: true ' +
+                  "lists them by layer and type with names and descriptions.",
+              }),
+        },
+        { compact: true }
+      );
     }
 
-    const validator = new Validator();
-    const result = await validator.validateModel(modelToValidate);
+    const result = await validateView(modelToValidate, { strict: args.strict });
     for (const issue of outOfScopeIssues) result.addError(issue);
-
-    const stats = ValidationFormatter.calculateStats(modelToValidate);
-    for (const orphanId of stats.orphanedElements) {
-      result.addWarning({
-        message: `Element '${orphanId}' is orphaned (no cross-layer references or intra-layer relationships)`,
-        layer: orphanId.split(".")[0] ?? "",
-        elementId: orphanId,
-        category: "orphan",
-        fixSuggestion: "Add cross-layer references or relationships to connect this element to the rest of the model",
-      });
-    }
-
-    for (const [layerName, layer] of modelToValidate.layers) {
-      for (const element of layer.listElements()) {
-        const elementId = element.path || element.id;
-        if (!element.source_reference) {
-          result.addWarning({
-            message: `Element '${elementId}' has no source reference`,
-            layer: layerName,
-            elementId,
-            fixSuggestion: "Add a source_reference with provenance to link this element to its implementation",
-          });
-        }
-        if (args.strict && (!element.description || element.description.trim() === "")) {
-          result.addWarning({
-            message: `Element '${elementId}' has no description`,
-            layer: layerName,
-            elementId,
-            fixSuggestion: "Add a description to document what this element represents",
-          });
-        }
-      }
-    }
 
     // Includes acceptedGaps: informational, reported beside the result, never as errors or warnings.
     const formatted = ValidationFormatter.toJSON(result, modelToValidate);
     const valid = result.isValid() && !(args.strict && result.warnings.length > 0);
     const specVersion = specVersionNotice(model.manifest.specVersion);
-    return jsonResult({ ...(specVersion ? { specVersion } : {}), ...formatted, valid });
+    const header = { ...(specVersion ? { specVersion } : {}), valid, view, ...scope };
+
+    // The whole report, as the tool returned it before the summary default.
+    if (full && listed.length === 0) return jsonResult({ ...header, ...formatted, valid });
+
+    const errors = full ? result.errors : result.errors.slice(0, VALIDATE_ERROR_LIMIT);
+    const byKind = new Map<WarningKind, ValidationIssue[]>();
+    for (const warning of result.warnings) {
+      const kind = warningKind(warning);
+      const ofKind = byKind.get(kind) ?? [];
+      ofKind.push(warning);
+      byKind.set(kind, ofKind);
+    }
+    return jsonResult(
+      {
+        ...header,
+        summary: formatted.summary,
+        errors,
+        ...(errors.length < result.errors.length
+          ? {
+              errorsOmitted: result.errors.length - errors.length,
+              errorsByLayer: countByLayerAndType(result.errors.map(issueId)),
+            }
+          : {}),
+        warningCounts: [...byKind].map(([kind, issues]) => ({
+          kind,
+          count: issues.length,
+          byLayer: countByLayerAndType(issues.map(issueId)),
+        })),
+        ...(listed.length > 0
+          ? { warnings: listed.map((kind) => listKind(kind, byKind.get(kind) ?? [], full)) }
+          : {}),
+        ...(formatted.acceptedGaps ? { acceptedGaps: formatted.acceptedGaps } : {}),
+        ...(listed.length === 0 && result.warnings.length > 0 ? { more: SUMMARY_MORE } : {}),
+      },
+      { compact: true }
+    );
   });
+}
+
+/** The kinds `warnings` names (`all` is every kind), refusing one that is not a kind. */
+function listedKinds(requested: string[] | undefined): WarningKind[] {
+  if (!requested || requested.length === 0) return [];
+  if (requested.includes("all")) return WARNING_KINDS;
+  const unknown = requested.filter((kind) => !(WARNING_KINDS as string[]).includes(kind));
+  if (unknown.length > 0) {
+    const suggestions = unknown.flatMap((kind) => {
+      const similar = findSimilar(kind, WARNING_KINDS, 3);
+      return similar.length > 0 ? [`Did you mean "${similar.join(" or ")}" instead of "${kind}"?`] : [];
+    });
+    throw new CLIError(`Unknown warning kind(s): ${unknown.join(", ")}`, ErrorCategory.USER, [
+      ...suggestions,
+      `Kinds: ${formatValidOptions(WARNING_KINDS)}, or "all"`,
+    ]);
+  }
+  return [...new Set(requested)] as WarningKind[];
+}
+
+/** The id an issue is counted under: its element's, else a placeholder in its layer. */
+function issueId(issue: ValidationIssue): string {
+  return issue.elementId && issue.elementId.includes(".") ? issue.elementId : `${issue.layer}.(no element)`;
+}
+
+/** One kind's warnings, listed: element ids for a per-element kind, the issues whole for any other. */
+function listKind(kind: WarningKind, issues: ValidationIssue[], full: boolean): Record<string, unknown> {
+  const base = { kind, count: issues.length };
+  if (issues.length === 0) return base;
+  if (!full && issues.length > VALIDATE_LIST_LIMIT) {
+    return {
+      ...base,
+      byLayer: countByLayerAndType(issues.map(issueId)),
+      more: `More than the ${VALIDATE_LIST_LIMIT} listed: narrow it with layers, or pass detail: "full".`,
+    };
+  }
+  if (!PER_ELEMENT_KINDS.has(kind)) return { ...base, issues };
+  return {
+    ...base,
+    means: issues[0].message.replace(/^Element '[^']*' /, ""),
+    ...(issues[0].fixSuggestion ? { fix: issues[0].fixSuggestion } : {}),
+    elements: issues.map((issue) => issue.elementId),
+  };
 }
 
 /**
@@ -212,7 +327,12 @@ function danglingOutOfScopeEnds(model: Model, scope: Set<string>): Array<Omit<Va
 
 export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_validate",
-  description: "Run the full schema/naming/reference/semantic/relationship validation pipeline against the model.",
+  description:
+    "Run the full schema/naming/reference/semantic/relationship validation pipeline against the model, as the active " +
+    "changeset leaves it (view says which). The default fits one result: valid, the errors whole, and the warnings " +
+    "counted by kind, layer and type. warnings: [\"<kind>\"] lists a kind as element ids, orphans: true reports the " +
+    'orphaned elements alone, and detail: "full" returns every warning whole. Motivation, business and product ' +
+    "elements are not asked for a source reference: they have no implementation to point at.",
   inputSchema,
   handler: modelValidateHandler,
 };

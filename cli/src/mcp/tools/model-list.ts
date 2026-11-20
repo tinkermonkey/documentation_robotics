@@ -6,6 +6,9 @@
  * the start of its description) when the listing has `LIST_COMPACT_LIMIT` elements or fewer, and
  * counts by layer and type when it has more, so the default never grows with the model.
  * `detail: "full"` returns every element whole, as `Element.toJSON()` writes it.
+ *
+ * `orphans: true` keeps only the elements with no relationship and no cross-layer reference, in
+ * the same forms, so the orphans of a layer or type can be read without the rest.
  */
 
 import { z } from "zod";
@@ -14,6 +17,7 @@ import type { Element } from "../../core/element.js";
 import { CANONICAL_LAYER_NAMES } from "../../core/layers.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { modelView, orphanIds } from "./model-view.js";
 
 const inputSchema = {
   layer: z
@@ -21,6 +25,13 @@ const inputSchema = {
     .optional()
     .describe("Canonical layer name to list (e.g. 'api', 'data-model'). Omit to list across all layers."),
   type: z.string().optional().describe("Restrict results to a single element type."),
+  orphans: z
+    .boolean()
+    .optional()
+    .describe(
+      "List only orphaned elements: those with no relationship and no cross-layer reference, in either direction. " +
+        "Combines with layer, type and detail."
+    ),
   detail: z
     .enum(["summary", "compact", "full"])
     .optional()
@@ -107,10 +118,11 @@ const COMPACT_MORE =
   "narrow either form), or model_show for one element.";
 
 /** Says what the summary holds, why it was given when the caller did not ask for it, and how to list elements. */
-function summaryMore(total: number, byDefault: boolean): string {
+function summaryMore(total: number, byDefault: boolean, orphans: boolean): string {
+  const noun = orphans ? "orphaned elements" : "elements";
   const why = byDefault
-    ? `${total} elements match, more than the ${LIST_COMPACT_LIMIT} the default lists one by one, so these are counts by layer and type. `
-    : "Summary: element counts by layer and type. ";
+    ? `${total} ${noun} match, more than the ${LIST_COMPACT_LIMIT} the default lists one by one, so these are counts by layer and type. `
+    : `Summary: ${orphans ? "orphaned element" : "element"} counts by layer and type. `;
   return `${why}Pass layer or type to list fewer elements, or detail: "compact" to list them all (about 200 characters an element).`;
 }
 
@@ -124,8 +136,10 @@ function countByType(elements: Element[]): Record<string, number> {
 export async function modelListHandler(args: ModelListArgs): Promise<CallToolResult> {
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
+    // Orphans are read from the same view as the listing: the model as the active changeset leaves it.
+    const orphaned = args.orphans ? new Set(orphanIds((await modelView(model)).model)) : null;
     const matching = (elements: Element[]): Element[] =>
-      args.type ? elements.filter((e) => e.type === args.type) : elements;
+      elements.filter((e) => (!args.type || e.type === args.type) && (!orphaned || orphaned.has(e.path || e.id)));
 
     const groups: Array<{ layer: string; elements: Element[] }> = [];
     if (args.layer) {
@@ -162,8 +176,9 @@ export async function modelListHandler(args: ModelListArgs): Promise<CallToolRes
         ? { layer: g.layer, count: g.elements.length, types: countByType(g.elements) }
         : { layer: g.layer, count: g.elements.length, elements: g.elements.map(compactElement) }
     );
-    const more = detail === "summary" ? summaryMore(total, args.detail === undefined) : COMPACT_MORE;
-    return jsonResult(args.layer ? { detail, ...layers[0], more } : { detail, totalElements: total, layers, more }, {
+    const more = detail === "summary" ? summaryMore(total, args.detail === undefined, orphaned !== null) : COMPACT_MORE;
+    const only = orphaned ? { orphans: true } : {};
+    return jsonResult(args.layer ? { detail, ...only, ...layers[0], more } : { detail, ...only, totalElements: total, layers, more }, {
       compact: true,
       lineWidth: LISTING_LINE_WIDTH,
     });
@@ -176,7 +191,8 @@ export const modelListTool: McpToolDefinition<typeof inputSchema> = {
     "List the elements in the architecture model, grouped by layer, optionally scoped to a layer and/or element " +
     "type. The default fits one result: a compact listing (one line per element with its id, name and the first " +
     "sentence of its description) when 150 elements or fewer match, and counts by layer and type when more do; " +
-    'narrow with layer or type, or pass detail: "compact" to list them all. detail: "full" returns every element ' +
+    'narrow with layer or type, or pass detail: "compact" to list them all. orphans: true lists only the elements ' +
+    'with no relationship at all, in the same forms. detail: "full" returns every element ' +
     "whole (description, attributes, source reference, metadata; about 1 KB each), so pass layer or type with it " +
     "on anything but a small model. model_show reads one element with its relationships; model_search finds " +
     "elements by name, id or source file.",
