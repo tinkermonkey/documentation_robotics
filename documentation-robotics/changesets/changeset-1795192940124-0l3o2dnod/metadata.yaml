@@ -4,7 +4,7 @@ description: As-built extraction of the code at 4fa7d24, files changed since
   origin/main. The verification record for the plan
   batch-writes-and-id-derivation; never landed.
 created: 2026-11-20T16:42:20.143Z
-modified: 2026-11-20T16:42:44.745Z
+modified: 2026-11-20T16:55:28.570Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
@@ -15,7 +15,7 @@ scope:
   since: origin/main
   codeCommit: 4fa7d249d6bfe04eccaebf449b508cc87ddb1460
 stats:
-  additions: 27
+  additions: 31
   modifications: 0
   deletions: 0
-lastSequence: 26
+lastSequence: 30

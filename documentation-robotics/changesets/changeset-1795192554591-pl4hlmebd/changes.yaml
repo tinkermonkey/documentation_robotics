@@ -865,3 +865,74 @@
     category: structural
   timestamp: 2026-11-20T16:43:12.789Z
   sequenceNumber: 60
+- type: add
+  elementId: application.applicationfunction.reason-pattern
+  layerName: application
+  after:
+    id: 7c3cf12c-efcd-45e8-b786-09491e4344d6
+    path: application.applicationfunction.reason-pattern
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: reasonPattern
+    description: A reason with what differs from item to item taken out, so items
+      refused for the same cause group together
+    metadata:
+      created_at: 2026-11-20T16:55:07.340Z
+      updated_at: 2026-11-20T16:55:07.340Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: reasonPattern
+  timestamp: 2026-11-20T16:55:41.087Z
+  sequenceNumber: 61
+- type: add
+  elementId: data-model.objectschema.batch-attention-group
+  layerName: data-model
+  after:
+    id: aa34231a-985d-4474-81ba-f4f76314a960
+    path: data-model.objectschema.batch-attention-group
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: BatchAttentionGroup
+    description: Attention items past the limit that share a status and a reason,
+      with their positions
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:55:07.341Z
+      updated_at: 2026-11-20T16:55:07.341Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: BatchAttentionGroup
+  timestamp: 2026-11-20T16:55:41.680Z
+  sequenceNumber: 62
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::depends-on::application.applicationfunction.reason-pattern
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: application.applicationfunction.reason-pattern
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:55:07.399Z
+  sequenceNumber: 63
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::accesses::data-model.objectschema.batch-attention-group
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: data-model.objectschema.batch-attention-group
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:55:07.399Z
+  sequenceNumber: 64
