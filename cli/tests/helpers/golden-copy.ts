@@ -12,19 +12,131 @@
  * - Cleanup occurs at test suite shutdown via cleanupGoldenCopy()
  */
 
-import { mkdir, cp, rm, access } from "fs/promises";
+import { mkdir, cp, rm, access, readdir } from "fs/promises";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { cwd } from "process";
 
-let goldenCopyPath: string | null = null;
-let initializationPromise: Promise<string> | null = null;
-let initializationError: Error | null = null;
+/** A finished golden copy: where it is and how many files and folders it holds. */
+interface GoldenCopy {
+  path: string;
+  entries: number;
+}
+
+// Set only once the copy is finished and checked. A caller that arrives while it is being made
+// waits on initializationPromise; it must never be handed a folder that is still filling up.
+let goldenCopy: GoldenCopy | null = null;
+let initializationPromise: Promise<GoldenCopy> | null = null;
+// Goes up on every cleanupGoldenCopy(), so a copy that was being made at that moment is not kept.
+let goldenCopyGeneration = 0;
 
 /**
  * Timeout for golden copy operations (used in Bun test beforeEach hooks)
  */
 export const GOLDEN_COPY_HOOK_TIMEOUT = 30000; // 30 seconds
+
+/**
+ * Environment variable: time in milliseconds that one createTestWorkdir() call, or one cleanup,
+ * may take.
+ */
+export const SETUP_BUDGET_ENV = "DR_TEST_SETUP_BUDGET_MS";
+
+/**
+ * Default for SETUP_BUDGET_ENV: 20 seconds.
+ *
+ * It is below the suite's 30 second hook timeout on purpose. When Bun's own timeout fires first
+ * it reports "a beforeEach/afterEach hook timed out for this test" against a test that did
+ * nothing wrong, and does not say what the hook was doing. Stopping earlier lets the set-up say
+ * which step stalled and for how long. Normal set-up takes a few milliseconds. A value at or
+ * above the hook timeout hands the reporting back to Bun.
+ */
+export const DEFAULT_SETUP_BUDGET_MS = 20000;
+
+/** The set-up budget in force: SETUP_BUDGET_ENV when it is a positive number, else the default. */
+export function setupBudgetMs(): number {
+  const value = Number(process.env[SETUP_BUDGET_ENV]);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_SETUP_BUDGET_MS;
+}
+
+/** A set-up that finished, but took longer than this, prints its step timings. */
+const SLOW_SETUP_MS = 5000;
+
+/** The steps of a set-up, as error messages and timings name them. */
+export type SetupStep = "golden copy" | "copy" | "readiness check";
+
+/**
+ * Overrides for the helper's own tests. Test files call createTestWorkdir() with no argument.
+ */
+export interface CreateTestWorkdirOptions {
+  /** Time allowed for the whole set-up (default setupBudgetMs()) */
+  budgetMs?: number;
+  /** Replaces the copy of the golden copy into the test folder */
+  copy?: (from: string, to: string) => Promise<void>;
+}
+
+const seconds = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
+
+/** Runs a set-up's steps against one shared budget and keeps what each one took. */
+class SetupClock {
+  private readonly started = performance.now();
+  private readonly timings: { step: SetupStep; ms: number }[] = [];
+
+  constructor(private readonly budgetMs: number) {}
+
+  /** Time since the set-up started */
+  elapsed(): number {
+    return performance.now() - this.started;
+  }
+
+  /** "golden copy 0.0s, copy 20.0s": every step run so far, in order */
+  summary(): string {
+    return this.timings.map((t) => `${t.step} ${seconds(t.ms)}`).join(", ");
+  }
+
+  /**
+   * Run one step. It rejects with a message that names the step and how long it took, whether
+   * the step failed or used up what was left of the budget.
+   */
+  async run<T>(step: SetupStep, work: () => Promise<T>): Promise<T> {
+    const stepStarted = performance.now();
+    const timing = { step, ms: 0 };
+    this.timings.push(timing);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stalled = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => {
+          timing.ms = performance.now() - stepStarted;
+          reject(
+            new SetupStalledError(
+              `stalled in the ${step} step: no result after ${seconds(timing.ms)} ` +
+                `(${seconds(this.budgetMs)} allowed for the whole set-up; ${this.summary()})`
+            )
+          );
+        },
+        Math.max(0, this.budgetMs - this.elapsed())
+      );
+    });
+
+    try {
+      const result = await Promise.race([work(), stalled]);
+      timing.ms = performance.now() - stepStarted;
+      return result;
+    } catch (error) {
+      if (error instanceof SetupStalledError) throw error;
+      timing.ms = performance.now() - stepStarted;
+      throw new Error(
+        `the ${step} step failed after ${seconds(timing.ms)}: ` +
+          (error instanceof Error ? error.message : String(error))
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+/** A step ran out of budget. Retrying would only run past the hook timeout, so nothing does. */
+class SetupStalledError extends Error {}
 
 /**
  * Initialize the shared golden copy of the baseline test project.
@@ -48,16 +160,22 @@ export const GOLDEN_COPY_HOOK_TIMEOUT = 30000; // 30 seconds
  * @returns Promise<string> Path to the golden copy directory
  */
 export async function initGoldenCopy(): Promise<string> {
-  // Return cached path if already initialized
-  if (goldenCopyPath) return goldenCopyPath;
+  return (await ensureGoldenCopy()).path;
+}
 
-  // If there was a previous error, throw it again
-  if (initializationError) {
-    throw initializationError;
-  }
+/**
+ * The golden copy, made on first use. Callers that arrive while it is being made all wait for
+ * the same copy to finish.
+ * @private
+ */
+async function ensureGoldenCopy(): Promise<GoldenCopy> {
+  // Return the finished copy if there is one
+  if (goldenCopy) return goldenCopy;
 
   // If initialization is in progress, wait for it to complete
   if (initializationPromise) return initializationPromise;
+
+  const generation = goldenCopyGeneration;
 
   // Create a new initialization promise and cache it to prevent concurrent initialization
   initializationPromise = (async () => {
@@ -72,32 +190,46 @@ export async function initGoldenCopy(): Promise<string> {
       BASELINE = resolve(projectRoot, "cli-validation/test-project/baseline");
     }
 
-    goldenCopyPath = join(
+    const path = join(
       tmpdir(),
       `dr-golden-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     );
 
     try {
-      await mkdir(goldenCopyPath, { recursive: true });
-      await cp(BASELINE, goldenCopyPath, { recursive: true });
+      await mkdir(path, { recursive: true });
+      await cp(BASELINE, path, { recursive: true });
 
-      // Verify filesystem operations are committed by checking key files
-      await verifyFilesystemReady(goldenCopyPath);
+      // The baseline must have arrived whole: every later test folder is a copy of this one
+      await checkModelFolder(path);
+      const [entries, expected] = await Promise.all([countEntries(path), countEntries(BASELINE)]);
+      if (entries !== expected) {
+        throw new Error(
+          `${path} has ${entries} of the baseline's ${expected} files and folders (${BASELINE})`
+        );
+      }
 
       if (process.env.DEBUG_GOLDEN_COPY) {
-        console.log(`Golden copy initialized at: ${goldenCopyPath}`);
+        console.log(`Golden copy initialized at: ${path}`);
       }
+
+      const finished = { path, entries };
+      // Not kept when cleanupGoldenCopy() ran meanwhile: the next caller makes its own
+      if (generation === goldenCopyGeneration) {
+        goldenCopy = finished;
+      }
+      return finished;
     } catch (error) {
-      goldenCopyPath = null;
-      initializationPromise = null;
-      const err = new Error(
+      if (generation === goldenCopyGeneration) {
+        initializationPromise = null;
+      }
+      await rm(path, { recursive: true, force: true }).catch(() => {});
+      // The failure is not kept. The next caller tries again, so one failed copy of the baseline
+      // cannot fail every set-up that comes after it in the process; a cause that lasts fails
+      // each of them with its own message.
+      throw new Error(
         `Failed to initialize golden copy: ${error instanceof Error ? error.message : String(error)}`
       );
-      initializationError = err;
-      throw err;
     }
-
-    return goldenCopyPath!;
   })();
 
   return initializationPromise;
@@ -139,67 +271,69 @@ export async function initGoldenCopy(): Promise<string> {
  *
  * @returns Promise resolving to { path: string, cleanup: () => Promise<void> }
  */
-export async function createTestWorkdir(): Promise<{
+export async function createTestWorkdir(options: CreateTestWorkdirOptions = {}): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const golden = await initGoldenCopy();
+  const budgetMs = options.budgetMs ?? setupBudgetMs();
+  const copy = options.copy ?? ((from: string, to: string) => cp(from, to, { recursive: true }));
 
   const testId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const testDir = join(tmpdir(), `dr-test-${testId}`);
+  const clock = new SetupClock(budgetMs);
 
-  let copyAttempts = 0;
-  const maxCopyAttempts = 3;
-  let lastCopyError: Error | null = null;
+  const maxAttempts = 3;
+  // The copy in flight, kept so a set-up that gives up on it can clean up after it
+  let copying: Promise<void> | null = null;
 
   try {
-    // Attempt to copy with retries for race conditions
-    for (copyAttempts = 0; copyAttempts < maxCopyAttempts; copyAttempts++) {
+    for (let attempt = 1; ; attempt++) {
       try {
-        await mkdir(testDir, { recursive: true });
-        // Copy golden copy to test directory with timeout
-        await Promise.race([
-          cp(golden, testDir, { recursive: true }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Copy operation timed out after 30s")), 30000)
-          ),
-        ]);
+        // Inside the loop: when another test file cleaned the golden copy up, this makes a new one
+        const golden = await clock.run("golden copy", () => ensureGoldenCopy());
 
-        // After copy, add explicit sync to ensure all filesystem operations are flushed
-        // This is a workaround for concurrent test execution race conditions
-        if (process.platform !== "win32") {
-          try {
-            // Try to access a key file to force filesystem sync
-            const { spawnSync } = await import("child_process");
-            spawnSync("sync", [], { stdio: "ignore" });
-          } catch {
-            // Ignore sync errors on systems that don't support it
+        await clock.run("copy", () => {
+          copying = (async () => {
+            await mkdir(testDir, { recursive: true });
+            await copy(golden.path, testDir);
+          })();
+          return copying;
+        });
+
+        // No flush and no wait between the copy and this check. Once the copy has resolved,
+        // every file it wrote is visible to this process and to any `dr` it starts: that is what
+        // the filesystem guarantees, and a `sync` adds nothing to it. The check is there for a
+        // copy that resolved short, because its source was removed under it: the model's
+        // manifest and layer folders by name, then everything else by count.
+        await clock.run("readiness check", async () => {
+          await checkModelFolder(testDir);
+          const entries = await countEntries(testDir);
+          if (entries !== golden.entries) {
+            throw new Error(
+              `${testDir} has ${entries} of the golden copy's ${golden.entries} files and folders`
+            );
           }
-        }
-
-        // Verify filesystem is ready for the test directory
-        // This is critical for concurrent test execution
-        // Use higher retry count for test directory since it just had a large copy operation
-        await verifyFilesystemReady(testDir, 30);
+        });
         break; // Success
       } catch (error) {
-        lastCopyError = error instanceof Error ? error : new Error(String(error));
-        if (copyAttempts < maxCopyAttempts - 1) {
-          // Clean up partial copy before retrying
-          try {
-            await rm(testDir, { recursive: true, force: true });
-          } catch {
-            // Ignore cleanup errors during retry
-          }
-          // Wait before retrying
-          const backoffMs = 100 * Math.pow(2, copyAttempts);
-          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        if (error instanceof SetupStalledError || attempt === maxAttempts) {
+          throw error;
         }
+        // Clean up the partial copy before retrying
+        try {
+          await rm(testDir, { recursive: true, force: true });
+        } catch {
+          // Ignore cleanup errors during retry
+        }
+        await dropGoldenCopyIfDamaged();
+        await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
       }
     }
 
-    if (copyAttempts === maxCopyAttempts && lastCopyError) {
-      throw lastCopyError;
+    if (clock.elapsed() > SLOW_SETUP_MS) {
+      console.warn(
+        `[GoldenCopy] Slow test workdir set-up: ${seconds(clock.elapsed())} (${clock.summary()})`
+      );
     }
 
     if (process.env.DEBUG_GOLDEN_COPY) {
@@ -209,18 +343,33 @@ export async function createTestWorkdir(): Promise<{
     return {
       path: testDir,
       cleanup: async () => {
+        // Bounded like the set-up: a removal that stalls is reported here, by name, instead of
+        // as a hook timeout against the test that just passed.
+        const started = performance.now();
+        let timer: ReturnType<typeof setTimeout> | undefined;
         try {
-          await rm(testDir, { recursive: true, force: true });
+          await Promise.race([
+            rm(testDir, { recursive: true, force: true }),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new Error(`no result after ${seconds(budgetMs)}`)),
+                budgetMs
+              );
+            }),
+          ]);
           if (process.env.DEBUG_GOLDEN_COPY) {
             console.log(`Test workdir cleaned up: ${testDir}`);
           }
         } catch (error) {
           // Always log cleanup errors - they can cause disk space issues
           console.error(
-            `[GoldenCopy] ERROR: Failed to clean up test workdir at ${testDir}. ` +
+            `[GoldenCopy] ERROR: Failed to clean up test workdir at ${testDir} ` +
+              `(${seconds(performance.now() - started)} in the cleanup step). ` +
               `This may cause disk space issues. ` +
               `Error: ${error instanceof Error ? error.message : String(error)}`
           );
+        } finally {
+          clearTimeout(timer);
         }
       },
     };
@@ -228,6 +377,14 @@ export async function createTestWorkdir(): Promise<{
     // Attempt cleanup on error
     try {
       await rm(testDir, { recursive: true, force: true });
+      if (error instanceof SetupStalledError && copying) {
+        // The copy this set-up gave up on is still running and puts the folder back as it
+        // goes. Remove the folder again when the copy has settled.
+        void (copying as Promise<void>)
+          .catch(() => {})
+          .then(() => rm(testDir, { recursive: true, force: true }))
+          .catch(() => {});
+      }
     } catch (cleanupError) {
       // Log cleanup failures even in error paths
       console.error(
@@ -238,8 +395,26 @@ export async function createTestWorkdir(): Promise<{
       );
     }
     throw new Error(
-      `Failed to create test workdir: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to create test workdir at ${testDir}: ${error instanceof Error ? error.message : String(error)}`
     );
+  }
+}
+
+/**
+ * Forget the golden copy when it is no longer the folder that was checked: gone, or short of
+ * files, because something other than cleanupGoldenCopy() removed them. No copy made from it can
+ * be whole however often it is tried, so the next attempt makes a new golden copy instead.
+ * @private
+ */
+async function dropGoldenCopyIfDamaged(): Promise<void> {
+  const current = goldenCopy;
+  if (!current) return;
+
+  const entries = await countEntries(current.path).catch(() => -1);
+  if (entries !== current.entries && goldenCopy === current) {
+    goldenCopy = null;
+    initializationPromise = null;
+    goldenCopyGeneration++;
   }
 }
 
@@ -263,24 +438,27 @@ export async function createTestWorkdir(): Promise<{
  * @returns Promise<void>
  */
 export async function cleanupGoldenCopy(): Promise<void> {
-  if (goldenCopyPath) {
+  const finished = goldenCopy;
+  // Reset first, so nothing started from here on is handed the folder being removed
+  goldenCopy = null;
+  initializationPromise = null;
+  goldenCopyGeneration++;
+
+  if (finished) {
     try {
-      await rm(goldenCopyPath, { recursive: true, force: true });
+      await rm(finished.path, { recursive: true, force: true });
       if (process.env.DEBUG_GOLDEN_COPY) {
-        console.log(`Golden copy cleaned up: ${goldenCopyPath}`);
+        console.log(`Golden copy cleaned up: ${finished.path}`);
       }
     } catch (error) {
       // Always log cleanup errors
       console.error(
-        `[GoldenCopy] ERROR: Failed to clean up golden copy at ${goldenCopyPath}. ` +
+        `[GoldenCopy] ERROR: Failed to clean up golden copy at ${finished.path}. ` +
           `This may cause disk space issues. ` +
           `Error: ${error instanceof Error ? error.message : String(error)}`
       );
     }
-    goldenCopyPath = null;
   }
-  initializationPromise = null;
-  initializationError = null;
 }
 
 /**
@@ -289,7 +467,7 @@ export async function cleanupGoldenCopy(): Promise<void> {
  * @returns The golden copy path if initialized, null otherwise
  */
 export function getGoldenCopyPath(): string | null {
-  return goldenCopyPath;
+  return goldenCopy?.path ?? null;
 }
 
 /**
@@ -298,79 +476,63 @@ export function getGoldenCopyPath(): string | null {
  * @returns true if golden copy has been initialized
  */
 export function isGoldenCopyInitialized(): boolean {
-  return goldenCopyPath !== null;
+  return goldenCopy !== null;
 }
 
 /**
- * Verify that filesystem operations are committed by checking key files exist
+ * Check that a folder holds a whole copy of the model: its manifest and the thirteen layer
+ * folders. One pass, no waiting and no retries: a copy that has resolved is either all there or
+ * it is not, and a missing file does not turn up later.
  *
- * This replaces the hardcoded 200ms delay with proper filesystem verification.
- * Checks that manifest and key directories exist and are accessible.
- *
- * @param path - Path to verify
- * @param maxRetries - Maximum number of retries with backoff
+ * @param path - Folder to check
  * @private
  */
-async function verifyFilesystemReady(path: string, maxRetries: number = 10): Promise<void> {
-  let lastError: Error | null = null;
+async function checkModelFolder(path: string): Promise<void> {
+  const modelDir = join(path, "documentation-robotics", "model");
+  const expected = [
+    "manifest.yaml",
+    "01_motivation",
+    "02_business",
+    "03_product",
+    "04_security",
+    "05_application",
+    "06_technology",
+    "07_api",
+    "08_data-model",
+    "09_data-store",
+    "10_ux",
+    "11_navigation",
+    "12_apm",
+    "13_testing",
+  ];
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  const missing: string[] = [];
+  for (const name of expected) {
     try {
-      // Check that the main path exists
-      await access(path);
-
-      // Check that manifest exists (key indicator of successful copy)
-      const manifestPath = join(path, "documentation-robotics", "model", "manifest.yaml");
-      await access(manifestPath);
-
-      // Check that key layer directories exist
-      // Verify that core layer directories are accessible
-      const layerDirs = [
-        "01_motivation",
-        "02_business",
-        "03_product",
-        "04_security",
-        "05_application",
-        "06_technology",
-        "07_api",
-        "08_data-model",
-        "09_data-store",
-        "10_ux",
-        "11_navigation",
-        "12_apm",
-        "13_testing",
-      ];
-
-      const modelDir = join(path, "documentation-robotics", "model");
-      for (const layerDir of layerDirs) {
-        const layerPath = join(modelDir, layerDir);
-        await access(layerPath);
-      }
-
-      // Add stability check: verify critical files are still accessible after a delay
-      // This catches race conditions where files become unavailable after the initial check
-      // occurs in concurrent test execution scenarios
-      // Use increased delay to allow filesystem to fully stabilize
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Re-check manifest again to ensure stability
-      // This prevents ENOENT errors that occur after Model.load() is called
-      await access(manifestPath);
-
-      // All checks passed, filesystem is ready
-      return;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      // Exponential backoff with jitter: 10ms, 20ms, 40ms, 80ms, etc.
-      const backoffMs = Math.min(10 * Math.pow(2, attempt), 500) + Math.random() * 100;
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      await access(join(modelDir, name));
+    } catch {
+      missing.push(name);
     }
   }
 
-  throw new Error(
-    `Filesystem verification failed after ${maxRetries} attempts. ` +
-      `Golden copy may not be properly initialized. ` +
-      `Last error: ${lastError?.message}`
-  );
+  if (missing.length > 0) {
+    throw new Error(`${modelDir} is missing ${missing.join(", ")}`);
+  }
+}
+
+/**
+ * Count the files and folders under a folder.
+ *
+ * @param dir - Folder to count
+ * @private
+ */
+async function countEntries(dir: string): Promise<number> {
+  let count = 0;
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    count += 1;
+    if (entry.isDirectory()) {
+      count += await countEntries(join(dir, entry.name));
+    }
+  }
+  return count;
 }
