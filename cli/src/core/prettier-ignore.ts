@@ -1,19 +1,23 @@
 /**
- * Keeps prettier away from the files dr writes: a project's model and its changesets.
+ * Keeps prettier away from the files dr writes: a project's `documentation-robotics/` folder.
  *
- * dr writes `documentation-robotics/model/` (the element files, relationships.yaml, the manifest)
- * and `documentation-robotics/changesets/` (changes.yaml, metadata.yaml, base-index.json) in its
- * own YAML layout. In a project that runs prettier (often as a pre-commit hook), prettier lays long
- * strings out differently, so each side undoes the other: a commit that touches one of these files
- * fails once while prettier rewrites it, and the next dr write puts every long string back (#1155
- * for changesets, #1246 for the model). Matching prettier's YAML layout isn't practical, so
- * `dr init`, `dr upgrade` and their MCP tools call {@link ensurePrettierIgnoresDrFiles}, which
- * lists both folders in `.prettierignore` when the project uses prettier.
+ * dr writes the model (the element files, relationships.yaml, the manifest), the changesets
+ * (changes.yaml, metadata.yaml, base-index.json) and the layer reports in its own layout. In a
+ * project that runs prettier (often as a pre-commit hook), prettier lays long strings out
+ * differently, so each side undoes the other: a commit that touches one of these files fails once
+ * while prettier rewrites it, and the next dr write puts every long string back (#1155 for
+ * changesets, #1246 for the model). prettier's target is a project's code and documentation, not
+ * its DR folder, so `dr init`, `dr upgrade` and their MCP tools call
+ * {@link ensurePrettierIgnoresDrFiles}, which lists the whole folder in `.prettierignore` when the
+ * project uses prettier.
+ *
+ * One entry for the folder, not one per sub-folder: everything in it is written by dr, a folder dr
+ * adds later is covered without another upgrade, and it is the entry a person would write.
  *
  * prettier reads `.prettierignore` from its working directory, which for hooks and CI is usually
  * the repository root. So the file is written at the git repository root when prettier is
  * configured there, else at the project root (the folder holding `documentation-robotics/`), and
- * the entries are relative to the folder the file is in.
+ * the entry is relative to the folder the file is in.
  */
 
 import { spawnSync } from "node:child_process";
@@ -22,19 +26,13 @@ import { readdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import yaml from "yaml";
 
-/** The changeset folder, relative to the project root. */
-export const CHANGESETS_FOLDER = "documentation-robotics/changesets";
+/** The folder dr writes, relative to the project root. */
+export const DR_FOLDER = "documentation-robotics";
 
-/** The model folder, relative to the project root. */
-export const MODEL_FOLDER = "documentation-robotics/model";
+/** The comment DR writes above the line it adds. */
+const HEADING = "# Documentation Robotics: dr writes the files in this folder in its own layout";
 
-/** The folders dr writes in its own layout, in the order they are listed. */
-export const DR_WRITTEN_FOLDERS = [CHANGESETS_FOLDER, MODEL_FOLDER] as const;
-
-/** The comment DR writes above the lines it adds. */
-const HEADING = "# Documentation Robotics: dr writes its model and changeset files in its own layout";
-
-/** The comment DR wrote before it listed the model folder (#1155); replaced by {@link HEADING}. */
+/** The comment dr 0.6.0 wrote above the changesets folder alone (#1155); replaced by {@link HEADING}. */
 const EARLIER_HEADING = "# Documentation Robotics: dr writes its changeset files in its own layout";
 
 /** prettier's config file names (https://prettier.io/docs/configuration). */
@@ -42,20 +40,24 @@ const CONFIG_FILE = /^(\.prettierrc(\.(json|json5|ya?ml|toml|[cm]?[jt]s))?|prett
 
 export interface PrettierIgnoreResult {
   /**
-   * `added`: this call added the entries the file lacked (creating the file when needed);
-   * `present`: the file already ignores both folders (each by its entry or a parent folder);
-   * `not-using-prettier`: no sign of prettier at the project or repository root, nothing written;
-   * `missing`: with `dryRun`, entries would be added, nothing written.
+   * `added`: this call added the entry (creating the file when needed); `present`: the file
+   * already ignores the folder (by its entry or a folder above it); `not-using-prettier`: no sign
+   * of prettier at the project or repository root, nothing written; `missing`: with `dryRun`, the
+   * entry would be added, nothing written.
    */
   status: "added" | "present" | "not-using-prettier" | "missing";
   /** The `.prettierignore` written or checked; unset when the project doesn't use prettier. */
   path?: string;
   /**
-   * The folders as the ignore file names them, relative to the file's folder: the ones this call
-   * added (`added`), would add (`missing`), or all of them (`present`). Unset when the project
-   * doesn't use prettier.
+   * The folder as the ignore file names it, relative to the file's folder, in a list so a result
+   * reads the same whether one line was added or more. Unset when the project doesn't use prettier.
    */
   entries?: string[];
+  /**
+   * DR's own narrower entries that the folder entry replaced: the changesets line dr 0.6.0 wrote
+   * under its heading. Never a line the developer wrote.
+   */
+  replaced?: string[];
   /** What showed prettier is in use, e.g. `.prettierrc.json`, `package.json devDependencies`. */
   signals: string[];
 }
@@ -152,13 +154,12 @@ function covers(line: string, folder: string): boolean {
 }
 
 /**
- * List the folders dr writes (the model and the changesets) in `.prettierignore` when the project
- * uses prettier. Looks for prettier at the git repository root (when the project is in one) and at
- * the project root, writes at the first that has it, and adds
- * `<relative path>/documentation-robotics/changesets/` and `.../model/` unless a line already
- * ignores that folder or a folder above it. A file that already has DR's block (from a dr that
- * listed only the changesets) gets the missing entry inside that block. Never removes or rewrites
- * the developer's lines.
+ * List the folder dr writes in `.prettierignore` when the project uses prettier. Looks for prettier
+ * at the git repository root (when the project is in one) and at the project root, writes at the
+ * first that has it, and adds `<relative path>/documentation-robotics/` unless a line already
+ * ignores that folder or a folder above it. A file that has the block dr 0.6.0 wrote (its heading
+ * and the changesets folder) gets that block replaced by the folder entry. A line the developer
+ * wrote is never removed or rewritten.
  */
 export async function ensurePrettierIgnoresDrFiles(
   projectRoot: string,
@@ -192,27 +193,31 @@ export async function ensurePrettierIgnoresDrFiles(
   if (!chosen) return { status: "not-using-prettier", signals: [] };
   const { root, prefix } = chosen;
 
-  const folders = DR_WRITTEN_FOLDERS.map((folder) => path.join(prefix, folder).split(path.sep).join("/"));
+  const folder = path.join(prefix, DR_FOLDER).split(path.sep).join("/");
+  const entries = [`${folder}/`];
   const file = path.join(root, ".prettierignore");
   const text = (await readText(file)) ?? "";
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const lines = text.split(/\r?\n/);
 
-  const patterns = lines.map((line) => line.trim()).filter((line) => line && !line.startsWith("#") && !line.startsWith("!"));
-  const missing = folders.filter((folder) => !patterns.some((line) => covers(line, folder)));
-  if (missing.length === 0) return { status: "present", path: file, entries: folders.map((folder) => `${folder}/`), signals };
-  const entries = missing.map((folder) => `${folder}/`);
+  const isPattern = (line: string) => line !== "" && !line.startsWith("#") && !line.startsWith("!");
+  if (lines.map((line) => line.trim()).some((line) => isPattern(line) && covers(line, folder))) {
+    return { status: "present", path: file, entries, signals };
+  }
   if (options.dryRun) return { status: "missing", path: file, entries, signals };
 
-  // DR's own block, when an earlier dr wrote one: its heading, then the entries under it
-  const heading = lines.findIndex((line) => line.trim() === HEADING || line.trim() === EARLIER_HEADING);
+  // The block an earlier dr wrote: its heading, then its entries for folders inside this one.
+  // Those lines are dr's own, so the folder entry takes their place.
+  const heading = lines.findIndex((line) => line.trim() === EARLIER_HEADING || line.trim() === HEADING);
   if (heading !== -1) {
     let end = heading + 1;
-    while (end < lines.length && folders.some((folder) => covers(lines[end].trim(), folder))) end++;
-    lines[heading] = HEADING;
-    lines.splice(end, 0, ...entries);
+    while (end < lines.length && isPattern(lines[end].trim()) && patternFolder(lines[end].trim()).startsWith(`${folder}/`)) {
+      end++;
+    }
+    const replaced = lines.slice(heading + 1, end).map((line) => line.trim());
+    lines.splice(heading, end - heading, HEADING, ...entries);
     await writeFile(file, lines.join(eol), "utf-8");
-    return { status: "added", path: file, entries, signals };
+    return { status: "added", path: file, entries, ...(replaced.length > 0 ? { replaced } : {}), signals };
   }
 
   const separator = text === "" || text.endsWith(`${eol}${eol}`) ? "" : text.endsWith(eol) ? eol : `${eol}${eol}`;
@@ -239,8 +244,9 @@ export function prettierIgnoreNote(result: PrettierIgnoreResult, relativeTo?: st
     ? path.join(path.relative(resolved(relativeTo), resolved(path.dirname(result.path))), path.basename(result.path))
     : result.path;
   const file = inside.startsWith("..") || path.isAbsolute(inside) ? result.path : inside;
-  return `Added ${result.entries.join(" and ")} to ${file} so prettier doesn't reformat the files dr writes (commit the .prettierignore change)`;
+  const inPlaceOf = result.replaced?.length ? `, in place of ${result.replaced.join(" and ")}` : "";
+  return `Added ${result.entries.join(" and ")} to ${file}${inPlaceOf} so prettier doesn't reformat the files dr writes (commit the .prettierignore change)`;
 }
 
 /** What to tell the user to add by hand when the file could not be written. */
-export const PRETTIER_IGNORE_BY_HAND = DR_WRITTEN_FOLDERS.map((folder) => `${folder}/`).join(" and ");
+export const PRETTIER_IGNORE_BY_HAND = `${DR_FOLDER}/`;

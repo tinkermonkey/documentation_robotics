@@ -23,16 +23,16 @@ describe('init command', () => {
     }
   });
 
-  it('adds the changesets and model folders to .prettierignore when the project uses prettier, and says so (#1155, #1246)', async () => {
+  it('adds the documentation-robotics folder to .prettierignore when the project uses prettier, and says so (#1155, #1246)', async () => {
     const { runDr } = await import('../helpers/cli-runner.js');
     await fs.writeFile(path.join(tempDir, 'package.json'), JSON.stringify({ devDependencies: { prettier: '^3.0.0' } }));
 
     const result = await runDr(['init', '--name', 'Pretty Project'], { cwd: tempDir });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('Added documentation-robotics/changesets/ and documentation-robotics/model/ to .prettierignore');
+    expect(result.stdout).toContain('Added documentation-robotics/ to .prettierignore');
     expect(await fs.readFile(path.join(tempDir, '.prettierignore'), 'utf-8')).toContain(
-      'documentation-robotics/changesets/\ndocumentation-robotics/model/\n'
+      'documentation-robotics/\n'
     );
   });
 

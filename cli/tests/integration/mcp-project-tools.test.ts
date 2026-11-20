@@ -333,7 +333,7 @@ describe("project_upgrade over MCP", () => {
     expect(result.body.prettierignore).toBeUndefined();
   }, 60000);
 
-  it("gives a model already at the current spec the .prettierignore entries: the preview says so, apply adds them (#1155, #1246)", async () => {
+  it("gives a model already at the current spec the .prettierignore entry: the preview says so, apply adds it (#1155, #1246)", async () => {
     const project = join(testDir, "current-pretty");
     await mkdir(project, { recursive: true });
     await runDr(["init", "--name", "Current Pretty"], { cwd: project });
@@ -345,7 +345,7 @@ describe("project_upgrade over MCP", () => {
     expect(preview.body.status).toBe("up-to-date");
     expect(preview.body.prettierignore).toEqual({
       path: expect.stringMatching(/current-pretty\/\.prettierignore$/),
-      missing: ["documentation-robotics/changesets/", "documentation-robotics/model/"],
+      missing: ["documentation-robotics/"],
     });
     expect(preview.body.next).toContain("apply: true");
     expect(await readFile(join(project, ".prettierignore"), "utf8").catch(() => null)).toBeNull();
@@ -354,10 +354,10 @@ describe("project_upgrade over MCP", () => {
     expect(applied.body.status).toBe("up-to-date");
     expect(applied.body.prettierignore).toEqual({
       path: expect.stringMatching(/current-pretty\/\.prettierignore$/),
-      added: ["documentation-robotics/changesets/", "documentation-robotics/model/"],
+      added: ["documentation-robotics/"],
     });
     expect(await readFile(join(project, ".prettierignore"), "utf8")).toContain(
-      "documentation-robotics/changesets/\ndocumentation-robotics/model/\n"
+      "documentation-robotics/\n"
     );
     // Nothing left to add: the next preview has nothing to say about it
     const again = await callTool(state, "project_upgrade");

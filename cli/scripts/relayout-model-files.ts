@@ -2,7 +2,7 @@
  * Lay a model's element files out as dr writes them, data unchanged.
  *
  * dr and prettier lay long YAML strings out differently (#1246). Once a project lists
- * `documentation-robotics/model/` in `.prettierignore` (dr init and dr upgrade add it), each
+ * `documentation-robotics/` in `.prettierignore` (dr init and dr upgrade add it), each
  * element file settles into dr's layout the first time dr writes a real change to it, and that
  * one commit mixes the change with a re-layout of the whole file. Running this once, in a commit
  * of its own, takes that noise out of every later diff. dr itself can't do it: its writer leaves a

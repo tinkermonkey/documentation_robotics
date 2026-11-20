@@ -41,7 +41,7 @@ import {
   type OutsideModel,
 } from "../core/upgrade-outside-model.js";
 import type { UpgradeFills } from "../core/upgrade-fills.js";
-import { largeFileHook, largeFileHookNote } from "../core/commit-size-hook.js";
+import { commitHookNotes } from "../core/commit-hooks.js";
 import { formatRoutes, type UpgradeDropRecord } from "../core/upgrade-drop-record.js";
 import {
   summarizeRelationshipChanges,
@@ -327,6 +327,8 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
       if (!options.dryRun && !options.modelOnly) {
         await applyOutsideModel(projectRoot, options, context);
         await printCommitHookNote(projectRoot, options);
+      } else if (options.dryRun) {
+        printScannedHookNotes(context, options);
       }
       return;
     }
@@ -433,6 +435,7 @@ async function handleUpgrade(
 
   // Handle dry-run mode
   if (options.dryRun) {
+    printScannedHookNotes(context, options);
     console.log(ansis.yellow("[DRY RUN] No changes will be made\n"));
     if (parentSpan) {
       parentSpan.setAttribute("upgrade.dry_run_completed", true);
@@ -651,8 +654,8 @@ async function keepDotDrOutOfGit(projectRoot: string, options: UpgradeOptions): 
 }
 
 /**
- * dr writes model and changeset files in its own layout: when the project uses prettier, list
- * both folders in .prettierignore so prettier doesn't reformat them (#1155, #1246).
+ * dr writes the files in documentation-robotics/ in its own layout: when the project uses
+ * prettier, list the folder in .prettierignore so prettier doesn't reformat them (#1155, #1246).
  */
 async function keepPrettierOffDrFiles(projectRoot: string): Promise<void> {
   try {
@@ -699,13 +702,18 @@ async function offerStaleRemoval(options: UpgradeOptions, integrations: Integrat
   }
 }
 
-/** What the project's large-file commit hook would do to the files dr writes; dr changes nothing */
+/** In a dry run: the commit hook notes the scan found (the run itself prints them at its end) */
+function printScannedHookNotes(context: OutsideContext, options: UpgradeOptions): void {
+  if (options.modelOnly) return;
+  for (const note of context.outside.commitHooks ?? []) {
+    console.log(ansis.yellow(`⚠ ${note}\n`));
+  }
+}
+
+/** What the project's commit hooks would do to a commit of the files dr writes; dr changes nothing */
 async function printCommitHookNote(projectRoot: string, options: UpgradeOptions): Promise<void> {
-  try {
-    const note = largeFileHookNote(await largeFileHook(projectRoot), { full: options.full });
-    if (note) console.log(ansis.yellow(`⚠ ${note}\n`));
-  } catch {
-    // The note is advice: a config that can't be read says nothing
+  for (const note of await commitHookNotes(projectRoot, { full: options.full })) {
+    console.log(ansis.yellow(`⚠ ${note}\n`));
   }
 }
 

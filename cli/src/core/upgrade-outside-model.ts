@@ -8,14 +8,14 @@
  * anything is written, grouped by what it is, and `--model-only` leaves them all out.
  *
  * {@link scanOutsideModel} gathers the groups both `dr upgrade` and the `project_upgrade` MCP tool
- * report (the spec reference, reports, the two ignore files, the commit hook note);
+ * report (the spec reference, reports, the two ignore files, the commit hook notes);
  * `dr upgrade` adds the integrations, which the MCP tool leaves alone. Nothing here writes.
  */
 
 import path from "node:path";
 import { ensureDotDrIgnored, DOT_DR_IGNORE_LINE, type DotDrDecision, type DotDrTrackedChoice } from "./dot-dr-ignore.js";
 import { ensurePrettierIgnoresDrFiles } from "./prettier-ignore.js";
-import { largeFileHook, largeFileHookNote } from "./commit-size-hook.js";
+import { commitHookNotes } from "./commit-hooks.js";
 import type { UpgradeScan } from "./upgrade-plan.js";
 import type { IntegrationUpgradePlan } from "../integrations/base-manager.js";
 import { hasLayerReports } from "../commands/reports.js";
@@ -40,8 +40,8 @@ export interface OutsideModel {
   gitignore?: { path: string; add?: string[]; decision?: DotDrDecision };
   /** `.prettierignore`: the entries the upgrade would add */
   prettierignore?: { path: string; add: string[] };
-  /** What the project's large-file commit hook would do to the files dr writes; dr changes nothing */
-  commitHook?: string;
+  /** What the project's commit hooks would do to a commit of the files dr writes; dr changes nothing */
+  commitHooks?: string[];
   /** Checks that failed; the upgrade goes on without them */
   errors: string[];
 }
@@ -101,12 +101,8 @@ export async function scanOutsideModel(
     outside.errors.push(`Could not check .prettierignore: ${getErrorMessage(error)}`);
   }
 
-  try {
-    const note = largeFileHookNote(await largeFileHook(projectRoot));
-    if (note) outside.commitHook = note;
-  } catch (error) {
-    outside.errors.push(`Could not check the pre-commit configuration: ${getErrorMessage(error)}`);
-  }
+  const hookNotes = await commitHookNotes(projectRoot);
+  if (hookNotes.length > 0) outside.commitHooks = hookNotes;
 
   return outside;
 }

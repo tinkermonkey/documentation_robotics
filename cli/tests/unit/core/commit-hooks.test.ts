@@ -1,8 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { excludePattern, largeFileHook, largeFileHookNote } from "../../../src/core/commit-size-hook.js";
+import {
+  commitHookNotes,
+  excludePattern,
+  largeFileHook,
+  largeFileHookNote,
+  prettierHook,
+  prettierHookNote,
+} from "../../../src/core/commit-hooks.js";
 
 async function withProject(test: (dir: string) => Promise<void>): Promise<void> {
   const dir = await mkdtemp(path.join(tmpdir(), "dr-size-hook-"));
@@ -131,5 +138,74 @@ describe("largeFileHook", () => {
     expect(excludePattern("^docs/")!.test("src/docs/x")).toBe(false);
     expect(excludePattern("(?P<name>x")).toBeNull();
     expect(excludePattern(undefined)).toBeNull();
+  });
+});
+
+describe("prettierHook", () => {
+  const prettier = (extra: string = "") =>
+    `repos:\n  - repo: https://github.com/pre-commit/mirrors-prettier\n    rev: v4.0.0-alpha.8\n    hooks:\n      - id: prettier\n        types_or: [markdown, yaml, json]\n${extra}`;
+
+  it("is null without a prettier hook", async () => {
+    await withProject(async (dir) => {
+      expect(await prettierHook(dir)).toBeNull();
+      await writeFile(path.join(dir, ".pre-commit-config.yaml"), config("      - id: check-added-large-files\n"), "utf-8");
+      expect(await prettierHook(dir)).toBeNull();
+      expect(prettierHookNote(null)).toBeNull();
+    });
+  });
+
+  it("says when the hook is still passed the files dr writes, with the exclude to add", async () => {
+    await withProject(async (dir) => {
+      // An exclude for other things doesn't cover the DR folder
+      const text = prettier("        exclude: ^(CHANGELOG\\.md|vendor/)\n");
+      await writeFile(path.join(dir, ".pre-commit-config.yaml"), text, "utf-8");
+      const hook = await prettierHook(dir);
+      expect(hook).toMatchObject({ folder: "documentation-robotics", skipsDrFiles: false });
+      const note = prettierHookNote(hook)!;
+      expect(note).toContain("prettier pre-commit hook is passed the files dr writes under documentation-robotics/");
+      expect(note).toContain("a commit that holds only those files can then fail the hook");
+      expect(note).toContain("exclude: ^documentation-robotics/");
+      expect(note).toContain("dr does not edit hook configuration");
+      expect(await commitHookNotes(dir)).toEqual([note]);
+      // Nothing was edited
+      expect(await readFile(path.join(dir, ".pre-commit-config.yaml"), "utf-8")).toBe(text);
+    });
+  });
+
+  it("has nothing to say once the hook, or the whole config, excludes the folder", async () => {
+    await withProject(async (dir) => {
+      for (const text of [
+        prettier("        exclude: ^(CHANGELOG\\.md|documentation-robotics/)\n"),
+        `exclude: ^documentation-robotics/\n${prettier()}`,
+        // Only code is passed to it
+        prettier("        files: ^src/\n"),
+      ]) {
+        await writeFile(path.join(dir, ".pre-commit-config.yaml"), text, "utf-8");
+        expect(await prettierHook(dir)).toMatchObject({ skipsDrFiles: true });
+        expect(await commitHookNotes(dir)).toEqual([]);
+      }
+      // Excluding the changesets alone still hands it the model
+      await writeFile(
+        path.join(dir, ".pre-commit-config.yaml"),
+        prettier("        exclude: ^documentation-robotics/changesets/\n"),
+        "utf-8"
+      );
+      expect(await prettierHook(dir)).toMatchObject({ skipsDrFiles: false });
+    });
+  });
+
+  it("finds a locally defined prettier hook by its entry, and gives both notes when both hooks apply", async () => {
+    await withProject(async (dir) => {
+      await writeFile(
+        path.join(dir, ".pre-commit-config.yaml"),
+        "repos:\n  - repo: local\n    hooks:\n      - id: format\n        entry: npx prettier --write\n        language: system\n" +
+          "  - repo: https://github.com/pre-commit/pre-commit-hooks\n    hooks:\n      - id: check-added-large-files\n",
+        "utf-8"
+      );
+      const notes = await commitHookNotes(dir);
+      expect(notes).toHaveLength(2);
+      expect(notes[0]).toContain("prettier pre-commit hook");
+      expect(notes[1]).toContain("check-added-large-files pre-commit hook refuses a new file over 500 KB");
+    });
   });
 });

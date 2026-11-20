@@ -87,16 +87,16 @@ describe("project_init", () => {
     expect(body.prettierignore).toBeUndefined();
   });
 
-  it("adds the changesets and model folders to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
+  it("adds the documentation-robotics folder to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
     await writeFile(join(dir, "package.json"), JSON.stringify({ devDependencies: { prettier: "^3.0.0" } }), "utf8");
     const body = parse(await projectInitHandler({ name: "Pretty", rootPath: dir }));
     expect(body.status).toBe("created");
     expect(body.prettierignore).toEqual({
       path: join(dir, ".prettierignore"),
-      added: ["documentation-robotics/changesets/", "documentation-robotics/model/"],
+      added: ["documentation-robotics/"],
     });
     expect(await readFile(join(dir, ".prettierignore"), "utf8")).toContain(
-      "documentation-robotics/changesets/\ndocumentation-robotics/model/\n"
+      "documentation-robotics/\n"
     );
   });
 
@@ -242,7 +242,7 @@ describe("project_upgrade review fixes", () => {
     expect(await specVersionOf(dir)).toBe(getCliBundledSpecVersion());
   });
 
-  it("adds the changesets and model folders to .prettierignore on apply when the project uses prettier (#1155, #1246)", async () => {
+  it("adds the documentation-robotics folder to .prettierignore on apply when the project uses prettier (#1155, #1246)", async () => {
     await Model.init(dir, { name: "Pretty", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
     await setSpecVersion(dir, "0.4.0");
     await writeFile(join(dir, ".prettierrc.json"), "{}", "utf8");
@@ -255,7 +255,7 @@ describe("project_upgrade review fixes", () => {
     expect(applied.status).toBe("applied");
     expect(applied.prettierignore).toEqual({
       path: join(dir, ".prettierignore"),
-      added: ["documentation-robotics/changesets/", "documentation-robotics/model/"],
+      added: ["documentation-robotics/"],
     });
   });
 
@@ -597,10 +597,7 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     await rm(join(dir, ".gitignore"), { force: true });
 
     const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
-    expect(preview.outsideModel.prettierignore.add).toEqual([
-      "documentation-robotics/changesets/",
-      "documentation-robotics/model/",
-    ]);
+    expect(preview.outsideModel.prettierignore.add).toEqual(["documentation-robotics/"]);
     expect(preview.outsideModel.reports.generate).toHaveLength(2);
     expect(preview.outsideModel.gitignore).toEqual({ path: ".gitignore", add: ["/.dr/"] });
 

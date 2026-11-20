@@ -36,7 +36,7 @@ import {
   type DotDrIgnoreResult,
 } from "../../core/dot-dr-ignore.js";
 import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles } from "../../core/prettier-ignore.js";
-import { largeFileHook, largeFileHookNote } from "../../core/commit-size-hook.js";
+import { commitHookNotes } from "../../core/commit-hooks.js";
 import { scanOutsideModel } from "../../core/upgrade-outside-model.js";
 import {
   countFiles,
@@ -245,7 +245,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       logToStderr(`after project_init, loading the new model failed: ${getErrorMessage(error)}`);
     }
 
-    const commitHook = await commitHookNote(root);
+    const commitHooks = await hookNotes(root);
     const initWarnings = [
       ...(result.reportError !== undefined ? [`Layer reports and README were not generated: ${result.reportError}`] : []),
       ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),
@@ -260,7 +260,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
       ...(result.prettierignoreError !== undefined
         ? [`.prettierignore was not updated: ${result.prettierignoreError}. Ask the user to add ${PRETTIER_IGNORE_BY_HAND} to it.`]
         : []),
-      ...(commitHook ? [commitHook] : []),
+      ...commitHooks,
     ];
 
     return jsonResult({
@@ -285,7 +285,7 @@ export async function projectInitHandler(args: ProjectInitArgs): Promise<CallToo
 export const projectInitTool: McpToolDefinition<typeof initInputSchema> = {
   name: "project_init",
   description:
-    "Create an empty DR model at the current spec version in the project folder (documentation-robotics/), with its spec reference (.dr/) and layer reports. Before calling it, propose a name (usually the project's) and confirm it with the user. Fails if the folder already has a model. Installs no integration files. Lists the model and changesets folders in .prettierignore when the project uses prettier, and warns when a large-file commit hook would refuse a changeset's changes.yaml.",
+    "Create an empty DR model at the current spec version in the project folder (documentation-robotics/), with its spec reference (.dr/) and layer reports. Before calling it, propose a name (usually the project's) and confirm it with the user. Fails if the folder already has a model. Installs no integration files. Lists documentation-robotics/ in .prettierignore when the project uses prettier, and warns when a commit hook would get in the way of committing dr's files (a large-file hook that would refuse a changeset's changes.yaml, a prettier hook that still receives the folder).",
   inputSchema: initInputSchema,
   handler: projectInitHandler,
 };
@@ -391,13 +391,9 @@ function filesChanged(before: Map<string, string>, after: Map<string, string>) {
   };
 }
 
-/** What the project's large-file commit hook would do to the files dr writes; null when nothing. */
-async function commitHookNote(projectRoot: string): Promise<string | null> {
-  try {
-    return largeFileHookNote(await largeFileHook(projectRoot), { full: wantsFull() });
-  } catch {
-    return null;
-  }
+/** What the project's commit hooks would do to a commit of the files dr writes; empty when nothing. */
+function hookNotes(projectRoot: string): Promise<string[]> {
+  return commitHookNotes(projectRoot, { full: wantsFull() });
 }
 
 /** How many derived values are listed by default; see {@link capped}. The changeset holds them all. */
@@ -856,7 +852,7 @@ async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
         }
       : {}),
     ...(decision ? { gitignore: decision } : {}),
-    ...(outside.commitHook ? { commitHook: outside.commitHook } : {}),
+    ...(outside.commitHooks ? { commitHooks: outside.commitHooks } : {}),
     ...(outside.errors.length > 0 ? { outsideModelErrors: outside.errors } : {}),
   };
 }
@@ -976,7 +972,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
         ...gitignore,
         ...prettierignore,
-        ...(outside.commitHook && !args.modelOnly ? { commitHook: outside.commitHook } : {}),
+        ...(outside.commitHooks && !args.modelOnly ? { commitHooks: outside.commitHooks } : {}),
         ...(warnings.length > 0 ? { warnings } : {}),
         ...(pending.length > 0 || decisionOpen
           ? {
@@ -1105,7 +1101,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         );
       }
     }
-    const commitHook = args.modelOnly ? null : await commitHookNote(projectRoot);
+    const commitHooks = args.modelOnly ? [] : await hookNotes(projectRoot);
 
     // The migration is on disk from here: a failure in the follow-up steps is reported with it.
     try {
@@ -1130,7 +1126,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...reports,
-          ...(commitHook ? { commitHook } : {}),
+          ...(commitHooks.length > 0 ? { commitHooks } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsNote(projectRoot)),
           ...(decisionOpen
@@ -1162,7 +1158,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what a large-file commit hook would refuse (commitHook). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

@@ -45,15 +45,18 @@ removes it (#1218).
 
 Changeset and model files are committed with the code, and dr writes them in its own layout, which
 prettier would reformat on every commit; dr would then lay them out its own way again on its next
-write (issue 1246). So when the project uses prettier (a prettier config file, a `prettier` key or
-dependency in `package.json`, or a prettier pre-commit hook, at the git repository root or the
-project root), `project_init`, `project_upgrade` with `apply`, `dr init` and `dr upgrade` add
-`documentation-robotics/changesets/` and `documentation-robotics/model/` to that root's
-`.prettierignore` and say so (`prettierignore` in the tools' results). A model write also leaves a
-file alone when its data would not change, whatever layout it is in, so a change to one element
-type's file is not a diff across the layer. The same four say when the repository's
-`check-added-large-files` pre-commit hook would refuse a file dr writes (a bootstrap's
-`changes.yaml` runs to several MB), and leave the hook configuration to the user.
+write (issue 1246). prettier's target is a project's code and documentation, not its DR folder. So
+when the project uses prettier (a prettier config file, a `prettier` key or dependency in
+`package.json`, or a prettier pre-commit hook, at the git repository root or the project root),
+`project_init`, `project_upgrade` with `apply`, `dr init` and `dr upgrade` add
+`documentation-robotics/` to that root's `.prettierignore` and say so (`prettierignore` in the
+tools' results), in place of the changesets line dr 0.6.0 wrote. A model write also leaves a file
+alone when its data would not change, whatever layout it is in, so a change to one element type's
+file is not a diff across the layer. The same four say when a pre-commit hook would get in the way
+of committing dr's files (`commitHooks` in the tools' results): a prettier hook whose `exclude`
+does not cover the folder, which can fail a commit that holds only ignored files, and a
+`check-added-large-files` hook that would refuse a large `changes.yaml`. They give the line to add
+and leave the hook configuration to the user.
 
 Status: _existing_ predates change modeling; _slice 1_ is the first slice of change-modeling tools;
 _slice 2_ is the second (changeset CRUD, verify, DrBot on MCP); _gateway_ is the MCP gateway, which

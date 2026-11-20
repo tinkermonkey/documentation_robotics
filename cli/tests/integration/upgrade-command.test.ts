@@ -447,7 +447,7 @@ describe("upgrade command - unified flow", () => {
       expect(updatedManifest.spec_version).toBe("0.14.0");
     });
 
-    it("adds the changesets and model folders to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
+    it("adds the documentation-robotics folder to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
       await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
       // A project that adopted prettier after its model was created.
       await writeFile(join(tempDir.path, ".prettierrc"), "{}\n");
@@ -456,14 +456,14 @@ describe("upgrade command - unified flow", () => {
       const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: tempDir.path });
       expect(dryRun.exitCode).toBe(0);
       // The dry run says it would, and doesn't
-      assertOutputContains(dryRun, "documentation-robotics/changesets/ and documentation-robotics/model/ to .prettierignore");
+      assertOutputContains(dryRun, "documentation-robotics/ to .prettierignore");
       expect(await fileExists(join(tempDir.path, ".prettierignore"))).toBe(false);
 
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(result.exitCode).toBe(0);
-      assertOutputContains(result, "Added documentation-robotics/changesets/ and documentation-robotics/model/ to .prettierignore");
+      assertOutputContains(result, "Added documentation-robotics/ to .prettierignore");
       expect(await readFile(join(tempDir.path, ".prettierignore"), "utf-8")).toContain(
-        "documentation-robotics/changesets/\ndocumentation-robotics/model/\n"
+        "documentation-robotics/\n"
       );
 
       // Already listed: the next run neither adds it again nor reports it.
@@ -1414,7 +1414,7 @@ describe("upgrade command - unified flow", () => {
       assertOutputContains(dryRun, "stale     .github/skills/dr_layer_02_business/");
       assertOutputContains(dryRun, "Reports (none yet)");
       assertOutputContains(dryRun, "generate  documentation-robotics/README.md");
-      assertOutputContains(dryRun, "documentation-robotics/model/ to .prettierignore");
+      assertOutputContains(dryRun, "documentation-robotics/ to .prettierignore");
       assertOutputContains(dryRun, "--model-only leaves all of these alone");
       expect(git(tempDir.path, "status", "--short").trim()).toBe("");
 
@@ -1592,6 +1592,34 @@ describe("upgrade command - unified flow", () => {
       );
       const quiet = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(quiet.stdout).not.toContain("check-added-large-files");
+    });
+
+    it("says when a prettier commit hook still receives dr's files, and is quiet once the hook excludes the folder", async () => {
+      await runDr(["init", "--name", "Test Model"], { cwd: tempDir.path });
+      const hook =
+        "repos:\n  - repo: https://github.com/pre-commit/mirrors-prettier\n    rev: v4.0.0-alpha.8\n    hooks:\n      - id: prettier\n        types_or: [markdown, yaml, json]\n";
+      await writeFile(join(tempDir.path, ".pre-commit-config.yaml"), hook);
+
+      const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(result.exitCode).toBe(0);
+      // The hook is the sign of prettier, so the folder is ignored...
+      assertOutputContains(result, "Added documentation-robotics/ to .prettierignore");
+      // ...and the hook itself still needs the exclude, which dr names and does not write
+      assertOutputContains(result, "prettier pre-commit hook is passed the files dr writes under documentation-robotics/");
+      assertOutputContains(result, "exclude: ^documentation-robotics/");
+      expect(await readFile(join(tempDir.path, ".pre-commit-config.yaml"), "utf-8")).toBe(hook);
+
+      // As this repository has it: the hook excludes the folder and .prettierignore lists it
+      await writeFile(
+        join(tempDir.path, ".pre-commit-config.yaml"),
+        `${hook}        exclude: ^(CHANGELOG\\.md|documentation-robotics/)\n`
+      );
+      const before = await readFile(join(tempDir.path, ".prettierignore"), "utf-8");
+      const quiet = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
+      expect(quiet.exitCode).toBe(0);
+      expect(quiet.stdout).not.toContain("pre-commit hook");
+      expect(quiet.stdout).not.toContain(".prettierignore");
+      expect(await readFile(join(tempDir.path, ".prettierignore"), "utf-8")).toBe(before);
     });
   });
 });

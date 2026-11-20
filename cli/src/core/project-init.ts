@@ -41,7 +41,7 @@ export interface ProjectInitResult {
   gitignore?: DotDrIgnoreResult;
   /** Set when `.gitignore` could not be read or written. Not fatal: the model was created. */
   gitignoreError?: string;
-  /** Whether the model and changesets folders were added to `.prettierignore`; unset when that failed (prettierignoreError). */
+  /** Whether `documentation-robotics/` was added to `.prettierignore`; unset when that failed (prettierignoreError). */
   prettierignore?: PrettierIgnoreResult;
   /** Set when `.prettierignore` could not be read or written. Not fatal: the model was created. */
   prettierignoreError?: string;

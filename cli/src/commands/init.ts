@@ -9,7 +9,7 @@ import { getCliBundledSpecVersion } from "../utils/spec-version.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { dotDrDecisionLines, dotDrIgnoreNotes, dotDrIgnoreWarnings } from "../core/dot-dr-ignore.js";
-import { largeFileHook, largeFileHookNote } from "../core/commit-size-hook.js";
+import { commitHookNotes } from "../core/commit-hooks.js";
 import { PRETTIER_IGNORE_BY_HAND, prettierIgnoreNote } from "../core/prettier-ignore.js";
 
 export interface InitOptions {
@@ -116,12 +116,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
       lines.slice(1).forEach((line) => console.warn(ansis.dim(line)));
       console.warn(ansis.dim("  Nothing was changed. Choose with: dr upgrade --dot-dr <untrack|keep-tracked|skip>"));
     }
-    // A large-file commit hook would refuse a big changeset: say so now, change nothing
-    try {
-      const hookNote = largeFileHookNote(await largeFileHook(rootPath));
-      if (hookNote) console.warn(ansis.yellow(`⚠ ${hookNote}`));
-    } catch {
-      // advice only
+    // A commit hook that would get in the way of committing dr's files: say so now, change nothing
+    for (const hookNote of await commitHookNotes(rootPath)) {
+      console.warn(ansis.yellow(`⚠ ${hookNote}`));
     }
     for (const warning of [
       ...(result.gitignore ? dotDrIgnoreWarnings(result.gitignore) : []),

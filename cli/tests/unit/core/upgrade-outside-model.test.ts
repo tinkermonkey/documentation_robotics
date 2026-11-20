@@ -63,9 +63,10 @@ describe("scanOutsideModel (#1165)", () => {
       expect(outside.gitignore).toEqual({ path: ".gitignore", add: ["/.dr/"] });
       expect(outside.prettierignore).toEqual({
         path: ".prettierignore",
-        add: ["documentation-robotics/changesets/", "documentation-robotics/model/"],
+        add: ["documentation-robotics/"],
       });
-      expect(outside.commitHook).toContain("refuses a new file over 500 KB");
+      expect(outside.commitHooks).toHaveLength(1);
+      expect(outside.commitHooks![0]).toContain("refuses a new file over 500 KB");
       expect(touchesOutsideModel(outside)).toBe(true);
 
       await expect(readFile(path.join(dir, ".gitignore"), "utf-8")).rejects.toThrow();
@@ -97,7 +98,7 @@ describe("outsideModelLines (#1165)", () => {
     specReference: { folder: ".dr/", description: "Install spec reference (v0.14.0): .dr/spec/ (15 files)" },
     reports: { files: ["documentation-robotics/reports/ (13 layer reports)", "documentation-robotics/README.md"] },
     gitignore: { path: ".gitignore", add: ["/.dr/"] },
-    prettierignore: { path: ".prettierignore", add: ["documentation-robotics/changesets/", "documentation-robotics/model/"] },
+    prettierignore: { path: ".prettierignore", add: ["documentation-robotics/"] },
     errors: [],
   };
 
@@ -114,7 +115,7 @@ describe("outsideModelLines (#1165)", () => {
     expect(text).toContain("--remove-stale");
     expect(text).toContain("  Reports (none yet)\n    generate  documentation-robotics/reports/ (13 layer reports)");
     expect(text).toContain("    add       /.dr/ to .gitignore");
-    expect(text).toContain("    add       documentation-robotics/changesets/ and documentation-robotics/model/ to .prettierignore");
+    expect(text).toContain("    add       documentation-robotics/ to .prettierignore");
   });
 
   it("shortens a long integration list by default, with the true count and the way to see it all", () => {
