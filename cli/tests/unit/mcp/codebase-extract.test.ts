@@ -1426,6 +1426,60 @@ describe("codebase_extract round-2 fixes (wave 3)", () => {
     expect(flags(added)).toEqual({ degree: true });
   });
 
+  it("a layers filter that hides every symbol says the answer covers those layers only", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const filtered = ok(await handler({ layers: ["motivation"], rootPath }));
+    expect(filtered.changeset).toBeNull();
+    expect(filtered.undecided.total).toBe(0);
+    expect(filtered.unchanged.outsideLayers).toBeGreaterThan(0);
+    expect(filtered.message).toContain("Nothing to stage");
+    expect(filtered.message).toContain("layer(s) asked for (motivation) only");
+    expect(filtered.message).toContain(`${filtered.unchanged.outsideLayers} symbol(s) belong to other layers`);
+
+    // Without the filter the same message is not qualified, once everything is staged.
+    ok(await handler({ changeset: "all-layers", rootPath }));
+    const whole = ok(await handler({ changeset: "all-layers", reject: [{ files: "src/**", reason: "decided" }], rootPath }));
+    expect(whole.notApplied).toBeUndefined();
+    const rerun = ok(await handler({ changeset: "all-layers", rootPath }));
+    expect(rerun.message ?? "").not.toContain("only");
+  });
+
+  it("#1178: a modelled module's own module node makes no ambiguous card on a rerun", async () => {
+    await indexed();
+    const h = harness();
+    // A module named after its main symbol, as the index reports a hook file.
+    const moduleFile = "src/apps/embedded/data/useModel.ts";
+    h.project.nodes.push(
+      { label: "Module", name: "useModel", qualified_name: `${P}.src.apps.embedded.data.useModel`, file_path: moduleFile, start_line: 1, end_line: 60, source: "" },
+      { label: "Function", name: "useModel", qualified_name: `${P}.src.apps.embedded.data.useModel.useModel`, file_path: moduleFile, start_line: 10, end_line: 50, source: "export function useModel() {}" }
+    );
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ pageSize: 50, rootPath }));
+    expect(first.undecided.items.filter((c: any) => c.file === moduleFile).map((c: any) => [c.label, c.symbol])).toEqual([["Function", "useModel"]]);
+
+    // The agent stages one element for the module, named after its main symbol.
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "useModel",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: moduleFile,
+        sourceSymbol: "useModel",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const rerun = ok(await handler({ pageSize: 50, rootPath }));
+    // Neither the function nor the file's module node comes back, as a card of any kind.
+    expect(rerun.undecided.items.filter((c: any) => c.file === moduleFile)).toEqual([]);
+    expect(rerun.undecided.items.filter((c: any) => c.kind === "ambiguous")).toEqual([]);
+    expect(rerun.undecided.items.find((c: any) => c.label === "Module")).toBeUndefined();
+  });
+
   it("review: shortens the other lists when they alone would pass the budget, and says so", async () => {
     await indexed();
     // 120 base elements whose files are gone: 120 candidate deletes, no cards to shrink.

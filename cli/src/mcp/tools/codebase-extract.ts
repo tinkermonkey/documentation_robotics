@@ -3082,7 +3082,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ? `${contradictedGaps.length} relationship(s) the code shows contradict an accepted gap and were not staged ` +
             "(acceptedGaps.contradicted): ask the user whether the decision is stale or the code drifted."
           : "";
-        const message = !hasWork
+        // A layers filter that left symbols out: "nothing to stage" is then about those layers only,
+        // and must not read as "the model is complete".
+        const outsideNote =
+          layers && plan.outsideLayers
+            ? ` This is for the layer(s) asked for (${layers.join(", ")}) only: ${plan.outsideLayers} symbol(s) belong to other layers and were left out ` +
+              "(unchanged.outsideLayers), so it says nothing about the rest of the model. A run without layers shows them (a changeset keeps its run's layers, so name another one if this run has one)."
+            : "";
+        const baseMessage = !hasWork
           ? verifyMode && !changeset
             ? contradiction
               ? `Nothing staged, but the code disagrees with the model: ${contradiction} No as-built changeset was created; ${previousActive ? `'${previousActive.name}' is still active.` : `the plan is '${recordedPrevious!.name}'.`}`
@@ -3099,6 +3106,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               `${changedCards ? ` (${changedCards} changed in the range)` : ""} and ${plan.candidateDeletes.length} candidate delete(s) are left for you to decide; ` +
               `to stage any, first call changeset_create with name: "${name}".`
             : undefined;
+        const message = baseMessage && !hasWork ? `${baseMessage}${outsideNote}` : baseMessage;
         return jsonResult(
           fitCards(cards.items, cards, (items, fit) => ({
             changeset: changesetRef ? { ...changesetRef, created, active, ...(changeset?.purpose ? { purpose: changeset.purpose } : {}) } : null,
