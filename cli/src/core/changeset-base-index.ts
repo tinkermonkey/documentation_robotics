@@ -24,7 +24,7 @@ import path from "node:path";
 import { fileExists } from "../utils/file-io.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { Changeset } from "./changeset.js";
-import { CONTENT_SNAPSHOT_PREFIX } from "./base-snapshot-manager.js";
+import { BaseSnapshotManager, CONTENT_SNAPSHOT_PREFIX, isContentSnapshot } from "./base-snapshot-manager.js";
 import { ChangesetGraph, elementFromRecord, relationshipKey, type GraphElement } from "./changeset-graph.js";
 import type { Model } from "./model.js";
 
@@ -145,8 +145,86 @@ export function overlapConsequence(
   }
 }
 
-/** How many ids each drift list carries before it is cut short (the counts stay exact). */
+/**
+ * How many entries each `baseChanges` list carries by default. A default, not a cut-off: pass
+ * `limit` and `offset` to `describeDrift` to read further or to read everything, and
+ * `baseChanges.page` says what was returned of what there is. The counts are always exact, and the
+ * overlaps (`overlapping`) are never shortened.
+ */
 export const DRIFT_LIST_LIMIT = 50;
+
+/** The names of the `baseChanges` lists, as `baseChanges.page.totals` keys them. */
+export type BaseChangeList =
+  | "elementsAdded"
+  | "elementsRemoved"
+  | "elementsChanged"
+  | "relationshipsAdded"
+  | "relationshipsRemoved";
+
+/**
+ * One read of the base model, shared by the drift checks of several changesets: its index, and its
+ * hash in each format, made once. Without it every check reads and hashes the base again, which
+ * is the cost of a list of changesets (#1227).
+ */
+export class BaseRead {
+  private fullSnapshot: Promise<string> | undefined;
+  /** The base's content snapshot (`BaseSnapshotManager.captureSnapshot`). */
+  readonly contentSnapshot: string;
+
+  private constructor(
+    private readonly model: Model,
+    /** The base as it is now, indexed. */
+    readonly index: BaseIndex
+  ) {
+    this.contentSnapshot = snapshotOfIndex(index);
+  }
+
+  static async of(model: Model): Promise<BaseRead> {
+    return new BaseRead(model, await captureBaseIndex(model));
+  }
+
+  /** The base's hash in the format `recorded` was made in (`BaseSnapshotManager.captureSnapshotLike`). */
+  async snapshotLike(recorded: string): Promise<string> {
+    if (isContentSnapshot(recorded)) return this.contentSnapshot;
+    this.fullSnapshot ??= new BaseSnapshotManager().captureFullSnapshot(this.model);
+    return this.fullSnapshot;
+  }
+}
+
+const NO_BASE_INDEX_WARNING =
+  "No base index was recorded for this changeset (it predates them), so what changed in the base cannot be " +
+  "listed beyond the staged changes it overlaps.";
+
+/**
+ * A description made before its reader knew the base had changed (`StagingAreaManager.detectDrift`
+ * describes to decide), as it reads once the base is known to have: drifted, and saying that a
+ * missing base index leaves the base changes unlisted, as `describeDrift` says when it is told.
+ */
+export function describedAsDrifted(described: ChangesetDrift): ChangesetDrift {
+  const missing = described.baseIndex === "not-recorded" && !described.warnings.includes(NO_BASE_INDEX_WARNING);
+  return {
+    ...described,
+    isDrifted: true,
+    warnings: missing ? [...described.warnings, NO_BASE_INDEX_WARNING] : described.warnings,
+  };
+}
+
+/** What `describeDrift` reads besides the changeset and the model. */
+export interface DescribeDriftOptions {
+  /** false leaves the one-line summary of `overlapping` out of `warnings`, for a reader that shows `overlapping` itself. */
+  overlapWarning?: boolean;
+  /** A read of the base to share with other changesets' checks; made here when absent. */
+  base?: BaseRead;
+  /** How many entries of each `baseChanges` list to return (default DRIFT_LIST_LIMIT; no upper bound). */
+  limit?: number;
+  /** Where in each `baseChanges` list to start (default 0). */
+  offset?: number;
+  /**
+   * Compare the base with this index instead of the one recorded for the changeset: what the
+   * drift would read if this were its base (a re-baseline's preview).
+   */
+  since?: BaseIndex;
+}
 
 export interface ChangesetDrift {
   /** Kept for compatibility: true when the base changed since the changeset was created. */
@@ -217,8 +295,20 @@ export interface ChangesetDrift {
      * ends of every relationship added or removed. Never cut, so it is whole when the lists are not.
      */
     layers: string[];
-    /** True when a list was cut at DRIFT_LIST_LIMIT entries. */
+    /** True when a list here is not the whole of it: read `page` for what there is and where to go on. */
     truncated: boolean;
+    /**
+     * What this page of the five lists holds. `totals` is each list's true length (as `counts`),
+     * `returned` what this page carries of each, and `nextOffset` the `offset` that continues the
+     * lists, absent when every list has been read to its end.
+     */
+    page: {
+      offset: number;
+      limit: number;
+      totals: Record<BaseChangeList, number>;
+      returned: Record<BaseChangeList, number>;
+      nextOffset?: number;
+    };
   };
 }
 
@@ -351,14 +441,14 @@ function parseKey(key: string): RelationshipRef {
  * with a base index, what was added, removed or changed in the base since the changeset was created.
  *
  * `graph` is the changeset's projected graph; `hash` is the hash-based drift check
- * (`StagingAreaManager.detectDrift`), when it ran. `overlapWarning: false` leaves the one-line
- * summary of `overlapping` out of `warnings`, for a reader that shows `overlapping` itself.
+ * (`StagingAreaManager.detectDrift`), when it ran. `overlapping` is always whole. The `baseChanges`
+ * lists are a page (`limit`, `offset`; see `baseChanges.page`), with exact counts whatever the page.
  */
 export async function describeDrift(
   model: Model,
   graph: ChangesetGraph,
   hash?: { isDrifted: boolean; warnings: string[]; baseSnapshotId?: string; currentSnapshotId?: string },
-  options: { overlapWarning?: boolean } = {}
+  options: DescribeDriftOptions = {}
 ): Promise<ChangesetDrift> {
   const changeset = graph.changeset;
   const warnings = [...(hash?.warnings ?? [])];
@@ -436,7 +526,7 @@ export async function describeDrift(
   // index: the change recorded the element as it found it. A change made on the base's current
   // content is current, whatever the base did before it was staged (#1239); one made on other
   // content would replace an edit the plan never saw, also after a re-baseline.
-  const now = indexFromGraph(await baseGraph(model));
+  const now = options.base?.index ?? indexFromGraph(await baseGraph(model));
   const comparedWithBefore = new Set<string>();
   for (const [id, on] of stagedOn) {
     if (!(id in now.elements)) {
@@ -448,7 +538,9 @@ export async function describeDrift(
     if (contentHash(elementFromRecord(on.before, on.layer, id)) !== now.elements[id]) flagElement(id, "changed-in-base");
   }
 
-  const read = await tryReadBaseIndex(model.rootPath, changeset.id);
+  const read: Awaited<ReturnType<typeof tryReadBaseIndex>> = options.since
+    ? { index: options.since, status: "recorded" }
+    : await tryReadBaseIndex(model.rootPath, changeset.id);
   if (read.warning) warnings.push(read.warning);
 
   let baseChanges: ChangesetDrift["baseChanges"];
@@ -511,7 +603,16 @@ export async function describeDrift(
       if (removed.length > 0) flagRelationship(key, "endpoint-removed-in-base", removed);
     }
 
-    const cut = <T>(list: T[]): T[] => list.slice(0, DRIFT_LIST_LIMIT);
+    // The lists are a page of what changed; the counts, the layers and the overlaps above are
+    // computed over all of it, whatever the page.
+    const limit = options.limit !== undefined && options.limit > 0 ? Math.floor(options.limit) : DRIFT_LIST_LIMIT;
+    const offset = options.offset !== undefined && options.offset > 0 ? Math.floor(options.offset) : 0;
+    const cut = <T>(list: T[]): T[] => list.slice(offset, offset + limit);
+    const lists = { elementsAdded, elementsRemoved, elementsChanged, relationshipsAdded, relationshipsRemoved };
+    const names = Object.keys(lists) as BaseChangeList[];
+    const totals = Object.fromEntries(names.map((name) => [name, lists[name].length])) as Record<BaseChangeList, number>;
+    const returned = Object.fromEntries(names.map((name) => [name, cut(lists[name]).length])) as Record<BaseChangeList, number>;
+    const more = names.some((name) => lists[name].length > offset + limit);
     const layers = new Set<string>();
     for (const id of [...elementsAdded, ...elementsRemoved, ...elementsChanged]) layers.add(layerOf(id));
     for (const key of [...relationshipsAdded, ...relationshipsRemoved]) {
@@ -533,15 +634,11 @@ export async function describeDrift(
       relationshipsAdded: cut(relationshipsAdded).map(parseKey),
       relationshipsRemoved: cut(relationshipsRemoved).map(parseKey),
       layers: [...layers].sort(),
-      truncated: [elementsAdded, elementsRemoved, elementsChanged, relationshipsAdded, relationshipsRemoved].some(
-        (l) => l.length > DRIFT_LIST_LIMIT
-      ),
+      truncated: names.some((name) => returned[name] < totals[name]),
+      page: { offset, limit, totals, returned, ...(more ? { nextOffset: offset + limit } : {}) },
     };
   } else if (read.status === "not-recorded" && (hash?.isDrifted || overlapping.elements.length + overlapping.relationships.length > 0)) {
-    warnings.push(
-      "No base index was recorded for this changeset (it predates them), so what changed in the base cannot be " +
-        "listed beyond the staged changes it overlaps."
-    );
+    warnings.push(NO_BASE_INDEX_WARNING);
   }
 
   const baseChanged =

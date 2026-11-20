@@ -48,7 +48,7 @@ import { Model } from "../../core/model.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
-import { describeDrift, type ChangesetDrift } from "../../core/changeset-base-index.js";
+import { describeDrift, describedAsDrifted, type ChangesetDrift } from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
@@ -77,8 +77,13 @@ export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
  */
 export const CONFIRM_TOKEN_TTL_MS = 24 * 60 * 60_000;
 
-/** How many overlaps the landing summary and the result list in full (the count stays exact). */
-export const OVERLAPS_LISTED = 10;
+/**
+ * How many overlaps of one kind the landing summary names by default. A display default, not a
+ * cut-off on what is known: the summary always gives the true count of every kind and what landing
+ * does about it, says how many it did not name, and names the call that lists them all. The
+ * commit's result names every overlap.
+ */
+export const OVERLAPS_NAMED_PER_KIND = 10;
 
 /**
  * How the user can land the changeset without this tool: the viewer, or an interactive session.
@@ -136,22 +141,69 @@ export function summarizeChangeset(changeset: Changeset): { byOperation: Record<
   return { byOperation, layers: [...layers].sort() };
 }
 
-/** The staged changes the base overlaps, as lines saying what landing does about each. */
-function overlapLines(drift: ChangesetDrift): string[] {
-  return [
-    ...drift.overlapping.elements.map((e) => `${e.id} (${e.reason}): ${e.consequence}`),
-    ...drift.overlapping.relationships.map(
-      (r) => `${r.source} --${r.predicate}--> ${r.target} (${r.reason}): ${r.consequence}`
-    ),
-  ];
+/** The overlaps of one kind: one reason, one thing landing does about it. */
+export interface OverlapKind {
+  of: "element" | "relationship";
+  reason: string;
+  /** What landing does about every overlap of this kind. */
+  consequence: string;
+  /** Every overlap of this kind: an element's id, or a relationship as `source --predicate--> target`. */
+  items: string[];
+}
+
+/**
+ * The staged changes the base overlaps, grouped by what landing does about them. Computed over
+ * every overlap: nothing here is shortened.
+ */
+export function overlapKinds(drift: ChangesetDrift): OverlapKind[] {
+  const kinds = new Map<string, OverlapKind>();
+  const add = (of: OverlapKind["of"], reason: string, consequence: string, item: string): void => {
+    const key = `${of}\u0000${reason}\u0000${consequence}`;
+    const kind = kinds.get(key);
+    if (kind) kind.items.push(item);
+    else kinds.set(key, { of, reason, consequence, items: [item] });
+  };
+  for (const e of drift.overlapping.elements) add("element", e.reason, e.consequence, e.id);
+  for (const r of drift.overlapping.relationships) {
+    add("relationship", r.reason, r.consequence, `${r.source} --${r.predicate}--> ${r.target}`);
+  }
+  return [...kinds.values()];
+}
+
+/** How the landing summary shows the overlaps: every kind, and how many of the overlaps it names. */
+function overlapSummary(
+  drift: ChangesetDrift | undefined,
+  namedPerKind: number
+): { total: number; named: number; kinds: OverlapKind[] } {
+  const kinds = drift ? overlapKinds(drift) : [];
+  return {
+    total: kinds.reduce((n, kind) => n + kind.items.length, 0),
+    named: kinds.reduce((n, kind) => n + Math.min(kind.items.length, namedPerKind), 0),
+    kinds,
+  };
+}
+
+/** The call that lists every overlap of a staged changeset, for when the summary names only some. */
+function everyOverlapCall(changeset: string): string {
+  return `changeset_brief with changeset: "${changeset}" and sections: ["drift"]`;
 }
 
 /**
  * The drift section of the landing summary: what changed in the base, and for each staged change
  * the base overlaps, what landing does about it. This is where the person decides, so it names the
  * outcomes (#1200), not only that the base changed.
+ *
+ * With drift no longer refusing, this text is all that stands between the person and an overwrite,
+ * so it never claims more than was read: the count of overlaps is the true one, every kind is
+ * shown with what landing does about it, and when a kind has more overlaps than are named here it
+ * says how many and where to read them all.
  */
-export function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport): string[] {
+export function driftLines(
+  drift: ChangesetDrift | undefined,
+  hash: DriftReport,
+  changeset = "",
+  namedPerKind = OVERLAPS_NAMED_PER_KIND
+): string[] {
   const rebaselined = drift?.rebaselined
     ? [
         `  Re-baselined ${drift.rebaselined.at}${drift.rebaselined.times > 1 ? ` (${drift.rebaselined.times} times)` : ""}: ` +
@@ -175,12 +227,19 @@ export function driftLines(drift: ChangesetDrift | undefined, hash: DriftReport)
       .map(([n, label]) => `${n} ${label}`);
     if (parts.length > 0) lines.push(`  In the base: ${parts.join(", ")}.`);
   }
-  const overlaps = drift ? overlapLines(drift) : [];
-  if (overlaps.length > 0) {
-    lines.push(`  ${overlaps.length} staged change(s) overlap the base. Landing goes ahead, and does this:`);
-    for (const line of overlaps.slice(0, OVERLAPS_LISTED)) lines.push(`  - ${line}`);
-    if (overlaps.length > OVERLAPS_LISTED) {
-      lines.push(`  - and ${overlaps.length - OVERLAPS_LISTED} more (changeset_brief with sections: ["drift"] lists them).`);
+  const overlaps = overlapSummary(drift, namedPerKind);
+  if (overlaps.total > 0) {
+    lines.push(`  ${overlaps.total} staged change(s) overlap the base. Landing goes ahead, and does this:`);
+    for (const kind of overlaps.kinds) {
+      lines.push(`  - ${kind.reason}, ${kind.items.length} ${kind.of}(s): ${kind.consequence}`);
+      for (const item of kind.items.slice(0, namedPerKind)) lines.push(`      ${item}`);
+      if (kind.items.length > namedPerKind) lines.push(`      and ${kind.items.length - namedPerKind} more`);
+    }
+    if (overlaps.named < overlaps.total) {
+      lines.push(
+        `  ${overlaps.total - overlaps.named} of the ${overlaps.total} are not named here. ` +
+          `${everyOverlapCall(changeset)} names every one, as does the changeset in the viewer.`
+      );
     }
   } else if (hash.contentFree || !hash.isDrifted) {
     lines.push("  Nothing this changeset stages overlaps it.");
@@ -253,7 +312,7 @@ export function confirmationMessage(
     `Intent: ${changeset.description?.trim() || "(no description)"}`,
     `Changes: ${changeset.changes.length} (${counts})`,
     `Layers: ${layers.join(", ") || "none"}`,
-    ...driftLines(drift, hash),
+    ...driftLines(drift, hash, changeset.name),
     preExistingErrors > 0
       ? `Validation: passed. ${preExistingErrors} error(s) already in the base model are not counted.`
       : "Validation: passed.",
@@ -463,10 +522,14 @@ interface LandingSummary {
   state: string;
   /** The landing summary: the dialog's text and the preview's summary. */
   message: string;
+  /** The overlaps the summary reports: how many there are, and how many of them it names. */
+  overlaps: { total: number; named: number };
 }
 
 async function describeDriftSafely(target: LandingTarget, toolName: string): Promise<ChangesetDrift | undefined> {
   try {
+    // The drift check described it to decide; describe it here only when it could not.
+    if (target.hash.described) return target.hash.isDrifted ? describedAsDrifted(target.hash.described) : target.hash.described;
     return await describeDrift(target.model, await ChangesetGraph.build(target.model, target.changeset), target.hash);
   } catch (error) {
     console.error(`[mcp] ${toolName} could not describe drift: ${getErrorMessage(error)}`);
@@ -523,10 +586,13 @@ async function summarizeLanding(target: LandingTarget, toolName: string): Promis
   }
   const drift = await describeDriftSafely(target, toolName);
   const warnings = await landingWarnings(target);
+  const { total, named } = overlapSummary(drift, OVERLAPS_NAMED_PER_KIND);
   return {
     warnings,
+    // The whole changeset and the whole base, whatever part of the overlaps the summary names.
     state: await confirmedState(model, changeset),
     message: confirmationMessage(changeset, drift, hash, preExistingErrors, warnings),
+    overlaps: { total, named },
   };
 }
 
@@ -670,7 +736,9 @@ export async function changesetCommitHandler(
       warnings.push("force is deprecated and was ignored: drift does not refuse a landing, so there is nothing to force.");
     }
     // What the base overlapped when this landed, read by the commit before it applied the changes.
-    const overlaps = result.driftDetail ? overlapLines(result.driftDetail) : [];
+    // Every overlap is named: once it has landed, no other call can list them.
+    const landedOver = result.driftDetail ? overlapKinds(result.driftDetail) : [];
+    const overlapTotal = landedOver.reduce((n, kind) => n + kind.items.length, 0);
 
     return jsonResult({
       id: changeset.id,
@@ -687,11 +755,13 @@ export async function changesetCommitHandler(
         ? {
             drift: {
               landedOver:
-                overlaps.length > 0
-                  ? `The base overlapped ${overlaps.length} staged change(s); the changeset landed, and did this about each.`
+                overlapTotal > 0
+                  ? `The base overlapped ${overlapTotal} staged change(s); the changeset landed, and did this about each kind.`
                   : "The base had changed under this changeset and what it overlapped could not be listed; the changeset landed all the same.",
-              ...(overlaps.length > 0 ? { overlaps: overlaps.slice(0, OVERLAPS_LISTED) } : {}),
-              ...(overlaps.length > OVERLAPS_LISTED ? { overlapsNotListed: overlaps.length - OVERLAPS_LISTED } : {}),
+              total: overlapTotal,
+              ...(overlapTotal > 0
+                ? { kinds: landedOver.map((kind) => ({ reason: kind.reason, of: kind.of, count: kind.items.length, consequence: kind.consequence, items: kind.items })) }
+                : {}),
             },
           }
         : {}),
@@ -757,7 +827,7 @@ export async function changesetCommitPreviewHandler(
     const prepared = await prepareLanding(args);
     if ("result" in prepared) return prepared.result;
     const { changeset, hash } = prepared.landing;
-    const { state, message } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
+    const { state, message, overlaps } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
     const base = {
       id: changeset.id,
       name: changeset.name,
@@ -765,6 +835,15 @@ export async function changesetCommitPreviewHandler(
       // Drift is in the summary; it does not stop the landing.
       drifted: hash.isDrifted,
       summary: message,
+      // The true count, and how many of them the summary names (every kind is in it either way).
+      overlaps,
+      ...(overlaps.named < overlaps.total
+        ? {
+            more:
+              `The summary names ${overlaps.named} of the ${overlaps.total} overlaps. ${everyOverlapCall(changeset.name)} ` +
+              "names every one: read them, and tell the user what the rest are, before they decide.",
+          }
+        : {}),
     };
     if (isChangesetOnly()) {
       return jsonResult({
@@ -798,7 +877,8 @@ export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSc
   name: "changeset_commit_preview",
   description:
     "Check a staged changeset for landing without writing anything: validation and the summary the person confirms " +
-    "(intent, counts, layers, and drift: each staged change the base overlaps with what landing does about it). " +
+    "(intent, counts, layers, and drift: the true count of staged changes the base overlaps, and for every kind " +
+    "of overlap what landing does about it; when a kind has many it names the first and says where the rest are). " +
     "Drift does not stop a landing. From Claude Code it also returns a confirmToken bound to the changeset and base " +
     "as they are now, good for a day: show the user the summary, and if they want it landed, call changeset_commit " +
     "with the token, which they approve in the permission prompt. Use it to land from a client that can't show the " +

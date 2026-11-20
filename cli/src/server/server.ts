@@ -1603,7 +1603,13 @@ export class VisualizationServer {
       // One manager for the request: each changeset's base is compared with the model as loaded.
       // A copy of the map's entries: the loop awaits, and a reload meanwhile refills the map.
       const manager = new StagingAreaManager(this.model.rootPath, this.model);
-      for (const [id, changeset] of [...this.changesets]) {
+      // One read of the base for the request too: it is indexed and hashed once, however many
+      // changesets are compared with it. A failure here is each changeset's "unknown", below.
+      const entries = [...this.changesets];
+      const base = entries.some(([, changeset]) => changeset.status === "staged")
+        ? await manager.readBase().catch(() => undefined)
+        : undefined;
+      for (const [id, changeset] of entries) {
         const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
@@ -1615,7 +1621,7 @@ export class VisualizationServer {
           purpose,
           ...(verifies ? { verifies } : {}),
           actions: allowedActions(purpose, changeset.status),
-          drift: await driftStatus(manager, this.driftSubject(changeset, purpose, verifies)),
+          drift: await driftStatus(manager, this.driftSubject(changeset, purpose, verifies), { base }),
           revision: reviewRevision(changeset),
           review: reviewCounts(changeset, changeset.review, await this.blockedDeletes(changeset)),
         };
@@ -1635,11 +1641,19 @@ export class VisualizationServer {
       summary: 'Get changeset',
       description:
         'Retrieve a specific changeset with all its changes, and its base drift (drift), checked on this read with no ' +
-        'commit attempt: whether the base model changed under it, whether that blocks a commit and, when the base\'s ' +
-        'hash changed, the staged changes the base now overlaps and what was added, removed or changed in the base.',
+        'commit attempt: whether the base model changed under it and, when it did, the staged changes the base now ' +
+        'overlaps (always all of them, each with what landing does about it) and what was added, removed or changed ' +
+        'in the base. Those five lists are a page: driftLimit entries of each from driftOffset, with ' +
+        'drift.baseChanges.page giving each list\'s true total and the nextOffset that continues them.',
       security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
+        query: z.object({
+          driftLimit: z.coerce.number().int().min(1).optional()
+            .describe('How many entries of each drift.baseChanges list to return (default 50; no upper bound)'),
+          driftOffset: z.coerce.number().int().min(0).optional()
+            .describe('Where in each drift.baseChanges list to start (default 0); pass drift.baseChanges.page.nextOffset to go on'),
+        }),
       },
       responses: {
         200: {
@@ -1664,6 +1678,7 @@ export class VisualizationServer {
     // ✅ Type cast required: See Type Casting Note at top of file
     this.app.openapi(getChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
+      const { driftLimit, driftOffset } = c.req.valid("query") as { driftLimit?: number; driftOffset?: number };
       await this.loadChangesetsFromDisk();
       const changeset = this.changesets.get(changesetId);
 
@@ -1691,7 +1706,8 @@ export class VisualizationServer {
         drift: await driftDetail(
           this.model,
           new StagingAreaManager(this.model.rootPath, this.model),
-          this.driftSubject(changeset, purpose, verifies)
+          this.driftSubject(changeset, purpose, verifies),
+          { limit: driftLimit, offset: driftOffset }
         ),
         unstaged: changeset.unstaged,
         review: changeset.review,

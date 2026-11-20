@@ -587,9 +587,111 @@ describe("re-baselining a changeset (#1169)", () => {
     expect((await readBaseIndex(rootPath, id))!.rebaselined?.times).toBe(2);
   });
 
+  it.serial("a preview returns what applying would, and writes nothing", async () => {
+    const gained = { source: REQUIREMENT, predicate: "realizes", target: SPARE };
+    const id = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("link-spare", [link("relationship-add", gained)]));
+
+    const previous = (await (await fresh()).manager.load(id))!.baseSnapshot;
+    const preview = await (await fresh()).manager.rebaseline(id, { preview: true });
+    expect(preview.applied).toBe(false);
+    expect(preview.before.overlapping.elements).toMatchObject([{ id: SPARE, reason: "linked-in-base" }]);
+    expect(preview.after.overlapping).toEqual({ elements: [], relationships: [] });
+    expect((await (await fresh()).manager.load(id))!.baseSnapshot).toBe(previous);
+    expect((await readBaseIndex(rootPath, id))!.rebaselined).toBeUndefined();
+    expect((await drift(id)).report.isDrifted).toBe(true);
+
+    const applied = await (await fresh()).manager.rebaseline(id);
+    expect(applied.applied).toBe(true);
+    expect(applied.baseSnapshot).toBe(preview.baseSnapshot);
+    expect(applied.before.overlapping).toEqual(preview.before.overlapping);
+    expect(applied.after.overlapping).toEqual(preview.after.overlapping);
+    expect(applied.after.baseChanges?.counts).toEqual(preview.after.baseChanges?.counts);
+  });
+
   it.serial("is refused for a changeset that is no longer staged", async () => {
     const id = await plan("export-orders", [add(element(SERVICE, { serviceType: "synchronous" }))]);
     await land(id);
     await expect((await fresh()).manager.rebaseline(id)).rejects.toThrow("only a staged changeset can be re-baselined");
+  });
+});
+
+describe("one read of the base serves the drift checks of several changesets", () => {
+  it.serial("gives each changeset the answer its own read gives, with the description the check made", async () => {
+    const stale = await plan("reword-faster", [await reword(FASTER, "Checkout in under a minute")]);
+    const clean = await plan("export-orders", [add(element(SERVICE, { serviceType: "synchronous" }))]);
+    const untouched = await plan("drop-spare", [await remove(SPARE)]);
+    await land(await plan("other-reword", [await reword(FASTER, "Checkout in thirty seconds")]));
+    const later = await plan("later", [await reword(CHEAPER, "Halve hosting costs")]);
+
+    const { model, manager } = await fresh();
+    const base = await manager.readBase();
+    expect(base.contentSnapshot).toBe(await new BaseSnapshotManager().captureSnapshot(model));
+
+    for (const id of [stale, clean, untouched, later]) {
+      const changeset = (await manager.load(id))!;
+      // The changeset in hand is checked as it is: no second read of it from disk.
+      const shared = await manager.detectDrift(changeset, { base });
+      const alone = await manager.detectDrift(id);
+      expect({ ...shared, described: undefined }).toEqual({ ...alone, described: undefined });
+      expect(shared.described?.overlapping).toEqual(alone.described?.overlapping);
+    }
+
+    const report = await manager.detectDrift(stale, { base });
+    expect(report.isDrifted).toBe(true);
+    expect(report.described?.overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+    // Overlaps are in `overlapping`; the description does not say them again in a line.
+    expect(report.described?.warnings).toEqual([]);
+    // In step with the base: nothing was described, because there was nothing to tell.
+    expect((await manager.detectDrift(later, { base })).described).toBeUndefined();
+  });
+
+  it.serial("also compares a hash in the earlier format, hashing the model once for all of them", async () => {
+    const id = await plan("export-orders", [add(element(SERVICE, { serviceType: "synchronous" }))]);
+    const storage = new StagedChangesetStorage(rootPath);
+    const changeset = (await storage.load(id))!;
+    changeset.baseSnapshot = await new BaseSnapshotManager().captureFullSnapshot((await fresh()).model);
+    await storage.save(changeset);
+
+    const { manager } = await fresh();
+    const base = await manager.readBase();
+    expect(await base.snapshotLike(changeset.baseSnapshot)).toBe(changeset.baseSnapshot);
+    expect(await manager.detectDrift(id, { base })).toMatchObject({ isDrifted: false, currentSnapshotId: changeset.baseSnapshot });
+  });
+});
+
+describe("the lists of what changed in the base are a page, never a silent cut", () => {
+  it.serial("limit and offset read every entry, and the counts and overlaps are whole on every page", async () => {
+    const goals = Array.from({ length: 7 }, (_, i) => `motivation.goal.extra-${i}`);
+    const id = await plan("reword-faster", [await reword(FASTER, "Checkout in under a minute")]);
+    await land(
+      await plan("others", [
+        ...goals.map((goal) => add(element(goal, { priority: "low" }))),
+        await reword(FASTER, "Checkout in thirty seconds"),
+      ])
+    );
+
+    const { model, manager } = await fresh();
+    const graph = await ChangesetGraph.build(model, (await manager.load(id))!);
+    const first = await describeDrift(model, graph, undefined, { limit: 3 });
+    expect(first.baseChanges!.elementsAdded).toEqual(goals.slice(0, 3));
+    expect(first.baseChanges!.counts).toMatchObject({ elementsAdded: 7, elementsChanged: 1 });
+    expect(first.baseChanges!.truncated).toBe(true);
+    expect(first.baseChanges!.page).toMatchObject({ offset: 0, limit: 3, nextOffset: 3 });
+    expect(first.baseChanges!.page.totals).toMatchObject({ elementsAdded: 7, elementsChanged: 1 });
+    expect(first.baseChanges!.page.returned).toMatchObject({ elementsAdded: 3, elementsChanged: 1 });
+    // The overlap is found on a page that does not list the changed element.
+    const second = await describeDrift(model, graph, undefined, { limit: 3, offset: 3 });
+    expect(second.baseChanges!.elementsAdded).toEqual(goals.slice(3, 6));
+    expect(second.baseChanges!.elementsChanged).toEqual([]);
+    expect(second.overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+    expect(second.baseChanges!.page.nextOffset).toBe(6);
+    const last = await describeDrift(model, graph, undefined, { limit: 3, offset: 6 });
+    expect(last.baseChanges!.elementsAdded).toEqual(goals.slice(6));
+    expect(last.baseChanges!.page.nextOffset).toBeUndefined();
+
+    const whole = await describeDrift(model, graph, undefined, { limit: 1000 });
+    expect(whole.baseChanges!.elementsAdded).toEqual(goals);
+    expect(whole.baseChanges!.truncated).toBe(false);
   });
 });

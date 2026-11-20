@@ -256,7 +256,7 @@ components:
                 - elementsChanged
                 - relationshipsAdded
                 - relationshipsRemoved
-              description: Exact, also when the lists are cut
+              description: Exact, whatever the page of the lists
             elementsAdded:
               type: array
               items:
@@ -313,7 +313,73 @@ components:
                 or removed. Never cut"
             truncated:
               type: boolean
-              description: True when a list was cut at 50 entries
+              description:
+                True when a list here is not the whole of it; page says what there
+                is and where to go on
+            page:
+              type: object
+              properties:
+                offset:
+                  type: integer
+                  description: Where in each list this page starts
+                limit:
+                  type: integer
+                  description:
+                    How many entries of each list this page holds at most (driftLimit;
+                    default 50)
+                totals:
+                  type: object
+                  properties:
+                    elementsAdded:
+                      type: integer
+                    elementsRemoved:
+                      type: integer
+                    elementsChanged:
+                      type: integer
+                    relationshipsAdded:
+                      type: integer
+                    relationshipsRemoved:
+                      type: integer
+                  required:
+                    - elementsAdded
+                    - elementsRemoved
+                    - elementsChanged
+                    - relationshipsAdded
+                    - relationshipsRemoved
+                  description: Each list's true length
+                returned:
+                  type: object
+                  properties:
+                    elementsAdded:
+                      type: integer
+                    elementsRemoved:
+                      type: integer
+                    elementsChanged:
+                      type: integer
+                    relationshipsAdded:
+                      type: integer
+                    relationshipsRemoved:
+                      type: integer
+                  required:
+                    - elementsAdded
+                    - elementsRemoved
+                    - elementsChanged
+                    - relationshipsAdded
+                    - relationshipsRemoved
+                  description: How many entries of each list this page carries
+                nextOffset:
+                  type: integer
+                  description:
+                    The driftOffset that continues the lists; absent when every list
+                    has been read to its end
+              required:
+                - offset
+                - limit
+                - totals
+                - returned
+              description:
+                What this page of the five lists holds. Read on with driftLimit and
+                driftOffset on GET /api/changesets/:id
           required:
             - counts
             - elementsAdded
@@ -323,6 +389,7 @@ components:
             - relationshipsRemoved
             - layers
             - truncated
+            - page
           description:
             What changed in the base since the changeset was created or last
             re-baselined (dotted ids); needs a base index
@@ -1906,9 +1973,12 @@ paths:
       description:
         "Retrieve a specific changeset with all its changes, and its base
         drift (drift), checked on this read with no commit attempt: whether the
-        base model changed under it, whether that blocks a commit and, when the
-        base's hash changed, the staged changes the base now overlaps and what
-        was added, removed or changed in the base."
+        base model changed under it and, when it did, the staged changes the
+        base now overlaps (always all of them, each with what landing does about
+        it) and what was added, removed or changed in the base. Those five lists
+        are a page: driftLimit entries of each from driftOffset, with
+        drift.baseChanges.page giving each list's true total and the nextOffset
+        that continues them."
       security:
         - bearerAuth: []
       parameters:
@@ -1919,6 +1989,32 @@ paths:
           required: true
           name: changesetId
           in: path
+        - schema:
+            type: integer
+            minimum: 1
+            description:
+              How many entries of each drift.baseChanges list to return (default
+              50; no upper bound)
+          required: false
+          description:
+            How many entries of each drift.baseChanges list to return (default
+            50; no upper bound)
+          name: driftLimit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+            description:
+              Where in each drift.baseChanges list to start (default 0); pass
+              drift.baseChanges.page.nextOffset to go on
+          required: false
+          description:
+            Where in each drift.baseChanges list to start (default 0); pass
+            drift.baseChanges.page.nextOffset to go on
+          name: driftOffset
+          in: query
       responses:
         "200":
           description: Changeset retrieved successfully

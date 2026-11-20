@@ -24,7 +24,7 @@ import type { BackupManifest, ReconciledStamp } from "../types/index.js";
 import { reconciliationStamp } from "./reconciliation.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { FileLock } from "../utils/file-lock.js";
-import type { ChangesetDrift } from "./changeset-base-index.js";
+import type { BaseRead, ChangesetDrift } from "./changeset-base-index.js";
 import { Layer } from "./layer.js";
 import { canonicalStagedSnapshot } from "./staged-source-reference.js";
 import { elementIdentifiers, Relationships } from "./relationships.js";
@@ -85,12 +85,22 @@ export interface DriftReport {
    * drift warning.
    */
   contentFree?: true;
+  /**
+   * What the check read to decide: the staged changes the base overlaps and what changed in the
+   * base (`describeDrift`, without its one-line summary of the overlaps). Present whenever the base
+   * hash changed or the changeset was re-baselined, so a caller that wants the detail does not
+   * describe the same drift a second time.
+   */
+  described?: ChangesetDrift;
 }
 
 /** What `StagingAreaManager.rebaseline` did: the changeset's drift before and after, and its base hashes. */
 export interface RebaselineResult {
   changeset: { id: string; name: string };
+  /** False for a preview: nothing was written, and the changeset's base is still the previous one. */
+  applied: boolean;
   previousBaseSnapshot: string | null;
+  /** The base hash the changeset has now, or would have (a preview). */
   baseSnapshot: string;
   /** The drift as it read before the re-baseline: what moved under the changeset since its previous base. */
   before: ChangesetDrift;
@@ -666,15 +676,20 @@ export class StagingAreaManager {
    *
    * The answer never refuses a landing (#1200): commit reports it in its result.
    */
-  async detectDrift(changesetId: string): Promise<DriftReport> {
-    this.validateChangesetId(changesetId);
-
+  async detectDrift(changesetOrId: string | Changeset, options: { base?: BaseRead } = {}): Promise<DriftReport> {
     if (!this.model) {
       throw new Error("Model required for drift detection");
     }
-    const changeset = await this.load(changesetId);
-    if (!changeset) {
-      throw new Error(`Changeset '${changesetId}' not found`);
+    // A caller that already holds the changeset passes it, and it is not read from disk again.
+    let changeset: Changeset | null;
+    if (typeof changesetOrId === "string") {
+      this.validateChangesetId(changesetOrId);
+      changeset = await this.load(changesetOrId);
+      if (!changeset) {
+        throw new Error(`Changeset '${changesetOrId}' not found`);
+      }
+    } else {
+      changeset = changesetOrId;
     }
 
     if (!changeset.baseSnapshot) {
@@ -686,7 +701,11 @@ export class StagingAreaManager {
       };
     }
 
-    const currentSnapshotId = await this.snapshotManager.captureSnapshotLike(this.model, changeset.baseSnapshot);
+    // With a shared read of the base (readBase), the base is indexed and hashed once for every
+    // changeset checked against it.
+    const currentSnapshotId = options.base
+      ? await options.base.snapshotLike(changeset.baseSnapshot)
+      : await this.snapshotManager.captureSnapshotLike(this.model, changeset.baseSnapshot);
     const hashChanged = changeset.baseSnapshot !== currentSnapshotId;
     const warnings: string[] = [];
 
@@ -696,13 +715,17 @@ export class StagingAreaManager {
     // is still an overlap then, though the base is as the changeset last recorded it.
     let contentFree: string | undefined;
     let overlaps = false;
+    let described: ChangesetDrift | undefined;
     try {
       const { describeDrift, contentFreeSentence, tryReadBaseIndex } = await import("./changeset-base-index.js");
-      if (hashChanged || (await tryReadBaseIndex(this.rootPath, changeset.id)).index?.rebaselined) {
+      if (hashChanged || (await tryReadBaseIndex(this.rootPath, changeset.id!)).index?.rebaselined) {
         const { ChangesetGraph } = await import("./changeset-graph.js");
-        const drift = await describeDrift(this.model, await ChangesetGraph.build(this.model, changeset));
-        overlaps = drift.overlapping.elements.length + drift.overlapping.relationships.length > 0;
-        if (hashChanged) contentFree = contentFreeSentence(drift);
+        described = await describeDrift(this.model, await ChangesetGraph.build(this.model, changeset), undefined, {
+          overlapWarning: false,
+          base: options.base,
+        });
+        overlaps = described.overlapping.elements.length + described.overlapping.relationships.length > 0;
+        if (hashChanged) contentFree = contentFreeSentence(described);
       }
     } catch (error) {
       warnings.push(`Could not compare the base with the changeset's base index: ${getErrorMessage(error)}`);
@@ -715,6 +738,7 @@ export class StagingAreaManager {
         currentSnapshotId,
         warnings: [contentFree],
         contentFree: true,
+        ...(described ? { described } : {}),
       };
     }
 
@@ -732,7 +756,22 @@ export class StagingAreaManager {
       baseSnapshotId: changeset.baseSnapshot,
       currentSnapshotId: currentSnapshotId,
       warnings,
+      ...(described ? { described } : {}),
     };
+  }
+
+  /**
+   * Reads the base model once, to share across the drift checks of several changesets
+   * (`detectDrift`'s `base`, and `driftStatus` / `driftDetail`): the base is indexed and hashed
+   * once instead of once per changeset. Good for as long as the model in hand is: read it again
+   * after anything writes the model.
+   */
+  async readBase(): Promise<BaseRead> {
+    if (!this.model) {
+      throw new Error("Model required for reading the base");
+    }
+    const { BaseRead } = await import("./changeset-base-index.js");
+    return BaseRead.of(this.model);
   }
 
   /**
@@ -747,15 +786,22 @@ export class StagingAreaManager {
    * author has now seen the relationships the base gained on what the plan deletes). The base
    * index records that it happened, so the landing summary can say so.
    *
+   * What moved (`before.baseChanges`) cannot be read again once the re-baseline is applied, so
+   * `preview` returns the same result and writes nothing, and `limit` and `offset` page its lists
+   * (`before.baseChanges.page`). The counts and the overlaps are whole whatever the page.
+   *
    * @throws Error for a changeset that is not staged, or a record (which never lands)
    */
-  async rebaseline(changesetId: string): Promise<RebaselineResult> {
+  async rebaseline(
+    changesetId: string,
+    options: { preview?: boolean; limit?: number; offset?: number } = {}
+  ): Promise<RebaselineResult> {
     this.validateChangesetId(changesetId);
     if (!this.model) {
       throw new Error("Model required for re-baselining a changeset");
     }
     const model = this.model;
-    const { captureBaseIndex, describeDrift, readBaseIndex, snapshotOfIndex, writeBaseIndex } = await import(
+    const { BaseRead, describeDrift, readBaseIndex, snapshotOfIndex, writeBaseIndex } = await import(
       "./changeset-base-index.js"
     );
     const { ChangesetGraph } = await import("./changeset-graph.js");
@@ -778,9 +824,15 @@ export class StagingAreaManager {
         throw new Error(`Changeset '${changeset.name}' is a record, which never lands, so it has no base to move`);
       }
 
-      const describe = async (): Promise<ChangesetDrift> =>
-        describeDrift(model, await ChangesetGraph.build(model, changeset), undefined, { overlapWarning: false });
-      const before = await describe();
+      // One read of the base serves the description before, the new index and the description after.
+      const base = await BaseRead.of(model);
+      const graph = await ChangesetGraph.build(model, changeset);
+      const before = await describeDrift(model, graph, undefined, {
+        overlapWarning: false,
+        base,
+        limit: options.limit,
+        offset: options.offset,
+      });
 
       let previous: { rebaselined?: { times: number } } | undefined;
       try {
@@ -789,26 +841,34 @@ export class StagingAreaManager {
         // An unreadable index is replaced.
       }
       const previousBaseSnapshot = changeset.baseSnapshot || null;
-      const index = await captureBaseIndex(model);
-      index.rebaselined = {
-        at: index.captured,
-        from: previousBaseSnapshot ?? "unknown",
-        times: (previous?.rebaselined?.times ?? 0) + 1,
+      const index = {
+        ...base.index,
+        rebaselined: {
+          at: base.index.captured,
+          from: previousBaseSnapshot ?? "unknown",
+          times: (previous?.rebaselined?.times ?? 0) + 1,
+        },
       };
       const baseSnapshot = snapshotOfIndex(index);
-      // The index first: if the hash's save fails, the changeset still reads as drifted, with an
-      // index that says the base is as it is now.
-      await writeBaseIndex(this.rootPath, id, index);
-      changeset.baseSnapshot = baseSnapshot;
-      changeset.updateModified();
-      await this.storage.save(changeset);
+      // The drift as it reads with the base as it is now for a base: what a re-baseline leaves.
+      const after = await describeDrift(model, graph, undefined, { overlapWarning: false, base, since: index });
+
+      if (options.preview !== true) {
+        // The index first: if the hash's save fails, the changeset still reads as drifted, with an
+        // index that says the base is as it is now.
+        await writeBaseIndex(this.rootPath, id, index);
+        changeset.baseSnapshot = baseSnapshot;
+        changeset.updateModified();
+        await this.storage.save(changeset);
+      }
 
       return {
         changeset: { id, name: changeset.name },
+        applied: options.preview !== true,
         previousBaseSnapshot,
         baseSnapshot,
         before,
-        after: await describe(),
+        after,
       };
     });
   }
@@ -899,11 +959,16 @@ export class StagingAreaManager {
           "drift.currentSnapshot": drift.currentSnapshotId,
         });
         try {
-          const { describeDrift } = await import("./changeset-base-index.js");
-          const { ChangesetGraph } = await import("./changeset-graph.js");
-          driftDetail = await describeDrift(model, await ChangesetGraph.build(model, changeset), drift, {
-            overlapWarning: false,
-          });
+          // detectDrift described it to decide; without that (its comparison failed) describe it here.
+          const { describeDrift, describedAsDrifted } = await import("./changeset-base-index.js");
+          if (drift.described) {
+            driftDetail = describedAsDrifted(drift.described);
+          } else {
+            const { ChangesetGraph } = await import("./changeset-graph.js");
+            driftDetail = await describeDrift(model, await ChangesetGraph.build(model, changeset), drift, {
+              overlapWarning: false,
+            });
+          }
         } catch (error) {
           emitLog(SeverityNumber.WARN, "Could not describe the drift a changeset lands over", {
             "changeset.id": changesetId,

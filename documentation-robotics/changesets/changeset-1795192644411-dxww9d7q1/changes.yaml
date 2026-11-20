@@ -414,8 +414,10 @@
       as it is now the changeset's base and returns what moved under it: the
       base changes since the previous base, the overlaps cleared and the
       overlaps that remain, each with what landing does about it and how to
-      resolve it. The landing summary shows that the changeset was re-baselined
-      and when."
+      resolve it. rebaseline: \"preview\" returns the same and writes nothing.
+      The lists of what moved are a page (limit, offset) with true totals, since
+      they can't be read again after a re-baseline. The landing summary shows
+      that the changeset was re-baselined and when."
     attributes:
       priority: medium
       status: developing
@@ -429,7 +431,7 @@
       locations:
         - file: cli/src/mcp/tools/changeset-editing.ts
           symbol: changesetUpdateHandler
-  timestamp: 2026-11-20T17:13:48.666Z
+  timestamp: 2026-11-20T17:28:47.810Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.staging-area-manager-rebaseline
@@ -763,3 +765,57 @@
     category: structural
   timestamp: 2026-11-20T16:38:46.238Z
   sequenceNumber: 29
+- type: update
+  elementId: motivation.requirement.drift-is-known-before-landing
+  layerName: motivation
+  before:
+    id: 6d3aed99-7cba-451a-8a2d-11515b661066
+    path: motivation.requirement.drift-is-known-before-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Drift is known before landing
+    description: "A person reviewing a staged changeset can see, before landing it,
+      whether the base model changed under it, which staged changes the base
+      overlaps, and what landing does about each overlap. Drift never blocks a
+      landing: it is shown where the person confirms (the dialog, the commit
+      preview, the viewer before Apply) and again in the landing's result. Drift
+      that overlaps nothing the changeset stages, and drift under a record
+      (which never lands), read as no warning."
+    attributes: &a20
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: with no commit attempt, the viewer API reports for
+        each changeset one of: nothing changed; the base changed but nothing the
+        changeset was staged against did (content-free, #1169; not blocking);
+        the base changed under it (blocking a commit without force, with the
+        overlapping staged changes and the base's changes named); or not
+        applicable (a verification record, #1171, or a changeset that is no
+        longer staged). The answer agrees with what a commit would do: it is
+        blocking exactly when POST /api/changesets/:id/commit would refuse for
+        drift."
+    metadata: &a21
+      created_at: 2026-11-18T19:52:37.508Z
+      updated_at: 2026-11-18T19:52:37.508Z
+      version: 1
+  after:
+    id: 6d3aed99-7cba-451a-8a2d-11515b661066
+    path: motivation.requirement.drift-is-known-before-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Drift is known before landing
+    description: "A person reviewing a staged changeset can see, before landing it,
+      whether the base model changed under it, which staged changes the base
+      overlaps, and what landing does about each overlap. Drift never blocks a
+      landing: it is shown where the person confirms (the dialog, the commit
+      preview, the viewer before Apply) and again in the landing's result. What
+      is shown never passes for more than was read: the count of overlaps is the
+      true one, every kind of overlap is shown with what landing does about it,
+      and a list shortened for display says how many it left out and names the
+      call that returns them all. Drift that overlaps nothing the changeset
+      stages, and drift under a record (which never lands), read as no warning."
+    attributes: *a20
+    metadata: *a21
+  timestamp: 2026-11-20T17:28:51.921Z
+  sequenceNumber: 35

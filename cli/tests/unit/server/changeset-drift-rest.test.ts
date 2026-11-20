@@ -83,7 +83,8 @@ async function api() {
   const request = (path: string, init?: RequestInit) => (server as any).app.request(path, init) as Promise<Response>;
   return {
     list: async () => ChangesetsListSchema.parse(await (await request("/api/changesets")).json()).changesets,
-    detail: async (id: string) => ChangesetDetailSchema.parse(await (await request(`/api/changesets/${id}`)).json()),
+    detail: async (id: string, query = "") =>
+      ChangesetDetailSchema.parse(await (await request(`/api/changesets/${id}${query}`)).json()),
     commit: (id: string) => request(`/api/changesets/${id}/commit`, { method: "POST" }),
   };
 }
@@ -396,7 +397,7 @@ describe("base drift on the changeset endpoints", () => {
     });
   });
 
-  it.serial("baseChanges.layers is whole when the lists are cut, and counts the ends of relationships", async () => {
+  it.serial("the baseChanges lists are a page with true totals, readable to the end; layers and counts are whole", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     // The base gains more application services than a list holds, one product feature that sorts
     // after all of them (so it is cut from elementsAdded), and a relationship whose only
@@ -435,6 +436,33 @@ describe("base drift on the changeset endpoints", () => {
     expect(drift.baseChanges!.elementsAdded).not.toContain(feature.path);
     expect(drift.baseChanges!.truncated).toBe(true);
     expect(drift.baseChanges!.layers).toEqual(["application", "motivation", "product"]);
+    // The default length is a page, not a cut-off: the page says what there is and how to go on.
+    expect(drift.baseChanges!.page).toEqual({
+      offset: 0,
+      limit: DRIFT_LIST_LIMIT,
+      totals: { elementsAdded: count + 1, elementsRemoved: 0, elementsChanged: 0, relationshipsAdded: 1, relationshipsRemoved: 0 },
+      returned: { elementsAdded: DRIFT_LIST_LIMIT, elementsRemoved: 0, elementsChanged: 0, relationshipsAdded: 1, relationshipsRemoved: 0 },
+      nextOffset: DRIFT_LIST_LIMIT,
+    });
+
+    // The next page carries the rest, the feature that was cut included, and ends the lists.
+    const next = (await detail(planId, `?driftOffset=${drift.baseChanges!.page.nextOffset}`)).drift.baseChanges!;
+    expect(next.elementsAdded).toHaveLength(count + 1 - DRIFT_LIST_LIMIT);
+    expect(next.elementsAdded).toContain(feature.path);
+    expect(next.page).toMatchObject({ offset: DRIFT_LIST_LIMIT, returned: { elementsAdded: count + 1 - DRIFT_LIST_LIMIT, relationshipsAdded: 0 } });
+    expect(next.page.nextOffset).toBeUndefined();
+    // Counts and layers are computed over everything, whatever the page.
+    expect(next.counts).toEqual(drift.baseChanges!.counts);
+    expect(next.layers).toEqual(drift.baseChanges!.layers);
+
+    // Everything at once, on request.
+    const whole = (await detail(planId, "?driftLimit=1000")).drift.baseChanges!;
+    expect(whole.elementsAdded).toHaveLength(count + 1);
+    expect(whole.truncated).toBe(false);
+    expect(whole.page.nextOffset).toBeUndefined();
+
+    const bad = await (server as any).app.request(`/api/changesets/${planId}?driftLimit=0`);
+    expect(bad.status).toBe(400);
   });
 });
 

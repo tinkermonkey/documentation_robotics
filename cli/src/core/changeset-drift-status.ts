@@ -25,7 +25,7 @@
  */
 
 import { getErrorMessage } from "../utils/errors.js";
-import { describeDrift, type ChangesetDrift } from "./changeset-base-index.js";
+import { describeDrift, describedAsDrifted, type BaseRead, type ChangesetDrift } from "./changeset-base-index.js";
 import { ChangesetGraph } from "./changeset-graph.js";
 import type { ChangesetPurpose } from "./changeset-purpose.js";
 import type { Changeset } from "./changeset.js";
@@ -112,38 +112,68 @@ function withoutCheck({ changeset, purpose, plan }: DriftSubject): DriftStatus |
  */
 export async function driftStatus(
   manager: Pick<StagingAreaManager, "detectDrift">,
-  subject: DriftSubject
+  subject: DriftSubject,
+  options: DriftReadOptions = {}
 ): Promise<DriftStatus> {
+  return (await checkedStatus(manager, subject, options)).status;
+}
+
+/** What the drift readers take besides the changeset. */
+export interface DriftReadOptions {
+  /**
+   * One read of the base (`StagingAreaManager.readBase`) to share across the changesets of a list:
+   * the base is indexed and hashed once for all of them.
+   */
+  base?: BaseRead;
+  /** For the detail: how many entries of each `baseChanges` list (default 50, no upper bound). */
+  limit?: number;
+  /** For the detail: where in each `baseChanges` list to start (default 0). */
+  offset?: number;
+}
+
+/** The status, with the description the check made on the way when it made one. */
+async function checkedStatus(
+  manager: Pick<StagingAreaManager, "detectDrift">,
+  subject: DriftSubject,
+  options: DriftReadOptions
+): Promise<{ status: DriftStatus; described?: ChangesetDrift }> {
   const settled = withoutCheck(subject);
-  if (settled) return settled;
+  if (settled) return { status: settled };
   try {
-    const hash = await manager.detectDrift(subject.changeset.id!);
-    if (hash.contentFree) {
-      return { state: "content-free", blocksCommit: false, message: hash.warnings[0] };
-    }
-    if (hash.isDrifted) {
-      return {
-        state: "drifted",
-        blocksCommit: false,
-        // Either the base overlaps a staged change (`overlapping`, in the detail), or there is no base
-        // index to tell an overlapping change from another.
-        message:
-          "The base model overlaps what this changeset stages (or it has no base index to tell). It still lands: " +
-          "the landing says what overlaps and what it does about each overlap.",
-      };
-    }
-    return {
-      state: "none",
-      blocksCommit: false,
-      message: "The base model has not changed under this changeset.",
-    };
+    const hash = await manager.detectDrift(subject.changeset, { base: options.base });
+    const status = statusOf(hash);
+    return { status, ...(hash.described ? { described: hash.described } : {}) };
   } catch (error) {
     return {
-      state: "unknown",
-      blocksCommit: false,
-      message: `Drift could not be checked: ${getErrorMessage(error)}`,
+      status: {
+        state: "unknown",
+        blocksCommit: false,
+        message: `Drift could not be checked: ${getErrorMessage(error)}`,
+      },
     };
   }
+}
+
+function statusOf(hash: Awaited<ReturnType<StagingAreaManager["detectDrift"]>>): DriftStatus {
+  if (hash.contentFree) {
+    return { state: "content-free", blocksCommit: false, message: hash.warnings[0] };
+  }
+  if (hash.isDrifted) {
+    return {
+      state: "drifted",
+      blocksCommit: false,
+      // Either the base overlaps a staged change (`overlapping`, in the detail), or there is no base
+      // index to tell an overlapping change from another.
+      message:
+        "The base model overlaps what this changeset stages (or it has no base index to tell). It still lands: " +
+        "the landing says what overlaps and what it does about each overlap.",
+    };
+  }
+  return {
+    state: "none",
+    blocksCommit: false,
+    message: "The base model has not changed under this changeset.",
+  };
 }
 
 /**
@@ -151,23 +181,32 @@ export async function driftStatus(
  * now overlaps and, with a base index, the elements and relationships added, removed or changed
  * since the changeset was created (`describeDrift`). Described only when the base's hash changed
  * (states `content-free` and `drifted`); a failure to describe it is a warning, not an error.
+ *
+ * `overlapping` is whole. The `baseChanges` lists are a page (`options.limit`, `options.offset`),
+ * and `baseChanges.page` says what there is and where to go on.
  */
 export async function driftDetail(
   model: Model,
   manager: Pick<StagingAreaManager, "detectDrift">,
-  subject: DriftSubject
+  subject: DriftSubject,
+  options: DriftReadOptions = {}
 ): Promise<DriftDetail> {
-  const status = await driftStatus(manager, subject);
+  const { status, described: fromCheck } = await checkedStatus(manager, subject, options);
   if (status.state !== "content-free" && status.state !== "drifted") return status;
   try {
-    // Described only when the hash changed, which is said here so a missing base index is reported.
+    // The check described the drift to decide (the first page of its lists); it is described again
+    // only for another page, or when the check could not describe it.
     // `overlapping` is returned as it is, so `warnings` doesn't say it a second time in a line.
-    const described = await describeDrift(
-      model,
-      await ChangesetGraph.build(model, subject.changeset),
-      { isDrifted: true, warnings: [] },
-      { overlapWarning: false }
-    );
+    const firstPage = options.limit === undefined && options.offset === undefined;
+    const described =
+      fromCheck && firstPage
+        ? describedAsDrifted(fromCheck)
+        : await describeDrift(
+            model,
+            await ChangesetGraph.build(model, subject.changeset),
+            { isDrifted: true, warnings: [] },
+            { overlapWarning: false, base: options.base, limit: options.limit, offset: options.offset }
+          );
     return {
       ...status,
       warnings: described.warnings,

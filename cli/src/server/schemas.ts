@@ -380,6 +380,14 @@ const ChangesetOverlappingSchema = (description: string) => z.object({
   })),
 }).describe(description);
 
+const baseChangeCountsSchema = z.object({
+  elementsAdded: z.number().int(),
+  elementsRemoved: z.number().int(),
+  elementsChanged: z.number().int(),
+  relationshipsAdded: z.number().int(),
+  relationshipsRemoved: z.number().int(),
+});
+
 const RelationshipRefSchema = z.object({
   source: z.string().describe('Source element (dotted id)'),
   predicate: z.string(),
@@ -401,13 +409,7 @@ export const ChangesetDriftSchema = z.object({
     'The staged changes the base now overlaps, each with what landing does about it. Show them before Apply: a commit lands over them. A base change not listed here overlaps nothing the changeset stages'
   ).optional(),
   baseChanges: z.object({
-    counts: z.object({
-      elementsAdded: z.number().int(),
-      elementsRemoved: z.number().int(),
-      elementsChanged: z.number().int(),
-      relationshipsAdded: z.number().int(),
-      relationshipsRemoved: z.number().int(),
-    }).describe('Exact, also when the lists are cut'),
+    counts: baseChangeCountsSchema.describe('Exact, whatever the page of the lists'),
     elementsAdded: z.array(z.string()),
     elementsRemoved: z.array(z.string()),
     elementsChanged: z.array(z.string()),
@@ -415,7 +417,15 @@ export const ChangesetDriftSchema = z.object({
     relationshipsRemoved: z.array(RelationshipRefSchema),
     layers: z.array(z.string())
       .describe('The layers the base changed in: those of every element added, removed or changed and of both ends of every relationship added or removed. Never cut'),
-    truncated: z.boolean().describe('True when a list was cut at 50 entries'),
+    truncated: z.boolean().describe('True when a list here is not the whole of it; page says what there is and where to go on'),
+    page: z.object({
+      offset: z.number().int().describe('Where in each list this page starts'),
+      limit: z.number().int().describe('How many entries of each list this page holds at most (driftLimit; default 50)'),
+      totals: baseChangeCountsSchema.describe('Each list\'s true length'),
+      returned: baseChangeCountsSchema.describe('How many entries of each list this page carries'),
+      nextOffset: z.number().int().optional()
+        .describe('The driftOffset that continues the lists; absent when every list has been read to its end'),
+    }).describe('What this page of the five lists holds. Read on with driftLimit and driftOffset on GET /api/changesets/:id'),
   }).optional().describe('What changed in the base since the changeset was created or last re-baselined (dotted ids); needs a base index'),
 })
   .describe(

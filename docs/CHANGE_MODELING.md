@@ -200,9 +200,13 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
   and token, then at the viewer's Apply (`review_open`), then an interactive session; never the
   CLI.
 - Validation is checked with a dry run before the person is asked; errors the changeset introduces
-  always block. Drift does not refuse a landing: the dialog and the preview's summary list each
-  staged change the base overlaps with what landing does about it, the changeset lands when the
-  person confirms, and the result repeats the overlaps in `drift`. `force` is accepted and ignored
+  always block. Drift does not refuse a landing: the dialog and the preview's summary give the true
+  count of staged changes the base overlaps and, for every kind of overlap, what landing does about
+  it. A kind with many overlaps names the first ten, says how many it did not name, and names the
+  call that lists them all (`changeset_brief` with `sections: ["drift"]`); the preview repeats that
+  in `overlaps` (`total`, `named`) and `more`. The token is bound to the whole changeset and base,
+  whatever the summary names. The changeset lands when the person confirms, and the result names
+  every overlap it landed over in `drift` (`total`, and `kinds` with their `items`). `force` is accepted and ignored
   for one release. The viewer's Apply and `dr changeset commit` land a drifted changeset the same
   way and report the same overlaps. The commit is `StagingAreaManager.commit`, the same
   code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
@@ -223,7 +227,10 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
 - A changeset whose base moved can be re-baselined: `changeset_update` with `rebaseline: true`
   records the base as it is now (its hash and base index) and returns what moved under the
   changeset (`moved`), the overlaps that cleared and the ones that remain, each with how the plan
-  resolves it. It changes no staged change and never hides an overlap that is still true against
+  resolves it. `rebaseline: "preview"` returns the same and writes nothing. The lists in `moved`
+  are a page (`limit`, default 50, and `offset`; `moved.page` has each list's true total and the
+  `nextOffset`), and what moved can't be read again once a re-baseline is applied, so preview first
+  when much has moved. It changes no staged change and never hides an overlap that is still true against
   the base as it is now: an update staged on older content of an element stays `changed-in-base`
   until it is restaged. The landing summary says when a changeset was re-baselined.
 - A commit regenerates the reports of the layers it changed: each changed element's layer and the
@@ -741,7 +748,11 @@ The full brief:
   staged on (`changed-in-base`) or that the base removed, deletes of elements the base has since
   linked (`linked-in-base`), and relationships the plan adds or deletes with an end on a base
   element that was removed since, as `endpoint-removed-in-base` with the `endpoints`) and, when the
-  changeset has a base index, what was added, removed or changed in the base (`baseChanges`). Each
+  changeset has a base index, what was added, removed or changed in the base (`baseChanges`). The
+  overlaps are always all of them; the five `baseChanges` lists are a page of 50 entries each by
+  default, with exact `counts` and a `page` (`totals`, `returned`, `nextOffset`) that says what
+  there is, and `describeDrift` takes `limit` and `offset` to read the rest (the viewer API passes
+  them as `driftLimit` and `driftOffset`). Each
   overlap carries a `consequence` (what landing does about it) and a `resolve` (how the plan
   clears it). An edit to an element the plan only links to is not an overlap: the element keeps
   its id, and with it its layer and type. An update restaged on the base as it is now is not one
