@@ -32,7 +32,10 @@ repos:
       - id: prettier
         types_or: [markdown, yaml, json]
         args: [--write, --prose-wrap=preserve]
-        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md|spec/browser/.*-layer-report\.md|spec/browser/README\.md)
+        # documentation-robotics/ is dr's own output (the model and its changesets), written in dr's
+        # layout. Prettier is for the code and the documentation. Without this, a commit holding only
+        # files from that folder fails: .prettierignore leaves prettier with nothing to check.
+        exclude: ^(documentation-robotics/|CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md|spec/browser/.*-layer-report\.md|spec/browser/README\.md)
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
