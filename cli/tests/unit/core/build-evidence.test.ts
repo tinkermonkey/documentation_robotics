@@ -125,6 +125,15 @@ describe("readBuildFiles", () => {
       // The plan's own file first; lock files, binaries and files that are gone are left out.
       expect(read.files.map((f) => f.file)).toEqual(["src/plan.ts", "src/server.ts"]);
       expect(read.note).toBeUndefined();
+
+      // A file too large to search is named, so "missing" is never read as "looked everywhere".
+      await writeFile(join(root, "src", "bundle.ts"), `export const blob = "${"x".repeat(600 * 1024)}";\n`);
+      git("add", ".");
+      git("commit", "-q", "-m", "bundle");
+      const withLarge = await readBuildFiles(root, "main");
+      expect(withLarge.files.map((f) => f.file)).toEqual(["src/server.ts"]);
+      expect(withLarge.note).toContain("1 file(s) over 512 KB were not searched");
+      expect(withLarge.note).toContain("src/bundle.ts");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

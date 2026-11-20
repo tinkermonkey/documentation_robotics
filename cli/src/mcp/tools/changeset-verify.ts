@@ -9,7 +9,13 @@ import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Changeset } from "../../core/changeset.js";
-import { compactVerifyReport, verifyChangesetInModel, VERIFY_SECTIONS } from "../../core/changeset-verify.js";
+import {
+  compactVerifyReport,
+  verifyChangesetInModel,
+  VERIFY_LIST_LIMIT,
+  VERIFY_SECTION_PAGE_SIZE,
+  VERIFY_SECTIONS,
+} from "../../core/changeset-verify.js";
 import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
@@ -94,6 +100,22 @@ const inputSchema = {
         "planned or built element, a relationship by either end. Combines with ids (either keeps an item)."
     ),
   ids: z.array(z.string()).optional().describe("With sections: only the items touching these element ids."),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      `The most entries to return from each list: lines of the compact report (default ${VERIFY_LIST_LIMIT}) or items of a section ` +
+        `(default ${VERIFY_SECTION_PAGE_SIZE}); any size is accepted. A page size, not a cut-off: the verdict and summary counts are ` +
+        "over everything, and pages names each list that is not whole with its total and nextOffset."
+    ),
+  offset: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("Skip this many entries of each list: repeat the call with the same arguments and the result's paging.nextOffset for the next page."),
 };
 
 export type ChangesetVerifyArgs = z.infer<z.ZodObject<typeof inputSchema>>;
@@ -151,6 +173,8 @@ export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise
       sections: args.sections,
       layers: args.layers,
       ids: args.ids,
+      limit: args.limit,
+      offset: args.offset,
     });
     // The same JSON, short objects kept on one line: the full report is the largest result.
     return jsonResult(result, { compact: true });
@@ -177,7 +201,8 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "as candidates: confirm those the build has code for and pass them to changeset_adopt_source_references in " +
     "references. For more, pass sections: [...] for only some sections in full (unplanned " +
     "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
-    "for the whole report. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    "for the whole report (large for a big build). Every list is a page (limit, offset): pages names each list that is " +
+    "not whole with its true total, and more gives the call for the next page. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

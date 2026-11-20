@@ -480,7 +480,11 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     const result = ok(
       await changesetAdoptSourceReferencesHandler({ changeset: plan.id, against: { changeset: asBuilt.id }, ids: [HELPERS], rootPath })
     );
-    expect(result.missing.map((g: any) => [g.planned, g.builtByAgent])).toEqual([[HELPERS, true]]);
+    // Counts are over everything listed; the reference still missing is the one skipped below
+    // (verbose: true returns it in full).
+    expect(result.total).toBe(1);
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 0, skipped: 1, unknownIds: 0 });
+    expect(result.skipped.map((k: any) => k.planned)).toEqual([HELPERS]);
     expect(result.adopted).toEqual([]);
     // Confirming it by id doesn't help: its reference is the agent's, not evidence.
     expect(result.skipped[0].reason).toContain("not staged by extraction");

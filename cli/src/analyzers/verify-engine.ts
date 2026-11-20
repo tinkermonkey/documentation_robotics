@@ -714,6 +714,18 @@ export function apiLayerReport(report: VerifyReport): LayerVerifyReport {
       in_graph_only: buckets.in_graph_only.map((g) => ({ ...op(g), name: [g.http_method, g.http_path].filter(Boolean).join(" ") || g.id })),
       in_model_only: buckets.in_model_only.map(op),
       not_indexed: (buckets.not_indexed ?? []).map(op),
+      // Routes and operations a rule or a recorded rejection covers, as the other layers list them.
+      ...(buckets.ignored.length > 0
+        ? {
+            ignored: buckets.ignored.map((e) => ({
+              id: e.id,
+              type: e.entry_type === "route" ? "route" : "api.operation",
+              name: e.id,
+              files: [],
+              reason: e.reason,
+            })),
+          }
+        : {}),
     },
     summary: {
       matched_count: summary.matched_count,
@@ -722,6 +734,7 @@ export function apiLayerReport(report: VerifyReport): LayerVerifyReport {
       not_indexed_count: summary.not_indexed_count ?? 0,
       elements_without_source_ref: summary.elements_without_source_ref,
       elements_not_checked: summary.elements_not_checked ?? 0,
+      ...(buckets.ignored.length > 0 ? { ignored_count: buckets.ignored.length } : {}),
     },
   };
 }

@@ -189,9 +189,6 @@ export const LAYER_CHECKS: Readonly<Record<string, LayerCheck>> = Object.freeze(
   },
 });
 
-/** Entries listed per bucket; the summary counts all of them. */
-const LIST_LIMIT = 200;
-
 export interface LayerVerifyInput {
   graph: CardGraph;
   config: ExtractionConfig;
@@ -516,13 +513,6 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
     report.summary.relationships = { matched_count: rels.matched.length, gap_count: rels.in_graph_only.length, drift_count: rels.in_model_only.length };
   }
 
-  for (const key of ["matched", "in_graph_only", "in_model_only", "not_indexed", "ignored"] as const) {
-    const list = report.buckets[key];
-    if (list && list.length > LIST_LIMIT) {
-      (report.omitted ??= {})[key] = list.length - LIST_LIMIT;
-      report.buckets[key] = list.slice(0, LIST_LIMIT);
-    }
-  }
   return report;
 }
 

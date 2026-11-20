@@ -359,6 +359,24 @@ describe("layer status: checked and in step, checked and drifted, or not checked
     expect(technology.coverage.code_entries).toBe(technology.buckets.in_graph_only.length);
   });
 
+  it("lists every entry of a long bucket: the report itself is never cut (the tool pages it)", async () => {
+    const graph = fakeGraph();
+    const tables = Array.from({ length: 230 }, (_, i) => ({
+      label: "Table",
+      name: `t_${i}`,
+      qualified_name: `${P}.db.big.schema.t_${i}`,
+      file_path: "db/big/schema.sql",
+      start_line: i * 3 + 1,
+      end_line: i * 3 + 3,
+    }));
+    const manyTables: CardGraph = { ...graph, search: async (label, filePattern, fields) => (label === "Table" ? (tables as any) : graph.search(label, filePattern, fields)) };
+    const [dataStore] = await verify(["data-store"], new Map(), { graph: manyTables });
+    expect(dataStore.buckets.in_graph_only).toHaveLength(230);
+    expect(dataStore.summary.gap_count).toBe(230);
+    expect(dataStore.coverage.code_entries).toBe(230);
+    expect((dataStore as any).omitted).toBeUndefined();
+  });
+
   it("checks system software sourced to a dependency manifest against what the manifest lists", async () => {
     await add("technology", "systemsoftware", "React", { softwareType: "middleware" }, "package.json", "dependencies.react");
     await add("technology", "systemsoftware", "Router", { softwareType: "middleware" }, "package.json", "dependencies.@tanstack/react-router");

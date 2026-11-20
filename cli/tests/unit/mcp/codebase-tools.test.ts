@@ -16,7 +16,13 @@ import { Model } from "../../../src/core/model.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
-import { codebaseVerifyTool, createCodebaseVerifyHandler, IN_CODE_ONLY_HINT } from "../../../src/mcp/tools/codebase-verify.js";
+import {
+  codebaseVerifyTool,
+  createCodebaseVerifyHandler,
+  IN_CODE_ONLY_HINT,
+  VERIFY_MIN_PAGE_SIZE,
+  VERIFY_PAGE_SIZE,
+} from "../../../src/mcp/tools/codebase-verify.js";
 import { describeIndex, isIndexedSource, judgeIndex, requireFreshIndex, type CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { finishIndexJob, readIndexJob, recordIndexJobFill, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readSession, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
@@ -444,6 +450,67 @@ describe("codebase_verify", () => {
     expect(report.summary).toMatchObject({ drift_count: 0, elements_without_source_ref: 0, elements_not_checked: 1 });
     expect(report.buckets.not_checked[0]).toMatchObject({ count: 1, ids: ["api.operation.get-users"] });
     expect(report.hints).toBeUndefined();
+  });
+
+  it("pages a long list of routes: true totals, the call for the rest, and every route reachable", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    h.routes = Array.from({ length: 130 }, (_, i) => ({
+      id: `r${i}`,
+      http_method: "GET",
+      http_path: `/things/${i}`,
+      source_file: "src/things.ts",
+      source_symbol: `thing${i}`,
+    }));
+    const first = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    // Counts and the status are over all 130, whatever the page holds.
+    expect(first.summary.gap_count).toBe(130);
+    expect(first.status[0]).toMatchObject({ status: "drifted", coverage: { code_entries: 130 } });
+    expect(first.buckets.in_graph_only).toHaveLength(VERIFY_PAGE_SIZE);
+    expect(first.paging).toMatchObject({ limit: VERIFY_PAGE_SIZE, offset: 0, nextOffset: VERIFY_PAGE_SIZE });
+    expect(first.paging.more).toContain(`in_graph_only ${VERIFY_PAGE_SIZE} of 130`);
+    expect(first.paging.more).toContain(`call codebase_verify again with the same arguments and offset: ${VERIFY_PAGE_SIZE}`);
+
+    const seen: string[] = [];
+    let offset: number | undefined = 0;
+    while (offset !== undefined) {
+      const page = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath, offset }));
+      seen.push(...page.buckets.in_graph_only.map((g: any) => g.id));
+      expect(page.summary.gap_count).toBe(130);
+      offset = page.paging.nextOffset;
+    }
+    expect(seen).toEqual(h.routes.map((r) => r.id));
+
+    // A limit that covers everything returns it in one call, with nothing left to page.
+    const all = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath, limit: 500 }));
+    expect(all.buckets.in_graph_only).toHaveLength(130);
+    expect(all.paging).toEqual({ limit: 500, offset: 0 });
+  });
+
+  it("lowers the default page when the lists together would pass the size target, and says so", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    // Long paths: 50 of these per list is well past the target.
+    h.routes = Array.from({ length: 400 }, (_, i) => ({
+      id: `route-${i}-${"x".repeat(300)}`,
+      http_method: "GET",
+      http_path: `/${"segment/".repeat(30)}${i}`,
+      source_file: `src/${"deep/".repeat(20)}things.ts`,
+      source_symbol: `thing${i}`,
+    }));
+    const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(report.paging.limit).toBeLessThan(VERIFY_PAGE_SIZE);
+    expect(report.paging.limit).toBeGreaterThanOrEqual(VERIFY_MIN_PAGE_SIZE);
+    expect(report.paging.more).toContain("lowered to keep this result near 40 KB");
+    expect(report.buckets.in_graph_only).toHaveLength(report.paging.limit);
+    expect(report.summary.gap_count).toBe(400);
+    // The next page starts where this one ended, whatever size it was given.
+    expect(report.paging.nextOffset).toBe(report.paging.limit);
+    // An explicit limit is taken as given.
+    const asked = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath, limit: VERIFY_PAGE_SIZE }));
+    expect(asked.buckets.in_graph_only).toHaveLength(VERIFY_PAGE_SIZE);
   });
 
   it("gives a layer with no check the status not_checked", async () => {

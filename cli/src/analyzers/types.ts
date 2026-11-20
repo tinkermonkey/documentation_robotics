@@ -565,7 +565,10 @@ export interface NotCheckedGroup {
   /** What would make them checkable, when something would. */
   to_check?: string;
   count: number;
-  /** The first ids (at most 20); `count` is all of them. */
+  /**
+   * Their ids. The report holds every one; codebase_verify returns them a page at a time (the
+   * group's `count` is always all of them).
+   */
   ids: string[];
 }
 
@@ -617,8 +620,6 @@ export interface LayerVerifyReport {
     ignored_count?: number;
     relationships?: { matched_count: number; gap_count: number; drift_count: number };
   };
-  /** Entries left out of a bucket's list (each lists at most 200); the summary counts them all. */
-  omitted?: Partial<Record<LayerVerifyBucket, number>>;
 }
 
 /**
@@ -719,6 +720,3 @@ export interface VerifyReport {
   /** Requested layers whose check failed, with why; the others' results stand. */
   layers_not_verified?: Array<{ layer: string; reason: string }>;
 }
-
-/** Ids listed per not-checked reason; the group's count is all of them. */
-export const NOT_CHECKED_ID_LIMIT = 20;

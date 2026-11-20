@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { adoptVerifiedSourceReferences } from "../../core/source-reference-adoption.js";
+import { adoptVerifiedSourceReferences, type VerifiedAdoptionReport } from "../../core/source-reference-adoption.js";
 import { jsonResult, reloadModel, runTool, type McpToolDefinition } from "./shared.js";
 import { runVerify, verifyComparisonInputs } from "./changeset-verify.js";
 import { strictItem } from "../strict-schema.js";
@@ -38,7 +38,25 @@ const inputSchema = {
         "extraction can't see (a feature, a requirement, a tool the code registers by a name string), which changeset_verify " +
         "lists under sourceReferences.unreferenced with candidate files. Each is staged onto the plan with provenance manual."
     ),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "How many adopted, confirmed and skipped items come back in full (default 50; any size is accepted). counts is always " +
+        "over all of them; past the limit each copied reference is still named by its element id and each skipped one is " +
+        "listed under its reason."
+    ),
+  verbose: z.boolean().optional().describe("Return every item in full, with the references still missing (large for a big plan)."),
 };
+
+/**
+ * Items returned in full per list by default. The call writes, so there is no offset: it can't be
+ * paged by calling it again. Past the limit every item is still accounted for: a copied reference
+ * by its element id, a skipped one under its reason.
+ */
+export const ADOPT_LIST_LIMIT = 50;
 
 export type ChangesetAdoptSourceReferencesArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
@@ -58,8 +76,90 @@ export async function changesetAdoptSourceReferencesHandler(
         : 'Pass the plan as "changeset": the active changeset is the as-built one codebase_extract left active',
     });
     if (result.adopted.length > 0 || (result.confirmed?.length ?? 0) > 0) await reloadModel(args.rootPath);
-    return jsonResult(result);
+    return jsonResult(adoptionResult(result, { limit: args.limit, verbose: args.verbose, references: args.references?.length ?? 0 }));
   });
+}
+
+/** A skipped item's reason with what is particular to it (ids, files, quoted text) taken out, so items with one cause share a group. */
+function reasonPattern(reason: string): string {
+  return reason
+    .replace(/"[^"]*"/g, '"…"')
+    .replace(/\([^)]*\)/g, "(…)")
+    .replace(/\b[a-z][a-z-]*\.[a-z]+\.[\w.-]*[\w]/g, "<element>")
+    .replace(/[\w.@-]+(?:\/[\w.@-]+)+/g, "<file>");
+}
+
+/**
+ * The tool's result, as the batch writes shape theirs: `total` and `counts` over everything; each
+ * list in full up to `limit`; past it, a copied or confirmed reference is still named by its
+ * element id, and every skipped one is listed under its reason. No item is dropped, and no count
+ * is taken over the part returned. `verbose` returns the adoption report unshortened.
+ */
+export function adoptionResult(
+  report: VerifiedAdoptionReport,
+  options: { limit?: number; verbose?: boolean; references?: number } = {}
+): Record<string, unknown> {
+  const skipped = report.skipped ?? [];
+  const confirmed = report.confirmed ?? [];
+  const unknownIds = report.unknownIds ?? [];
+  const totals = {
+    // What verify listed to copy, and the references the caller sent.
+    total: report.adopted.length + (report.missing?.length ?? 0) + (options.references ?? 0),
+    counts: { adopted: report.adopted.length, confirmed: confirmed.length, skipped: skipped.length, unknownIds: unknownIds.length },
+  };
+  if (options.verbose) {
+    const { plannedChangeset, ...rest } = report;
+    return { plannedChangeset, ...totals, ...rest };
+  }
+
+  const limit = Math.max(options.limit ?? ADOPT_LIST_LIMIT, 1);
+  const where = (locations: Array<{ file: string; symbol?: string }>) => locations.map((l) => (l.symbol ? `${l.file}#${l.symbol}` : l.file));
+  const more = (what: string) => `${what}: pass limit: <count> for them in full, or verbose: true for everything.`;
+  const adopted = report.adopted.slice(0, limit).map((g) => ({
+    planned: g.planned,
+    ...(g.built !== g.planned ? { built: g.built } : {}),
+    op: g.op,
+    match: g.match,
+    locations: where(g.missing),
+  }));
+  const groups = new Map<string, { reason: string; count: number; ids: string[] }>();
+  for (const item of skipped.slice(limit)) {
+    const reason = reasonPattern(item.reason);
+    const group = groups.get(reason) ?? { reason, count: 0, ids: [] };
+    group.count++;
+    group.ids.push(item.planned);
+    groups.set(reason, group);
+  }
+  return {
+    plannedChangeset: report.plannedChangeset,
+    ...totals,
+    adopted,
+    ...(report.adopted.length > limit
+      ? {
+          adoptedNotListed: {
+            count: report.adopted.length - limit,
+            ids: report.adopted.slice(limit).map((g) => g.planned),
+            more: more("Copied too, named by element id"),
+          },
+        }
+      : {}),
+    ...(confirmed.length > 0 ? { confirmed: confirmed.slice(0, limit) } : {}),
+    ...(confirmed.length > limit
+      ? { confirmedNotListed: { count: confirmed.length - limit, ids: confirmed.slice(limit).map((c) => c.planned), more: more("Set too, named by element id") } }
+      : {}),
+    ...(skipped.length > 0 ? { skipped: skipped.slice(0, limit) } : {}),
+    ...(skipped.length > limit
+      ? {
+          skippedNotListed: {
+            count: skipped.length - limit,
+            groups: [...groups.values()].sort((a, b) => b.count - a.count),
+            more: more("Skipped too, each under its reason"),
+          },
+        }
+      : {}),
+    ...(unknownIds.length > 0 ? { unknownIds } : {}),
+    next: report.next,
+  };
 }
 
 export const changesetAdoptSourceReferencesTool: McpToolDefinition<typeof inputSchema> = {
@@ -73,7 +173,10 @@ export const changesetAdoptSourceReferencesTool: McpToolDefinition<typeof inputS
     "you have confirmed it in the code. Matches against elements extraction didn't stage (builtByAgent) are never " +
     "copied. skipped says why each one wasn't. For a planned element extraction can't see (it has no as-built match: a " +
     "feature, a requirement, a tool the code registers by a name string), pass the reference you confirmed in the code in " +
-    "references ({id, sourceFile, sourceSymbol}); changeset_verify lists candidates under sourceReferences.unreferenced.",
+    "references ({id, sourceFile, sourceSymbol}); changeset_verify lists candidates under sourceReferences.unreferenced. " +
+    "The result gives total and counts over everything, then each list in full up to limit (default 50): past it a copied " +
+    "reference is still named by its element id and every skipped one is listed under its reason; verbose: true returns " +
+    "every item in full.",
   inputSchema,
   handler: changesetAdoptSourceReferencesHandler,
 };

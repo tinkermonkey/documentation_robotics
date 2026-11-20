@@ -114,6 +114,9 @@ export function formatVerifyMarkdown(report: VerifyReport): string {
   return lines.join("\n");
 }
 
+/** Ids printed per not-checked group in the text and markdown reports; the JSON report has them all. */
+const NOT_CHECKED_IDS_SHOWN = 20;
+
 /** A layer's status as the reports print it. */
 const STATUS_LABEL: Record<NonNullable<VerifyReport["layers"]>[number]["status"], string> = {
   in_step: "In step",
@@ -142,10 +145,11 @@ function formatLayersMarkdown(lines: string[], report: VerifyReport): void {
     lines.push(`**${STATUS_LABEL[layer.status]}:** ${escapeMarkdown(layer.status_text)}`);
     lines.push("");
     for (const group of layer.not_checked ?? []) {
-      const more = group.count > group.ids.length ? `, ... (${group.count - group.ids.length} more)` : "";
+      const shown = group.ids.slice(0, NOT_CHECKED_IDS_SHOWN);
+      const more = group.count > shown.length ? `, ... (${group.count - shown.length} more; --json lists them all)` : "";
       lines.push(
         `- Not checked (${group.count}): ${escapeMarkdown(group.reason)}${group.to_check ? `. To check: ${escapeMarkdown(group.to_check)}` : ""}: ` +
-          `${escapeMarkdown(group.ids.join(", "))}${more}`
+          `${escapeMarkdown(shown.join(", "))}${more}`
       );
     }
     if (layer.not_checked?.length) lines.push("");
@@ -433,7 +437,8 @@ function formatLayersText(lines: string[], report: VerifyReport): void {
     lines.push(`${paint(STATUS_LABEL[layer.status])}: ${layer.status_text}`);
     for (const group of layer.not_checked ?? []) {
       lines.push(`  Not checked (${group.count}): ${group.reason}${group.to_check ? `. To check: ${group.to_check}` : ""}`);
-      lines.push(ansis.dim(`    ${group.ids.join(", ")}${group.count > group.ids.length ? `, ... (${group.count - group.ids.length} more)` : ""}`));
+      const shown = group.ids.slice(0, NOT_CHECKED_IDS_SHOWN);
+      lines.push(ansis.dim(`    ${shown.join(", ")}${group.count > shown.length ? `, ... (${group.count - shown.length} more; --json lists them all)` : ""}`));
     }
     lines.push(
       `Matched: ${summary.matched_count}   In code only: ${summary.gap_count}   In model only (drift): ${summary.drift_count}   ` +

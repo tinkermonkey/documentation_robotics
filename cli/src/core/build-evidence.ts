@@ -156,16 +156,17 @@ export interface SourceCandidate {
   evidence: "names-it" | "named-as-string" | "file-name" | "mentions-words";
 }
 
-/** Candidates listed per element. */
-export const SOURCE_CANDIDATE_LIMIT = 3;
+/** Candidates shown per element on a compact line; the report itself holds every one, best first. */
+export const SOURCE_CANDIDATES_SHOWN = 3;
 
 /**
  * The build's files that may hold this element's code, best first: a file that names it exactly,
  * a file named after it, then files whose name and text carry the words of its name (all of them
- * for a name of up to three words, most of them for a longer one). Empty when none does: a goal
- * or a requirement usually has no file of its own.
+ * for a name of up to three words, most of them for a longer one). Every such file is returned;
+ * a compact line shows the first few and says how many more. Empty when none does: a goal or a
+ * requirement usually has no file of its own.
  */
-export function sourceCandidates(element: EvidenceElement, buildFiles: BuildFile[], limit = SOURCE_CANDIDATE_LIMIT): SourceCandidate[] {
+export function sourceCandidates(element: EvidenceElement, buildFiles: BuildFile[]): SourceCandidate[] {
   const spellings = nameSpellings(element);
   const words = [...new Set(nameWords(element.name).filter((w) => w.length >= 3))];
   if (spellings.length === 0 && words.length === 0) return [];
@@ -202,7 +203,6 @@ export function sourceCandidates(element: EvidenceElement, buildFiles: BuildFile
   const isTest = (file: string) => /(^|\/)(tests?|__tests__)\/|\.(test|spec)\.[cm]?[jt]sx?$/.test(file);
   return scored
     .sort((a, b) => Number(isTest(a.candidate.file)) - Number(isTest(b.candidate.file)) || b.score - a.score || a.candidate.file.localeCompare(b.candidate.file))
-    .slice(0, limit)
     .map((s) => s.candidate);
 }
 
@@ -238,20 +238,32 @@ export async function readBuildFiles(codebaseRoot: string, since: string | undef
     }
   }
   if (wanted.length > BUILD_FILE_LIMIT) {
-    note = `${wanted.length} files changed in the build; the first ${BUILD_FILE_LIMIT} were searched for planned elements extraction can't see.`;
+    note =
+      `${wanted.length} files changed in the build; the first ${BUILD_FILE_LIMIT} (the planned elements' own files, then the changed files by path) ` +
+      `were searched for planned elements extraction can't see, and the other ${wanted.length - BUILD_FILE_LIMIT} were not: a planned element ` +
+      "registered by name in one of those reads as missing. Give such an element its sourceFile and it is searched there first.";
     wanted.length = BUILD_FILE_LIMIT;
   }
   const root = path.resolve(codebaseRoot);
   const files: BuildFile[] = [];
+  const tooLarge: string[] = [];
   for (const file of wanted) {
     const abs = path.resolve(root, file);
     if (!abs.startsWith(root + path.sep)) continue;
     try {
-      if ((await stat(abs)).size > BUILD_FILE_MAX_BYTES) continue;
+      if ((await stat(abs)).size > BUILD_FILE_MAX_BYTES) {
+        tooLarge.push(file);
+        continue;
+      }
       files.push({ file, text: await readFile(abs, "utf-8") });
     } catch {
       // Deleted in the range, or unreadable: nothing to search.
     }
+  }
+  // What was not searched is said, so "missing" is never read as "looked everywhere".
+  if (tooLarge.length > 0) {
+    const large = `${tooLarge.length} file(s) over ${BUILD_FILE_MAX_BYTES / 1024} KB were not searched for planned elements extraction can't see: ${tooLarge.join(", ")}.`;
+    note = note ? `${note} ${large}` : large;
   }
   return { files, ...(note ? { note } : {}) };
 }

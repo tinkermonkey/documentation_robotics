@@ -39,7 +39,8 @@ import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
-import { readBuildFiles, registeredByName, sourceCandidates, type BuildFile, type SourceCandidate } from "./build-evidence.js";
+import { readBuildFiles, registeredByName, sourceCandidates, SOURCE_CANDIDATES_SHOWN, type BuildFile, type SourceCandidate } from "./build-evidence.js";
+import { PagedLists, type ListPage } from "./list-page.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
@@ -535,7 +536,7 @@ export interface UnreferencedPlannedAdd {
   /** How verify reported it: extraction can't see it (intent, for one), or it isn't in the build. */
   result: "unverifiable" | "missing";
   /**
-   * Files of the build that may hold its code, best first (a file that names it, a file named
+   * Every file of the build that may hold its code, best first (a file that names it, a file named
    * after it, files that carry the words of its name): for the agent to confirm in the code and
    * pass to changeset_adopt_source_references as `references`. Absent when no file of the build
    * names it, as for most goals and requirements.
@@ -681,13 +682,28 @@ export interface CompactVerifyReport extends VerifyHeader {
   /** Accepted gaps the build contradicts, one line each; `preexisting` counted. */
   acceptedGaps?: { checked: number; contradicted: string[]; preexisting?: number };
   notes: string[];
-  /** Set when a list was cut at VERIFY_LIST_LIMIT: each list's full length. */
+  /** Set when a list is not whole here: each such list's full length. */
   counts?: Record<string, number>;
+  /** Each list that is not whole here: its total, how many lines came back, and the next offset. */
+  pages?: Record<string, ListPage>;
+  /** The page asked for, when a list is not whole; `nextOffset` when some list has more. */
+  paging?: VerifyPaging;
   /** Set when the call had arguments this form doesn't use (`layers` or `ids` without `sections`). */
   note?: string;
   /** How to get more. */
   more: string;
 }
+
+/** The page a verify result holds of its lists: one window over all of them. */
+export interface VerifyPaging {
+  limit: number;
+  offset: number;
+  /** Pass as `offset`, with the same arguments, for the next page. Absent when nothing is left. */
+  nextOffset?: number;
+}
+
+/** Items returned per section list by default (`sections`): each is a whole object, with its notes. */
+export const VERIFY_SECTION_PAGE_SIZE = 50;
 
 /** Narrows `sections` output: items whose elements are in these layers, or have these ids. */
 export interface VerifyFilter {
@@ -697,7 +713,7 @@ export interface VerifyFilter {
 
 type Pair<E, R> = { elements: E[]; relationships: R[] };
 
-/** Named sections only, each in full, under the header. */
+/** Named sections only, each item in full, a page of each list, under the header. */
 export interface VerifySectionsReport extends VerifyHeader {
   detail: "compact";
   /** The sections returned, in the order asked. */
@@ -715,6 +731,10 @@ export interface VerifySectionsReport extends VerifyHeader {
   extraction?: VerifyExtraction;
   acceptedGaps?: AcceptedGapsCheck;
   notes?: string[];
+  /** Each list that is not whole here (`unplanned.elements`, ...): its total, how many came back, the next offset. */
+  pages?: Record<string, ListPage>;
+  /** The page asked for, when a list is not whole; `nextOffset` when some list has more. */
+  paging?: VerifyPaging;
   more: string;
 }
 
@@ -727,6 +747,13 @@ export interface CompactVerifyOptions {
   layers?: string[];
   /** With sections: only items touching these element ids. */
   ids?: string[];
+  /**
+   * The most lines (compact, default VERIFY_LIST_LIMIT) or items (sections, default
+   * VERIFY_SECTION_PAGE_SIZE) to return from each list. A page size, not a cut-off.
+   */
+  limit?: number;
+  /** Skip this many lines or items of each list. */
+  offset?: number;
 }
 
 const relLine = (r: VerifyRelationship) => `${r.source} --${r.predicate}--> ${r.target}`;
@@ -763,11 +790,31 @@ const countBy = <T>(items: T[], key: (item: T) => string): Record<string, number
 const firstIds = (ids: string[]) =>
   `${ids.slice(0, IDS_PER_LINE).join(", ")}${ids.length > IDS_PER_LINE ? `, +${ids.length - IDS_PER_LINE} more` : ""}`;
 
-/** A list cut at VERIFY_LIST_LIMIT, recording its full length in `counts` under `name` when it was cut. */
-function cappedList(list: string[], name: string, counts: Record<string, number>): string[] {
-  if (list.length <= VERIFY_LIST_LIMIT) return list;
-  counts[name] = list.length;
-  return list.slice(0, VERIFY_LIST_LIMIT);
+/** The page of a list, recording its full length in `counts` under `name` when the page is not all of it. */
+function cappedList(list: string[], name: string, counts: Record<string, number>, pager: PagedLists): string[] {
+  const page = pager.list(name, list);
+  if (pager.pages[name]) counts[name] = list.length;
+  return page;
+}
+
+/** The paging fields of a result whose lists `pager` paged; nothing when every list came back whole. */
+function pagingOf(pager: PagedLists): { pages?: Record<string, ListPage>; paging?: VerifyPaging } {
+  if (Object.keys(pager.pages).length === 0) return {};
+  const nextOffset = pager.nextOffset;
+  return { pages: pager.pages, paging: { limit: pager.limit, offset: pager.offset, ...(nextOffset !== undefined ? { nextOffset } : {}) } };
+}
+
+/** The sentence naming the call for the next page, or that this is the last one. */
+function nextPageSentence(pager: PagedLists): string {
+  if (Object.keys(pager.pages).length === 0) return "";
+  const next = pager.nextOffset;
+  return (
+    `Lists are pages of ${pager.limit} from ${pager.offset}; the verdict and summary counts are over everything. ` +
+    `Not whole here: ${pager.describe()}. ` +
+    (next !== undefined
+      ? `For the next page call changeset_verify again with the same arguments and offset: ${next}; limit takes any size, for more at once. `
+      : "This is the last page: call again with offset: 0 for the start. ")
+  );
 }
 
 /** Lines that share a reason grouped: `id (op): reason` for one, `reason (n elements: ids)` for several. */
@@ -834,9 +881,12 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     ...(options.ids?.length ? { ids: options.ids } : {}),
   };
   const filtered = Object.keys(filter).length > 0;
-  if (options.sections && options.sections.length > 0) return verifySections(report, options.sections, filtered ? filter : undefined);
+  if (options.sections && options.sections.length > 0) {
+    return verifySections(report, options.sections, filtered ? filter : undefined, { limit: options.limit, offset: options.offset });
+  }
 
   const counts: Record<string, number> = {};
+  const pager = new PagedLists({ limit: options.limit, offset: options.offset }, VERIFY_LIST_LIMIT);
   const missing = [
     ...report.elements.missing.map(
       (m) =>
@@ -884,7 +934,7 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
         (g.builtByAgent ? "(built by the agent: not copied)" : g.match === "probable" ? `(probable: ${g.matchReason})` : "(exact)")
     );
     sourceReferences = {
-      missing: cappedList(lines, "sourceReferences.missing", counts),
+      missing: cappedList(lines, "sourceReferences.missing", counts, pager),
       ...(refs.unreferenced?.length
         ? {
             unreferenced: cappedList(
@@ -892,11 +942,18 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
                 (u) =>
                   `${u.planned} (${u.result})` +
                   (u.candidates?.length
-                    ? `: may be ${u.candidates.map((c) => `${c.file}${c.symbol ? `#${c.symbol}` : ""} (${c.evidence})`).join(", ")}`
+                    ? `: may be ${u.candidates
+                        .slice(0, SOURCE_CANDIDATES_SHOWN)
+                        .map((c) => `${c.file}${c.symbol ? `#${c.symbol}` : ""} (${c.evidence})`)
+                        .join(", ")}` +
+                      (u.candidates.length > SOURCE_CANDIDATES_SHOWN
+                        ? `, +${u.candidates.length - SOURCE_CANDIDATES_SHOWN} more (sections: ["sourceReferences"] lists them)`
+                        : "")
                     : "")
               ),
               "sourceReferences.unreferenced",
-              counts
+              counts,
+              pager
             ),
           }
         : {}),
@@ -908,11 +965,11 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     detail: "compact",
     ...headerOf(report),
     ...(report.warning ? { warning: report.warning } : {}),
-    missing: cappedList(missing, "missing", counts),
-    divergent: cappedList(divergent, "divergent", counts),
-    probable: cappedList(probable, "probable", counts),
-    ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts) } : {}),
-    unverifiable: cappedList(unverifiable, "unverifiable", counts),
+    missing: cappedList(missing, "missing", counts, pager),
+    divergent: cappedList(divergent, "divergent", counts, pager),
+    probable: cappedList(probable, "probable", counts, pager),
+    ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts, pager) } : {}),
+    unverifiable: cappedList(unverifiable, "unverifiable", counts, pager),
     unplanned,
     ...(sourceReferences ? { sourceReferences } : {}),
     ...(report.extraction ? { extraction: compactExtraction(report.extraction) } : {}),
@@ -929,6 +986,7 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     more: "",
   };
   if (Object.keys(counts).length > 0) out.counts = counts;
+  Object.assign(out, pagingOf(pager));
   if (filtered) {
     out.note =
       "layers and ids narrow sections output only, so the whole compact report is returned. Pass sections too, " +
@@ -941,8 +999,9 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
       ? 'The as-built share is in counts: sections: ["extraction"] lists extraction.asBuilt.agentAdded (why each one ' +
         "doesn't count). "
       : "") +
-    (out.counts
-      ? `Lists are cut at ${VERIFY_LIST_LIMIT} lines (counts has their lengths; the section of the same name has them all). `
+    nextPageSentence(pager) +
+    (unverifiable.some((line) => line.includes(" more)")) || missing.some((line) => line.includes(" more]"))
+      ? `A line that groups several items shows its first ${IDS_PER_LINE} ids (sections: ["unverifiable"] or ["missing"] lists every one). `
       : "") +
     `Pass detail: "full" for the whole report, or sections: [...] for only some sections, in full (${VERIFY_SECTIONS.join(", ")}).`;
   return out;
@@ -956,9 +1015,16 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
 export function verifySections(
   report: VerifyReport & { plannedChangeset?: { id: string; name: string } },
   sections: readonly VerifySection[],
-  filter?: VerifyFilter
+  filter?: VerifyFilter,
+  page: { limit?: number; offset?: number } = {}
 ): VerifySectionsReport {
   const names = [...new Set(sections)];
+  const pager = new PagedLists(page, VERIFY_SECTION_PAGE_SIZE);
+  /** A section's two lists, each a page, named `<section>.elements` and `<section>.relationships`. */
+  const paged = <E, R>(section: string, lists: { elements: E[]; relationships: R[] }) => ({
+    elements: pager.list(`${section}.elements`, lists.elements),
+    relationships: pager.list(`${section}.relationships`, lists.relationships),
+  });
   const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
   const layers = filter?.layers?.length ? new Set(filter.layers) : undefined;
   const keep = (...elementIds: string[]): boolean =>
@@ -984,30 +1050,33 @@ export function verifySections(
   for (const name of names) {
     switch (name) {
       case "missing":
-        out.missing = pick(e.missing, r.missing, (m) => [m.planned], (m) => [m.planned]);
+        out.missing = paged("missing", pick(e.missing, r.missing, (m) => [m.planned], (m) => [m.planned]));
         break;
       case "divergent":
-        out.divergent = pick(e.divergent, r.divergent, matchIds, relMatch);
+        out.divergent = paged("divergent", pick(e.divergent, r.divergent, matchIds, relMatch));
         break;
       case "probable":
-        out.probable = pick<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>(
-          [...e.matched, ...e.divergent].filter((m) => m.match === "probable"),
-          [...r.matched, ...r.divergent].filter((m) => m.match === "probable"),
-          matchIds,
-          relMatch
+        out.probable = paged(
+          "probable",
+          pick<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>(
+            [...e.matched, ...e.divergent].filter((m) => m.match === "probable"),
+            [...r.matched, ...r.divergent].filter((m) => m.match === "probable"),
+            matchIds,
+            relMatch
+          )
         );
         break;
       case "matched":
-        out.matched = pick(e.matched, r.matched, matchIds, relMatch);
+        out.matched = paged("matched", pick(e.matched, r.matched, matchIds, relMatch));
         break;
       case "unverifiable":
-        out.unverifiable = pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]);
+        out.unverifiable = paged("unverifiable", pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]));
         break;
       case "unplanned":
-        out.unplanned = pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]);
+        out.unplanned = paged("unplanned", pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]));
         break;
       case "deletionsNotDone":
-        out.deletionsNotDone = pick(e.deletionsNotDone, r.deletionsNotDone, matchIds, relMatch);
+        out.deletionsNotDone = paged("deletionsNotDone", pick(e.deletionsNotDone, r.deletionsNotDone, matchIds, relMatch));
         break;
       case "sourceReferences":
         if (!report.sourceReferences) {
@@ -1016,15 +1085,34 @@ export function verifySections(
         }
         out.sourceReferences = {
           ...report.sourceReferences,
-          missing: report.sourceReferences.missing.filter((g) => keep(g.planned, g.built)),
+          missing: pager.list(
+            "sourceReferences.missing",
+            report.sourceReferences.missing.filter((g) => keep(g.planned, g.built))
+          ),
           ...(report.sourceReferences.unreferenced
-            ? { unreferenced: report.sourceReferences.unreferenced.filter((u) => keep(u.planned)) }
+            ? { unreferenced: pager.list("sourceReferences.unreferenced", report.sourceReferences.unreferenced.filter((u) => keep(u.planned))) }
             : {}),
         };
         break;
       case "extraction":
-        if (report.extraction) out.extraction = report.extraction;
-        else notes.push("No extraction section: the report has none.");
+        if (report.extraction) {
+          const share = report.extraction.asBuilt;
+          out.extraction = {
+            ...report.extraction,
+            ...(share
+              ? {
+                  asBuilt: {
+                    ...share,
+                    ...(share.agentAdded ? { agentAdded: pager.list("extraction.asBuilt.agentAdded", share.agentAdded) } : {}),
+                    ...(share.editedAfterExtraction
+                      ? { editedAfterExtraction: pager.list("extraction.asBuilt.editedAfterExtraction", share.editedAfterExtraction) }
+                      : {}),
+                    ...(share.copiedFromPlan ? { copiedFromPlan: pager.list("extraction.asBuilt.copiedFromPlan", share.copiedFromPlan) } : {}),
+                  },
+                }
+              : {}),
+          };
+        } else notes.push("No extraction section: the report has none.");
         break;
       case "acceptedGaps":
         if (!report.acceptedGaps) {
@@ -1033,23 +1121,30 @@ export function verifySections(
         }
         out.acceptedGaps = {
           ...report.acceptedGaps,
-          contradicted: report.acceptedGaps.contradicted.filter((g) => keep(g.element, g.builtElement)),
+          contradicted: pager.list(
+            "acceptedGaps.contradicted",
+            report.acceptedGaps.contradicted.filter((g) => keep(g.element, g.builtElement))
+          ),
           ...(report.acceptedGaps.preexisting
-            ? { preexisting: report.acceptedGaps.preexisting.filter((g) => keep(g.element, g.builtElement)) }
+            ? { preexisting: pager.list("acceptedGaps.preexisting", report.acceptedGaps.preexisting.filter((g) => keep(g.element, g.builtElement))) }
             : {}),
         };
         break;
       case "notes":
-        out.notes = report.notes;
+        out.notes = pager.list("notes", report.notes);
         break;
     }
   }
+  Object.assign(out, pagingOf(pager));
   out.more = [
     ...notes,
+    nextPageSentence(pager).trim(),
     `Only the sections asked for are returned (${names.join(", ")})` +
       (out.filter ? ", for the items the filter keeps" : "") +
       '. Call without sections for the compact report, or with detail: "full" for everything.',
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
   return out;
 }
 

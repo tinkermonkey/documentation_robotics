@@ -6,7 +6,7 @@
  * two in the summary. `not_checked` is its own status here, and is never folded into `in_step`:
  * a layer is in step only when at least one of its elements was compared and nothing differs.
  */
-import { NOT_CHECKED_ID_LIMIT, type LayerVerifyCoverage, type LayerVerifyStatus, type NotCheckedGroup } from "./types.js";
+import type { LayerVerifyCoverage, LayerVerifyStatus, NotCheckedGroup } from "./types.js";
 
 /** A model element a check could not compare, with why and what would make it checkable. */
 export interface NotCheckedElement {
@@ -15,7 +15,7 @@ export interface NotCheckedElement {
   to_check?: string;
 }
 
-/** Elements that could not be checked, grouped by reason, the largest group first. */
+/** Elements that could not be checked, grouped by reason, the largest group first. Every id is kept. */
 export function groupNotChecked(elements: NotCheckedElement[]): NotCheckedGroup[] {
   const groups = new Map<string, NotCheckedGroup>();
   for (const e of elements) {
@@ -25,7 +25,7 @@ export function groupNotChecked(elements: NotCheckedElement[]): NotCheckedGroup[
       groups.set(e.reason, group);
     }
     group.count++;
-    if (group.ids.length < NOT_CHECKED_ID_LIMIT) group.ids.push(e.id);
+    group.ids.push(e.id);
   }
   return [...groups.values()].sort((a, b) => b.count - a.count);
 }
