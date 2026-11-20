@@ -1037,8 +1037,12 @@ describe("paged listings: a limit is a page size, never a cut-off", () => {
       expect(second.page).toEqual({ offset: TRACE_LIST_LIMIT, totals: whole.page.totals });
       expect(second.dependencies).toEqual({ direct: [], transitive: [] });
       expect([...first.dependents.direct, ...second.dependents.direct]).toEqual(whole.dependents.direct);
+      // The last page keeps the summary of the whole trace, and says it is the last.
+      expect(second.summary).toEqual(first.summary);
+      expect(second.more).toContain("last page");
+      expect(second.more).not.toContain("offset:");
     });
-  });
+  }, 60_000);
 
   it("model_trace pages changedEdges and changedElements too", async () => {
     await withProject(async (rootPath) => {

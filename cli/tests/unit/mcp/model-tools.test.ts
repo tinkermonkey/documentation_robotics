@@ -238,7 +238,7 @@ describe("MCP model tools", () => {
         const data = parse(compact);
         expect(data.totalElements).toBe(100);
 
-        // The full form is paged 40 at a time; ask for all 100 on one page to compare sizes.
+        // The full form is paged LIST_FULL_LIMIT (30) at a time; ask for all 100 on one page to compare sizes.
         const fullText = ((await modelListHandler({ detail: "full", limit: 100, rootPath })).content[0] as { text: string }).text;
         expect(parse({ content: [{ text: fullText }] }).totalElements).toBe(100);
         expect(parse({ content: [{ text: fullText }] }).page).toEqual({ total: 100, returned: 100, offset: 0 });

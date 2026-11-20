@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { listsPager, nextPageHint, pageOf, pagingFields, wholePage } from "../../../src/core/paging.js";
+import { checkedPageArgs, listsPager, nextPageHint, pageOf, pagingFields, wholePage } from "../../../src/core/paging.js";
 
 const numbers = (n: number) => Array.from({ length: n }, (_, i) => i);
 
@@ -105,5 +105,64 @@ describe("pagingFields", () => {
     expect(fields.limit.safeParse(0).success).toBe(false);
     expect(fields.offset.safeParse(-1).success).toBe(false);
     expect(fields.offset.safeParse(0).success).toBe(true);
+  });
+});
+
+describe("arguments are checked, whoever builds them", () => {
+  const list = numbers(10);
+
+  it("refuses a limit that is not an integer of at least 1", () => {
+    for (const limit of [0, -3, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => pageOf(list, { limit }, 4)).toThrow(RangeError);
+      expect(() => pageOf(list, { limit }, 4)).toThrow("limit must be an integer of at least 1");
+      expect(() => listsPager({ limit }, 4)).toThrow(RangeError);
+    }
+  });
+
+  it("refuses an offset that is not an integer of at least 0", () => {
+    for (const offset of [-3, -1, 2.5, Number.NaN]) {
+      expect(() => pageOf(list, { offset }, 4)).toThrow(RangeError);
+      expect(() => pageOf(list, { offset }, 4)).toThrow("offset must be an integer of at least 0");
+      expect(() => listsPager({ offset }, 4)).toThrow(RangeError);
+    }
+  });
+
+  it("refuses a bad default limit, saying it is the default", () => {
+    expect(() => pageOf(list, {}, 0)).toThrow("default limit must be an integer of at least 1");
+    expect(() => listsPager({}, -1)).toThrow("default limit");
+    // A caller's valid limit stands in for a bad default.
+    expect(pageOf(list, { limit: 4 }, 0).page.returned).toBe(4);
+  });
+
+  it("checks both arguments in one place", () => {
+    expect(checkedPageArgs({}, 4)).toEqual({ limit: 4, offset: 0 });
+    expect(checkedPageArgs({ limit: 1, offset: 0 }, 4)).toEqual({ limit: 1, offset: 0 });
+  });
+
+  it("clamps an offset past the end the same way in both forms", () => {
+    expect(pageOf(list, { offset: 99 }, 4).page).toEqual({ total: 10, returned: 0, offset: 10 });
+    const pager = listsPager({ offset: 99 }, 4);
+    expect(pager.cut("a", list)).toEqual([]);
+    expect(pager.cut("b", numbers(3))).toEqual([]);
+    // Each list ends at a different place, so the multi-list page reports the offset asked for.
+    expect(pager.page()).toEqual({ offset: 99, totals: { a: 10, b: 3 } });
+  });
+
+  it("only ever gives a nextOffset greater than the offset", () => {
+    for (let total = 0; total <= 12; total++) {
+      for (let limit = 1; limit <= 5; limit++) {
+        for (let offset = 0; offset <= total + 2; offset++) {
+          const { page } = pageOf(numbers(total), { limit, offset }, 4);
+          if (page.nextOffset !== undefined) {
+            expect(page.nextOffset).toBeGreaterThan(page.offset);
+            expect(page.nextOffset).toBeLessThan(total);
+          }
+          const pager = listsPager({ limit, offset }, 4);
+          pager.cut("x", numbers(total));
+          const lists = pager.page();
+          if (lists.nextOffset !== undefined) expect(lists.nextOffset).toBeGreaterThan(lists.offset);
+        }
+      }
+    }
   });
 });

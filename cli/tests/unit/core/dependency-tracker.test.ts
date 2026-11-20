@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import Graph from "graphology";
-import { DependencyTracker } from "@/core/dependency-tracker";
+import { DependencyTracker, TraceDirection } from "@/core/dependency-tracker";
 
 describe("DependencyTracker", () => {
   let graph: Graph;
@@ -386,6 +386,36 @@ describe("DependencyTracker", () => {
       const depthA = tracker.getDependencyDepth("a");
       expect(typeof depthA).toBe("number");
       expect(depthA).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("a cycle back to the traced element", () => {
+    beforeEach(() => {
+      // a -> b -> c -> a, and a -> d: what the flipped predicates make of `a uses b` plus `b realizes a`.
+      for (const node of ["a", "b", "c", "d"]) graph.addNode(node);
+      graph.addEdge("a", "b");
+      graph.addEdge("b", "c");
+      graph.addEdge("c", "a");
+      graph.addEdge("a", "d");
+    });
+
+    it("does not list the traced element in its own trace, at any depth", () => {
+      for (const depth of [null, 1, 2, 3, 10]) {
+        const up = tracker.traceDependencies("a", TraceDirection.UP, depth);
+        const down = tracker.traceDependencies("a", TraceDirection.DOWN, depth);
+        expect(up).not.toContain("a");
+        expect(down).not.toContain("a");
+        expect(new Set(up).size).toBe(up.length);
+        expect(new Set(down).size).toBe(down.length);
+      }
+      expect(tracker.traceDependencies("a", TraceDirection.UP, null).sort()).toEqual(["b", "c", "d"]);
+      expect(tracker.traceDependencies("a", TraceDirection.DOWN, null).sort()).toEqual(["b", "c"]);
+    });
+
+    it("reaches each element at its shortest depth when the depth is limited", () => {
+      expect(tracker.traceDependencies("a", TraceDirection.UP, 1).sort()).toEqual(["b", "d"]);
+      expect(tracker.traceDependencies("a", TraceDirection.UP, 2).sort()).toEqual(["b", "c", "d"]);
+      expect(tracker.traceDependencies("a", TraceDirection.DOWN, 1)).toEqual(["c"]);
     });
   });
 });

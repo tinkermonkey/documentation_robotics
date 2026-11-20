@@ -126,7 +126,9 @@ export class DependencyTracker {
    * Equivalent to networkx.descendants()
    */
   private _getDescendants(graph: Graph, startNode: string): Set<string> {
-    const visited = new Set<string>();
+    // The start counts as visited, so a cycle back to it neither lists it in its own trace nor
+    // walks it again (networkx leaves the source out the same way).
+    const visited = new Set<string>([startNode]);
     const stack = [startNode];
 
     while (stack.length > 0) {
@@ -142,6 +144,7 @@ export class DependencyTracker {
       }
     }
 
+    visited.delete(startNode);
     return visited;
   }
 
@@ -150,7 +153,9 @@ export class DependencyTracker {
    * Equivalent to networkx.ancestors()
    */
   private _getAncestors(graph: Graph, startNode: string): Set<string> {
-    const visited = new Set<string>();
+    // The start counts as visited, so a cycle back to it neither lists it in its own trace nor
+    // walks it again (networkx leaves the source out the same way).
+    const visited = new Set<string>([startNode]);
     const stack = [startNode];
 
     while (stack.length > 0) {
@@ -166,6 +171,7 @@ export class DependencyTracker {
       }
     }
 
+    visited.delete(startNode);
     return visited;
   }
 
@@ -175,6 +181,8 @@ export class DependencyTracker {
    */
   private _getDescendantsLimited(graph: Graph, startNode: string, maxDepth: number): Set<string> {
     const descendants = new Set<string>();
+    // Each element is reached once, at its shortest depth, and the start is never part of its own trace.
+    const seen = new Set<string>([startNode]);
     let currentLevel = new Set([startNode]);
 
     for (let depth = 0; depth < maxDepth; depth++) {
@@ -184,6 +192,8 @@ export class DependencyTracker {
         if (!graph.hasNode(node)) continue;
 
         for (const neighbor of graph.outNeighbors(node)) {
+          if (seen.has(neighbor)) continue;
+          seen.add(neighbor);
           nextLevel.add(neighbor);
         }
       }
@@ -205,6 +215,8 @@ export class DependencyTracker {
    */
   private _getAncestorsLimited(graph: Graph, startNode: string, maxDepth: number): Set<string> {
     const ancestors = new Set<string>();
+    // Each element is reached once, at its shortest depth, and the start is never part of its own trace.
+    const seen = new Set<string>([startNode]);
     let currentLevel = new Set([startNode]);
 
     for (let depth = 0; depth < maxDepth; depth++) {
@@ -214,6 +226,8 @@ export class DependencyTracker {
         if (!graph.hasNode(node)) continue;
 
         for (const neighbor of graph.inNeighbors(node)) {
+          if (seen.has(neighbor)) continue;
+          seen.add(neighbor);
           nextLevel.add(neighbor);
         }
       }

@@ -120,19 +120,27 @@ function pagedTrace(trace: TraceResult, args: ModelTraceArgs): Record<string, un
     ...(changedEdges ? { changedEdges: pager.cut("changedEdges", changedEdges) } : {}),
   };
   const page = pager.page();
-  if (page.nextOffset === undefined) {
+  // A trace that is paged at all (a list longer than one page) keeps its summary of each side on
+  // every page, the last included, so whichever page a caller reads, the counts are of the whole.
+  const limit = args.limit ?? TRACE_LIST_LIMIT;
+  const isPaged = Object.values(page.totals).some((total) => total > limit);
+  if (!isPaged) {
     return { ...paged, page, ...(warnings ? { warnings } : {}) };
   }
   const whole = (name: "dependents" | "dependencies") =>
     trace[name] ? { [name]: countByLayerAndType([...trace[name]!.direct, ...trace[name]!.transitive]) } : {};
+  const more =
+    page.nextOffset !== undefined
+      ? `A list of this trace is longer than one page (${limit} ids): page.totals has each list's true length and ` +
+        `summary counts each side by layer and type. Call model_trace again with the same arguments and offset: ` +
+        `${page.nextOffset} for the next page of every list; depth: 1 gives only the direct ones.`
+      : `This is the last page of a trace longer than one page (${limit} ids): page.totals has each list's true ` +
+        "length and summary counts each side by layer and type.";
   return {
     ...paged,
     page,
     summary: { ...whole("dependents"), ...whole("dependencies") },
-    more:
-      `A list of this trace is longer than one page (${args.limit ?? TRACE_LIST_LIMIT} ids): page.totals has each list's true ` +
-      `length and summary counts each side by layer and type. Call model_trace again with the same arguments and ` +
-      `offset: ${page.nextOffset} for the next page of every list; depth: 1 gives only the direct ones.`,
+    more,
     ...(warnings ? { warnings } : {}),
   };
 }

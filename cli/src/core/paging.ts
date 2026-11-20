@@ -26,6 +26,14 @@
  *
  * One `offset` and `limit` apply to every list, `totals` has each list's true length by name, and
  * `nextOffset` is present while any list has more, so repeating the call pages them all.
+ *
+ * Arguments are checked here, not only at a tool's zod schema, so a caller that builds them itself
+ * cannot loop or skip: `limit` must be an integer of at least 1 and `offset` an integer of at least
+ * 0 (either may be left out), and anything else throws a RangeError naming the argument. The
+ * default limit a tool passes is checked the same way. An offset past the end of a list is an
+ * empty last page at the list's end, in both forms; in the multi-list form `page.offset` is the
+ * offset asked for, since each list may end at a different place. `nextOffset`, when present, is
+ * always greater than `offset`, so following it always moves on.
  */
 
 import { z } from "zod";
@@ -69,11 +77,32 @@ export function pagingFields(what: string, defaultLimit: string) {
   };
 }
 
-/** The page of `all` the arguments ask for (`defaultLimit` items from the start when they don't say). */
-export function pageOf<T>(all: readonly T[], args: PageArgs, defaultLimit: number): { items: T[]; page: Page } {
-  const offset = Math.min(args.offset ?? 0, all.length);
+/**
+ * The limit and offset the arguments ask for, checked: a limit is an integer of at least 1, an
+ * offset an integer of at least 0. Throws a RangeError for anything else.
+ */
+export function checkedPageArgs(args: PageArgs, defaultLimit: number): { limit: number; offset: number } {
   const limit = args.limit ?? defaultLimit;
-  const items = all.slice(offset, offset + limit);
+  const offset = args.offset ?? 0;
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new RangeError(
+      `${args.limit === undefined ? "default limit" : "limit"} must be an integer of at least 1, got ${String(limit)}`
+    );
+  }
+  if (!Number.isInteger(offset) || offset < 0) {
+    throw new RangeError(`offset must be an integer of at least 0, got ${String(offset)}`);
+  }
+  return { limit, offset };
+}
+
+/**
+ * The page of `all` the arguments ask for (`defaultLimit` items from the start when they don't
+ * say). Throws a RangeError for a limit or offset that is not a valid one (see the file's header).
+ */
+export function pageOf<T>(all: readonly T[], args: PageArgs, defaultLimit: number): { items: T[]; page: Page } {
+  const checked = checkedPageArgs(args, defaultLimit);
+  const offset = Math.min(checked.offset, all.length);
+  const items = all.slice(offset, offset + checked.limit);
   const end = offset + items.length;
   return {
     items,
@@ -112,15 +141,17 @@ export function listsPager(
   args: PageArgs,
   defaultLimit: number
 ): { cut<T>(name: string, list: readonly T[]): T[]; page(): ListsPage } {
+  // Checked once, up front, so a bad argument throws even when no list is cut.
+  const checked = checkedPageArgs(args, defaultLimit);
   const totals: Record<string, number> = {};
   let nextOffset: number | undefined;
   return {
     cut<T>(name: string, list: readonly T[]): T[] {
-      const { items, page } = pageOf(list, args, defaultLimit);
+      const { items, page } = pageOf(list, checked, defaultLimit);
       totals[name] = page.total;
       if (page.nextOffset !== undefined) nextOffset = page.nextOffset;
       return items;
     },
-    page: () => ({ offset: Math.max(0, args.offset ?? 0), totals, ...(nextOffset !== undefined ? { nextOffset } : {}) }),
+    page: () => ({ offset: checked.offset, totals, ...(nextOffset !== undefined ? { nextOffset } : {}) }),
   };
 }
