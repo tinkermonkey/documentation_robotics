@@ -29,6 +29,7 @@ import { getCliVersion } from "../utils/spec-version.js";
 import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
+import type { ChangesetDrift } from "../core/changeset-base-index.js";
 import {
   CHANGESET_ORIGIN_ENV,
   cascadeDrops,
@@ -238,13 +239,23 @@ export interface VisualizationServerOptions {
  */
 
 /**
- * The commit routes' refusal when the base drifted under the changeset (409). The route takes no
- * force, so it names the tool that can land it anyway, never a CLI flag.
+ * The commit result's `drift`: what the base overlapped when the changeset landed, each overlap
+ * with what landing did about it (`describeDrift`, read by the commit before it applied anything).
  */
-const DRIFT_REFUSAL =
-  "Base model has drifted since changeset creation: what this changeset was staged against changed in the base. " +
-  "Nothing was written. Review what changed in the base (changeset_brief); land it anyway only if that is intended, " +
-  "with force through changeset_commit (this route has no force).";
+function landedOverDrift(detail: ChangesetDrift | undefined): { message: string; overlapping?: ChangesetDrift["overlapping"] } {
+  const count = detail ? detail.overlapping.elements.length + detail.overlapping.relationships.length : 0;
+  if (!detail || count === 0) {
+    return {
+      message:
+        "The base model had changed under this changeset and what it overlapped could not be listed (no base index). " +
+        "It landed all the same.",
+    };
+  }
+  return {
+    message: `The base model overlapped ${count} staged change(s). The changeset landed; each overlap says what landing did about it.`,
+    overlapping: detail.overlapping,
+  };
+}
 
 /**
  * POST /api/changesets/:id/commit's optional body, as documented in the OpenAPI spec (the handler
@@ -1567,7 +1578,7 @@ export class VisualizationServer {
       summary: 'Get changesets',
       description:
         'Retrieve a list of all changesets. Each carries its base drift (drift), checked on this read with no commit ' +
-        'attempt: whether the base model changed under it and whether that blocks a commit. GET /api/changesets/:id ' +
+        'attempt: whether the base model changed under it and overlaps what it stages. GET /api/changesets/:id ' +
         'adds what changed.',
       security: [{ bearerAuth: [] }],
       responses: {
@@ -1751,7 +1762,8 @@ export class VisualizationServer {
       },
       409: {
         description:
-          'Changeset is not staged, the model drifted since it was created, or (commit) it is a verification record or an upgrade record, which is never landed',
+          'Changeset is not staged, or (commit) it is a verification record or an upgrade record, which is never landed. ' +
+          'Never for drift: a drifted changeset lands',
         content: { 'application/json': { schema: ErrorResponseSchema } },
       },
       422: {
@@ -1768,10 +1780,10 @@ export class VisualizationServer {
       description:
         'Apply a staged changeset to the model (same as `dr changeset commit`): validates it, ' +
         'applies every change atomically, marks it committed, and deactivates it if it was active. ' +
-        'Refused (409) when what the changeset was staged against changed in the base since it was created; this ' +
-        'route has no force, so such a changeset lands only through changeset_commit with force. A base that only ' +
-        'gained other elements (another changeset landing) is not drift. Refused (409) too for a verification ' +
-        'record (purpose verification, whose actions do not include commit): it is never landed.',
+        'Drift does not refuse it: when the base overlaps what the changeset stages (its drift.state is drifted), ' +
+        'it lands all the same, and the result\'s drift lists each overlap with what landing did about it. Show ' +
+        'GET /api/changesets/:id\'s drift.overlapping, with each consequence, before calling this. Refused (409) for a ' +
+        'verification record or an upgrade record (whose actions do not include commit): it is never landed.',
       security: [{ bearerAuth: [] }],
       request: {
         params: z.object({ changesetId: IdSchema }),
@@ -4437,7 +4449,7 @@ export class VisualizationServer {
     let reviewResult: { dropped: number[]; linksDeleted: number } | undefined;
     let restoreOnFailure: { sequences: number[]; removedAt: number } | undefined;
     if (action === "commit" && review) {
-      const prepared = await this.prepareReviewedCommit(model, manager, changeset, review);
+      const prepared = await this.prepareReviewedCommit(model, changeset, review);
       if ("refusal" in prepared) {
         return c.json(prepared.refusal.body, prepared.refusal.status);
       }
@@ -4457,6 +4469,7 @@ export class VisualizationServer {
       preExistingErrors?: number;
       deactivated?: boolean;
       deactivationError?: string;
+      drift?: { message: string; overlapping?: ChangesetDrift["overlapping"] };
     } = {};
     try {
       if (restoreOnFailure) {
@@ -4474,6 +4487,8 @@ export class VisualizationServer {
           preExistingErrors: commit.validation.preExistingErrors ?? 0,
           deactivated: commit.deactivated,
           ...(commit.deactivationError ? { deactivationError: commit.deactivationError } : {}),
+          // Drift never refuses the commit (#1200): the result says what the base overlapped.
+          ...(commit.driftWarning ? { drift: landedOverDrift(commit.driftDetail) } : {}),
         };
       } else {
         await manager.discard(changesetId);
@@ -4486,9 +4501,6 @@ export class VisualizationServer {
       const message = getErrorMessage(error);
       if (message.startsWith("Validation failed")) {
         return c.json({ error: message }, 422);
-      }
-      if (message.includes("drifted")) {
-        return c.json({ error: DRIFT_REFUSAL }, 409);
       }
       throw error;
     }
@@ -4524,16 +4536,15 @@ export class VisualizationServer {
    * Checks a reviewed commit's body against the changeset before anything is written: every
    * sequence number names a staged change; the drops cascade to the changes that depend on an
    * element a dropped add creates; and, over what is left, no delete has blockers unless it is in
-   * `deleteBlockedLinks`. Drift is checked here too, so a refused commit never unstages anything.
+   * `deleteBlockedLinks`. Drift is not checked: it never refuses a commit.
    */
   private async prepareReviewedCommit(
     model: Model,
-    manager: StagingAreaManager,
     changeset: StagedChangeset,
     review: { drop: number[]; deleteBlockedLinks: number[] }
   ): Promise<
     | { dropped: number[]; linksDeleted: number }
-    | { refusal: { status: 409 | 422; body: { error: string; blockers?: Record<string, DeleteBlocker[]> } } }
+    | { refusal: { status: 422; body: { error: string; blockers?: Record<string, DeleteBlocker[]> } } }
   > {
     const staged = stagedSequences(changeset);
     const { dropped, unknown } = cascadeDrops(changeset, review.drop);
@@ -4595,15 +4606,6 @@ export class VisualizationServer {
       [...blockers].flatMap(([, list]) => list.map((blocker) => blocker.relationshipId))
     ).size;
 
-    const drift = await manager.detectDrift(changeset.id);
-    if (drift.isDrifted) {
-      return {
-        refusal: {
-          status: 409,
-          body: { error: DRIFT_REFUSAL },
-        },
-      };
-    }
     return { dropped, linksDeleted };
   }
 

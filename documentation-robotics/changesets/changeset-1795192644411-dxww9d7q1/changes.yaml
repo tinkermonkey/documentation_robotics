@@ -1,0 +1,765 @@
+- type: update
+  elementId: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+  layerName: motivation
+  before:
+    id: 1214a779-73a8-463e-95cf-8ce4681faf4a
+    path: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Only an overlapping base change blocks a landing
+    description: "A staged changeset is refused for drift only when the base
+      overlaps it: an element it stages any change for (an update, a delete, or
+      a delete then an add) changed or was removed, an element it deletes gained
+      a relationship the delete would remove, an element at an end of a
+      relationship it adds or deletes changed or was removed, the base already
+      has what it adds, or lacks what it deletes. Any other change to the base
+      does not block it."
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: with a base index recorded, a changeset staged
+        before another one landed commits without force when the other changed
+        or removed only elements and relationships it does not edit or link to;
+        it is still refused when the other changed or removed an element it
+        stages a change for (whatever the staged ops and their order), linked an
+        element it deletes, or changed or removed an element it links to.
+        Without a base index a changed hash still blocks, since the two cannot
+        be told apart. The CLI, changeset_commit, the viewer's Apply,
+        project_status and the viewer API's drift field all read the one rule
+        (StagingAreaManager.detectDrift). Not covered, as before this change:
+        fields outside the base index's content hash (accepted gaps, metadata,
+        references), and an update of an element the base gained after the
+        changeset was created."
+    metadata: &a1
+      created_at: 2026-11-18T20:52:36.711Z
+      updated_at: 2026-11-18T20:52:36.711Z
+      version: 1
+  after:
+    id: 1214a779-73a8-463e-95cf-8ce4681faf4a
+    path: motivation.requirement.only-an-overlapping-base-change-blocks-a-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Only an overlapping base change warns at a landing
+    description: "Drift never refuses a landing. A staged changeset lands with a
+      warning only when the base overlaps it in a way that could make the
+      landing wrong: an element it stages a change for changed in the base after
+      that change was staged, or was removed; an element it deletes gained a
+      relationship the delete would remove; an element at an end of a
+      relationship it adds or deletes was removed; the base already has what it
+      adds, or lacks what it deletes. Each overlap is named with what landing
+      does about it. Any other change to the base, a description, name or
+      attribute edit on a link's end included, is not an overlap."
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: a drifted changeset lands from the CLI,
+        changeset_commit and the viewer's Apply without force, and each shows
+        what overlapped and what landing did about it. A staged update or delete
+        is compared with the base through the element state it recorded when it
+        was staged, so an update restaged on the current base is not an overlap,
+        and one staged on an older base still is after a re-baseline. A change
+        to an element at a link's end that keeps its id is not an overlap (the
+        id carries its layer and type); a removed end is. Without a base index,
+        what changed cannot be listed and the landing says so. The CLI,
+        changeset_commit, the viewer's Apply, project_status and the viewer
+        API's drift field all read the one rule
+        (StagingAreaManager.detectDrift). Validation errors the changeset
+        introduces and records (verification, upgrade) are still refused. Not
+        covered, as before: fields outside the content hash (accepted gaps,
+        metadata, references)."
+    metadata: *a1
+  timestamp: 2026-11-20T16:38:01.493Z
+  sequenceNumber: 0
+- type: update
+  elementId: motivation.requirement.drift-is-known-before-landing
+  layerName: motivation
+  before:
+    id: 6d3aed99-7cba-451a-8a2d-11515b661066
+    path: motivation.requirement.drift-is-known-before-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Drift is known before landing
+    description: A person reviewing a staged changeset can see, before trying to
+      land it, whether the base model changed under it, what changed, and
+      whether that blocks landing. Drift that touched nothing the changeset was
+      staged against, and drift under a verification record (which never lands),
+      never read as blocking.
+    attributes: &a2
+      requirementType: functional
+      priority: high
+      documentation: "Acceptance: with no commit attempt, the viewer API reports for
+        each changeset one of: nothing changed; the base changed but nothing the
+        changeset was staged against did (content-free, #1169; not blocking);
+        the base changed under it (blocking a commit without force, with the
+        overlapping staged changes and the base's changes named); or not
+        applicable (a verification record, #1171, or a changeset that is no
+        longer staged). The answer agrees with what a commit would do: it is
+        blocking exactly when POST /api/changesets/:id/commit would refuse for
+        drift."
+    metadata: &a3
+      created_at: 2026-11-18T19:52:37.508Z
+      updated_at: 2026-11-18T19:52:37.508Z
+      version: 1
+  after:
+    id: 6d3aed99-7cba-451a-8a2d-11515b661066
+    path: motivation.requirement.drift-is-known-before-landing
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Drift is known before landing
+    description: "A person reviewing a staged changeset can see, before landing it,
+      whether the base model changed under it, which staged changes the base
+      overlaps, and what landing does about each overlap. Drift never blocks a
+      landing: it is shown where the person confirms (the dialog, the commit
+      preview, the viewer before Apply) and again in the landing's result. Drift
+      that overlaps nothing the changeset stages, and drift under a record
+      (which never lands), read as no warning."
+    attributes: *a2
+    metadata: *a3
+  timestamp: 2026-11-20T16:38:02.140Z
+  sequenceNumber: 1
+- type: update
+  elementId: motivation.requirement.a-refused-landing-says-why
+  layerName: motivation
+  before:
+    id: 829c1e18-29ab-4838-b6e0-9eab0ebf0a22
+    path: motivation.requirement.a-refused-landing-says-why
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A refused landing says why
+    description: "When changeset_commit does not land a changeset, it says which of
+      these happened: the person declined, the dialog could not be shown, or the
+      model drifted. It names the way forward for each: the viewer's Apply, an
+      interactive session, or force."
+    attributes: &a4
+      requirementType: functional
+      priority: high
+      documentation: "A decline that arrives within about a second of the request is
+        reported as 'the confirmation dialog could not be shown', not as the
+        person declining. Acceptance: in the desktop Code tab an
+        elicitation-only commit reports that the dialog could not be shown and
+        points to the viewer's Apply; a person's real decline is still reported
+        as declined."
+    metadata: &a5
+      created_at: 2026-11-17T20:42:52.468Z
+      updated_at: 2026-11-17T20:42:52.468Z
+      version: 1
+  after:
+    id: 829c1e18-29ab-4838-b6e0-9eab0ebf0a22
+    path: motivation.requirement.a-refused-landing-says-why
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A refused landing says why
+    description: "When changeset_commit does not land a changeset, it says which of
+      these happened: the person declined, no confirmation came back (the dialog
+      may not have been shown), no person can confirm in this session, the
+      changeset or base changed since the person saw it, validation failed, or
+      the changeset is a record. It names the way forward that works from this
+      client: the commit preview and its token in Claude Code's permission
+      prompt, or the viewer's Apply. Drift is not a refusal, and no refusal
+      leaves the dr CLI as the only way to land."
+    attributes: *a4
+    metadata: *a5
+  timestamp: 2026-11-20T16:38:02.675Z
+  sequenceNumber: 2
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an
+      MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why: declined, the dialog could not be shown, or drift.
+      Viewer: Apply. CLI: dr changeset commit."
+    attributes: &a6
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through
+        an MCP elicitation dialog, or takes a confirmation token from Claude
+        Code (see Commit confirmation token). It is refused when no person can
+        answer, and a refusal says why: declined, the dialog could not be shown,
+        or drift. Viewer: Apply. CLI: dr changeset commit. A landing clears the
+        active-changeset marker; if the marker cannot be cleared the landing
+        stands and the result warns that the marker is ignored, since a
+        committed changeset is never the active one (#1218)."
+    source_reference: &a7
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a8
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an
+      MCP elicitation dialog, or takes a confirmation token from Claude Code
+      (see Commit confirmation token). It is refused when no person can answer,
+      and a refusal says why and names the route that works: declined, no
+      confirmation came back, or the dialog could not be shown. Drift does not
+      refuse it: the confirmation and the result name each staged change the
+      base overlaps and what landing does about it, and force is accepted and
+      ignored. Viewer: Apply, which lands a drifted changeset too. CLI: dr
+      changeset commit, which prints the overlaps and exits 0."
+    attributes: *a6
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T16:38:03.135Z
+  sequenceNumber: 3
+- type: update
+  elementId: product.feature.commit-confirmation-token
+  layerName: product
+  before:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing
+      without writing anything and returns the landing summary (intent, counts,
+      layers, drift, validation) with a token bound to the changeset's confirmed
+      state. Claude Code shows the summary, and the person approves the
+      changeset_commit call carrying the token in Claude Code's permission
+      prompt, which anthropic/requiresUserInteraction forces. changeset_commit
+      accepts the token only from Claude Code (v2.1.199 or later) and refuses it
+      once used, expired, or when the changeset, base model or force changed
+      since the preview. Other clients still confirm in the elicitation dialog."
+    attributes: &a9
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id,
+        force, a 10-minute expiry and the confirmedState fingerprint (staged
+        changes and base model); good once. The preview tool is not flagged, so
+        landing takes one approval. Permission modes (checked 2026-11-17 against
+        the Claude Code docs): the prompt is forced in acceptEdits, auto and
+        bypassPermissions (so --dangerously-skip-permissions too), allow rules
+        and PreToolUse hooks don't skip it, and dontAsk,
+        --permission-prompt-tool and runs without a prompt callback deny the
+        call. The server can't see the mode and doesn't need to."
+    source_reference: &a10
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a11
+      created_at: 2026-11-17T20:42:52.469Z
+      updated_at: 2026-11-17T20:42:52.469Z
+      version: 1
+  after:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing
+      without writing anything and returns the landing summary (intent, counts,
+      layers, drift with what landing does about each overlap, validation) with
+      a token bound to the changeset's confirmed state. Claude Code shows the
+      summary, and the person approves the changeset_commit call carrying the
+      token in Claude Code's permission prompt, which
+      anthropic/requiresUserInteraction forces. changeset_commit accepts the
+      token only from Claude Code (v2.1.199 or later) and refuses it once used,
+      expired (24 hours, long enough for an answer relayed through another
+      session), or when the changeset or base model changed since the preview.
+      The token does not bind force, which is ignored. Other clients still
+      confirm in the elicitation dialog."
+    attributes: *a9
+    source_reference: *a10
+    metadata: *a11
+  timestamp: 2026-11-20T16:38:03.778Z
+  sequenceNumber: 4
+- type: update
+  elementId: product.feature.base-drift-on-the-changeset-api
+  layerName: product
+  before:
+    id: e4c2e358-5964-4c9a-8f61-e13c0a5d94f4
+    path: product.feature.base-drift-on-the-changeset-api
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Base drift on the changeset API
+    description: "Viewer API: GET /api/changesets and GET /api/changesets/:id carry
+      a drift field, with no commit attempt. The list gives each changeset's
+      drift state (none, content-free, drifted, not-applicable, unknown),
+      whether it blocks a commit, and a sentence saying why. The detail adds
+      what changed: the staged changes the base now overlaps, the elements and
+      relationships added, removed or changed in the base since the changeset
+      was created, and the layers they are in. Read from the same code as
+      changeset_brief's drift and the commit's drift check."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Purpose-aware (changeset-purpose.ts): blocksCommit is true only
+        for a staged changeset whose actions include commit and whose base
+        drifted in content. A verification record reads not-applicable, since it
+        never lands, and names its plan's state. A committed or discarded
+        changeset reads not-applicable. Content-free drift (the model hash
+        changed, nothing the changeset was staged against did) is its own state
+        and never blocks. Cost, measured on a synthetic model with 9 staged
+        changesets: the list's check is about 2 ms per changeset at 200 elements
+        and 8 ms at 2,000; the detail's description adds about 4 ms at 2,000.
+        The list therefore carries the summary and only the detail carries the
+        id lists. Additive: no existing field changes. docs/api-spec.yaml is
+        regenerated with it."
+    source_reference: &a12
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-drift-status.ts
+          symbol: driftStatus
+    metadata: &a13
+      created_at: 2026-11-18T19:52:37.509Z
+      updated_at: 2026-11-18T19:52:37.509Z
+      version: 1
+  after:
+    id: e4c2e358-5964-4c9a-8f61-e13c0a5d94f4
+    path: product.feature.base-drift-on-the-changeset-api
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Base drift on the changeset API
+    description: "Viewer API: GET /api/changesets and GET /api/changesets/:id carry
+      a drift field, with no commit attempt. The list gives each changeset's
+      drift state (none, content-free, drifted, not-applicable, unknown) and a
+      sentence saying what it means; blocksCommit is kept and always false,
+      since drift no longer refuses a commit. The detail adds what changed: the
+      staged changes the base now overlaps, each with what landing does about
+      it, the elements and relationships added, removed or changed in the base
+      since the changeset was created or re-baselined, and the layers they are
+      in. POST /api/changesets/:id/commit lands a drifted changeset and returns
+      the overlaps it landed over. Read from the same code as changeset_brief's
+      drift and the commit's drift check."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Purpose-aware (changeset-purpose.ts): a verification record or
+        an upgrade record reads not-applicable, since it never lands, and a
+        verification record names its plan's state. A committed or discarded
+        changeset reads not-applicable. Content-free drift (the base changed,
+        nothing the changeset stages overlaps it) is its own state. State
+        drifted means a landing warns, not that it is refused: blocksCommit is
+        always false and stays only so a client built against the earlier API
+        keeps reading it. Each overlap carries a consequence sentence. The
+        commit route answers 409 only for a record or a changeset that is no
+        longer staged. docs/api-spec.yaml is regenerated with it."
+    source_reference: *a12
+    metadata: *a13
+  timestamp: 2026-11-20T16:38:04.310Z
+  sequenceNumber: 5
+- type: add
+  elementId: motivation.requirement.a-changeset-can-be-re-baselined
+  layerName: motivation
+  after:
+    id: 687301ac-59d9-41ac-8e34-030f71cef401
+    path: motivation.requirement.a-changeset-can-be-re-baselined
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A changeset can be re-baselined
+    description: "A staged changeset whose base moved can take the base as it is now
+      as its starting point: changeset_update with rebaseline records the
+      current base hash and base index and returns what moved under the
+      changeset since the last one. Re-baselining never hides an overlap that is
+      still true against the current base: a staged update or delete made on
+      older content of an element stays an overlap until it is restaged, and the
+      landing summary says when the changeset was re-baselined."
+    attributes:
+      requirementType: functional
+      priority: medium
+      documentation: "Acceptance: after a re-baseline the changeset's drift state is
+        none unless a staged change still overlaps the base as it is now; the
+        response lists what was added, removed and changed in the base since the
+        previous base, the overlaps that were cleared and the ones that remain
+        with how to resolve each; the base index records when it was
+        re-baselined and from which base hash, and the confirmation dialog and
+        commit preview show it. A record (verification, upgrade) and a changeset
+        that is no longer staged are refused."
+    metadata:
+      created_at: 2026-11-20T16:38:29.310Z
+      updated_at: 2026-11-20T16:38:29.310Z
+      version: 1
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 6
+- type: add
+  elementId: product.feature.changeset-re-baseline
+  layerName: product
+  after:
+    id: eef52419-3b1e-4f03-b97d-b551c77252aa
+    path: product.feature.changeset-re-baseline
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset re-baseline
+    description: "MCP: changeset_update with rebaseline: true makes the base model
+      as it is now the changeset's base and returns what moved under it: the
+      base changes since the previous base, the overlaps cleared and the
+      overlaps that remain, each with what landing does about it and how to
+      resolve it. The landing summary shows that the changeset was re-baselined
+      and when."
+    attributes:
+      priority: medium
+      status: developing
+      size: s
+    metadata:
+      created_at: 2026-11-20T16:38:29.310Z
+      updated_at: 2026-11-20T16:38:29.310Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-editing.ts
+          symbol: changesetUpdateHandler
+  timestamp: 2026-11-20T17:13:48.666Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.staging-area-manager-rebaseline
+  layerName: application
+  after:
+    id: ed374416-e491-4a7b-bdcb-b846d27b080e
+    path: application.applicationfunction.staging-area-manager-rebaseline
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager rebaseline
+    description: "Makes the base model as it is now a staged changeset's base:
+      records the current base hash and base index, and returns the drift as it
+      was before and as it is after."
+    metadata:
+      created_at: 2026-11-20T16:38:29.311Z
+      updated_at: 2026-11-20T16:38:29.311Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.rebaseline
+  timestamp: 2026-11-20T17:13:40.541Z
+  sequenceNumber: 8
+- type: add
+  elementId: application.applicationfunction.overlap-consequence
+  layerName: application
+  after:
+    id: 28079826-c154-4c54-b280-fc7dba1c60f0
+    path: application.applicationfunction.overlap-consequence
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: overlapConsequence
+    description: What landing does about a staged change the base overlaps, as a
+      sentence for the person confirming, by the overlap's reason.
+    metadata:
+      created_at: 2026-11-20T16:38:29.313Z
+      updated_at: 2026-11-20T16:38:29.313Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-base-index.ts
+          symbol: overlapConsequence
+  timestamp: 2026-11-20T17:13:40.541Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: motivation.requirement.a-changeset-can-be-re-baselined::realizes::motivation.outcome.changesets-land-with-the-code
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-changeset-can-be-re-baselined
+    target: motivation.outcome.changesets-land-with-the-code
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: product.feature.changeset-re-baseline::satisfies::motivation.requirement.a-changeset-can-be-re-baselined
+  layerName: product
+  after:
+    source: product.feature.changeset-re-baseline
+    target: motivation.requirement.a-changeset-can-be-re-baselined
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: product.feature.changeset-re-baseline::realizes::product.softwarecapability.change-modeling
+  layerName: product
+  after:
+    source: product.feature.changeset-re-baseline
+    target: product.softwarecapability.change-modeling
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: product.feature.changeset-re-baseline::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.feature.changeset-re-baseline
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: product.feature.changeset-re-baseline::depends-on::product.feature.changeset-lifecycle
+  layerName: product
+  after:
+    source: product.feature.changeset-re-baseline
+    target: product.feature.changeset-lifecycle
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationservice.changeset-update-handler::realizes::product.feature.changeset-re-baseline
+  layerName: application
+  after:
+    source: application.applicationservice.changeset-update-handler
+    target: product.feature.changeset-re-baseline
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationcomponent.staging-area-manager::assigned-to::application.applicationfunction.staging-area-manager-rebaseline
+  layerName: application
+  after:
+    source: application.applicationcomponent.staging-area-manager
+    target: application.applicationfunction.staging-area-manager-rebaseline
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.staging-area-manager-rebaseline::depends-on::application.applicationfunction.describe-drift
+  layerName: application
+  after:
+    source: application.applicationfunction.staging-area-manager-rebaseline
+    target: application.applicationfunction.describe-drift
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.staging-area-manager-rebaseline::depends-on::application.applicationfunction.capture-base-index
+  layerName: application
+  after:
+    source: application.applicationfunction.staging-area-manager-rebaseline
+    target: application.applicationfunction.capture-base-index
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.describe-drift::depends-on::application.applicationfunction.overlap-consequence
+  layerName: application
+  after:
+    source: application.applicationfunction.describe-drift
+    target: application.applicationfunction.overlap-consequence
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: product.feature.changeset-commit::satisfies::motivation.requirement.drift-is-known-before-landing
+  layerName: product
+  after:
+    source: product.feature.changeset-commit
+    target: motivation.requirement.drift-is-known-before-landing
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:38:29.336Z
+  sequenceNumber: 21
+- type: update
+  elementId: application.applicationfunction.staging-area-manager-detect-drift
+  layerName: application
+  before:
+    id: e525a654-7f67-42e1-97a7-22baa2359bfc
+    path: application.applicationfunction.staging-area-manager-detect-drift
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager detectDrift
+    description: Detect drift by comparing base snapshot hash to current model state.
+    source_reference: &a14
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.detectDrift
+    metadata: &a15
+      created_at: 2026-11-20T15:05:20.101Z
+      updated_at: 2026-11-20T15:05:20.101Z
+      version: 1
+  after:
+    id: e525a654-7f67-42e1-97a7-22baa2359bfc
+    path: application.applicationfunction.staging-area-manager-detect-drift
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager detectDrift
+    description: "Whether the base model overlaps what a changeset stages: compares
+      the base hash recorded for the changeset with the current one, in the
+      recorded hash's format, and when they differ reads the overlaps from the
+      base index. The answer is a warning for the landing, never a refusal."
+    source_reference: *a14
+    metadata: *a15
+  timestamp: 2026-11-20T16:38:30.127Z
+  sequenceNumber: 22
+- type: update
+  elementId: application.applicationfunction.base-snapshot-manager-capture-snapshot
+  layerName: application
+  before:
+    id: a6dc9c10-0696-4f65-8e59-6e6b5f1391c6
+    path: application.applicationfunction.base-snapshot-manager-capture-snapshot
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: BaseSnapshotManager captureSnapshot
+    description: Capture current model state as a SHA-256 hash
+    source_reference: &a16
+      provenance: extracted
+      locations:
+        - file: cli/src/core/base-snapshot-manager.ts
+          symbol: BaseSnapshotManager.captureSnapshot
+    metadata: &a17
+      created_at: 2026-11-20T15:07:07.581Z
+      updated_at: 2026-11-20T15:07:07.581Z
+      version: 1
+  after:
+    id: a6dc9c10-0696-4f65-8e59-6e6b5f1391c6
+    path: application.applicationfunction.base-snapshot-manager-capture-snapshot
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: BaseSnapshotManager captureSnapshot
+    description: "The base model's hash, with a version prefix: the content of every
+      element (type, name, description, attributes, source reference) and every
+      relationship, and nothing else. The manifest and element metadata are not
+      in it, so a landing or an upgrade that changes no content leaves it as it
+      was."
+    source_reference: *a16
+    metadata: *a17
+  timestamp: 2026-11-20T16:38:30.662Z
+  sequenceNumber: 23
+- type: update
+  elementId: application.applicationfunction.drift-status
+  layerName: application
+  before:
+    id: 154f68b8-c998-470d-98d9-facbb8e298e1
+    path: application.applicationfunction.drift-status
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: driftStatus
+    description: A changeset's base-drift state, whether it blocks a commit, and a
+      sentence saying why
+    source_reference: &a18
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-drift-status.ts
+          symbol: driftStatus
+    metadata: &a19
+      created_at: 2026-11-20T15:08:59.540Z
+      updated_at: 2026-11-20T15:08:59.540Z
+      version: 1
+  after:
+    id: 154f68b8-c998-470d-98d9-facbb8e298e1
+    path: application.applicationfunction.drift-status
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: driftStatus
+    description: A changeset's base-drift state and a sentence saying what it means
+      for a landing; blocksCommit is always false, since drift warns and never
+      refuses
+    source_reference: *a18
+    metadata: *a19
+  timestamp: 2026-11-20T16:38:31.372Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: motivation.requirement.a-changeset-can-be-re-baselined::realizes::motivation.principle.base-model-is-as-built
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-changeset-can-be-re-baselined
+    target: motivation.principle.base-model-is-as-built
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:38:40.476Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved::uses::product.feature.changeset-re-baseline
+  layerName: product
+  after:
+    source: product.workflowstep.run-several-changes-at-once-see-when-the-base-moved
+    target: product.feature.changeset-re-baseline
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:38:40.476Z
+  sequenceNumber: 26
+- type: add
+  elementId: motivation.assessment.nothing-re-baselines-a-drifted-changeset
+  layerName: motivation
+  after:
+    id: a11bdf9d-80d9-48eb-acbe-73e6dd438bb8
+    path: motivation.assessment.nothing-re-baselines-a-drifted-changeset
+    spec_node_id: motivation.assessment
+    type: assessment
+    layer_id: motivation
+    name: Nothing re-baselines a drifted changeset
+    description: "Once a changeset's base moved, no tool takes the new base as its
+      starting point: an update restaged on the current base still reads as
+      changed in the base, and the only ways forward were force or the dr CLI
+      (#1169, #1239)."
+    attributes:
+      assessmentType: gap
+    metadata:
+      created_at: 2026-11-20T16:38:46.225Z
+      updated_at: 2026-11-20T16:38:46.225Z
+      version: 1
+  timestamp: 2026-11-20T16:38:46.238Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: motivation.assessment.nothing-re-baselines-a-drifted-changeset::influence::motivation.requirement.a-changeset-can-be-re-baselined
+  layerName: motivation
+  after:
+    source: motivation.assessment.nothing-re-baselines-a-drifted-changeset
+    target: motivation.requirement.a-changeset-can-be-re-baselined
+    predicate: influence
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:38:46.238Z
+  sequenceNumber: 29

@@ -15,7 +15,9 @@
 import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { ChangesetDrift } from "../../core/changeset-base-index.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { Model } from "../../core/model.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../../core/relationship-staging.js";
@@ -64,24 +66,83 @@ const updateInputSchema = {
     .string()
     .optional()
     .describe("New description: the change's intent and what done looks like. An empty string clears it."),
+  rebaseline: z
+    .boolean()
+    .optional()
+    .describe(
+      "Make the base model as it is now this changeset's base, and return what moved under it since its previous " +
+        "base. Use it once you have read what the base changed and the plan still stands. It clears the list of base " +
+        "changes and the overlaps only the old base could tell (linked-in-base). An overlap that is true against the " +
+        "base as it is now stays until the plan resolves it (each one's resolve says how): a re-baseline never hides " +
+        "what landing would do. Staged changes are untouched."
+    ),
   rootPath: rootPathSchema,
 };
 
 export type ChangesetUpdateArgs = z.infer<z.ZodObject<typeof updateInputSchema>>;
 
+/** The overlaps of a drift description as one list, relationships named by their triple. */
+function overlapList(drift: ChangesetDrift): Array<Record<string, unknown>> {
+  return [
+    ...drift.overlapping.elements.map((e) => ({ element: e.id, reason: e.reason, consequence: e.consequence, resolve: e.resolve })),
+    ...drift.overlapping.relationships.map((r) => ({
+      relationship: `${r.source} --${r.predicate}--> ${r.target}`,
+      reason: r.reason,
+      ...(r.endpoints ? { endpoints: r.endpoints } : {}),
+      consequence: r.consequence,
+      resolve: r.resolve,
+    })),
+  ];
+}
+
+/** Re-baselines the changeset (StagingAreaManager.rebaseline) and reports what moved under it. */
+async function rebaseline(rootPath: string, changeset: Changeset): Promise<Record<string, unknown>> {
+  requireStaged(changeset, "re-baseline it");
+  // On the model as it is on disk, like a commit: the base to record is the one a landing reads.
+  const model = await Model.load(rootPath, { lazyLoad: false });
+  const result = await asUserError(
+    () => new StagingAreaManager(model.rootPath, model).rebaseline(changeset.id!),
+    ['Use "changeset_list" to find a staged plan; a verification record or an upgrade record has no base to move']
+  );
+  const key = (o: Record<string, unknown>): string => `${o.element ?? o.relationship}:${o.reason}`;
+  const remaining = overlapList(result.after);
+  const stillThere = new Set(remaining.map(key));
+  const cleared = overlapList(result.before)
+    .filter((o) => !stillThere.has(key(o)))
+    .map((o) => `${o.element ?? o.relationship} (${o.reason})`);
+  const moved = result.before.baseChanges;
+  return {
+    previousBaseSnapshot: result.previousBaseSnapshot,
+    baseSnapshot: result.baseSnapshot,
+    // What changed in the base between the previous base and this one.
+    moved: moved ?? "No base index was recorded for the previous base, so what moved under the changeset cannot be listed.",
+    overlapsCleared: cleared,
+    overlapsRemaining: remaining,
+    next:
+      remaining.length > 0
+        ? "The base still overlaps the staged changes in overlapsRemaining. Resolve each as its resolve says, or tell " +
+          "the user what landing will do about it: the landing summary lists them again."
+        : "Nothing the changeset stages overlaps the base as it is now. Tell the user what moved before they land it.",
+  };
+}
+
 export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    if (args.name === undefined && args.description === undefined) {
-      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name" and/or "description"']);
+    const rename = args.name !== undefined || args.description !== undefined;
+    if (!rename && args.rebaseline !== true) {
+      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name", "description" or "rebaseline: true"']);
     }
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = await resolveChangeset(manager, changesetArg(args));
 
-    const updated = await asUserError(
-      () => manager.update(changeset.id!, { name: args.name, description: args.description }),
-      ['Use "changeset_list" to see the names already taken']
-    );
+    const updated = rename
+      ? await asUserError(
+          () => manager.update(changeset.id!, { name: args.name, description: args.description }),
+          ['Use "changeset_list" to see the names already taken']
+        )
+      : changeset;
+    const rebaselined = args.rebaseline === true ? await rebaseline(model.rootPath, updated) : undefined;
     await reloadModel(args.rootPath);
 
     return jsonResult({
@@ -91,6 +152,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
       description: updated.description ?? null,
       status: updated.status,
       changes: updated.changes.length,
+      ...(rebaselined ? { rebaselined } : {}),
     });
   });
 }
@@ -98,8 +160,9 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
 export const changesetUpdateTool: McpToolDefinition<typeof updateInputSchema> = {
   name: "changeset_update",
   description:
-    "Rename a changeset or change its description (the change's intent). Staged changes are untouched. " +
-    "Defaults to the active changeset.",
+    "Rename a changeset or change its description (the change's intent), or re-baseline it (rebaseline: true): " +
+    "take the base model as it is now as its base and get back what moved under it. Staged changes are " +
+    "untouched. Defaults to the active changeset.",
   inputSchema: updateInputSchema,
   handler: changesetUpdateHandler,
 };

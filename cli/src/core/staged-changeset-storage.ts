@@ -30,6 +30,26 @@ import { purposeFields, readPurpose } from "./changeset-purpose.js";
  */
 export const MAX_UNSTAGED_TOMBSTONES = 200;
 
+/** Plain scalars a YAML 1.1 reader takes for booleans (PyYAML, Ruby, older tooling). */
+const YAML_1_1_BOOLEAN = /^(y|n|yes|no|on|off)$/i;
+
+/**
+ * A changeset file's YAML, with the string values a YAML 1.1 reader would take for booleans
+ * written quoted: an enum value such as `off` or `on` stays a string for every reader, not only
+ * for this one (YAML 1.2, where they are strings unquoted). Keys are left as they are.
+ */
+export function stringifyStaged(value: unknown): string {
+  const document = new yaml.Document(value);
+  yaml.visit(document, {
+    Scalar(key, node) {
+      if (key !== "key" && typeof node.value === "string" && YAML_1_1_BOOLEAN.test(node.value)) {
+        node.type = "QUOTE_DOUBLE";
+      }
+    },
+  });
+  return document.toString();
+}
+
 /**
  * Reads the tombstone list from metadata.yaml, keeping the well-formed entries. Malformed entries
  * are reported, not silently dropped: the changeset still loads, and its changes are untouched.
@@ -278,13 +298,13 @@ export class StagedChangesetStorage {
       ...(changeset.unstaged.length > 0 ? { unstaged: changeset.unstaged } : {}),
     };
 
-    // Write metadata.yaml
-    await writeFile(path.join(changesetPath, "metadata.yaml"), yaml.stringify(metadata), "utf-8");
+    // Write metadata.yaml (its tombstones carry staged values too)
+    await writeFile(path.join(changesetPath, "metadata.yaml"), stringifyStaged(metadata), "utf-8");
 
     // Write changes.yaml
     await writeFile(
       path.join(changesetPath, "changes.yaml"),
-      yaml.stringify(numbered),
+      stringifyStaged(numbered),
       "utf-8"
     );
   }

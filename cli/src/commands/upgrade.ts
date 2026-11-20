@@ -933,7 +933,7 @@ function printDriftedChangesets(drifted: ChangesetRef[]): void {
   }
   console.log(
     ansis.yellow(
-      `\n⚠ ${stagedChangesets(drifted.length)} had drifted from the model before the upgrade and still ${drifted.length === 1 ? "needs" : "need"} --force to commit: ${changesetNames(drifted)}`
+      `\n⚠ ${stagedChangesets(drifted.length)} had drifted from the model before the upgrade, so ${drifted.length === 1 ? "it lands" : "they land"} with a drift warning that names what overlaps: ${changesetNames(drifted)}`
     )
   );
 }

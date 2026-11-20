@@ -167,18 +167,28 @@ describe("changeset commit/discard API", () => {
     expect(await inBaseModel(ELEMENT_ID)).toBe(true);
   });
 
-  it("refuses a changeset whose base changed under it, without naming a CLI flag (#1172)", async () => {
+  // #1200, #1239: drift warns and never refuses, so Apply is a way to land a drifted changeset.
+  it("lands a changeset whose base overlaps it, and says what it landed over (no 409 for drift)", async () => {
     const id = await stageOneAdd();
     expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
     // The element the changeset adds lands in the base first.
     expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
 
+    const reads = new VisualizationServer(await Model.load(dir, { lazyLoad: false }), { authEnabled: false });
+    const before = (await (await (reads as any).app.request(`/api/changesets/${id}`)).json()).drift;
+    expect(before).toMatchObject({ state: "drifted", blocksCommit: false });
+    expect(before.overlapping.elements).toMatchObject([{ id: ELEMENT_ID, reason: "already-in-base" }]);
+
     const res = await post(`/api/changesets/${id}/commit`);
-    expect(res.status).toBe(409);
-    const { error } = await res.json();
-    expect(error).toContain("drifted");
-    expect(error).toContain("changeset_commit");
-    expect(error).not.toContain("--force");
+    expect(res.status).toBe(200);
+    const result = await res.json();
+    // The add is skipped, as its consequence said: the base's element stands.
+    expect(result).toMatchObject({ status: "committed", committed: 0, skipped: 1, failed: 0 });
+    expect(result.drift.message).toContain("overlapped 1 staged change(s)");
+    expect(result.drift.overlapping.elements).toMatchObject([{ id: ELEMENT_ID, reason: "already-in-base" }]);
+    expect(result.drift.overlapping.elements[0].consequence).toContain("the staged add is skipped");
+    expect(JSON.stringify(result)).not.toMatch(/--force|force: true/);
+    expect(await inBaseModel(ELEMENT_ID)).toBe(true);
   });
 
   it("refuses a plan's verification record (409), with or without review drops, and reports its purpose and actions (#1171, #1172)", async () => {
@@ -373,7 +383,8 @@ describe("changesets.updated broadcast", () => {
     // the first model.updated.
     const types = ws.sent.map((m) => m.type);
     expect(types.indexOf("changesets.updated")).toBeGreaterThan(types.indexOf("model.updated"));
-    expect(await drift()).toMatchObject({ state: "drifted", blocksCommit: true });
+    // Drifted is a warning to show before Apply, not a block (#1200).
+    expect(await drift()).toMatchObject({ state: "drifted", blocksCommit: false });
   });
 
   it("the commit route broadcasts it, with the changeset no longer active", async () => {

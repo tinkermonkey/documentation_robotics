@@ -200,8 +200,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
    the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
-   commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
-   them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
+   commits only if they confirm; if they decline, leave it staged. Drift doesn't refuse it: the dialog lists each
+   staged change the base overlaps and what landing does about it (`force` is ignored;
+   `changeset_update` with `rebaseline: true` re-baselines a plan whose base moved). Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
    interactive session. Never point them to the `dr` CLI. Once the model has an as-built landing

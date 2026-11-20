@@ -1547,17 +1547,17 @@ function throwIfRecord(refusal: RecordLandingError | null, changesetName: string
  * @param options - Commit options
  * @param options.validate - Run validation before commit (default: true; --no-validate skips it).
  *   When enabled, errors the changeset introduces (present in the projected model but not
- *   the base) block the commit and cannot be overridden with --force; errors the base model
- *   already had are counted and reported, not blocking.
- * @param options.force - Skip drift detection warnings (default: false).
- *   When the base model has changed since the changeset was created, drift is detected.
- *   Use --force to commit despite drift. Validation errors always block commit regardless of --force.
+ *   the base) block the commit; errors the base model already had are counted and reported,
+ *   not blocking.
+ * @param options.force - Deprecated and ignored. Drift does not refuse a commit (#1200): when the
+ *   base overlaps what the changeset stages, it lands, and the output lists each overlap with what
+ *   landing did about it.
  *
  * @param nameOrId - The changeset to commit (id or name). Defaults to the active one. A named
  *   changeset that is not active is activated for the commit; the changeset that was active before
  *   is active again afterwards, whether the commit succeeds or not.
  *
- * @throws Error if validation fails, drift detected without --force, or commit fails
+ * @throws Error if validation fails or commit fails
  */
 export async function changesetCommitCommand(
   nameOrId?: string,
@@ -1681,7 +1681,6 @@ export async function changesetCommitCommand(
         try {
           const result = await stagingManager.commit(model, activeChangesetId, {
             validate: options?.validate !== false,
-            force: options?.force === true,
           });
 
           // StagingAreaManager.commit deactivated the changeset (reportDeactivation warns if not)
@@ -1728,11 +1727,26 @@ export async function changesetCommitCommand(
           }
 
           if (result.driftWarning) {
+            // Drift never refuses a commit (#1200): it landed, and this says over what.
             commitDetails.driftDetected = true;
+            const overlaps = result.driftDetail
+              ? [
+                  ...result.driftDetail.overlapping.elements.map((e) => `${e.id} (${e.reason}): ${e.consequence}`),
+                  ...result.driftDetail.overlapping.relationships.map(
+                    (r) => `${r.source} --${r.predicate}--> ${r.target} (${r.reason}): ${r.consequence}`
+                  ),
+                ]
+              : [];
+            commitDetails.driftOverlaps = overlaps;
             if (!isJson()) {
               console.log(
-                ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)
+                ansis.yellow(
+                  overlaps.length > 0
+                    ? `⚠ Warning: the base model overlapped ${overlaps.length} staged change(s). The changeset landed:`
+                    : "⚠ Warning: the base model had changed under this changeset, and it has no base index to list what overlapped. The changeset landed."
+                )
               );
+              for (const line of overlaps) console.log(ansis.yellow(`  - ${line}`));
             }
             if (isTelemetryEnabled) {
               (span as any).setAttribute("commit.driftDetected", true);
@@ -2037,7 +2051,7 @@ Examples:
     .description("Apply a changeset to the model")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("--no-validate", "Skip validation before applying")
-    .option("--force", "Force apply even if base model has drifted")
+    .option("--force", "Deprecated and ignored: drift no longer refuses an apply, it is reported")
     .addHelpText(
       "after",
       `
@@ -2251,7 +2265,7 @@ Examples:
       "--no-validate",
       "Skip validation before commit (validation runs by default; only errors the changeset introduces block, errors already in the base model are reported as a count)"
     )
-    .option("--force", "Commit despite drift warnings (does not skip validation)", false)
+    .option("--force", "Deprecated and ignored: drift no longer refuses a commit, it is reported", false)
     .addHelpText(
       "after",
       `
@@ -2259,13 +2273,15 @@ Validation compares the model with and without the changeset. Errors the
 changeset introduces block the commit; errors the base model already had are
 not counted against it, and the output says how many there were.
 
+Drift does not refuse a commit. When the base model overlaps what the changeset
+stages, it lands and the output lists each overlap with what landing did about it.
+
 A named changeset (id or name) need not be active: it is activated for the
 commit, and the changeset that was active before is active again afterwards.
 
 Examples:
   $ dr changeset commit
   $ dr changeset commit add-order-api    # commit the changeset named add-order-api
-  $ dr changeset commit --force          # commit despite drift
   $ dr changeset commit --no-validate    # skip validation entirely`
     )
     .action(async (name: string | undefined, options) => {

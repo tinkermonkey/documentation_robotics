@@ -1,24 +1,27 @@
 /**
- * A changeset's base drift as a reader meets it before any commit attempt: one state, whether it
- * blocks a commit, and a sentence saying why. The viewer's changeset endpoints report it (GET
- * /api/changesets and GET /api/changesets/:id), so drift shows before Apply instead of in Apply's
- * refusal.
+ * A changeset's base drift as a reader meets it before any commit attempt: one state and a
+ * sentence saying what it means for a landing. The viewer's changeset endpoints report it (GET
+ * /api/changesets and GET /api/changesets/:id), so drift shows before Apply.
  *
  * No drift logic lives here. The state is `StagingAreaManager.detectDrift`'s answer, the one a
- * commit acts on, so `blocksCommit` is true exactly when a commit would be refused for drift. What
- * changed is `describeDrift`'s, the description changeset_brief gives.
+ * commit reports. What changed is `describeDrift`'s, the description changeset_brief gives.
+ *
+ * Drift never refuses a commit (#1200): a drifted changeset lands, and the landing says what the
+ * base overlapped and what it did about each overlap. `blocksCommit` is therefore always false. It
+ * is kept so a reader built when `drifted` did block (the viewer held Apply on it) keeps working;
+ * read `state` instead.
  *
  * It is read by the changeset's purpose (changeset-purpose.ts): drift is about landing, so a
  * record (a verification record or an upgrade record), which never lands, has none to report
  * (#1171), and neither has a changeset that is no longer staged.
  *
- * | State            | Means                                                                    | Blocks a commit |
- * | ---------------- | ------------------------------------------------------------------------ | --------------- |
- * | `none`           | The base is as it was when the changeset was created                     | No              |
- * | `content-free`   | The base changed, but it overlaps none of the staged changes (#1169)     | No              |
- * | `drifted`        | The base overlaps a staged change, or there is no base index to tell     | Yes             |
- * | `not-applicable` | A record (never lands), or a changeset that is no longer staged          | No              |
- * | `unknown`        | No base snapshot was recorded, or the check failed                       | No              |
+ * | State            | Means                                                                    | At a landing          |
+ * | ---------------- | ------------------------------------------------------------------------ | --------------------- |
+ * | `none`           | The base is as it was when the changeset was created or re-baselined     | No warning            |
+ * | `content-free`   | The base changed, but it overlaps none of the staged changes (#1169)     | No warning            |
+ * | `drifted`        | The base overlaps a staged change, or there is no base index to tell     | Lands, with a warning |
+ * | `not-applicable` | A record (never lands), or a changeset that is no longer staged          | -                     |
+ * | `unknown`        | No base snapshot was recorded, or the check failed                       | No warning            |
  */
 
 import { getErrorMessage } from "../utils/errors.js";
@@ -35,8 +38,11 @@ export type DriftState = (typeof DRIFT_STATES)[number];
 /** The drift summary: cheap enough to compute for every changeset in a list. */
 export interface DriftStatus {
   state: DriftState;
-  /** True when a commit would be refused for drift. Only ever true in state `drifted`. */
-  blocksCommit: boolean;
+  /**
+   * @deprecated Always false: drift warns at a landing and never refuses it (#1200). Kept so the
+   * shape readers were built against stays; read `state`.
+   */
+  blocksCommit: false;
   /** One or two sentences saying what the state means for this changeset. Names no CLI command. */
   message: string;
 }
@@ -46,6 +52,8 @@ export interface DriftDetail extends DriftStatus {
   /** What the description could not tell: no base index, an unreadable one, a failed comparison. Empty when it could tell everything. */
   warnings?: string[];
   baseIndex?: ChangesetDrift["baseIndex"];
+  /** Set when the changeset was re-baselined: baseChanges then counts from that base. */
+  rebaselined?: ChangesetDrift["rebaselined"];
   overlapping?: ChangesetDrift["overlapping"];
   baseChanges?: ChangesetDrift["baseChanges"];
 }
@@ -92,7 +100,7 @@ function withoutCheck({ changeset, purpose, plan }: DriftSubject): DriftStatus |
     return {
       state: "unknown",
       blocksCommit: false,
-      message: "No base snapshot was recorded for this changeset, so drift cannot be checked. A commit is not blocked by drift.",
+      message: "No base snapshot was recorded for this changeset, so drift cannot be checked.",
     };
   }
   return undefined;
@@ -116,18 +124,18 @@ export async function driftStatus(
     if (hash.isDrifted) {
       return {
         state: "drifted",
-        blocksCommit: true,
+        blocksCommit: false,
         // Either the base overlaps a staged change (`overlapping`, in the detail), or there is no base
         // index to tell an overlapping change from another.
         message:
-          "The base model changed under what this changeset stages since it was created (or it has no base index " +
-          "to tell), so a commit is refused for drift.",
+          "The base model overlaps what this changeset stages (or it has no base index to tell). It still lands: " +
+          "the landing says what overlaps and what it does about each overlap.",
       };
     }
     return {
       state: "none",
       blocksCommit: false,
-      message: "The base model has not changed since this changeset was created.",
+      message: "The base model has not changed under this changeset.",
     };
   } catch (error) {
     return {
@@ -164,6 +172,7 @@ export async function driftDetail(
       ...status,
       warnings: described.warnings,
       baseIndex: described.baseIndex,
+      ...(described.rebaselined ? { rebaselined: described.rebaselined } : {}),
       overlapping: described.overlapping,
       ...(described.baseChanges ? { baseChanges: described.baseChanges } : {}),
     };

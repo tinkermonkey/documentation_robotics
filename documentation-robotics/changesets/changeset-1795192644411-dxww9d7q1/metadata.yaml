@@ -1,0 +1,125 @@
+id: changeset-1795192644411-dxww9d7q1
+name: drift-warns-landing-always-confirmable
+description: "Drift stops refusing a landing (#1200): a drifted changeset lands
+  from changeset_commit, the viewer's Apply and the CLI with no force, and the
+  confirmation names each overlap and what landing does about it. A person can
+  always confirm a landing: the dialog, Claude Code's permission prompt with a
+  preview token, or Apply (#1239, #1207). An overlap is only what could make the
+  landing wrong: a description edit on a link's end is not one (#1208), and an
+  update restaged on the current base is not one (#1239). The base hash covers
+  content and relationships only, with a version prefix, and changeset_update
+  can re-baseline a changeset, showing what moved under it (#1169). Done when
+  the model's three drift requirements, the commit and drift features and the
+  functions they name say this."
+created: 2026-11-20T16:37:24.461Z
+modified: 2026-11-20T17:13:48.705Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 19
+  modifications: 9
+  deletions: 0
+lastSequence: 33
+unstaged:
+  - sequence: 19
+    removedAt: 30
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.staging-area-manager-rebaseline::depends-on::application.applicationfunction.base-snapshot-manager-capture-snapshot
+      layerName: application
+      after:
+        source: application.applicationfunction.staging-area-manager-rebaseline
+        target: application.applicationfunction.base-snapshot-manager-capture-snapshot
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:38:29.336Z
+  - sequence: 27
+    removedAt: 30
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.overlap-consequence::accesses::data-model.objectschema.changeset-drift
+      layerName: application
+      after:
+        source: application.applicationfunction.overlap-consequence
+        target: data-model.objectschema.changeset-drift
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:38:40.476Z
+  - sequence: 9
+    removedAt: 31
+    change:
+      type: add
+      elementId: application.applicationfunction.overlap-consequence
+      layerName: application
+      after:
+        id: 28079826-c154-4c54-b280-fc7dba1c60f0
+        path: application.applicationfunction.overlap-consequence
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: overlapConsequence
+        description: What landing does about a staged change the base overlaps, as a
+          sentence for the person confirming, by the overlap's reason.
+        metadata:
+          created_at: 2026-11-20T16:38:29.313Z
+          updated_at: 2026-11-20T16:38:29.313Z
+          version: 1
+      timestamp: 2026-11-20T16:38:29.336Z
+    rewritten: true
+  - sequence: 8
+    removedAt: 32
+    change:
+      type: add
+      elementId: application.applicationfunction.staging-area-manager-rebaseline
+      layerName: application
+      after:
+        id: ed374416-e491-4a7b-bdcb-b846d27b080e
+        path: application.applicationfunction.staging-area-manager-rebaseline
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: StagingAreaManager rebaseline
+        description: "Makes the base model as it is now a staged changeset's base:
+          records the current base hash and base index, and returns the drift as
+          it was before and as it is after."
+        metadata:
+          created_at: 2026-11-20T16:38:29.311Z
+          updated_at: 2026-11-20T16:38:29.311Z
+          version: 1
+      timestamp: 2026-11-20T16:38:29.336Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 33
+    change:
+      type: add
+      elementId: product.feature.changeset-re-baseline
+      layerName: product
+      after:
+        id: eef52419-3b1e-4f03-b97d-b551c77252aa
+        path: product.feature.changeset-re-baseline
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Changeset re-baseline
+        description: "MCP: changeset_update with rebaseline: true makes the base model
+          as it is now the changeset's base and returns what moved under it: the
+          base changes since the previous base, the overlaps cleared and the
+          overlaps that remain, each with what landing does about it and how to
+          resolve it. The landing summary shows that the changeset was
+          re-baselined and when."
+        attributes:
+          priority: medium
+          status: developing
+          size: s
+        metadata:
+          created_at: 2026-11-20T16:38:29.310Z
+          updated_at: 2026-11-20T16:38:29.310Z
+          version: 1
+      timestamp: 2026-11-20T16:38:29.336Z
+    rewritten: true

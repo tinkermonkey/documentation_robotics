@@ -117,7 +117,7 @@ describe("End-to-End Staging Workflow", () => {
   });
 
   describe("Commit operations", () => {
-    it("should block commit when drift is detected without --force flag", async () => {
+    it("should detect that the base changed since the snapshot was taken", async () => {
       const changesetId = "drift-test";
       const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
 

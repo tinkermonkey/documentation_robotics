@@ -10,7 +10,7 @@ import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
-import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
+import { BaseSnapshotManager, isContentSnapshot } from "../../core/base-snapshot-manager.js";
 import { contentFreeDrift } from "../../core/changeset-base-index.js";
 import { MigrationRegistry } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
@@ -233,10 +233,16 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
   // One snapshot of the base, compared with each changeset's: the hash drift check
   // StagingAreaManager.detectDrift makes, without re-hashing the model per changeset.
   let current: string | null = null;
+  // The same base hashed as a changeset created before CLI 0.7.0 recorded it, when one is staged.
+  let currentFull: string | null = null;
   let driftUnknown: string | undefined;
   if (staged.length > 0) {
     try {
-      current = await new BaseSnapshotManager().captureSnapshot(await ctx.model());
+      const snapshots = new BaseSnapshotManager();
+      current = await snapshots.captureSnapshot(await ctx.model());
+      if (staged.some((changeset) => changeset.baseSnapshot && !isContentSnapshot(changeset.baseSnapshot))) {
+        currentFull = await snapshots.captureFullSnapshot(await ctx.model());
+      }
     } catch (error) {
       driftUnknown = `the model could not be loaded: ${getErrorMessage(error)}`;
     }
@@ -252,7 +258,9 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
       EXTRACTION_MARKER.test(changeset.description ?? "") ||
       (await isExtractionChangeset(projectRoot, changeset.id, changeset.name).catch(() => false));
     const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
-    let baseDrifted = current && changeset.baseSnapshot ? changeset.baseSnapshot !== current : null;
+    // Each recorded hash is compared with one made the same way (base-snapshot-manager.ts).
+    const now = changeset.baseSnapshot && !isContentSnapshot(changeset.baseSnapshot) ? currentFull : current;
+    let baseDrifted = now && changeset.baseSnapshot ? changeset.baseSnapshot !== now : null;
     if (baseDrifted) {
       // detectDrift's rule: a changed hash with nothing this changeset was staged against changed
       // (another one landing rewrites the manifest) is not drift.

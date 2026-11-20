@@ -574,7 +574,7 @@ function changesetSummary(result: ChangesetRebaselineResult) {
       ? {
           drifted: result.drifted.map((ref) => ref.name),
           driftedNote:
-            "These had drifted from the model before the upgrade; they keep their old base, and changeset_commit lands them only with force: true, once the user agrees.",
+            "These had drifted from the model before the upgrade and keep their old base. changeset_commit still lands them, and its summary says what the base overlaps; changeset_update with rebaseline: true takes the upgraded model as their base.",
         }
       : {}),
     ...(result.errors.length > 0 ? { errors: result.errors } : {}),

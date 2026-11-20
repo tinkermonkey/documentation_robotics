@@ -206,8 +206,10 @@ describe("changeset_brief after the base changes under the plan (dogfood bug 6)"
 
     const drift = brief.changeset.drift;
     expect(drift.isDrifted).toBe(true);
-    expect(drift.overlapping.elements).toEqual([{ id: FUNCTION, reason: "already-in-base" }]);
-    expect(drift.overlapping.relationships).toEqual([
+    // Each overlap says what landing does about it (#1200).
+    expect(drift.overlapping.elements).toMatchObject([{ id: FUNCTION, reason: "already-in-base" }]);
+    expect(drift.overlapping.elements[0].consequence).toContain("the staged add is skipped");
+    expect(drift.overlapping.relationships).toMatchObject([
       { source: FUNCTION, predicate: "realizes", target: SERVICE, reason: "already-in-base" },
     ]);
     expect(drift.baseIndex).toBe("recorded");
@@ -223,27 +225,25 @@ describe("changeset_brief after the base changes under the plan (dogfood bug 6)"
     expect(drift.isDrifted).toBe(true);
     expect(drift.baseIndex).toBe("not-recorded");
     expect(drift.baseChanges).toBeUndefined();
-    expect(drift.overlapping.elements).toEqual([{ id: FUNCTION, reason: "already-in-base" }]);
+    expect(drift.overlapping.elements).toMatchObject([{ id: FUNCTION, reason: "already-in-base" }]);
     expect(drift.warnings.join(" ")).toContain("No base index was recorded");
   });
 });
 
 describe("changeset_brief drift: plan links into changed base elements (round 2, F7)", () => {
-  it("lists a plan relationship whose base end changed, or was removed, as a relationship overlap", async () => {
+  it("lists a plan relationship whose base end was removed as a relationship overlap, and one whose end was only edited as none (#1208)", async () => {
     await planExportOrders();
     await changesetDeactivateHandler({ rootPath });
     // The base edits the service the plan's function realizes; the plan doesn't edit it.
     await modelUpdateHandler({ id: SERVICE, description: "Checkout, now with saved carts.", rootPath } as any);
 
     const drift = parse(await changesetBriefHandler({ changesetId: "export-orders", sections: ["drift"], rootPath })).drift;
+    // The edit is listed as a base change, and is not an overlap: the end keeps its id, layer and type.
     expect(drift.baseChanges.elementsChanged).toEqual([SERVICE]);
-    expect(drift.overlapping.relationships).toEqual([
-      { source: FUNCTION, predicate: "realizes", target: SERVICE, reason: "endpoint-changed-in-base", endpoints: [SERVICE] },
-    ]);
+    expect(drift.overlapping).toEqual({ elements: [], relationships: [] });
     const compact = parse(await changesetBriefHandler({ changesetId: "export-orders", rootPath }));
-    expect(compact.changeset.drift.overlapping).toEqual([
-      `${FUNCTION} --realizes--> ${SERVICE}: endpoint-changed-in-base (${SERVICE})`,
-    ]);
+    expect(JSON.stringify(compact.changeset.drift)).not.toContain("endpoint-changed-in-base");
+    expect(compact.changeset.drift.overlapping ?? []).toEqual([]);
 
     await modelDeleteHandler({ id: SERVICE, force: true, rootPath } as any);
     const removed = parse(await changesetBriefHandler({ changesetId: "export-orders", sections: ["drift"], rootPath })).drift;

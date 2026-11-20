@@ -1,10 +1,11 @@
 /**
  * Base drift on the changeset endpoints: GET /api/changesets and GET /api/changesets/:id report
  * whether the base model changed under a changeset, with no commit attempt, so the viewer can show
- * it before Apply. The state is the one a commit acts on (blocksCommit is true exactly when POST
- * .../commit answers 409 for drift), and it is read by the changeset's purpose: content-free drift
+ * it before Apply. The state is the one a commit reports. Drift never refuses a commit (#1200): a
+ * drifted changeset lands through POST .../commit, whose result says what the base overlapped, and
+ * blocksCommit is always false. The state is read by the changeset's purpose: content-free drift
  * (#1169: a base change that overlaps nothing the changeset stages) and a verification record whose
- * plan landed (#1171) never read as blocking.
+ * plan landed (#1171) have nothing to warn about.
  */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
@@ -16,7 +17,7 @@ import { driftDetail, driftStatus } from "../../../src/core/changeset-drift-stat
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
-import { ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
+import { ChangesetActionResultSchema, ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
 import type { VisualizationServer } from "../../../src/server/server.js";
 import { createServerWithoutChatDetection } from "./helpers.js";
 
@@ -111,13 +112,13 @@ describe("base drift on the changeset endpoints", () => {
     expect(summary).toEqual({
       state: "none",
       blocksCommit: false,
-      message: "The base model has not changed since this changeset was created.",
+      message: "The base model has not changed under this changeset.",
     });
     // Nothing changed, so there is nothing to describe: the detail is the summary.
     expect((await detail(id)).drift).toEqual(summary);
   });
 
-  it.serial("a plan whose base element changed under it reads drifted and blocking, with what changed, and commit agrees (409)", async () => {
+  it.serial("a plan whose base element changed under it reads drifted, with what landing does about it, and commit lands it", async () => {
     const { model, manager } = await fresh();
     const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
     const update = (description: string) => ({
@@ -137,13 +138,16 @@ describe("base drift on the changeset endpoints", () => {
     const { list, detail, commit } = await api();
     const summary = (await list())[planId];
     expect(summary.drift.state).toBe("drifted");
-    expect(summary.drift.blocksCommit).toBe(true);
-    expect(summary.drift.message).toContain("changed under what this changeset stages");
+    expect(summary.drift.blocksCommit).toBe(false);
+    expect(summary.drift.message).toContain("overlaps what this changeset stages");
+    expect(summary.drift.message).toContain("It still lands");
     expect(summary.actions).toContain("commit");
 
     const { drift } = await detail(planId);
-    expect(drift).toMatchObject({ state: "drifted", blocksCommit: true, baseIndex: "recorded" });
-    expect(drift.overlapping!.elements).toEqual([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(drift).toMatchObject({ state: "drifted", blocksCommit: false, baseIndex: "recorded" });
+    expect(drift.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(drift.overlapping!.elements[0].consequence).toContain("landing replaces the base's edit with the plan's version");
+    expect(drift.overlapping!.elements[0].resolve).toContain("stage it again");
     expect(drift.baseChanges).toMatchObject({
       counts: { elementsAdded: 0, elementsRemoved: 0, elementsChanged: 1, relationshipsAdded: 0, relationshipsRemoved: 0 },
       elementsChanged: [GOAL],
@@ -153,13 +157,47 @@ describe("base drift on the changeset endpoints", () => {
     // The overlap is in `overlapping`; `warnings` holds only what could not be told.
     expect(drift.warnings).toEqual([]);
 
-    // The report and the commit read the same check.
-    const refused = await commit(planId);
-    expect(refused.status).toBe(409);
-    expect((await refused.json()).error).toContain("drifted");
+    // Apply lands it (the route has no force and needs none), and says what it landed over.
+    const landed = await commit(planId);
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    expect(result).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+    expect(result.drift!.message).toContain("overlapped 1 staged change(s)");
+    expect(result.drift!.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(result.drift!.overlapping!.elements[0].consequence).toContain("replaces the base's edit");
+    const after = (await fresh()).model.layers.get("motivation")!.getElement(GOAL)!.toJSON();
+    expect(after.description).toBe("Checkout in under a minute");
   });
 
-  it.serial("content-free drift (another changeset landed elsewhere) reads content-free, not blocking, and commit lands it (#1169)", async () => {
+  it.serial("a reviewed commit (a body with drop) lands a drifted changeset too, and puts nothing back", async () => {
+    const { model, manager } = await fresh();
+    const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
+    const update = (description: string) => ({ type: "update" as const, elementId: GOAL, layerName: "motivation", before, after: { ...before, description } });
+    const planId = (await manager.create("reword-goal")).id!;
+    await manager.stage(planId, update("Checkout in under a minute"));
+    const added = service(SERVICE);
+    await manager.stage(planId, { type: "add", elementId: added.path, layerName: added.layer_id, after: added });
+    const otherId = (await manager.create("other-reword")).id!;
+    await manager.stage(otherId, update("Checkout in thirty seconds"));
+    await land(otherId);
+
+    // The reviewer leaves the overlapping update out: what lands overlaps nothing.
+    const { detail } = await api();
+    const overlappingUpdate = (await detail(planId)).changes.find((change) => change.elementId === GOAL)!;
+    const landed = await (server as any).app.request(`/api/changesets/${planId}/commit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ drop: [(overlappingUpdate as { sequenceNumber: number }).sequenceNumber] }),
+    });
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    expect(result).toMatchObject({ status: "committed", committed: 1 });
+    expect(result.drift).toBeUndefined();
+    const after = (await fresh()).model.layers.get("motivation")!.getElement(GOAL)!.toJSON();
+    expect(after.description).toBe("Checkout in thirty seconds");
+  });
+
+  it.serial("content-free drift (another changeset landed elsewhere) reads content-free, and commit lands it with no drift in the result (#1169)", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     await land(await planAdding("lower-costs", goal(OTHER_GOAL, "Track costs")));
 
@@ -167,7 +205,7 @@ describe("base drift on the changeset endpoints", () => {
     const summary = (await list())[planId].drift;
     expect(summary.state).toBe("content-free");
     expect(summary.blocksCommit).toBe(false);
-    expect(summary.message).toContain("nothing it was staged against changed");
+    expect(summary.message).toContain("nothing it stages overlaps the change");
     expect(summary.message).toContain("In the base since: 1 element(s) added");
 
     const { drift } = await detail(planId);
@@ -179,10 +217,12 @@ describe("base drift on the changeset endpoints", () => {
       layers: ["motivation"],
     });
 
-    // The commit lands it: what the report said would not block did not.
+    // The commit lands it, with nothing to warn about.
     const landed = await commit(planId);
     expect(landed.status).toBe(200);
-    expect(await landed.json()).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+    const result = await landed.json();
+    expect(result).toMatchObject({ status: "committed", committed: 1, failed: 0 });
+    expect(result.drift).toBeUndefined();
   });
 
   it.serial("an edit to a base element the plan neither edits nor links to reads content-free, and commit lands it", async () => {
@@ -209,7 +249,7 @@ describe("base drift on the changeset endpoints", () => {
     expect((await commit(planId)).status).toBe(200);
   });
 
-  it.serial("an update of an element the base removed reads drifted with removed-in-base, and commit agrees (409)", async () => {
+  it.serial("an update of an element the base removed reads drifted with removed-in-base, and commit lands and reports it", async () => {
     const { model, manager } = await fresh();
     const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
     const planId = (await manager.create("reword-goal")).id!;
@@ -227,10 +267,15 @@ describe("base drift on the changeset endpoints", () => {
     const { detail, commit } = await api();
     // Parsed with the documented schema, which lists the overlap reasons by hand.
     const { drift } = await detail(planId);
-    expect(drift).toMatchObject({ state: "drifted", blocksCommit: true });
-    expect(drift.overlapping!.elements).toEqual([{ id: GOAL, reason: "removed-in-base" }]);
+    expect(drift).toMatchObject({ state: "drifted", blocksCommit: false });
+    expect(drift.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "removed-in-base" }]);
     expect(drift.baseChanges!.counts).toMatchObject({ elementsRemoved: 1 });
-    expect((await commit(planId)).status).toBe(409);
+    const landed = await commit(planId);
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    // The update had nothing to apply to, as its consequence said.
+    expect(result).toMatchObject({ status: "committed", committed: 0, failed: 1 });
+    expect(result.drift!.overlapping!.elements[0].consequence).toContain("reported as failed");
   });
 
   it.serial("a verification record whose plan has landed reads not-applicable, never as a problem (#1171)", async () => {
@@ -275,19 +320,48 @@ describe("base drift on the changeset endpoints", () => {
     expect((await list())[planId].drift.message).toContain("committed");
   });
 
-  it.serial("without a base index a changed hash stays drifted, and the detail says what it cannot list", async () => {
+  it.serial("without a base index a changed hash stays drifted, the detail says what it cannot list, and commit still lands", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     await rm(join(rootPath, "documentation-robotics", "changesets", planId, BASE_INDEX_FILE));
     await land(await planAdding("lower-costs", goal(OTHER_GOAL, "Track costs")));
 
-    const { list, detail } = await api();
-    expect((await list())[planId].drift).toMatchObject({ state: "drifted", blocksCommit: true });
+    const { list, detail, commit } = await api();
+    expect((await list())[planId].drift).toMatchObject({ state: "drifted", blocksCommit: false });
     const { drift } = await detail(planId);
     expect(drift.baseIndex).toBe("not-recorded");
     expect(drift.warnings).toHaveLength(1);
     expect(drift.warnings![0]).toContain("No base index was recorded");
     expect(drift.baseChanges).toBeUndefined();
     expect(drift.overlapping).toEqual({ elements: [], relationships: [] });
+
+    const landed = await commit(planId);
+    expect(landed.status).toBe(200);
+    const result = ChangesetActionResultSchema.parse(await landed.json());
+    expect(result.drift!.message).toContain("could not be listed");
+    expect(result.drift!.overlapping).toBeUndefined();
+  });
+
+  it.serial("a re-baselined changeset reads none, and the detail of one that still overlaps says it was re-baselined", async () => {
+    const { model, manager } = await fresh();
+    const before = model.layers.get("motivation")!.getElement(GOAL)!.toJSON() as unknown as Record<string, unknown>;
+    const update = (description: string) => ({ type: "update" as const, elementId: GOAL, layerName: "motivation", before, after: { ...before, description } });
+    const staleId = (await manager.create("reword-goal")).id!;
+    await manager.stage(staleId, update("Checkout in under a minute"));
+    const cleanId = await planAdding("export-orders", service(SERVICE));
+    const otherId = (await manager.create("other-reword")).id!;
+    await manager.stage(otherId, update("Checkout in thirty seconds"));
+    await land(otherId);
+    await (await fresh()).manager.rebaseline(staleId);
+    await (await fresh()).manager.rebaseline(cleanId);
+
+    const { list, detail } = await api();
+    expect((await list())[cleanId].drift).toMatchObject({ state: "none", blocksCommit: false });
+    // The stale update is still an overlap: a re-baseline does not hide what landing would replace.
+    const { drift } = await detail(staleId);
+    expect(drift.state).toBe("drifted");
+    expect(drift.rebaselined).toMatchObject({ times: 1 });
+    expect(drift.overlapping!.elements).toMatchObject([{ id: GOAL, reason: "changed-in-base" }]);
+    expect(drift.baseChanges!.counts).toMatchObject({ elementsChanged: 0 });
   });
 
   it.serial("a changeset with no base snapshot reads unknown and is not blocked", async () => {
@@ -392,7 +466,7 @@ describe("drift status when the check itself fails", () => {
     } as unknown as Model;
 
     const detail = await driftDetail(unreadable, drifted, { changeset, purpose: "plan" });
-    expect(detail).toMatchObject({ state: "drifted", blocksCommit: true });
+    expect(detail).toMatchObject({ state: "drifted", blocksCommit: false });
     expect(detail.warnings).toEqual(["Could not name what changed in the base: layers unreadable"]);
     expect(detail.overlapping).toBeUndefined();
   });
