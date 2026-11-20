@@ -1,0 +1,261 @@
+id: changeset-1795192726436-qtbmej5t7
+name: project-status-names-drift
+description: "project_status says what drifted and what to do next:
+  per-changeset base drift with counts and whether landing needs force (#1227);
+  code drift counted from the code commit the last as-built landing read, with
+  the rule in use, the plans landed since and what clears it (#1228, #1195);
+  changed files no element references; and a dr server older than the installed
+  CLI. Done when an agent that reads one project_status answer can say, for each
+  drift state, what changed, whether a landing will be refused and which tool to
+  call next."
+created: 2026-11-20T16:38:46.457Z
+modified: 2026-11-20T16:41:29.320Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 20
+  modifications: 1
+  deletions: 1
+lastSequence: 34
+unstaged:
+  - sequence: 16
+    removedAt: 24
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.suggest-next-step::depends-on::application.applicationfunction.stale-server
+      layerName: application
+      after:
+        source: application.applicationfunction.suggest-next-step
+        target: application.applicationfunction.stale-server
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:39:29.323Z
+  - sequence: 17
+    removedAt: 24
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.suggest-next-step::depends-on::application.applicationfunction.compare-versions
+      layerName: application
+      after:
+        source: application.applicationfunction.suggest-next-step
+        target: application.applicationfunction.compare-versions
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:39:29.323Z
+  - sequence: 20
+    removedAt: 24
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.collect-changesets::accesses::data-model.schemadefinition.base-change-count
+      layerName: application
+      after:
+        source: application.applicationfunction.collect-changesets
+        target: data-model.schemadefinition.base-change-count
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-20T16:39:29.323Z
+  - sequence: 22
+    removedAt: 24
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.collect-code-drift::depends-on::application.applicationfunction.is-indexed-source
+      layerName: application
+      after:
+        source: application.applicationfunction.collect-code-drift
+        target: application.applicationfunction.is-indexed-source
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:39:29.323Z
+  - sequence: 1
+    removedAt: 27
+    change:
+      type: add
+      elementId: application.applicationfunction.collect-server
+      layerName: application
+      after:
+        id: a91b0437-8010-4377-b87a-76b6c99b5a43
+        path: application.applicationfunction.collect-server
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: collectServer
+        description: "Whether this dr server process is the CLI that is installed: stale
+          when the version on disk differs from the one it was built with, or
+          the installed files were written after it started."
+        metadata:
+          created_at: 2026-11-20T16:39:29.293Z
+          updated_at: 2026-11-20T16:39:29.293Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 28
+    change:
+      type: add
+      elementId: application.applicationfunction.read-installed-cli
+      layerName: application
+      after:
+        id: 2bc80867-6a6a-493f-a6f7-195fbb39c7b6
+        path: application.applicationfunction.read-installed-cli
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: readInstalledCli
+        description: "The CLI installed where this process was loaded from, read from
+          disk now: its version, the spec version it bundles and when its files
+          last changed."
+        metadata:
+          created_at: 2026-11-20T16:39:29.295Z
+          updated_at: 2026-11-20T16:39:29.295Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 29
+    change:
+      type: add
+      elementId: application.applicationfunction.stale-server
+      layerName: application
+      after:
+        id: 979f550d-89e4-4187-a146-ce44f5ee3ee8
+        path: application.applicationfunction.stale-server
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: staleServer
+        description: The server section when it says the server is stale, else undefined.
+        metadata:
+          created_at: 2026-11-20T16:39:29.296Z
+          updated_at: 2026-11-20T16:39:29.296Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 30
+    change:
+      type: add
+      elementId: data-model.objectschema.changeset-drift-entry
+      layerName: data-model
+      after:
+        id: 8e908f18-56ec-43a4-bd74-f18f8b1f138c
+        path: data-model.objectschema.changeset-drift-entry
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ChangesetDriftEntry
+        description: "How the base model moved under a staged changeset, and what that
+          does to landing it: state, landing, base change counts, overlapping
+          staged changes and the call that lists them."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:39:29.299Z
+          updated_at: 2026-11-20T16:39:29.299Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 31
+    change:
+      type: add
+      elementId: data-model.objectschema.installed-cli
+      layerName: data-model
+      after:
+        id: 2d63be51-f1fa-4e39-afa1-1de3f23cb374
+        path: data-model.objectschema.installed-cli
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: InstalledCli
+        description: "The CLI found on disk: its version, the spec version it bundles
+          and when its files last changed."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:39:29.296Z
+          updated_at: 2026-11-20T16:39:29.296Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 32
+    change:
+      type: add
+      elementId: data-model.objectschema.unreferenced-changes
+      layerName: data-model
+      after:
+        id: 85e9019e-ed1e-4eea-ab82-b8ebafb03121
+        path: data-model.objectschema.unreferenced-changes
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: UnreferencedChanges
+        description: "Changed files the code drift check cannot judge because no element
+          references them: all of them, the source files and the new source
+          files."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:39:29.299Z
+          updated_at: 2026-11-20T16:39:29.299Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 33
+    change:
+      type: add
+      elementId: data-model.schemacomposition.server-section
+      layerName: data-model
+      after:
+        id: a41d79ca-0f5e-47d7-a2c8-b52673af112b
+        path: data-model.schemacomposition.server-section
+        spec_node_id: data-model.schemacomposition
+        type: schemacomposition
+        layer_id: data-model
+        name: ServerSection
+        description: "project_status's server section: current, stale (with the
+          installed CLI and a note) or unknown."
+        metadata:
+          created_at: 2026-11-20T16:39:29.299Z
+          updated_at: 2026-11-20T16:39:29.299Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
+  - sequence: 8
+    removedAt: 34
+    change:
+      type: add
+      elementId: data-model.schemadefinition.base-change-count
+      layerName: data-model
+      after:
+        id: b6e139a1-8c77-4a98-87e2-bab629c16cc2
+        path: data-model.schemadefinition.base-change-count
+        spec_node_id: data-model.schemadefinition
+        type: schemadefinition
+        layer_id: data-model
+        name: BaseChangeCount
+        description: The kinds of base change a changeset's drift counts.
+        attributes:
+          title: BaseChangeCount
+          type: string
+          enum:
+            - elementsAdded
+            - elementsRemoved
+            - elementsChanged
+            - relationshipsAdded
+            - relationshipsRemoved
+        metadata:
+          created_at: 2026-11-20T16:39:29.301Z
+          updated_at: 2026-11-20T16:39:29.301Z
+          version: 1
+      timestamp: 2026-11-20T16:39:29.323Z
+    rewritten: true
