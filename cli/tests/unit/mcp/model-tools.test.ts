@@ -123,8 +123,9 @@ describe("MCP model tools", () => {
     it('returns every element whole with detail: "full", as before', async () => {
       await withProject(async (rootPath) => {
         const data = parse(await modelListHandler({ detail: "full", rootPath }));
-        // The shape the tool had before the compact default: no detail or more field.
-        expect(Object.keys(data).sort()).toEqual(["layers", "totalElements"]);
+        // The shape the tool had before the compact default (no detail or more field), plus the page.
+        expect(Object.keys(data).sort()).toEqual(["layers", "page", "totalElements"]);
+        expect(data.page).toEqual({ total: 2, returned: 2, offset: 0 });
         expect(data.totalElements).toBe(2);
         expect(Object.keys(data.layers[0]).sort()).toEqual(["count", "elements", "layer"]);
         const payments = data.layers[0].elements.find((e: any) => e.path === "business.businessservice.payments");
@@ -140,7 +141,7 @@ describe("MCP model tools", () => {
         expect(payments.metadata.created_at).toBeDefined();
 
         const scoped = parse(await modelListHandler({ layer: "business", detail: "full", rootPath }));
-        expect(Object.keys(scoped).sort()).toEqual(["count", "elements", "layer"]);
+        expect(Object.keys(scoped).sort()).toEqual(["count", "elements", "layer", "page"]);
         expect(scoped.count).toBe(2);
         expect(scoped.elements).toEqual(data.layers[0].elements);
       });
@@ -237,8 +238,10 @@ describe("MCP model tools", () => {
         const data = parse(compact);
         expect(data.totalElements).toBe(100);
 
-        const fullText = ((await modelListHandler({ detail: "full", rootPath })).content[0] as { text: string }).text;
+        // The full form is paged 40 at a time; ask for all 100 on one page to compare sizes.
+        const fullText = ((await modelListHandler({ detail: "full", limit: 100, rootPath })).content[0] as { text: string }).text;
         expect(parse({ content: [{ text: fullText }] }).totalElements).toBe(100);
+        expect(parse({ content: [{ text: fullText }] }).page).toEqual({ total: 100, returned: 100, offset: 0 });
 
         // The full form is the size that did not fit. The compact one is under a third of it, and
         // under 350 characters an element with every description at the limit (a real model's are
@@ -301,10 +304,18 @@ describe("MCP model tools", () => {
         expect(narrowed.detail).toBe("compact");
         expect(narrowed.layers[0].elements.length).toBe(50);
 
-        // Asking for the compact or full form lists every element whatever the count.
+        // Asking for the compact or full form lists the elements whatever the count, a page at a
+        // time: the counts are of everything, and the next page is one call away.
         const compact = parse(await modelListHandler({ detail: "compact", rootPath }));
         expect(compact.detail).toBe("compact");
-        expect(compact.layers[0].elements.length).toBe(total);
+        expect(compact.totalElements).toBe(total);
+        expect(compact.layers[0].count).toBe(total);
+        expect(compact.layers[0].elements.length).toBe(LIST_COMPACT_LIMIT);
+        expect(compact.page).toEqual({ total, returned: LIST_COMPACT_LIMIT, offset: 0, nextOffset: LIST_COMPACT_LIMIT });
+        expect(compact.more).toContain(`offset: ${LIST_COMPACT_LIMIT}`);
+        const rest = parse(await modelListHandler({ detail: "compact", offset: compact.page.nextOffset, rootPath }));
+        expect(rest.layers[0].elements.length).toBe(2);
+        expect(rest.page).toEqual({ total, returned: 2, offset: LIST_COMPACT_LIMIT });
         expect(parse(await modelListHandler({ detail: "full", rootPath })).totalElements).toBe(total);
       });
     });

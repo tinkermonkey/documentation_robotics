@@ -2,11 +2,15 @@
  * model_validate — run the 5-stage validation pipeline against the model.
  * Mirrors `dr validate`, reusing the shared Validator and ValidationFormatter.
  *
- * Sized to fit one tool result by default: whether the model is valid, the errors in full, and
- * the warnings counted by kind, layer and type. A model of a few thousand elements has hundreds of
+ * Sized to fit one tool result by default: whether the model is valid, the errors whole, and the
+ * warnings counted by kind, layer and type. A model of a few thousand elements has hundreds of
  * warnings of about 400 characters each, nearly all of one or two kinds, and the few that matter
  * were lost among them (#1215). `warnings: [...]` lists the kinds named, `orphans: true` reports
  * orphans alone without running the pipeline, and `detail: "full"` returns every warning whole.
+ *
+ * Nothing is cut off: the list a call returns (errors, the warnings asked for, or orphans) is paged
+ * with `limit` and `offset` (tools/paging.ts). `valid`, the summary and every count are of the
+ * whole set, whatever the page.
  */
 
 import { z } from "zod";
@@ -20,6 +24,7 @@ import type { ValidationIssue } from "../../validators/types.js";
 import { getCliBundledSpecVersion, modelSpecStanding } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { countByLayerAndType, modelView, orphanIds, validateView } from "./model-view.js";
+import { nextPageHint, pageOf, pagingFields, wholePage } from "./paging.js";
 
 /** The kinds of warning `warnings` can list. */
 const WARNING_KINDS: WarningKind[] = [
@@ -37,16 +42,10 @@ const WARNING_KINDS: WarningKind[] = [
 /** Kinds that say one thing about one element: listed as ids, the message and fix given once. */
 const PER_ELEMENT_KINDS = new Set<WarningKind>(["orphan", "no-source-reference", "no-document-reference", "no-description"]);
 
-/**
- * The most ids or issues one kind lists (about 8 KB of ids). A kind with more is counted by layer
- * and type unless the caller passes `detail: "full"`.
- */
+/** The default page of a warnings or orphans listing: about 8 KB of ids. */
 export const VALIDATE_LIST_LIMIT = 150;
 
-/**
- * The most errors the default returns whole; the rest are counted by layer and type.
- * `allErrors: true` returns every error and still only counts the warnings.
- */
+/** The default page of errors, each whole (about 400 characters): about 40 KB. */
 export const VALIDATE_ERROR_LIMIT = 100;
 
 const inputSchema = {
@@ -64,30 +63,29 @@ const inputSchema = {
     .describe(
       "List the warnings of these kinds, e.g. [\"orphan\"] or [\"all\"]; the default only counts them. Kinds: " +
         `${WARNING_KINDS.join(", ")}. A kind about one element each (orphan, no-source-reference, ` +
-        "no-document-reference, no-description) is listed as element ids, with its message and fix once. A kind with " +
-        `more than ${VALIDATE_LIST_LIMIT} warnings is counted by layer and type instead: narrow it with layers, or pass detail: "full".`
+        "no-document-reference, no-description) is listed as element ids, with its message and fix once. The listing " +
+        `is paged with limit and offset (${VALIDATE_LIST_LIMIT} a page by default) across the kinds named; layers narrows it. ` +
+        "Errors are counted, not listed, in a warnings listing: call without warnings for them."
     ),
   orphans: z
     .boolean()
     .optional()
     .describe(
       "Return only the orphaned elements (no relationship and no cross-layer reference), counted by layer and type " +
-        `and listed by id when ${VALIDATE_LIST_LIMIT} or fewer match, without running validation. layers narrows it.`
+        `and listed by id, paged with limit and offset (${VALIDATE_LIST_LIMIT} a page by default), without running validation. ` +
+        "layers narrows it."
     ),
-  allErrors: z
-    .boolean()
-    .optional()
-    .describe(
-      `Return every error whole. The default returns the first ${VALIDATE_ERROR_LIMIT} and counts the rest by layer and ` +
-        "type (errorsOmitted, errorsByLayer). Warnings stay counted. layers also narrows the errors."
-    ),
+  ...pagingFields(
+    "items of the list the call returns (errors; the warnings named by warnings; orphans with orphans: true)",
+    `${VALIDATE_ERROR_LIMIT} errors, ${VALIDATE_LIST_LIMIT} warnings or orphans`
+  ),
   detail: z
     .enum(["summary", "full"])
     .optional()
     .describe(
-      `summary (default): validity, the errors whole (the first ${VALIDATE_ERROR_LIMIT}; allErrors: true for the rest), ` +
-        "warnings counted by kind, layer and type. full: nothing counted in place of listing: every error and " +
-        "warning whole (about 400 characters each), or with warnings / orphans every match listed however many."
+      "summary (default): validity, a page of errors whole, warnings counted by kind, layer and type. full: " +
+        "everything in one result, unpaged: every error and warning whole (about 400 characters each), or with " +
+        "warnings / orphans every match."
     ),
   rootPath: rootPathSchema,
 };
@@ -97,7 +95,7 @@ export type ModelValidateArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 /** Says what the summary left out and how to get it. */
 const SUMMARY_MORE =
   "Warnings are counted by kind, layer and type, not listed. Pass warnings: [\"<kind>\"] to list a kind " +
-  "(layers narrows it), orphans: true for orphans alone, or detail: \"full\" for every warning whole. " +
+  "(paged; layers narrows it), orphans: true for orphans alone, or detail: \"full\" for every warning whole. " +
   "model_list with orphans: true lists orphaned elements with their names and descriptions.";
 
 export async function modelValidateHandler(args: ModelValidateArgs): Promise<CallToolResult> {
@@ -143,24 +141,27 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     const full = args.detail === "full";
     const scope = args.layers && args.layers.length > 0 ? { layers: args.layers } : {};
 
+    const paging = { limit: args.limit, offset: args.offset };
+
     if (args.orphans) {
       const orphans = orphanIds(modelToValidate);
-      const list = full || orphans.length <= VALIDATE_LIST_LIMIT;
+      const { items, page } = full ? wholePage(orphans) : pageOf(orphans, paging, VALIDATE_LIST_LIMIT);
+      const next = nextPageHint("model_validate", "orphans", page);
       return jsonResult(
         {
           view,
           ...scope,
           orphanCount: orphans.length,
           byLayer: countByLayerAndType(orphans),
-          ...(list ? { orphanedElements: orphans } : {}),
-          ...(list
-            ? {}
-            : {
+          orphanedElements: items,
+          page: { of: "orphans", ...page },
+          ...(next
+            ? {
                 more:
-                  `${orphans.length} orphans, more than the ${VALIDATE_LIST_LIMIT} listed by id, so these are counts by layer and type. ` +
-                  'Pass layers to narrow it or detail: "full" to list them all; model_list with orphans: true ' +
-                  "lists them by layer and type with names and descriptions.",
-              }),
+                  `${next} byLayer counts them all. layers narrows the list; model_list with orphans: true lists ` +
+                  "them by layer and type with names and descriptions.",
+              }
+            : {}),
         },
         { compact: true }
       );
@@ -178,8 +179,6 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     // The whole report, as the tool returned it before the summary default.
     if (full && listed.length === 0) return jsonResult({ ...header, ...formatted, valid });
 
-    const errors = full || args.allErrors ? result.errors : result.errors.slice(0, VALIDATE_ERROR_LIMIT);
-    const errorsOmitted = result.errors.length - errors.length;
     const byKind = new Map<WarningKind, ValidationIssue[]>();
     for (const warning of result.warnings) {
       const kind = warningKind(warning);
@@ -187,30 +186,63 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
       ofKind.push(warning);
       byKind.set(kind, ofKind);
     }
+    // Counted over every warning, whatever the page.
+    const warningCounts = [...byKind].map(([kind, issues]) => ({
+      kind,
+      count: issues.length,
+      byLayer: countByLayerAndType(issues.map(issueId)),
+    }));
+    const errorsByLayer = countByLayerAndType(result.errors.map(issueId));
+    const acceptedGaps = formatted.acceptedGaps ? { acceptedGaps: formatted.acceptedGaps } : {};
+
+    // A warnings listing: the kinds named, paged as one list in the order named. Errors are
+    // counted here and listed by the call without `warnings`, so each call pages one list.
+    if (listed.length > 0) {
+      const all = listed.flatMap((kind) => (byKind.get(kind) ?? []).map((issue) => ({ kind, issue })));
+      const { items, page } = full ? wholePage(all) : pageOf(all, paging, VALIDATE_LIST_LIMIT);
+      const next = nextPageHint("model_validate", "warnings of the kinds listed", page);
+      return jsonResult(
+        {
+          ...header,
+          summary: formatted.summary,
+          ...(result.errors.length > 0
+            ? {
+                errorsByLayer,
+                errorsMore: `${result.errors.length} errors are counted here, not listed: call model_validate without warnings for them.`,
+              }
+            : {}),
+          warningCounts,
+          warnings: listed.map((kind) =>
+            listKind(
+              kind,
+              (byKind.get(kind) ?? []).length,
+              items.filter((entry) => entry.kind === kind).map((entry) => entry.issue)
+            )
+          ),
+          page: { of: "warnings", ...page },
+          ...acceptedGaps,
+          ...(next ? { more: `${next} count on each kind is its total; layers or fewer kinds narrow the list.` } : {}),
+        },
+        { compact: true }
+      );
+    }
+
+    const { items: errors, page } = pageOf(result.errors, paging, VALIDATE_ERROR_LIMIT);
+    const next = nextPageHint("model_validate", "errors", page);
+    const more = [
+      ...(next ? [`${next} errorsByLayer counts them all, and layers validates fewer layers.`] : []),
+      ...(result.warnings.length > 0 ? [SUMMARY_MORE] : []),
+    ];
     return jsonResult(
       {
         ...header,
         summary: formatted.summary,
         errors,
-        ...(errorsOmitted > 0
-          ? {
-              errorsOmitted,
-              errorsByLayer: countByLayerAndType(result.errors.map(issueId)),
-              errorsMore:
-                `The first ${errors.length} of ${result.errors.length} errors are listed; errorsByLayer counts them all. ` +
-                "Pass allErrors: true for every error (warnings stay counted), or layers to validate fewer layers.",
-            }
-          : {}),
-        warningCounts: [...byKind].map(([kind, issues]) => ({
-          kind,
-          count: issues.length,
-          byLayer: countByLayerAndType(issues.map(issueId)),
-        })),
-        ...(listed.length > 0
-          ? { warnings: listed.map((kind) => listKind(kind, byKind.get(kind) ?? [], full)) }
-          : {}),
-        ...(formatted.acceptedGaps ? { acceptedGaps: formatted.acceptedGaps } : {}),
-        ...(listed.length === 0 && result.warnings.length > 0 ? { more: SUMMARY_MORE } : {}),
+        page: { of: "errors", ...page },
+        ...(page.returned < page.total ? { errorsByLayer } : {}),
+        warningCounts,
+        ...acceptedGaps,
+        ...(more.length > 0 ? { more: more.join(" ") } : {}),
       },
       { compact: true }
     );
@@ -240,23 +272,19 @@ function issueId(issue: ValidationIssue): string {
   return issue.elementId && issue.elementId.includes(".") ? issue.elementId : `${issue.layer}.(no element)`;
 }
 
-/** One kind's warnings, listed: element ids for a per-element kind, the issues whole for any other. */
-function listKind(kind: WarningKind, issues: ValidationIssue[], full: boolean): Record<string, unknown> {
-  const base = { kind, count: issues.length };
-  if (issues.length === 0) return base;
-  if (!full && issues.length > VALIDATE_LIST_LIMIT) {
-    return {
-      ...base,
-      byLayer: countByLayerAndType(issues.map(issueId)),
-      more: `More than the ${VALIDATE_LIST_LIMIT} listed: narrow it with layers, or pass detail: "full".`,
-    };
-  }
-  if (!PER_ELEMENT_KINDS.has(kind)) return { ...base, issues };
+/**
+ * One kind in a warnings listing: its total, and the warnings of it on this page (element ids for a
+ * per-element kind with the message and fix once, the issues whole for any other).
+ */
+function listKind(kind: WarningKind, count: number, onPage: ValidationIssue[]): Record<string, unknown> {
+  const base = { kind, count };
+  if (onPage.length === 0) return base;
+  if (!PER_ELEMENT_KINDS.has(kind)) return { ...base, issues: onPage };
   return {
     ...base,
-    means: issues[0].message.replace(/^Element '[^']*' /, ""),
-    ...(issues[0].fixSuggestion ? { fix: issues[0].fixSuggestion } : {}),
-    elements: issues.map((issue) => issue.elementId),
+    means: onPage[0].message.replace(/^Element '[^']*' /, ""),
+    ...(onPage[0].fixSuggestion ? { fix: onPage[0].fixSuggestion } : {}),
+    elements: onPage.map((issue) => issue.elementId),
   };
 }
 
@@ -343,11 +371,13 @@ export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_validate",
   description:
     "Run the full schema/naming/reference/semantic/relationship validation pipeline against the model, as the active " +
-    "changeset leaves it (view says which). The default fits one result: valid, the errors whole (the first " +
-    `${VALIDATE_ERROR_LIMIT}, the rest counted; allErrors: true returns them all), and the warnings ` +
-    "counted by kind, layer and type. warnings: [\"<kind>\"] lists a kind as element ids, orphans: true reports the " +
-    'orphaned elements alone, and detail: "full" returns every warning whole. Motivation, business and product ' +
-    "elements are not asked for a source reference: they have no implementation to point at.",
+    "changeset leaves it (view says which). The default fits one result: valid, a page of errors whole, and the " +
+    "warnings counted by kind, layer and type. warnings: [\"<kind>\"] lists a kind as element ids, orphans: true " +
+    'reports the orphaned elements alone, and detail: "full" returns everything whole. The list a call returns is ' +
+    `paged, never cut off: limit and offset (default ${VALIDATE_ERROR_LIMIT} errors, ${VALIDATE_LIST_LIMIT} warnings or orphans), ` +
+    "with page.total the true count and page.nextOffset the next page; valid and every count are of the whole " +
+    "model. Motivation, business and product elements are not asked for a source reference: they have no " +
+    "implementation to point at.",
   inputSchema,
   handler: modelValidateHandler,
 };

@@ -18,6 +18,7 @@ import { CANONICAL_LAYER_NAMES } from "../../core/layers.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { modelView, orphanIds } from "./model-view.js";
+import { nextPageHint, pageOf, pagingFields } from "./paging.js";
 
 const inputSchema = {
   layer: z
@@ -38,10 +39,11 @@ const inputSchema = {
     .describe(
       "Omit for the default: compact when 150 elements or fewer match, summary when more do. " +
         "summary: element counts by layer and type, no elements. compact: one entry per element with its id " +
-        "(layer.type.name), name and the first sentence of its description (160 characters at most). " +
-        "full: every element whole (description, attributes, source reference, metadata), about 1 KB each, so " +
-        "narrow it with layer or type on a model of more than a few dozen."
+        "(layer.type.name), name and the first sentence of its description (160 characters at most), 150 a page. " +
+        "full: every element whole (description, attributes, source reference, metadata), about 1 KB each, 30 a " +
+        "page. A listing longer than a page says so and gives nextOffset."
     ),
+  ...pagingFields("elements of a compact or full listing", "150 compact, 30 full"),
   rootPath: rootPathSchema,
 };
 
@@ -52,6 +54,9 @@ export type ModelListArgs = z.infer<z.ZodObject<typeof inputSchema>>;
  * more is summarized as counts unless the caller asks for `compact` or `full`.
  */
 export const LIST_COMPACT_LIMIT = 150;
+
+/** The default page of a full listing: about 35 KB of whole elements. */
+export const LIST_FULL_LIMIT = 30;
 
 /** A compact entry's description is at most this long, the `…` that marks a cut included. */
 export const LIST_DESCRIPTION_LIMIT = 160;
@@ -123,7 +128,10 @@ function summaryMore(total: number, byDefault: boolean, orphans: boolean): strin
   const why = byDefault
     ? `${total} ${noun} match, more than the ${LIST_COMPACT_LIMIT} the default lists one by one, so these are counts by layer and type. `
     : `Summary: ${orphans ? "orphaned element" : "element"} counts by layer and type. `;
-  return `${why}Pass layer or type to list fewer elements, or detail: "compact" to list them all (about 200 characters an element).`;
+  return (
+    `${why}Pass layer or type to list fewer elements, or detail: "compact" to list them ${LIST_COMPACT_LIMIT} a page ` +
+    "(about 200 characters an element; limit and offset page through them all)."
+  );
 }
 
 /** Element counts by type, most common first. */
@@ -161,27 +169,39 @@ export async function modelListHandler(args: ModelListArgs): Promise<CallToolRes
     const total = groups.reduce((sum, g) => sum + g.elements.length, 0);
     const detail = args.detail ?? (total > LIST_COMPACT_LIMIT ? "summary" : "compact");
 
-    // The full form is the tool's shape from before the compact default: no detail or more field.
-    if (detail === "full") {
-      const layers = groups.map((g) => ({
-        layer: g.layer,
-        count: g.elements.length,
-        elements: g.elements.map((e) => e.toJSON()),
-      }));
-      return jsonResult(args.layer ? layers[0] : { layers, totalElements: total });
+    const only = orphaned ? { orphans: true } : {};
+    if (detail === "summary") {
+      const layers = groups.map((g) => ({ layer: g.layer, count: g.elements.length, types: countByType(g.elements) }));
+      const more = summaryMore(total, args.detail === undefined, orphaned !== null);
+      return jsonResult(args.layer ? { detail, ...only, ...layers[0], more } : { detail, ...only, totalElements: total, layers, more }, {
+        compact: true,
+        lineWidth: LISTING_LINE_WIDTH,
+      });
     }
 
-    const layers = groups.map((g) =>
-      detail === "summary"
-        ? { layer: g.layer, count: g.elements.length, types: countByType(g.elements) }
-        : { layer: g.layer, count: g.elements.length, elements: g.elements.map(compactElement) }
+    // A listing is one list across the layers, paged in layer order. Each layer's count is its
+    // total, whatever part of it is on this page; a layer with nothing on the page is left out.
+    const all = groups.flatMap((g) => g.elements.map((element) => ({ layer: g.layer, element })));
+    const { items, page } = pageOf(all, { limit: args.limit, offset: args.offset }, detail === "full" ? LIST_FULL_LIMIT : LIST_COMPACT_LIMIT);
+    const next = nextPageHint("model_list", orphaned ? "orphaned elements" : "elements", page);
+    const onPage = (layer: string): Element[] => items.filter((item) => item.layer === layer).map((item) => item.element);
+    const listed = groups
+      .map((g) => ({ layer: g.layer, count: g.elements.length, elements: onPage(g.layer) }))
+      .filter((g) => args.layer !== undefined || g.elements.length > 0);
+
+    // The full form is the tool's shape from before the compact default (no detail field), plus the page.
+    if (detail === "full") {
+      const layers = listed.map((g) => ({ ...g, elements: g.elements.map((e) => e.toJSON()) }));
+      const more = next ? { more: `${next} Each layer's count is its total.` } : {};
+      return jsonResult(args.layer ? { ...layers[0], page, ...more } : { layers, totalElements: total, page, ...more });
+    }
+
+    const layers = listed.map((g) => ({ ...g, elements: g.elements.map(compactElement) }));
+    const more = next ? `${next} Each layer's count is its total. ${COMPACT_MORE}` : COMPACT_MORE;
+    return jsonResult(
+      args.layer ? { detail, ...only, ...layers[0], page, more } : { detail, ...only, totalElements: total, layers, page, more },
+      { compact: true, lineWidth: LISTING_LINE_WIDTH }
     );
-    const more = detail === "summary" ? summaryMore(total, args.detail === undefined, orphaned !== null) : COMPACT_MORE;
-    const only = orphaned ? { orphans: true } : {};
-    return jsonResult(args.layer ? { detail, ...only, ...layers[0], more } : { detail, ...only, totalElements: total, layers, more }, {
-      compact: true,
-      lineWidth: LISTING_LINE_WIDTH,
-    });
   });
 }
 
@@ -191,10 +211,11 @@ export const modelListTool: McpToolDefinition<typeof inputSchema> = {
     "List the elements in the architecture model, grouped by layer, optionally scoped to a layer and/or element " +
     "type. The default fits one result: a compact listing (one line per element with its id, name and the first " +
     "sentence of its description) when 150 elements or fewer match, and counts by layer and type when more do; " +
-    'narrow with layer or type, or pass detail: "compact" to list them all. orphans: true lists only the elements ' +
-    'with no relationship at all, in the same forms. detail: "full" returns every element ' +
-    "whole (description, attributes, source reference, metadata; about 1 KB each), so pass layer or type with it " +
-    "on anything but a small model. model_show reads one element with its relationships; model_search finds " +
+    'narrow with layer or type, or pass detail: "compact" to list them 150 a page. orphans: true lists only the ' +
+    'elements with no relationship at all, in the same forms. detail: "full" returns elements whole (description, ' +
+    "attributes, source reference, metadata; about 1 KB each), 30 a page. A listing is paged, never cut off: " +
+    "limit and offset, with page.total the true count and page.nextOffset the next page; counts are always of " +
+    "everything that matches. model_show reads one element with its relationships; model_search finds " +
     "elements by name, id or source file.",
   inputSchema,
   handler: modelListHandler,

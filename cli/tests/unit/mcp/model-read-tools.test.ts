@@ -28,9 +28,9 @@ import { StatsCollector } from "../../../src/core/stats-collector.js";
 import { loadModel } from "../../../src/mcp/tools/shared.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
-import { modelListHandler } from "../../../src/mcp/tools/model-list.js";
+import { LIST_FULL_LIMIT, modelListHandler } from "../../../src/mcp/tools/model-list.js";
 import { modelStatsHandler } from "../../../src/mcp/tools/model-stats.js";
-import { DependencyGraph, modelTraceHandler } from "../../../src/mcp/tools/model-trace.js";
+import { DependencyGraph, modelTraceHandler, TRACE_LIST_LIMIT } from "../../../src/mcp/tools/model-trace.js";
 import { modelValidateHandler, VALIDATE_ERROR_LIMIT, VALIDATE_LIST_LIMIT } from "../../../src/mcp/tools/model-validate.js";
 import { relationshipAddHandler, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { specTypeHandler } from "../../../src/mcp/tools/spec-type.js";
@@ -552,18 +552,47 @@ describe("model_validate: summary by default (#1215)", () => {
       expect(parse(summary).summary.warningCount).toBe(count * 2);
       expect(text(summary).length).toBeLessThan(1_200);
 
-      // A kind with more than the limit is counted, with the way to list it.
-      const orphan = parse(await modelValidateHandler({ warnings: ["orphan"], rootPath })).warnings[0];
-      expect(orphan.count).toBe(count);
-      expect(orphan.elements).toBeUndefined();
-      expect(orphan.byLayer).toEqual([
+      // A kind with more than a page is listed a page at a time: the counts are of all of it,
+      // the page says how many there are and where the next page starts, and the pages together
+      // are every warning of the kind, each once.
+      const first = parse(await modelValidateHandler({ warnings: ["orphan"], rootPath }));
+      expect(first.warnings[0].count).toBe(count);
+      expect(first.warnings[0].elements).toHaveLength(VALIDATE_LIST_LIMIT);
+      expect(first.page).toEqual({ of: "warnings", total: count, returned: VALIDATE_LIST_LIMIT, offset: 0, nextOffset: VALIDATE_LIST_LIMIT });
+      expect(first.more).toContain(`offset: ${VALIDATE_LIST_LIMIT}`);
+      expect(first.summary.warningCount).toBe(count * 2);
+      expect(first.warningCounts.find((w: any) => w.kind === "orphan").byLayer).toEqual([
         { layer: "application", count, types: { applicationfunction: 120, applicationcomponent: 40 } },
       ]);
-      expect(orphan.more).toContain('detail: "full"');
+      const second = parse(await modelValidateHandler({ warnings: ["orphan"], offset: first.page.nextOffset, rootPath }));
+      expect(second.page).toEqual({ of: "warnings", total: count, returned: 10, offset: VALIDATE_LIST_LIMIT });
+      expect(second.more).toBeUndefined();
+      const paged = [...first.warnings[0].elements, ...second.warnings[0].elements];
+      expect(new Set(paged).size).toBe(count);
 
-      // detail: "full" with a kind lists every match.
-      const listed = parse(await modelValidateHandler({ warnings: ["orphan"], detail: "full", rootPath })).warnings[0];
-      expect(listed.elements).toHaveLength(count);
+      // Two kinds page as one list in the order named; limit sets the page.
+      const seen: Record<string, string[]> = { orphan: [], "no-source-reference": [] };
+      let offset: number | undefined = 0;
+      let calls = 0;
+      while (offset !== undefined) {
+        const part = parse(await modelValidateHandler({ warnings: ["orphan", "no-source-reference"], limit: 70, offset, rootPath }));
+        expect(part.page.total).toBe(count * 2);
+        for (const group of part.warnings) {
+          expect(group.count).toBe(count);
+          seen[group.kind].push(...(group.elements ?? []));
+        }
+        offset = part.page.nextOffset;
+        calls++;
+      }
+      expect(calls).toBe(Math.ceil((count * 2) / 70));
+      expect(new Set(seen.orphan).size).toBe(count);
+      expect(seen.orphan).toHaveLength(count);
+      expect(seen["no-source-reference"].sort()).toEqual([...seen.orphan].sort());
+
+      // detail: "full" with a kind lists every match on one page.
+      const listed = parse(await modelValidateHandler({ warnings: ["orphan"], detail: "full", rootPath }));
+      expect(listed.warnings[0].elements).toHaveLength(count);
+      expect(listed.page).toEqual({ of: "warnings", total: count, returned: count, offset: 0 });
 
       // detail: "full" alone is the whole report: every warning as an issue.
       const full = parse(await modelValidateHandler({ detail: "full", rootPath }));
@@ -590,11 +619,19 @@ describe("model_validate: summary by default (#1215)", () => {
       expect(data.errors.length).toBeGreaterThan(0);
       expect(data.errors[0]).toMatchObject({ severity: "error" });
       expect(data.errors.map((e: any) => e.message).join("\n")).toContain("application.applicationcomponent.missing");
-      expect(data.errorsOmitted).toBeUndefined();
+      expect(data.page).toEqual({ of: "errors", total: data.errors.length, returned: data.errors.length, offset: 0 });
+      expect(data.errorsByLayer).toBeUndefined();
+
+      // A warnings listing counts the errors and says where they are listed.
+      const listing = parse(await modelValidateHandler({ warnings: ["orphan"], rootPath }));
+      expect(listing.valid).toBe(false);
+      expect(listing.errors).toBeUndefined();
+      expect(listing.summary.errorCount).toBe(data.errors.length);
+      expect(listing.errorsMore).toContain("without warnings");
     });
   });
 
-  it("returns the first errors whole and counts the rest by layer and type when there are very many", async () => {
+  it("pages errors: the verdict and counts are of all of them, and the pages together are every error", async () => {
     await withProject(async (rootPath) => {
       await recorderModel(rootPath);
       const model = await loadModel(rootPath);
@@ -607,25 +644,39 @@ describe("model_validate: summary by default (#1215)", () => {
           category: "structural",
         });
       }
-      const data = parse(await modelValidateHandler({ rootPath }));
-      expect(data.valid).toBe(false);
-      expect(data.errors).toHaveLength(VALIDATE_ERROR_LIMIT);
-      expect(data.errorsOmitted).toBe(data.summary.errorCount - VALIDATE_ERROR_LIMIT);
-      expect(data.errorsOmitted).toBeGreaterThanOrEqual(5);
-      expect(data.errorsByLayer.reduce((sum: number, l: any) => sum + l.count, 0)).toBe(data.summary.errorCount);
-      // It says how to get the rest without the warnings.
-      expect(data.errorsMore).toContain("allErrors: true");
-      expect(data.errorsMore).toContain("layers");
+      const first = parse(await modelValidateHandler({ rootPath }));
+      const total = first.summary.errorCount;
+      expect(total).toBeGreaterThanOrEqual(VALIDATE_ERROR_LIMIT + 5);
+      expect(first.valid).toBe(false);
+      expect(first.errors).toHaveLength(VALIDATE_ERROR_LIMIT);
+      expect(first.page).toEqual({ of: "errors", total, returned: VALIDATE_ERROR_LIMIT, offset: 0, nextOffset: VALIDATE_ERROR_LIMIT });
+      // The summary of all of them, and the exact call for the rest.
+      expect(first.errorsByLayer.reduce((sum: number, l: any) => sum + l.count, 0)).toBe(total);
+      expect(first.more).toContain(`offset: ${VALIDATE_ERROR_LIMIT}`);
+      expect(first.more).toContain("model_validate");
 
-      const all = parse(await modelValidateHandler({ allErrors: true, rootPath }));
-      expect(all.errors).toHaveLength(data.summary.errorCount);
-      expect(all.errorsOmitted).toBeUndefined();
-      expect(all.errorsMore).toBeUndefined();
-      expect(all.warnings).toBeUndefined();
-      expect(all.warningCounts).toEqual(data.warningCounts);
+      const messages: string[] = first.errors.map((e: any) => `${e.elementId} ${e.message}`);
+      let offset: number | undefined = first.page.nextOffset;
+      while (offset !== undefined) {
+        const next = parse(await modelValidateHandler({ offset, rootPath }));
+        // Every page carries the whole verdict and the whole counts.
+        expect(next.valid).toBe(false);
+        expect(next.summary.errorCount).toBe(total);
+        expect(next.page.total).toBe(total);
+        messages.push(...next.errors.map((e: any) => `${e.elementId} ${e.message}`));
+        offset = next.page.nextOffset;
+      }
+      const all = parse(await modelValidateHandler({ detail: "full", rootPath })).errors;
+      expect(messages).toEqual(all.map((e: any) => `${e.elementId} ${e.message}`));
 
-      const full = parse(await modelValidateHandler({ detail: "full", rootPath }));
-      expect(full.errors).toHaveLength(data.summary.errorCount);
+      // limit sets the page size, here to everything at once; past the end is an empty last page.
+      const one = parse(await modelValidateHandler({ limit: total, rootPath }));
+      expect(one.errors).toHaveLength(total);
+      expect(one.page).toEqual({ of: "errors", total, returned: total, offset: 0 });
+      expect(one.errorsByLayer).toBeUndefined();
+      const past = parse(await modelValidateHandler({ offset: total + 50, rootPath }));
+      expect(past.errors).toEqual([]);
+      expect(past.page).toEqual({ of: "errors", total, returned: 0, offset: total });
     });
   });
 
@@ -660,7 +711,7 @@ describe("model_validate: summary by default (#1215)", () => {
     });
   });
 
-  it("orphans: true counts without listing when there are more than the limit, and says how to list", async () => {
+  it("orphans: true pages the ids when there are more than a page, with the counts of all of them", async () => {
     await withProject(async (rootPath) => {
       const count = VALIDATE_LIST_LIMIT + 1;
       parse(
@@ -669,11 +720,22 @@ describe("model_validate: summary by default (#1215)", () => {
           rootPath,
         })
       );
-      const counted = parse(await modelValidateHandler({ orphans: true, rootPath }));
-      expect(counted.orphanCount).toBe(count);
-      expect(counted.orphanedElements).toBeUndefined();
-      expect(counted.more).toContain("model_list");
+      const first = parse(await modelValidateHandler({ orphans: true, rootPath }));
+      expect(first.orphanCount).toBe(count);
+      expect(first.byLayer).toEqual([{ layer: "application", count, types: { applicationfunction: count } }]);
+      expect(first.orphanedElements).toHaveLength(VALIDATE_LIST_LIMIT);
+      expect(first.page).toEqual({ of: "orphans", total: count, returned: VALIDATE_LIST_LIMIT, offset: 0, nextOffset: VALIDATE_LIST_LIMIT });
+      expect(first.more).toContain(`offset: ${VALIDATE_LIST_LIMIT}`);
+      expect(first.more).toContain("model_list");
+
+      const second = parse(await modelValidateHandler({ orphans: true, offset: first.page.nextOffset, rootPath }));
+      expect(second.orphanCount).toBe(count);
+      expect(second.page).toEqual({ of: "orphans", total: count, returned: 1, offset: VALIDATE_LIST_LIMIT });
+      expect(second.more).toBeUndefined();
+      expect(new Set([...first.orphanedElements, ...second.orphanedElements]).size).toBe(count);
+
       expect(parse(await modelValidateHandler({ orphans: true, detail: "full", rootPath })).orphanedElements).toHaveLength(count);
+      expect(parse(await modelValidateHandler({ orphans: true, limit: 500, rootPath })).orphanedElements).toHaveLength(count);
     });
   });
 });
@@ -755,6 +817,147 @@ describe("model_list: orphans only", () => {
       const listed = parse(await modelListHandler({ orphans: true, rootPath }));
       // The plan wires the idle function and adds one that nothing is wired to yet.
       expect(listed.layers.flatMap((l: any) => l.elements.map((e: any) => e.id))).toEqual(["application.applicationfunction.planned"]);
+    });
+  });
+});
+
+describe("paged listings: a limit is a page size, never a cut-off", () => {
+  it("model_list pages a compact or full listing across layers, and the pages are every element once", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      parse(
+        await modelAddHandler({
+          elements: Array.from({ length: 60 }, (_, i) => ({ layer: "application", type: "applicationfunction", name: `Unit ${i}` })),
+          rootPath,
+        })
+      );
+      // 67 elements: 64 application, 3 technology. Full is LIST_FULL_LIMIT a page by default.
+      const ids: string[] = [];
+      const counts = new Map<string, number>();
+      let offset: number | undefined = 0;
+      let pages = 0;
+      while (offset !== undefined) {
+        const part = parse(await modelListHandler({ detail: "full", offset, rootPath }));
+        expect(part.totalElements).toBe(67);
+        expect(part.page.total).toBe(67);
+        for (const layer of part.layers) {
+          counts.set(layer.layer, layer.count);
+          ids.push(...layer.elements.map((e: any) => e.path));
+        }
+        if (part.page.nextOffset !== undefined) expect(part.more).toContain(`offset: ${part.page.nextOffset}`);
+        offset = part.page.nextOffset;
+        pages++;
+      }
+      expect(pages).toBe(Math.ceil(67 / LIST_FULL_LIMIT));
+      expect(ids).toHaveLength(67);
+      expect(new Set(ids).size).toBe(67);
+      // A layer's count is its total on every page it appears on.
+      expect(Object.fromEntries(counts)).toEqual({ application: 64, technology: 3 });
+
+      // The same for the orphans-only listing, with a page size of the caller's.
+      const orphans: string[] = [];
+      offset = 0;
+      while (offset !== undefined) {
+        const part = parse(await modelListHandler({ orphans: true, detail: "compact", limit: 25, offset, rootPath }));
+        expect(part.page.total).toBe(60);
+        expect(part.totalElements).toBe(60);
+        orphans.push(...part.layers.flatMap((l: any) => l.elements.map((e: any) => e.id)));
+        offset = part.page.nextOffset;
+      }
+      expect(new Set(orphans).size).toBe(60);
+      expect(orphans).toHaveLength(60);
+
+      // A layer-scoped listing pages the same way.
+      const scoped = parse(await modelListHandler({ layer: "application", detail: "compact", limit: 10, offset: 60, rootPath }));
+      expect(scoped.count).toBe(64);
+      expect(scoped.elements).toHaveLength(4);
+      expect(scoped.page).toEqual({ total: 64, returned: 4, offset: 60 });
+    });
+  });
+
+  it("model_trace pages each list with its true total, and the pages together are the whole trace", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      const count = TRACE_LIST_LIMIT + 30;
+      const added = parse(
+        await modelAddHandler({
+          elements: Array.from({ length: count }, (_, i) => ({
+            layer: "application",
+            type: "applicationcomponent",
+            name: `Plugin ${i}`,
+            attributes: { type: "internal" },
+          })),
+          relationships: Array.from({ length: count }, (_, i) => ({
+            source: `application.applicationcomponent.plugin-${i}`,
+            predicate: "uses",
+            target: RECORDER,
+          })),
+          rootPath,
+        })
+      );
+      expect(added.relationships.counts.invalid ?? 0).toBe(0);
+
+      const whole = parse(await modelTraceHandler({ id: RECORDER, limit: 1000, rootPath }));
+      expect(whole.dependents.direct).toHaveLength(count + 1); // the plugins and the UI
+      expect(whole.page).toEqual({
+        offset: 0,
+        totals: { "dependents.direct": count + 1, "dependents.transitive": 0, "dependencies.direct": 3, "dependencies.transitive": 1 },
+      });
+      expect(whole.more).toBeUndefined();
+
+      const first = parse(await modelTraceHandler({ id: RECORDER, rootPath }));
+      expect(first.dependents.direct).toHaveLength(TRACE_LIST_LIMIT);
+      // The short lists are whole on the first page, and the totals are the true lengths.
+      expect(first.dependencies).toEqual(whole.dependencies);
+      expect(first.page).toEqual({ offset: 0, totals: whole.page.totals, nextOffset: TRACE_LIST_LIMIT });
+      expect(first.summary.dependents).toEqual([
+        { layer: "application", count: count + 1, types: { applicationcomponent: count + 1 } },
+      ]);
+      expect(first.more).toContain(`offset: ${TRACE_LIST_LIMIT}`);
+
+      const second = parse(await modelTraceHandler({ id: RECORDER, offset: first.page.nextOffset, rootPath }));
+      expect(second.page).toEqual({ offset: TRACE_LIST_LIMIT, totals: whole.page.totals });
+      expect(second.dependencies).toEqual({ direct: [], transitive: [] });
+      expect([...first.dependents.direct, ...second.dependents.direct]).toEqual(whole.dependents.direct);
+    });
+  });
+
+  it("model_trace pages changedEdges and changedElements too", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      await changesetCreateHandler({ name: "plugins", description: "Add plugins", rootPath });
+      parse(
+        await modelAddHandler({
+          elements: Array.from({ length: 12 }, (_, i) => ({
+            layer: "application",
+            type: "applicationcomponent",
+            name: `Plugin ${i}`,
+            attributes: { type: "internal" },
+          })),
+          relationships: Array.from({ length: 12 }, (_, i) => ({
+            source: `application.applicationcomponent.plugin-${i}`,
+            predicate: "uses",
+            target: RECORDER,
+          })),
+          rootPath,
+        })
+      );
+      const whole = parse(await modelTraceHandler({ id: RECORDER, direction: "up", rootPath }));
+      expect(whole.changedEdges).toHaveLength(12);
+      expect(whole.page.totals).toMatchObject({ changedEdges: 12, changedElements: 12, "dependents.direct": 13 });
+
+      const edges: any[] = [];
+      const elements: Record<string, string> = {};
+      let offset: number | undefined = 0;
+      while (offset !== undefined) {
+        const part = parse(await modelTraceHandler({ id: RECORDER, direction: "up", limit: 5, offset, rootPath }));
+        expect(part.page.totals).toEqual(whole.page.totals);
+        edges.push(...part.changedEdges);
+        Object.assign(elements, part.changedElements);
+        offset = part.page.nextOffset;
+      }
+      expect(edges).toEqual(whole.changedEdges);
+      expect(elements).toEqual(whole.changedElements);
     });
   });
 });

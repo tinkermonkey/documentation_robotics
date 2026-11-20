@@ -24,6 +24,14 @@ import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset, changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
+import { countByLayerAndType } from "./model-view.js";
+import { pageOf, pagingFields } from "./paging.js";
+
+/**
+ * The default page of each list of a trace: 200 ids is about 10 KB, so a trace in both directions
+ * stays near 40 KB. A longer list is paged; `page.totals` always has every list's true length.
+ */
+export const TRACE_LIST_LIMIT = 200;
 
 const inputSchema = {
   id: z.string().describe("Element ID or path to trace."),
@@ -38,6 +46,10 @@ const inputSchema = {
         "reaches the service, feature and goal it realizes."
     ),
   depth: z.number().int().positive().optional().describe("Maximum trace depth. Omit for unlimited."),
+  ...pagingFields(
+    "ids of each list of the trace (direct and transitive dependents and dependencies, changedElements, changedEdges)",
+    `${TRACE_LIST_LIMIT} of each`
+  ),
   ...changesetArgFields(
     "Trace through this changeset's projected graph (ID or name). Defaults to the active changeset, if any."
   ),
@@ -74,8 +86,60 @@ export async function modelTraceHandler(args: ModelTraceArgs): Promise<CallToolR
         ? await resolveChangeset(manager, named)
         : await activeStagedChangeset(manager);
 
-    return jsonResult(changeset ? await traceChangeset(model, changeset, args) : await traceBase(model, args));
+    const trace = changeset ? await traceChangeset(model, changeset, args) : await traceBase(model, args);
+    return jsonResult(pagedTrace(trace, args));
   });
+}
+
+/**
+ * The trace with each of its lists cut to the page asked for. The walk is always whole: `page.totals`
+ * gives every list's true length, and when a list is longer than the page, `summary` counts the
+ * whole of each side by layer and type and `more` names the call for the next page. The same
+ * offset applies to every list, so the pages together are the whole trace.
+ */
+function pagedTrace(trace: TraceResult, args: ModelTraceArgs): Record<string, unknown> {
+  const paging = { limit: args.limit, offset: args.offset };
+  const totals: Record<string, number> = {};
+  let nextOffset: number | undefined;
+  const cut = <T>(name: string, list: T[]): T[] => {
+    const { items, page } = pageOf(list, paging, TRACE_LIST_LIMIT);
+    totals[name] = page.total;
+    if (page.nextOffset !== undefined) nextOffset = page.nextOffset;
+    return items;
+  };
+  const side = (name: "dependents" | "dependencies") =>
+    trace[name]
+      ? {
+          [name]: {
+            direct: cut(`${name}.direct`, trace[name]!.direct),
+            transitive: cut(`${name}.transitive`, trace[name]!.transitive),
+          },
+        }
+      : {};
+  const { dependents: _dependents, dependencies: _dependencies, changedElements, changedEdges, warnings, ...head } = trace;
+  const paged = {
+    ...head,
+    ...side("dependents"),
+    ...side("dependencies"),
+    ...(changedElements ? { changedElements: Object.fromEntries(cut("changedElements", Object.entries(changedElements))) } : {}),
+    ...(changedEdges ? { changedEdges: cut("changedEdges", changedEdges) } : {}),
+  };
+  const offset = Math.max(0, args.offset ?? 0);
+  if (nextOffset === undefined) {
+    return { ...paged, page: { offset, totals }, ...(warnings ? { warnings } : {}) };
+  }
+  const whole = (name: "dependents" | "dependencies") =>
+    trace[name] ? { [name]: countByLayerAndType([...trace[name]!.direct, ...trace[name]!.transitive]) } : {};
+  return {
+    ...paged,
+    page: { offset, totals, nextOffset },
+    summary: { ...whole("dependents"), ...whole("dependencies") },
+    more:
+      `A list of this trace is longer than one page (${args.limit ?? TRACE_LIST_LIMIT} ids): page.totals has each list's true ` +
+      `length and summary counts each side by layer and type. Call model_trace again with the same arguments and ` +
+      `offset: ${nextOffset} for the next page of every list; depth: 1 gives only the direct ones.`,
+    ...(warnings ? { warnings } : {}),
+  };
 }
 
 /** The committed model: cross-layer references plus relationships.yaml. */
@@ -316,7 +380,9 @@ export const modelTraceTool: McpToolDefinition<typeof inputSchema> = {
     "serves it and whatever realizes it, and direction up from a function reaches the service, feature and goal " +
     "it realizes. With an active changeset (or changeset) it traces the changeset's projected graph: staged " +
     "relationships are followed, staged removals are not, and changedEdges / changedElements mark what the " +
-    "changeset adds or deletes among the edges walked and the elements reached.",
+    "changeset adds or deletes among the edges walked and the elements reached. The walk is always whole; each " +
+    `list is returned ${TRACE_LIST_LIMIT} ids a page (limit, offset), with page.totals the true length of every list and ` +
+    "page.nextOffset when one has more.",
   inputSchema,
   handler: modelTraceHandler,
 };

@@ -62,8 +62,8 @@ export async function modelStatsHandler(args: ModelStatsArgs): Promise<CallToolR
           ...(orphans.length > 0
             ? {
                 more:
-                  "model_validate with orphans: true lists them by id; model_list with orphans: true lists them " +
-                  "with names and descriptions.",
+                  "Counts of all of them. model_list with orphans: true lists them with names and descriptions, and " +
+                  "model_validate with orphans: true by id; both page with limit and offset, and layer narrows them.",
               }
             : {}),
         },
