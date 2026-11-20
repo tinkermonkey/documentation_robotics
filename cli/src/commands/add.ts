@@ -15,7 +15,7 @@ import {
 import { schemaLookupHint } from "../utils/error-hints.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { getActiveSpan } from "../telemetry/index.js";
-import { compactId, deriveElementId, generateUUID, nearDuplicateId } from "../utils/id-generator.js";
+import { deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
 import {
@@ -218,17 +218,16 @@ export async function addCommand(
       );
     }
 
-    // An element with this name under an id that differs only by hyphens is the same element,
-    // its id derived by an earlier rule: refuse, as when the ids were equal. Another name there
-    // is worth a warning.
-    const key = compactId(elementPath);
-    const near = nearDuplicateId(
+    // An element with this name under the id an earlier release derived for it is the same
+    // element: refuse, as when the two ids were equal. Another name under an id that differs
+    // only by hyphens is worth a warning.
+    const near = existingUnderEarlierId(
+      layer,
+      resolvedType,
+      name,
       elementPath,
-      options.name || name,
-      layerObj
-        .listElements()
-        .map((e) => ({ id: e.path || e.id, name: e.name }))
-        .filter((e) => compactId(e.id) === key)
+      existingElementsIn(layerObj.listElements().map((e) => ({ id: e.path || e.id, name: e.name }))),
+      options.name || name
     );
     if (near.existing) {
       throw new CLIError(

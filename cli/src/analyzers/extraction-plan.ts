@@ -648,7 +648,11 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
   const { project, config } = extraction;
   const layers = options.layers?.length ? new Set(options.layers) : null;
   const index = indexExisting(existing);
-  const taken = new Set(index.byId.keys());
+  // Taken: every existing id, and the id each existing element's name derives today. An element
+  // made under an earlier id rule sits at another id than its name gives now (`tier1status` for
+  // "Tier1Status"); without the second set a new symbol of that name would take the id the old
+  // element's name maps to, and the model would hold both under one name.
+  const taken = new Set([...index.byId.keys(), ...index.live.map((e) => extractedElementId(e.layer, e.type, e.name))]);
   const plan: ElementPlan = {
     adds: [],
     updates: [],

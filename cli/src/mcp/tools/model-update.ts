@@ -28,7 +28,7 @@ import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-valid
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { effectiveAttributePatch, resolveAttributeUpdate } from "../../utils/attribute-patch.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
+import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
 
 /** What an update may change: the single form's fields, and each `updates[]` item's beside its id. */
 const updateFields = {
@@ -132,7 +132,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
       const model = await loadModel(args.rootPath);
       const updates =
         args.updates ?? (await readBatchFile("model_update", args.file!, model.rootPath, { updates: updatesSchema })).updates ?? [];
-      return jsonResult(await updateElementBatch(model, updates, args));
+      return jsonResult(await updateElementBatch(model, updates, args), { compact: true, lineWidth: BATCH_RESULT_LINE_WIDTH });
     }
     if (!args.id) {
       throw new CLIError("model_update needs id, or an updates list", ErrorCategory.USER, [

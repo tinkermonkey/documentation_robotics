@@ -9,17 +9,17 @@ description: "Make the MCP write tools cheap for large batches and make ids
   1153, 1212, 1184, 1225 with tests, and the response size of a 300-element
   model_add and a 500-relationship relationship_add measured before and after."
 created: 2026-11-20T16:35:54.613Z
-modified: 2026-11-20T16:55:41.698Z
+modified: 2026-11-20T17:38:38.570Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 46
-  modifications: 5
+  additions: 66
+  modifications: 7
   deletions: 2
-lastSequence: 66
+lastSequence: 95
 unstaged:
   - sequence: 11
     removedAt: 46
@@ -324,3 +324,94 @@ unstaged:
           version: 1
       timestamp: 2026-11-20T16:55:07.399Z
     rewritten: true
+  - sequence: 7
+    removedAt: 67
+    change:
+      type: add
+      elementId: application.applicationfunction.near-duplicate-id
+      layerName: application
+      after:
+        id: 62c5a44a-0c9a-4ff5-8c93-ba7518b76abc
+        path: application.applicationfunction.near-duplicate-id
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: nearDuplicateId
+        description: "How a new element's id sits beside the ids already there that
+          differ from it only by hyphens: the same-named one exists already, any
+          other is worth a warning"
+        metadata:
+          created_at: 2026-11-20T16:36:37.954Z
+          updated_at: 2026-11-20T16:36:37.954Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/utils/id-generator.ts
+              symbol: nearDuplicateId
+      timestamp: 2026-11-20T16:43:09.279Z
+  - sequence: 21
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.element-under-earlier-id::depends-on::application.applicationfunction.compact-id
+      layerName: application
+      after:
+        source: application.applicationfunction.element-under-earlier-id
+        target: application.applicationfunction.compact-id
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:36:37.965Z
+  - sequence: 22
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.element-under-earlier-id::depends-on::application.applicationfunction.near-duplicate-id
+      layerName: application
+      after:
+        source: application.applicationfunction.element-under-earlier-id
+        target: application.applicationfunction.near-duplicate-id
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:36:37.965Z
+  - sequence: 29
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.add-relationship-batch::depends-on::application.applicationfunction.batch-report
+      layerName: application
+      after:
+        source: application.applicationfunction.add-relationship-batch
+        target: application.applicationfunction.batch-report
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:36:37.965Z
+  - sequence: 41
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.near-duplicate-id::realizes::application.applicationservice.model-add-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.near-duplicate-id
+        target: application.applicationservice.model-add-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:37:04.885Z
+  - sequence: 42
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.near-duplicate-id::realizes::application.applicationservice.add-command
+      layerName: application
+      after:
+        source: application.applicationfunction.near-duplicate-id
+        target: application.applicationservice.add-command
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:37:04.885Z

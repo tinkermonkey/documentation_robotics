@@ -314,6 +314,21 @@ export function looselyMatchedPending(ref: string, pending: Iterable<PendingElem
   return matches;
 }
 
+/**
+ * What a reference that is not an exact id names in the projection, by an element's name or by
+ * its id without hyphens: the one live element (`id`), or every candidate when there are several
+ * (`candidates`), or nothing. For the single form of relationship_add; a list goes through
+ * {@link planRelationshipBatch}, which also knows the elements its call adds.
+ */
+export function resolveLooseReference(graph: ChangesetGraph, ref: string): { id: string } | { candidates: string[] } | undefined {
+  const key = compactId(ref);
+  const matches = [...graph.elements.values()]
+    .filter((e) => e.status !== "deleted" && (e.name === ref || (key !== undefined && compactId(e.id) === key)))
+    .map((e) => e.id);
+  if (matches.length === 0) return undefined;
+  return matches.length === 1 ? { id: matches[0] } : { candidates: matches };
+}
+
 /** "added" is "staged" when no changeset is active and the add is written to the model. */
 export type RelationshipBatchStatus = "staged" | "added" | "restored" | "duplicate" | "invalid";
 
@@ -327,8 +342,10 @@ export interface RelationshipBatchResult {
   /** Why the item was a duplicate or invalid. */
   reason?: string;
   suggestions?: string[];
-  /** How an end that named an element of this call without its exact id was read. */
+  /** How an end that named an element without its exact id was read. */
   notes?: string[];
+  /** The same as data: each end as sent that was not an exact id, and the id it was read as. */
+  readAs?: Record<string, string>;
 }
 
 export interface RelationshipBatchPlan {
@@ -400,7 +417,7 @@ export async function planRelationshipBatch(
     return [...found.values()].map((e) => ({ ...e, where: whereOf.get(e.id)! }));
   };
 
-  type Endpoint = PendingElement & { note?: string };
+  type Endpoint = PendingElement & { note?: string; readFrom?: string };
   const endpoint = (id: string, role: "Source" | "Target"): Endpoint | { error: string; suggestions: string[] } => {
     const added = pending.get(id);
     if (added) return added;
@@ -422,15 +439,21 @@ export async function planRelationshipBatch(
         .filter(([rejectedId]) => !pending.has(rejectedId) && !isLive(rejectedId))
         .map(([rejectedId, r]) => ({ id: rejectedId, layer: r.layer, type: r.type, name: r.name }))
     );
-    // A name is first a name of this call's own elements: the same name in another layer of the
-    // model (an entity, its table, its schema) is the normal case, and must not make a reference
-    // to the element just added ambiguous. An id without its hyphens carries its layer and type,
-    // so a live element it matches as well is a real second candidate.
-    const existing = looselyMatchedLive(id, { name: loose.length === 0 });
+    // One match, among this call's elements and the projection's, is what the reference names.
+    // More than one is never guessed at, even when one of them is this call's own: a name shared
+    // with an element of another layer (an entity, its table, its schema) could mean either, and
+    // a wrong link staged quietly is worse than one item sent again with its id.
+    const existing = looselyMatchedLive(id, { name: true });
     const matches = [...loose, ...existing];
     if (matches.length === 1 && looseRefusals.length === 0) {
       const where = loose.length === 1 ? "which this call adds" : existing[0].where;
-      return { id: matches[0].id, layer: matches[0].layer, type: matches[0].type, note: `${role} ${id} read as ${matches[0].id}, ${where}` };
+      return {
+        id: matches[0].id,
+        layer: matches[0].layer,
+        type: matches[0].type,
+        note: `${role} ${id} read as ${matches[0].id}, ${where}`,
+        readFrom: id,
+      };
     }
     if (matches.length > 0) {
       // An element this call refused that matches the same way makes the reference ambiguous
@@ -439,7 +462,7 @@ export async function planRelationshipBatch(
       return {
         error:
           `${role} ${id} is not an exact id and matches more than one element: ` +
-          [...matches.map((e) => e.id), ...refusedIds].join(", "),
+          [...loose.map((e) => `${e.id} (this call adds it)`), ...existing.map((e) => e.id), ...refusedIds].join(", "),
         suggestions: ["Name the element by its exact id"],
       };
     }
@@ -492,7 +515,8 @@ export async function planRelationshipBatch(
     const triple = { source: source.id, predicate: item.predicate, target: target.id };
     const key = `${triple.source}::${triple.predicate}::${triple.target}`;
     const notes = [source, target].flatMap((end) => ("note" in end && end.note ? [end.note] : []));
-    const resolved = { ...asSent, ...triple, ...(notes.length ? { notes } : {}) };
+    const readAs = Object.fromEntries([source, target].flatMap((end) => (end.readFrom ? [[end.readFrom, end.id]] : [])));
+    const resolved = { ...asSent, ...triple, ...(notes.length ? { notes, readAs } : {}) };
     if (seen.has(key)) {
       results.push({ ...resolved, status: "duplicate", reason: "Repeated earlier in this batch" });
       return;

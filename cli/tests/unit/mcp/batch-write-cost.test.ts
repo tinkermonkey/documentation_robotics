@@ -20,7 +20,7 @@ import { Model } from "../../../src/core/model.js";
 import { Element } from "../../../src/core/element.js";
 import { extractedElementId } from "../../../src/analyzers/extraction-plan.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { DEFAULT_ATTENTION_LIMIT, batchReport, reasonPattern } from "../../../src/mcp/tools/batch-result.js";
+import { DEFAULT_ATTENTION_LIMIT, batchReport, reasonParts, reasonPattern } from "../../../src/mcp/tools/batch-result.js";
 import { modelAddHandler, modelAddTool } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelUpdateHandler, modelUpdateTool } from "../../../src/mcp/tools/model-update.js";
@@ -108,7 +108,7 @@ describe("batch results: counts and the items that need attention (#1182)", () =
       relationships: [
         { source: "application.applicationfunction.export-orders", predicate: "depends-on", target: "application.applicationfunction.archive-orders" },
         { source: "application.applicationfunction.export-orders", predicate: "depends-on", target: "application.applicationfunction.archive-orders" },
-        { source: "exportOrders", predicate: "depends-on", target: "importOrders" }, // by name: a note
+        { source: "exportOrders", predicate: "depends-on", target: "importOrders" }, // by name: staged, in readByName
         { source: "application.applicationfunction.export-orders", predicate: "depends-on", target: "application.applicationfunction.nope" },
       ],
     });
@@ -127,18 +127,18 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     });
 
     expect(result.relationships.counts).toEqual({ staged: 2, duplicate: 1, invalid: 1 });
-    // What was not staged comes first, then what was staged with a note.
+    // Only what was not staged needs attention. The relationship given by names was staged: how
+    // its ends were read is reported once, as a map, not as an item to look at.
     expect(result.relationships.attention.map((r: any) => [r.index, r.status])).toEqual([
       [1, "duplicate"],
       [3, "invalid"],
-      [2, "staged"],
     ]);
-    expect(result.relationships.attentionTotal).toBe(3);
+    expect(result.relationships.attentionTotal).toBe(2);
     expect(result.relationships.attentionNotListed).toBeUndefined();
-    expect(result.relationships.attention[2].notes).toEqual([
-      "Source exportOrders read as application.applicationfunction.export-orders, which this call adds",
-      "Target importOrders read as application.applicationfunction.import-orders, which this call adds",
-    ]);
+    expect(result.relationships.readByName).toEqual({
+      exportOrders: "application.applicationfunction.export-orders",
+      importOrders: "application.applicationfunction.import-orders",
+    });
   });
 
   it("returns every item with verbose: true, as before", async () => {
@@ -198,11 +198,30 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(groups[0].reason).toBe("Target element <id> not found");
     expect(groups[1].reason).toContain("The catalog has no application.applicationfunction --[tests]--> application.applicationfunction");
     const listed = body.attention.map((r: any) => r.index);
-    const grouped = groups.flatMap((g: any) => g.indexes);
+    const grouped = groups.flatMap((g: any) => g.items.map((item: any) => item.index));
     expect([...listed, ...grouped].sort((a: number, b: number) => a - b)).toEqual(Array.from({ length: sent - 1 }, (_, i) => i));
-    expect(groups.every((g: any) => g.count === g.indexes.length)).toBe(true);
+    expect(groups.every((g: any) => g.count === g.items.length)).toBe(true);
+    // A grouped item keeps what its own message named: the group's text with the item's values put
+    // back is the message the item would have had in full.
+    const one = groups[0].items[0];
+    expect(one.values).toEqual([`application.applicationfunction.missing-${one.index}`]);
+    // What every item of the group shares stays in the group's text.
+    expect(groups[0].suggestions).toEqual(['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds']);
     expect(body.attentionNotListed.more).toContain(`limit: ${DEFAULT_ATTENTION_LIMIT + extra}`);
     expect(body.attentionNotListed.more).toContain("verbose: true");
+    const whole = parse(await relationshipAddHandler({ relationships: relationships.slice(0, -1), verbose: true, rootPath } as any));
+    const fill = (text: string, values: Array<string | number>) => {
+      let i = 0;
+      return text.replace(/<id>|"<name>"|\[n\]/g, (token) => (token === "<id>" ? String(values[i++]) : token === "[n]" ? `[${values[i++]}]` : `"${values[i++]}"`));
+    };
+    for (const group of groups) {
+      for (const item of group.items) {
+        const full = whole.results[item.index];
+        const values = item.values ?? [];
+        const reasonValues = values.slice(0, (group.reason.match(/<id>|"<name>"|\[n\]/g) ?? []).length);
+        expect(fill(group.reason, reasonValues)).toBe(full.reason.replace(/\s+/g, " ").trim());
+      }
+    }
 
     // Suggestions repeated across items are listed once and pointed at.
     expect(body.attention[1].suggestions.length).toBeGreaterThan(0);
@@ -242,8 +261,7 @@ describe("batch results: counts and the items that need attention (#1182)", () =
           status: "staged",
           reason: "The name starts with a digit and an id must start with a letter, so the id is prefixed with 'n-'.",
           count: 5,
-          indexes: [1, 2, 3, 4, 5],
-          ids: [2, 3, 4, 5, 6].map((n) => `application.applicationfunction.n-${n}d-preview`),
+          items: [1, 2, 3, 4, 5].map((index) => ({ index, id: `application.applicationfunction.n-${index + 1}d-preview` })),
         },
       ],
     });
@@ -256,7 +274,18 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     });
     expect(none.attention).toEqual([]);
     expect(none.attentionTotal).toBe(2);
-    expect(none.attentionNotListed.groups).toEqual([{ status: "invalid", reason: "Element <id> not found", count: 2, indexes: [0, 1] }]);
+    expect(none.attentionNotListed.groups).toEqual([
+      {
+        status: "invalid",
+        reason: "Element <id> not found",
+        suggestions: ['Use "model_search" to find similar elements'],
+        count: 2,
+        items: [
+          { index: 0, values: ["application.applicationfunction.nope-a"] },
+          { index: 1, values: ["application.applicationfunction.nope-b"] },
+        ],
+      },
+    ]);
   });
 
   it("batchReport: listed and grouped items together are every item that needs attention", () => {
@@ -274,7 +303,7 @@ describe("batch results: counts and the items that need attention (#1182)", () =
       expect(report.counts).toEqual({ invalid: 100, staged: 400 });
       expect(report.attentionTotal).toBe(flagged);
       const listed = report.attention!.map((r) => r.index);
-      const grouped = (report.attentionNotListed?.groups ?? []).flatMap((g) => g.indexes);
+      const grouped = (report.attentionNotListed?.groups ?? []).flatMap((g) => g.items.map((item) => item.index));
       expect(listed).toHaveLength(Math.min(limit, flagged));
       expect(new Set([...listed, ...grouped]).size).toBe(flagged);
       expect(report.attentionNotListed?.count ?? 0).toBe(flagged - listed.length);
@@ -282,7 +311,11 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(batchReport(results, { verbose: true, written: ["staged"] }).results).toHaveLength(500);
   });
 
-  it("reasonPattern takes out what differs between items and keeps the cause", () => {
+  it("reasonPattern takes out what differs between items and keeps the cause, and reasonParts keeps what it took", () => {
+    expect(reasonParts('Element api.operation.get already exists, named "GET /": "GET /x" gives the same id as elements[4]')).toEqual({
+      pattern: 'Element <id> already exists, named "<name>": "<name>" gives the same id as elements[n]',
+      values: ["api.operation.get", "GET /", "GET /x", 4],
+    });
     expect(reasonPattern("Source element application.applicationfunction.missing-3 not found")).toBe("Source element <id> not found");
     expect(reasonPattern('"GET *" gives the same id as elements[1] "GET /*" (api.operation.get)')).toBe(
       '"<name>" gives the same id as elements[n] "<name>" (<id>)'
@@ -497,14 +530,26 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
         { source: "application.applicationfunction.offlinerenderexperience", predicate: "depends-on", target: "Render Busy" },
       ],
     });
-    expect(viaAdd.relationships.counts).toEqual({ staged: 2 });
-    expect(viaAdd.relationships.attention[0].notes).toEqual([
-      "Source Offline Render Experience read as application.applicationfunction.offline-render-experience, which this changeset adds",
-      "Target Render Idle read as application.applicationfunction.render-idle, which this changeset adds",
-    ]);
-    expect(viaAdd.relationships.attention[0]).toMatchObject({
+    // Staged, and nothing to look at: the readings come as one map.
+    expect(viaAdd.relationships).toEqual({
+      total: 2,
+      counts: { staged: 2 },
+      readByName: {
+        "Offline Render Experience": "application.applicationfunction.offline-render-experience",
+        "Render Idle": "application.applicationfunction.render-idle",
+        "application.applicationfunction.offlinerenderexperience": "application.applicationfunction.offline-render-experience",
+        "Render Busy": "application.applicationfunction.render-busy",
+      },
+    });
+    // verbose says where each element was found.
+    const again = await relate({ relationships: [{ source: "Offline Render Experience", predicate: "depends-on", target: "Render Idle" }], verbose: true });
+    expect(again.results[0]).toMatchObject({
+      status: "duplicate",
       source: "application.applicationfunction.offline-render-experience",
-      target: "application.applicationfunction.render-idle",
+      notes: [
+        "Source Offline Render Experience read as application.applicationfunction.offline-render-experience, which this changeset adds",
+        "Target Render Idle read as application.applicationfunction.render-idle, which this changeset adds",
+      ],
     });
 
     const viaRelate = await relate({ relationships: [{ source: "Render Busy", predicate: "depends-on", target: "Render Idle" }] });
@@ -513,30 +558,83 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
     expect(outgoing.map((r: any) => r.target)).toEqual(["application.applicationfunction.render-idle"]);
   });
 
-  it("resolves against the base model too, and says so", async () => {
+  it("answers 181 relationships given by name with a map of the names, not an item for each", async () => {
+    await createChangeset();
+    const names = Array.from({ length: 40 }, (_, i) => `Render State ${i}`);
+    await add({ elements: names.map((name) => fn(name)) });
+    const relationships = [];
+    for (let i = 0; relationships.length < 181; i++) {
+      relationships.push({ source: names[i % 40], predicate: "depends-on", target: names[(i * 7 + 1 + Math.floor(i / 40)) % 40] });
+    }
+    const result = await relationshipAddHandler({ relationships, rootPath } as any);
+    const body = parse(result);
+    expect(body.total).toBe(181);
+    expect((body.counts.staged ?? 0) + (body.counts.duplicate ?? 0) + (body.counts.invalid ?? 0)).toBe(181);
+    expect(body.counts.staged).toBeGreaterThan(150);
+    // One entry per distinct name, each with the id it was read as.
+    expect(Object.keys(body.readByName)).toHaveLength(40);
+    expect(body.readByName["Render State 7"]).toBe("application.applicationfunction.render-state-7");
+    // Only the items that were not staged are attention items.
+    expect(body.attentionTotal ?? 0).toBe(181 - body.counts.staged);
+    expect(text(result).length).toBeLessThan(12 * 1024);
+  });
+
+  it("relationship_add's single form reads a name too, and refuses one that several elements have", async () => {
+    await createChangeset();
+    await add({ elements: [fn("Render Idle"), fn("Render Busy"), fn("Order Export"), schema("Order Export")] });
+    const single = await relate({ source: "Render Busy", predicate: "depends-on", target: "application.applicationfunction.renderidle" });
+    expect(single).toMatchObject({
+      status: "staged",
+      source: "application.applicationfunction.render-busy",
+      target: "application.applicationfunction.render-idle",
+      notes: [
+        "Source Render Busy read as application.applicationfunction.render-busy",
+        "Target application.applicationfunction.renderidle read as application.applicationfunction.render-idle",
+      ],
+    });
+    const ambiguous = errorOf(await relationshipAddHandler({ source: "Order Export", predicate: "depends-on", target: "Render Idle", rootPath } as any));
+    expect(ambiguous.error).toBe(
+      "Source Order Export is not an exact id and matches more than one element: " +
+        "application.applicationfunction.order-export, data-model.objectschema.order-export"
+    );
+  });
+
+  it("resolves against the base model too", async () => {
     await add({ elements: [fn("Render Idle")] });
     await createChangeset();
     const result = await add({
       elements: [fn("Render Busy")],
       relationships: [{ source: "Render Busy", predicate: "depends-on", target: "Render Idle" }],
+      verbose: true,
     });
-    expect(result.relationships.attention[0].notes[1]).toBe(
+    expect(result.relationships.readByName).toEqual({
+      "Render Busy": "application.applicationfunction.render-busy",
+      "Render Idle": "application.applicationfunction.render-idle",
+    });
+    expect(result.relationships.results[0].notes[1]).toBe(
       "Target Render Idle read as application.applicationfunction.render-idle, which the model has"
     );
   });
 
-  it("reads a name as the element this call adds, though the model has the name in another layer", async () => {
-    // The usual shape of a sync: an entity, its table and its schema share a name.
+  it("refuses a name that this call's element shares with an element of the model, and says which is which", async () => {
+    // An entity, its table and its schema often share a name. The name alone could mean either,
+    // so it is not guessed at, even though one of the two is this call's own.
     await add({ elements: [{ layer: "data-store", type: "collection", name: "Order" }] });
     await createChangeset();
     const result = await add({
       elements: [schema("Order")],
-      relationships: [{ source: "Order", predicate: "maps-to", target: "data-store.collection.order" }],
+      relationships: [
+        { source: "Order", predicate: "maps-to", target: "data-store.collection.order" },
+        { source: "data-model.objectschema.order", predicate: "maps-to", target: "data-store.collection.order" },
+      ],
     });
-    expect(result.relationships.counts).toEqual({ staged: 1 });
+    expect(result.relationships.counts).toEqual({ invalid: 1, staged: 1 });
     expect(result.relationships.attention[0]).toMatchObject({
-      source: "data-model.objectschema.order",
-      notes: ["Source Order read as data-model.objectschema.order, which this call adds"],
+      index: 0,
+      reason:
+        "Source Order is not an exact id and matches more than one element: " +
+        "data-model.objectschema.order (this call adds it), data-store.collection.order",
+      suggestions: ["Name the element by its exact id"],
     });
   });
 
@@ -714,9 +812,57 @@ describe("existing ids are never renamed", () => {
       relationships: [{ source: "readTier1", predicate: "accesses", target: "data-model.objectschema.tier1-status" }],
     });
     expect(result.relationships.counts).toEqual({ staged: 1 });
-    expect(result.relationships.attention[0].target).toBe(OLD_STATUS);
-    expect(result.relationships.attention[0].notes[1]).toBe(
-      `Target data-model.objectschema.tier1-status read as ${OLD_STATUS}, which the model has`
+    expect(result.relationships.readByName).toEqual({
+      readTier1: "application.applicationfunction.read-tier1",
+      "data-model.objectschema.tier1-status": OLD_STATUS,
+    });
+    expect((await show("application.applicationfunction.read-tier1")).relationships.outgoing[0].target).toBe(OLD_STATUS);
+  });
+
+  it("refuses a name whose element sits at an id that differs by more than hyphens", async () => {
+    // What CLI 0.6.0 made: the root route at `get`, a long name left whole by model_add, and a long
+    // extracted name whose hash was of the slug before the digit rule.
+    const long = `reads Tier1Status ${"and keeps going ".repeat(8)}to the end`;
+    const uncut = `application.applicationfunction.${long.toLowerCase().replace(/ /g, "-")}`;
+    const cutBefore = (await import("../../../src/utils/id-generator.js")).earlierElementIds("application", "applicationfunction", `${long} twice`)[1];
+    await seed("api", "operation", "api.operation.get", "GET /", { operationId: "get", summary: "GET /", tags: "x" });
+    await seed("application", "applicationfunction", uncut, long);
+    await seed("application", "applicationfunction", cutBefore, `${long} twice`);
+    expect(cutBefore).toMatch(/-[0-9a-f]{8}$/);
+
+    await createChangeset();
+    const result = await add({
+      elements: [
+        { layer: "api", type: "operation", name: "GET /", attributes: { operationId: "get", summary: "GET /", tags: "x" } },
+        fn(long),
+        fn(`${long} twice`),
+        // "GET /*" was `get` under the earlier rule as well, and is another route: it is added.
+        { layer: "api", type: "operation", name: "GET /*", attributes: { operationId: "get-all", summary: "GET /*", tags: "x" } },
+      ],
+    });
+    expect(result.elements.counts).toEqual({ invalid: 4 });
+    expect(result.elements.attention.map((r: any) => r.id)).toEqual(["api.operation.get", uncut, cutBefore, "api.operation.get"]);
+    expect(result.elements.attention[0].reason).toBe(
+      "Element api.operation.get already exists with this name (the name gives api.operation.get-root today; the element keeps its id)"
+    );
+    // The fourth is refused for another reason, and says so: its id is taken by an element of another name.
+    expect(result.elements.attention[3].reason).toBe(
+      'Element api.operation.get already exists, named "GET /": "GET /*" gives the same id, so give the new element a name that differs in its letters or digits'
+    );
+
+    const single = errorOf(
+      await modelAddHandler({ layer: "api", type: "operation", name: "GET /", attributes: { operationId: "get", summary: "GET /", tags: "x" }, rootPath } as any)
+    );
+    expect(single.error).toContain("Element api.operation.get already exists with this name");
+  });
+
+  it("says when an id is taken by an element of another name, from an earlier call", async () => {
+    await createChangeset();
+    await add({ elements: [fn("3D Object Effect")] });
+    const result = await add({ elements: [fn("N 3D Object Effect")] });
+    expect(result.elements.attention[0].reason).toBe(
+      'Element application.applicationfunction.n-3d-object-effect already exists, named "3D Object Effect": ' +
+        '"N 3D Object Effect" gives the same id, so give the new element a name that differs in its letters or digits'
     );
   });
 

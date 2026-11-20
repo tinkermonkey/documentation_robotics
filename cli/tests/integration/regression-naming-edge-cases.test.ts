@@ -378,5 +378,48 @@ describe("regression: naming-edge-cases", () => {
       expect(again.exitCode).not.toBe(0);
       expect(again.stdout + again.stderr).toContain("data-model.objectschema.tier1-status already exists");
     });
+
+    it("refuses a name whose element an earlier release put at another id, naming that element", async () => {
+      // What CLI 0.6.0 made of these two names.
+      const { Layer } = await import("../../src/core/layer.js");
+      const { Element } = await import("../../src/core/element.js");
+      const seeded = await Model.load(workdir.path);
+      const put = async (layer: string, type: string, id: string, name: string, attributes: Record<string, unknown>) => {
+        let layerObj = await seeded.getLayer(layer);
+        if (!layerObj) {
+          layerObj = new Layer(layer);
+          seeded.addLayer(layerObj);
+        }
+        layerObj.addElement(
+          new Element({ id: crypto.randomUUID(), path: id, spec_node_id: `${layer}.${type}`, layer_id: layer, type, name, attributes, layer })
+        );
+        await seeded.saveLayer(layer);
+      };
+      await put("data-model", "objectschema", "data-model.objectschema.tier9status", "Tier9Status", { type: "object" });
+      await put("api", "operation", "api.operation.options", "OPTIONS /", { operationId: "options", summary: "OPTIONS /", tags: "x" });
+      await seeded.saveManifest();
+
+      // Differs only by hyphens (the digit rule).
+      const digit = await runDr(
+        ["add", "data-model", "objectschema", "Tier9Status", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+      expect(digit.exitCode).not.toBe(0);
+      expect(digit.stdout + digit.stderr).toContain("Element data-model.objectschema.tier9status already exists with this name");
+
+      // Differs by more (the root route): `options` then, `options-root` now.
+      const root = await runDr(
+        ["add", "api", "operation", "OPTIONS /", "--attributes", JSON.stringify({ operationId: "options", summary: "OPTIONS /", tags: "x" })],
+        { cwd: workdir.path }
+      );
+      expect(root.exitCode).not.toBe(0);
+      expect(root.stdout + root.stderr).toContain("Element api.operation.options already exists with this name");
+
+      // Neither got a second copy.
+      const after = await Model.load(workdir.path);
+      expect((await after.getLayer("api"))!.getElement("api.operation.options-root")).toBeUndefined();
+      expect((await after.getLayer("api"))!.getElement("api.operation.options")).toBeDefined();
+      expect((await after.getLayer("data-model"))!.getElement("data-model.objectschema.tier9-status")).toBeUndefined();
+    });
   });
 });

@@ -27,15 +27,15 @@ import {
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getNodeType, getNodeTypesForLayer, isValidNodeType, normalizeNodeType, type SpecNodeId } from "../../generated/node-types.js";
-import { compactId, deriveElementId, generateUUID, nearDuplicateId } from "../../utils/id-generator.js";
+import { compactId, deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
 import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
-import { applyRelationshipPlan, previewChangeset, relationshipItemSchema } from "./relationship-tools.js";
-import { batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
+import { applyRelationshipPlan, previewChangeset, relationshipBatchReport, relationshipItemSchema } from "./relationship-tools.js";
+import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
 
 const provenanceSchema = z
   .enum(["extracted", "manual", "inferred", "generated"])
@@ -252,7 +252,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         );
       }
       if (args.file === undefined) {
-        return jsonResult(await addElementBatch(args.elements!, args.relationships ?? [], args.rootPath, args));
+        return jsonResult(await addElementBatch(args.elements!, args.relationships ?? [], args.rootPath, args), { compact: true, lineWidth: BATCH_RESULT_LINE_WIDTH });
       }
       const inline = (["elements", "relationships"] as const).filter((field) => args[field] !== undefined);
       if (inline.length > 0) {
@@ -265,7 +265,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         elements: elementsSchema,
         relationships: relationshipsSchema,
       });
-      return jsonResult(await addElementBatch(batch.elements ?? [], batch.relationships ?? [], args.rootPath, args));
+      return jsonResult(await addElementBatch(batch.elements ?? [], batch.relationships ?? [], args.rootPath, args), { compact: true, lineWidth: BATCH_RESULT_LINE_WIDTH });
     }
     if (args.relationships !== undefined) {
       throw new CLIError("relationships goes with the elements list", ErrorCategory.USER, [
@@ -298,22 +298,21 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     isNewLayer = true;
   }
 
-  if (layerObj.getElement(elementPath)) {
-    throw new CLIError(`Element ${elementPath} already exists in ${layer} layer`, ErrorCategory.USER, [
+  const taken = layerObj.getElement(elementPath);
+  if (taken) {
+    throw new CLIError(`Element ${elementPath} already exists in ${layer} layer${otherNameNote(taken.name, spec.name)}`, ErrorCategory.USER, [
       `Use "model_show" to view the existing element`,
       `Use "model_update" to modify it`,
       `Use "model_delete" to remove it first if you want to recreate it`,
     ]);
   }
 
-  const key = compactId(elementPath);
-  const near = nearDuplicateId(
-    elementPath,
+  const near = existingUnderEarlierId(
+    layer,
+    prepared.type,
     spec.name,
-    layerObj
-      .listElements()
-      .map((e) => ({ id: e.path || e.id, name: e.name }))
-      .filter((e) => compactId(e.id) === key)
+    elementPath,
+    existingElementsIn(layerObj.listElements().map((e) => ({ id: e.path || e.id, name: e.name })))
   );
   if (near.existing) {
     throw new CLIError(...alreadyExistsUnderEarlierId(near.existing, elementPath));
@@ -348,6 +347,16 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     ...(warnings.length > 0 ? { warnings } : {}),
     ...(prepared.notes.length > 0 ? { notes: prepared.notes } : {}),
   });
+}
+
+/**
+ * What to add to "already exists" when the element there has another name: two names can give
+ * one id ("N 3D Object Effect" and "3D Object Effect"), and the id alone does not show it.
+ */
+function otherNameNote(existingName: string | undefined, sentName: string): string {
+  return existingName !== undefined && existingName !== sentName
+    ? `, named "${existingName}": "${sentName}" gives the same id, so give the new element a name that differs in its letters or digits`
+    : "";
 }
 
 /** The refusal for a name whose element exists under an id an earlier derivation gave it. */
@@ -390,7 +399,8 @@ async function addElementBatch(
   /** Types an element was refused for its attributes in, with what each requires. */
   const requiredAttributes: Record<string, Record<string, string>> = {};
 
-  // Live ids by their hyphenless form, for the ids that differ from a new one only by hyphens.
+  // What is already there, for a name whose element exists under an id an earlier rule gave it:
+  // the projection's live elements, and the ones this call has accepted so far.
   const byCompactId = new Map<string, Array<{ id: string; name?: string }>>();
   const indexCompact = (e: { id: string; name?: string }) => {
     const key = compactId(e.id);
@@ -399,6 +409,13 @@ async function addElementBatch(
   for (const e of graph.elements.values() as Iterable<GraphElement>) {
     if (e.status !== "deleted") indexCompact({ id: e.id, name: e.name });
   }
+  const alreadyThere = {
+    byId: (id: string) => {
+      const live = graph.getElement(id);
+      return live && live.status !== "deleted" ? { id: live.id, name: live.name } : pending.get(id);
+    },
+    byCompactId: (key: string) => byCompactId.get(key) ?? [],
+  };
 
   for (const [index, spec] of specs.entries()) {
     const asSent = { index, name: spec.name };
@@ -430,7 +447,7 @@ async function addElementBatch(
         ...asSent,
         id: item.id,
         status: "invalid",
-        reason: `Element ${item.id} already exists`,
+        reason: `Element ${item.id} already exists${otherNameNote(existing.name, spec.name)}`,
         suggestions: ['Use "model_update" to change it'],
       });
       continue;
@@ -452,7 +469,7 @@ async function addElementBatch(
       });
       continue;
     }
-    const near = nearDuplicateId(item.id, spec.name, byCompactId.get(compactId(item.id) ?? "") ?? []);
+    const near = existingUnderEarlierId(item.layer, item.type, spec.name, item.id, alreadyThere);
     if (near.existing) {
       const [reason, , suggestions] = alreadyExistsUnderEarlierId(near.existing, item.id);
       results.push({ ...asSent, id: near.existing, status: "invalid", reason, suggestions });
@@ -503,7 +520,7 @@ async function addElementBatch(
       ...batchReport(results, { ...report, written }),
       ...(Object.keys(requiredAttributes).length > 0 ? { requiredAttributes } : {}),
     },
-    ...(relationships.length > 0 ? { relationships: batchReport(plan.results, { ...report, written }) } : {}),
+    ...(relationships.length > 0 ? { relationships: relationshipBatchReport(plan.results, report) } : {}),
   };
 }
 
@@ -538,10 +555,11 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
     "element's id is layer.type.kebab-name, with the name split at camelCase and after a digit that a capitalised " +
     "word follows ('GraphLayoutSnapshot' → graph-layout-snapshot, 'Tier1Status' → tier1-status); the same name " +
     "gives the same id in codebase_extract. A relationship may name an element by its id, by that id without " +
-    "hyphens or by its name. A list returns, for elements and for relationships, counts by status (staged, or " +
+    "hyphens or by its name, when exactly one element matches; relationships.readByName says how each such " +
+    "reference was read. A list returns, for elements and for relationships, counts by status (staged, or " +
     "added with no changeset active; restored or duplicate for relationships; invalid) and attention: only the " +
-    "items that are invalid, duplicate or restored, or that carry a warning or a note (an id the name does not " +
-    "make obvious, a reference read by name). " +
+    "items that are invalid, duplicate or restored, or elements that carry a warning or a note (an id the name " +
+    "does not make obvious). " +
     "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +
     "verbose: true returns every item as results. A name longer than 100 characters as an id is cut with a hash, " +
     "and the item says so. Invalid items are skipped; the rest are still staged.",

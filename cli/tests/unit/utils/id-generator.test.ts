@@ -10,8 +10,10 @@ import {
   compactId,
   deriveElementId,
   elementUnderEarlierId,
+  earlierElementIds,
+  existingElementsIn,
+  existingUnderEarlierId,
   generateElementId,
-  nearDuplicateId,
   toKebabCase,
 } from "../../../src/utils/id-generator.js";
 import { extractedElementId } from "../../../src/analyzers/extraction-plan.js";
@@ -185,6 +187,9 @@ describe("ids that differ only by hyphens", () => {
     expect(elementUnderEarlierId("api.operation.tier1-status", "Tier1Status", elements)).toBeUndefined();
     // The exact id is not an earlier id.
     expect(elementUnderEarlierId("data-model.objectschema.tier1status", "Tier1Status", elements)).toBeUndefined();
+    // Not only hyphens: the root route sat at `get` before it was `get-root`.
+    const routes = [{ id: "api.operation.get", name: "GET /" }];
+    expect(elementUnderEarlierId("api.operation.get-root", "GET /", routes)).toBe(routes[0]);
   });
 
   it("compactId ignores hyphens and case in the type and name, not the layer", () => {
@@ -194,14 +199,52 @@ describe("ids that differ only by hyphens", () => {
     expect(compactId("Tier1Status")).toBeUndefined();
   });
 
-  it("nearDuplicateId names the same-named element as existing, and warns about another name", () => {
-    const near = [{ id: "data-model.objectschema.tier1status", name: "Tier1Status" }];
-    expect(nearDuplicateId("data-model.objectschema.tier1-status", "Tier1Status", near)).toEqual({
-      existing: "data-model.objectschema.tier1status",
-    });
-    expect(nearDuplicateId("data-model.objectschema.tier1-status", "Tier 1 Status", near).warning).toContain(
-      "differs only by hyphens from data-model.objectschema.tier1status"
+  it("earlierElementIds gives the ids CLI 0.6.0 derived, where they differ from today's", () => {
+    // dr add and model_add: no word break after a digit, dots dropped, no root route, no prefix, no cut.
+    expect(earlierElementIds("data-model", "objectschema", "Tier1Status")).toEqual(["data-model.objectschema.tier1status"]);
+    expect(earlierElementIds("technology", "systemsoftware", "Node.js")).toEqual(["technology.systemsoftware.nodejs"]);
+    expect(earlierElementIds("api", "operation", "GET /")).toEqual(["api.operation.get"]);
+    expect(earlierElementIds("api", "operation", "GET /owners/{ownerId}")).toEqual(["api.operation.get-ownersowner-id"]);
+    expect(earlierElementIds("application", "applicationcomponent", "3D Effect")).toEqual(["application.applicationcomponent.3d-effect"]);
+    // Nothing changed for a plain name.
+    expect(earlierElementIds("api", "operation", "Create Order")).toEqual([]);
+
+    // A long name: model_add left it whole; extraction cut it, and its hash was of the slug without
+    // the digit break.
+    const long = `reads Tier1Status ${"and keeps going ".repeat(8)}to the end`;
+    const [added, extracted] = earlierElementIds("testing", "testcasesketch", long);
+    expect(added.length).toBeGreaterThan(140);
+    expect(added).toContain("tier1status");
+    expect(extracted).toMatch(/^testing\.testcasesketch\.reads-tier1status-.*-[0-9a-f]{8}$/);
+    const today = deriveElementId("testing", "testcasesketch", long).id;
+    expect(today).toMatch(/^testing\.testcasesketch\.reads-tier1-status-.*-[0-9a-f]{8}$/);
+    expect(today.slice(-8)).not.toBe(extracted.slice(-8));
+  });
+
+  it("existingUnderEarlierId names the same-named element at an earlier id, and warns about another name", () => {
+    const elements = [
+      { id: "data-model.objectschema.tier1status", name: "Tier1Status" },
+      { id: "api.operation.get", name: "GET /" },
+      { id: "api.operation.get-ownersowner-id", name: "GET /owners/{ownerId}" },
+    ];
+    const check = (layer: string, type: string, name: string) =>
+      existingUnderEarlierId(layer, type, name, deriveElementId(layer, type, name).id, existingElementsIn(elements));
+    // Differs only by hyphens.
+    expect(check("data-model", "objectschema", "Tier1Status")).toEqual({ existing: "data-model.objectschema.tier1status" });
+    // Differs by more: the root route, and slashes that were dropped.
+    expect(check("api", "operation", "GET /")).toEqual({ existing: "api.operation.get" });
+    expect(check("api", "operation", "GET /owners/{ownerId}")).toEqual({ existing: "api.operation.get-ownersowner-id" });
+    // Another name at the earlier id is another element: "GET /*" was `get` too, and is not "GET /".
+    expect(existingUnderEarlierId("api", "operation", "GET /", "api.operation.get-root", existingElementsIn([{ id: "api.operation.get", name: "GET /*" }]))).toEqual({});
+    // Another name whose id differs only by hyphens gets a warning.
+    expect(check("data-model", "objectschema", "Tier 1 Status").warning).toContain(
+      "data-model.objectschema.tier-1-status differs only by hyphens from data-model.objectschema.tier1status"
     );
-    expect(nearDuplicateId("data-model.objectschema.tier1-status", "Tier1Status", [])).toEqual({});
+    expect(check("api", "operation", "Create Order")).toEqual({});
+    // dr add <id-name> --name <shown>: the element carries the shown name.
+    const shown = existingElementsIn([{ id: "technology.systemsoftware.nodejs", name: "Node runtime" }]);
+    expect(existingUnderEarlierId("technology", "systemsoftware", "Node.js", "technology.systemsoftware.node-js", shown, "Node runtime")).toEqual({
+      existing: "technology.systemsoftware.nodejs",
+    });
   });
 });
