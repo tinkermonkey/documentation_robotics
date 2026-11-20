@@ -262,10 +262,12 @@ describe("code drift is reconciled only by an as-built landing (#1094)", () => {
     expect(data.codeDrift.status).toBe("drift");
     expect(data.codeDrift.basis).toBe("last-reconciling-commit");
     expect(data.codeDrift.modelCommit.sha).toBe(bootstrapSha);
-    expect(data.codeDrift.commitsSince).toBe(3);
+    // The two code commits; the commit that only landed the plan is not code drift.
+    expect(data.codeDrift.commitsSince).toBe(2);
     expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
     expect(data.codeDrift.lastModelCommit.sha).toBe(planSha);
-    expect(data.codeDrift.note).toContain("don't reconcile the model with the code");
+    expect(data.codeDrift.landedSince).toEqual({ count: 1, changesets: ["add-refunds"] });
+    expect(data.codeDrift.rule).toContain("a landed plan does not, verified or not");
     expect(data.nextStep.summary).toContain('as-built landing "extract-bootstrap"');
     expect(data.nextStep.summary).toContain("Landed plans don't reconcile it");
     expect(data.nextStep.summary).not.toContain("in step");
