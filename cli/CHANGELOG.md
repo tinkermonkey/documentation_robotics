@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled viewer bumped to v0.13.0**: `documentation_robotics_viewer` moves `0.12.0` → `0.13.0`
+  (`cli/scripts/download-viewer.sh`). In the viewer:
+  - A search box in the topbar finds any element or node type by name (`/` or ⌘K).
+  - The Model nav tree groups a layer's elements by node type, and a View control draws a layer's
+    elements as lanes or a hive by type.
+  - DrBot opens as a floating panel that no longer resizes the canvas, with an opt-in Dock.
+  - Node and changeset descriptions render as markdown (no raw HTML), so a changeset description
+    written as markdown (#1210) reads as intended.
+  - A node type has one display name everywhere, and the review rows and the change inspector no
+    longer show raw type ids.
+  - A first visit opens on the light canvas with DrBot closed.
+
 ### Fixed
 
 - **A stopped viewer could leave its server running.** Under Bun, the visualization server
