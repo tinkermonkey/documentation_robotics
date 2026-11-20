@@ -396,7 +396,9 @@ describe("gap_accept and gap_reopen", () => {
     await writeFile(file, yaml.stringify(data));
     clearModelCache();
 
-    const validation = parse(await modelValidateHandler({ rootPath, strict: false }));
+    // detail: "full" lists every warning; the default only counts them.
+    const validation = parse(await modelValidateHandler({ rootPath, strict: false, detail: "full" }));
+    expect(Array.isArray(validation.warnings)).toBe(true);
     expect(validation.acceptedGaps.informational).toBe(true);
     expect(validation.acceptedGaps.total).toBe(1);
     expect(validation.acceptedGaps.notices.some((n: any) => n.message.includes("is ignored"))).toBe(true);

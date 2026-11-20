@@ -8,6 +8,7 @@ import { upgradeModel } from "../../../src/core/model-upgrade.js";
 import type { Change } from "../../../src/core/changeset.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
+import { BaseSnapshotManager } from "../../../src/core/base-snapshot-manager.js";
 import { getCliVersion } from "../../../src/utils/spec-version.js";
 
 const modelDir = (root: string) => join(root, "documentation-robotics", "model");
@@ -115,7 +116,9 @@ describe("upgradeModel re-baselines staged changesets", () => {
         drifted: [],
         errors: []
       });
-      expect(await baseSnapshot(root, changesetId)).not.toBe(before);
+      // The upgrade changed no element or relationship here, and the base hash covers content
+      // only (#1169), so the changeset's base is the hash it already had.
+      expect(await baseSnapshot(root, changesetId)).toBe(before);
 
       const committed = await commit(root, changesetId);
       expect(committed.manifest.specVersion).toBe("0.10.0");
@@ -172,10 +175,42 @@ describe("upgradeModel re-baselines staged changesets", () => {
       const model = await Model.load(root, { lazyLoad: false });
       const drift = await new StagingAreaManager(root, model).detectDrift(driftedId);
       expect(drift.isDrifted).toBe(true);
-      await expect(commit(root, driftedId)).rejects.toThrow("Base model has drifted");
+      // Drift is a warning, not a refusal (#1200): the base already has what it adds, so the add is skipped.
+      await commit(root, driftedId);
 
       const committed = await commit(root, inStepId);
       expect(committed.getElementById(shipping)).toBeDefined();
+    }));
+
+  // A changeset created before CLI 0.7.0 recorded a hash of the whole model, manifest included,
+  // with no version prefix. It is compared with one made the same way, so it still reads in step,
+  // and the upgrade moves it to the content hash.
+  it("re-baselines a changeset whose base hash is in the earlier format, to the content hash", () =>
+    withModel(async (root) => {
+      const changesetId = await stageChangeset(
+        root,
+        "staged by an earlier dr",
+        "00000000-0000-4000-8000-000000000041",
+        "application.applicationservice.invoicing"
+      );
+      const storage = new StagedChangesetStorage(root);
+      const changeset = (await storage.load(changesetId))!;
+      changeset.baseSnapshot = await new BaseSnapshotManager().captureFullSnapshot(
+        await Model.load(root, { lazyLoad: false })
+      );
+      expect(changeset.baseSnapshot).toMatch(/^sha256:/);
+      await storage.save(changeset);
+
+      const result = await upgradeModel(root, { fromVersion: "0.9.0", toVersion: "0.10.0" });
+
+      expect(result.changesets).toEqual({
+        rebaselined: [{ id: changesetId, name: "staged by an earlier dr" }],
+        drifted: [],
+        errors: []
+      });
+      expect(await baseSnapshot(root, changesetId)).toMatch(/^v2:sha256:/);
+      const model = await Model.load(root, { lazyLoad: false });
+      expect((await new StagingAreaManager(root, model).detectDrift(changesetId)).isDrifted).toBe(false);
     }));
 
   it("re-baselines staged changesets when the upgrade only bumps the spec version", () =>

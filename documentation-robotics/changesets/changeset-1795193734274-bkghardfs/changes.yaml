@@ -1,0 +1,978 @@
+- type: add
+  elementId: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+  layerName: motivation
+  after:
+    id: ff8e6b6c-a8b5-495c-83c8-46e0d4323633
+    path: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Extraction decisions are made by rule and kept with the model
+    description: What extraction should stage or leave out is decided in bulk by a
+      stated rule (which code, what it is, why), and the rules a project keeps
+      are committed beside its model, so every checkout and every later run
+      applies them without asking again.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "A decision covers every card a rule names: by files, kind,
+        visibility, nesting, name or the type of the owning class's element. A
+        rule says an element type or 'not an element', with a reason. Kept rules
+        live in documentation-robotics/extraction-rules.yaml and are applied
+        before cards are made. Verified when a fresh clone of a project with
+        rules is asked only for the cards no rule covers, and each run reports
+        what every rule decided."
+    metadata:
+      created_at: 2026-11-20T16:56:25.745Z
+      updated_at: 2026-11-20T16:56:25.745Z
+      version: 1
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 0
+- type: add
+  elementId: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+  layerName: motivation
+  after:
+    id: fea3d982-963d-458e-9815-8c16cdaf5dde
+    path: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: An extraction run says how many decisions it needs
+    description: A run answers with the cards grouped and counted, and with the
+      number of decisions left for the caller, before it lists any card. A since
+      run asks only about the symbols its range changed.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: Groups are by folder and file, kind and visibility, with what the
+        model already has there and the folders no element names. preview
+        returns the same groups without creating anything. Cards stay reachable
+        by filter and page. In a since run, symbols the range did not touch are
+        counted and listed on request, and with a plan active the run lists
+        planned elements that have no as-built candidate. Verified by the
+        decisions, calls and bytes a whole-codebase run and a 20-commit since
+        run of this repository need, before and after.
+    metadata:
+      created_at: 2026-11-20T16:56:25.762Z
+      updated_at: 2026-11-20T16:56:25.762Z
+      version: 1
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 1
+- type: add
+  elementId: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+  layerName: motivation
+  after:
+    id: 4478fc3c-40e6-42d7-bf63-4a4eb62cfec3
+    path: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A shortened or filtered extraction answer says what it left out
+    description: Every count and verdict codebase_extract gives is over the whole
+      set. A list shortened to fit, a filter, or a rule that decided cards
+      reports its true total and the call that returns the rest, and no answer
+      reads as complete while something is hidden.
+    attributes:
+      requirementType: non-functional
+      priority: high
+      documentation: "Limits are defaults the caller can change (limit, offset), never
+        cut-offs. A shortened list returns total, returned, nextOffset and a
+        one-line 'more' naming the next call. A layers, view or since filter
+        reports what it left out. Items that failed or did nothing are never
+        shortened. Verified by a test per list with more items than its default:
+        total is right, the rest is reachable and the pages together equal the
+        whole."
+    metadata:
+      created_at: 2026-11-20T16:56:25.762Z
+      updated_at: 2026-11-20T16:56:25.762Z
+      version: 1
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 2
+- type: add
+  elementId: product.feature.extraction-triage-by-rule
+  layerName: product
+  after:
+    id: 2c5c136e-48cf-4365-b756-9b1089dd00a1
+    path: product.feature.extraction-triage-by-rule
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction triage by rule
+    description: "MCP: codebase_extract. A run returns its undecided cards as groups
+      with a decision count; decide takes decisions in bulk by a stated rule
+      (previewed with a sample), stages or rejects what it covers, and keep:
+      true records the rule in documentation-robotics/extraction-rules.yaml for
+      every later run and checkout."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Each card carries facts read from the
+        code: visibility, whether it is nested in another function, and the
+        element its class or file already has. A run with more cards than a page
+        answers with groups (folder and file, kind and visibility, folders no
+        element names, functions many services share) and the number of
+        decisions needed; view filters and pages the cards. decide: [{where |
+        card, as: layer.type | none, reason, keep}] decides cards by rule; with
+        preview: true it returns each rule's count and a sample and changes
+        nothing. Kept rules are applied before cards are made, in this order: an
+        element that names the symbol, a decision on that one card, a rule that
+        says none, Tier 0, a rule that names a type. A since run lists the
+        symbols its range changed and counts the rest; with a plan active it
+        lists planned elements with no as-built candidate. reject and decide
+        take their items from a JSON file (file) and answer with counts and the
+        items that need attention."
+    metadata:
+      created_at: 2026-11-20T16:56:25.762Z
+      updated_at: 2026-11-20T16:56:25.762Z
+      version: 1
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.card-facts
+  layerName: application
+  after:
+    id: f9fb261e-18f5-4ffd-94fb-2210f98a1c2f
+    path: application.applicationfunction.card-facts
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: cardFacts
+    description: "Reads what a rule or a group needs to know about a card from its
+      declaration: visibility (exported, local, public, private, protected),
+      whether it is nested in another function, and the element its class or
+      file already has."
+    metadata:
+      created_at: 2026-11-20T16:56:25.763Z
+      updated_at: 2026-11-20T16:56:25.763Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/visibility.ts
+          symbol: cardFacts
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.group-cards
+  layerName: application
+  after:
+    id: 169af3d8-d250-4951-bc2f-1f877f20aac0
+    path: application.applicationfunction.group-cards
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: groupCards
+    description: Groups a run's undecided cards by folder and file, kind and
+      visibility, flags folders no model element names, and counts the decisions
+      left for the caller.
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: groupCards
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.load-project-rules
+  layerName: application
+  after:
+    id: 09383dc2-097f-45a2-8ba4-22f1c63d10f9
+    path: application.applicationfunction.load-project-rules
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: loadProjectRules
+    description: "Reads and validates documentation-robotics/extraction-rules.yaml:
+      the extraction rules a project keeps with its model."
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: loadProjectRules
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.save-project-rule
+  layerName: application
+  after:
+    id: c96ef77a-0170-4df6-92ac-af5e8b3d7a08
+    path: application.applicationfunction.save-project-rule
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: saveProjectRule
+    description: Writes a kept rule to documentation-robotics/extraction-rules.yaml
+      with its reason, when it was decided and in which changeset.
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: saveProjectRule
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.apply-project-rules
+  layerName: application
+  after:
+    id: 5304abce-c958-4dc6-8fa9-76b66f6e5a24
+    path: application.applicationfunction.apply-project-rules
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: applyProjectRules
+    description: "Applies a project's rules to the extracted symbols before cards
+      are made: a rule that says none first, then Tier 0, then a rule that names
+      a type for what Tier 0 left open. Reports what each rule decided."
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: applyProjectRules
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 8
+- type: add
+  elementId: application.applicationfunction.plan-decisions
+  layerName: application
+  after:
+    id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+    path: application.applicationfunction.plan-decisions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compileDecide
+    description: Resolves decide items to the cards they cover and to what staging
+      or rejecting them would do, with a count and a sample per item for a
+      preview.
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: compileDecide
+  timestamp: 2026-11-20T18:19:51.919Z
+  sequenceNumber: 9
+- type: add
+  elementId: application.applicationfunction.shared-helper-groups
+  layerName: application
+  after:
+    id: e04edb55-242e-4a06-8c12-6f339eb6e2f5
+    path: application.applicationfunction.shared-helper-groups
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sharedHelperGroups
+    description: Finds the functions that more services call than a stated number,
+      with the links each makes and a suggested rule that removes them.
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: sharedHelperGroups
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 10
+- type: add
+  elementId: application.applicationfunction.plan-coverage
+  layerName: application
+  after:
+    id: 7ea4edc6-b093-4f7a-a6aa-75757904b952
+    path: application.applicationfunction.plan-coverage
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planCoverage
+    description: In a verify run, lists each element the plan adds or changes that
+      has no as-built candidate staged, with the cards in its source file.
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: planCoverage
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 11
+- type: add
+  elementId: data-model.objectschema.project-rule
+  layerName: data-model
+  after:
+    id: 6f564ff2-8866-463e-af00-921fc1b51bbe
+    path: data-model.objectschema.project-rule
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectRule
+    description: "One extraction rule a project keeps: a name, which cards or
+      relationships it covers (where), what they are (as: a layer.type or none),
+      the reason, and when and in which changeset it was decided."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: ProjectRule
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 13
+- type: add
+  elementId: data-model.objectschema.project-rules-file
+  layerName: data-model
+  after:
+    id: 11c55d0f-2844-4c24-9b6b-71e1b64a79e9
+    path: data-model.objectschema.project-rules-file
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectRulesFile
+    description: "documentation-robotics/extraction-rules.yaml: a version and the
+      project's extraction rules, in the order they apply."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:56:25.767Z
+      updated_at: 2026-11-20T16:56:25.767Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: ProjectRulesFile
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 14
+- type: add
+  elementId: data-model.objectschema.triage-group
+  layerName: data-model
+  after:
+    id: 6c061ce1-c95a-4834-8cf1-7e5da40f8ee0
+    path: data-model.objectschema.triage-group
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: TriageGroup
+    description: A group of undecided cards (a folder or file, with counts by kind
+      and visibility), what the model has there, and a suggested decision.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:56:25.767Z
+      updated_at: 2026-11-20T16:56:25.767Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: TriageGroup
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 15
+- type: add
+  elementId: data-model.objectschema.decide-item
+  layerName: data-model
+  after:
+    id: eea76ce0-6c96-41d7-9717-e58247531e66
+    path: data-model.objectschema.decide-item
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DecideItem
+    description: "One decision sent to codebase_extract: where or card, as, reason,
+      and keep to record it as a project rule."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:56:25.767Z
+      updated_at: 2026-11-20T16:56:25.767Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: DecideItem
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 16
+- type: add
+  elementId: data-model.objectschema.shared-helper-group
+  layerName: data-model
+  after:
+    id: a676cc28-0ac6-4d36-a4f6-963208c0010f
+    path: data-model.objectschema.shared-helper-group
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SharedHelperGroup
+    description: "A function many services call: how many, the links it makes, and
+      the rule that would remove them."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:56:25.767Z
+      updated_at: 2026-11-20T16:56:25.767Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: SharedHelperGroup
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 17
+- type: add
+  elementId: data-model.objectschema.plan-coverage-item
+  layerName: data-model
+  after:
+    id: cde36e3f-a2d3-43f9-adcb-ba07ea4a83f9
+    path: data-model.objectschema.plan-coverage-item
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: PlanCoverageItem
+    description: A planned element with no as-built candidate staged, and the cards
+      found in its source file.
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:56:25.767Z
+      updated_at: 2026-11-20T16:56:25.767Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/triage.ts
+          symbol: PlanCoverageItem
+  timestamp: 2026-11-20T18:20:01.254Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model::realizes::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs::realizes::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: motivation
+  after:
+    source: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs::realizes::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out::realizes::motivation.outcome.verified-plan-to-build-difference-is-small
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+    target: motivation.outcome.verified-plan-to-build-difference-is-small
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::realizes::product.softwarecapability.model-extraction
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: product.softwarecapability.model-extraction
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::serves::product.persona.developer
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: product.persona.developer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::depends-on::product.feature.extraction-to-a-changeset
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: product.feature.extraction-to-a-changeset
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::satisfies::motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::satisfies::motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 29
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::satisfies::motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 30
+- type: relationship-add
+  elementId: application.applicationservice.create-codebase-extract-handler::realizes::product.feature.extraction-triage-by-rule
+  layerName: application
+  after:
+    source: application.applicationservice.create-codebase-extract-handler
+    target: product.feature.extraction-triage-by-rule
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 31
+- type: relationship-add
+  elementId: application.applicationfunction.card-facts::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.card-facts
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 32
+- type: relationship-add
+  elementId: application.applicationfunction.group-cards::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.group-cards
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 33
+- type: relationship-add
+  elementId: application.applicationfunction.load-project-rules::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.load-project-rules
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 34
+- type: relationship-add
+  elementId: application.applicationfunction.save-project-rule::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.save-project-rule
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 35
+- type: relationship-add
+  elementId: application.applicationfunction.apply-project-rules::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.apply-project-rules
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 36
+- type: relationship-add
+  elementId: application.applicationfunction.plan-decisions::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-decisions
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 37
+- type: relationship-add
+  elementId: application.applicationfunction.shared-helper-groups::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.shared-helper-groups
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 38
+- type: relationship-add
+  elementId: application.applicationfunction.plan-coverage::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-coverage
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 39
+- type: relationship-add
+  elementId: application.applicationfunction.group-cards::accesses::data-model.objectschema.triage-group
+  layerName: application
+  after:
+    source: application.applicationfunction.group-cards
+    target: data-model.objectschema.triage-group
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 41
+- type: relationship-add
+  elementId: application.applicationfunction.save-project-rule::accesses::data-model.objectschema.project-rules-file
+  layerName: application
+  after:
+    source: application.applicationfunction.save-project-rule
+    target: data-model.objectschema.project-rules-file
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: application.applicationfunction.save-project-rule::accesses::data-model.objectschema.project-rule
+  layerName: application
+  after:
+    source: application.applicationfunction.save-project-rule
+    target: data-model.objectschema.project-rule
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 45
+- type: relationship-add
+  elementId: application.applicationfunction.apply-project-rules::accesses::data-model.objectschema.project-rule
+  layerName: application
+  after:
+    source: application.applicationfunction.apply-project-rules
+    target: data-model.objectschema.project-rule
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 46
+- type: relationship-add
+  elementId: application.applicationfunction.plan-decisions::accesses::data-model.objectschema.decide-item
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-decisions
+    target: data-model.objectschema.decide-item
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 48
+- type: relationship-add
+  elementId: application.applicationfunction.shared-helper-groups::accesses::data-model.objectschema.shared-helper-group
+  layerName: application
+  after:
+    source: application.applicationfunction.shared-helper-groups
+    target: data-model.objectschema.shared-helper-group
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 51
+- type: relationship-add
+  elementId: application.applicationfunction.plan-coverage::accesses::data-model.objectschema.plan-coverage-item
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-coverage
+    target: data-model.objectschema.plan-coverage-item
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:56:25.802Z
+  sequenceNumber: 52
+- type: update
+  elementId: product.feature.extraction-to-a-changeset
+  layerName: product
+  before:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description: "MCP: codebase_extract. Builds cards from the declarations the code
+      index reports (classes, interfaces, functions, methods, routes, types),
+      never from a file, stages what the Tier-0 rules decide into a changeset,
+      and returns the narrowed and undecided symbols to the calling agent, which
+      stages its own decisions. Import and test-file relationships are joined to
+      declarations, not to a file's element. The calling agent is the cascade's
+      last tier, and it also models what the code graph reports no declaration
+      for; no separate model API key."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Builds cards from the declarations the
+        code index reports (classes, interfaces, functions, methods, routes,
+        types), never from a file, stages what the Tier-0 rules decide into a
+        changeset, and returns the narrowed and undecided symbols to the calling
+        agent, which stages its own decisions. Import and test-file
+        relationships are joined to declarations, not to a file's element; where
+        a file has no single declaration to take them they are dropped. The
+        calling agent is the cascade's last tier, and it also models what the
+        code graph reports no declaration for (entry points, file-based routes,
+        top-level constants, buildable projects); no separate model API key."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract.ts
+    metadata: &a2
+      created_at: 2026-11-09T22:04:38.299Z
+      updated_at: 2026-11-09T22:04:38.299Z
+      version: 1
+  after:
+    id: e760b2ad-b93a-4e62-8418-e6c23242d26a
+    path: product.feature.extraction-to-a-changeset
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction to a changeset
+    description: "MCP: codebase_extract. Builds cards from the declarations the code
+      index reports (classes, interfaces, functions, methods, routes, types),
+      never from a file, stages what the project's rules and the Tier-0 rules
+      decide into a changeset, and returns the rest to the calling agent as
+      groups with a decision count, then as cards by filter and page. Import and
+      test-file relationships are joined to declarations, not to a file's
+      element; a symbol with no element of its own passes its relationships and
+      test links to the element that owns it. The calling agent is the cascade's
+      last tier, and it also models what the code graph reports no declaration
+      for; no separate model API key."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Builds cards from the declarations the
+        code index reports (classes, interfaces, functions, methods, routes,
+        types), never from a file, stages what the project's rules
+        (documentation-robotics/extraction-rules.yaml) and the Tier-0 rules
+        decide into a changeset, and returns the rest to the calling agent as
+        groups with a decision count, then as cards by filter and page. A since
+        run lists the symbols its range changed and counts the others. intent
+        sets the changeset's description, and the tool creates the changeset
+        under the caller's name with the bootstrap, reconcile or verification
+        purpose. Import and test-file relationships are joined to declarations,
+        not to a file's element; a symbol with no element of its own passes its
+        relationships and test links to the element that owns it (its class,
+        else the one element that implements its file). A service's calls stage
+        'realizes' from what it calls, a rendered child is composed, and a used
+        schema definition is accessed. A reject or decide item that names
+        nothing is reported and the others still apply. Every shortened list
+        gives its total and the call for the rest. The calling agent is the
+        cascade's last tier, and it also models what the code graph reports no
+        declaration for (entry points, file-based routes, top-level constants,
+        buildable projects); no separate model API key."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T16:56:40.664Z
+  sequenceNumber: 56
+- type: relationship-add
+  elementId: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest::uses::product.feature.extraction-triage-by-rule
+  layerName: product
+  after:
+    source: product.workflowstep.bootstrap-a-model-from-the-code-agent-classifies-the-rest
+    target: product.feature.extraction-triage-by-rule
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:53.377Z
+  sequenceNumber: 61
+- type: relationship-add
+  elementId: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built::uses::product.feature.extraction-triage-by-rule
+  layerName: product
+  after:
+    source: product.workflowstep.verify-a-build-against-its-plan-agent-extracts-what-was-built
+    target: product.feature.extraction-triage-by-rule
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:53.377Z
+  sequenceNumber: 62
+- type: relationship-add
+  elementId: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes::uses::product.feature.extraction-triage-by-rule
+  layerName: product
+  after:
+    source: product.workflowstep.keep-the-model-as-built-agent-extracts-the-changes
+    target: product.feature.extraction-triage-by-rule
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:56:53.377Z
+  sequenceNumber: 63
+- type: add
+  elementId: motivation.principle.no-unseen-limits
+  layerName: motivation
+  after:
+    id: df551c78-4eb1-4572-a227-7d50779ddd76
+    path: motivation.principle.no-unseen-limits
+    spec_node_id: motivation.principle
+    type: principle
+    layer_id: motivation
+    name: No unseen limits
+    description: "A tool's answer never portrays completeness it does not have. A
+      count or size limit is a default and a target, not a hard cut-off: the
+      caller can change it and can ask for everything; anything shortened is
+      pageable or otherwise reachable and the answer says so, with the true
+      total; counts, summaries and verdicts are computed over the whole set,
+      never over the part returned. (The maintainer's rule, 2026-11-20.)"
+    attributes:
+      category: operational
+    metadata:
+      created_at: 2026-11-20T16:57:54.080Z
+      updated_at: 2026-11-20T16:57:54.080Z
+      version: 1
+  timestamp: 2026-11-20T16:57:54.100Z
+  sequenceNumber: 64
+- type: relationship-add
+  elementId: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out::realizes::motivation.principle.no-unseen-limits
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+    target: motivation.principle.no-unseen-limits
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-20T16:57:54.100Z
+  sequenceNumber: 65
+- type: add
+  elementId: data-model.objectschema.triage-facts
+  layerName: data-model
+  after:
+    id: e8f6b679-1064-4144-adc4-21c844b92e41
+    path: data-model.objectschema.triage-facts
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: TriageFacts
+    description: "What is read from a card's declaration for project rules and
+      triage groups: its visibility (exported, local, public, private,
+      protected) and whether it is nested in another function."
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cards/visibility.ts
+          symbol: TriageFacts
+    metadata:
+      created_at: 2026-11-20T18:20:29.385Z
+      updated_at: 2026-11-20T18:20:29.385Z
+      version: 1
+  timestamp: 2026-11-20T18:20:29.432Z
+  sequenceNumber: 82
+- type: relationship-add
+  elementId: application.applicationfunction.card-facts::accesses::data-model.objectschema.triage-facts
+  layerName: application
+  after:
+    source: application.applicationfunction.card-facts
+    target: data-model.objectschema.triage-facts
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:20:29.432Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.plan-decisions::accesses::data-model.objectschema.project-rule
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-decisions
+    target: data-model.objectschema.project-rule
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:20:29.432Z
+  sequenceNumber: 84

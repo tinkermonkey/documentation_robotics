@@ -29,7 +29,7 @@ import {
 import { deriveFills, fillsStagedEarlier, stageFills, type StagedEarlier, type UpgradeFills } from "./upgrade-fills.js";
 import { unfilledRequired, validateBaseModel, withoutStaged, type UnfilledRequired } from "./upgrade-validation.js";
 import type { ValidationIssue } from "../validators/types.js";
-import { BaseSnapshotManager } from "./base-snapshot-manager.js";
+import { BaseSnapshotManager, isContentSnapshot } from "./base-snapshot-manager.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
 import { getErrorMessage } from "../utils/errors.js";
@@ -103,6 +103,11 @@ export interface ModelUpgradeResult {
 export interface ChangesetBaselines {
   /** Snapshot of the model before the upgrade; null when there is no staged changeset */
   snapshot: string | null;
+  /**
+   * The same model hashed as changesets created before CLI 0.7.0 recorded it
+   * (BaseSnapshotManager.captureFullSnapshot); set when a staged changeset carries such a hash.
+   */
+  fullSnapshot?: string;
   inStep: ChangesetRef[];
   drifted: ChangesetRef[];
   errors: string[];
@@ -274,14 +279,20 @@ export async function captureChangesetBaselines(model: Model): Promise<Changeset
     return baselines;
   }
 
-  const snapshot = await new BaseSnapshotManager().captureSnapshot(model);
+  const snapshots = new BaseSnapshotManager();
+  const snapshot = await snapshots.captureSnapshot(model);
   baselines.snapshot = snapshot;
   for (const { ref, baseSnapshot } of changesets) {
     // A changeset without a base snapshot never reports drift, so it needs no re-baseline
     if (!baseSnapshot) {
       continue;
     }
-    (baseSnapshot === snapshot ? baselines.inStep : baselines.drifted).push(ref);
+    // Each recorded hash is compared with one made the same way (base-snapshot-manager.ts)
+    if (!isContentSnapshot(baseSnapshot)) {
+      baselines.fullSnapshot ??= await snapshots.captureFullSnapshot(model);
+    }
+    const now = isContentSnapshot(baseSnapshot) ? snapshot : baselines.fullSnapshot;
+    (baseSnapshot === now ? baselines.inStep : baselines.drifted).push(ref);
   }
   return baselines;
 }
@@ -319,7 +330,7 @@ export async function rebaselineChangesets(
         if (
           !changeset ||
           changeset.status !== "staged" ||
-          changeset.baseSnapshot !== baselines.snapshot
+          (changeset.baseSnapshot !== baselines.snapshot && changeset.baseSnapshot !== baselines.fullSnapshot)
         ) {
           return;
         }
@@ -330,7 +341,7 @@ export async function rebaselineChangesets(
       });
     } catch (error) {
       result.errors.push(
-        `Could not re-baseline changeset '${ref.name}': ${getErrorMessage(error)}; committing it needs --force`
+        `Could not re-baseline changeset '${ref.name}': ${getErrorMessage(error)}; it lands with a drift warning until it is re-baselined`
       );
     }
   }

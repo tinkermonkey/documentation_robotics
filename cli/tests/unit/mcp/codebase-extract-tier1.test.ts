@@ -305,8 +305,9 @@ describe("codebase_extract with Tier 1", () => {
     expect(model.calls.length).toBe(5); // three stage-1 asks, two stage-2 (none has no type question)
 
     // A page reads the stored cards with their hints, and asks nothing.
-    const page = ok(await createCodebaseExtractHandler(deps)({ rootPath, page: 1, pageSize: 1 } as any));
+    const page = ok(await createCodebaseExtractHandler(deps)({ rootPath, view: {}, pageSize: 1 } as any));
     expect(page.undecided.items[0].tier1.band).toBe("accept");
+    expect(model.calls.length).toBe(5);
 
     // A rerun is answered from the cache: nothing more is sent.
     clearModelCache();
@@ -481,9 +482,11 @@ describe("codebase_extract with Tier 1", () => {
     const first = ok(await handler({ rootPath }));
     expect(first.undecided.items.map((c: any) => c.symbol)).toContain("Helpers"); // without acceptTier1 it stays a card
     clearModelCache();
-    const r = ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true }));
+    // Recorded decisions are counted; verbose lists the rejected ones.
+    const r = ok(await handler({ rootPath, changeset: first.changeset.name, acceptTier1: true, verbose: true }));
     expect(r.tier1.notElementRecorded).toBe(1);
     expect(r.undecided.items.map((c: any) => c.symbol)).toEqual(["Helpers.format"]);
+    expect(r.notElements.recorded).toMatchObject({ total: 1, rejected: 1, unstaged: 0 });
     expect(r.notElements.recorded.items).toContainEqual({ symbol: "Helpers", file: HELPERS_FILE, how: "rejected" });
     const decisions = JSON.parse(await readFile(join(rootPath, ".dr", "analyzers", "extract", "decisions.json"), "utf-8"));
     expect(Object.values(decisions.notElements).map((d: any) => d.reason)[0]).toContain("debug.applyNotElement");
@@ -541,7 +544,7 @@ describe("codebase_extract with Tier 1 in hide mode (the not-element band alone 
     expect(r.tier1.notice).toContain("Hide mode");
     expect(r.tier1.thresholds).toMatchObject({ fit: "in-sample", heldOutBands: ["not-element"] });
     expect(r.unchanged.tier1NotElement).toBe(1);
-    expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
+    expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, returned: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
     // OwnerService is left as an accept-band suggestion, Helpers is hidden, the escalate card stays.
     expect(r.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService", "Helpers.format"]);
     expect(r.undecided.items[0].tier1).toMatchObject({ band: "accept" });
@@ -591,7 +594,7 @@ describe("codebase_extract with Tier 1 in stage mode (held-out verified threshol
     expect(r.next.join(" ")).toContain("were staged without you");
     expect(r.next.join(" ")).toContain("dr analyzer tier1 set mode suggest");
     // What was hidden, by name, and how to see it as a card.
-    expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
+    expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, returned: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
     expect(r.next.join(" ")).toContain("tier1: false");
 
     const changeset = await changesetOf(r.changeset.id);

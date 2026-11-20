@@ -32,6 +32,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 - If the project has no model yet, propose a name and confirm it with the human before
   `project_init`. Then ask whether to bootstrap the model from the code now or let it grow with
   each change, and wait for their answer.
+- When `codebase_extract` returns more cards than a page, they come grouped (`undecided.groups`,
+  `byKind`), not listed. Decide by group first: `decide: [{where, as, reason}]` with `preview: true`
+  returns each item's count and a sample; show the developer the rules you propose, then apply them.
+  `keep: true` records a rule in `documentation-robotics/extraction-rules.yaml`: commit that file.
+  Read what is left with `view`.
 - When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
   the ones you can't place with confidence: whether a card is a model element at all, which type it
   is, or whether to reject it. Don't guess. Collect them and ask once, in one short list (the card,
@@ -173,6 +178,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    its file as its locations, not one symbol picked to stand for the file. One code file can back
    several elements in different layers (an application component and a UX sub-view), and staging
    one doesn't cover the other;
+   `planCoverage` lists the planned elements that have no as-built element yet, with the cards that
+   could be them: stage a card that is the planned element with `decide: [{card, as, reason}]`;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `changeset: <name>` and
    `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and
@@ -219,10 +226,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
    commits only if they confirm; if they decline, leave it staged. From Claude Code, call
    `changeset_commit_preview` with its name first and show them its `summary` in full; if they want it
-   landed, call `changeset_commit` with the same `force` and the preview's `confirmToken`. They approve
+   landed, call `changeset_commit` with the preview's `confirmToken` (good for an hour). They approve
    that call in the permission prompt instead of a dialog, so it lands from the Claude desktop app,
-   which can't show the dialog. A changed plan or base refuses the token: preview again. If it is refused for drift, show
-   them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
+   which can't show the dialog. A changed plan or base refuses the token: preview again. Drift doesn't refuse it: the summary lists each
+   staged change the base overlaps and what landing does about it, so show them that (`force` is ignored;
+   `changeset_update` with `rebaseline: true` re-baselines a plan whose base moved). Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
    interactive session. Never point them to the `dr` CLI. Once the model has an as-built landing

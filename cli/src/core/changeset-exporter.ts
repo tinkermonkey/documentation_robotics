@@ -128,7 +128,8 @@ export class ChangesetExporter {
 
     // Check base snapshot match
     if (changeset.baseSnapshot) {
-      const currentSnapshot = await this.snapshotManager.captureSnapshot(currentModel);
+      // In the format the changeset recorded its hash in (base-snapshot-manager.ts).
+      const currentSnapshot = await this.snapshotManager.captureSnapshotLike(currentModel, changeset.baseSnapshot);
       if (changeset.baseSnapshot !== currentSnapshot) {
         report.baseSnapshotMatch = false;
         report.warnings.push("Base model has changed since changeset was created");

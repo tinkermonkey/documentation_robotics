@@ -39,11 +39,10 @@ import { getCliBundledSpecVersion, getCliVersion } from "../../../src/utils/spec
 
 const SERVICE = "application.applicationservice.checkout";
 
-// Follows tranche 2 (#1200, drift warns and never refuses): today a drifted changeset's landing is
-// refused without force. When that lands, these two lines are the edit: the entry's `landing` for
-// real drift, and the words the next step uses for it.
-const DRIFTED_LANDING = LANDING_WHEN_DRIFT_BLOCKS;
-const DRIFTED_LANDING_WORDS = "unless the user agrees to force: true";
+// Follows tranche 2 (#1200, drift warns and never refuses): a drifted changeset lands once the
+// person confirms, with the overlaps shown; only an unattended `dr changeset commit` needs --force.
+const DRIFTED_LANDING = "allowed-with-warning";
+const DRIFTED_LANDING_WORDS = "Landing it is allowed, with a warning";
 
 async function status(rootPath?: string): Promise<any> {
   const result = await projectStatusHandler(rootPath === undefined ? {} : { rootPath });
@@ -1779,8 +1778,10 @@ describe("suggestNextStep on base drift and a stale server", () => {
     const warns = { ...drifted, landing: "allowed-with-warning" };
     const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(warns), staged: [plan(warns)] } }, { root: "/p" });
 
-    expect(step.summary).toContain("Landing it is allowed, with a warning.");
-    expect(step.summary).not.toContain("force");
+    expect(step.summary).toContain("Landing it is allowed, with a warning");
+    // The one case still refused without force is the CLI's unattended commit, and it says so.
+    expect(step.summary).toContain("an unattended `dr changeset commit` needs --force");
+    expect(step.summary).not.toContain("force: true");
   });
 
   it("says a base that moved elsewhere doesn't block the active plan, and keeps the ordinary step", () => {

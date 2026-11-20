@@ -6,6 +6,7 @@ import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { ReferenceRegistry } from "../core/reference-registry.js";
 import { DependencyTracker, TraceDirection } from "../core/dependency-tracker.js";
+import { buildDependencyGraph } from "../core/dependency-direction.js";
 import { findElementLayer } from "../utils/element-utils.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 import { CLIError } from "../utils/errors.js";
@@ -56,16 +57,13 @@ export async function traceCommand(
       }
     }
 
-    // Extend the dependency graph with intra-layer relationships from
-    // relationships.yaml, which the registry doesn't load on its own.
-    const graph = registry.getDependencyGraph();
-    for (const rel of model.relationships.getAll()) {
-      if (!graph.hasNode(rel.source)) graph.addNode(rel.source);
-      if (!graph.hasNode(rel.target)) graph.addNode(rel.target);
-      if (!graph.hasEdge(rel.source, rel.target)) {
-        graph.addEdge(rel.source, rel.target, { type: rel.predicate });
-      }
-    }
+    // The registry's cross-layer references plus the relationships of relationships.yaml, each
+    // edge running from the dependent to what it depends on, by its predicate
+    // (core/dependency-direction.ts; `model_trace` reads the same rule).
+    const graph = buildDependencyGraph([
+      ...registry.getAllReferences().map((ref) => ({ source: ref.source, predicate: ref.type, target: ref.target })),
+      ...model.relationships.getAll(),
+    ]);
 
     // Create dependency tracker with the fully-populated graph
     const tracker = new DependencyTracker(graph, model);

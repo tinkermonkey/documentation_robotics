@@ -15,7 +15,9 @@
 import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { DRIFT_LIST_LIMIT, type ChangesetDrift } from "../../core/changeset-base-index.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { Model } from "../../core/model.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../../core/relationship-staging.js";
@@ -64,24 +66,137 @@ const updateInputSchema = {
     .string()
     .optional()
     .describe("New description: the change's intent and what done looks like. An empty string clears it."),
+  rebaseline: z
+    .union([z.boolean(), z.literal("preview")])
+    .optional()
+    .describe(
+      "true: make the base model as it is now this changeset's base, and return what moved under it since its " +
+        "previous base. \"preview\": return the same and write nothing; do this first when much has moved, since " +
+        "what moved can't be read again after a re-baseline. Use it once you have read what the base changed and the " +
+        "plan still stands. It clears the list of base changes, and nothing a landing would do: an overlap that is " +
+        "true against the base as it is now stays until the plan resolves it (each one's resolve says how), and the " +
+        "landing summary still lists it and says the changeset was re-baselined. Staged changes are untouched."
+    ),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      `With rebaseline: how many entries of each list of what moved to return (default ${DRIFT_LIST_LIMIT}; no upper ` +
+        "bound, so a large value returns everything). Counts, layers and overlaps are whole whatever the limit."
+    ),
+  offset: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("With rebaseline: \"preview\": where in each list of what moved to start (default 0); pass page.nextOffset to go on."),
   rootPath: rootPathSchema,
 };
 
 export type ChangesetUpdateArgs = z.infer<z.ZodObject<typeof updateInputSchema>>;
 
+/** The overlaps of a drift description as one list, relationships named by their triple. */
+function overlapList(drift: ChangesetDrift): Array<Record<string, unknown>> {
+  return [
+    ...drift.overlapping.elements.map((e) => ({ element: e.id, reason: e.reason, consequence: e.consequence, resolve: e.resolve })),
+    ...drift.overlapping.relationships.map((r) => ({
+      relationship: `${r.source} --${r.predicate}--> ${r.target}`,
+      reason: r.reason,
+      ...(r.endpoints ? { endpoints: r.endpoints } : {}),
+      consequence: r.consequence,
+      resolve: r.resolve,
+    })),
+  ];
+}
+
+/**
+ * Re-baselines the changeset (StagingAreaManager.rebaseline), or previews it, and reports what
+ * moved under it. The lists of what moved are a page (`moved.page`); the counts, the layers and
+ * both overlap lists are whole.
+ */
+async function rebaseline(
+  rootPath: string,
+  changeset: Changeset,
+  options: { preview: boolean; limit?: number; offset?: number }
+): Promise<Record<string, unknown>> {
+  requireStaged(changeset, "re-baseline it");
+  if (!options.preview && options.offset !== undefined && options.offset > 0) {
+    // A re-baseline can't be applied again to read the next page of what it moved past.
+    throw new CLIError("offset pages a preview: applying a re-baseline from an offset would skip the first entries for good", ErrorCategory.USER, [
+      'Read what moved with rebaseline: "preview" (limit, offset), then apply with rebaseline: true',
+    ]);
+  }
+  // On the model as it is on disk, like a commit: the base to record is the one a landing reads.
+  const model = await Model.load(rootPath, { lazyLoad: false });
+  const result = await asUserError(
+    () => new StagingAreaManager(model.rootPath, model).rebaseline(changeset.id!, options),
+    ['Use "changeset_list" to find a staged plan; a verification record or an upgrade record has no base to move']
+  );
+  const key = (o: Record<string, unknown>): string => `${o.element ?? o.relationship}:${o.reason}`;
+  const remaining = overlapList(result.after);
+  const stillThere = new Set(remaining.map(key));
+  const cleared = overlapList(result.before)
+    .filter((o) => !stillThere.has(key(o)))
+    .map((o) => `${o.element ?? o.relationship} (${o.reason})`);
+  const moved = result.before.baseChanges;
+  const nextOffset = moved?.page.nextOffset;
+  const name = changeset.name;
+  // Lists shortened to a page say so, with the call that reads on. After an applied re-baseline
+  // there is no such call, and that is said instead of leaving the first page to pass for all of it.
+  let more: string | undefined;
+  if (moved && nextOffset !== undefined) {
+    more = result.applied
+      ? `moved lists the first ${moved.page.limit} entries of each list; moved.page.totals has the true counts. The ` +
+        "rest can no longer be read: this changeset's base is now the base as it is. Before the next re-baseline, read " +
+        'everything with rebaseline: "preview" (limit, offset), or pass a larger limit.'
+      : `moved lists ${moved.page.limit} entries of each list from ${moved.page.offset}; moved.page.totals has the ` +
+        `true counts. Read on with changeset_update, changeset: "${name}", rebaseline: "preview", offset: ${nextOffset}.`;
+  }
+  return {
+    applied: result.applied,
+    previousBaseSnapshot: result.previousBaseSnapshot,
+    baseSnapshot: result.baseSnapshot,
+    // What changed in the base between the previous base and this one.
+    moved: moved ?? "No base index was recorded for the previous base, so what moved under the changeset cannot be listed.",
+    ...(more ? { more } : {}),
+    overlapsCleared: cleared,
+    overlapsRemaining: remaining,
+    next: !result.applied
+      ? `Nothing was written. Call changeset_update with changeset: "${name}" and rebaseline: true to apply it` +
+        (remaining.length > 0 ? "; the overlaps in overlapsRemaining will still be there, since they are true against the base as it is now." : ".")
+      : remaining.length > 0
+        ? "The base still overlaps the staged changes in overlapsRemaining. Resolve each as its resolve says, or tell " +
+          "the user what landing will do about it: the landing summary lists them again."
+        : "Nothing the changeset stages overlaps the base as it is now. Tell the user what moved before they land it.",
+  };
+}
+
 export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    if (args.name === undefined && args.description === undefined) {
-      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name" and/or "description"']);
+    const rename = args.name !== undefined || args.description !== undefined;
+    const rebaselining = args.rebaseline === true || args.rebaseline === "preview";
+    if (!rename && !rebaselining) {
+      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name", "description" or "rebaseline: true"']);
     }
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const changeset = await resolveChangeset(manager, changesetArg(args));
 
-    const updated = await asUserError(
-      () => manager.update(changeset.id!, { name: args.name, description: args.description }),
-      ['Use "changeset_list" to see the names already taken']
-    );
+    const updated = rename
+      ? await asUserError(
+          () => manager.update(changeset.id!, { name: args.name, description: args.description }),
+          ['Use "changeset_list" to see the names already taken']
+        )
+      : changeset;
+    const rebaselined = rebaselining
+      ? await rebaseline(model.rootPath, updated, {
+          preview: args.rebaseline === "preview",
+          limit: args.limit,
+          offset: args.offset,
+        })
+      : undefined;
     await reloadModel(args.rootPath);
 
     return jsonResult({
@@ -91,6 +206,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
       description: updated.description ?? null,
       status: updated.status,
       changes: updated.changes.length,
+      ...(rebaselined ? { rebaselined } : {}),
     });
   });
 }
@@ -98,8 +214,10 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
 export const changesetUpdateTool: McpToolDefinition<typeof updateInputSchema> = {
   name: "changeset_update",
   description:
-    "Rename a changeset or change its description (the change's intent). Staged changes are untouched. " +
-    "Defaults to the active changeset.",
+    "Rename a changeset or change its description (the change's intent), or re-baseline it (rebaseline: true): " +
+    "take the base model as it is now as its base and get back what moved under it. rebaseline: \"preview\" returns " +
+    `the same and writes nothing. What moved is listed ${DRIFT_LIST_LIMIT} entries per list by default (limit, offset; ` +
+    "moved.page has the true totals). Staged changes are untouched. Defaults to the active changeset.",
   inputSchema: updateInputSchema,
   handler: changesetUpdateHandler,
 };

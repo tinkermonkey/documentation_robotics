@@ -35,8 +35,11 @@ import {
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
+import { TEST_PATH } from "./cards/routes.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
 import type { Tier1Hint } from "./classifier/types.js";
+import type { Visibility } from "./cards/visibility.js";
+import { isProjectRule, projectRuleName } from "./project-rules.js";
 
 /** Edges that say a file refers to a type: it names it, imports it, or calls it (a constructor). */
 const REFERENCE_EDGES: ReadonlySet<string> = new Set(["USAGE", "IMPORTS", "CALLS"]);
@@ -182,6 +185,12 @@ export interface UndecidedCard {
   hint?: string;
   /** With `clusters`: the cross-file component candidate the symbol is in (evidence, not a decision). */
   cluster?: ClusterEvidence;
+  /** Who can reach the symbol, read from its declaration: exported or local; for a member, public, private or protected. */
+  visibility?: Visibility;
+  /** Declared inside another function or method. */
+  nested?: true;
+  /** For a member: the element its class is, when it has one. */
+  owner?: string;
   rule?: string;
   reason: string;
   /**
@@ -235,6 +244,28 @@ export interface ElementPlan {
   descriptions: Record<string, string>;
   /** Decision records: how many became cards, how many are modelled, and the retired ones. */
   decisions?: { cards: number; modelled: number; retired: RetiredDecision[] };
+  /**
+   * What each project rule (src/analyzers/project-rules.ts) decided in this plan, by rule name:
+   * the symbols it said are not elements, and the elements it adds. Only symbols with no element.
+   */
+  byRule: Map<string, RuleDecided>;
+  /**
+   * Where every extracted symbol went, one bucket each, so the buckets sum to the symbols read:
+   * `recorded` (a decision someone recorded), `modelled` (an element names it), `outsideLayers`,
+   * `ruleNone` / `ruleStaged` (a project rule), `tier0Rejected` / `tier0Staged` (Tier 0 or the node
+   * mapping), `open` (a card). Decision-record cards are counted in `open` as well.
+   */
+  tally: Record<TallyBucket, number>;
+}
+
+export type TallyBucket = "recorded" | "modelled" | "outsideLayers" | "ruleNone" | "ruleStaged" | "tier0Rejected" | "tier0Staged" | "open";
+
+/** What one project rule decided in a plan. */
+export interface RuleDecided {
+  /** Symbols the rule said are not elements. */
+  none: Array<{ symbol: string; file: string | null; label: string }>;
+  /** Elements the rule adds (their ids). */
+  staged: string[];
 }
 
 export interface PlanOptions {
@@ -605,6 +636,23 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
 /** Card labels the analyzer's changed symbols never cover: a route, and the cards DR makes itself. */
 const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL, TEST_SUITE_LABEL]);
 
+/**
+ * Whether a `since` range changed a symbol: by the analyzer's changed symbols when it gave them,
+ * else by the changed lines. The analyzer seeds only its own nodes: never a route, nor a card DR
+ * makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name is no CBM
+ * node's), so those keep the line rule.
+ */
+export function symbolChangedInRange(
+  s: ExtractedSymbol,
+  hunks?: Map<string, LineRanges>,
+  seeds?: Pick<CodeChanges, "seeds" | "lineRuleFiles">
+): boolean {
+  const { card } = s;
+  const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
+  const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
+  return bySeed ? seeds!.seeds!.has(s.qualifiedName) : changedInRange(ranges, card.start_line, card.end_line);
+}
+
 function cardOf(
   s: ExtractedSymbol,
   kind: UndecidedKind,
@@ -616,12 +664,7 @@ function cardOf(
   const { card } = s;
   const doc = describeDocstring(card.docstring);
   const name = modelAddName(baseNameOf(s));
-  // The analyzer's changed symbols when it gave them, else the changed lines. The analyzer seeds
-  // only its own nodes: never a route, nor a card DR makes itself (a TestCase or TestSuite from
-  // cards/test-cases.ts, whose qualified name is no CBM node's), so those keep the line rule.
-  const ranges = hunks && card.file_path ? hunks.get(card.file_path) : undefined;
-  const bySeed = !!seeds?.seeds && !LINE_RULE_LABELS.has(card.label) && !(card.file_path && seeds.lineRuleFiles?.has(card.file_path));
-  const changed = bySeed ? seeds!.seeds!.has(s.qualifiedName) : changedInRange(ranges, card.start_line, card.end_line);
+  const changed = symbolChangedInRange(s, hunks, seeds);
   return {
     cardId: card.id,
     kind,
@@ -636,6 +679,8 @@ function cardOf(
     ...(doc ? { docstring: doc } : {}),
     ...(s.facts.decorator_names.length ? { decorators: s.facts.decorator_names } : {}),
     ...(s.cluster ? { cluster: s.cluster } : {}),
+    ...(s.triage?.visibility ? { visibility: s.triage.visibility } : {}),
+    ...(s.triage?.nested ? { nested: true as const } : {}),
     candidates: [],
     reason,
     ...(s.docs?.length ? { docs: s.docs } : {}),
@@ -666,11 +711,22 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     candidateDeletes: [],
     elementOf: new Map(),
     descriptions: {},
+    byRule: new Map(),
+    tally: { recorded: 0, modelled: 0, outsideLayers: 0, ruleNone: 0, ruleStaged: 0, tier0Rejected: 0, tier0Staged: 0, open: 0 },
+  };
+  const tally = (b: TallyBucket) => plan.tally[b]++;
+  const ruleDecided = (rule: string): RuleDecided => {
+    const name = projectRuleName(rule);
+    return plan.byRule.get(name) ?? plan.byRule.set(name, { none: [], staged: [] }).get(name)!;
   };
   const matched = new Set<string>();
   const hunks = options.changes?.hunks;
-  const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) =>
-    cardOf(s, kind, reason, extra, hunks, options.changes ?? undefined);
+  const cardFor = (s: ExtractedSymbol, kind: UndecidedKind, reason: string, extra: Partial<UndecidedCard> = {}) => {
+    // A member's owner: the element its class is, when the class (which sorts before it) has one.
+    const cut = s.card.label === "Method" ? s.qualifiedName.lastIndexOf(".") : -1;
+    const owner = cut > 0 ? plan.elementOf.get(s.qualifiedName.slice(0, cut)) : undefined;
+    return cardOf(s, kind, reason, { ...(owner ? { owner } : {}), ...extra }, hunks, options.changes ?? undefined);
+  };
   const notElements = options.notElements ?? new Set<string>();
   const env = containerEnv(extraction.symbols);
   /** Adds of infrastructure symbols, by their merge key (`layer.type|label|name`), so the same name merges into one. */
@@ -789,6 +845,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     // Someone decided it is not an element: neither staged nor carded, unless it has one now.
     if (!match && notElements.has(decisionKey(file, symbol))) {
       plan.skipped++;
+      tally("recorded");
       continue;
     }
 
@@ -797,6 +854,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
     if (ambiguous) {
       if (decided && !inLayers(decided.layer, layers)) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       plan.undecided.push(
@@ -814,10 +872,12 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
           }
         )
       );
+      tally("open");
       continue;
     }
 
     if (match) {
+      tally("modelled");
       matched.add(match.id);
       plan.elementOf.set(s.qualifiedName, match.id);
       if (!decided) {
@@ -849,6 +909,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       }
       if (!inLayers(decided.layer, layers)) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       const fields = changedFields(match, s, symbol, spellings, decided.layer, decided.type, options.extractedDescriptions ?? {}, siblingsOf(env, s));
@@ -860,9 +921,11 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       continue;
     }
 
-    if (s.unhandled) {
+    // A project rule may say a route nothing handles is not an element; otherwise it is a card.
+    if (s.unhandled && tier0?.kind !== "reject") {
       if (layers && !layers.has("api")) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       plan.undecided.push(
@@ -874,6 +937,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
           { candidates: ["api.operation"] }
         )
       );
+      tally("open");
       continue;
     }
 
@@ -887,6 +951,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         : true;
       if (!relevant) {
         plan.outsideLayers++;
+        tally("outsideLayers");
         continue;
       }
       plan.undecided.push(
@@ -899,16 +964,22 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
               ...(hint ? { hint } : {}),
             })
       );
+      tally("open");
       continue;
     }
     if (tier0.kind === "reject") {
       plan.rejected++;
+      if (isProjectRule(tier0.rule)) {
+        ruleDecided(tier0.rule).none.push({ symbol, file, label: card.label });
+        tally("ruleNone");
+      } else tally("tier0Rejected");
       continue;
     }
 
     // Decided, and not modelled yet: an add.
     if (!inLayers(tier0.layer, layers)) {
       plan.outsideLayers++;
+        tally("outsideLayers");
       continue;
     }
     // An infrastructure symbol another symbol of the same name already added: one more location.
@@ -922,6 +993,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
         };
       }
       plan.elementOf.set(s.qualifiedName, mergedInto.id);
+      tally(isProjectRule(tier0.rule) ? "ruleStaged" : "tier0Staged");
       continue;
     }
     const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
@@ -943,6 +1015,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       rule: tier0.rule,
     };
     plan.adds.push(add);
+    if (isProjectRule(tier0.rule)) ruleDecided(tier0.rule).staged.push(id);
+    tally(isProjectRule(tier0.rule) ? "ruleStaged" : "tier0Staged");
     if (mergeAs) mergedAdds.set(mergeAs, add);
     plan.elementOf.set(s.qualifiedName, id);
   }
@@ -957,6 +1031,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       rejected: (file, symbol) => notElements.has(decisionKey(file, symbol)),
     });
     plan.undecided.push(...decisions.cards);
+    plan.tally.open += decisions.cards.length;
     plan.skipped += decisions.skipped;
     plan.outsideLayers += decisions.outsideLayers;
     const listed = new Set(plan.candidateDeletes.map((d) => d.id));
@@ -1326,12 +1401,43 @@ export interface RelationshipPlan {
   /** Those relationships, with {@link PlanRelationshipsOptions.includePresent}. */
   present?: PlannedRelationship[];
   /**
+   * Test cases this run has an element for that test nothing: no call into an element, no element
+   * they already test, and no source file their file is named after. By test file, most first.
+   */
+  unwiredTests: Array<{ file: string; cases: number }>;
+  /** `tests` links inferred from a test file's name ({@link INFERRED_TEST_EDGE}), among `relationships` and `present`. */
+  inferredTests: number;
+  /**
    * Call edges between two elements left out because CBM resolved them by name with low confidence
    * and nothing corroborates them (src/analyzers/call-evidence.ts), in the layers asked for. A pair
    * the model already has is not left out: it counts in `alreadyPresent` (and is in `present` with
    * includePresent).
    */
   weakCalls: number;
+}
+
+/**
+ * The edge a `tests` link has when no call gave it: the test file is named after a source file
+ * (`uiStore.spec.ts` after `uiStore.ts`), so its cases test the element that owns that file. An
+ * inference from the name, marked as such by this edge on the staged relationship's origin.
+ */
+export const INFERRED_TEST_EDGE = "TEST_FILE_NAME";
+
+/**
+ * The source-file stem a test file is named after: `uiStore.spec.ts` and `uiStore.test.tsx` are
+ * `uiStore`; `test_orders.py` and `orders_test.go` are `orders`; `OwnerTests.java` is `Owner`. Null
+ * when the name follows none of these.
+ */
+export function testedStem(file: string): string | null {
+  const base = path.posix.basename(file);
+  const m =
+    /^(.+)\.(?:test|spec)\.[cm]?[jt]sx?$/.exec(base) ??
+    /^test_(.+)\.py$/.exec(base) ??
+    /^(.+)_test\.(?:py|go)$/.exec(base) ??
+    /^(.+?)Tests?\.(?:java|kt|cs)$/.exec(base) ??
+    /^(.+)_spec\.rb$/.exec(base) ??
+    /^(.+)Spec\.(?:kt|groovy|scala)$/.exec(base);
+  return m ? m[1] : null;
 }
 
 export interface PlanRelationshipsOptions {
@@ -1378,6 +1484,31 @@ export function planRelationships(
     const here = file ? (declaredIn.get(file) ?? sourcedIn.get(file)) : undefined;
     return here?.size === 1 ? [...here][0] : undefined;
   };
+  // The element that owns a file's other symbols (#1162, #1181): the one element sourced there,
+  // else the one application-layer element (the implementation, as against a security, technology
+  // or APM element that cites the same code), else among several the one named after the file.
+  // A file whose elements are several of a kind (a function each) has no owner.
+  const ownerCache = new Map<string, string | undefined>();
+  const fileOwner = (file: string | null): string | undefined => {
+    if (!file) return undefined;
+    if (ownerCache.has(file)) return ownerCache.get(file);
+    const here = [...new Set([...(declaredIn.get(file) ?? []), ...(sourcedIn.get(file) ?? [])])].filter((id) => elements.has(id));
+    const implementing = here.filter((id) => elements.get(id)!.layer === "application");
+    const stem = toKebabCase(path.posix.basename(file).replace(/\.[^.]+$/, ""));
+    const named = (ids: string[]) => ids.filter((id) => id.split(".").slice(2).join(".") === stem);
+    const owner =
+      here.length === 1
+        ? here[0]
+        : implementing.length === 1
+          ? implementing[0]
+          : named(implementing).length === 1
+            ? named(implementing)[0]
+            : !implementing.length && named(here).length === 1
+              ? named(here)[0]
+              : undefined;
+    ownerCache.set(file, owner);
+    return owner;
+  };
   const layerSet = layers?.length ? new Set(layers) : null;
   const mappings = new Map(extraction.config.edgeMappings.map((m) => [m.cbm_edge, m]));
   // What each file refers to (USAGE, IMPORTS or CALLS edges from any of its symbols). The index
@@ -1408,7 +1539,10 @@ export function planRelationships(
   };
   // An edge end: its own element; for a file-joined edge, the one element its file declares; else,
   // for a member with no element of its own (a method), the class it is in.
-  const resolve = (end: EdgeEnd, fileJoined: boolean): { id: string; rolledUp?: string } | undefined => {
+  // An edge end: its own element; for a file-joined edge, the one element its file declares; else,
+  // for a member with no element of its own (a method), the class it is in; else the element that
+  // owns its file (a module's helper counts as the module's element).
+  const resolve = (end: EdgeEnd, fileJoined: boolean): { id: string; rolledUp?: string; viaFile?: true } | undefined => {
     const own = direct(end.qualifiedName, end.name, end.file);
     if (own) return { id: own };
     if (fileJoined) {
@@ -1418,10 +1552,15 @@ export function planRelationships(
     if (parseRouteName(end.name)) return undefined;
     const cut = end.qualifiedName.lastIndexOf(".");
     const parent = cut > 0 ? end.qualifiedName.slice(0, cut) : "";
-    if (!parent || parent === project) return undefined;
-    const id = direct(parent, parent.slice(parent.lastIndexOf(".") + 1), end.file);
-    return id ? { id, rolledUp: parent } : undefined;
+    if (parent && parent !== project) {
+      const id = direct(parent, parent.slice(parent.lastIndexOf(".") + 1), end.file);
+      if (id) return { id, rolledUp: parent };
+    }
+    const owner = fileOwner(end.file);
+    return owner ? { id: owner, viaFile: true } : undefined;
   };
+  /** Layers whose elements cite code they are about rather than implement: a test of that code tests its implementation. */
+  const CROSS_CUTTING: ReadonlySet<string> = new Set(["security", "technology", "apm"]);
 
   type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string };
   const found: Found[] = [];
@@ -1436,18 +1575,30 @@ export function planRelationships(
     if (!ra || !rb) continue;
     // A member rolled up to its class says nothing about that class's own members.
     if ((ra.rolledUp && edge.to.qualifiedName.startsWith(ra.rolledUp + ".")) || (rb.rolledUp && edge.from.qualifiedName.startsWith(rb.rolledUp + "."))) continue;
+    // Two symbols of one file that both count as its owner say nothing about the owner.
+    if (ra.viaFile && rb.viaFile && edge.from.file === edge.to.file) continue;
     const a = ra.id;
-    const b = rb.id;
+    let b = rb.id;
     if (a === b) continue;
     const ea = elements.get(a);
-    const eb = elements.get(b);
+    let eb = elements.get(b);
     if (!ea || !eb) continue;
+    // A test's call into code that a cross-cutting element (security, technology, APM) cites is a
+    // test of the element that implements that code, when the file has one (#1181).
+    if (ea.layer === "testing" && CROSS_CUTTING.has(eb.layer)) {
+      const owner = fileOwner(edge.to.file);
+      const implementation = owner ? elements.get(owner) : undefined;
+      if (owner && implementation && implementation.layer === "application" && owner !== a) {
+        b = owner;
+        eb = implementation;
+      }
+    }
     // A test's call to a member of a class it never refers to is the index matching a name, not
     // the test exercising that class.
     if (ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
       continue;
     }
-    const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple);
+    const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple, edge.evidence?.strategy ? { strategy: edge.evidence.strategy } : undefined);
     if (!rel) continue;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
     if (isWeak) {
@@ -1457,6 +1608,43 @@ export function planRelationships(
     }
     found.push({ sourceId, destinationId, relationship: rel, edge: edge.type });
   }
+  // Test cases no call links to anything: fall back to the element that owns the source file the
+  // test file is named after, when exactly one file has that name and it has an owner (#1181). A
+  // test case that already tests something (by a call, or in the model: someone wired it) is left.
+  const tested = new Set(found.filter((r) => r.relationship.predicate === "tests").map((r) => r.sourceId));
+  // (Optional call: a graph stand-in that holds no relationships has no list of them.)
+  for (const r of existing.relationships?.() ?? []) if (r.predicate === "tests" && r.status !== "deleted") tested.add(r.source);
+  const filesByStem = new Map<string, Set<string>>();
+  for (const file of new Set([...declaredIn.keys(), ...sourcedIn.keys()])) {
+    if (TEST_PATH.test(file)) continue;
+    const stem = toKebabCase(path.posix.basename(file).replace(/\.[^.]+$/, ""));
+    (filesByStem.get(stem) ?? filesByStem.set(stem, new Set()).get(stem)!).add(file);
+  }
+  const unwired = new Map<string, number>();
+  let inferredTests = 0;
+  for (const s of extraction.symbols) {
+    const id = elementOf.get(s.qualifiedName);
+    const element = id ? elements.get(id) : undefined;
+    const file = s.card.file_path;
+    if (!id || !file || element?.layer !== "testing" || element.type !== "testcasesketch" || tested.has(id)) continue;
+    const stem = testedStem(file);
+    const named = stem ? filesByStem.get(toKebabCase(stem)) : undefined;
+    const owner = named?.size === 1 ? fileOwner([...named][0]) : undefined;
+    const target = owner ? elements.get(owner) : undefined;
+    const triple = target ? `testing.testcasesketch.tests.${target.layer}.${target.type}` : "";
+    if (owner && target && hasTriple(triple)) {
+      found.push({
+        sourceId: id,
+        destinationId: owner,
+        relationship: { id: triple, source: "testing.testcasesketch", predicate: "tests", destination: `${target.layer}.${target.type}`, inverted: false },
+        edge: INFERRED_TEST_EDGE,
+      });
+      tested.add(id);
+      inferredTests++;
+    } else unwired.set(file, (unwired.get(file) ?? 0) + 1);
+  }
+  const unwiredTests = [...unwired].map(([file, cases]) => ({ file, cases })).sort((x, y) => y.cases - x.cases || x.file.localeCompare(y.file));
+
   const kept = dedupeRelationships(found);
   const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
   const inLayers = (r: Found) => !layerSet || layerSet.has(elements.get(r.sourceId)!.layer) || layerSet.has(elements.get(r.destinationId)!.layer);
@@ -1501,7 +1689,7 @@ export function planRelationships(
     relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent, weakCalls, ...(options.includePresent ? { present } : {}) };
+  return { relationships, alreadyPresent, weakCalls, unwiredTests, inferredTests, ...(options.includePresent ? { present } : {}) };
 }
 
 // ---------------------------------------------------------------------------

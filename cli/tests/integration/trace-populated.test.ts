@@ -325,4 +325,63 @@ describe("Trace Command with Populated Models", () => {
       expect(parsed.transitiveItems.length).toBe(1);
     });
   });
+
+  // dr trace reads which end depends on the other from the predicate (core/dependency-direction.ts):
+  // an element depends on what serves or realizes it, as on what it uses.
+  describe("trace with predicates that run from what is depended on", () => {
+    async function addComponent(name: string): Promise<void> {
+      const added = await runDr("add", "application", "applicationcomponent", name, "--attributes", '{"type":"internal"}');
+      expect(added.exitCode).toBe(0);
+    }
+    async function relate(source: string, target: string, predicate: string): Promise<void> {
+      const rel = await runDr("relationship", "add", source, target, "--predicate", predicate);
+      expect(rel.exitCode).toBe(0);
+    }
+
+    it("counts what realizes an element among its dependencies, and what it realizes among its dependents", async () => {
+      await addComponent("Recorder");
+      await addComponent("Encoder");
+      const service = await runDr("add", "application", "applicationservice", "Recording", "--attributes", '{"serviceType":"synchronous"}');
+      expect(service.exitCode).toBe(0);
+      const RECORDER = "application.applicationcomponent.recorder";
+      const ENCODER = "application.applicationcomponent.encoder";
+      const SERVICE = "application.applicationservice.recording";
+      await relate(RECORDER, ENCODER, "uses");
+      await relate(RECORDER, SERVICE, "realizes");
+
+      // The service depends on the component that realizes it, and through it on the encoder.
+      const service_ = await runDr("trace", SERVICE);
+      expect(service_.exitCode).toBe(0);
+      const dependencies = parseTraceOutput(service_.stdout, "Dependencies");
+      expect(dependencies.directItems).toEqual([RECORDER]);
+      expect(dependencies.transitiveItems).toEqual([ENCODER]);
+      expect(parseTraceOutput(service_.stdout, "Dependents").directCount).toBe(0);
+
+      // The component: the encoder it uses below, the service it realizes above.
+      const recorder = await runDr("trace", RECORDER);
+      expect(parseTraceOutput(recorder.stdout, "Dependencies").directItems).toEqual([ENCODER]);
+      expect(parseTraceOutput(recorder.stdout, "Dependents").directItems).toEqual([SERVICE]);
+    });
+
+    it("does not list the traced element in its own trace when flipped predicates close a cycle", async () => {
+      await addComponent("Recorder");
+      const added = await runDr("add", "application", "applicationservice", "Recording", "--attributes", '{"serviceType":"synchronous"}');
+      expect(added.exitCode).toBe(0);
+      const RECORDER = "application.applicationcomponent.recorder";
+      const SERVICE = "application.applicationservice.recording";
+      // The recorder realizes the service (the service depends on it) and the service serves the
+      // recorder (the recorder depends on it): each depends on the other.
+      await relate(RECORDER, SERVICE, "realizes");
+      await relate(SERVICE, RECORDER, "serves");
+
+      const trace = await runDr("trace", RECORDER);
+      expect(trace.exitCode).toBe(0);
+      for (const section of ["Dependencies", "Dependents"] as const) {
+        const parsed = parseTraceOutput(trace.stdout, section);
+        expect([...parsed.directItems, ...parsed.transitiveItems]).not.toContain(RECORDER);
+        expect(parsed.directItems).toEqual([SERVICE]);
+        expect(parsed.transitiveCount).toBe(0);
+      }
+    });
+  });
 });

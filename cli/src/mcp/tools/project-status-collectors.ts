@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
-import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
+import type { BaseRead } from "../../core/changeset-base-index.js";
 import { driftDetail, driftStatus, type DriftDetail } from "../../core/changeset-drift-status.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { MigrationRegistry } from "../../core/migration-registry.js";
@@ -495,18 +495,16 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
   const staged = changesets.filter((changeset) => changeset.status === "staged");
 
   // Drift is read through changeset-drift-status.ts, the answer a commit acts on, against the base
-  // model as loaded: one manager for the call. The model is hashed once here: a changeset whose
-  // base hash still matches has nothing to check, and that is most of them in a quiet project.
-  let base: { model: Model; manager: StagingAreaManager; snapshot: string } | undefined;
+  // model as loaded: one manager for the call, and one read of the base (StagingAreaManager.readBase):
+  // the base is indexed and hashed once, in each hash format a staged changeset recorded, however
+  // many changesets are checked against it.
+  let base: { model: Model; manager: StagingAreaManager; read: BaseRead } | undefined;
   let driftUnknown: string | undefined;
   if (staged.length > 0) {
     try {
       const model = await ctx.model();
-      base = {
-        model,
-        manager: new StagingAreaManager(model.rootPath, model),
-        snapshot: await new BaseSnapshotManager().captureSnapshot(model),
-      };
+      const manager = new StagingAreaManager(model.rootPath, model);
+      base = { model, manager, read: await manager.readBase() };
     } catch (error) {
       driftUnknown = `the model could not be loaded: ${getErrorMessage(error)}`;
     }
@@ -524,18 +522,19 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
     let baseDrifted: boolean | null = null;
     let drift: ChangesetDriftEntry | undefined;
-    if (base && changeset.baseSnapshot === base.snapshot) {
-      // The base is byte for byte what the changeset was created on: no drift of any kind.
-      baseDrifted = false;
-    } else if (base) {
+    if (base) {
+      // Every staged changeset is checked: with the shared read, one whose base hash still matches
+      // costs almost nothing, and a re-baselined one can still overlap the base with a matching hash
+      // (a staged change made on older content), which only the check sees.
       const plan = verifies ? changesets.find((other) => other.id === verifies) : undefined;
       const subject = { changeset, purpose, ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}) };
-      // The summary classifies; the detail also describes what changed, at the cost of another
-      // pass over the model, so it is kept for the active changeset unless all are asked for.
+      // The summary classifies; the detail also describes what changed. The check's own description
+      // is reused, so the detail costs little more, but it is kept for the active changeset unless
+      // all are asked for, to keep the answer small.
       const describe = ctx.describeDrift === "all" || changeset.id === activeId;
       const detail = describe
-        ? await driftDetail(base.model, base.manager, subject)
-        : await driftStatus(base.manager, subject);
+        ? await driftDetail(base.model, base.manager, subject, { base: base.read })
+        : await driftStatus(base.manager, subject, { base: base.read });
       baseDrifted = detail.state === "unknown" ? null : detail.state === "drifted";
       drift = driftEntry(changeset, detail);
     }

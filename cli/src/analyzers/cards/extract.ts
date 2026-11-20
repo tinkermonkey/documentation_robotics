@@ -8,6 +8,8 @@
  * `codebase_extract` asks Tier 1 (a decision model) about those between the Tier-0 outcome and the
  * plan (docs/analyzers/TIER1_DESIGN.md section 1.1); the rest go to the calling agent.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { bareCallee, type CallEvidence, type CallGate } from "../call-evidence.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import type { AnalyzerEdgeMapping, AnalyzerNodeMapping } from "../types.js";
@@ -37,6 +39,7 @@ import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
 import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
+import { cardFacts, type TriageFacts } from "./visibility.js";
 
 /** Files whose symbols one query lists. */
 const CHECK_FILES_PER_QUERY = 200;
@@ -190,6 +193,8 @@ export interface ExtractedSymbol {
   docs?: DocEvidence[];
   /** With `clusters`: the cross-file component candidate CBM put the symbol in. Evidence only. */
   cluster?: ClusterEvidence;
+  /** Its visibility and nesting, read from the declaration (cards/visibility.ts): what project rules and triage groups go by. */
+  triage?: TriageFacts;
 }
 
 export interface EdgeEnd {
@@ -466,6 +471,28 @@ export async function collectExtraction(
       ...(unhandled ? { unhandled: true as const } : {}),
       ...(docs.length ? { docs } : {}),
     });
+  }
+
+  // Visibility and nesting, read from the declarations (a file's text only when a JS/TS
+  // declaration has no export on its own line).
+  const sourceRoot = options.sourceRoot ? path.resolve(options.sourceRoot) : null;
+  const triage = cardFacts(
+    symbols.map((s) => s.card),
+    sourceRoot
+      ? (file) => {
+          const abs = path.resolve(sourceRoot, file);
+          if (!abs.startsWith(sourceRoot + path.sep)) return null;
+          try {
+            return readFileSync(abs, "utf-8");
+          } catch {
+            return null;
+          }
+        }
+      : undefined
+  );
+  for (const s of symbols) {
+    const facts = triage.get(s.card);
+    if (facts) s.triage = facts;
   }
 
   // Mapped edges with an end in scope (all of them when the whole project is in scope).

@@ -5,6 +5,8 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
+import { overlapKinds, type OverlapKind } from "../core/changeset-base-index.js";
+import type { Changeset } from "../core/changeset.js";
 import { VerificationRecordLandingError, type RecordLandingError } from "../core/changeset-purpose.js";
 import { resolveOrigin } from "../core/changeset-review.js";
 import { originLabel } from "../core/changeset.js";
@@ -273,6 +275,92 @@ function reportDeactivation(
   }
 }
 
+/** What a landing from the CLI does about staged changes the base overlaps. */
+export type OverlapDecision = "land" | "ask" | "refuse";
+
+/**
+ * Whether a CLI landing goes ahead when the base overlaps what the changeset stages.
+ *
+ * Drift never refuses a landing by itself, but someone has to have read what it will do: through
+ * MCP and the viewer a person reads the overlaps before confirming. On the CLI, with a terminal the
+ * person is asked. With none (a script, CI) nobody reads them, and a staged update made on older
+ * content would replace newer base content and exit 0, so it is refused unless `--force` says to
+ * land it anyway. With no overlap (the base is as it was, or changed elsewhere) there is nothing to
+ * read and it lands.
+ */
+export function overlapDecision(overlaps: number, options: { force?: boolean; interactive: boolean }): OverlapDecision {
+  if (overlaps === 0 || options.force === true) return "land";
+  return options.interactive ? "ask" : "refuse";
+}
+
+/** Every overlap, grouped by what landing does about it, as lines: the true count first, nothing left out. */
+export function overlapReport(kinds: OverlapKind[]): string[] {
+  const total = kinds.reduce((n, kind) => n + kind.items.length, 0);
+  const lines = [`The base model overlaps ${total} staged change(s). Landing would do this:`];
+  for (const kind of kinds) {
+    lines.push(`  - ${kind.reason}, ${kind.items.length} ${kind.of}(s): ${kind.consequence}`);
+    for (const item of kind.items) lines.push(`      ${item}`);
+  }
+  return lines;
+}
+
+/**
+ * The CLI's check before a landing (`dr changeset commit` and `dr changeset apply`): reads what the
+ * base overlaps, and lands, asks or refuses (overlapDecision). Resolves to false when the person
+ * was asked and said no; throws the refusal when no one could be asked.
+ */
+export async function landsOverOverlaps(
+  manager: Pick<StagingAreaManager, "detectDrift">,
+  changeset: Changeset,
+  options: {
+    force?: boolean;
+    /** Whether a person is at a terminal to be asked. Default: stdin and stdout are terminals and output is not JSON. */
+    interactive?: boolean;
+    /** Asks the person; default a prompt that answers no unless they say yes. */
+    confirm?: (message: string) => Promise<boolean>;
+  } = {}
+): Promise<boolean> {
+  const confirm =
+    options.confirm ?? (async (message: string) => (await prompts.confirm({ message, initialValue: false })) === true);
+  const report = await manager.detectDrift(changeset);
+  const kinds = report.isDrifted && report.described ? overlapKinds(report.described) : [];
+  const total = kinds.reduce((n, kind) => n + kind.items.length, 0);
+  const interactive = options.interactive ?? (!!process.stdin.isTTY && !!process.stdout.isTTY && !isJson());
+  const decision = overlapDecision(total, { force: options.force, interactive });
+  if (decision === "land") {
+    // Nothing to ask about, but the base did move: say so, and what could not be checked.
+    const notChecked = report.described?.notChecked?.sentence;
+    if (!isJson() && (report.contentFree || report.isDrifted || notChecked) && total === 0) {
+      console.log(
+        ansis.yellow(
+          (report.currentSnapshotId !== report.baseSnapshotId
+            ? "⚠ The base model changed since this changeset was created; nothing it stages was found to overlap the change."
+            : "⚠ Nothing this changeset stages was found to overlap the base.") + (notChecked ? ` ${notChecked}` : "")
+        )
+      );
+    }
+    return true;
+  }
+
+  const lines = overlapReport(kinds);
+  if (report.described?.notChecked) lines.push(`  ${report.described.notChecked.sentence}`);
+  if (decision === "ask") {
+    console.log(ansis.yellow(`\n⚠ ${lines[0]}`));
+    for (const line of lines.slice(1)) console.log(ansis.yellow(line));
+    console.log();
+    return confirm(`Land changeset '${changeset.name}' over ${total === 1 ? "this overlap" : `these ${total} overlaps`}?`);
+  }
+  throw new CLIError(
+    `Changeset '${changeset.name}' was not committed: ${lines[0].replace("Landing would do this:", "No one is at a terminal to read what landing would do, so nothing was written.")}\n` +
+      lines.slice(1).join("\n"),
+    ErrorCategory.USER,
+    [
+      "Every overlap is listed above. Resolve them in the plan (restage on the current base, or unstage), or",
+      "run the command in a terminal to be asked, or pass --force to land it over them",
+    ]
+  );
+}
+
 /**
  * Apply a changeset to the model
  */
@@ -351,9 +439,13 @@ export async function changesetApplyCommand(
       endSpan(span);
       process.exit(1);
     }
+    // Someone has to have read what landing does about overlaps: ask, or refuse without --force.
+    if (!(await landsOverOverlaps(manager, changeset, { force: options?.force }))) {
+      handleInfo("Not applied. Nothing was written.");
+      return;
+    }
     const result = await manager.apply(model, changesetId, {
       validate: options?.validate,
-      force: options?.force
     });
 
     handleInfo("");
@@ -1547,17 +1639,19 @@ function throwIfRecord(refusal: RecordLandingError | null, changesetName: string
  * @param options - Commit options
  * @param options.validate - Run validation before commit (default: true; --no-validate skips it).
  *   When enabled, errors the changeset introduces (present in the projected model but not
- *   the base) block the commit and cannot be overridden with --force; errors the base model
- *   already had are counted and reported, not blocking.
- * @param options.force - Skip drift detection warnings (default: false).
- *   When the base model has changed since the changeset was created, drift is detected.
- *   Use --force to commit despite drift. Validation errors always block commit regardless of --force.
+ *   the base) block the commit; errors the base model already had are counted and reported,
+ *   not blocking.
+ * @param options.force - Land over staged changes the base overlaps without being asked. Drift does
+ *   not refuse a commit by itself (#1200), but someone has to have read what landing does: with a
+ *   terminal the overlaps are listed and the person is asked; with none (a script, CI) the commit
+ *   is refused unless this is passed. Without overlaps it changes nothing. See overlapDecision.
  *
  * @param nameOrId - The changeset to commit (id or name). Defaults to the active one. A named
  *   changeset that is not active is activated for the commit; the changeset that was active before
  *   is active again afterwards, whether the commit succeeds or not.
  *
- * @throws Error if validation fails, drift detected without --force, or commit fails
+ * @throws Error if validation fails, the base overlaps the changeset with no one to ask and no
+ *   --force, or commit fails
  */
 export async function changesetCommitCommand(
   nameOrId?: string,
@@ -1671,6 +1765,21 @@ export async function changesetCommitCommand(
           return;
         }
 
+        // Someone has to have read what landing does about overlaps: ask, or refuse without --force.
+        if (!(await landsOverOverlaps(stagingManager, changeset, { force: options?.force }))) {
+          handleSuccess("Not committed. Nothing was written.", {
+            name: changeset.name,
+            changesetId: activeChangesetId,
+            status: "cancelled",
+          }, { verbose: true });
+          await restore();
+          if (isTelemetryEnabled) {
+            (span as any).setAttribute("commit.cancelled", true);
+            (span as any).setStatus({ code: 0 });
+          }
+          return;
+        }
+
         if (!isJson()) {
           console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(changeset.name)}`));
           console.log(ansis.dim(`Staged changes: ${changeCount}`));
@@ -1681,7 +1790,6 @@ export async function changesetCommitCommand(
         try {
           const result = await stagingManager.commit(model, activeChangesetId, {
             validate: options?.validate !== false,
-            force: options?.force === true,
           });
 
           // StagingAreaManager.commit deactivated the changeset (reportDeactivation warns if not)
@@ -1728,11 +1836,26 @@ export async function changesetCommitCommand(
           }
 
           if (result.driftWarning) {
+            // Drift never refuses a commit (#1200): it landed, and this says over what.
             commitDetails.driftDetected = true;
+            const overlaps = result.driftDetail
+              ? [
+                  ...result.driftDetail.overlapping.elements.map((e) => `${e.id} (${e.reason}): ${e.consequence}`),
+                  ...result.driftDetail.overlapping.relationships.map(
+                    (r) => `${r.source} --${r.predicate}--> ${r.target} (${r.reason}): ${r.consequence}`
+                  ),
+                ]
+              : [];
+            if (overlaps.length > 0) commitDetails.driftOverlaps = overlaps;
             if (!isJson()) {
               console.log(
-                ansis.yellow(`⚠ Warning: Model had drifted since changeset creation (--force was used)`)
+                ansis.yellow(
+                  overlaps.length > 0
+                    ? `⚠ Warning: the base model overlapped ${overlaps.length} staged change(s). The changeset landed:`
+                    : "⚠ Warning: the base model had changed under this changeset, and it has no base index to list what overlapped. The changeset landed."
+                )
               );
+              for (const line of overlaps) console.log(ansis.yellow(`  - ${line}`));
             }
             if (isTelemetryEnabled) {
               (span as any).setAttribute("commit.driftDetected", true);
@@ -2037,7 +2160,7 @@ Examples:
     .description("Apply a changeset to the model")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("--no-validate", "Skip validation before applying")
-    .option("--force", "Force apply even if base model has drifted")
+    .option("--force", "Land over staged changes the base overlaps without being asked (needed with no terminal attached)")
     .addHelpText(
       "after",
       `
@@ -2251,7 +2374,11 @@ Examples:
       "--no-validate",
       "Skip validation before commit (validation runs by default; only errors the changeset introduces block, errors already in the base model are reported as a count)"
     )
-    .option("--force", "Commit despite drift warnings (does not skip validation)", false)
+    .option(
+      "--force",
+      "Land over staged changes the base overlaps without being asked (needed with no terminal attached; does not skip validation)",
+      false
+    )
     .addHelpText(
       "after",
       `
@@ -2259,13 +2386,19 @@ Validation compares the model with and without the changeset. Errors the
 changeset introduces block the commit; errors the base model already had are
 not counted against it, and the output says how many there were.
 
+A base model that changed elsewhere never holds up a commit. When it overlaps
+what the changeset stages (the base edited an element the plan updates, say),
+the overlaps are listed with what landing would do about each, and you are
+asked. With no terminal attached (a script, CI) there is no one to ask, so the
+commit is refused with the list and a non-zero exit, unless --force is passed.
+
 A named changeset (id or name) need not be active: it is activated for the
 commit, and the changeset that was active before is active again afterwards.
 
 Examples:
   $ dr changeset commit
   $ dr changeset commit add-order-api    # commit the changeset named add-order-api
-  $ dr changeset commit --force          # commit despite drift
+  $ dr changeset commit --force          # land over overlaps without being asked
   $ dr changeset commit --no-validate    # skip validation entirely`
     )
     .action(async (name: string | undefined, options) => {

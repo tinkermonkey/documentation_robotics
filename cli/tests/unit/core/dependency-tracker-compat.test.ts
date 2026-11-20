@@ -358,8 +358,10 @@ describe("DependencyTracker - Python CLI Compatibility", () => {
       registry.addReference({ source: "A", target: "A", type: "realizes" });
 
       const deps = tracker.traceDependencies("A", TraceDirection.UP);
-      // Should include A since it's reachable via self-loop
-      expect(deps).toContain("A");
+      // The traced element is never part of its own trace, as networkx.descendants leaves out the
+      // source: a self-loop adds nothing.
+      expect(deps).toEqual([]);
+      expect(tracker.traceDependencies("A", TraceDirection.UP, 3)).toEqual([]);
     });
 
     it("should handle max_depth of 0", () => {
@@ -377,10 +379,11 @@ describe("DependencyTracker - Python CLI Compatibility", () => {
 
       const deps = tracker.traceDependencies("A", TraceDirection.UP);
 
-      // Should include all nodes in cycle
-      expect(deps).toContain("A");
-      expect(deps).toContain("B");
-      expect(deps).toContain("C");
+      // Every other node of the cycle, and not the traced element itself (networkx.descendants
+      // leaves out the source; dr trace and the delete cascade would otherwise list it).
+      expect(deps.sort()).toEqual(["B", "C"]);
+      expect(tracker.traceDependencies("A", TraceDirection.DOWN).sort()).toEqual(["B", "C"]);
+      expect(tracker.traceDependencies("A", TraceDirection.UP, 5).sort()).toEqual(["B", "C"]);
     });
   });
 

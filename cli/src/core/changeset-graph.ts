@@ -429,6 +429,18 @@ export class ChangesetGraph {
   }
 }
 
+/**
+ * A stored element record (an element's toJSON, or a staged change's `before` or `after`) as a
+ * graph element, so its content can be compared with a base element's.
+ */
+export function elementFromRecord(
+  record: Record<string, unknown>,
+  layerName: string,
+  fallbackId?: string
+): GraphElement {
+  return fromRecord(record, layerName, "unchanged", fallbackId);
+}
+
 function fromRecord(
   record: Record<string, unknown>,
   layerName: string,

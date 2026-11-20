@@ -9,7 +9,9 @@
  * were classified as; the relationship catalog stays the authority on which triples are valid.
  * Without `conditions.predicates` the mapping's own `dr_relationship` and
  * `directionality_transform` are the only preference. A preference may carry its own `from_types`
- * / `to_types`: it applies only between those types (CALLS from a test case is `tests`).
+ * / `to_types`: it applies only between those types (CALLS from a test case is `tests`). It may
+ * also carry `strategy`, a regular expression on how the analyzer resolved the edge: CALLS resolved
+ * as a JSX element (`^lsp_ts_jsx`) is a component rendering a child, so it prefers `composes`.
  *
  * `conditions.from_types` / `conditions.to_types`, when present, restrict the element types the
  * CBM edge's source and target may have ("layer.type", or "layer.*" for any type of a layer); an
@@ -37,6 +39,18 @@ export interface EdgePreference {
   from_types?: string[];
   /** Only when the CBM edge's target is one of these types. */
   to_types?: string[];
+  /**
+   * Only for an edge the analyzer resolved this way: a regular expression on its resolution
+   * strategy (`^lsp_ts_jsx` is a component rendering a child). An edge with no recorded strategy
+   * never matches.
+   */
+  strategy?: string;
+}
+
+/** What is known about one edge beyond its type and its ends' element types. */
+export interface EdgeFacts {
+  /** The analyzer's resolution strategy for a call (`import_map`, `lsp_ts_jsx_import`). */
+  strategy?: string;
 }
 
 export interface EdgeRelationship {
@@ -55,11 +69,27 @@ export function edgePreferences(m: AnalyzerEdgeMapping): EdgePreference[] {
     return listed.map((p, i) => {
       if (typeof p === "string") return { predicate: p, invert: false };
       if (p && typeof p === "object" && typeof (p as { predicate?: unknown }).predicate === "string") {
-        const o = p as { predicate: string; invert?: unknown; from_types?: unknown; to_types?: unknown };
+        const o = p as { predicate: string; invert?: unknown; from_types?: unknown; to_types?: unknown; strategy?: unknown };
         const types = (v: unknown) => (Array.isArray(v) ? v.filter((t): t is string => typeof t === "string") : undefined);
         const from = types(o.from_types);
         const to = types(o.to_types);
-        return { predicate: o.predicate, invert: o.invert === true, ...(from ? { from_types: from } : {}), ...(to ? { to_types: to } : {}) };
+        if (o.strategy !== undefined) {
+          if (typeof o.strategy !== "string" || !o.strategy) {
+            throw new Error(`Edge mapping ${m.cbm_edge}: conditions.predicates[${i}].strategy must be a regular expression string`);
+          }
+          try {
+            new RegExp(o.strategy);
+          } catch {
+            throw new Error(`Edge mapping ${m.cbm_edge}: conditions.predicates[${i}].strategy is not a valid regular expression: ${o.strategy}`);
+          }
+        }
+        return {
+          predicate: o.predicate,
+          invert: o.invert === true,
+          ...(from ? { from_types: from } : {}),
+          ...(to ? { to_types: to } : {}),
+          ...(typeof o.strategy === "string" ? { strategy: o.strategy } : {}),
+        };
       }
       throw new Error(`Edge mapping ${m.cbm_edge}: conditions.predicates[${i}] must be a predicate name or {predicate, invert}`);
     });
@@ -77,7 +107,8 @@ function isScopedPair(p: EdgePreference): boolean {
   return !!p.from_types?.length && !!p.to_types?.length;
 }
 
-function prefAllows(p: EdgePreference, fromType: string, toType: string): boolean {
+function prefAllows(p: EdgePreference, fromType: string, toType: string, facts?: EdgeFacts): boolean {
+  if (p.strategy && !(facts?.strategy && new RegExp(p.strategy).test(facts.strategy))) return false;
   return typeAllowed(p.from_types, fromType) && typeAllowed(p.to_types, toType);
 }
 
@@ -103,11 +134,12 @@ export function relationshipFor(
   m: AnalyzerEdgeMapping,
   fromType: string,
   toType: string,
-  hasTriple: (id: string) => boolean
+  hasTriple: (id: string) => boolean,
+  facts?: EdgeFacts
 ): EdgeRelationship | null {
   const allowed = mappingAllows(m, fromType, toType);
   for (const pref of edgePreferences(m)) {
-    if (!prefAllows(pref, fromType, toType)) continue;
+    if (!prefAllows(pref, fromType, toType, facts)) continue;
     if (!allowed && !isScopedPair(pref)) continue;
     const [source, destination] = pref.invert ? [toType, fromType] : [fromType, toType];
     const id = `${source}.${pref.predicate}.${destination}`;

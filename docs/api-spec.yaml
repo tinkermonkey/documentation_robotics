@@ -39,19 +39,20 @@ components:
             - unknown
           description:
             "Whether the base model changed under the changeset since it was
-            created: none (the base is as it was), content-free (the base
-            changed, as when another changeset lands, but it overlaps none of
-            this one's staged changes; not blocking), drifted (the base overlaps
-            a staged change, listed in overlapping, or the changeset has no base
-            index to tell; a commit is refused), not-applicable (a verification
-            record or an upgrade record, which never lands, or a changeset that
-            is no longer staged), unknown (no base snapshot was recorded, or the
-            check failed; a commit is not blocked by drift)"
+            created or re-baselined: none (the base is as it was), content-free
+            (the base changed, as when another changeset lands, but it overlaps
+            none of this one's staged changes), drifted (the base overlaps a
+            staged change, listed in overlapping with what landing does about
+            it, or the changeset has no base index to tell; a commit still lands
+            it and reports the overlaps), not-applicable (a verification record
+            or an upgrade record, which never lands, or a changeset that is no
+            longer staged), unknown (no base snapshot was recorded, or the check
+            failed). No state refuses a commit"
         blocksCommit:
           type: boolean
           description:
-            True when POST /api/changesets/:id/commit would be refused for
-            drift (409). Only ever true in state drifted
+            "Deprecated: always false. Drift warns at a commit and never
+            refuses it, so do not hold Apply on this; read state"
         message:
           type: string
           description:
@@ -79,19 +80,20 @@ components:
             - unknown
           description:
             "Whether the base model changed under the changeset since it was
-            created: none (the base is as it was), content-free (the base
-            changed, as when another changeset lands, but it overlaps none of
-            this one's staged changes; not blocking), drifted (the base overlaps
-            a staged change, listed in overlapping, or the changeset has no base
-            index to tell; a commit is refused), not-applicable (a verification
-            record or an upgrade record, which never lands, or a changeset that
-            is no longer staged), unknown (no base snapshot was recorded, or the
-            check failed; a commit is not blocked by drift)"
+            created or re-baselined: none (the base is as it was), content-free
+            (the base changed, as when another changeset lands, but it overlaps
+            none of this one's staged changes), drifted (the base overlaps a
+            staged change, listed in overlapping with what landing does about
+            it, or the changeset has no base index to tell; a commit still lands
+            it and reports the overlaps), not-applicable (a verification record
+            or an upgrade record, which never lands, or a changeset that is no
+            longer staged), unknown (no base snapshot was recorded, or the check
+            failed). No state refuses a commit"
         blocksCommit:
           type: boolean
           description:
-            True when POST /api/changesets/:id/commit would be refused for
-            drift (409). Only ever true in state drifted
+            "Deprecated: always false. Drift warns at a commit and never
+            refuses it, so do not hold Apply on this; read state"
         message:
           type: string
           description:
@@ -114,6 +116,55 @@ components:
           description:
             Whether the changeset recorded which elements and relationships the
             base had when it was created. Without one, baseChanges is absent
+        rebaselined:
+          type: object
+          properties:
+            at:
+              type: string
+              description: ISO timestamp of the last re-baseline
+            from:
+              type: string
+              description: The base hash the changeset had before it
+            to:
+              type: string
+              description: The base hash it was re-baselined to
+            times:
+              type: integer
+              description: How many times it was re-baselined
+          required:
+            - at
+            - from
+            - times
+          description:
+            "Set when the changeset was re-baselined (changeset_update with
+            rebaseline): baseChanges then counts from that base, not from its
+            creation. A re-baseline clears no overlap: overlapping is read from
+            the base as it is now"
+        notChecked:
+          type: object
+          properties:
+            elements:
+              type: array
+              items:
+                type: string
+              description:
+                Elements staged changes record no element for, whose base edits
+                could not be seen
+            relationships:
+              type: integer
+              description:
+                Staged relationship changes not checked against what the base
+                removed, for want of a base index
+            sentence:
+              type: string
+              description:
+                "The same, for a person: show it beside overlapping, which is not
+                the whole answer when this is present"
+          required:
+            - elements
+            - relationships
+            - sentence
+          description: What could not be checked for overlaps; absent when everything was
         overlapping:
           type: object
           properties:
@@ -137,14 +188,27 @@ components:
                       "already-in-base: a staged add of an element the base now has;
                       already-removed: a staged delete of one the base no longer
                       has; changed-in-base: any staged change (an update, a
-                      delete, a delete then an add) of one whose base content
-                      changed; removed-in-base: a staged update or recreate of
-                      one the base removed; linked-in-base: a staged delete of
-                      one the base has since linked, whose new relationship the
-                      delete would remove"
+                      delete, a delete then an add) of one whose base content is
+                      not what that change was staged on (an update restaged on
+                      the current base is not one); removed-in-base: a staged
+                      update or recreate of one the base removed;
+                      linked-in-base: a staged delete of one the base has since
+                      linked, whose new relationship the delete would remove"
+                  consequence:
+                    type: string
+                    description:
+                      What landing does about this overlap, as a sentence to show the
+                      person before they commit
+                  resolve:
+                    type: string
+                    description:
+                      How the plan resolves the overlap (unstage, restage, stage a
+                      delete), for the agent revising it
                 required:
                   - id
                   - reason
+                  - consequence
+                  - resolve
             relationships:
               type: array
               items:
@@ -163,29 +227,42 @@ components:
                     enum:
                       - already-in-base
                       - already-removed
-                      - endpoint-changed-in-base
                       - endpoint-removed-in-base
                     description:
                       "already-in-base and already-removed as for elements;
-                      endpoint-changed-in-base and endpoint-removed-in-base: a
-                      staged relationship change with an end on a base element
-                      that changed or was removed"
+                      endpoint-removed-in-base: a staged relationship change
+                      with an end on a base element that was removed. An edit to
+                      an element at an end is not an overlap
+                      (endpoint-changed-in-base is no longer reported)"
                   endpoints:
                     type: array
                     items:
                       type: string
-                    description: "For the endpoint reasons: the ends the base changed or removed"
+                    description: "For endpoint-removed-in-base: the ends the base removed"
+                  consequence:
+                    type: string
+                    description:
+                      What landing does about this overlap, as a sentence to show the
+                      person before they commit
+                  resolve:
+                    type: string
+                    description:
+                      How the plan resolves the overlap (unstage, restage, stage a
+                      delete), for the agent revising it
                 required:
                   - source
                   - predicate
                   - target
                   - reason
+                  - consequence
+                  - resolve
           required:
             - elements
             - relationships
           description:
-            "The staged changes the base now overlaps. With a base index these
-            are what blocks a commit: a base change not listed here does not"
+            "The staged changes the base now overlaps, each with what landing
+            does about it. Show them before Apply: a commit lands over them. A
+            base change not listed here overlaps nothing the changeset stages"
         baseChanges:
           type: object
           properties:
@@ -208,7 +285,7 @@ components:
                 - elementsChanged
                 - relationshipsAdded
                 - relationshipsRemoved
-              description: Exact, also when the lists are cut
+              description: Exact, whatever the page of the lists
             elementsAdded:
               type: array
               items:
@@ -265,7 +342,76 @@ components:
                 or removed. Never cut"
             truncated:
               type: boolean
-              description: True when a list was cut at 50 entries
+              description:
+                True when a list here is not the whole of it; page says what there
+                is and where to go on
+            page:
+              type: object
+              properties:
+                offset:
+                  type: integer
+                  description: Where in each list this page starts
+                limit:
+                  type: integer
+                  description:
+                    How many entries of each list this page holds at most (driftLimit;
+                    default 50)
+                totals:
+                  type: object
+                  properties:
+                    elementsAdded:
+                      type: integer
+                    elementsRemoved:
+                      type: integer
+                    elementsChanged:
+                      type: integer
+                    relationshipsAdded:
+                      type: integer
+                    relationshipsRemoved:
+                      type: integer
+                  required:
+                    - elementsAdded
+                    - elementsRemoved
+                    - elementsChanged
+                    - relationshipsAdded
+                    - relationshipsRemoved
+                  description: Each list's true length
+                returned:
+                  type: object
+                  properties:
+                    elementsAdded:
+                      type: integer
+                    elementsRemoved:
+                      type: integer
+                    elementsChanged:
+                      type: integer
+                    relationshipsAdded:
+                      type: integer
+                    relationshipsRemoved:
+                      type: integer
+                  required:
+                    - elementsAdded
+                    - elementsRemoved
+                    - elementsChanged
+                    - relationshipsAdded
+                    - relationshipsRemoved
+                  description: How many entries of each list this page carries
+                nextOffset:
+                  type: integer
+                  description:
+                    The driftOffset that continues the lists; absent when every list
+                    has been read to its end
+                more:
+                  type: string
+                  description: "With nextOffset: the call that reads the next entries, in words"
+              required:
+                - offset
+                - limit
+                - totals
+                - returned
+              description:
+                What this page of the five lists holds. Read on with driftLimit and
+                driftOffset on GET /api/changesets/:id
           required:
             - counts
             - elementsAdded
@@ -275,9 +421,10 @@ components:
             - relationshipsRemoved
             - layers
             - truncated
+            - page
           description:
-            What changed in the base since the changeset was created (dotted
-            ids); needs a base index
+            What changed in the base since the changeset was created or last
+            re-baselined (dotted ids); needs a base index
       required:
         - state
         - blocksCommit
@@ -286,8 +433,8 @@ components:
         Base drift, checked on this read with no commit attempt, against
         the model as the server last loaded it (it reloads when a model file
         changes; a commit reads the model from disk). warnings, baseIndex,
-        overlapping and baseChanges are present only when the base's hash
-        changed (states content-free and drifted)
+        rebaselined, overlapping and baseChanges are present only in states
+        content-free and drifted
     ChangeOrigin:
       type: object
       properties:
@@ -1734,7 +1881,7 @@ paths:
       description:
         "Retrieve a list of all changesets. Each carries its base drift
         (drift), checked on this read with no commit attempt: whether the base
-        model changed under it and whether that blocks a commit. GET
+        model changed under it and overlaps what it stages. GET
         /api/changesets/:id adds what changed."
       security:
         - bearerAuth: []
@@ -1876,9 +2023,12 @@ paths:
       description:
         "Retrieve a specific changeset with all its changes, and its base
         drift (drift), checked on this read with no commit attempt: whether the
-        base model changed under it, whether that blocks a commit and, when the
-        base's hash changed, the staged changes the base now overlaps and what
-        was added, removed or changed in the base."
+        base model changed under it and, when it did, the staged changes the
+        base now overlaps (always all of them, each with what landing does about
+        it) and what was added, removed or changed in the base. Those five lists
+        are a page: driftLimit entries of each from driftOffset, with
+        drift.baseChanges.page giving each list's true total and the nextOffset
+        that continues them."
       security:
         - bearerAuth: []
       parameters:
@@ -1889,6 +2039,32 @@ paths:
           required: true
           name: changesetId
           in: path
+        - schema:
+            type: integer
+            minimum: 1
+            description:
+              How many entries of each drift.baseChanges list to return (default
+              50; no upper bound)
+          required: false
+          description:
+            How many entries of each drift.baseChanges list to return (default
+            50; no upper bound)
+          name: driftLimit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+            description:
+              Where in each drift.baseChanges list to start (default 0); pass
+              drift.baseChanges.page.nextOffset to go on
+          required: false
+          description:
+            Where in each drift.baseChanges list to start (default 0); pass
+            drift.baseChanges.page.nextOffset to go on
+          name: driftOffset
+          in: query
       responses:
         "200":
           description: Changeset retrieved successfully
@@ -2319,13 +2495,13 @@ paths:
       summary: Commit changeset
       description: "Apply a staged changeset to the model (same as `dr changeset
         commit`): validates it, applies every change atomically, marks it
-        committed, and deactivates it if it was active. Refused (409) when what
-        the changeset was staged against changed in the base since it was
-        created; this route has no force, so such a changeset lands only through
-        changeset_commit with force. A base that only gained other elements
-        (another changeset landing) is not drift. Refused (409) too for a
-        verification record (purpose verification, whose actions do not include
-        commit): it is never landed."
+        committed, and deactivates it if it was active. Drift does not refuse
+        it: when the base overlaps what the changeset stages (its drift.state is
+        drifted), it lands all the same, and the result's drift lists each
+        overlap with what landing did about it. Show GET /api/changesets/:id's
+        drift.overlapping, with each consequence, before calling this. Refused
+        (409) for a verification record or an upgrade record (whose actions do
+        not include commit): it is never landed."
       security:
         - bearerAuth: []
       parameters:
@@ -2395,6 +2571,120 @@ paths:
                     description: The changeset was active and was deactivated (commit only)
                   deactivationError:
                     type: string
+                  drift:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        description: What happened, in a sentence
+                      overlapping:
+                        type: object
+                        properties:
+                          elements:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  description: The element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - changed-in-base
+                                    - removed-in-base
+                                    - linked-in-base
+                                  description:
+                                    "already-in-base: a staged add of an element the base now has;
+                                    already-removed: a staged delete of one the
+                                    base no longer has; changed-in-base: any
+                                    staged change (an update, a delete, a delete
+                                    then an add) of one whose base content is
+                                    not what that change was staged on (an
+                                    update restaged on the current base is not
+                                    one); removed-in-base: a staged update or
+                                    recreate of one the base removed;
+                                    linked-in-base: a staged delete of one the
+                                    base has since linked, whose new
+                                    relationship the delete would remove"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - id
+                                - reason
+                                - consequence
+                                - resolve
+                          relationships:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element (dotted id)
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - endpoint-removed-in-base
+                                  description:
+                                    "already-in-base and already-removed as for elements;
+                                    endpoint-removed-in-base: a staged
+                                    relationship change with an end on a base
+                                    element that was removed. An edit to an
+                                    element at an end is not an overlap
+                                    (endpoint-changed-in-base is no longer
+                                    reported)"
+                                endpoints:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "For endpoint-removed-in-base: the ends the base removed"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - source
+                                - predicate
+                                - target
+                                - reason
+                                - consequence
+                                - resolve
+                        required:
+                          - elements
+                          - relationships
+                        description:
+                          Absent when the changeset has no base index, so the overlaps could
+                          not be listed
+                    required:
+                      - message
+                    description:
+                      "Commit only, when the base had drifted under the changeset: it
+                      landed all the same, and this says what the base
+                      overlapped"
                   dropped:
                     type: array
                     items:
@@ -2439,9 +2729,9 @@ paths:
                   - error
         "409":
           description:
-            Changeset is not staged, the model drifted since it was created, or
-            (commit) it is a verification record or an upgrade record, which is
-            never landed
+            "Changeset is not staged, or (commit) it is a verification record
+            or an upgrade record, which is never landed. Never for drift: a
+            drifted changeset lands"
           content:
             application/json:
               schema:
@@ -2552,6 +2842,120 @@ paths:
                     description: The changeset was active and was deactivated (commit only)
                   deactivationError:
                     type: string
+                  drift:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        description: What happened, in a sentence
+                      overlapping:
+                        type: object
+                        properties:
+                          elements:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  description: The element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - changed-in-base
+                                    - removed-in-base
+                                    - linked-in-base
+                                  description:
+                                    "already-in-base: a staged add of an element the base now has;
+                                    already-removed: a staged delete of one the
+                                    base no longer has; changed-in-base: any
+                                    staged change (an update, a delete, a delete
+                                    then an add) of one whose base content is
+                                    not what that change was staged on (an
+                                    update restaged on the current base is not
+                                    one); removed-in-base: a staged update or
+                                    recreate of one the base removed;
+                                    linked-in-base: a staged delete of one the
+                                    base has since linked, whose new
+                                    relationship the delete would remove"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - id
+                                - reason
+                                - consequence
+                                - resolve
+                          relationships:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element (dotted id)
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - endpoint-removed-in-base
+                                  description:
+                                    "already-in-base and already-removed as for elements;
+                                    endpoint-removed-in-base: a staged
+                                    relationship change with an end on a base
+                                    element that was removed. An edit to an
+                                    element at an end is not an overlap
+                                    (endpoint-changed-in-base is no longer
+                                    reported)"
+                                endpoints:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "For endpoint-removed-in-base: the ends the base removed"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - source
+                                - predicate
+                                - target
+                                - reason
+                                - consequence
+                                - resolve
+                        required:
+                          - elements
+                          - relationships
+                        description:
+                          Absent when the changeset has no base index, so the overlaps could
+                          not be listed
+                    required:
+                      - message
+                    description:
+                      "Commit only, when the base had drifted under the changeset: it
+                      landed all the same, and this says what the base
+                      overlapped"
                   dropped:
                     type: array
                     items:
@@ -2582,9 +2986,9 @@ paths:
                   - error
         "409":
           description:
-            Changeset is not staged, the model drifted since it was created, or
-            (commit) it is a verification record or an upgrade record, which is
-            never landed
+            "Changeset is not staged, or (commit) it is a verification record
+            or an upgrade record, which is never landed. Never for drift: a
+            drifted changeset lands"
           content:
             application/json:
               schema:
