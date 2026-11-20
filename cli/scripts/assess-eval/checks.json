@@ -1,0 +1,234 @@
+{
+  "note": "Starter bank for the review-question strategy (S3): each question as a deterministic check. An element of `type` passes when it has any one of `anyOf`. A check runs only when the model has the type and at least one of the other types. Written after reading the viewer and Context Studio models, so it is in-sample for them.",
+  "checks": [
+    {
+      "id": "operation-realized",
+      "question": "What application behaviour realizes each API operation?",
+      "type": "api.operation",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "application.applicationfunction"
+        }
+      ]
+    },
+    {
+      "id": "operation-in-path",
+      "question": "Which path does each API operation belong to?",
+      "type": "api.operation",
+      "anyOf": [
+        {
+          "direction": "in",
+          "predicate": "composes",
+          "otherType": "api.pathitem"
+        }
+      ]
+    },
+    {
+      "id": "collection-schema",
+      "question": "Where is each stored collection's schema?",
+      "type": "data-store.collection",
+      "anyOf": [
+        {
+          "direction": "in",
+          "predicate": "maps-to",
+          "otherType": "data-model.objectschema"
+        },
+        {
+          "direction": "in",
+          "predicate": "maps-to",
+          "otherType": "data-model.schemadefinition"
+        }
+      ]
+    },
+    {
+      "id": "collection-accessed",
+      "question": "What reads or writes each stored collection?",
+      "type": "data-store.collection",
+      "anyOf": [
+        {
+          "direction": "in",
+          "predicate": "accesses",
+          "otherType": "application.applicationcomponent"
+        },
+        {
+          "direction": "in",
+          "predicate": "accesses",
+          "otherType": "application.applicationfunction"
+        },
+        {
+          "direction": "in",
+          "predicate": "accesses",
+          "otherType": "application.applicationservice"
+        },
+        {
+          "direction": "in",
+          "predicate": "accesses",
+          "otherType": "data-store.storedlogic"
+        },
+        {
+          "direction": "in",
+          "predicate": "accesses",
+          "otherType": "data-store.accesspattern"
+        }
+      ]
+    },
+    {
+      "id": "collection-in-database",
+      "question": "Which database holds each collection?",
+      "type": "data-store.collection",
+      "anyOf": [
+        {
+          "direction": "in",
+          "predicate": "composes",
+          "otherType": "data-store.database"
+        },
+        {
+          "direction": "in",
+          "predicate": "composes",
+          "otherType": "data-store.namespace"
+        }
+      ]
+    },
+    {
+      "id": "route-view",
+      "question": "Which view does each route show?",
+      "type": "navigation.route",
+      "anyOf": [
+        { "direction": "out", "predicate": "maps-to", "otherType": "ux.view" }
+      ]
+    },
+    {
+      "id": "view-feature",
+      "question": "Which product feature does each view realize?",
+      "type": "ux.view",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "product.feature"
+        }
+      ]
+    },
+    {
+      "id": "component-realizes-service",
+      "question": "Which application service does each component realize?",
+      "type": "application.applicationcomponent",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "application.applicationservice"
+        }
+      ]
+    },
+    {
+      "id": "function-realizes-service",
+      "question": "What does each application function realize?",
+      "type": "application.applicationfunction",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "application.applicationservice"
+        },
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "business.businessfunction"
+        }
+      ]
+    },
+    {
+      "id": "service-purpose",
+      "question": "What does each application service exist for?",
+      "type": "application.applicationservice",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "business.businessservice"
+        },
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "product.feature"
+        },
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "product.softwarecapability"
+        },
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "motivation.goal"
+        }
+      ]
+    },
+    {
+      "id": "service-tested",
+      "question": "What tests each application service?",
+      "type": "application.applicationservice",
+      "anyOf": [
+        {
+          "direction": "in",
+          "predicate": "tests",
+          "otherType": "testing.testcasesketch"
+        },
+        {
+          "direction": "in",
+          "predicate": "covers",
+          "otherType": "testing.testcoveragetarget"
+        }
+      ]
+    },
+    {
+      "id": "component-tested",
+      "question": "What tests each application component?",
+      "type": "application.applicationcomponent",
+      "anyOf": [
+        {
+          "direction": "in",
+          "predicate": "tests",
+          "otherType": "testing.testcasesketch"
+        },
+        {
+          "direction": "in",
+          "predicate": "covers",
+          "otherType": "testing.testcoveragetarget"
+        },
+        {
+          "direction": "in",
+          "predicate": "covers",
+          "otherType": "testing.testcoveragemodel"
+        }
+      ]
+    },
+    {
+      "id": "feature-capability",
+      "question": "Which software capability does each feature realize?",
+      "type": "product.feature",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "realizes",
+          "otherType": "product.softwarecapability"
+        }
+      ]
+    },
+    {
+      "id": "feature-persona",
+      "question": "Who is each feature for?",
+      "type": "product.feature",
+      "anyOf": [
+        {
+          "direction": "out",
+          "predicate": "serves",
+          "otherType": "product.persona"
+        }
+      ]
+    }
+  ]
+}
