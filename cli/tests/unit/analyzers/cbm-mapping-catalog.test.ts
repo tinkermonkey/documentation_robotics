@@ -164,6 +164,29 @@ describe("cbm mapping names only what the spec has", () => {
     });
   });
 
+  it("maps a call resolved as a JSX element as the parent composing the child, where the catalog has the triple", () => {
+    const calls = cbm.edges_by_type.CALLS as AnalyzerEdgeMapping;
+    const has = (id: string) => triples.has(id);
+    const jsx = { strategy: "lsp_ts_jsx_import" };
+    for (const [from, to] of [
+      ["application.applicationcomponent", "application.applicationcomponent"],
+      ["ux.view", "ux.subview"],
+      ["ux.librarycomponent", "ux.librarycomponent"],
+    ]) {
+      expect(relationshipFor(calls, from, to, has, jsx)).toMatchObject({ id: `${from}.composes.${to}`, inverted: false });
+      // The same pair called as a function is not composition.
+      expect(relationshipFor(calls, from, to, has, { strategy: "import_map" })?.predicate).not.toBe("composes");
+      expect(relationshipFor(calls, from, to, has)?.predicate).not.toBe("composes");
+    }
+    // No composes triple for two functions: a rendered function component is a dependency, as before.
+    expect(relationshipFor(calls, "application.applicationfunction", "application.applicationfunction", has, jsx)).toMatchObject({
+      id: "application.applicationfunction.depends-on.application.applicationfunction",
+    });
+    // A strategy condition that is not a regular expression is refused when the mapping is read.
+    const bad = { ...calls, conditions: { predicates: [{ predicate: "composes", strategy: "(" }] } } as AnalyzerEdgeMapping;
+    expect(() => edgePreferences(bad)).toThrow("not a valid regular expression");
+  });
+
   it("accounts for every CBM edge type exactly once", () => {
     expect(Object.keys(cbm.edges_by_type).sort()).toEqual([...CBM_EDGES].sort());
   });

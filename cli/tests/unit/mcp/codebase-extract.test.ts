@@ -3164,6 +3164,58 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     return { result, rels: await relationshipIds(result.changeset.id) };
   }
 
+  it("a rendered child is composed, a called one is used, and what a service calls realizes it", async () => {
+    await indexed();
+    const h = harness();
+    const fn = (file: string, name: string, line = 1) => ({
+      label: "Function",
+      name,
+      qualified_name: `${P}.${file.replace(/\.tsx?$/, "").replace(/\//g, ".")}.${name}`,
+      file_path: file,
+      start_line: line,
+      end_line: line + 8,
+      source: `export function ${name}() {}`,
+    });
+    const panel = fn("src/ui/Panel.tsx", "Panel");
+    const chip = fn("src/ui/Chip.tsx", "Chip");
+    const toolbar = fn("src/ui/Toolbar.tsx", "Toolbar");
+    const run = fn("src/commands/run.ts", "runCommand");
+    const helper = fn("src/core/plan.ts", "buildPlan");
+    h.project.nodes.push(panel, chip, toolbar, run, helper);
+    const lsp = (strategy: string, callee: string) => ({ strategy, confidence: 0.95, candidates: 1, callee, importance: 4 });
+    h.project.edges.push(
+      { type: "CALLS", from: panel.qualified_name, to: chip.qualified_name, evidence: lsp("lsp_ts_jsx_import", "Chip") },
+      { type: "CALLS", from: panel.qualified_name, to: toolbar.qualified_name, evidence: lsp("lsp_ts_import", "Toolbar") },
+      { type: "CALLS", from: run.qualified_name, to: helper.qualified_name, evidence: lsp("lsp_ts_import", "buildPlan") }
+    );
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ pageSize: 50, rootPath }));
+    const component = (name: string, file: string) => ({ layer: "application", type: "applicationcomponent", name, attributes: { type: "internal" }, sourceFile: file, sourceSymbol: name, sourceProvenance: "extracted" as const });
+    ok(
+      await modelAddHandler({
+        elements: [
+          component("Panel", panel.file_path),
+          component("Chip", chip.file_path),
+          component("Toolbar", toolbar.file_path),
+          { layer: "application", type: "applicationservice", name: "runCommand", attributes: { serviceType: "synchronous" }, sourceFile: run.file_path, sourceSymbol: "runCommand", sourceProvenance: "extracted" },
+          { layer: "application", type: "applicationfunction", name: "buildPlan", sourceFile: helper.file_path, sourceSymbol: "buildPlan", sourceProvenance: "extracted" },
+        ],
+        rootPath,
+      })
+    );
+    clearModelCache();
+    ok(await handler({ changeset: first.changeset.name, rootPath }));
+    const rels = await relationshipIds(first.changeset.id);
+    const C = "application.applicationcomponent";
+    // Rendered as a JSX element: composition. Called as a function: use.
+    expect(rels).toContain(`${C}.panel::composes::${C}.chip`);
+    expect(rels).not.toContain(`${C}.panel::uses::${C}.chip`);
+    expect(rels).toContain(`${C}.panel::uses::${C}.toolbar`);
+    expect(rels).not.toContain(`${C}.panel::composes::${C}.toolbar`);
+    // The service calls the function, so the function realizes the service.
+    expect(rels).toContain("application.applicationfunction.build-plan::realizes::application.applicationservice.run-command");
+  });
+
   it("keeps a call CBM resolved confidently, or without evidence", async () => {
     expect((await runWith({ strategy: "lsp_type_dispatch", confidence: 0.95, candidates: 1, callee: "controller.showOwner", importance: 4 })).rels).toContain(TESTS_HANDLER);
     expect((await runWith(undefined)).rels).toContain(TESTS_HANDLER);
