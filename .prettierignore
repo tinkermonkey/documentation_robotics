@@ -1,2 +1,5 @@
 # Documentation Robotics: dr writes its changeset files in its own layout
 documentation-robotics/changesets/
+
+# The whole folder is dr's own output: the model as well as its changesets
+documentation-robotics/
