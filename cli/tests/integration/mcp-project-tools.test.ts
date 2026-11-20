@@ -1,11 +1,11 @@
 /**
- * Integration tests for the project_init and project_upgrade MCP tools: spawns the built CLI as
+ * Integration tests for the project_init, project_upgrade and project_status MCP tools: spawns the built CLI as
  * `dr mcp` and drives it over stdio. The server is started outside the project and learns which
  * folder to serve from the client's MCP roots, as a server registered once per user does.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "child_process";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,8 +13,9 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import yaml from "yaml";
 import { runDr } from "../helpers/cli-runner.js";
-import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
+import { getCliBundledSpecVersion, getCliVersion } from "../../src/utils/spec-version.js";
 import { MigrationRegistry } from "../../src/core/migration-registry.js";
+import { LANDING_WHEN_DRIFT_BLOCKS } from "../../src/mcp/tools/project-status-collectors.js";
 
 const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
@@ -412,6 +413,139 @@ describe("project_upgrade over MCP", () => {
     expect(result.isError).toBe(true);
     expect(result.body.suggestions.join(" ")).toContain("project_init");
   }, 60000);
+});
+
+// Follows tranche 2 (#1200, drift warns and never refuses): today a drifted changeset's landing is
+// refused without force, and the status says so. When that lands, these three lines are the edit.
+const DRIFTED_LANDING = LANDING_WHEN_DRIFT_BLOCKS;
+const DRIFTED_LANDING_WORDS = "force: true";
+const DRIFT_REFUSES_LANDING = true;
+
+describe("project_status over MCP", () => {
+  function git(cwd: string, ...args: string[]): string {
+    const result = spawnSync(
+      "git",
+      ["-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", ...args],
+      { cwd, encoding: "utf-8" }
+    );
+    if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+    return result.stdout.trim();
+  }
+
+  // #1227, #1228, #1195: one call says what drifted under a staged plan and in the code, whether a
+  // landing is refused, and which tool comes next.
+  it("says what drifted, what a landing does and what to call, in one small answer", async () => {
+    const project = await realpath(await mkdir(join(testDir, "drifting"), { recursive: true }).then(() => join(testDir, "drifting")));
+    git(project, "init", "-q");
+    await writeFile(join(project, ".gitignore"), ".dr/\n");
+    const state = await startServer([project]);
+    const call = async (name: string, args: Record<string, unknown> = {}) => {
+      const result = await callTool(state, name, args);
+      if (result.isError) throw new Error(`${name} failed: ${JSON.stringify(result.body)}`);
+      return result.body;
+    };
+
+    // A model whose two elements reference src/checkout.ts and nothing else.
+    await call("project_init", { name: "Drifting Project" });
+    await call("model_add", {
+      layer: "application",
+      type: "applicationservice",
+      name: "checkout",
+      attributes: { serviceType: "synchronous" },
+      sourceFile: "src/checkout.ts",
+      sourceProvenance: "extracted",
+    });
+    await call("model_add", { layer: "application", type: "applicationfunction", name: "audit", sourceFile: "src/checkout.ts", sourceProvenance: "extracted" });
+    await mkdir(join(project, "src"), { recursive: true });
+    await writeFile(join(project, "src", "checkout.ts"), "export const checkout = 1;\n");
+    git(project, "add", "-A");
+    git(project, "commit", "-q", "-m", "code and an empty model");
+    const extracted = git(project, "rev-parse", "HEAD");
+
+    // While the bootstrap is reviewed, other work merges: a change to modelled code and a new file.
+    await writeFile(join(project, "src", "checkout.ts"), "export const checkout = 2;\n");
+    await writeFile(join(project, "src", "lighting.ts"), "export const lighting = 1;\n");
+    git(project, "add", "-A");
+    git(project, "commit", "-q", "-m", "merge other work");
+    // The bootstrap lands (its stamp names the commit the extraction read) and is committed after.
+    const manifestPath = join(project, "documentation-robotics/model/manifest.yaml");
+    const manifest = await manifestOf(project);
+    manifest.reconciled = { changeset: "extract-bootstrap", changeset_id: "changeset-bootstrap", landed_at: "2020-01-01T00:00:00.000Z", code_commit: extracted };
+    await writeFile(manifestPath, yaml.stringify(manifest));
+    git(project, "add", "-A");
+    git(project, "commit", "-q", "-m", "bootstrap the model");
+    const landed = git(project, "rev-parse", "HEAD");
+
+    // A plan rewords an element; the base then changes that element under it.
+    const plan = await call("changeset_create", { name: "reword-audit", description: "Reword the audit function." });
+    await call("model_update", { id: "application.applicationfunction.audit", description: "Audit log" });
+    await call("changeset_deactivate");
+    await call("model_update", { id: "application.applicationfunction.audit", description: "Audit trail" });
+
+    const result = await callTool(state, "project_status");
+    expect(result.isError).toBe(false);
+    const status = result.body;
+
+    // This server is the CLI on disk.
+    expect(status.server).toEqual({ status: "current", version: getCliVersion(), comparedWith: process.cwd() });
+
+    // The plan, set aside: that it drifted, what a landing does about it and the call for the detail.
+    expect(status.changesets.staged).toHaveLength(1);
+    expect(status.changesets.staged[0]).toMatchObject({
+      name: "reword-audit",
+      baseDrifted: true,
+      drift: {
+        state: "drifted",
+        landing: DRIFTED_LANDING,
+        next: { tool: "changeset_brief", args: { changeset: plan.id, sections: ["drift"] } },
+      },
+    });
+    // The staged list in full says what moved under it and what overlaps.
+    const staged = await call("project_status", { list: "stagedChangesets" });
+    expect(staged.items[0].drift).toMatchObject({
+      baseChanges: { elementsChanged: 1 },
+      overlapping: { elements: 1, relationships: 0, first: ["application.applicationfunction.audit (changed-in-base)"] },
+    });
+    // The landing is refused as the status said it would be (follows tranche 2: see DRIFTED_LANDING).
+    const preview = await callTool(state, "changeset_commit_preview", { changeset: "reword-audit" });
+    expect(preview.isError).toBe(DRIFT_REFUSES_LANDING);
+    expect(JSON.stringify(preview.body)).toContain(DRIFTED_LANDING_WORDS);
+    // The call the status names answers with the drift.
+    const brief = await call("changeset_brief", status.changesets.staged[0].drift.next.args);
+    expect(JSON.stringify(brief)).toContain("application.applicationfunction.audit");
+
+    // The code: counted from the commit the extraction read, not the later commit that landed the model.
+    expect(status.codeDrift).toMatchObject({
+      status: "drift",
+      basis: "last-reconciling-commit",
+      modelCommit: { sha: landed },
+      countedFrom: { sha: extracted },
+      commitsSince: 1,
+      referencedFilesChanged: 1,
+      changedSourceFiles: [{ file: "src/checkout.ts", elementCount: 2 }],
+      unreferenced: { files: 1, sourceFiles: 1, newSourceFiles: 1, first: ["src/lighting.ts"] },
+    });
+    expect(status.codeDrift.rule).toContain(`Counted from ${extracted.slice(0, 7)}, the code the as-built landing "extract-bootstrap" read`);
+
+    // The next step names the tool, and the catch-up reads from the extraction's commit.
+    expect(status.nextStep.tool).toBe("codebase_index");
+    expect(status.nextStep.then.tool).toBe("codebase_verify");
+    expect(status.nextStep.summary).toContain(`codebase_extract with since: "${extracted.slice(0, 7)}" and no plan active`);
+
+    // A list the status shortens is returned in full by the same tool, paged.
+    const unreferenced = await call("project_status", { list: "unreferencedFiles", limit: 1 });
+    expect(unreferenced).toEqual({
+      list: "unreferencedFiles",
+      items: [{ file: "src/lighting.ts", source: true, added: true }],
+      page: { total: 1, returned: 1, offset: 0 },
+    });
+    const refused = await callTool(state, "project_status", { offset: 3 });
+    expect(refused.isError).toBe(true);
+
+    // It opens every session: the whole answer stays small.
+    expect(JSON.stringify(status).length).toBeLessThan(5000);
+    expectCleanStdout(state);
+  }, 120000);
 });
 
 describe("stdout under --debug and --verbose", () => {
