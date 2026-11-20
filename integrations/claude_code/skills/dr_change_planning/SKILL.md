@@ -88,7 +88,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    exist only in the changeset. When you wire several, use the lists: `model_add` with
    `elements: [...]` (plus `relationships` that may name elements added in the same call), and
    `relationship_add` with `relationships: [{source, predicate, target, properties?}]`. Each list is
-   staged in one write; an invalid item is skipped and reported, so read the per-item results. For
+   staged in one write; an invalid item is skipped and reported, so read `attention` in the result
+   (it lists only the items that were not staged as sent; `verbose: true` lists every item). A
+   large batch goes in a JSON file passed as `file`, not in the call. `model_update` takes a list
+   too (`updates: [...]`). For
    a planned element with no code yet, send no source fields. Pass `sourceFile` and `sourceSymbol`
    (with `sourceProvenance: "manual"`) only when you know where the code goes.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a

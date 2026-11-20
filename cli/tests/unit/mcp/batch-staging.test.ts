@@ -15,7 +15,7 @@ import { Model } from "../../../src/core/model.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { modelAddHandler, modelAddTool } from "../../../src/mcp/tools/model-add.js";
+import { modelAddHandler as modelAdd, modelAddTool } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
@@ -23,7 +23,16 @@ import { changesetCreateTool } from "../../../src/mcp/tools/changeset-lifecycle.
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetDiscardHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
-import { relationshipAddHandler, relationshipAddTool, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
+import {
+  relationshipAddHandler as relationshipAdd,
+  relationshipAddTool,
+  relationshipDeleteHandler,
+} from "../../../src/mcp/tools/relationship-tools.js";
+
+// These tests read every item's result, so they ask for it: a list returns only the items that
+// need attention unless verbose is set (#1182; see batch-write-cost.test.ts).
+const modelAddHandler = (args: any) => modelAdd(args.elements ? { verbose: true, ...args } : args);
+const relationshipAddHandler = (args: any) => relationshipAdd(args.relationships ? { verbose: true, ...args } : args);
 
 function parse(result: any): any {
   if (result.isError) throw new Error(result.content[0].text);
@@ -398,20 +407,20 @@ describe("model_add: relationships naming this call's elements without the exact
     expect(adds.every((c) => c.elementId.startsWith(`${SNAPSHOT}::`))).toBe(true);
   });
 
-  it("keeps exact matching, and the 'did you mean', for elements that already exist", async () => {
+  it("keeps the 'did you mean' for a reference that matches no element, new or existing", async () => {
     await createChangeset();
     const result = parse(
       await modelAddHandler({
         elements: [{ layer: "application", type: "applicationfunction", name: "ExportOrders" }],
         relationships: [
-          { source: "application.applicationfunction.exportorders", predicate: "realizes", target: "application.applicationservice.check-out" },
+          { source: "application.applicationfunction.exportorders", predicate: "realizes", target: "application.applicationservice.chekout" },
         ],
         rootPath,
       })
     );
     expect(result.relationships.counts).toEqual({ invalid: 1 });
     const r = result.relationships.results[0];
-    expect(r.reason).toBe("Target element application.applicationservice.check-out not found");
+    expect(r.reason).toBe("Target element application.applicationservice.chekout not found");
     expect(r.suggestions.join(" ")).toContain(`Did you mean: ${SERVICE}`);
   });
 
@@ -440,7 +449,7 @@ describe("model_add: relationships naming this call's elements without the exact
     expect(ambiguous.suggestions).toEqual(["Name the element by its exact id"]);
   });
 
-  it("reports a reference that also matches an existing element the same way", async () => {
+  it("reports a reference that matches a new element and an existing one the same way", async () => {
     await add(definition("Graphlayout Snapshot"));
     await createChangeset();
     const result = parse(
@@ -528,7 +537,7 @@ describe("model_add: relationships naming this call's elements without the exact
     expect(r.reason).not.toContain("not added");
   });
 
-  it("does not say an existing element was not added when the call refused a copy of it", async () => {
+  it("reads a loose reference as the existing element when the call refused a copy of it (#1230)", async () => {
     await add(definition("GraphLayoutSnapshot"));
     await createChangeset();
     const refusal = { ...definition("GraphLayoutSnapshot"), attributes: { title: "GraphLayoutSnapshot", type: "nonsense" } };
@@ -540,9 +549,10 @@ describe("model_add: relationships naming this call's elements without the exact
       })
     );
     const r = result.relationships.results[0];
-    expect(r.status).toBe("invalid");
-    // An existing element must be named exactly; the refusal is not what stopped this reference.
-    expect(r.reason).toBe(`Source element ${UNSPLIT} not found`);
+    // The element exists: the refused copy is not what the reference names.
+    expect(r.status).toBe("staged");
+    expect(r.source).toBe(SNAPSHOT);
+    expect(r.notes).toEqual([`Source ${UNSPLIT} read as ${SNAPSHOT}, which the model has`]);
   });
 
   it("reads a reference as the element a later item added under an id the call first refused", async () => {
@@ -622,7 +632,8 @@ describe("source fields for planned elements (bug 14)", () => {
         rootPath,
       })
     );
-    expect(result.elements.results[0].warnings[0]).toContain("used 'manual'");
+    // sourceFile alone gets the documented default, 'manual', without a warning (#1233).
+    expect(result.elements.results[0].warnings).toBeUndefined();
     expect(result.elements.results[1].warnings[0]).toContain("'extracted' was ignored");
   });
 
@@ -630,7 +641,7 @@ describe("source fields for planned elements (bug 14)", () => {
     await createChangeset();
     const updated = parse(await modelUpdateHandler({ id: SERVICE, sourceFile: "src/checkout.ts", rootPath }));
     expect(updated.status).toBe("staged");
-    expect(updated.warnings.join(" ")).toContain("used 'manual'");
+    expect(updated.warnings).toBeUndefined();
     let ref = parse(await modelShowHandler({ id: SERVICE, rootPath })).element.source_reference;
     expect(ref).toEqual({ provenance: "manual", locations: [{ file: "src/checkout.ts" }] });
 
@@ -640,7 +651,9 @@ describe("source fields for planned elements (bug 14)", () => {
     expect(ref).toEqual({ provenance: "extracted", locations: [{ file: "src/checkout.ts" }] });
 
     const moved = parse(await modelUpdateHandler({ id: SERVICE, sourceFile: "src/checkout/index.ts", rootPath }));
-    expect(moved.warnings.join(" ")).toContain("used 'extracted' (the element's current provenance)");
+    expect(moved.warnings).toBeUndefined();
+    ref = parse(await modelShowHandler({ id: SERVICE, rootPath })).element.source_reference;
+    expect(ref).toEqual({ provenance: "extracted", locations: [{ file: "src/checkout/index.ts" }] });
   });
 
   it("model_update: 'manual' alone on an element with no file is ignored with a warning, and stages nothing", async () => {

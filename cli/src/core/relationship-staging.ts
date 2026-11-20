@@ -24,6 +24,7 @@ import {
 } from "../generated/relationship-index.js";
 import { normalizeNodeType } from "../generated/node-types.js";
 import { findSimilar } from "../utils/errors.js";
+import { compactId } from "../utils/id-generator.js";
 
 export interface RelationshipTriple {
   source: string;
@@ -263,13 +264,37 @@ function compactSlug(slug: string): string {
 }
 
 /**
+ * The candidate id of the same layer and type that starts most like `id`, when they share at least
+ * {@link MIN_SHARED_START} characters of the name and half of the shorter name. Two tools that cut
+ * or slug one long name differently give ids that are far apart by edit distance and identical at
+ * the start.
+ */
+export function longestSharedStart(id: string, candidates: string[]): string | undefined {
+  const [layer, type, ...rest] = id.split(".");
+  const slug = rest.join(".");
+  if (!layer || !type || !slug) return undefined;
+  const prefix = `${layer}.${type}.`;
+  let best: { id: string; shared: number } | undefined;
+  for (const candidate of candidates) {
+    if (!candidate.startsWith(prefix) || candidate === id) continue;
+    const other = candidate.slice(prefix.length);
+    let shared = 0;
+    while (shared < slug.length && shared < other.length && slug[shared] === other[shared]) shared++;
+    if (shared < MIN_SHARED_START || shared * 2 < Math.min(slug.length, other.length)) continue;
+    if (!best || shared > best.shared) best = { id: candidate, shared };
+  }
+  return best?.id;
+}
+
+const MIN_SHARED_START = 12;
+
+/**
  * The elements this call adds that `ref` names without their exact id: `layer.type.slug` whose type
  * and slug equal a new element's once hyphens (and case and other separators) are ignored, or the
  * element's name as sent. The id splits camelCase (`GraphLayoutSnapshot` becomes
  * `graph-layout-snapshot`), and an agent naming an element it adds in the same call often guesses
- * the id unsplit. Only this call's new elements are matched this way; a reference to an existing
- * element must name it exactly. More than one match is ambiguous: the caller reports it rather
- * than picking one.
+ * the id unsplit. The projection's own elements are matched the same way by the batch planner. More
+ * than one match is ambiguous: the caller reports it rather than picking one.
  */
 export function looselyMatchedPending(ref: string, pending: Iterable<PendingElement>): PendingElement[] {
   const [layer, type, ...rest] = ref.split(".");
@@ -319,7 +344,9 @@ export interface RelationshipBatchPlan {
  * Each item is to be staged, a duplicate (in the projection, or earlier in the batch), restored
  * (the changeset deletes it), or invalid with the reason. An invalid item does not stop the rest.
  * Ends may name elements in `pending` (added by the same call); `rejected` holds, by id, the
- * elements the same call refused to add, with why, so the reason says so.
+ * elements the same call refused to add, with why, so the reason says so. An end that is not an
+ * exact id is read as the one element it names by its name or its id without hyphens, among
+ * `pending` and the projection (the model as the changeset leaves it), with a note saying so.
  */
 export async function planRelationshipBatch(
   graph: ChangesetGraph,
@@ -348,6 +375,31 @@ export async function planRelationshipBatch(
     return !!element && element.status !== "deleted";
   };
 
+  // The projection's live elements by name and by compacted id, built on the first reference that
+  // is not an exact id: most batches name every element exactly and never need it.
+  let liveByName: Map<string, PendingElement[]> | undefined;
+  let liveByCompactId: Map<string, PendingElement[]> | undefined;
+  const whereOf = new Map<string, string>();
+  const looselyMatchedLive = (ref: string, by: { name: boolean }): Array<PendingElement & { where: string }> => {
+    if (!liveByName || !liveByCompactId) {
+      liveByName = new Map();
+      liveByCompactId = new Map();
+      for (const e of graph.elements.values()) {
+        if (e.status === "deleted" || pending.has(e.id)) continue;
+        const entry = { id: e.id, layer: e.layer, type: e.type, name: e.name };
+        whereOf.set(e.id, e.status === "added" && !e.alreadyInBase ? "which this changeset adds" : "which the model has");
+        if (e.name) liveByName.set(e.name, [...(liveByName.get(e.name) ?? []), entry]);
+        const key = compactId(e.id);
+        if (key) liveByCompactId.set(key, [...(liveByCompactId.get(key) ?? []), entry]);
+      }
+    }
+    const found = new Map<string, PendingElement>();
+    if (by.name) for (const e of liveByName.get(ref) ?? []) found.set(e.id, e);
+    const key = compactId(ref);
+    for (const e of (key && liveByCompactId.get(key)) || []) found.set(e.id, e);
+    return [...found.values()].map((e) => ({ ...e, where: whereOf.get(e.id)! }));
+  };
+
   type Endpoint = PendingElement & { note?: string };
   const endpoint = (id: string, role: "Source" | "Target"): Endpoint | { error: string; suggestions: string[] } => {
     const added = pending.get(id);
@@ -358,7 +410,9 @@ export async function planRelationshipBatch(
     const refusal = rejected.get(id);
     if (refusal) return { error: `${role} element ${id} was not added: ${refusal.reason}`, suggestions: [] };
 
-    // Not an exact id: it may name an element this call adds by its unhyphenated id or its name.
+    // Not an exact id: it may name an element by its unhyphenated id or its name. The elements
+    // this call adds and the ones the projection already holds (the model, and what the active
+    // changeset stages) are matched alike, so a later call can name what an earlier one staged.
     const loose = looselyMatchedPending(id, pending.values());
     const looseRefusals = looselyMatchedPending(
       id,
@@ -368,23 +422,24 @@ export async function planRelationshipBatch(
         .filter(([rejectedId]) => !pending.has(rejectedId) && !isLive(rejectedId))
         .map(([rejectedId, r]) => ({ id: rejectedId, layer: r.layer, type: r.type, name: r.name }))
     );
-    if (loose.length > 0) {
-      // An existing element, or one this call refused, that matches the same way makes the
-      // reference ambiguous too: linking to the accepted one could bypass the refusal.
-      const existing = looselyMatchedPending(
-        id,
-        [...graph.elements.values()]
-          .filter((e) => e.status !== "deleted" && !pending.has(e.id))
-          .map((e) => ({ id: e.id, layer: e.layer, type: e.type }))
-      );
-      if (loose.length === 1 && existing.length === 0 && looseRefusals.length === 0) {
-        return { ...loose[0], note: `${role} ${id} read as ${loose[0].id}, which this call adds` };
-      }
+    // A name is first a name of this call's own elements: the same name in another layer of the
+    // model (an entity, its table, its schema) is the normal case, and must not make a reference
+    // to the element just added ambiguous. An id without its hyphens carries its layer and type,
+    // so a live element it matches as well is a real second candidate.
+    const existing = looselyMatchedLive(id, { name: loose.length === 0 });
+    const matches = [...loose, ...existing];
+    if (matches.length === 1 && looseRefusals.length === 0) {
+      const where = loose.length === 1 ? "which this call adds" : existing[0].where;
+      return { id: matches[0].id, layer: matches[0].layer, type: matches[0].type, note: `${role} ${id} read as ${matches[0].id}, ${where}` };
+    }
+    if (matches.length > 0) {
+      // An element this call refused that matches the same way makes the reference ambiguous
+      // too: linking to the accepted one could bypass the refusal.
       const refusedIds = looseRefusals.map((e) => `${e.id} (not added: ${rejected.get(e.id)!.reason})`);
       return {
         error:
           `${role} ${id} is not an exact id and matches more than one element: ` +
-          [...[...loose, ...existing].map((e) => e.id), ...refusedIds].join(", "),
+          [...matches.map((e) => e.id), ...refusedIds].join(", "),
         suggestions: ["Name the element by its exact id"],
       };
     }
@@ -397,7 +452,10 @@ export async function planRelationshipBatch(
       .filter((e) => e.status !== "deleted" && e.id.startsWith(layerPrefix))
       .map((e) => e.id)
       .concat([...pending.keys()].filter((k) => k.startsWith(layerPrefix)));
-    const similar = findSimilar(id, candidates, 4);
+    // An id cut or slugged differently from the same long name is many edits away but starts the
+    // same: offer the element whose id shares the longest beginning too (#1225).
+    const sameStart = longestSharedStart(id, candidates);
+    const similar = [...new Set([...(sameStart ? [sameStart] : []), ...findSimilar(id, candidates, 4)])].slice(0, 3);
     return {
       error: `${role} element ${id} not found`,
       suggestions: similar.length

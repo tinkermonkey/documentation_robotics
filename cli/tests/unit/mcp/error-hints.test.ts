@@ -39,7 +39,7 @@ async function withProject(fn: (rootPath: string) => Promise<void>): Promise<voi
 }
 
 describe("MCP error hints", () => {
-  it("model_add without sourceProvenance defaults it, and the warning names the parameter, not the CLI flag", async () => {
+  it("model_add without sourceProvenance defaults it without a warning (#1233); the CLI still says what it used", async () => {
     await withProject(async (rootPath) => {
       const result = await modelAddHandler({
         layer: "business",
@@ -50,8 +50,11 @@ describe("MCP error hints", () => {
       });
       expect(result.isError).toBeFalsy();
       const body = parse(result);
-      expect(body.warnings.join("\n")).toContain("sourceProvenance was not given; used 'manual'");
-      expect(body.warnings.join("\n")).not.toContain("--source");
+      expect(body.warnings).toBeUndefined();
+      expect(resolveSourceReferenceOptions({ sourceFile: "src/payments.ts" }, "mcp")).toEqual({
+        options: { sourceFile: "src/payments.ts", sourceProvenance: "manual" },
+        warnings: [],
+      });
     });
   });
 

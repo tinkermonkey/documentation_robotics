@@ -192,10 +192,15 @@ export function resolveSourceReferenceOptions(
       ]);
     }
     const provenance = existing?.provenance ?? DEFAULT_PROVENANCE;
-    warnings.push(
-      `${name("sourceProvenance")} was not given; used '${provenance}'` +
-        (existing?.provenance ? " (the element's current provenance)." : ".")
-    );
+    // The MCP tools state this default on the argument itself, so over MCP it is what the caller
+    // meant, not news: a sync of 274 elements got the same warning 274 times (#1233). The CLI's
+    // flag help does not state it, so the CLI still says what it used.
+    if (surface === "cli") {
+      warnings.push(
+        `${name("sourceProvenance")} was not given; used '${provenance}'` +
+          (existing?.provenance ? " (the element's current provenance)." : ".")
+      );
+    }
     return { options: { ...options, sourceProvenance: provenance }, warnings };
   }
 

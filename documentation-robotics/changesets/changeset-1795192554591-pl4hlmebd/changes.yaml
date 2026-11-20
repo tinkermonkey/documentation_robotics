@@ -1,0 +1,773 @@
+- type: update
+  elementId: product.feature.stage-element-changes
+  layerName: product
+  before:
+    id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+    path: product.feature.stage-element-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage element changes
+    description: "MCP: model_add, model_update (attributePatch), model_delete; stage
+      into the active changeset. CLI: dr add/update/delete."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: 'MCP: model_add, model_update (attributePatch), model_delete;
+        stage into the active changeset. CLI: dr add/update/delete. With no
+        changeset active the write goes to the base model. A base write from a
+        model that was loaded while a changeset was active, when that changeset
+        has since stopped being staged, fails with "The change was not saved"
+        instead of reporting success and storing nothing (#1218,
+        cli/src/core/mutation-handler.ts).'
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-update.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:57.057Z
+      updated_at: 2026-11-09T21:54:57.057Z
+      version: 1
+  after:
+    id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+    path: product.feature.stage-element-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage element changes
+    description: "MCP: model_add, model_update (attributePatch), model_delete; stage
+      into the active changeset. model_add and model_update take a list, inline
+      or in a JSON file, and answer with counts and only the items that need
+      attention. CLI: dr add/update/delete."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: model_add, model_update (attributePatch), model_delete;
+        stage into the active changeset. CLI: dr add/update/delete. With no
+        changeset active the write goes to the base model. A base write from a
+        model that was loaded while a changeset was active, when that changeset
+        has since stopped being staged, fails with \"The change was not saved\"
+        instead of reporting success and storing nothing (#1218,
+        cli/src/core/mutation-handler.ts). Batches (CLI 0.7.0): model_add takes
+        elements (with relationships) and model_update takes updates, inline or
+        in a JSON file named by file (one object holding the tool's lists under
+        their own names; a relative path is read from the project the call
+        addresses). A batch returns total, counts by status and attention: only
+        the items not written as sent, or written with a warning or a note;
+        verbose: true returns every item (#1182, #1217). A refused model_add
+        batch lists what each refused type requires (#1153). sourceFile without
+        sourceProvenance gets 'manual' with no warning over MCP (#1233). Ids: dr
+        add, model_add and extraction derive an id from a name with one
+        function, deriveElementId in cli/src/utils/id-generator.ts (#1225):
+        camelCase and a digit before a capitalised word are word breaks (#1184),
+        dots, slashes and braces are word breaks, a leading digit gets the
+        prefix n- (#1212), and a name over 100 characters is cut with a hash. An
+        id is derived once and never rewritten: an add whose id differs only by
+        hyphens from an existing element of the same name is refused, naming
+        that element."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T16:36:08.276Z
+  sequenceNumber: 0
+- type: update
+  elementId: product.feature.stage-relationship-changes
+  layerName: product
+  before:
+    id: a5c62b62-6de7-4435-b545-73944e15a9e7
+    path: product.feature.stage-relationship-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage relationship changes
+    description: "MCP: relationship_add, relationship_delete, validated against the
+      catalog. CLI: dr relationship add/delete (same staging code)."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: relationship_add, relationship_delete, validated against
+        the catalog. CLI: dr relationship add/delete (same staging code)."
+    source_reference: &a3
+      provenance: manual
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+    metadata: &a4
+      created_at: 2026-11-09T21:54:57.127Z
+      updated_at: 2026-11-09T21:54:57.127Z
+      version: 1
+  after:
+    id: a5c62b62-6de7-4435-b545-73944e15a9e7
+    path: product.feature.stage-relationship-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage relationship changes
+    description: "MCP: relationship_add, relationship_delete, validated against the
+      catalog. relationship_add takes a list, inline or in a JSON file, and
+      answers with counts and only the items that need attention. CLI: dr
+      relationship add/delete (same staging code)."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: relationship_add, relationship_delete, validated against
+        the catalog. CLI: dr relationship add/delete (same staging code).
+        Batches (CLI 0.7.0): relationship_add takes relationships inline or in a
+        JSON file named by file ({\"relationships\": [...]}), staged in one
+        write. It returns total, counts by status and attention: the items that
+        are invalid (with the reason), duplicate or restored, and the ones whose
+        end was read by name; verbose: true returns every item (#1182, #1217).
+        In a list (model_add's relationships too), an end that is not an exact
+        id is read as the one element it names by its name or its id without
+        hyphens, among the elements the call adds and the model as the active
+        changeset leaves it, with a note; a name is first a name of the call's
+        own elements; more than one match is refused, naming the candidates
+        (#1230). An end that is not found is offered the id that starts the same
+        (#1225)."
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T16:36:16.172Z
+  sequenceNumber: 1
+- type: update
+  elementId: application.applicationfunction.generate-element-id
+  layerName: application
+  before:
+    id: 3bd4310e-1637-4527-bf47-64b50894dcf5
+    path: application.applicationfunction.generate-element-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: generateElementId
+    description: Generate element ID following Python CLI convention
+    source_reference: &a5
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: generateElementId
+    metadata: &a6
+      created_at: 2026-11-20T15:08:14.665Z
+      updated_at: 2026-11-20T15:08:14.665Z
+      version: 1
+  after:
+    id: 3bd4310e-1637-4527-bf47-64b50894dcf5
+    path: application.applicationfunction.generate-element-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: generateElementId
+    description: Generate an element ID, {layer}.{type}.{kebab-name}, by the shared
+      rules of deriveElementId
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T16:36:16.648Z
+  sequenceNumber: 2
+- type: update
+  elementId: application.applicationfunction.extracted-element-id
+  layerName: application
+  before:
+    id: 819d6825-32f6-4078-85f6-9c115600712e
+    path: application.applicationfunction.extracted-element-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: extractedElementId
+    description: An element id for a name
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/extraction-plan.ts
+          symbol: extractedElementId
+    metadata: &a8
+      created_at: 2026-11-20T15:04:45.123Z
+      updated_at: 2026-11-20T15:04:45.123Z
+      version: 1
+  after:
+    id: 819d6825-32f6-4078-85f6-9c115600712e
+    path: application.applicationfunction.extracted-element-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: extractedElementId
+    description: An element id for a name, by the rules model_add and dr add use too
+      (deriveElementId)
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T16:36:17.105Z
+  sequenceNumber: 3
+- type: update
+  elementId: application.applicationfunction.plan-relationship-batch
+  layerName: application
+  before:
+    id: d9c28c2b-7e4d-49e4-8edc-452efa35d12a
+    path: application.applicationfunction.plan-relationship-batch
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planRelationshipBatch
+    description: Checks a list of relationship adds against the projected graph and
+      the catalog, without writing.
+    source_reference: &a9
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: planRelationshipBatch
+    metadata: &a10
+      created_at: 2026-11-20T15:04:44.845Z
+      updated_at: 2026-11-20T15:04:44.845Z
+      version: 1
+  after:
+    id: d9c28c2b-7e4d-49e4-8edc-452efa35d12a
+    path: application.applicationfunction.plan-relationship-batch
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planRelationshipBatch
+    description: Checks a list of relationship adds against the projected graph and
+      the catalog, without writing. An end that is not an exact id is read as
+      the one element it names by name or by id without hyphens, among the
+      call's own elements and the projection.
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-20T16:36:17.541Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.derive-element-id
+  layerName: application
+  after:
+    id: b24e0e61-a222-4e15-acf6-9f3184010fa5
+    path: application.applicationfunction.derive-element-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: deriveElementId
+    description: "Derives an element id from a name: the one rule dr add, model_add
+      and extraction share"
+    metadata:
+      created_at: 2026-11-20T16:36:37.952Z
+      updated_at: 2026-11-20T16:36:37.952Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.compact-id
+  layerName: application
+  after:
+    id: ec68fcde-85fc-453a-8f5d-5074ea209c06
+    path: application.applicationfunction.compact-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compactId
+    description: An id reduced to its layer and the letters and digits of its type
+      and name, so ids that differ only by hyphens compare equal
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.near-duplicate-id
+  layerName: application
+  after:
+    id: 62c5a44a-0c9a-4ff5-8c93-ba7518b76abc
+    path: application.applicationfunction.near-duplicate-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: nearDuplicateId
+    description: "How a new element's id sits beside the ids already there that
+      differ from it only by hyphens: the same-named one exists already, any
+      other is worth a warning"
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.element-under-earlier-id
+  layerName: application
+  after:
+    id: 893f4c2b-7914-428b-8c88-32c267f24ae4
+    path: application.applicationfunction.element-under-earlier-id
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: elementUnderEarlierId
+    description: The element that has a name and an id differing only by hyphens
+      from the id the name derives today
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 8
+- type: add
+  elementId: application.applicationfunction.read-batch-file
+  layerName: application
+  after:
+    id: c1411349-dbbd-49ef-9489-582073e05e81
+    path: application.applicationfunction.read-batch-file
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readBatchFile
+    description: Reads a batch file and returns its lists, validated with the tool's
+      own item schemas
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 9
+- type: add
+  elementId: application.applicationfunction.locate-json-error
+  layerName: application
+  after:
+    id: f5d1f1b4-4867-4dde-8ac3-b8bb4a86465a
+    path: application.applicationfunction.locate-json-error
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: locateJsonError
+    description: Finds the first syntax error in a text read as JSON, with its line
+      and column
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 10
+- type: add
+  elementId: application.applicationfunction.batch-report
+  layerName: application
+  after:
+    id: f12ba987-ebf6-4d4e-881b-9e18ba0560d2
+    path: application.applicationfunction.batch-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: batchReport
+    description: "Builds a batch's report: counts by status and the items that need
+      attention, or every item with verbose"
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 11
+- type: add
+  elementId: application.applicationfunction.longest-shared-start
+  layerName: application
+  after:
+    id: 6aa3d6bd-42d5-401c-9974-18dafec59949
+    path: application.applicationfunction.longest-shared-start
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: longestSharedStart
+    description: The candidate id of the same layer and type that starts most like
+      an id that was not found
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 12
+- type: add
+  elementId: data-model.objectschema.derived-element-id
+  layerName: data-model
+  after:
+    id: 8aa4c72b-eecb-4798-ac1d-37f4cc7d1b45
+    path: data-model.objectschema.derived-element-id
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: DerivedElementId
+    description: An id derived from a name, its last segment, and notes on what the
+      derivation did that the name does not make obvious
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 13
+- type: add
+  elementId: data-model.objectschema.json-error-position
+  layerName: data-model
+  after:
+    id: ce104415-a2c6-46dd-bc8c-a66674f69c9e
+    path: data-model.objectschema.json-error-position
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: JsonErrorPosition
+    description: Where the first JSON syntax error is
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:36:37.956Z
+      updated_at: 2026-11-20T16:36:37.956Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 14
+- type: add
+  elementId: data-model.objectschema.batch-item-result
+  layerName: data-model
+  after:
+    id: 4f622021-269f-42c0-aebe-d127717f4186
+    path: data-model.objectschema.batch-item-result
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: BatchItemResult
+    description: One item's result in a batch write
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:36:37.956Z
+      updated_at: 2026-11-20T16:36:37.956Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 15
+- type: add
+  elementId: data-model.objectschema.batch-report
+  layerName: data-model
+  after:
+    id: 4175291a-75bd-4c47-a6bd-7bf3837629ec
+    path: data-model.objectschema.batch-report
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: BatchReport
+    description: "What a batch write tool returns: total, counts, and attention or results"
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:36:37.956Z
+      updated_at: 2026-11-20T16:36:37.956Z
+      version: 1
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.generate-element-id::depends-on::application.applicationfunction.derive-element-id
+  layerName: application
+  after:
+    source: application.applicationfunction.generate-element-id
+    target: application.applicationfunction.derive-element-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.extracted-element-id::depends-on::application.applicationfunction.derive-element-id
+  layerName: application
+  after:
+    source: application.applicationfunction.extracted-element-id
+    target: application.applicationfunction.derive-element-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.derive-element-id::depends-on::application.applicationfunction.to-kebab-case
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-element-id
+    target: application.applicationfunction.to-kebab-case
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationfunction.derive-element-id::accesses::data-model.objectschema.derived-element-id
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-element-id
+    target: data-model.objectschema.derived-element-id
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.element-under-earlier-id::depends-on::application.applicationfunction.compact-id
+  layerName: application
+  after:
+    source: application.applicationfunction.element-under-earlier-id
+    target: application.applicationfunction.compact-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.element-under-earlier-id::depends-on::application.applicationfunction.near-duplicate-id
+  layerName: application
+  after:
+    source: application.applicationfunction.element-under-earlier-id
+    target: application.applicationfunction.near-duplicate-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::depends-on::application.applicationfunction.locate-json-error
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationfunction.locate-json-error
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: application.applicationfunction.locate-json-error::accesses::data-model.objectschema.json-error-position
+  layerName: application
+  after:
+    source: application.applicationfunction.locate-json-error
+    target: data-model.objectschema.json-error-position
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::accesses::data-model.objectschema.batch-report
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: data-model.objectschema.batch-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::accesses::data-model.objectschema.batch-item-result
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: data-model.objectschema.batch-item-result
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: application.applicationfunction.plan-relationship-batch::depends-on::application.applicationfunction.compact-id
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-relationship-batch
+    target: application.applicationfunction.compact-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 27
+- type: relationship-add
+  elementId: application.applicationfunction.plan-relationship-batch::depends-on::application.applicationfunction.longest-shared-start
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-relationship-batch
+    target: application.applicationfunction.longest-shared-start
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 28
+- type: relationship-add
+  elementId: application.applicationfunction.add-relationship-batch::depends-on::application.applicationfunction.batch-report
+  layerName: application
+  after:
+    source: application.applicationfunction.add-relationship-batch
+    target: application.applicationfunction.batch-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 29
+- type: relationship-add
+  elementId: application.applicationfunction.derive-element-id::realizes::application.applicationservice.model-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-element-id
+    target: application.applicationservice.model-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 30
+- type: relationship-add
+  elementId: application.applicationfunction.derive-element-id::realizes::application.applicationservice.add-command
+  layerName: application
+  after:
+    source: application.applicationfunction.derive-element-id
+    target: application.applicationservice.add-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 31
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::realizes::application.applicationservice.model-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationservice.model-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 32
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::realizes::application.applicationservice.relationship-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationservice.relationship-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 33
+- type: relationship-add
+  elementId: application.applicationfunction.read-batch-file::realizes::application.applicationservice.model-update-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.read-batch-file
+    target: application.applicationservice.model-update-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 34
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::realizes::application.applicationservice.model-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: application.applicationservice.model-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 35
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::realizes::application.applicationservice.relationship-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: application.applicationservice.relationship-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 36
+- type: relationship-add
+  elementId: application.applicationfunction.batch-report::realizes::application.applicationservice.model-update-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.batch-report
+    target: application.applicationservice.model-update-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:37.965Z
+  sequenceNumber: 37
+- type: relationship-delete
+  elementId: application.applicationfunction.extracted-element-id::depends-on::application.applicationfunction.to-kebab-case
+  layerName: application
+  before:
+    source: application.applicationfunction.extracted-element-id
+    target: application.applicationfunction.to-kebab-case
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-20T16:36:46.159Z
+  sequenceNumber: 38
+- type: relationship-delete
+  elementId: application.applicationfunction.generate-element-id::depends-on::application.applicationfunction.to-kebab-case
+  layerName: application
+  before:
+    source: application.applicationfunction.generate-element-id
+    target: application.applicationfunction.to-kebab-case
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-20T16:36:46.649Z
+  sequenceNumber: 39
+- type: relationship-add
+  elementId: application.applicationfunction.plan-elements::depends-on::application.applicationfunction.element-under-earlier-id
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-elements
+    target: application.applicationfunction.element-under-earlier-id
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:36:47.164Z
+  sequenceNumber: 40
+- type: relationship-add
+  elementId: application.applicationfunction.near-duplicate-id::realizes::application.applicationservice.model-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.near-duplicate-id
+    target: application.applicationservice.model-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:37:04.885Z
+  sequenceNumber: 41
+- type: relationship-add
+  elementId: application.applicationfunction.near-duplicate-id::realizes::application.applicationservice.add-command
+  layerName: application
+  after:
+    source: application.applicationfunction.near-duplicate-id
+    target: application.applicationservice.add-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:37:04.885Z
+  sequenceNumber: 42
+- type: relationship-add
+  elementId: application.applicationfunction.compact-id::realizes::application.applicationservice.model-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.compact-id
+    target: application.applicationservice.model-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:37:04.885Z
+  sequenceNumber: 43
+- type: relationship-add
+  elementId: application.applicationfunction.longest-shared-start::realizes::application.applicationservice.relationship-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.longest-shared-start
+    target: application.applicationservice.relationship-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:37:04.885Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: application.applicationfunction.element-under-earlier-id::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-under-earlier-id
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:37:04.885Z
+  sequenceNumber: 45

@@ -13,11 +13,10 @@
  * Deletes are never planned, only listed: an element whose source file is gone, or whose symbol
  * the file no longer has, is a candidate delete, with the evidence.
  */
-import { createHash } from "node:crypto";
 import path from "node:path";
 import type { ChangesetGraph, GraphElement } from "../core/changeset-graph.js";
 import type { SourceReference } from "../types/source-reference.js";
-import { toKebabCase } from "../utils/id-generator.js";
+import { MAX_ID_SLUG, deriveElementId, elementUnderEarlierId, toKebabCase } from "../utils/id-generator.js";
 import { callEdgeVerdict } from "./call-evidence.js";
 import { changedInRange } from "./code-changes.js";
 import type { DocEvidence } from "./cards/docs.js";
@@ -369,27 +368,18 @@ export function modelAddName(name: string): string | undefined {
 }
 
 /**
- * An element id for a name: dots, slashes and braces become word breaks before kebab-casing. A
- * route on the root path is `<method> root` (`api.operation.get-root`). A name longer than
+ * An element id for a name, by the rules model_add and `dr add` use too
+ * ({@link deriveElementId}): dots, slashes and braces become word breaks before kebab-casing, a
+ * route on the root path is `<method> root` (`api.operation.get-root`), and a name longer than
  * {@link MAX_ID_SLUG} characters as kebab case (a test case's title path) is cut at a word break
- * and given a short hash of the whole, so the id stays readable, stable and distinct; the element
- * keeps the full name and source symbol.
+ * and given a short hash of the whole. The element keeps the full name and source symbol.
  */
 export function extractedElementId(layer: string, type: string, name: string): string {
-  const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
-  return `${layer}.${type}.${cappedSlug(toKebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " ")))}`;
+  return deriveElementId(layer, type, name).id;
 }
 
 /** The longest kebab-case name an extracted id keeps whole. */
-export const MAX_ID_SLUG = 100;
-
-function cappedSlug(slug: string): string {
-  if (slug.length <= MAX_ID_SLUG) return slug;
-  const hash = createHash("sha1").update(slug).digest("hex").slice(0, 8);
-  const cut = slug.slice(0, MAX_ID_SLUG);
-  const atWord = cut.lastIndexOf("-");
-  return `${(atWord > MAX_ID_SLUG / 2 ? cut.slice(0, atWord) : cut).replace(/-+$/, "")}-${hash}`;
-}
+export { MAX_ID_SLUG };
 
 /** First paragraph of a docstring, without comment markers, at most 280 characters. */
 export function describeDocstring(doc: string | null): string | undefined {
@@ -771,7 +761,10 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       // infrastructure element may name other files already: the same table in another schema.
       const decided = tier0;
       lookups.push(() => {
-        const byId = index.byId.get(extractedElementId(decided.layer, decided.type, baseNameOf(s)));
+        const id = extractedElementId(decided.layer, decided.type, baseNameOf(s));
+        // An element made before the id rules changed keeps the id of its day (`tier1status` for
+        // "Tier1Status"): find it by its name under an id that differs only by hyphens.
+        const byId = index.byId.get(id) ?? elementUnderEarlierId(id, baseNameOf(s), index.live);
         if (!byId || byId.status === "deleted" || byId.layer !== decided.layer || byId.type !== decided.type || (codeLocations(byId).length && !key)) {
           return undefined;
         }

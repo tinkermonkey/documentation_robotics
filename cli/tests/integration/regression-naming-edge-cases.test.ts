@@ -3,9 +3,10 @@
  *
  * Verifies that element names with non-alphanumeric characters (dots, special chars,
  * all-special-char names) are handled correctly:
- * 1. Names with embedded dots are slugified correctly (dots removed, not kept as separators)
+ * 1. Names with embedded dots are slugified correctly (a dot is a word break, never an id separator)
  * 2. Names with special characters are stripped cleanly
  * 3. Names that collapse to empty produce user-friendly errors
+ * 4. Names that start with a digit get a valid id, and the command says how (#1212)
  *
  * Regression tests for:
  * - BUG-6072-001: Name slugification produces invalid element IDs for names with embedded dots (e.g. Node.js)
@@ -56,17 +57,17 @@ describe("regression: naming-edge-cases", () => {
       const layerObj = await model.getLayer("technology");
       expect(layerObj).toBeDefined();
 
-      // The dot should be stripped, so ID should be "nodejs" not "node.js"
+      // The dot is a word break, as it is in an extracted id (one id function, #1225), so the
+      // ID is "node-js", not "node.js": the dot never becomes a segment separator.
       const element = findElementBySemanticId(
         layerObj!,
-        "technology.technologyservice.nodejs"
+        "technology.technologyservice.node-js"
       );
       expect(element).toBeDefined();
       expect(element!.name).toBe("Node.js");
 
-      // Verify the generated ID matches pattern: technology.{type}.nodejs
-      // (dot is removed, not kept as a segment separator)
-      expect(element!.path).toMatch(/^technology\.[a-z]+\.nodejs$/);
+      // Verify the generated ID matches pattern: technology.{type}.node-js
+      expect(element!.path).toMatch(/^technology\.[a-z]+\.node-js$/);
     });
 
     it("dr validate should report 0 errors for element with dot in name", async () => {
@@ -330,12 +331,52 @@ describe("regression: naming-edge-cases", () => {
       const model = await Model.load(workdir.path);
       const layerObj = await model.getLayer("technology");
 
-      // Both dot and @ and $ should be stripped: "Node@.js$" → "nodejs"
+      // @ and $ are stripped and the dot is a word break: "Node@.js$" → "node-js"
       const element = findElementBySemanticId(
         layerObj!,
-        "technology.technologyservice.nodejs"
+        "technology.technologyservice.node-js"
       );
       expect(element).toBeDefined();
+    });
+  });
+
+  describe("name starting with a digit (#1212)", () => {
+    it("derives a valid id with the n- prefix and says so, instead of rejecting its own id", async () => {
+      const result = await runDr(
+        ["add", "application", "component", "3D Object Effect", "--attributes", JSON.stringify({ type: "internal" })],
+        { cwd: workdir.path }
+      );
+
+      expect(result.exitCode).toBe(0);
+      const output = result.stdout + result.stderr;
+      expect(output).toContain("prefixed with 'n-'");
+      expect(output).not.toContain("invalid attributes");
+
+      const model = await Model.load(workdir.path);
+      const layerObj = await model.getLayer("application");
+      const element = findElementBySemanticId(layerObj!, "application.applicationcomponent.n-3d-object-effect");
+      expect(element).toBeDefined();
+      expect(element!.name).toBe("3D Object Effect");
+    });
+
+    it("splits a digit from the capitalised word after it (Tier1Status → tier1-status)", async () => {
+      const result = await runDr(
+        ["add", "data-model", "objectschema", "Tier1Status", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+
+      expect(result.exitCode).toBe(0);
+      const model = await Model.load(workdir.path);
+      const layerObj = await model.getLayer("data-model");
+      expect(findElementBySemanticId(layerObj!, "data-model.objectschema.tier1-status")).toBeDefined();
+
+      // The same name again is refused under the id it has, as before.
+      const again = await runDr(
+        ["add", "data-model", "objectschema", "Tier1Status", "--attributes", JSON.stringify({ type: "object" })],
+        { cwd: workdir.path }
+      );
+      expect(again.exitCode).not.toBe(0);
+      expect(again.stdout + again.stderr).toContain("data-model.objectschema.tier1-status already exists");
     });
   });
 });

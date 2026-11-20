@@ -15,7 +15,7 @@ import {
 import { schemaLookupHint } from "../utils/error-hints.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { getActiveSpan } from "../telemetry/index.js";
-import { generateElementId, generateUUID } from "../utils/id-generator.js";
+import { compactId, deriveElementId, generateUUID, nearDuplicateId } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
 import {
@@ -90,13 +90,14 @@ export async function addCommand(
     // e.g., "service" → "applicationservice" for the application layer
     const resolvedType = normalizeNodeType(layer, type);
 
-    // Generate slug path: {layer}.{resolvedType}.{kebab-name}
-    const elementPath = generateElementId(layer, resolvedType, name);  // slug
+    // Generate slug path: {layer}.{resolvedType}.{kebab-name}, by the rules model_add and
+    // extraction share (utils/id-generator.ts)
+    const derived = deriveElementId(layer, resolvedType, name);
+    const elementPath = derived.id;                             // slug
     const elementUUID = generateUUID();                         // UUIDv4
 
     // Validate the generated slug is non-empty (name may collapse to empty after stripping special chars)
-    const slugPart = elementPath.split(".")[2];
-    if (!slugPart) {
+    if (!derived.slug) {
       throw new CLIError(
         `Cannot generate a valid element ID from name "${name}"`,
         ErrorCategory.USER,
@@ -183,10 +184,22 @@ export async function addCommand(
         const errorMessages = attrValidation.errors
           .map((e) => `  ${e.message}`)
           .join("\n");
+        // Say "attributes" only when that is where the schema failed: an id the schema refuses
+        // is a problem with the name (#1212).
+        const inAttributes = attrValidation.errors.some((e) => (e.location ?? "").startsWith("/attributes"));
+        const idRefused = !inAttributes && attrValidation.errors.some((e) => e.location === "/path");
         throw new CLIError(
-          `Element ${elementPath} has invalid attributes:\n${errorMessages}`,
+          inAttributes
+            ? `Element ${elementPath} has invalid attributes:\n${errorMessages}`
+            : idRefused
+              ? `The name "${name}" gives the id ${elementPath}, which is not a valid element id:\n${errorMessages}`
+              : `Element ${elementPath} is not valid:\n${errorMessages}`,
           ErrorCategory.USER,
-          [schemaLookupHint("cli", layer, resolvedType)]
+          [
+            idRefused
+              ? "An id is lowercase letters, digits and hyphens, and each part starts with a letter: change the name so its id does"
+              : schemaLookupHint("cli", layer, resolvedType),
+          ]
         );
       }
     }
@@ -204,6 +217,29 @@ export async function addCommand(
         { operation: "add", context: `Duplicate element path` }
       );
     }
+
+    // An element with this name under an id that differs only by hyphens is the same element,
+    // its id derived by an earlier rule: refuse, as when the ids were equal. Another name there
+    // is worth a warning.
+    const key = compactId(elementPath);
+    const near = nearDuplicateId(
+      elementPath,
+      options.name || name,
+      layerObj
+        .listElements()
+        .map((e) => ({ id: e.path || e.id, name: e.name }))
+        .filter((e) => compactId(e.id) === key)
+    );
+    if (near.existing) {
+      throw new CLIError(
+        `Element ${near.existing} already exists with this name (the name gives ${elementPath} today; the element keeps its id)`,
+        ErrorCategory.USER,
+        [`Use "dr show ${near.existing}" to view it`, `Use "dr update ${near.existing}" to modify it`],
+        { operation: "add", context: `Duplicate element under an earlier id` }
+      );
+    }
+    if (near.warning) console.warn(ansis.yellow(`Warning: ${near.warning}`));
+    derived.notes.forEach((note) => console.warn(ansis.yellow(`Note: ${note}`)));
 
     // Unified mutation handler for add operation
     const handler = new MutationHandler(model, elementPath, layer);

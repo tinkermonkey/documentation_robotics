@@ -8,11 +8,14 @@
  * unstages the add, and re-adding one it deleted unstages the delete. The projected-graph logic is
  * shared with the CLI (`cli/src/core/relationship-staging.ts`).
  *
- * relationship_add also takes a list (`relationships`): every item is checked against the catalog
- * and the projection, the valid ones are staged in one write, and the result reports each item.
+ * relationship_add also takes a list (`relationships`, inline or in a JSON `file`): every item is
+ * checked against the catalog and the projection, and the valid ones are staged in one write. The
+ * result is the counts and the items that need attention (batch-result.ts); `verbose` returns
+ * every item.
  */
 
 import { z } from "zod";
+import { BATCH_FILE_DESCRIPTION, readBatchFile } from "../batch-file.js";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Changeset, type StagedChange } from "../../core/changeset.js";
@@ -23,7 +26,6 @@ import type { Model } from "../../core/model.js";
 import type { Relationship } from "../../core/relationships.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import {
-  countByStatus,
   liveRelationshipsBetween,
   planRelationshipBatch,
   stageRelationshipDeletes,
@@ -36,6 +38,7 @@ import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
+import { batchReport, verboseSchema, type BatchReport } from "./batch-result.js";
 
 // ---------------------------------------------------------------------------
 // relationship_add
@@ -48,6 +51,8 @@ export const relationshipItemSchema = strictItem("A relationships[] item", {
   properties: z.record(z.string(), z.unknown()).optional().describe("Optional relationship properties."),
 });
 
+const relationshipsSchema = z.array(relationshipItemSchema);
+
 const addInputSchema = {
   source: z.string().optional().describe("Source element ID (layer.type.name). Single form."),
   predicate: z
@@ -58,13 +63,14 @@ const addInputSchema = {
     ),
   target: z.string().optional().describe("Target element ID (layer.type.name). Single form."),
   properties: z.record(z.string(), z.unknown()).optional().describe("Optional relationship properties. Single form."),
-  relationships: z
-    .array(relationshipItemSchema)
+  relationships: relationshipsSchema
     .optional()
     .describe(
       "Batch form, instead of source/predicate/target: a list of {source, predicate, target, properties?}, staged in " +
         "one write. Each item is checked on its own; an invalid one is skipped and reported, the rest are staged."
     ),
+  file: z.string().optional().describe(`${BATCH_FILE_DESCRIPTION} The file is one JSON object: {"relationships": [...]}.`),
+  verbose: verboseSchema,
   rootPath: rootPathSchema,
 };
 
@@ -72,14 +78,26 @@ export type RelationshipAddArgs = z.infer<z.ZodObject<typeof addInputSchema>>;
 
 export async function relationshipAddHandler(args: RelationshipAddArgs): Promise<CallToolResult> {
   return runTool(() => withProjectWriteLock(args.rootPath, async () => {
-    if (args.relationships !== undefined) {
+    if (args.relationships !== undefined || args.file !== undefined) {
+      const list = args.relationships !== undefined ? "relationships" : "file";
       const singleFields = [args.source, args.predicate, args.target, args.properties];
       if (singleFields.some((field) => field !== undefined)) {
-        throw new CLIError("Send either source/predicate/target or relationships, not both", ErrorCategory.USER, [
+        throw new CLIError(`Send either source/predicate/target or ${list}, not both`, ErrorCategory.USER, [
           "Put the single relationship in the relationships list too",
         ]);
       }
-      return jsonResult(await addRelationshipBatch(args.relationships, args.rootPath));
+      if (args.relationships !== undefined && args.file !== undefined) {
+        throw new CLIError("Send either file or relationships, not both", ErrorCategory.USER, [
+          "Put every relationship in the file, or send them all inline",
+        ]);
+      }
+      let items = args.relationships;
+      if (items === undefined) {
+        const model = await loadModel(args.rootPath);
+        const batch = await readBatchFile("relationship_add", args.file!, model.rootPath, { relationships: relationshipsSchema });
+        items = batch.relationships ?? [];
+      }
+      return jsonResult(await addRelationshipBatch(items, args.rootPath, args.verbose));
     }
     if (!args.source || !args.predicate || !args.target) {
       throw new CLIError(
@@ -133,17 +151,16 @@ async function addSingleRelationship(
   return jsonResult({ status: outcome, changeset: active.name, ...triple });
 }
 
-/** What a batch did, for the tool result. */
-export interface RelationshipBatchSummary {
+/** What a batch did, for the tool result: counts, and the items that need attention (or all, with verbose). */
+export interface RelationshipBatchSummary extends BatchReport<RelationshipBatchPlan["results"][number]> {
   changeset?: string;
-  counts: Record<string, number>;
-  results: RelationshipBatchPlan["results"];
 }
 
 /** relationship_add's batch form: check every item, then stage the valid ones in one write. */
 export async function addRelationshipBatch(
   items: RelationshipBatchItem[],
-  rootPath?: string
+  rootPath?: string,
+  verbose?: boolean
 ): Promise<RelationshipBatchSummary> {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
@@ -155,7 +172,10 @@ export async function addRelationshipBatch(
   if (plan.changes.length > 0 || plan.unstageKeys.length > 0) {
     await reloadModel(rootPath);
   }
-  return { ...(active ? { changeset: active.name } : {}), counts: countByStatus(plan.results), results: plan.results };
+  return {
+    ...(active ? { changeset: active.name } : {}),
+    ...batchReport(plan.results, { verbose, written: ["staged", "added"] }),
+  };
 }
 
 /**
@@ -222,13 +242,16 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
     "Add relationships, validated against the relationship catalog. Stages them in the active changeset when there " +
     "is one (including between elements the changeset itself adds), else writes the model. Send one " +
     "(source/predicate/target) or many (relationships: [{source, predicate, target}, ...]); a list is staged in " +
-    "one write, so use it when wiring several. Name elements by their exact id, layer.type.kebab-name, where the " +
-    "name is split at camelCase ('GraphLayoutSnapshot' → graph-layout-snapshot); model_add returns each id it " +
-    "makes. Single status: 'staged' or 'added'; 'duplicate' when the model or " +
+    "one write, so use it when wiring several, and put a large one in a JSON file (file) instead of the call. " +
+    "Name elements by their id, layer.type.kebab-name, where the name is split at camelCase ('GraphLayoutSnapshot' " +
+    "→ graph-layout-snapshot); model_add reports an id when the name does not make it obvious, and every id " +
+    "with verbose: true. In a list, an end may also be an element's name or its id without hyphens, when " +
+    "exactly one element in the model or the active changeset matches; the result notes how it was read. Single " +
+    "status: 'staged' or 'added'; 'duplicate' when the model or " +
     "the changeset already has it (nothing staged); 'restored' when the changeset had staged its deletion (that " +
-    "deletion is unstaged). A list returns counts and a result per item: staged (added, with no changeset " +
-    "active), restored, duplicate, or invalid with the reason and suggestions. Invalid items are skipped; the rest " +
-    "are still staged.",
+    "deletion is unstaged). A list returns counts by status and attention: only the items that are invalid (with " +
+    "the reason and suggestions), duplicate or restored, or that were read by name. verbose: true returns every " +
+    "item as results. Invalid items are skipped; the rest are still staged.",
   inputSchema: addInputSchema,
   handler: relationshipAddHandler,
 };
