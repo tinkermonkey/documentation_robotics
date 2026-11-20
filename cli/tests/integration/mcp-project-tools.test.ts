@@ -521,6 +521,18 @@ describe("project_status over MCP", () => {
     expect(status.nextStep.then.tool).toBe("codebase_verify");
     expect(status.nextStep.summary).toContain(`codebase_extract with since: "${extracted.slice(0, 7)}" and no plan active`);
 
+    // A list the status shortens is returned in full by the same tool, paged.
+    const unreferenced = await call("project_status", { list: "unreferencedFiles", limit: 1 });
+    expect(unreferenced).toEqual({
+      list: "unreferencedFiles",
+      total: 1,
+      offset: 0,
+      returned: 1,
+      items: [{ file: "src/lighting.ts", source: true, added: true }],
+    });
+    const refused = await callTool(state, "project_status", { offset: 3 });
+    expect(refused.isError).toBe(true);
+
     // It opens every session: the whole answer stays small.
     expect(JSON.stringify(status).length).toBeLessThan(5000);
     expectCleanStdout(state);

@@ -8,12 +8,12 @@
  */
 
 import path from "node:path";
-import type { z } from "zod";
+import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Model } from "../../core/model.js";
 import { findProjectRoot } from "../../utils/project-paths.js";
 import { fileExists } from "../../utils/file-io.js";
-import { getErrorMessage } from "../../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { currentProjectRoot, whenProjectRootSettled, type ProjectRootSource } from "../project-root.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import {
@@ -27,9 +27,13 @@ import {
   collectTier1,
   collectViewer,
   compareVersions,
+  LIST_DEFAULTS,
   RESTART_SERVER,
   runGit,
+  shortenSections,
   staleServer,
+  STATUS_LISTS,
+  statusListItems,
   type ChangesetDriftEntry,
   type ChangesetEntry,
   type CodeDriftSection,
@@ -37,10 +41,29 @@ import {
   type GitRunner,
   type RootResolution,
   type StatusContext,
+  type StatusList,
 } from "./project-status-collectors.js";
+
+/** How many entries a `list` call returns when `limit` is not given. */
+export const LIST_PAGE_DEFAULT = 50;
 
 const inputSchema = {
   rootPath: rootPathSchema,
+  list: z
+    .enum(STATUS_LISTS)
+    .optional()
+    .describe(
+      "Return one of the lists the status shortens, in full and paged, instead of the status: stagedChangesets, " +
+        "changedSourceFiles and uncommittedSourceFiles (each file with every element that references it), " +
+        "unreferencedFiles, landedSince (latest first), changedSinceIndex or uncommittedEdits. The status's more lines name the call."
+    ),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(`With list: how many entries to return (default ${LIST_PAGE_DEFAULT}). No upper bound: pass the list's total for all of it.`),
+  offset: z.number().int().min(0).optional().describe("With list: how many entries to skip (default 0). A page's nextOffset is the next one."),
 };
 
 export type ProjectStatusArgs = z.infer<z.ZodObject<typeof inputSchema>>;
@@ -87,11 +110,14 @@ const RESOLVED_BY: Record<ProjectRootSource, RootResolution> = {
   cwd: "cwd",
 };
 
-/** Collects every section and picks the next step. `git` is injectable for tests. */
-export async function projectStatus(
-  args: ProjectStatusArgs,
-  options: { git?: GitRunner; tier1?: StatusContext["tier1"]; installedCli?: StatusContext["installedCli"] } = {}
-): Promise<ProjectStatus> {
+interface StatusOptions {
+  git?: GitRunner;
+  tier1?: StatusContext["tier1"];
+  installedCli?: StatusContext["installedCli"];
+}
+
+/** What every collector gets for this call: the project it resolved to and the shared model. */
+async function statusContext(args: ProjectStatusArgs, options: StatusOptions): Promise<StatusContext> {
   let root: string;
   let resolvedBy: RootResolution;
   if (args.rootPath) {
@@ -109,7 +135,7 @@ export async function projectStatus(
   const modelDir = manifest && (await fileExists(manifest)) ? path.dirname(manifest) : null;
 
   let modelPromise: Promise<Model> | undefined;
-  const ctx: StatusContext = {
+  return {
     root,
     resolvedBy,
     projectRoot,
@@ -120,6 +146,18 @@ export async function projectStatus(
     ...(options.tier1 ? { tier1: options.tier1 } : {}),
     ...(options.installedCli ? { installedCli: options.installedCli } : {}),
   };
+}
+
+/**
+ * Collects every section and picks the next step. `git` is injectable for tests.
+ *
+ * The collectors return every list whole. The next step is picked from those, and only then are
+ * the lists cut to their default sizes for the answer (shortenSections), so no verdict or count
+ * depends on what is shown.
+ */
+export async function projectStatus(args: ProjectStatusArgs, options: StatusOptions = {}): Promise<ProjectStatus> {
+  const ctx = await statusContext(args, options);
+  const { root, resolvedBy, projectRoot } = ctx;
 
   const entries = await Promise.all(
     Object.entries(COLLECTORS).map(async ([key, collect]) => {
@@ -134,8 +172,76 @@ export async function projectStatus(
 
   return {
     project: { root, resolvedBy, projectRoot },
-    ...sections,
+    ...shortenSections(sections, args.rootPath),
     nextStep: suggestNextStep(sections, { root, rootPath: args.rootPath }),
+  };
+}
+
+/** One page of a list the status shortens. */
+export interface StatusListPage {
+  list: StatusList;
+  /** How many entries the list has in all. */
+  total: number;
+  offset: number;
+  returned: number;
+  items: unknown[];
+  /** The offset of the next page; absent when nothing is left. */
+  nextOffset?: number;
+  /** The call that returns the next page; absent when nothing is left. */
+  more?: string;
+  /** Set when the list could not be read: why. */
+  note?: string;
+}
+
+/** The collector whose section holds each list. */
+const LIST_SECTION: Record<StatusList, "changesets" | "codeIndex" | "codeDrift"> = {
+  stagedChangesets: "changesets",
+  changedSourceFiles: "codeDrift",
+  uncommittedSourceFiles: "codeDrift",
+  unreferencedFiles: "codeDrift",
+  landedSince: "codeDrift",
+  changedSinceIndex: "codeIndex",
+  uncommittedEdits: "codeIndex",
+};
+
+/**
+ * One of the status's lists in full, paged: what `list` returns. Only the collector that holds
+ * the list runs. `limit` has no upper bound, so one call can return all of it.
+ */
+export async function projectStatusList(
+  args: ProjectStatusArgs & { list: StatusList },
+  options: StatusOptions = {}
+): Promise<StatusListPage> {
+  const ctx = await statusContext(args, options);
+  const key = LIST_SECTION[args.list];
+  let section: Sections[typeof key];
+  try {
+    section = await COLLECTORS[key](ctx);
+  } catch (error) {
+    section = { status: "error", error: getErrorMessage(error) };
+  }
+  const offset = args.offset ?? 0;
+  const read = statusListItems(args.list, { [key]: section });
+  if ("unavailable" in read) {
+    return { list: args.list, total: 0, offset, returned: 0, items: [], note: read.unavailable };
+  }
+  const items = read.items.slice(offset, offset + (args.limit ?? LIST_PAGE_DEFAULT));
+  const next = offset + items.length;
+  const left = read.items.length - next;
+  return {
+    list: args.list,
+    total: read.items.length,
+    offset,
+    returned: items.length,
+    items,
+    ...(left > 0
+      ? {
+          nextOffset: next,
+          more:
+            `${left} more: project_status with list: "${args.list}", offset: ${next}` +
+            `${args.limit ? `, limit: ${args.limit}` : ""}${args.rootPath ? `, rootPath: "${args.rootPath}"` : ""} returns the next page.`,
+        }
+      : {}),
   };
 }
 
@@ -375,11 +481,11 @@ function pickNextStep(s: Sections, root: string): NextStep {
         "read it with changeset_show, re-add what still applies in a changeset of the user's own, and discard it only when the user asks."
       : "";
   if (continuable.length > 0) {
-    const names = continuable.map((changeset) => `"${changeset.name}"`).join(", ");
+    const names = nameSome(continuable.map((changeset) => changeset.name));
     const drifted = continuable.filter((changeset) => changeset.drift?.state === "drifted");
     const driftNote =
       drifted.length > 0
-        ? ` The base model changed under ${drifted.map((changeset) => `"${changeset.name}"`).join(", ")}: ` +
+        ? ` The base model changed under ${nameSome(drifted.map((changeset) => changeset.name))}: ` +
           `${landingSentence(drifted[0].drift!)} changeset_brief with changeset: "${drifted[0].name}" and sections: ["drift"] names what moved.`
         : "";
     return {
@@ -414,6 +520,15 @@ function pickNextStep(s: Sections, root: string): NextStep {
 }
 
 type CodeDrift = Extract<CodeDriftSection, { status: "drift" | "in-step" | "unlinked" }>;
+
+/** How many names a sentence spells out; the count it gives is always the whole one. */
+const NAMES_IN_A_SENTENCE = 5;
+
+/** `"a", "b"`, or the first few and how many more there are (the section lists them). */
+function nameSome(names: string[]): string {
+  const shown = names.slice(0, NAMES_IN_A_SENTENCE).map((name) => `"${name}"`).join(", ");
+  return names.length > NAMES_IN_A_SENTENCE ? `${shown} and ${names.length - NAMES_IN_A_SENTENCE} more` : shown;
+}
 
 /** "3 elements changed, 1 relationship added": what moved in the base, or "" when nothing is counted. */
 function baseChangeCounts(counts: NonNullable<ChangesetDriftEntry["baseChanges"]>): string {
@@ -508,7 +623,7 @@ function codeDriftSentence(codeDrift: CodeDrift): string {
   const landed = codeDrift.landedSince;
   const landedNote = landed
     ? ` Landed plans don't reconcile it, verified or not: ${landed.count} landed since ` +
-      `(${landed.count > landed.changesets.length ? "..., " : ""}${landed.changesets.map((name) => `"${name}"`).join(", ")}) and the baseline did not move.`
+      `(${nameSome(landed.changesets)}${landed.count > landed.changesets.length && landed.changesets.length <= NAMES_IN_A_SENTENCE ? ` and ${landed.count - landed.changesets.length} more` : ""}) and the baseline did not move.`
     : "";
   return `${changed}.${unseen}${landedNote}`;
 }
@@ -575,13 +690,28 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
 }
 
 export async function projectStatusHandler(args: ProjectStatusArgs): Promise<CallToolResult> {
-  return runTool(async () => jsonResult(await projectStatus(args), { compact: true }));
+  return runTool(async () => {
+    const { list } = args;
+    if (list) return jsonResult(await projectStatusList({ ...args, list }), { compact: true });
+    if (args.limit !== undefined || args.offset !== undefined) {
+      throw new CLIError("limit and offset page one of the status's lists, so they need list", ErrorCategory.USER, [
+        `Pass list with them: one of ${STATUS_LISTS.join(", ")}`,
+        "Or call project_status without them for the status itself",
+      ]);
+    }
+    return jsonResult(await projectStatus(args), { compact: true });
+  });
 }
 
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: what changed under it, what overlaps and whether landing needs force), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. Reads local files and git only. Call it first in a session.",
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: what changed under it, what overlaps and whether landing needs force), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
+    `${LIST_DEFAULTS.stagedChangesets} staged changesets, ${LIST_DEFAULTS.changedSourceFiles} changed source files with ${LIST_DEFAULTS.elementsPerFile} elements each, ` +
+    `${LIST_DEFAULTS.unreferencedFiles} unreferenced files, the ${LIST_DEFAULTS.landedSince} latest changesets landed since, ${LIST_DEFAULTS.changedSinceIndex} files changed since the index, ` +
+    "and 3 overlapping changes per drifted changeset (changeset_brief with sections: [\"drift\"] lists those). Each shortened list has its true count beside it and a more line naming the call for the rest: " +
+    `list returns any of them in full, paged with limit (default ${LIST_PAGE_DEFAULT}, no upper bound) and offset. Every status, count and nextStep is computed over the whole lists, never over what is shown. ` +
+    "Reads local files and git only. Call it first in a session.",
   inputSchema,
   handler: projectStatusHandler,
 };

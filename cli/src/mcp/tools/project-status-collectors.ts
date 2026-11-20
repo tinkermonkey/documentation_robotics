@@ -428,8 +428,12 @@ export type ChangesetsSection =
   | {
       status: "ok";
       active: ChangesetEntry | null;
-      /** Every changeset still staged, the active one included. */
+      /** How many changesets are staged, the active one included; `staged` lists the first. */
+      stagedTotal: number;
+      /** The changesets still staged, the active one included. */
       staged: ChangesetEntry[];
+      /** Set when `staged` shows only its first entries: what is shown, of how many, and the call for the rest. */
+      more?: string[];
       committed: number;
       discarded: number;
       /** Set when base drift could not be checked. */
@@ -497,6 +501,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
   return {
     status: "ok",
     active: active && active.status === "staged" ? stagedEntries.find((e) => e.id === active.id) ?? null : null,
+    stagedTotal: stagedEntries.length,
     staged: stagedEntries,
     committed: changesets.filter((changeset) => changeset.status === "committed").length,
     discarded: changesets.filter((changeset) => changeset.status === "discarded").length,
@@ -563,8 +568,14 @@ export type CodeIndexSection =
       reason?: string;
       /** Source files changed by commits since the indexed commit. */
       changedSinceIndex?: string[];
+      /** How many there are; `changedSinceIndex` lists the first. */
+      changedSinceIndexCount?: number;
       /** Source files with uncommitted edits written after the index was taken. */
       uncommittedEdits?: string[];
+      /** How many there are; `uncommittedEdits` lists the first. */
+      uncommittedEditsCount?: number;
+      /** One line per shortened list: what is shown, of how many, and the call that returns the rest. */
+      more?: string[];
       note?: string;
     };
 
@@ -632,8 +643,12 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
     ...section,
     headCommit,
     ...(judgement.reason ? { reason: judgement.reason } : {}),
-    ...(judgement.committedSince.length > 0 ? { changedSinceIndex: judgement.committedSince } : {}),
-    ...(judgement.editedSince.length > 0 ? { uncommittedEdits: judgement.editedSince } : {}),
+    ...(judgement.committedSince.length > 0
+      ? { changedSinceIndex: judgement.committedSince, changedSinceIndexCount: judgement.committedSince.length }
+      : {}),
+    ...(judgement.editedSince.length > 0
+      ? { uncommittedEdits: judgement.editedSince, uncommittedEditsCount: judgement.editedSince.length }
+      : {}),
   };
 }
 
@@ -667,15 +682,35 @@ async function codebaseRootOf(ctx: StatusContext): Promise<string> {
 // code drift (git only)
 
 /**
- * How many changed source files, and elements per file, the section lists. The call opens every
- * session, so the lists are short and the counts beside them are whole.
+ * How many entries of each list project_status shows by default. The call opens every session, so
+ * its lists start short. Each number is a default, not a cut-off: the collectors return every
+ * list whole, `shortenSections` cuts them for the default answer and says so (the true count
+ * beside the list, and a `more` line naming the call for the rest), and `list` pages any of them
+ * in full. Verdicts and counts are always computed over the whole lists.
  */
-const MAX_FILES = 15;
-const MAX_ELEMENTS_PER_FILE = 3;
-/** How many changed files no element references the section names. */
-const MAX_UNREFERENCED_NAMED = 5;
-/** How many changesets landed since the baseline the section names. */
-const MAX_LANDED_NAMED = 5;
+export const LIST_DEFAULTS = {
+  stagedChangesets: 20,
+  changedSourceFiles: 15,
+  uncommittedSourceFiles: 15,
+  /** Element ids per changed file; `elementCount` is the whole count. */
+  elementsPerFile: 3,
+  unreferencedFiles: 5,
+  landedSince: 5,
+  changedSinceIndex: 15,
+  uncommittedEdits: 15,
+} as const;
+
+/** The lists `project_status` pages with `list`, `limit` and `offset`. */
+export const STATUS_LISTS = [
+  "stagedChangesets",
+  "changedSourceFiles",
+  "uncommittedSourceFiles",
+  "unreferencedFiles",
+  "landedSince",
+  "changedSinceIndex",
+  "uncommittedEdits",
+] as const;
+export type StatusList = (typeof STATUS_LISTS)[number];
 
 export interface ChangedSourceFile {
   file: string;
@@ -697,6 +732,20 @@ export interface UnreferencedChanges {
   newSourceFiles: number;
   /** The first few source files, new ones first. Absent when none is a source file. */
   first?: string[];
+  /**
+   * Every unreferenced file: new source files first, then the other source files, then the rest.
+   * Only on the collector's own answer and in the `unreferencedFiles` list; the default answer
+   * keeps `first`.
+   */
+  all?: UnreferencedFile[];
+}
+
+export interface UnreferencedFile {
+  file: string;
+  /** A source file the code analyzer reads. */
+  source: boolean;
+  /** Added since the baseline. */
+  added: boolean;
 }
 
 export type CodeDriftSection =
@@ -738,7 +787,7 @@ export type CodeDriftSection =
       reconciledBy?: { changeset: string; changesetId: string; landedAt: string; codeCommit?: string };
       /**
        * With basis last-reconciling-commit: how many changesets landed after that as-built landing,
-       * and the latest by name. None of them moved the baseline (one that had would be `reconciledBy`).
+       * and their names, latest first. None of them moved the baseline (one that had would be `reconciledBy`).
        */
       landedSince?: { count: number; changesets: string[] };
       /**
@@ -755,18 +804,22 @@ export type CodeDriftSection =
       filesChangedSince: number;
       /** How many of those the model's elements reference as source files; `changedSourceFiles` lists the first. */
       referencedFilesChanged: number;
-      /** Referenced source files that changed (the first MAX_FILES). */
+      /** Referenced source files that changed, with the elements that reference each. */
       changedSourceFiles: ChangedSourceFile[];
       /** The rest: changed files no element references. Absent when there are none. */
       unreferenced?: UnreferencedChanges;
+      /** How many referenced source files have uncommitted changes; `uncommittedSourceFiles` lists the first. */
+      referencedFilesUncommitted: number;
       /** Referenced source files with uncommitted changes. */
       uncommittedSourceFiles: ChangedSourceFile[];
       /** Whether documentation-robotics/model/ itself has uncommitted changes. */
       modelUncommitted: boolean;
       /** How many distinct source files the model references. */
       referencedFiles: number;
-      /** Set when a list was cut to its first entries. */
+      /** Set when a list here shows only its first entries; `more` names the call for the rest of each. */
       truncated?: boolean;
+      /** One line per shortened list: what is shown, of how many, and the call that returns the rest. */
+      more?: string[];
     };
 
 export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSection> {
@@ -937,7 +990,6 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
 
   const matched = matchReferenced(changed, referenced);
   const matchedUncommitted = matchReferenced(uncommitted, referenced);
-  const truncated = matched.length > MAX_FILES || matchedUncommitted.length > MAX_FILES;
   const unreferenced = unreferencedChanges(changedEntries, referenced, prefix);
   const landedSince = reconciled ? landedSinceReconciliation(model, reconciled, uncommittedReconciliation) : undefined;
 
@@ -965,12 +1017,12 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     commitsSince: Number.parseInt(countResult.stdout.trim(), 10) || 0,
     filesChangedSince: changed.length,
     referencedFilesChanged: matched.length,
-    changedSourceFiles: matched.slice(0, MAX_FILES),
+    changedSourceFiles: matched,
     ...(unreferenced ? { unreferenced } : {}),
-    uncommittedSourceFiles: matchedUncommitted.slice(0, MAX_FILES),
+    referencedFilesUncommitted: matchedUncommitted.length,
+    uncommittedSourceFiles: matchedUncommitted,
     modelUncommitted: modelStatus.ok && modelStatus.stdout.trim().length > 0,
     referencedFiles: referenced.size,
-    ...(truncated ? { truncated: true } : {}),
   };
 }
 
@@ -1002,9 +1054,14 @@ function unreferencedChanges(
     if (!prefix) return isIndexedSource(entry.file);
     return entry.file.startsWith(`${prefix}/`) && isIndexedSource(entry.file.slice(prefix.length + 1));
   });
+  const sourceFiles = new Set(source.map((entry) => entry.file));
   const added = source.filter((entry) => entry.added);
-  const first = [...added, ...source.filter((entry) => !entry.added)].slice(0, MAX_UNREFERENCED_NAMED).map((entry) => entry.file);
-  return { files: rest.length, sourceFiles: source.length, newSourceFiles: added.length, ...(first.length > 0 ? { first } : {}) };
+  const all: UnreferencedFile[] = [
+    ...added,
+    ...source.filter((entry) => !entry.added),
+    ...rest.filter((entry) => !sourceFiles.has(entry.file)),
+  ].map((entry) => ({ file: entry.file, source: sourceFiles.has(entry.file), added: entry.added }));
+  return { files: rest.length, sourceFiles: source.length, newSourceFiles: added.length, all };
 }
 
 /**
@@ -1028,8 +1085,8 @@ function landedSinceReconciliation(
     .filter((entry) => entry.name !== uncommitted?.changeset)
     .map((entry) => entry.name);
   if (names.length === 0) return undefined;
-  // The latest are the ones the reader just landed.
-  return { count: names.length, changesets: names.slice(-MAX_LANDED_NAMED) };
+  // Latest first: the ones the reader just landed.
+  return { count: names.length, changesets: names.reverse() };
 }
 
 export interface CommitInfo {
@@ -1228,9 +1285,145 @@ function matchReferenced(changed: string[], referenced: Map<string, string[]>): 
   const out: ChangedSourceFile[] = [];
   for (const file of changed) {
     const ids = referenced.get(file);
-    if (ids) out.push({ file, elements: ids.slice(0, MAX_ELEMENTS_PER_FILE), elementCount: ids.length });
+    if (ids) out.push({ file, elements: [...ids], elementCount: ids.length });
   }
   return out.sort((a, b) => a.file.localeCompare(b.file));
+}
+
+// ---------------------------------------------------------------------------------------------
+// shortening for the default answer, and the lists in full
+
+/** The sections that hold lists the default answer shortens. */
+export interface ListSections {
+  changesets: ChangesetsSection | ErrorSection;
+  codeIndex: CodeIndexSection | ErrorSection;
+  codeDrift: CodeDriftSection | ErrorSection;
+}
+
+/** `project_status with list: "x", offset: n` as an agent would write the call. */
+function listCall(list: StatusList, offset: number, rootPath?: string): string {
+  return `project_status with list: "${list}"${offset > 0 ? `, offset: ${offset}` : ""}${rootPath ? `, rootPath: "${rootPath}"` : ""}`;
+}
+
+/** The `more` line for a list that shows `shown` of `total`. */
+function moreLine(list: StatusList, shown: number, total: number, rootPath?: string): string {
+  return `${list} shows ${shown} of ${total}: ${listCall(list, shown, rootPath)} returns the rest.`;
+}
+
+/** The items of one of the lists, whole, from sections as the collectors return them. */
+export function statusListItems(list: StatusList, s: Partial<ListSections>): { items: unknown[] } | { unavailable: string } {
+  const unavailable = (section: { status: string; reason?: string; error?: string } | undefined, what: string) => ({
+    unavailable: section ? `${what} is ${section.status}${section.reason ? `: ${section.reason}` : section.error ? `: ${section.error}` : ""}` : `${what} was not read`,
+  });
+  if (list === "stagedChangesets") {
+    return s.changesets?.status === "ok" ? { items: s.changesets.staged } : unavailable(s.changesets, "changesets");
+  }
+  if (list === "changedSinceIndex" || list === "uncommittedEdits") {
+    const index = s.codeIndex;
+    if (!index || index.status === "error" || index.status === "absent") return unavailable(index, "codeIndex");
+    return { items: index[list] ?? [] };
+  }
+  const drift = s.codeDrift;
+  if (!drift || (drift.status !== "drift" && drift.status !== "in-step" && drift.status !== "unlinked")) {
+    return unavailable(drift, "codeDrift");
+  }
+  if (list === "changedSourceFiles") return { items: drift.changedSourceFiles };
+  if (list === "uncommittedSourceFiles") return { items: drift.uncommittedSourceFiles };
+  if (list === "unreferencedFiles") return { items: drift.unreferenced?.all ?? [] };
+  return { items: drift.landedSince?.changesets ?? [] };
+}
+
+/**
+ * The sections as the default answer shows them: each list cut to its default size
+ * (LIST_DEFAULTS), with its true count beside it and a `more` line naming the call that returns
+ * the rest. Nothing but the lists changes: every count, status and note was computed over the
+ * whole lists, and stays. `rootPath` is the call's own argument, repeated in the calls named.
+ */
+export function shortenSections<S extends Partial<ListSections>>(sections: S, rootPath?: string): S {
+  const out: S = { ...sections };
+
+  if (out.changesets?.status === "ok" && out.changesets.staged.length > LIST_DEFAULTS.stagedChangesets) {
+    const all = out.changesets.staged;
+    const shown = all.slice(0, LIST_DEFAULTS.stagedChangesets);
+    const hiddenDrifted = all.slice(shown.length).filter((entry) => entry.drift?.state === "drifted").length;
+    out.changesets = {
+      ...out.changesets,
+      staged: shown,
+      more: [
+        `${moreLine("stagedChangesets", shown.length, all.length, rootPath)}` +
+          `${hiddenDrifted > 0 ? ` ${hiddenDrifted} of those not shown ${hiddenDrifted === 1 ? "has" : "have"} a drifted base.` : ""}`,
+      ],
+    };
+  }
+
+  const index = out.codeIndex;
+  if (index && index.status !== "error" && index.status !== "absent") {
+    const more: string[] = [];
+    const cut = (list: "changedSinceIndex" | "uncommittedEdits"): string[] | undefined => {
+      const all = index[list];
+      if (!all || all.length <= LIST_DEFAULTS[list]) return all;
+      more.push(moreLine(list, LIST_DEFAULTS[list], all.length, rootPath));
+      return all.slice(0, LIST_DEFAULTS[list]);
+    };
+    const changedSinceIndex = cut("changedSinceIndex");
+    const uncommittedEdits = cut("uncommittedEdits");
+    if (more.length > 0) {
+      out.codeIndex = {
+        ...index,
+        ...(changedSinceIndex ? { changedSinceIndex } : {}),
+        ...(uncommittedEdits ? { uncommittedEdits } : {}),
+        more,
+      };
+    }
+  }
+
+  const drift = out.codeDrift;
+  if (drift && (drift.status === "drift" || drift.status === "in-step" || drift.status === "unlinked")) {
+    const more: string[] = [];
+    let elementsCut = false;
+    const cutFiles = (list: "changedSourceFiles" | "uncommittedSourceFiles"): ChangedSourceFile[] => {
+      const all = drift[list];
+      if (all.length > LIST_DEFAULTS[list]) more.push(moreLine(list, LIST_DEFAULTS[list], all.length, rootPath));
+      return all.slice(0, LIST_DEFAULTS[list]).map((entry) => {
+        if (entry.elements.length <= LIST_DEFAULTS.elementsPerFile) return entry;
+        elementsCut = true;
+        return { ...entry, elements: entry.elements.slice(0, LIST_DEFAULTS.elementsPerFile) };
+      });
+    };
+    const changedSourceFiles = cutFiles("changedSourceFiles");
+    const uncommittedSourceFiles = cutFiles("uncommittedSourceFiles");
+    if (elementsCut) {
+      more.push(
+        `elements shows ${LIST_DEFAULTS.elementsPerFile} per file (elementCount is the whole count): ` +
+          `${listCall("changedSourceFiles", 0, rootPath)} or list: "uncommittedSourceFiles" returns every element of each file.`
+      );
+    }
+
+    let unreferenced = drift.unreferenced;
+    if (unreferenced) {
+      const { all = [], ...counts } = unreferenced;
+      // The source files lead `all`, new ones first, so the names shown are its first entries.
+      const first = all.filter((entry) => entry.source).slice(0, LIST_DEFAULTS.unreferencedFiles).map((entry) => entry.file);
+      unreferenced = { ...counts, ...(first.length > 0 ? { first } : {}) };
+      if (all.length > first.length) more.push(moreLine("unreferencedFiles", first.length, all.length, rootPath));
+    }
+
+    let landedSince = drift.landedSince;
+    if (landedSince && landedSince.changesets.length > LIST_DEFAULTS.landedSince) {
+      more.push(moreLine("landedSince", LIST_DEFAULTS.landedSince, landedSince.count, rootPath));
+      landedSince = { ...landedSince, changesets: landedSince.changesets.slice(0, LIST_DEFAULTS.landedSince) };
+    }
+
+    out.codeDrift = {
+      ...drift,
+      changedSourceFiles,
+      uncommittedSourceFiles,
+      ...(unreferenced ? { unreferenced } : {}),
+      ...(landedSince ? { landedSince } : {}),
+      ...(more.length > 0 ? { truncated: true, more } : {}),
+    };
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------------

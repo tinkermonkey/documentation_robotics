@@ -268,6 +268,21 @@ It reads local files and git only. It makes no network call and never starts the
 Each section comes from its own collector (`cli/src/mcp/tools/project-status-collectors.ts`); one
 that fails reports `status: "error"` and the others still answer.
 
+The status opens every session, so its lists show their first entries by default: 20 staged
+changesets, 15 changed source files with 3 elements each, 5 unreferenced files, the 5 latest
+changesets landed since the last as-built landing, 15 files changed since the index, and 3
+overlapping changes per drifted changeset. These are defaults, not cut-offs. Each shortened list
+has its true count beside it (`stagedTotal`, `referencedFilesChanged`,
+`referencedFilesUncommitted`, `unreferenced.files`, `landedSince.count`,
+`changedSinceIndexCount`, `uncommittedEditsCount`, `elementCount`, `overlapping.elements` and
+`.relationships`) and a `more` line naming the call that returns the rest. `project_status` with
+`list` returns any of them in full: `stagedChangesets`, `changedSourceFiles`,
+`uncommittedSourceFiles`, `unreferencedFiles`, `landedSince`, `changedSinceIndex` or
+`uncommittedEdits`, paged with `limit` (default 50, no upper bound) and `offset`, with `total`,
+`returned` and `nextOffset` (absent when nothing is left). A changeset's overlapping changes are
+listed by `changeset_brief` with `sections: ["drift"]`. Every status, count and `nextStep` is
+computed over the whole lists before anything is shortened.
+
 - `project`: the root, and how it was found: `rootPath`, `DR_MCP_ROOT_PATH`, `mcp-roots` or `cwd`.
 - `model`: `present` or `absent`. No model is not an error. The model is reread when its files
   changed since the server cached it (a CLI command, a pull, a hand edit).

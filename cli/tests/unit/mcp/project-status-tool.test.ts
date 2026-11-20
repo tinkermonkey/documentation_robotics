@@ -44,6 +44,11 @@ async function status(rootPath?: string): Promise<any> {
   return JSON.parse((result.content[0] as { text: string }).text);
 }
 
+/** One page of a list the status shortens (project_status with list). */
+async function page(rootPath: string, list: string, args: { limit?: number; offset?: number } = {}): Promise<any> {
+  return ok(await projectStatusHandler({ rootPath, list, ...args } as any));
+}
+
 async function ok(result: any): Promise<any> {
   if (result.isError) throw new Error(result.content[0].text);
   return JSON.parse(result.content[0].text);
@@ -482,6 +487,76 @@ describe("project_status", () => {
     expect(entry.drift.next.tool).toBe("changeset_brief");
   });
 
+  it("shows twenty staged changesets by default, counts them all, and judges drift over every one", async () => {
+    await initModel(rootPath);
+    await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
+    // One plan rewords an element, 21 more stage nothing, and the base then changes that element.
+    await ok(await changesetCreateHandler({ name: "plan-00", rootPath }));
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit log", rootPath } as any)
+    );
+    await ok(await changesetDeactivateHandler({ rootPath }));
+    for (let i = 1; i < 22; i++) {
+      await ok(await changesetCreateHandler({ name: `plan-${String(i).padStart(2, "0")}`, activate: false, rootPath }));
+    }
+    await ok(
+      await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
+    );
+    clearModelCache();
+    // An index, so the next step gets as far as the staged changesets.
+    await writeIndex(rootPath, "0000000");
+
+    const data = await status(rootPath);
+
+    expect(data.changesets.stagedTotal).toBe(22);
+    expect(data.changesets.staged).toHaveLength(20);
+    expect(data.changesets.more).toHaveLength(1);
+    expect(data.changesets.more[0]).toContain(
+      `stagedChangesets shows 20 of 22: project_status with list: "stagedChangesets", offset: 20, rootPath: "${rootPath}" returns the rest.`
+    );
+
+    // Every staged changeset is reachable, each exactly once, across the status and the call it names.
+    const rest = await page(rootPath, "stagedChangesets", { offset: 20 });
+    expect(rest).toMatchObject({ total: 22, returned: 2 });
+    expect(rest.nextOffset).toBeUndefined();
+    const names = [...data.changesets.staged, ...rest.items].map((entry: any) => entry.name).sort();
+    expect(names).toEqual(Array.from({ length: 22 }, (_, i) => `plan-${String(i).padStart(2, "0")}`));
+
+    // The drifted plan is one of the 22 wherever it is listed, and the next step names it either way.
+    const drifted = [...data.changesets.staged, ...rest.items].filter((entry: any) => entry.baseDrifted);
+    expect(drifted.map((entry: any) => entry.name)).toEqual(["plan-00"]);
+    const hidden = rest.items.some((entry: any) => entry.name === "plan-00");
+    expect(data.changesets.more[0].includes("1 of those not shown has a drifted base.")).toBe(hidden);
+    expect(data.nextStep.tool).toBe("changeset_activate");
+    expect(data.nextStep.summary).toContain("No changeset is active; 22 staged:");
+    expect(data.nextStep.summary).toContain("and 17 more");
+    expect(data.nextStep.summary).toContain('The base model changed under "plan-00"');
+  });
+
+  it("refuses limit or offset without list, and says which lists there are", async () => {
+    await initModel(rootPath);
+
+    const result = await projectStatusHandler({ rootPath, limit: 5 } as any);
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain("they need list");
+    expect(text).toContain("changedSourceFiles");
+  });
+
+  it("answers a list call with an empty page and the reason when the section has nothing to read", async () => {
+    // No model at all.
+    expect(await page(rootPath, "changedSourceFiles")).toEqual({
+      list: "changedSourceFiles",
+      total: 0,
+      offset: 0,
+      returned: 0,
+      items: [],
+      note: "codeDrift is no-model",
+    });
+    expect((await page(rootPath, "stagedChangesets")).note).toBe("changesets is no-model");
+  });
+
   it("doesn't flag a changeset when the base changed an element it neither edits nor links to", async () => {
     await initModel(rootPath);
     await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
@@ -676,7 +751,7 @@ describe("project_status", () => {
       expect(data.nextStep.summary).toContain("3 more changed files are referenced by no element (2 source, 1 new), so they can't show here");
     });
 
-    it("lists the first changed files and counts them all", async () => {
+    it("shortens the changed files by default, counts them all, and returns the rest through list", async () => {
       const names = Array.from({ length: 17 }, (_, i) => `part-${String(i).padStart(2, "0")}`);
       for (const name of names) {
         await writeFile(join(rootPath, "src", `${name}.ts`), "export const part = 1;\n");
@@ -691,18 +766,131 @@ describe("project_status", () => {
           })
         );
       }
+      // Five elements reference the last file: more than the three the status shows for a file.
+      for (const extra of ["a", "b", "c", "d"]) {
+        await ok(
+          await modelAddHandler({
+            layer: "application",
+            type: "applicationfunction",
+            name: `part-16-${extra}`,
+            sourceFile: "src/part-16.ts",
+            sourceProvenance: "manual",
+            rootPath,
+          })
+        );
+      }
       git(rootPath, "add", "-A");
       git(rootPath, "commit", "-q", "-m", "model the parts");
       for (const name of names) await writeFile(join(rootPath, "src", `${name}.ts`), "export const part = 2;\n");
       git(rootPath, "commit", "-q", "-am", "change the parts");
+      // An index from before both commits: every part has changed since.
+      await writeIndex(rootPath, modelSha);
 
       const data = await status(rootPath);
 
+      // The default answer: the first 15, the whole count beside them, and the call for the rest.
       expect(data.codeDrift.referencedFilesChanged).toBe(17);
       expect(data.codeDrift.changedSourceFiles).toHaveLength(15);
       expect(data.codeDrift.truncated).toBe(true);
+      expect(data.codeDrift.more).toContain(
+        `changedSourceFiles shows 15 of 17: project_status with list: "changedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`
+      );
       expect(data.codeDrift.unreferenced).toBeUndefined();
+      // The sentence counts every file, not the ones listed.
       expect(data.nextStep.summary).toContain("17 source files the model references changed");
+
+      // The call it names returns the rest, each file with every element that references it.
+      const rest = await page(rootPath, "changedSourceFiles", { offset: 15 });
+      expect(rest).toMatchObject({ list: "changedSourceFiles", total: 17, offset: 15, returned: 2 });
+      expect(rest.nextOffset).toBeUndefined();
+      expect(rest.more).toBeUndefined();
+      expect(rest.items.map((f: any) => f.file)).toEqual(["src/part-15.ts", "src/part-16.ts"]);
+      expect(rest.items[1].elementCount).toBe(5);
+      expect(rest.items[1].elements).toHaveLength(5);
+
+      // Paged with limit: every file is reached exactly once, and the last page names no next call.
+      const seen: string[] = [];
+      let offset: number | undefined = 0;
+      while (offset !== undefined) {
+        const next: any = await page(rootPath, "changedSourceFiles", { limit: 7, offset });
+        expect(next.total).toBe(17);
+        seen.push(...next.items.map((f: any) => f.file));
+        if (next.nextOffset !== undefined) expect(next.more).toContain(`list: "changedSourceFiles", offset: ${next.nextOffset}, limit: 7`);
+        offset = next.nextOffset;
+      }
+      expect(seen).toEqual(names.map((name) => `src/${name}.ts`));
+      // limit has no upper bound: the total returns everything in one call.
+      expect((await page(rootPath, "changedSourceFiles", { limit: 17 })).returned).toBe(17);
+
+      // The same holds for the index's own list of files changed since it was taken.
+      expect(data.codeIndex.status).toBe("stale");
+      expect(data.codeIndex.changedSinceIndexCount).toBe(17);
+      expect(data.codeIndex.changedSinceIndex).toHaveLength(15);
+      expect(data.codeIndex.more).toEqual([
+        `changedSinceIndex shows 15 of 17: project_status with list: "changedSinceIndex", offset: 15, rootPath: "${rootPath}" returns the rest.`,
+      ]);
+      const sinceIndex = await page(rootPath, "changedSinceIndex", { offset: 15 });
+      expect(sinceIndex).toMatchObject({ total: 17, returned: 2 });
+    });
+
+    it("shows three elements per file, with the whole count and the call that lists them all", async () => {
+      for (const extra of ["a", "b", "c", "d"]) {
+        await ok(
+          await modelAddHandler({
+            layer: "application",
+            type: "applicationfunction",
+            name: `checkout-${extra}`,
+            sourceFile: "src/checkout.ts",
+            sourceProvenance: "manual",
+            rootPath,
+          })
+        );
+      }
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "model more of checkout");
+      await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+      git(rootPath, "commit", "-q", "-am", "change checkout");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.changedSourceFiles).toHaveLength(1);
+      expect(data.codeDrift.changedSourceFiles[0].elements).toHaveLength(3);
+      expect(data.codeDrift.changedSourceFiles[0].elementCount).toBe(5);
+      expect(data.codeDrift.more.join(" ")).toContain("elements shows 3 per file (elementCount is the whole count)");
+      const all = await page(rootPath, "changedSourceFiles");
+      expect(all.items[0].elements).toHaveLength(5);
+    });
+
+    it("names five unreferenced files, counts them all, and returns every one through list", async () => {
+      await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
+      for (let i = 0; i < 7; i++) await writeFile(join(rootPath, "src", `new-${i}.ts`), "export const n = 1;\n");
+      await writeFile(join(rootPath, "README.md"), "# Read me\n");
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "more code nothing references");
+
+      const data = await status(rootPath);
+
+      // Nothing the model references changed: in step, and the nine files it can't judge are counted.
+      expect(data.codeDrift.status).toBe("in-step");
+      expect(data.codeDrift.unreferenced).toEqual({
+        files: 9,
+        sourceFiles: 8,
+        newSourceFiles: 7,
+        first: ["src/new-0.ts", "src/new-1.ts", "src/new-2.ts", "src/new-3.ts", "src/new-4.ts"],
+      });
+      expect(data.codeDrift.more).toEqual([
+        `unreferencedFiles shows 5 of 9: project_status with list: "unreferencedFiles", offset: 5, rootPath: "${rootPath}" returns the rest.`,
+      ]);
+
+      const rest = await page(rootPath, "unreferencedFiles", { offset: 5 });
+      expect(rest).toMatchObject({ total: 9, returned: 4 });
+      // New source files first, then other source files, then files that are not source.
+      expect(rest.items).toEqual([
+        { file: "src/new-5.ts", source: true, added: true },
+        { file: "src/new-6.ts", source: true, added: true },
+        { file: "src/other.ts", source: true, added: false },
+        { file: "README.md", source: false, added: true },
+      ]);
     });
 
     it("says which rule counts drift for a model with no as-built landing", async () => {
@@ -808,6 +996,32 @@ describe("project_status", () => {
 
         expect(seen.some((arg) => arg.includes("--output"))).toBe(false);
         expect(data.codeDrift.countedFrom.sha).toBe(landingSha);
+      });
+
+      it("names the five latest changesets landed since, counts them all, and returns every one through list", async () => {
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+        const manifest = join(rootPath, "documentation-robotics", "model", "manifest.yaml");
+        const landed = Array.from({ length: 7 }, (_, i) => `plan-${i}`);
+        await writeFile(
+          manifest,
+          `${(await readFile(manifest, "utf-8")).trimEnd()}\nchangeset_history:\n` +
+            landed.map((name, i) => `  - name: ${name}\n    committed_at: 2021-01-0${i + 1}T00:00:00.000Z\n    action: committed\n`).join("")
+        );
+        clearModelCache();
+        commitModel();
+        await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+        git(rootPath, "commit", "-q", "-am", "change checkout");
+        await writeIndex(rootPath, git(rootPath, "rev-parse", "HEAD"));
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.landedSince).toEqual({ count: 7, changesets: ["plan-6", "plan-5", "plan-4", "plan-3", "plan-2"] });
+        expect(data.codeDrift.more).toEqual([
+          `landedSince shows 5 of 7: project_status with list: "landedSince", offset: 5, rootPath: "${rootPath}" returns the rest.`,
+        ]);
+        // The sentence gives the whole count and says how many it did not name.
+        expect(data.nextStep.summary).toContain('7 landed since ("plan-6", "plan-5", "plan-4", "plan-3", "plan-2" and 2 more)');
+        expect(await page(rootPath, "landedSince", { offset: 5 })).toMatchObject({ total: 7, returned: 2, items: ["plan-1", "plan-0"] });
       });
 
       it("names the plans landed since, and says they did not move the baseline (#1228)", async () => {
