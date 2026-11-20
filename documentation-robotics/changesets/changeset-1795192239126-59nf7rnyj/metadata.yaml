@@ -17,7 +17,7 @@ description: "changeset_brief's sections return compact forms in which every
   equal the whole set; and the acceptance criteria of #1183, #1221, #1231 and
   #1232 are met."
 created: 2026-11-20T16:30:39.144Z
-modified: 2026-11-20T18:12:43.701Z
+modified: 2026-11-20T18:21:22.071Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
@@ -27,7 +27,7 @@ stats:
   additions: 30
   modifications: 11
   deletions: 0
-lastSequence: 65
+lastSequence: 67
 unstaged:
   - sequence: 1
     removedAt: 28
@@ -461,3 +461,16 @@ unstaged:
         targetLayer: data-model
         category: structural
       timestamp: 2026-11-20T17:16:08.160Z
+  - sequence: 37
+    removedAt: 67
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.gap-lines
+      layerName: application
+      after:
+        source: application.applicationfunction.brief-sections
+        target: application.applicationfunction.gap-lines
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:58:29.141Z

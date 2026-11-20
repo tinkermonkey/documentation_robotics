@@ -493,17 +493,6 @@
   timestamp: 2026-11-20T16:47:09.815Z
   sequenceNumber: 27
 - type: relationship-add
-  elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.gap-lines
-  layerName: application
-  after:
-    source: application.applicationfunction.brief-sections
-    target: application.applicationfunction.gap-lines
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:58:29.141Z
-  sequenceNumber: 37
-- type: relationship-add
   elementId: application.applicationfunction.compact-intent::accesses::data-model.objectschema.changeset-brief
   layerName: application
   after:
@@ -1004,3 +993,15 @@
     metadata: *a27
   timestamp: 2026-11-20T18:12:42.207Z
   sequenceNumber: 65
+- type: relationship-add
+  elementId: application.applicationfunction.delta-lists::accesses::data-model.objectschema.brief-delta
+  layerName: application
+  after:
+    source: application.applicationfunction.delta-lists
+    target: data-model.objectschema.brief-delta
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T18:21:21.110Z
+  sequenceNumber: 66
