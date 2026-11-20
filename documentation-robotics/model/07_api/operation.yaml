@@ -1,0 +1,560 @@
+api.operation.delete-api-annotations-annotation-id:
+  id: 6a201bcc-86ed-4400-ae6f-3043ae84715d
+  path: api.operation.delete-api-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: DELETE /api/annotations/{annotationId}
+  attributes:
+    operationId: delete-api-annotations-annotation-id
+    summary: DELETE /api/annotations/{annotationId}
+    tags: api
+    http_method: DELETE
+    http_path: /api/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: DELETE /api/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-annotations:
+  id: a776a4f7-c71b-44f0-b85a-3a913a394ad8
+  path: api.operation.get-api-annotations
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/annotations
+  attributes:
+    operationId: get-api-annotations
+    summary: GET /api/annotations
+    tags: api
+    http_method: GET
+    http_path: /api/annotations
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/annotations
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-annotations-annotation-id:
+  id: 65d1df7f-ffe0-441b-b5ef-e8bbd7e83086
+  path: api.operation.get-api-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/annotations/{annotationId}
+  attributes:
+    operationId: get-api-annotations-annotation-id
+    summary: GET /api/annotations/{annotationId}
+    tags: api
+    http_method: GET
+    http_path: /api/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-annotations-annotation-id-replies:
+  id: f30450bb-f9c8-44c7-908d-a2816b88370e
+  path: api.operation.get-api-annotations-annotation-id-replies
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/annotations/{annotationId}/replies
+  attributes:
+    operationId: get-api-annotations-annotation-id-replies
+    summary: GET /api/annotations/{annotationId}/replies
+    tags: api
+    http_method: GET
+    http_path: /api/annotations/{annotationId}/replies
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/annotations/{annotationId}/replies
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-changesets:
+  id: 222a56f6-6aeb-45fc-a88f-6c0c0c522339
+  path: api.operation.get-api-changesets
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/changesets
+  attributes:
+    operationId: get-api-changesets
+    summary: GET /api/changesets
+    tags: api
+    http_method: GET
+    http_path: /api/changesets
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/changesets
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-changesets-changeset-id:
+  id: 0df904c9-cff4-46ee-a468-1690994b8805
+  path: api.operation.get-api-changesets-changeset-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/changesets/{changesetId}
+  attributes:
+    operationId: get-api-changesets-changeset-id
+    summary: GET /api/changesets/{changesetId}
+    tags: api
+    http_method: GET
+    http_path: /api/changesets/{changesetId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/changesets/{changesetId}
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-layers-layer-name:
+  id: 06027078-de2e-474a-9e91-5ee1a5aa0afc
+  path: api.operation.get-api-layers-layer-name
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/layers/{layerName}
+  attributes:
+    operationId: get-api-layers-layer-name
+    summary: GET /api/layers/{layerName}
+    tags: api
+    http_method: GET
+    http_path: /api/layers/{layerName}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/layers/{layerName}
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-model:
+  id: 74077a92-fa70-43b8-963b-98fb35c0088c
+  path: api.operation.get-api-model
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/model
+  attributes:
+    operationId: get-api-model
+    summary: GET /api/model
+    tags: api
+    http_method: GET
+    http_path: /api/model
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/model
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-spec:
+  id: 6171c31e-0848-4655-8bb4-d48a04902eef
+  path: api.operation.get-api-spec
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/spec
+  attributes:
+    operationId: get-api-spec
+    summary: GET /api/spec
+    tags: api
+    http_method: GET
+    http_path: /api/spec
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/spec
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-api-tier1:
+  id: a70fc7b8-5114-4353-85dd-b52741965064
+  path: api.operation.get-api-tier1
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/tier1
+  attributes:
+    operationId: get-api-tier1
+    summary: GET /api/tier1
+    tags: api
+    http_method: GET
+    http_path: /api/tier1
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/tier1
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get-health:
+  id: 46c04d2d-6345-48f2-b9cd-036085a5005e
+  path: api.operation.get-health
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /health
+  attributes:
+    operationId: get-health
+    summary: GET /health
+    tags: health
+    http_method: GET
+    http_path: /health
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /health
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.patch-api-annotations-annotation-id:
+  id: 080f8f08-c8bf-4f8b-858e-1de536abc881
+  path: api.operation.patch-api-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: PATCH /api/annotations/{annotationId}
+  attributes:
+    operationId: patch-api-annotations-annotation-id
+    summary: PATCH /api/annotations/{annotationId}
+    tags: api
+    http_method: PATCH
+    http_path: /api/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: PATCH /api/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.post-api-annotations:
+  id: 221af9db-4eeb-4db3-9402-88bdbf2a3b7e
+  path: api.operation.post-api-annotations
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: POST /api/annotations
+  attributes:
+    operationId: post-api-annotations
+    summary: POST /api/annotations
+    tags: api
+    http_method: POST
+    http_path: /api/annotations
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/annotations
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.post-api-annotations-annotation-id-replies:
+  id: 75302a21-acf4-4f10-a78f-ef7e5b7aae16
+  path: api.operation.post-api-annotations-annotation-id-replies
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: POST /api/annotations/{annotationId}/replies
+  attributes:
+    operationId: post-api-annotations-annotation-id-replies
+    summary: POST /api/annotations/{annotationId}/replies
+    tags: api
+    http_method: POST
+    http_path: /api/annotations/{annotationId}/replies
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/annotations/{annotationId}/replies
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.post-api-changesets-changeset-id-commit:
+  id: df6086ab-c490-47a7-9a13-f3250abc4a38
+  path: api.operation.post-api-changesets-changeset-id-commit
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: POST /api/changesets/{changesetId}/commit
+  attributes:
+    operationId: post-api-changesets-changeset-id-commit
+    summary: POST /api/changesets/{changesetId}/commit
+    tags: api
+    http_method: POST
+    http_path: /api/changesets/{changesetId}/commit
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/changesets/{changesetId}/commit
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.post-api-changesets-changeset-id-discard:
+  id: c85bd45a-b0de-4ec1-922e-a8b82abfc64a
+  path: api.operation.post-api-changesets-changeset-id-discard
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: POST /api/changesets/{changesetId}/discard
+  attributes:
+    operationId: post-api-changesets-changeset-id-discard
+    summary: POST /api/changesets/{changesetId}/discard
+    tags: api
+    http_method: POST
+    http_path: /api/changesets/{changesetId}/discard
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/changesets/{changesetId}/discard
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.put-api-annotations-annotation-id:
+  id: e0e505e0-0fc0-4466-8a97-301062b98b6f
+  path: api.operation.put-api-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: PUT /api/annotations/{annotationId}
+  attributes:
+    operationId: put-api-annotations-annotation-id
+    summary: PUT /api/annotations/{annotationId}
+    tags: api
+    http_method: PUT
+    http_path: /api/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: PUT /api/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.put-api-changesets-changeset-id-review:
+  id: 15b2d086-ec80-4610-90d4-df339cdd42b8
+  path: api.operation.put-api-changesets-changeset-id-review
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: PUT /api/changesets/{changesetId}/review
+  attributes:
+    operationId: put-api-changesets-changeset-id-review
+    summary: PUT /api/changesets/{changesetId}/review
+    tags: api
+    http_method: PUT
+    http_path: /api/changesets/{changesetId}/review
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: PUT /api/changesets/{changesetId}/review
+  metadata:
+    created_at: 2026-11-20T14:57:47.346Z
+    updated_at: 2026-11-20T14:57:47.346Z
+    version: 1
+api.operation.get:
+  id: e1556573-96a9-4c7c-b5da-2476678397d4
+  path: api.operation.get
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /
+  description: Serve the viewer's HTML at the root
+  attributes:
+    operationId: getViewer
+    summary: Serve the viewer's HTML at the root
+    tags: viewer
+    http_method: GET
+    http_path: /
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: GET /
+  metadata:
+    created_at: 2026-11-20T15:08:59.540Z
+    updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+api.operation.get-api-docs:
+  id: 0c2813cd-177e-47ee-8585-8ba1a90ce604
+  path: api.operation.get-api-docs
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api-docs
+  description: Serve the Swagger UI for the viewer API's OpenAPI document
+  attributes:
+    operationId: getApiDocs
+    summary: Serve the Swagger UI for the viewer API
+    tags: viewer
+    http_method: GET
+    http_path: /api-docs
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: GET /api-docs
+  metadata:
+    created_at: 2026-11-20T15:08:59.540Z
+    updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+api.operation.get-ws:
+  id: 11d47653-f89d-4ffc-9ff6-b4719b118005
+  path: api.operation.get-ws
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /ws
+  description: Upgrade to the viewer's WebSocket, which carries model, changeset
+    and annotation updates and the chat
+  attributes:
+    operationId: getWebSocket
+    summary: Open the viewer's WebSocket
+    tags: viewer
+    http_method: GET
+    http_path: /ws
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: GET /ws
+  metadata:
+    created_at: 2026-11-20T15:08:59.540Z
+    updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+api.operation.get-viewer-asset:
+  id: 18378f3b-5347-4fa3-8194-98a2efc4ba20
+  path: api.operation.get-viewer-asset
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET viewer asset
+  description:
+    Serve a file of a custom viewer build (GET /*); API, WebSocket and
+    health paths pass through
+  attributes:
+    operationId: getViewerAsset
+    summary: Serve a file of a custom viewer build
+    tags: viewer
+    http_method: GET
+    http_path: /*
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: GET /*
+  metadata:
+    created_at: 2026-11-20T15:09:04.277Z
+    updated_at: 2026-11-20T15:09:04.277Z
+    version: 1
+api.operation.post-mcp:
+  id: 4c140e62-e7ef-48d2-b62a-5654fa5c7e58
+  path: api.operation.post-mcp
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: POST /mcp
+  description: Receive an MCP client message over the streamable HTTP transport
+  attributes:
+    operationId: postMcp
+    summary: Receive an MCP client message over the streamable HTTP transport
+    tags: mcp
+    http_method: POST
+    http_path: /mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/http-transport.ts
+        symbol: POST /mcp
+  metadata:
+    created_at: 2026-11-20T15:14:47.627Z
+    updated_at: 2026-11-20T15:14:47.627Z
+    version: 1
+api.operation.get-mcp:
+  id: 82caff7b-e43d-46c2-8227-5f17f046cb73
+  path: api.operation.get-mcp
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /mcp
+  description: Open the MCP server-to-client event stream for a session
+  attributes:
+    operationId: getMcp
+    summary: Open the MCP server-to-client event stream for a session
+    tags: mcp
+    http_method: GET
+    http_path: /mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/http-transport.ts
+        symbol: GET /mcp
+  metadata:
+    created_at: 2026-11-20T15:14:47.628Z
+    updated_at: 2026-11-20T15:14:47.628Z
+    version: 1
+api.operation.delete-mcp:
+  id: 659ac8fc-d55b-4b4e-b4ca-854cf57c5cf8
+  path: api.operation.delete-mcp
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: DELETE /mcp
+  description: End an MCP session over the HTTP transport
+  attributes:
+    operationId: deleteMcp
+    summary: End an MCP session over the HTTP transport
+    tags: mcp
+    http_method: DELETE
+    http_path: /mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/http-transport.ts
+        symbol: DELETE /mcp
+  metadata:
+    created_at: 2026-11-20T15:14:47.628Z
+    updated_at: 2026-11-20T15:14:47.628Z
+    version: 1

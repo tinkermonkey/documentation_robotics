@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.6.0
 spec_version: 0.14.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-20T14:42:46.858Z
+updated: 2026-11-20T15:38:19.286Z
 project:
   name: dr-codebase
   description: ""
@@ -48,6 +48,11 @@ layers:
     name: Application
     path: documentation-robotics/model/05_application/
     enabled: true
+    elements:
+      dataobject: 12
+      applicationservice: 105
+      applicationfunction: 1236
+      applicationcomponent: 101
   technology:
     order: 6
     name: Technology
@@ -58,11 +63,17 @@ layers:
     name: Api
     path: documentation-robotics/model/07_api/
     enabled: true
+    elements:
+      operation: 25
   data-model:
     order: 8
     name: Data model
     path: documentation-robotics/model/08_data-model/
     enabled: true
+    elements:
+      schemadefinition: 73
+      schemacomposition: 34
+      objectschema: 778
   data-store:
     order: 9
     name: Data store
@@ -113,3 +124,11 @@ changeset_history:
   - name: reconcile-cli-0-6-0
     committed_at: 2026-11-20T14:42:46.858Z
     action: committed
+  - name: bootstrap-code-layers
+    committed_at: 2026-11-20T15:38:19.277Z
+    action: committed
+reconciled:
+  changeset: bootstrap-code-layers
+  changeset_id: changeset-1795186667450-oi7puohc1
+  landed_at: 2026-11-20T15:38:19.277Z
+  code_commit: 723c609aa3776e41c8d5af29a2232e404b6f5b53

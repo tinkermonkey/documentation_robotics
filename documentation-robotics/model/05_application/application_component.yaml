@@ -1,0 +1,1914 @@
+application.applicationcomponent.data-model-analyzer:
+  id: 94578b9c-7a87-4b70-8cf0-b9d4921e25f2
+  path: application.applicationcomponent.data-model-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: DataModelAnalyzer
+  description: Data Model Analyzer
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analysis/data-model-analyzer.ts
+        symbol: DataModelAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.735Z
+    updated_at: 2026-11-20T15:04:11.735Z
+    version: 1
+application.applicationcomponent.relationship-classifier:
+  id: 9559b620-75b7-4c2c-9221-e0ed3bdeea2b
+  path: application.applicationcomponent.relationship-classifier
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: RelationshipClassifier
+  description: Relationship Classifier
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analysis/relationship-classifier.ts
+        symbol: RelationshipClassifier
+  metadata:
+    created_at: 2026-11-20T15:04:11.736Z
+    updated_at: 2026-11-20T15:04:11.736Z
+    version: 1
+application.applicationcomponent.card-builder:
+  id: 50e0abe3-1c9c-4840-b825-011c59e25cc9
+  path: application.applicationcomponent.card-builder
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CardBuilder
+  description: Builds cards for one project.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/build.ts
+        symbol: CardBuilder
+  metadata:
+    created_at: 2026-11-20T15:04:11.736Z
+    updated_at: 2026-11-20T15:04:11.736Z
+    version: 1
+application.applicationcomponent.architecture-request:
+  id: d3768828-6bea-4ff1-b07b-7f839a720514
+  path: application.applicationcomponent.architecture-request
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ArchitectureRequest
+  description: One aspect of `get_architecture`, polled while CBM says it is pending.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/clusters.ts
+        symbol: ArchitectureRequest
+  metadata:
+    created_at: 2026-11-20T15:04:11.736Z
+    updated_at: 2026-11-20T15:04:11.736Z
+    version: 1
+application.applicationcomponent.cbm-analyzer:
+  id: 8ab93ab8-2a30-4abd-9a95-5c3c69bd8841
+  path: application.applicationcomponent.cbm-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CbmAnalyzer
+  description: CBM Analyzer implementation
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cbm-analyzer.ts
+        symbol: CbmAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.cbm-tools:
+  id: 2dcdbbe8-098a-42e2-9b95-8d9d99f78b21
+  path: application.applicationcomponent.cbm-tools
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CbmTools
+  description: Paged, normalised access to the CBM tools.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cbm-responses.ts
+        symbol: CbmTools
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.tier1cache:
+  id: ab24862f-1a7c-4f9b-96d9-e062d401c822
+  path: application.applicationcomponent.tier1cache
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: Tier1Cache
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/cache.ts
+        symbol: Tier1Cache
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.cloudflare-workers-ai-model:
+  id: 603b5389-9eb8-4566-b03c-a2bf39e0585e
+  path: application.applicationcomponent.cloudflare-workers-ai-model
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CloudflareWorkersAiModel
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/decision-model/adapters/cloudflare-workers-ai.ts
+        symbol: CloudflareWorkersAiModel
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.open-router-model:
+  id: 5535d996-e51e-4ef8-9ffe-abdb20c77a21
+  path: application.applicationcomponent.open-router-model
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: OpenRouterModel
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/decision-model/adapters/openrouter.ts
+        symbol: OpenRouterModel
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.spend-ledger:
+  id: 7f1199a3-3308-4bcd-8b8c-3c12a136a602
+  path: application.applicationcomponent.spend-ledger
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: SpendLedger
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/spend.ts
+        symbol: SpendLedger
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.mapping-loader:
+  id: 1c35552a-9773-43b0-8fcb-3168e94999b7
+  path: application.applicationcomponent.mapping-loader
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: MappingLoader
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/mapping-loader.ts
+        symbol: MappingLoader
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.analyzer-registry:
+  id: 6e4d973d-65a8-4bb9-9246-62b5bd6f00e7
+  path: application.applicationcomponent.analyzer-registry
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: AnalyzerRegistry
+  description: Analyzer Registry - constructs and manages analyzer instances
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/registry.ts
+        symbol: AnalyzerRegistry
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.stdio-client:
+  id: 4d35a497-4aa8-4385-a216-435a8139e7d3
+  path: application.applicationcomponent.stdio-client
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: StdioClient
+  description: MCP client for communicating with analyzer backends via JSON-RPC 2.0 stdio
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/stdio-client.ts
+        symbol: StdioClient
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.verify-engine:
+  id: 2af8b1b7-3716-4a4c-a2a6-77310a5fc086
+  path: application.applicationcomponent.verify-engine
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: VerifyEngine
+  description: VerifyEngine - computes verification reports for API endpoints
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/verify-engine.ts
+        symbol: VerifyEngine
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.ignore-file-loader:
+  id: 969ab58f-bc23-46e4-902f-36cae884562e
+  path: application.applicationcomponent.ignore-file-loader
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: IgnoreFileLoader
+  description: Loader for .dr-verify-ignore.yaml files
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/verify-ignore.ts
+        symbol: IgnoreFileLoader
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.audit-airunner:
+  id: 46e9c1a5-6f2c-4521-877b-67a06b5558f8
+  path: application.applicationcomponent.audit-airunner
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: AuditAIRunner
+  description: Shared AI invocation runner for audit evaluators.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/ai/runner.ts
+        symbol: AuditAIRunner
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.differential-analyzer:
+  id: fb0abd89-160b-41c6-a172-7f06807dd73a
+  path: application.applicationcomponent.differential-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: DifferentialAnalyzer
+  description: Analyzer for comparing audit snapshots
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/differential-analyzer.ts
+        symbol: DifferentialAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-aievaluator:
+  id: e5494b71-32be-4f67-8f27-f42af71d5d58
+  path: application.applicationcomponent.node-aievaluator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeAIEvaluator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/ai/evaluator.ts
+        symbol: NodeAIEvaluator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-response-parser:
+  id: 0f4e140b-5af8-4ef9-8667-ead4692e077d
+  path: application.applicationcomponent.node-response-parser
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeResponseParser
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/ai/parser.ts
+        symbol: NodeResponseParser
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-prompt-templates:
+  id: 01e29f71-e51a-4ad4-bbac-d0375c5a1a78
+  path: application.applicationcomponent.node-prompt-templates
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodePromptTemplates
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/ai/prompts.ts
+        symbol: NodePromptTemplates
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-completeness-checker:
+  id: 2702d6f3-704f-4cee-9397-5d0ec5203293
+  path: application.applicationcomponent.node-completeness-checker
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeCompletenessChecker
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/analysis/node-completeness-checker.ts
+        symbol: NodeCompletenessChecker
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-definition-analyzer:
+  id: d719714a-304f-4ec6-9b5a-80b7629ece30
+  path: application.applicationcomponent.node-definition-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeDefinitionAnalyzer
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/analysis/node-definition-analyzer.ts
+        symbol: NodeDefinitionAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-overlap-detector:
+  id: 4e961c50-e75f-4cfb-b921-f81f7c776cc8
+  path: application.applicationcomponent.node-overlap-detector
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeOverlapDetector
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/analysis/node-overlap-detector.ts
+        symbol: NodeOverlapDetector
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.model-node-audit-orchestrator:
+  id: c102a308-4b01-40f0-884d-45d496e05dee
+  path: application.applicationcomponent.model-node-audit-orchestrator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ModelNodeAuditOrchestrator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/model/orchestrator.ts
+        symbol: ModelNodeAuditOrchestrator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-schema-loader:
+  id: c0b9b984-a072-4f84-9276-1b9499da2077
+  path: application.applicationcomponent.node-schema-loader
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeSchemaLoader
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/spec/loader.ts
+        symbol: NodeSchemaLoader
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.node-audit-orchestrator:
+  id: 7666cf45-f064-4723-8ace-9aa6baade19e
+  path: application.applicationcomponent.node-audit-orchestrator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NodeAuditOrchestrator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/nodes/spec/orchestrator.ts
+        symbol: NodeAuditOrchestrator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.pipeline-orchestrator:
+  id: c79c8803-79c8-4948-afc4-e0e6d685a082
+  path: application.applicationcomponent.pipeline-orchestrator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: PipelineOrchestrator
+  description: Orchestrates the complete audit pipeline
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/pipeline/pipeline-orchestrator.ts
+        symbol: PipelineOrchestrator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.in-memory-progress-tracker:
+  id: b5434607-30fb-4503-be16-3c1e6a282a36
+  path: application.applicationcomponent.in-memory-progress-tracker
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: InMemoryProgressTracker
+  description: In-memory progress tracker for AI evaluation
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/ai/evaluator.ts
+        symbol: InMemoryProgressTracker
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.aievaluator:
+  id: 4ddc9b1b-1004-43cf-972e-4d3bc17be8ca
+  path: application.applicationcomponent.aievaluator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: AIEvaluator
+  description: AI-powered relationship evaluation orchestrator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/ai/evaluator.ts
+        symbol: AIEvaluator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.response-parser:
+  id: 175479f3-b7fa-431a-a34e-613ea02cab5b
+  path: application.applicationcomponent.response-parser
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ResponseParser
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/ai/parser.ts
+        symbol: ResponseParser
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.prompt-templates:
+  id: aa7ad0a6-94fe-48d9-a119-6c349ca52d19
+  path: application.applicationcomponent.prompt-templates
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: PromptTemplates
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/ai/prompts.ts
+        symbol: PromptTemplates
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.balance-assessor:
+  id: 1a397733-2e8b-4eae-bc46-a0c8957e10e7
+  path: application.applicationcomponent.balance-assessor
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: BalanceAssessor
+  description: Balance assessor for relationship density
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/analysis/balance-assessor.ts
+        symbol: BalanceAssessor
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.coverage-analyzer:
+  id: 55609161-6477-4b36-97c9-fa76eff3e1b5
+  path: application.applicationcomponent.coverage-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CoverageAnalyzer
+  description: Coverage analyzer for relationship metrics
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/analysis/coverage-analyzer.ts
+        symbol: CoverageAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.duplicate-detector:
+  id: 8a5b88c4-49ed-4be4-bae0-3edb6d4c4b27
+  path: application.applicationcomponent.duplicate-detector
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: DuplicateDetector
+  description: Duplicate detector for semantic relationship overlap
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/analysis/duplicate-detector.ts
+        symbol: DuplicateDetector
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.gap-analyzer:
+  id: 11157d59-6e4b-4819-bc2c-c29cbcdbaea4
+  path: application.applicationcomponent.gap-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: GapAnalyzer
+  description: Gap analyzer for missing relationships
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/analysis/gap-analyzer.ts
+        symbol: GapAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.connectivity-analyzer:
+  id: 1f10f552-defd-4821-bc39-41f9ad36f703
+  path: application.applicationcomponent.connectivity-analyzer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ConnectivityAnalyzer
+  description: Connectivity analyzer for relationship graphs
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/graph/connectivity.ts
+        symbol: ConnectivityAnalyzer
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.model-audit-orchestrator:
+  id: 46df03cc-26c9-466c-91cc-3c05d03134a4
+  path: application.applicationcomponent.model-audit-orchestrator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ModelAuditOrchestrator
+  description: Orchestrates audit of the project's model relationship instances
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/model/orchestrator.ts
+        symbol: ModelAuditOrchestrator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.audit-orchestrator:
+  id: 92161158-a8e0-4b70-b982-d1bcdde7ee68
+  path: application.applicationcomponent.audit-orchestrator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: AuditOrchestrator
+  description: Orchestrates the full audit pipeline
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/spec/orchestrator.ts
+        symbol: AuditOrchestrator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.report-generator:
+  id: ee87b35c-e8f1-46c7-9e12-42e94ac55478
+  path: application.applicationcomponent.report-generator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ReportGenerator
+  description: Generates audit reports with support for before/after phases
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/reports/report-generator.ts
+        symbol: ReportGenerator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.snapshot-storage:
+  id: f140689b-1fa4-42e0-9880-43f4301bd445
+  path: application.applicationcomponent.snapshot-storage
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: SnapshotStorage
+  description: Manager for audit snapshot persistence
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/snapshot-storage.ts
+        symbol: SnapshotStorage
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.claude-code-agent:
+  id: 7fce8546-0a7c-42bf-a71e-27eb6da1d27f
+  path: application.applicationcomponent.claude-code-agent
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ClaudeCodeAgent
+  description: Claude Code CLI agent implementation
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/agents/claude-code.ts
+        symbol: ClaudeCodeAgent
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.base-chat-client:
+  id: 955d5b8f-afa6-433f-abe3-c43df49ec0f9
+  path: application.applicationcomponent.base-chat-client
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: BaseChatClient
+  description: Abstract base class for AI chat clients
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/base-chat-client.ts
+        symbol: BaseChatClient
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.claude-code-client:
+  id: 97cd1902-cc9f-4821-945c-cb8f23e4de9d
+  path: application.applicationcomponent.claude-code-client
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ClaudeCodeClient
+  description: Claude Code CLI Client
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/claude-code-client.ts
+        symbol: ClaudeCodeClient
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.copilot-client:
+  id: 5d6d22df-6367-4989-808f-a0eb1e0ca3e9
+  path: application.applicationcomponent.copilot-client
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CopilotClient
+  description: GitHub Copilot CLI Client
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/copilot-client.ts
+        symbol: CopilotClient
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.annotation-store:
+  id: 50ab1ba4-6755-458f-af9f-07483b536273
+  path: application.applicationcomponent.annotation-store
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: AnnotationStore
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/annotation-store.ts
+        symbol: AnnotationStore
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.base-snapshot-manager:
+  id: af85bd73-894f-4fc3-a599-e6a3b6ccfe7a
+  path: application.applicationcomponent.base-snapshot-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: BaseSnapshotManager
+  description: Manager for capturing and comparing model snapshots
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/base-snapshot-manager.ts
+        symbol: BaseSnapshotManager
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.changeset-exporter:
+  id: 53fe54ee-5c2a-43cb-a643-e6f23935f47f
+  path: application.applicationcomponent.changeset-exporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ChangesetExporter
+  description: Exporter for changesets in portable formats
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-exporter.ts
+        symbol: ChangesetExporter
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.changeset-graph:
+  id: c18773b9-1950-452c-a8fb-9f9a45eb8c71
+  path: application.applicationcomponent.changeset-graph
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ChangesetGraph
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-graph.ts
+        symbol: ChangesetGraph
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.changeset-validator:
+  id: d3eee067-0a76-475a-992e-e61072cb92b6
+  path: application.applicationcomponent.changeset-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ChangesetValidator
+  description: Validates changesets by running validation pipeline on projected models
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-validator.ts
+        symbol: ChangesetValidator
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.dependency-tracker:
+  id: 038bd611-1de1-472c-8550-1498eda11235
+  path: application.applicationcomponent.dependency-tracker
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: DependencyTracker
+  description: Dependency tracker - analyzes dependencies between elements
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/dependency-tracker.ts
+        symbol: DependencyTracker
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.farm-manifest:
+  id: f1b0409e-b544-484b-b771-2e84aa37b883
+  path: application.applicationcomponent.farm-manifest
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: FarmManifest
+  description: FarmManifest class - Load, validate, and save farm.yaml
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/farm-manifest.ts
+        symbol: FarmManifest
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.farm-sync-engine:
+  id: de43e3cb-e02d-4ece-b6f8-766f234b886d
+  path: application.applicationcomponent.farm-sync-engine
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: FarmSyncEngine
+  description:
+    FarmSyncEngine - Orchestrates the sync pipeline Model parameter is
+    optional - only required for sync operations, not for pull
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/farm-sync-engine.ts
+        symbol: FarmSyncEngine
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.farm-sync-state:
+  id: 6510ba92-8090-49a9-86c3-43c0c96c9364
+  path: application.applicationcomponent.farm-sync-state
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: FarmSyncState
+  description: FarmSyncState class - Load, validate, and save farm sync state per project
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/farm-sync-state.ts
+        symbol: FarmSyncState
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.golden-copy-cache-manager:
+  id: 662ba3ed-9af1-46de-b48b-fffabc4a4692
+  path: application.applicationcomponent.golden-copy-cache-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: GoldenCopyCacheManager
+  description: Golden Copy Cache Manager
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/golden-copy-cache.ts
+        symbol: GoldenCopyCacheManager
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.migration-registry:
+  id: 24bc0c5a-b72f-4b19-a2f0-e2b616d7c921
+  path: application.applicationcomponent.migration-registry
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: MigrationRegistry
+  description: Migration Registry managing all available migrations
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/migration-registry.ts
+        symbol: MigrationRegistry
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.model:
+  id: bd41bfe0-392c-46eb-90ce-de5dbb9f81c7
+  path: application.applicationcomponent.model
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: Model
+  description: Model class representing the complete architecture model Uses
+    GraphModel internally for graph-based storage
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model.ts
+        symbol: Model
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.mutation-handler:
+  id: 717e3bf6-2d06-42d6-b353-6a2f200c7e1f
+  path: application.applicationcomponent.mutation-handler
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: MutationHandler
+  description: Unified mutation executor
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/mutation-handler.ts
+        symbol: MutationHandler
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.relationship-catalog:
+  id: 88acc6d0-3474-41ab-949b-f4b9824b5c50
+  path: application.applicationcomponent.relationship-catalog
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: RelationshipCatalog
+  description:
+    Relationship catalog providing access to semantic relationship type
+    definitions
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-catalog.ts
+        symbol: RelationshipCatalog
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.report-data-model:
+  id: 444c10e2-6d2e-4841-97a0-e0e7dd331eb9
+  path: application.applicationcomponent.report-data-model
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ReportDataModel
+  description: ReportDataModel class - Unified reporting interface
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/report-data-model.ts
+        symbol: ReportDataModel
+  metadata:
+    created_at: 2026-11-20T15:04:11.737Z
+    updated_at: 2026-11-20T15:04:11.737Z
+    version: 1
+application.applicationcomponent.spec-data-service:
+  id: 3605dd5d-344b-43db-89a2-b819b4c14109
+  path: application.applicationcomponent.spec-data-service
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: SpecDataService
+  description: SpecDataService provides a high-level API for specification operations
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/spec-data-service.ts
+        symbol: SpecDataService
+  metadata:
+    created_at: 2026-11-20T15:04:11.738Z
+    updated_at: 2026-11-20T15:04:11.738Z
+    version: 1
+application.applicationcomponent.spec-data-loader:
+  id: 1dd298e8-667b-477e-98c7-ec2314a7ed65
+  path: application.applicationcomponent.spec-data-loader
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: SpecDataLoader
+  description: SpecDataLoader loads specification metadata from the compiled
+    bundled dist files
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/spec-loader.ts
+        symbol: SpecDataLoader
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.staged-changeset-storage:
+  id: ab122d1d-95bf-4739-9f48-a83658ed52c5
+  path: application.applicationcomponent.staged-changeset-storage
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: StagedChangesetStorage
+  description: Storage manager for staged changesets using YAML format
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staged-changeset-storage.ts
+        symbol: StagedChangesetStorage
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.staging-area-manager:
+  id: 6f27ba72-4888-49f0-865f-cb99cdd6cc24
+  path: application.applicationcomponent.staging-area-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: StagingAreaManager
+  description: StagingAreaManager provides changeset and staging operations
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staging-area.ts
+        symbol: StagingAreaManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.stats-collector:
+  id: 2cbc54e9-9ae0-4f27-98ed-3dca4609679b
+  path: application.applicationcomponent.stats-collector
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: StatsCollector
+  description: Collects statistics from a model
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/stats-collector.ts
+        symbol: StatsCollector
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.virtual-projection-engine:
+  id: f9a9919a-0453-42a9-9902-e7309ac20bed
+  path: application.applicationcomponent.virtual-projection-engine
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: VirtualProjectionEngine
+  description: VirtualProjectionEngine - Computes merged model views without persisting.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/virtual-projection.ts
+        symbol: VirtualProjectionEngine
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.archi-mate-exporter:
+  id: 3d6c910f-23d4-4686-885f-796ef52b3faf
+  path: application.applicationcomponent.archi-mate-exporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ArchiMateExporter
+  description:
+    ArchiMate XML Exporter for layers 1, 2, 5, 6 (Motivation, Business,
+    Application, Technology) Generates valid ArchiMate 3.2 XML format Note
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/archimate-exporter.ts
+        symbol: ArchiMateExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.export-manager:
+  id: 60a722c4-2a0d-4e98-821d-be26f73412d2
+  path: application.applicationcomponent.export-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ExportManager
+  description: ExportManager - Registry and dispatcher for format-specific exporters
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/export-manager.ts
+        symbol: ExportManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.graph-mlexporter:
+  id: ce0a7674-f662-4893-a41e-f7db1e217d8f
+  path: application.applicationcomponent.graph-mlexporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: GraphMLExporter
+  description:
+    GraphML Exporter - generates GraphML format for graph visualization
+    tools GraphML is an XML-based format supported by tools like yEd, Cytoscape,
+    etc.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/graphml-exporter.ts
+        symbol: GraphMLExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.json-schema-exporter:
+  id: e84d57b6-7152-42e3-80e3-46febda1d9a0
+  path: application.applicationcomponent.json-schema-exporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: JsonSchemaExporter
+  description: JSON Schema Draft 7 Exporter for layer 8 (Data Model)
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/json-schema-exporter.ts
+        symbol: JsonSchemaExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.markdown-exporter:
+  id: 5accd54d-c43d-4a42-bd6a-dc54cdf819b1
+  path: application.applicationcomponent.markdown-exporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: MarkdownExporter
+  description:
+    Markdown Exporter - generates comprehensive markdown documentation
+    Supports all 13 layers
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/markdown-exporter.ts
+        symbol: MarkdownExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.markdown-generator:
+  id: 7a3ba88c-d8b4-44c6-86be-2b2c721a072e
+  path: application.applicationcomponent.markdown-generator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: MarkdownGenerator
+  description: MarkdownGenerator - generates enhanced markdown with Mermaid
+    diagrams and tables
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/markdown-generator.ts
+        symbol: MarkdownGenerator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.mermaid-markdown-exporter:
+  id: b93b3c71-3a72-4f2e-910d-6bbba7598f48
+  path: application.applicationcomponent.mermaid-markdown-exporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: MermaidMarkdownExporter
+  description: Mermaid Markdown Exporter - generates comprehensive markdown
+    documentation with Mermaid diagrams and formatted tables
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/mermaid-markdown-exporter.ts
+        symbol: MermaidMarkdownExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.open-apiexporter:
+  id: 484d574e-278d-4b6e-824c-ef6f17af962f
+  path: application.applicationcomponent.open-apiexporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: OpenAPIExporter
+  description: OpenAPI 3.0 Exporter for layer 7 (API)
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/openapi-exporter.ts
+        symbol: OpenAPIExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.plant-umlexporter:
+  id: 281fdcaa-db94-4f0d-bef9-97c6975dd98b
+  path: application.applicationcomponent.plant-umlexporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: PlantUMLExporter
+  description: PlantUML Exporter - generates PlantUML syntax for diagram
+    visualization Supports all 13 layers
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/plantuml-exporter.ts
+        symbol: PlantUMLExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.archi-mate-importer:
+  id: ccab187f-3f9c-429f-a3c1-7cbb43efdd27
+  path: application.applicationcomponent.archi-mate-importer
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ArchiMateImporter
+  description: ArchiMate XML Importer for layers 1, 2, 5, 6 Parses ArchiMate 3.2
+    XML and creates graph nodes/edges
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/import/archimate-importer.ts
+        symbol: ArchiMateImporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.import-manager:
+  id: a8b74114-21f8-4970-a9f9-8e57bfc8cc21
+  path: application.applicationcomponent.import-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ImportManager
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/import/index.ts
+        symbol: ImportManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.open-apiimporter:
+  id: 7f93cf7b-48fe-4857-968c-32e0c10e873d
+  path: application.applicationcomponent.open-apiimporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: OpenAPIImporter
+  description: OpenAPI 3.0 Importer for layer 7 (API) Parses OpenAPI JSON
+    specifications and creates graph nodes/edges
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/import/openapi-importer.ts
+        symbol: OpenAPIImporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.base-integration-manager:
+  id: 05eeabe0-b418-4aa5-8b29-6a017ad749bc
+  path: application.applicationcomponent.base-integration-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: BaseIntegrationManager
+  description:
+    Abstract base class for integration managers Provides shared logic
+    for file operations, version management, and update detection
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/base-manager.ts
+        symbol: BaseIntegrationManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.claude-integration-manager:
+  id: e0f0c82c-bf4c-4c34-a013-f8fff23b82fb
+  path: application.applicationcomponent.claude-integration-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ClaudeIntegrationManager
+  description: Claude Code Integration Manager
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/claude-manager.ts
+        symbol: ClaudeIntegrationManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.copilot-integration-manager:
+  id: 448cb8dd-62c8-4969-b0f5-28c630c49e87
+  path: application.applicationcomponent.copilot-integration-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CopilotIntegrationManager
+  description: GitHub Copilot Integration Manager
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/copilot-manager.ts
+        symbol: CopilotIntegrationManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.api-key-manager:
+  id: 7a6e98c8-03a4-4a24-9a5f-3326da8d15dc
+  path: application.applicationcomponent.api-key-manager
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ApiKeyManager
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/api-key-manager.ts
+        symbol: ApiKeyManager
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.mcp-resource-registry:
+  id: 8bb812a8-9629-4f58-919c-1521d3080471
+  path: application.applicationcomponent.mcp-resource-registry
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: McpResourceRegistry
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/resource-registry.ts
+        symbol: McpResourceRegistry
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.mcp-tool-registry:
+  id: 82d06a0c-35e5-4057-9481-84756b488c30
+  path: application.applicationcomponent.mcp-tool-registry
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: McpToolRegistry
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tool-registry.ts
+        symbol: McpToolRegistry
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.model-layer-report-generator:
+  id: d03dff8f-403e-4ff6-ba74-61c497324863
+  path: application.applicationcomponent.model-layer-report-generator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ModelLayerReportGenerator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/reports/model-layer-report-generator.ts
+        symbol: ModelLayerReportGenerator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.model-readme-generator:
+  id: 34573c33-48c9-4f8c-b8ab-47a0f8df0135
+  path: application.applicationcomponent.model-readme-generator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ModelReadmeGenerator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/reports/model-readme-generator.ts
+        symbol: ModelReadmeGenerator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.model-report-data-collector:
+  id: 16042f6e-3236-4ad6-8129-b683ad041485
+  path: application.applicationcomponent.model-report-data-collector
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ModelReportDataCollector
+  description: Data collector for generating layer report data from a live Model
+    instance Reads from Model/Layer/Relationships and transforms into
+    report-friendly shapes
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/reports/model-report-data.ts
+        symbol: ModelReportDataCollector
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.model-report-orchestrator:
+  id: 742edfc9-d93b-42c8-9fd8-890dd44f326d
+  path: application.applicationcomponent.model-report-orchestrator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ModelReportOrchestrator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/reports/model-report-orchestrator.ts
+        symbol: ModelReportOrchestrator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.visualization-server:
+  id: 64bef8b1-954d-4b78-b0ad-fdeb71b8454d
+  path: application.applicationcomponent.visualization-server
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: VisualizationServer
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.fetch-otlpexporter:
+  id: a74c5a32-334a-40d3-9b7a-5a657c3910ba
+  path: application.applicationcomponent.fetch-otlpexporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: FetchOTLPExporter
+  description: OTLP exporter using fetch API for Bun compatibility.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/telemetry/fetch-otlp-exporter.ts
+        symbol: FetchOTLPExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.resilient-otlpexporter:
+  id: f574bab3-f6b8-46bb-a561-6d1c40a14bec
+  path: application.applicationcomponent.resilient-otlpexporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ResilientOTLPExporter
+  description: OTLP exporter with circuit-breaker pattern for graceful failure.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/telemetry/resilient-exporter.ts
+        symbol: ResilientOTLPExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.resilient-log-exporter:
+  id: cda0ced9-6ac8-4841-a309-5ada0a8f80e0
+  path: application.applicationcomponent.resilient-log-exporter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ResilientLogExporter
+  description: OTLP log exporter with circuit-breaker pattern for graceful failure.
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/telemetry/resilient-log-exporter.ts
+        symbol: ResilientLogExporter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.chat-logger:
+  id: 80644e49-8731-4efc-be05-85ba6a1aac77
+  path: application.applicationcomponent.chat-logger
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ChatLogger
+  description: Chat Logger class
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/chat-logger.ts
+        symbol: ChatLogger
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.file-lock:
+  id: 13290985-278d-4a7b-bfb8-3e0f221d3c31
+  path: application.applicationcomponent.file-lock
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: FileLock
+  description: FileLock provides exclusive access to a resource using lockfiles
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/file-lock.ts
+        symbol: FileLock
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.composed-reference-validator:
+  id: 4ba3b860-b2fb-434c-91c5-387f9d13e3c8
+  path: application.applicationcomponent.composed-reference-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ComposedReferenceValidator
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/composed-reference-validator.ts
+        symbol: ComposedReferenceValidator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.naming-validator:
+  id: c895c8e3-cce1-4771-b1f3-9a61909e450e
+  path: application.applicationcomponent.naming-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: NamingValidator
+  description: Validator for element ID naming conventions
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/naming-validator.ts
+        symbol: NamingValidator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.reference-validator:
+  id: 1929ec09-401d-4aae-9c48-c79c96bcc8b5
+  path: application.applicationcomponent.reference-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ReferenceValidator
+  description: Validator for cross-layer references
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/reference-validator.ts
+        symbol: ReferenceValidator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.relationship-validator:
+  id: 14c540bf-4c4a-4216-b2f1-59be9ecedc96
+  path: application.applicationcomponent.relationship-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: RelationshipValidator
+  description: Validator for relationship schema compliance and cardinality constraints
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/relationship-schema-validator.ts
+        symbol: RelationshipValidator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.schema-validator:
+  id: d5a4db49-d58c-4ba2-9e93-ec5b2d498b48
+  path: application.applicationcomponent.schema-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: SchemaValidator
+  description: Validator for JSON Schema compliance
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/schema-validator.ts
+        symbol: SchemaValidator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.semantic-validator:
+  id: c3aa4256-99b2-4734-9c0d-5273eb4e2106
+  path: application.applicationcomponent.semantic-validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: SemanticValidator
+  description: Validator for semantic/business rule validation
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/semantic-validator.ts
+        symbol: SemanticValidator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.validation-formatter:
+  id: 75b25a1a-88c8-4c78-b1a8-b9914fc81920
+  path: application.applicationcomponent.validation-formatter
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: ValidationFormatter
+  description: Formats validation results into detailed, human-readable output
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/validation-formatter.ts
+        symbol: ValidationFormatter
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.applicationcomponent.validator:
+  id: 4b676ce3-9191-4d95-b5f1-4744ad7196b3
+  path: application.applicationcomponent.validator
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: Validator
+  description: Unified validator implementing the 5-stage validation pipeline
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/validator.ts
+        symbol: Validator
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1

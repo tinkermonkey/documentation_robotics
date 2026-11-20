@@ -1,0 +1,1677 @@
+data-model.schemadefinition.call-verdict-reason:
+  id: 53a06a74-c470-472a-920b-5cb978fbb42d
+  path: data-model.schemadefinition.call-verdict-reason
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: CallVerdictReason
+  attributes:
+    title: CallVerdictReason
+    type: string
+    enum:
+      - no-evidence
+      - confident
+      - unique-member
+      - own-member
+      - imported
+      - not-callable
+      - uncorroborated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/call-evidence.ts
+        symbol: CallVerdictReason
+  metadata:
+    created_at: 2026-11-20T15:02:45.990Z
+    updated_at: 2026-11-20T15:02:45.990Z
+    version: 1
+data-model.schemadefinition.relationship-strength:
+  id: 039693a9-2c22-4d3e-b278-67e407676fbd
+  path: data-model.schemadefinition.relationship-strength
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: RelationshipStrength
+  description: Relationship strength assessment
+  attributes:
+    title: RelationshipStrength
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analysis/relationship-classifier.ts
+        symbol: RelationshipStrength
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.edge-type:
+  id: f2164386-0f92-42f2-b7f4-5fe3eeeb4548
+  path: data-model.schemadefinition.edge-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: EdgeType
+  description: Valid edge types for call graph edges
+  attributes:
+    title: EdgeType
+    type: string
+    enum:
+      - CALLS
+      - HTTP_CALLS
+      - HANDLES
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/call-graph-utils.ts
+        symbol: EdgeType
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.js-test-kind:
+  id: 52e1f9b8-c185-4b2f-b5e5-bbe6958827c7
+  path: data-model.schemadefinition.js-test-kind
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: JsTestKind
+  attributes:
+    title: JsTestKind
+    type: string
+    enum:
+      - suite
+      - case
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/js-tests.ts
+        symbol: JsTestKind
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.band:
+  id: a9094668-0aec-4921-bba1-1d7a12cad920
+  path: data-model.schemadefinition.band
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Band
+  attributes:
+    title: Band
+    type: string
+    enum:
+      - accept
+      - not-element
+      - escalate
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/bands.ts
+        symbol: Band
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.tier1mode:
+  id: a838a7e2-8bdd-4590-9fc3-f5380a2d56ca
+  path: data-model.schemadefinition.tier1mode
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Tier1Mode
+  description: "suggest: cards carry the hint, nothing is staged or hidden by Tier 1 alone."
+  attributes:
+    title: Tier1Mode
+    type: string
+    enum:
+      - suggest
+      - hide
+      - stage
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/bands.ts
+        symbol: Tier1Mode
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.held-out-band:
+  id: 0bd96e1d-b5e1-4677-8a53-b815a8fb45fb
+  path: data-model.schemadefinition.held-out-band
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: HeldOutBand
+  description: A band that can be verified on held-out labels on its own.
+  attributes:
+    title: HeldOutBand
+    type: string
+    enum:
+      - accept
+      - not-element
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/bands.ts
+        symbol: HeldOutBand
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.held-out-rule:
+  id: 102904dd-00f5-4b4b-bbf6-f1c0a3af9b6a
+  path: data-model.schemadefinition.held-out-rule
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: HeldOutRule
+  description: 'How "meets the targets within its interval" (section 6) is read
+    (maintainer''s decision on #1137)'
+  attributes:
+    title: HeldOutRule
+    type: string
+    enum:
+      - within-interval
+      - lower-bound
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/bands.ts
+        symbol: HeldOutRule
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.held-out-pooling:
+  id: bf2efb43-918b-4e1e-aed1-61cfaa764ce5
+  path: data-model.schemadefinition.held-out-pooling
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: HeldOutPooling
+  description: How a verdict reads several held-out corpora (maintainer's
+    decision, TIER1_CALIBRATION.md section 9)
+  attributes:
+    title: HeldOutPooling
+    type: string
+    enum:
+      - pooled-with-floor
+      - pooled
+      - each-corpus
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/bands.ts
+        symbol: HeldOutPooling
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.tier1mode-setting:
+  id: 8bd2de9b-3395-4c09-93e2-bf029fa02342
+  path: data-model.schemadefinition.tier1mode-setting
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Tier1ModeSetting
+  attributes:
+    title: Tier1ModeSetting
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/config.ts
+        symbol: Tier1ModeSetting
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.settable:
+  id: b2162772-ce88-4768-80b9-a0e95229603e
+  path: data-model.schemadefinition.settable
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Settable
+  attributes:
+    title: Settable
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/config.ts
+        symbol: Settable
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.criteria-mode:
+  id: f6f8c739-b82e-409b-bfd0-03ca00db07f4
+  path: data-model.schemadefinition.criteria-mode
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: CriteriaMode
+  description: How much of an enriched definition goes into element-type criteria
+  attributes:
+    title: CriteriaMode
+    type: string
+    enum:
+      - full
+      - core
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/criteria.ts
+        symbol: CriteriaMode
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.question-type:
+  id: 4b36820b-72cd-43c4-adcb-efc6acd0c346
+  path: data-model.schemadefinition.question-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: QuestionType
+  attributes:
+    type: string
+    title: QuestionType
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/decision-model/types.ts
+        symbol: QuestionType
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.decision-model-error-kind:
+  id: 75bb3b0b-49d7-463e-a885-3490b6bffc0a
+  path: data-model.schemadefinition.decision-model-error-kind
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: DecisionModelErrorKind
+  description: Why a call failed. `malformed`
+  attributes:
+    title: DecisionModelErrorKind
+    type: string
+    enum:
+      - auth
+      - payment
+      - rate-limit
+      - unavailable
+      - bad-request
+      - refused
+      - timeout
+      - malformed
+      - api
+      - routing
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/decision-model/types.ts
+        symbol: DecisionModelErrorKind
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.narrowing:
+  id: 84c7d4dd-fbc3-4f45-88f1-2fd52ee4c546
+  path: data-model.schemadefinition.narrowing
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Narrowing
+  description: Tier-0 narrowing handed to the classifier
+  attributes:
+    title: Narrowing
+    type: array
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/qset/v1.ts
+        symbol: Narrowing
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.concern:
+  id: e2e274ef-2468-4bee-ba37-f224aae37320
+  path: data-model.schemadefinition.concern
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Concern
+  attributes:
+    title: Concern
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/qset/v1.ts
+        symbol: Concern
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.spend-source:
+  id: edbde142-997a-4879-a00c-b7d403605f9f
+  path: data-model.schemadefinition.spend-source
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: SpendSource
+  attributes:
+    title: SpendSource
+    type: string
+    enum:
+      - extract
+      - index
+      - classify
+      - probe
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/spend.ts
+        symbol: SpendSource
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.tier1state:
+  id: 6589c977-b75b-4df7-bb1b-cc4dad1f9b5a
+  path: data-model.schemadefinition.tier1state
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Tier1State
+  description: Where Tier 1 stands for a run (section 2.4)
+  attributes:
+    title: Tier1State
+    type: string
+    enum:
+      - off
+      - misconfigured
+      - no-credentials
+      - on
+      - unavailable
+      - capped
+      - warming
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/types.ts
+        symbol: Tier1State
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.tier1unavailable:
+  id: 89e07277-29d0-4d7b-9a9c-18fbd12dbcd1
+  path: data-model.schemadefinition.tier1unavailable
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Tier1Unavailable
+  description: Why a run stopped asking the provider (section 4.6).
+  attributes:
+    title: Tier1Unavailable
+    type: string
+    enum:
+      - auth
+      - payment
+      - provider
+      - routing
+      - api
+      - ledger
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/types.ts
+        symbol: Tier1Unavailable
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.undecided-kind:
+  id: 2355b616-4578-42b7-b6f2-3f7f3dca2e29
+  path: data-model.schemadefinition.undecided-kind
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: UndecidedKind
+  description: "`unhandled-route`: a route nothing in the code handles (a URL
+    tests or clients call)"
+  attributes:
+    title: UndecidedKind
+    type: string
+    enum:
+      - needs-attributes
+      - ambiguous
+      - narrowed
+      - no-rule
+      - unhandled-route
+      - decision-record
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/extraction-plan.ts
+        symbol: UndecidedKind
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.index-job-state:
+  id: 8bd00e36-3ea3-4de2-9558-adb7b37fe168
+  path: data-model.schemadefinition.index-job-state
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: IndexJobState
+  attributes:
+    title: IndexJobState
+    type: string
+    enum:
+      - running
+      - done
+      - failed
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/index-job.ts
+        symbol: IndexJobState
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.tier0confidence:
+  id: 88fd011b-086a-4cf4-ac9d-72d6142d93b5
+  path: data-model.schemadefinition.tier0confidence
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Tier0Confidence
+  attributes:
+    title: Tier0Confidence
+    type: string
+    enum:
+      - high
+      - medium
+      - low
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/tier0-rules.ts
+        symbol: Tier0Confidence
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.confidence-level:
+  id: 56255ed0-67bc-4e98-8e4c-4a38bf7cac2b
+  path: data-model.schemadefinition.confidence-level
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ConfidenceLevel
+  description: Confidence level for mappings and detections
+  attributes:
+    title: ConfidenceLevel
+    type: string
+    enum:
+      - high
+      - medium
+      - low
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: ConfidenceLevel
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.http-method:
+  id: 12e71fd9-9f28-47ba-b04b-442abae3fe85
+  path: data-model.schemadefinition.http-method
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: HttpMethod
+  description: HTTP method type derived from VALID_HTTP_METHODS constant
+  attributes:
+    title: HttpMethod
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: HttpMethod
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.layer-verify-bucket:
+  id: 713f4903-a7ea-4162-9e50-cd2c78df5789
+  path: data-model.schemadefinition.layer-verify-bucket
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: LayerVerifyBucket
+  attributes:
+    title: LayerVerifyBucket
+    type: string
+    enum:
+      - matched
+      - in_graph_only
+      - in_model_only
+      - not_indexed
+      - ignored
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: LayerVerifyBucket
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.percentage:
+  id: 765f70cc-2f4d-4c7b-8ab7-3f09a1781608
+  path: data-model.schemadefinition.percentage
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Percentage
+  description:
+    Percentage value constrained to 0-100 range Use createPercentage()
+    to construct safely
+  attributes:
+    title: Percentage
+    type: number
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/types.ts
+        symbol: Percentage
+  metadata:
+    created_at: 2026-11-20T15:07:04.582Z
+    updated_at: 2026-11-20T15:07:04.582Z
+    version: 1
+data-model.schemadefinition.chat-event-type:
+  id: 7fff3243-54bb-4e5a-8d44-6ec819f0a5d8
+  path: data-model.schemadefinition.chat-event-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChatEventType
+  description: Chat event types emitted during agent interaction
+  attributes:
+    title: ChatEventType
+    type: string
+    enum:
+      - text
+      - tool_use
+      - tool_result
+      - error
+      - complete
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/agents/types.ts
+        symbol: ChatEventType
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.dr-bot-mode:
+  id: bc4c5785-9593-47ab-8cf1-a4c11d245fb0
+  path: data-model.schemadefinition.dr-bot-mode
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: DrBotMode
+  attributes:
+    title: DrBotMode
+    type: string
+    enum:
+      - read-safe
+      - changesets
+      - danger
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/drbot-mcp.ts
+        symbol: DrBotMode
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.audit-type:
+  id: 20e9204e-1bd4-4f00-8505-fd305394c138
+  path: data-model.schemadefinition.audit-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: AuditType
+  attributes:
+    title: AuditType
+    type: string
+    enum:
+      - relationships
+      - nodes
+      - all
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/audit.ts
+        symbol: AuditType
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.add-relationship-outcome:
+  id: eee57f6c-2426-4d65-8d14-babc2b51b37c
+  path: data-model.schemadefinition.add-relationship-outcome
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: AddRelationshipOutcome
+  description: What adding a relationship did
+  attributes:
+    title: AddRelationshipOutcome
+    type: string
+    enum:
+      - added
+      - staged
+      - restored
+      - duplicate
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/relationship.ts
+        symbol: AddRelationshipOutcome
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.gap-direction:
+  id: 43ceec7d-f407-46a4-bdfe-9ff1f1e2f320
+  path: data-model.schemadefinition.gap-direction
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: GapDirection
+  attributes:
+    title: GapDirection
+    type: string
+    enum:
+      - outgoing
+      - incoming
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/accepted-gaps.ts
+        symbol: GapDirection
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.short-direction:
+  id: 4cb78445-dcdb-45f8-9893-272d6fb12ea8
+  path: data-model.schemadefinition.short-direction
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ShortDirection
+  description: The brief's and the graph's spelling of a direction, from the element's side.
+  attributes:
+    title: ShortDirection
+    type: string
+    enum:
+      - out
+      - in
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/accepted-gaps.ts
+        symbol: ShortDirection
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.unwired-mode:
+  id: 42095d6e-f01b-4fb2-9d2e-b5a1b108531d
+  path: data-model.schemadefinition.unwired-mode
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: UnwiredMode
+  description: "- `summary` (default)"
+  attributes:
+    title: UnwiredMode
+    type: string
+    enum:
+      - summary
+      - full
+      - none
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: UnwiredMode
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.brief-section:
+  id: e1ae6b51-c380-498f-801f-22a3a7a76786
+  path: data-model.schemadefinition.brief-section
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: BriefSection
+  attributes:
+    title: BriefSection
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: BriefSection
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.drift-state:
+  id: 045943d2-931a-45db-b388-06457a3b7c88
+  path: data-model.schemadefinition.drift-state
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: DriftState
+  attributes:
+    title: DriftState
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-drift-status.ts
+        symbol: DriftState
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.export-format:
+  id: 3cad3cdb-b4fb-4db0-8dac-a6a6ce9f35dc
+  path: data-model.schemadefinition.export-format
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ExportFormat
+  description: Export format type
+  attributes:
+    title: ExportFormat
+    type: string
+    enum:
+      - yaml
+      - json
+      - patch
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-exporter.ts
+        symbol: ExportFormat
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.change-status:
+  id: 9d3e5030-12d5-4bdf-8aaa-9151123ebad5
+  path: data-model.schemadefinition.change-status
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChangeStatus
+  attributes:
+    title: ChangeStatus
+    type: string
+    enum:
+      - added
+      - updated
+      - deleted
+      - unchanged
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-graph.ts
+        symbol: ChangeStatus
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.changeset-purpose:
+  id: 169b7b9c-2dc4-454c-b01a-0df7327a22b8
+  path: data-model.schemadefinition.changeset-purpose
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChangesetPurpose
+  attributes:
+    title: ChangesetPurpose
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-purpose.ts
+        symbol: ChangesetPurpose
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.changeset-action:
+  id: 26dfe224-c5e6-4cdb-b347-de1ecdad5560
+  path: data-model.schemadefinition.changeset-action
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChangesetAction
+  description: A move from a changeset's current state, as the viewer and the
+    tools offer it.
+  attributes:
+    title: ChangesetAction
+    type: string
+    enum:
+      - commit
+      - discard
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-purpose.ts
+        symbol: ChangesetAction
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.review-verdict:
+  id: b0c0f5b7-f8e0-4c31-ae27-1ea0023a8df0
+  path: data-model.schemadefinition.review-verdict
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ReviewVerdict
+  attributes:
+    title: ReviewVerdict
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-review.ts
+        symbol: ReviewVerdict
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.changeset-origin-kind:
+  id: 479b60b6-a994-4a8f-a9ad-a5781cc0d0cf
+  path: data-model.schemadefinition.changeset-origin-kind
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChangesetOriginKind
+  attributes:
+    title: ChangesetOriginKind
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-review.ts
+        symbol: ChangesetOriginKind
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.change-operation:
+  id: a35d45e3-37d5-4f2f-bda3-192fa7cef40d
+  path: data-model.schemadefinition.change-operation
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChangeOperation
+  attributes:
+    type: string
+    title: ChangeOperation
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-summary.ts
+        symbol: ChangeOperation
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.built-change:
+  id: 46a1fcb9-2023-4695-83e8-2cd99880d470
+  path: data-model.schemadefinition.built-change
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: BuiltChange
+  attributes:
+    title: BuiltChange
+    type: string
+    enum:
+      - added
+      - updated
+      - deleted
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: BuiltChange
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.match-kind:
+  id: c579f1c3-8d50-4842-8cf7-f64885ffc3f2
+  path: data-model.schemadefinition.match-kind
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: MatchKind
+  attributes:
+    title: MatchKind
+    type: string
+    enum:
+      - exact
+      - probable
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: MatchKind
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.verdict:
+  id: dad918f3-7aaf-4e4f-b9e0-6de70afd1468
+  path: data-model.schemadefinition.verdict
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Verdict
+  attributes:
+    title: Verdict
+    type: string
+    enum:
+      - match
+      - probable-match
+      - diverges
+      - incomplete
+      - unverifiable
+      - empty-plan
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: Verdict
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.verify-section:
+  id: 442af9f9-633f-4821-be46-0ce535405cf7
+  path: data-model.schemadefinition.verify-section
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: VerifySection
+  attributes:
+    title: VerifySection
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-verify.ts
+        symbol: VerifySection
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.changeset-status:
+  id: adca664c-fcef-41db-915f-c29040973cdf
+  path: data-model.schemadefinition.changeset-status
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChangesetStatus
+  description: Status values for changesets in the staging workflow.
+  attributes:
+    title: ChangesetStatus
+    type: string
+    enum:
+      - staged
+      - committed
+      - discarded
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset.ts
+        symbol: ChangesetStatus
+  metadata:
+    created_at: 2026-11-20T15:07:04.583Z
+    updated_at: 2026-11-20T15:07:04.583Z
+    version: 1
+data-model.schemadefinition.trace-direction:
+  id: 61d917a2-7a7e-42ee-80ef-988a7c427031
+  path: data-model.schemadefinition.trace-direction
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: TraceDirection
+  description: Direction to trace dependencies (matches Python CLI TraceDirection enum)
+  attributes:
+    title: TraceDirection
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/dependency-tracker.ts
+        symbol: TraceDirection
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.canonical-layer-name:
+  id: 8d70e467-34c8-4421-b7a6-a23065b03067
+  path: data-model.schemadefinition.canonical-layer-name
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: CanonicalLayerName
+  attributes:
+    title: CanonicalLayerName
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/layers.ts
+        symbol: CanonicalLayerName
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.mutation-type:
+  id: a1d8713a-950c-441a-8fe3-5510c398a68e
+  path: data-model.schemadefinition.mutation-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: MutationType
+  attributes:
+    title: MutationType
+    type: string
+    enum:
+      - add
+      - update
+      - delete
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/mutation-handler.ts
+        symbol: MutationType
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.directionality:
+  id: 50cb5d10-28d0-4d87-bf9a-4b4818999996
+  path: data-model.schemadefinition.directionality
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Directionality
+  description: Directionality of a relationship
+  attributes:
+    title: Directionality
+    type: string
+    enum:
+      - unidirectional
+      - bidirectional
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-catalog.ts
+        symbol: Directionality
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.unresolved-side:
+  id: 74ae8e09-71e4-4a74-8c6a-9fcac7f78d73
+  path: data-model.schemadefinition.unresolved-side
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: UnresolvedSide
+  attributes:
+    title: UnresolvedSide
+    type: string
+    enum:
+      - source
+      - target
+      - both
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-prune.ts
+        symbol: UnresolvedSide
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.relationship-change-type:
+  id: 299bfe63-3f07-4d16-b798-5aa3658a885d
+  path: data-model.schemadefinition.relationship-change-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: RelationshipChangeType
+  attributes:
+    title: RelationshipChangeType
+    type: string
+    enum:
+      - relationship-add
+      - relationship-delete
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: RelationshipChangeType
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.relationship-batch-status:
+  id: 839285d8-efa6-4061-8f06-c59167bb84f8
+  path: data-model.schemadefinition.relationship-batch-status
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: RelationshipBatchStatus
+  description: '"added" is "staged" when no changeset is active and the add is
+    written to the model.'
+  attributes:
+    title: RelationshipBatchStatus
+    type: string
+    enum:
+      - staged
+      - added
+      - restored
+      - duplicate
+      - invalid
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: RelationshipBatchStatus
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.audit-report-format:
+  id: e42371a2-0078-43a2-b5e3-9cd261977738
+  path: data-model.schemadefinition.audit-report-format
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: AuditReportFormat
+  attributes:
+    title: AuditReportFormat
+    type: string
+    enum:
+      - text
+      - json
+      - markdown
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/audit-formatters.ts
+        symbol: AuditReportFormat
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.report-format:
+  id: 725c0fe3-841c-4e95-831d-93b3311abbaa
+  path: data-model.schemadefinition.report-format
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ReportFormat
+  attributes:
+    title: ReportFormat
+    type: string
+    enum:
+      - text
+      - json
+      - markdown
+      - compact
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/report-formatters.ts
+        symbol: ReportFormat
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.stats-format:
+  id: 4d9b7161-3ad1-4a23-8c1c-104137d35ff5
+  path: data-model.schemadefinition.stats-format
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: StatsFormat
+  attributes:
+    title: StatsFormat
+    type: string
+    enum:
+      - text
+      - json
+      - markdown
+      - compact
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/stats-formatters.ts
+        symbol: StatsFormat
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.verify-report-format:
+  id: e782dd8c-af3e-4955-8038-3977055914f4
+  path: data-model.schemadefinition.verify-report-format
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: VerifyReportFormat
+  attributes:
+    title: VerifyReportFormat
+    type: string
+    enum:
+      - text
+      - json
+      - markdown
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/export/verify-formatters.ts
+        symbol: VerifyReportFormat
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.project-root-source:
+  id: 81794fc1-9f8a-4f02-8b0d-c8c022b5590e
+  path: data-model.schemadefinition.project-root-source
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ProjectRootSource
+  attributes:
+    title: ProjectRootSource
+    type: string
+    enum:
+      - env
+      - client-roots
+      - cwd
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/project-root.ts
+        symbol: ProjectRootSource
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.token-check:
+  id: b6e95051-d065-4530-91b3-efe6775b70fa
+  path: data-model.schemadefinition.token-check
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: TokenCheck
+  attributes:
+    title: TokenCheck
+    type: string
+    enum:
+      - ok
+      - malformed
+      - expired
+      - used
+      - mismatch
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: TokenCheck
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.card-detail:
+  id: 6779e48c-dd81-450a-866c-6d714e451c9b
+  path: data-model.schemadefinition.card-detail
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: CardDetail
+  description: How much of each card a page shows
+  attributes:
+    title: CardDetail
+    type: string
+    enum:
+      - full
+      - shortened
+      - compact
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: CardDetail
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.index-state:
+  id: 36781534-a4d0-4c27-96ab-7f6e4adf8848
+  path: data-model.schemadefinition.index-state
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: IndexState
+  description: "- `fresh`: no source file changed since the index was taken."
+  attributes:
+    title: IndexState
+    type: string
+    enum:
+      - fresh
+      - fresh-with-uncommitted-edits
+      - stale
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: IndexState
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.root-resolution:
+  id: 73b44c42-a03d-4f2b-8a14-0cb67349fe24
+  path: data-model.schemadefinition.root-resolution
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: RootResolution
+  description: How the project root was chosen.
+  attributes:
+    title: RootResolution
+    type: string
+    enum:
+      - rootPath
+      - DR_MCP_ROOT_PATH
+      - mcp-roots
+      - cwd
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: RootResolution
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.analyzer-source:
+  id: c6d0ded2-3ba1-42d9-b61f-46e46fc12dbe
+  path: data-model.schemadefinition.analyzer-source
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: AnalyzerSource
+  description: Which analyzer the section describes.
+  attributes:
+    title: AnalyzerSource
+    type: string
+    enum:
+      - session
+      - first-indexed
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: AnalyzerSource
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.element-id:
+  id: cdf4211f-2304-45b3-bdcb-097f7c1c9713
+  path: data-model.schemadefinition.element-id
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ElementId
+  description: Branded type for ElementId Provides compile-time safety by
+    distinguishing ElementId from plain strings Use with parseElementId() to
+    validate and brand a string at runtime
+  attributes:
+    title: ElementId
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/schemas.ts
+        symbol: ElementId
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.sha256hash:
+  id: fedf8e6e-dff0-4046-a615-666c80382ff7
+  path: data-model.schemadefinition.sha256hash
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: Sha256Hash
+  description: SHA256 hash branded type for compile-time safety Prevents
+    accidental misuse of arbitrary strings as cryptographic checksums
+  attributes:
+    title: Sha256Hash
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/types/index.ts
+        symbol: Sha256Hash
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.provenance-type:
+  id: 776984df-6f50-4f1f-b653-b2d3adb9f3f6
+  path: data-model.schemadefinition.provenance-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ProvenanceType
+  description: How the source reference was created
+  attributes:
+    title: ProvenanceType
+    type: string
+    enum:
+      - extracted
+      - manual
+      - inferred
+      - generated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/types/source-reference.ts
+        symbol: ProvenanceType
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.chat-log-entry-type:
+  id: b421b352-21ed-4749-b1ec-818a25c04ec0
+  path: data-model.schemadefinition.chat-log-entry-type
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ChatLogEntryType
+  description: Chat log entry types
+  attributes:
+    title: ChatLogEntryType
+    type: string
+    enum:
+      - message
+      - command
+      - error
+      - event
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/chat-logger.ts
+        symbol: ChatLogEntryType
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.hint-surface:
+  id: 6fce123d-c8a8-4995-8f9a-41080c903351
+  path: data-model.schemadefinition.hint-surface
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: HintSurface
+  description: Surface-aware error hints.
+  attributes:
+    title: HintSurface
+    type: string
+    enum:
+      - cli
+      - mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/error-hints.ts
+        symbol: HintSurface
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.hint-option:
+  id: 71c04d21-770b-4209-bac0-1bb3c3d02f3d
+  path: data-model.schemadefinition.hint-option
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: HintOption
+  description: Option keys that shared validators name in their messages.
+  attributes:
+    title: HintOption
+    type: string
+    enum:
+      - sourceFile
+      - sourceSymbol
+      - sourceProvenance
+      - sourceRepoRemote
+      - sourceRepoCommit
+      - clearSourceReference
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/error-hints.ts
+        symbol: HintOption
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.error-category:
+  id: 81f1746a-4fd9-4c65-8473-4b0f9e117966
+  path: data-model.schemadefinition.error-category
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ErrorCategory
+  attributes:
+    title: ErrorCategory
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/errors.ts
+        symbol: ErrorCategory
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.model-layout:
+  id: 77256be4-3421-4039-abb0-87d78a9ea84c
+  path: data-model.schemadefinition.model-layout
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: ModelLayout
+  description: Layouts under which a model directory can be found below a base path.
+  attributes:
+    title: ModelLayout
+    type: string
+    enum:
+      - standard
+      - legacy
+      - detached
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/project-paths.ts
+        symbol: ModelLayout
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.stop-outcome:
+  id: 7b41bba2-b9a8-44e7-855d-541c159ef1da
+  path: data-model.schemadefinition.stop-outcome
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: StopOutcome
+  description: How a child process ended up stopped.
+  attributes:
+    title: StopOutcome
+    type: string
+    enum:
+      - already-exited
+      - exited
+      - force-killed
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/stop-child-process.ts
+        symbol: StopOutcome
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1

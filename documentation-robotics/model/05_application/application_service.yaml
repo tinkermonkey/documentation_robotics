@@ -1,0 +1,1935 @@
+application.applicationservice.progress-tracker:
+  id: d383ad79-c000-486f-9ad7-413a23c8b35b
+  path: application.applicationservice.progress-tracker
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: ProgressTracker
+  description: Tracks progress of AI evaluation operations, enabling resume
+    support for interrupted or long-running evaluation pipelines.
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/ai/evaluator.ts
+        symbol: ProgressTracker
+  metadata:
+    created_at: 2026-11-20T15:02:45.989Z
+    updated_at: 2026-11-20T15:02:45.989Z
+    version: 1
+application.applicationservice.add-command:
+  id: c3de2bc1-309a-49f1-a0a5-f8c4b0c0ab09
+  path: application.applicationservice.add-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: addCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/add.ts
+        symbol: addCommand
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.applicationservice.audit-diff-command:
+  id: 7cbb98be-3905-4cf8-bfa2-f0b4cfa2f64f
+  path: application.applicationservice.audit-diff-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: auditDiffCommand
+  description: Run the audit diff command
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/audit-diff.ts
+        symbol: auditDiffCommand
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.applicationservice.audit-snapshots-command:
+  id: 642dc082-4567-4a42-89c4-e33150634fec
+  path: application.applicationservice.audit-snapshots-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: auditSnapshotsCommand
+  description: Run the audit snapshots command
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/audit-snapshots.ts
+        symbol: auditSnapshotsCommand
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.applicationservice.audit-command:
+  id: 431fa459-b47a-49da-b51c-993837fed547
+  path: application.applicationservice.audit-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: auditCommand
+  description: Run the audit command
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/audit.ts
+        symbol: auditCommand
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.applicationservice.changeset-verify-command:
+  id: cbe1afa9-b405-4944-ad0c-2712fc013bc3
+  path: application.applicationservice.changeset-verify-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetVerifyCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset-verify.ts
+        symbol: changesetVerifyCommand
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.applicationservice.changeset-create-command:
+  id: eba0074f-1d4d-47c8-a781-e0887cf7fd0d
+  path: application.applicationservice.changeset-create-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetCreateCommand
+  description: Create a new changeset
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetCreateCommand
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.applicationservice.changeset-list-command:
+  id: c9fd68df-9162-4c0a-ab6b-46b0ad95d435
+  path: application.applicationservice.changeset-list-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetListCommand
+  description: List all changesets
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetListCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-apply-command:
+  id: 7ee86eed-0727-4909-81e8-ed617aa36c6c
+  path: application.applicationservice.changeset-apply-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetApplyCommand
+  description: Apply a changeset to the model
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetApplyCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-revert-command:
+  id: aae11e08-2bdd-4fb7-9913-1822402638ab
+  path: application.applicationservice.changeset-revert-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetRevertCommand
+  description: Revert a changeset from the model
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetRevertCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-activate-command:
+  id: 983c23f1-d2cd-406a-a14f-75ed893e85e5
+  path: application.applicationservice.changeset-activate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetActivateCommand
+  description: Activate a changeset for automatic tracking
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetActivateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-deactivate-command:
+  id: 22b56f2b-b1c5-4f46-9ca7-94386aa10a09
+  path: application.applicationservice.changeset-deactivate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetDeactivateCommand
+  description: Deactivate the current changeset
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetDeactivateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-delete-command:
+  id: f222a46d-16a7-4d23-9bf1-9ed012841ddd
+  path: application.applicationservice.changeset-delete-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetDeleteCommand
+  description: Delete a changeset permanently
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetDeleteCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-status-command:
+  id: 45615ac8-eea4-4181-a47f-29d998eca130
+  path: application.applicationservice.changeset-status-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetStatusCommand
+  description: Show the currently active changeset
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetStatusCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-staged-command:
+  id: 3e4c0e4f-5ed8-4b14-8a7f-31ff9ac03fce
+  path: application.applicationservice.changeset-staged-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetStagedCommand
+  description: List all staged changes in the active changeset
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetStagedCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-explicit-stage-command:
+  id: 0b6ad4f0-a95d-400f-9bf6-987e1011ecf6
+  path: application.applicationservice.changeset-explicit-stage-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetExplicitStageCommand
+  description: Remove specific element from staging area
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetExplicitStageCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-unstage-command:
+  id: 186b4ace-8570-438c-b916-5100b2073b3a
+  path: application.applicationservice.changeset-unstage-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetUnstageCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetUnstageCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-discard-command:
+  id: fce31635-6a7c-4f65-97db-10d1bdba0411
+  path: application.applicationservice.changeset-discard-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetDiscardCommand
+  description: Discard all or single staged changes
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetDiscardCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-preview-command:
+  id: bb940ba9-867a-4ce4-92c6-2313d7dd2ae3
+  path: application.applicationservice.changeset-preview-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetPreviewCommand
+  description: Preview the merged model state with staged changes applied
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetPreviewCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-diff-command:
+  id: c48dd983-01b9-4840-af5a-6be8a9b4958f
+  path: application.applicationservice.changeset-diff-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetDiffCommand
+  description: Show delta between base model and staged changes
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetDiffCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-commit-command:
+  id: d874e7eb-e805-4e43-bf83-579530aa6df5
+  path: application.applicationservice.changeset-commit-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetCommitCommand
+  description: Apply staged changes to the base model
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetCommitCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-export-command:
+  id: 4e6e4f37-fe57-494c-84bd-cb5f4f3038d9
+  path: application.applicationservice.changeset-export-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetExportCommand
+  description: Export changeset to portable file
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetExportCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.changeset-import-command:
+  id: 5d2b1e46-6f2f-457c-bcf1-9883a393cc4c
+  path: application.applicationservice.changeset-import-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetImportCommand
+  description: Import changeset from portable file
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetImportCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.chat-command:
+  id: d58924f4-eb07-4679-9687-7b127f751b42
+  path: application.applicationservice.chat-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: chatCommand
+  description: Chat command implementation Launches an interactive conversation
+    with an AI chat client Supports Claude Code CLI and GitHub Copilot CLI with
+    auto-detection
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/chat.ts
+        symbol: chatCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.conformance-command:
+  id: 452cf863-b28e-45d8-b549-38a6ac47cba5
+  path: application.applicationservice.conformance-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: conformanceCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/conformance.ts
+        symbol: conformanceCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.delete-command:
+  id: b663b5d8-7177-42b3-acac-efb54cedb768
+  path: application.applicationservice.delete-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: deleteCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/delete.ts
+        symbol: deleteCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.docs-generate-command:
+  id: 7e2431bb-ce40-47ea-befc-d404583b93fe
+  path: application.applicationservice.docs-generate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: docsGenerateCommand
+  description: Generate documentation from schema definitions
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/docs.ts
+        symbol: docsGenerateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.docs-validate-command:
+  id: d9e73d2e-7241-43b7-9f4e-019cd87bab77
+  path: application.applicationservice.docs-validate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: docsValidateCommand
+  description: Validate that documentation is in sync with schemas
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/docs.ts
+        symbol: docsValidateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.export-command:
+  id: 6914eec1-970f-4d4b-bae2-c120b2584679
+  path: application.applicationservice.export-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: exportCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/export.ts
+        symbol: exportCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-init-command:
+  id: 7b3fc870-b402-4f00-aade-f7a3f080843b
+  path: application.applicationservice.farm-init-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmInitCommand
+  description: Initialize a new farm
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmInitCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-add-command:
+  id: f932f5ae-7ec6-4565-876c-2c1dfb0deb4f
+  path: application.applicationservice.farm-add-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmAddCommand
+  description: Add a project to the farm
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmAddCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-remove-command:
+  id: a0efb99d-1d53-4641-ad7b-cb7d7b89843a
+  path: application.applicationservice.farm-remove-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmRemoveCommand
+  description: Remove a project from the farm
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmRemoveCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-status-command:
+  id: 98b32d4f-87cb-4d55-b995-7106737ff630
+  path: application.applicationservice.farm-status-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmStatusCommand
+  description: Show farm status
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmStatusCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-validate-command:
+  id: 899de0b5-b36e-4cf4-8063-f6de8ed11d56
+  path: application.applicationservice.farm-validate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmValidateCommand
+  description: Validate a farm project or all projects using composed scope
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmValidateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-pull-command:
+  id: eaf72a3f-3e8b-4122-976c-b48745c8b137
+  path: application.applicationservice.farm-pull-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmPullCommand
+  description: Pull latest changes from remote for farm projects
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmPullCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.farm-sync-command:
+  id: 631ecdc5-479e-4cce-8583-2b359dabede6
+  path: application.applicationservice.farm-sync-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmSyncCommand
+  description: Sync farm projects with their models
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmSyncCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.844Z
+    updated_at: 2026-11-20T15:05:23.844Z
+    version: 1
+application.applicationservice.import-command:
+  id: 7eea89d0-b5d8-40f6-a1c4-61db9f43b9ab
+  path: application.applicationservice.import-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: importCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/import.ts
+        symbol: importCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.info-command:
+  id: c4c1da70-6614-4028-9a52-be4bd50c6b68
+  path: application.applicationservice.info-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: infoCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/info.ts
+        symbol: infoCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.init-command:
+  id: 283b661b-3999-471c-a8a4-e3206dcd9208
+  path: application.applicationservice.init-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: initCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/init.ts
+        symbol: initCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.list-command:
+  id: 396fdafb-b028-4d4f-b9a5-f7c817b18136
+  path: application.applicationservice.list-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: listCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/list.ts
+        symbol: listCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.mcp-command:
+  id: 811f8c0a-f285-4e78-bc13-5d8d17851495
+  path: application.applicationservice.mcp-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: mcpCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/mcp.ts
+        symbol: mcpCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.prune-relationships-command:
+  id: 8e5047ef-4560-4bb3-87e7-8415c811f166
+  path: application.applicationservice.prune-relationships-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: pruneRelationshipsCommand
+  description: "`dr relationship prune`"
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/relationship.ts
+        symbol: pruneRelationshipsCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.repair-attribute-collision-command:
+  id: a9686443-d42a-4ff6-88d8-0c30da6fe611
+  path: application.applicationservice.repair-attribute-collision-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: repairAttributeCollisionCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/repair.ts
+        symbol: repairAttributeCollisionCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.report-command:
+  id: 30f80ada-1d11-49d5-94e2-641f87417e71
+  path: application.applicationservice.report-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: reportCommand
+  description: Run the report command
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/report.ts
+        symbol: reportCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.reports-regenerate-command:
+  id: 586b5673-d57c-4f13-8589-05cbdc5e7687
+  path: application.applicationservice.reports-regenerate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: reportsRegenerateCommand
+  description: Delete existing layer reports and regenerate all 13 markdown reports.
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/reports.ts
+        symbol: reportsRegenerateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.schema-layers-command:
+  id: efadd135-f987-4866-8809-5bb537b4bc6e
+  path: application.applicationservice.schema-layers-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: schemaLayersCommand
+  description: dr schema layers - List all layers with node type counts
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/schema.ts
+        symbol: schemaLayersCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.schema-types-command:
+  id: a7c34e86-51c9-432c-9d56-63d5d637bf74
+  path: application.applicationservice.schema-types-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: schemaTypesCommand
+  description: dr schema types <layer> - List valid types for a layer
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/schema.ts
+        symbol: schemaTypesCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.schema-node-command:
+  id: f8379fde-17c8-4d5a-a983-b000f4dc134b
+  path: application.applicationservice.schema-node-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: schemaNodeCommand
+  description: dr schema node <spec_node_id> - Show node schema details
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/schema.ts
+        symbol: schemaNodeCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.schema-relationship-command:
+  id: 9409af41-5bbd-4683-b37b-a008096c30fb
+  path: application.applicationservice.schema-relationship-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: schemaRelationshipCommand
+  description: dr schema relationship <source_type> [predicate] - Show valid relationships
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/schema.ts
+        symbol: schemaRelationshipCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.search-command:
+  id: c6759a8f-0924-47ec-88b4-841b0715db55
+  path: application.applicationservice.search-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: searchCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/search.ts
+        symbol: searchCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.show-command:
+  id: 20bf82f9-e5a7-4487-b892-48f90ae02885
+  path: application.applicationservice.show-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: showCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/show.ts
+        symbol: showCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.stats-command:
+  id: efe4f6f8-ac55-4d69-aa83-12ddc0b38f70
+  path: application.applicationservice.stats-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: statsCommand
+  description: Run the stats command
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/stats.ts
+        symbol: statsCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.trace-command:
+  id: a17fb0fe-75b0-4a91-92a1-e15c72573d19
+  path: application.applicationservice.trace-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: traceCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/trace.ts
+        symbol: traceCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.update-command:
+  id: 0861aede-ab54-4785-b12e-f8d8430ce4cf
+  path: application.applicationservice.update-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: updateCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/update.ts
+        symbol: updateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.upgrade-command:
+  id: 769498ae-b8f0-473f-851d-09bf90c3a349
+  path: application.applicationservice.upgrade-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: upgradeCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/upgrade.ts
+        symbol: upgradeCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.validate-command:
+  id: 6eba0296-20d4-401e-a796-15858b7b0217
+  path: application.applicationservice.validate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: validateCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/validate.ts
+        symbol: validateCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.version-command:
+  id: fa708bee-f34b-4345-a66c-d1bb717d8bfa
+  path: application.applicationservice.version-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: versionCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/version.ts
+        symbol: versionCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.visualize-command:
+  id: 70233765-8913-4fee-b921-84b694d3a126
+  path: application.applicationservice.visualize-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: visualizeCommand
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/visualize.ts
+        symbol: visualizeCommand
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.annotation-create-handler:
+  id: 550e552c-af6c-4d32-93d2-12a44f20e3ea
+  path: application.applicationservice.annotation-create-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: annotationCreateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/annotation-create.ts
+        symbol: annotationCreateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.annotation-delete-handler:
+  id: d8b41fcf-d1af-4f32-8334-8c724e73a777
+  path: application.applicationservice.annotation-delete-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: annotationDeleteHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/annotation-delete.ts
+        symbol: annotationDeleteHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.annotation-get-handler:
+  id: 1599156d-496a-434a-ad8c-3a0b6b29dbef
+  path: application.applicationservice.annotation-get-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: annotationGetHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/annotation-get.ts
+        symbol: annotationGetHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.annotation-list-handler:
+  id: f0e95be9-15a9-4e74-a0f4-1de683e4fa06
+  path: application.applicationservice.annotation-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: annotationListHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/annotation-list.ts
+        symbol: annotationListHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.annotation-reply-handler:
+  id: 8a37c902-d2c2-4ac4-8dbb-c7496d4d6696
+  path: application.applicationservice.annotation-reply-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: annotationReplyHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/annotation-reply.ts
+        symbol: annotationReplyHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.annotation-update-handler:
+  id: 18bdb410-90e2-4166-906d-0d8e2782e86e
+  path: application.applicationservice.annotation-update-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: annotationUpdateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/annotation-update.ts
+        symbol: annotationUpdateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.changeset-adopt-source-references-handler:
+  id: 38c02abd-5c04-409e-a1e7-973888479df6
+  path: application.applicationservice.changeset-adopt-source-references-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetAdoptSourceReferencesHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-adopt-source-references.ts
+        symbol: changesetAdoptSourceReferencesHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.changeset-impact-handler:
+  id: ff5cce94-72d4-45aa-a4a5-4394dc42828c
+  path: application.applicationservice.changeset-impact-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetImpactHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+        symbol: changesetImpactHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.changeset-brief-handler:
+  id: 403bf2a2-5349-4ed5-8033-9e08297aee25
+  path: application.applicationservice.changeset-brief-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetBriefHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+        symbol: changesetBriefHandler
+  metadata:
+    created_at: 2026-11-20T15:05:23.845Z
+    updated_at: 2026-11-20T15:05:23.845Z
+    version: 1
+application.applicationservice.changeset-commit-handler:
+  id: 1bb79314-ed04-4de4-b9c7-f834fbe36ebc
+  path: application.applicationservice.changeset-commit-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetCommitHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: changesetCommitHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-update-handler:
+  id: 2ffe8d06-b100-4c03-98d4-cad6588d6509
+  path: application.applicationservice.changeset-update-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetUpdateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-editing.ts
+        symbol: changesetUpdateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-unstage-handler:
+  id: a2332e37-e7f8-4167-965d-02fa91527d6a
+  path: application.applicationservice.changeset-unstage-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetUnstageHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-editing.ts
+        symbol: changesetUnstageHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-discard-handler:
+  id: fd9c0cb4-441e-43b0-be25-624738ab3801
+  path: application.applicationservice.changeset-discard-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetDiscardHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-editing.ts
+        symbol: changesetDiscardHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-create-handler:
+  id: d8872eec-ebb5-40e2-acca-e48e5af5d942
+  path: application.applicationservice.changeset-create-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetCreateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-lifecycle.ts
+        symbol: changesetCreateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-activate-handler:
+  id: a2941da8-361c-410c-b3a8-c01cd6b53143
+  path: application.applicationservice.changeset-activate-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetActivateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-lifecycle.ts
+        symbol: changesetActivateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-deactivate-handler:
+  id: 207db412-d686-4636-84ef-78d5001318d1
+  path: application.applicationservice.changeset-deactivate-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetDeactivateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-lifecycle.ts
+        symbol: changesetDeactivateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-list-handler:
+  id: a9aae482-fa71-4372-8f29-98d880d3c4c4
+  path: application.applicationservice.changeset-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetListHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-list.ts
+        symbol: changesetListHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-show-handler:
+  id: 099eeca6-99f5-413f-967c-452a8aeb5f74
+  path: application.applicationservice.changeset-show-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetShowHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-show.ts
+        symbol: changesetShowHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.changeset-verify-handler:
+  id: 098e668c-f250-4ccb-b8f0-0212e33f7efe
+  path: application.applicationservice.changeset-verify-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetVerifyHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-verify.ts
+        symbol: changesetVerifyHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.chat-launch-handler:
+  id: 97c5014f-7533-47b7-9be4-9e0b1e4b0b06
+  path: application.applicationservice.chat-launch-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: chatLaunchHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/chat-launch.ts
+        symbol: chatLaunchHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.chat-status-handler:
+  id: 2be586fc-8f84-40c7-ba7e-f013b5cc49be
+  path: application.applicationservice.chat-status-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: chatStatusHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/chat-status.ts
+        symbol: chatStatusHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.create-codebase-extract-handler:
+  id: 775456fc-9e8f-43d5-a9cb-b8c14671ebbc
+  path: application.applicationservice.create-codebase-extract-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createCodebaseExtractHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: createCodebaseExtractHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.create-codebase-index-handler:
+  id: d02bdb3a-d137-446e-ab03-46cde916335d
+  path: application.applicationservice.create-codebase-index-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createCodebaseIndexHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-index.ts
+        symbol: createCodebaseIndexHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.create-codebase-verify-handler:
+  id: b426909f-6098-4be9-b953-1094464247c9
+  path: application.applicationservice.create-codebase-verify-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createCodebaseVerifyHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-verify.ts
+        symbol: createCodebaseVerifyHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.gap-accept-handler:
+  id: d000afe7-ce7c-4a8e-9355-fc5fd02d6b6c
+  path: application.applicationservice.gap-accept-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: gapAcceptHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/gap-tools.ts
+        symbol: gapAcceptHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.gap-reopen-handler:
+  id: 2e4668b1-397f-450d-a29c-ceae15824b7f
+  path: application.applicationservice.gap-reopen-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: gapReopenHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/gap-tools.ts
+        symbol: gapReopenHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-add-handler:
+  id: a8c5ff7d-53de-44f8-a37e-9af73755c070
+  path: application.applicationservice.model-add-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelAddHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-add.ts
+        symbol: modelAddHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-delete-handler:
+  id: d2ff97c3-d753-4050-8336-dd47a63f60ea
+  path: application.applicationservice.model-delete-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelDeleteHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-delete.ts
+        symbol: modelDeleteHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-export-handler:
+  id: 868eed30-aafc-47d3-ad5f-ae4964d883c3
+  path: application.applicationservice.model-export-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelExportHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-export.ts
+        symbol: modelExportHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-info-handler:
+  id: b2945beb-909a-49fd-8f8c-9c4e5f920000
+  path: application.applicationservice.model-info-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelInfoHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-info.ts
+        symbol: modelInfoHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-list-handler:
+  id: 171bea5a-7bba-493a-950c-af58ad762bf2
+  path: application.applicationservice.model-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelListHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-list.ts
+        symbol: modelListHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-reload-handler:
+  id: dc2546a2-c3e5-48ad-821a-7e22bb123d11
+  path: application.applicationservice.model-reload-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelReloadHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-reload.ts
+        symbol: modelReloadHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-search-handler:
+  id: f5ff9925-0811-4979-90c0-26ab7c90e800
+  path: application.applicationservice.model-search-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelSearchHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-search.ts
+        symbol: modelSearchHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-show-handler:
+  id: d5fce12f-b37c-4eaf-a8e6-2d91662c1644
+  path: application.applicationservice.model-show-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelShowHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-show.ts
+        symbol: modelShowHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-stats-handler:
+  id: 033de087-60f1-463f-bf8e-904b9ec40aa8
+  path: application.applicationservice.model-stats-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelStatsHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-stats.ts
+        symbol: modelStatsHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-trace-handler:
+  id: d5ed249f-be96-478e-a288-1cc1107c1cb7
+  path: application.applicationservice.model-trace-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelTraceHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-trace.ts
+        symbol: modelTraceHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-update-handler:
+  id: 5f07a63e-e36d-4b8f-85f5-2435afdcbd2c
+  path: application.applicationservice.model-update-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelUpdateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-update.ts
+        symbol: modelUpdateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.model-validate-handler:
+  id: 7c10c265-c707-4edc-8243-793f3aa6ed24
+  path: application.applicationservice.model-validate-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: modelValidateHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-validate.ts
+        symbol: modelValidateHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.project-status-handler:
+  id: f1f800ae-d625-4408-999b-f83f442611da
+  path: application.applicationservice.project-status-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: projectStatusHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status.ts
+        symbol: projectStatusHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.project-init-handler:
+  id: 6657fa03-c1e4-4e60-af6e-84c6f7224aae
+  path: application.applicationservice.project-init-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: projectInitHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-tools.ts
+        symbol: projectInitHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.974Z
+    updated_at: 2026-11-20T15:05:59.974Z
+    version: 1
+application.applicationservice.project-upgrade-handler:
+  id: d52a2b0a-a258-480a-9ca3-29df57b3f3ec
+  path: application.applicationservice.project-upgrade-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: projectUpgradeHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-tools.ts
+        symbol: projectUpgradeHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.975Z
+    updated_at: 2026-11-20T15:05:59.975Z
+    version: 1
+application.applicationservice.relationship-add-handler:
+  id: 1b89534f-0e64-447e-ae11-9b83b371d823
+  path: application.applicationservice.relationship-add-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: relationshipAddHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/relationship-tools.ts
+        symbol: relationshipAddHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.975Z
+    updated_at: 2026-11-20T15:05:59.975Z
+    version: 1
+application.applicationservice.relationship-delete-handler:
+  id: ce6fdb0b-622f-4b2f-8f07-c24111bc192c
+  path: application.applicationservice.relationship-delete-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: relationshipDeleteHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/relationship-tools.ts
+        symbol: relationshipDeleteHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.975Z
+    updated_at: 2026-11-20T15:05:59.975Z
+    version: 1
+application.applicationservice.create-review-open-handler:
+  id: 13e671fd-e909-468b-b2fd-dd5544d4f470
+  path: application.applicationservice.create-review-open-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createReviewOpenHandler
+  description: Builds the review_open handler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/review-open.ts
+        symbol: createReviewOpenHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.975Z
+    updated_at: 2026-11-20T15:05:59.975Z
+    version: 1
+application.applicationservice.spec-type-handler:
+  id: 9df56a0f-650b-4ce3-9c0b-b88394c9f1ee
+  path: application.applicationservice.spec-type-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: specTypeHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/spec-type.ts
+        symbol: specTypeHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.975Z
+    updated_at: 2026-11-20T15:05:59.975Z
+    version: 1
+application.applicationservice.create-tier1status-handler:
+  id: 2a7d90aa-3fa7-4608-966b-118bab800bc0
+  path: application.applicationservice.create-tier1status-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createTier1StatusHandler
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/tier1-status.ts
+        symbol: createTier1StatusHandler
+  metadata:
+    created_at: 2026-11-20T15:05:59.975Z
+    updated_at: 2026-11-20T15:05:59.975Z
+    version: 1
+application.applicationservice.changeset-commit-preview-handler:
+  id: a009f07a-c024-4483-9e33-cd7aced97a7d
+  path: application.applicationservice.changeset-commit-preview-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetCommitPreviewHandler
+  description:
+    Checks a staged changeset for landing without writing anything and
+    returns the landing summary with a confirmation token
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-commit.ts
+        symbol: changesetCommitPreviewHandler
+  metadata:
+    created_at: 2026-11-20T15:08:59.540Z
+    updated_at: 2026-11-20T15:08:59.540Z
+    version: 1

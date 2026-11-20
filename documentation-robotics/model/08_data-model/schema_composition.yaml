@@ -1,0 +1,571 @@
+data-model.schemacomposition.index-freshness:
+  id: e98d9be9-e0bb-41c6-80ef-ffcd64a31483
+  path: data-model.schemacomposition.index-freshness
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: IndexFreshness
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/active-analyzer.ts
+        symbol: IndexFreshness
+  metadata:
+    created_at: 2026-11-20T15:02:45.992Z
+    updated_at: 2026-11-20T15:02:45.992Z
+    version: 1
+data-model.schemacomposition.architecture-outcome:
+  id: 618564da-0c56-40cf-8e85-4e4e5838fd03
+  path: data-model.schemacomposition.architecture-outcome
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ArchitectureOutcome
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/clusters.ts
+        symbol: ArchitectureOutcome
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.tier1classify-result:
+  id: fc7a5b6b-07a7-4e21-b573-2f296de4994c
+  path: data-model.schemacomposition.tier1classify-result
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier1ClassifyResult
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/classify-run.ts
+        symbol: Tier1ClassifyResult
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.tier1classify-report:
+  id: 3ec6ab0e-7224-4974-a981-23ead7cfcecb
+  path: data-model.schemacomposition.tier1classify-report
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier1ClassifyReport
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/classify-run.ts
+        symbol: Tier1ClassifyReport
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.resolved-tier1:
+  id: 6b0d5cea-1b1f-42de-802a-1b78529c944a
+  path: data-model.schemacomposition.resolved-tier1
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ResolvedTier1
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/config.ts
+        symbol: ResolvedTier1
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.question:
+  id: c42f54d3-2222-4a83-9557-b35553eb2bf0
+  path: data-model.schemacomposition.question
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Question
+  description: The provider-agnostic decision-model interface Tier 1 talks to
+    (docs/analyzers/TIER1_DESIGN.md, section 3.1).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/decision-model/types.ts
+        symbol: Question
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.answer:
+  id: c86afdf8-ae6c-4ce9-80a1-8e82c5c5e992
+  path: data-model.schemacomposition.answer
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Answer
+  description: A normalised answer.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/decision-model/types.ts
+        symbol: Answer
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.tier1session:
+  id: 0246623c-d6d4-4fd0-a000-5bb71da3ee02
+  path: data-model.schemacomposition.tier1session
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier1Session
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/session.ts
+        symbol: Tier1Session
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.tier1status-month:
+  id: 0d29dfcc-0b3a-4e21-b67a-d0dfd252adaf
+  path: data-model.schemacomposition.tier1status-month
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier1StatusMonth
+  description: The month as the status views show it
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/status.ts
+        symbol: Tier1StatusMonth
+  metadata:
+    created_at: 2026-11-20T15:07:42.636Z
+    updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemacomposition.line-range:
+  id: b008bf44-fd01-498d-8f04-4dc2a0e75d3e
+  path: data-model.schemacomposition.line-range
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: LineRange
+  description: A changed line range, [start, end] (1-based, inclusive).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/extraction-plan.ts
+        symbol: LineRange
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.line-ranges:
+  id: f8654cb5-5348-433f-bbe1-94e9b367a3c8
+  path: data-model.schemacomposition.line-ranges
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: LineRanges
+  description: Changed lines of a file
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/extraction-plan.ts
+        symbol: LineRanges
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.tier0action:
+  id: 85941b8d-fd62-4341-8682-92fb31974fc3
+  path: data-model.schemacomposition.tier0action
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier0Action
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/tier0-rules.ts
+        symbol: Tier0Action
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.tier0outcome:
+  id: 17c7c497-63b9-40d6-a9bd-83a04ba146aa
+  path: data-model.schemacomposition.tier0outcome
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier0Outcome
+  description: The first matching rule's action, with the rule's name and confidence.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/tier0-rules.ts
+        symbol: Tier0Outcome
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.detection-result:
+  id: 47d074e7-a5f5-4e20-beb4-223afd97d32f
+  path: data-model.schemacomposition.detection-result
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: DetectionResult
+  description: Binary detection result - whether an analyzer is installed and
+    functional Discriminated union on `installed` field to make binary_path
+    required when installed
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: DetectionResult
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.analyzer-status:
+  id: c081980e-a41a-44f7-b90d-49eee7cfc91f
+  path: data-model.schemacomposition.analyzer-status
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: AnalyzerStatus
+  description:
+    Current status of an analyzer for a project Discriminated union on
+    `indexed` field to enforce index_meta presence when indexed
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: AnalyzerStatus
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.verify-changeset-context:
+  id: 0386f902-6ed4-4ffe-9610-8e09ed34902b
+  path: data-model.schemacomposition.verify-changeset-context
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: VerifyChangesetContext
+  description:
+    Changeset context information in verify report Discriminated union
+    to prevent impossible states like active_changeset
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: VerifyChangesetContext
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.pipeline-result:
+  id: 7878457b-0245-490b-9788-3ac56fd96931
+  path: data-model.schemacomposition.pipeline-result
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: PipelineResult
+  description: Discriminated union of pipeline results based on AI enablement
+    Enforces type safety
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/pipeline/pipeline-orchestrator.ts
+        symbol: PipelineResult
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.brief-drift:
+  id: 1c0bca27-69f0-4eab-8fc0-89408a03758a
+  path: data-model.schemacomposition.brief-drift
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: BriefDrift
+  description: "`isDrifted` and `warnings` always"
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: BriefDrift
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.unwired-delta-entry:
+  id: c670fab1-d19c-4f58-8f75-e219165e0e14
+  path: data-model.schemacomposition.unwired-delta-entry
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: UnwiredDeltaEntry
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-delta.ts
+        symbol: UnwiredDeltaEntry
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.manager-lifecycle-state:
+  id: 51e05260-03a7-465c-8f7d-c587d3c470cf
+  path: data-model.schemacomposition.manager-lifecycle-state
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ManagerLifecycleState
+  description: Lifecycle state of the golden copy manager
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/golden-copy-cache.ts
+        symbol: ManagerLifecycleState
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.relationship-add-plan:
+  id: dd7883cb-4eef-4d2d-a9ba-f2c6c7ddeeb3
+  path: data-model.schemacomposition.relationship-add-plan
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: RelationshipAddPlan
+  description: What staging a relationship add would do, given the changeset's
+    projected graph.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: RelationshipAddPlan
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.endpoint:
+  id: c7a2dba3-f1d1-4ebd-8725-6d99a099807c
+  path: data-model.schemacomposition.endpoint
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Endpoint
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: Endpoint
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.upgrade-model-state:
+  id: bc0d0d94-9d3a-4e13-9f5f-c9cc31c2ca28
+  path: data-model.schemacomposition.upgrade-model-state
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: UpgradeModelState
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-plan.ts
+        symbol: UpgradeModelState
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.earlier-card:
+  id: 10798ebd-7480-4da9-a59e-7e1700042e99
+  path: data-model.schemacomposition.earlier-card
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: EarlierCard
+  description:
+    A card of an earlier run, as the card was (older records kept only
+    the identifying fields).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: EarlierCard
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.decisions:
+  id: 3cdec47f-ffb1-4b7b-b79e-a89725eba0c6
+  path: data-model.schemacomposition.decisions
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Decisions
+  description: The decisions as read
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: Decisions
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.git-result:
+  id: d77ebd9f-ffdc-4850-a5ff-12597eeb53d5
+  path: data-model.schemacomposition.git-result
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: GitResult
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: GitResult
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.model-section:
+  id: ece4c1c2-3fb5-49c9-9c26-45b73be0d6ab
+  path: data-model.schemacomposition.model-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ModelSection
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: ModelSection
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.changesets-section:
+  id: 5eb417e9-0457-467d-94d8-13ac814790ec
+  path: data-model.schemacomposition.changesets-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ChangesetsSection
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: ChangesetsSection
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.code-index-section:
+  id: 8188883f-3828-4c5b-ad26-9451c9d8f8dd
+  path: data-model.schemacomposition.code-index-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: CodeIndexSection
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: CodeIndexSection
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.code-drift-section:
+  id: c1720db9-220d-4edb-8811-c4279ce38c73
+  path: data-model.schemacomposition.code-drift-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: CodeDriftSection
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: CodeDriftSection
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.viewer-section:
+  id: 7eadb65f-4dbc-4f53-9243-6baee641bbf3
+  path: data-model.schemacomposition.viewer-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ViewerSection
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: ViewerSection
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.indexing-section:
+  id: 88127718-4053-4263-bdfe-87e66f7a5150
+  path: data-model.schemacomposition.indexing-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: IndexingSection
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: IndexingSection
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.tier1section:
+  id: fd44dd39-21b7-4459-adfb-3d4066b86866
+  path: data-model.schemacomposition.tier1section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: Tier1Section
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: Tier1Section
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.viewer-probe:
+  id: 5aa79ed7-1cd4-4486-9c95-3aef265894b0
+  path: data-model.schemacomposition.viewer-probe
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ViewerProbe
+  description: What the registry knows about a project's viewer
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: ViewerProbe
+  metadata:
+    created_at: 2026-11-20T15:07:42.637Z
+    updated_at: 2026-11-20T15:07:42.637Z
+    version: 1

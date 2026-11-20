@@ -1,0 +1,207 @@
+application.dataobject.tier1credentials:
+  id: 7a08c82d-7695-4723-9215-ad97b80bb6a9
+  path: application.dataobject.tier1credentials
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: Tier1Credentials
+  description: A provider's credentials, resolved.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/classifier/config.ts
+        symbol: Tier1Credentials
+  metadata:
+    created_at: 2026-11-20T15:02:45.987Z
+    updated_at: 2026-11-20T15:02:45.987Z
+    version: 1
+application.dataobject.relationship-graph:
+  id: 5b4d43a2-49b5-42b5-8b84-ba8fab6434e6
+  path: application.dataobject.relationship-graph
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: RelationshipGraph
+  description: Relationship graph for audit analysis
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/audit/relationships/graph/relationship-graph.ts
+        symbol: RelationshipGraph
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.dataobject.changeset:
+  id: 93e83d1b-b55c-4a18-a8a7-7a89152ab7b9
+  path: application.dataobject.changeset
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: Changeset
+  description: Changeset class for managing model changes.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset.ts
+        symbol: Changeset
+  metadata:
+    created_at: 2026-11-20T15:04:48.804Z
+    updated_at: 2026-11-20T15:04:48.804Z
+    version: 1
+application.dataobject.element:
+  id: 513e8b03-2a28-488e-9d9c-822708b112b8
+  path: application.dataobject.element
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: Element
+  description: Element class representing an individual architecture item
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/element.ts
+        symbol: Element
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.extraction-coverage:
+  id: 57978134-8a5f-4645-9df8-f7f3ecb57c90
+  path: application.dataobject.extraction-coverage
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: ExtractionCoverage
+  description: What an analyzer's extraction can produce, by element type,
+    relationship triple and field.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/extraction-observability.ts
+        symbol: ExtractionCoverage
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.graph-model:
+  id: 8dfd3aea-b81d-458f-96ac-8825bc5a5fd3
+  path: application.dataobject.graph-model
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: GraphModel
+  description: Implementation of graph model with indices for efficient queries
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/graph-model.ts
+        symbol: GraphModel
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.layer:
+  id: 59f3163c-315c-4444-8e92-d0fed4f8b15a
+  path: application.dataobject.layer
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: Layer
+  description: Layer class - thin wrapper over graph model for backward
+    compatibility Queries the graph for elements in a specific layer
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/layer.ts
+        symbol: Layer
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.manifest:
+  id: e8d258d1-c8c0-4845-b93e-61e9658104f4
+  path: application.dataobject.manifest
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: Manifest
+  description: Manifest representing model metadata and configuration
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/manifest.ts
+        symbol: Manifest
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.reference-registry:
+  id: 9cf1c711-92d4-4ed9-b45e-5f0e5ab1f90c
+  path: application.dataobject.reference-registry
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: ReferenceRegistry
+  description: Reference registry - tracks and validates cross-layer references
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/reference-registry.ts
+        symbol: ReferenceRegistry
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.relationship-registry:
+  id: 5e4da581-1bdc-4472-be8d-bfb9fd4551b4
+  path: application.dataobject.relationship-registry
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: RelationshipRegistry
+  description: Relationship registry - manages intra-layer and cross-layer
+    relationships and their catalog
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-registry.ts
+        symbol: RelationshipRegistry
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.relationships:
+  id: 01f1452b-285c-4a64-ad90-e6e3148cdba4
+  path: application.dataobject.relationships
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: Relationships
+  description: Relationships class for managing the central relationships.yaml file
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationships.ts
+        symbol: Relationships
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
+application.dataobject.validation-result:
+  id: 3b51726d-44b7-4981-b49c-6c96606fee9a
+  path: application.dataobject.validation-result
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: ValidationResult
+  description: Result of a validation operation
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/types.ts
+        symbol: ValidationResult
+  metadata:
+    created_at: 2026-11-20T15:04:48.805Z
+    updated_at: 2026-11-20T15:04:48.805Z
+    version: 1
