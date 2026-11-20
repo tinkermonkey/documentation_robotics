@@ -87,21 +87,3 @@ export function countByLayerAndType(ids: Iterable<string>): LayerTypeCounts[] {
     types: Object.fromEntries([...types].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))),
   }));
 }
-
-/** Ids grouped by layer and then type, in the same order as {@link countByLayerAndType}. */
-export function groupByLayerAndType(ids: Iterable<string>): Array<{ layer: string; count: number; types: Record<string, string[]> }> {
-  const layers = new Map<string, Map<string, string[]>>();
-  for (const id of ids) {
-    const [layer = "", type = ""] = id.split(".");
-    const types = layers.get(layer) ?? new Map<string, string[]>();
-    const list = types.get(type) ?? [];
-    list.push(id);
-    types.set(type, list);
-    layers.set(layer, types);
-  }
-  return [...layers].map(([layer, types]) => ({
-    layer,
-    count: [...types.values()].reduce((sum, list) => sum + list.length, 0),
-    types: Object.fromEntries([...types].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))),
-  }));
-}

@@ -365,10 +365,12 @@ describe("reading the model through the active changeset", () => {
 describe("model_trace over a changeset", () => {
   it("follows staged relationships and marks the changed edges and elements", async () => {
     await planExportOrders();
-    const trace = parse(await modelTraceHandler({ id: OPERATION, direction: "down", rootPath }));
+    // The operation realizes the function, which realizes the service, which realizes the goal:
+    // each depends on what realizes it, so the chain is upward from the operation.
+    const trace = parse(await modelTraceHandler({ id: OPERATION, direction: "up", rootPath }));
     expect(trace.changeset).toMatchObject({ name: "export-orders", elementStatus: "added" });
-    expect(trace.dependencies.direct).toEqual([FUNCTION]);
-    expect(trace.dependencies.transitive.sort()).toEqual([GOAL, SERVICE].sort());
+    expect(trace.dependents.direct).toEqual([FUNCTION]);
+    expect(trace.dependents.transitive.sort()).toEqual([GOAL, SERVICE].sort());
     expect(trace.changedElements).toEqual({ [OPERATION]: "added", [FUNCTION]: "added" });
     expect(trace.changedEdges).toContainEqual({ source: OPERATION, predicate: "realizes", target: FUNCTION, status: "added" });
   });
@@ -377,12 +379,12 @@ describe("model_trace over a changeset", () => {
     await changesetCreateHandler({ name: "unlink", rootPath });
     await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
     const trace = parse(await modelTraceHandler({ id: SERVICE, rootPath }));
-    expect(trace.dependencies.direct).toEqual([]);
+    expect(trace.dependents.direct).toEqual([]);
     expect(trace.changedEdges).toEqual([{ source: SERVICE, predicate: "realizes", target: GOAL, status: "deleted" }]);
 
     const base = parse(await modelTraceHandler({ id: SERVICE, base: true, rootPath }));
     expect(base.changeset).toBeUndefined();
-    expect(base.dependencies.direct).toEqual([GOAL]);
+    expect(base.dependents.direct).toEqual([GOAL]);
   });
 
   it("tracing a deleted element follows its own edges only, not removals elsewhere in the changeset", async () => {
@@ -394,19 +396,19 @@ describe("model_trace over a changeset", () => {
     await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
     await modelDeleteHandler({ id: FUNCTION, force: true, rootPath } as any);
 
-    const trace = parse(await modelTraceHandler({ id: FUNCTION, direction: "down", rootPath }));
+    const trace = parse(await modelTraceHandler({ id: FUNCTION, direction: "up", rootPath }));
     expect(trace.changeset.elementStatus).toBe("deleted");
-    expect(trace.dependencies.direct).toEqual([SERVICE]);
-    expect(trace.dependencies.transitive).toEqual([]);
+    expect(trace.dependents.direct).toEqual([SERVICE]);
+    expect(trace.dependents.transitive).toEqual([]);
   });
 
   it("traces a named changeset that is not active", async () => {
     await planExportOrders();
     await changesetDeactivateHandler({ rootPath });
-    expect(parse(await modelTraceHandler({ id: SERVICE, direction: "up", rootPath })).dependents.direct).toEqual([]);
-    const trace = parse(await modelTraceHandler({ id: SERVICE, direction: "up", changesetId: "export-orders", rootPath }));
-    expect(trace.dependents.direct).toEqual([FUNCTION]);
-    expect(trace.dependents.transitive).toEqual([OPERATION]);
+    expect(parse(await modelTraceHandler({ id: SERVICE, direction: "down", rootPath })).dependencies.direct).toEqual([]);
+    const trace = parse(await modelTraceHandler({ id: SERVICE, direction: "down", changesetId: "export-orders", rootPath }));
+    expect(trace.dependencies.direct).toEqual([FUNCTION]);
+    expect(trace.dependencies.transitive).toEqual([OPERATION]);
   });
 
   it("errors for an element that exists nowhere", async () => {

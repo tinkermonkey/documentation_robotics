@@ -60,7 +60,8 @@ const inputSchema = {
     .enum(["out", "in", "both"])
     .optional()
     .describe(
-      "Catalog query: 'out' = relationships from the layer's types, 'in' = relationships to them, 'both' (default)."
+      "'out' = only relationships from the type (or, in a catalog query, from the layer's types), 'in' = only " +
+        "relationships to them, 'both' (default)."
     ),
   relationships: z
     .boolean()
@@ -155,7 +156,8 @@ export async function specTypeHandler(args: SpecTypeArgs): Promise<CallToolResul
             };
           }),
           more:
-            "requiredEnums gives the allowed values of the required attributes that have them. Pass type for one " +
+            "requiredEnums gives the allowed values of the required attributes that have them (name[] for an array " +
+            "whose items are each one of the values). Pass type for one " +
             "type's attributes and relationships, or otherLayers, predicate or relationships: true for the " +
             "relationships the catalog allows across this layer's types.",
         },
@@ -204,17 +206,19 @@ export async function specTypeHandler(args: SpecTypeArgs): Promise<CallToolResul
         required: info.requiredAttributes.includes(name),
         ...(c.type ? { type: c.type } : {}),
         ...(c.enum ? { enum: c.enum } : {}),
+        ...(!c.enum && enumOf(c)?.ofItems ? { itemsEnum: enumOf(c)!.values } : {}),
         ...(c.description ? { description: c.description } : {}),
       };
     });
 
+    // direction keeps one side: "out" the relationships from this type, "in" the ones to it.
     return jsonResult({
       specNodeId,
       title: info.title,
       definition: spec?.description,
       attributes,
-      outgoing,
-      incoming,
+      ...(args.direction === "in" ? {} : { outgoing }),
+      ...(args.direction === "out" ? {} : { incoming }),
       ...(element ? { element: { id: element.id, acceptedGaps: element.gaps.map(acceptedGapView) } } : {}),
     });
   });
@@ -260,12 +264,23 @@ function requireType(layer: string, type: string): void {
   ]);
 }
 
-/** The enum values of a type's required attributes, for the ones that have an enum. */
+/** The values an attribute may take: its own enum, or for an array the enum of its items. */
+function enumOf(constraint: unknown): { values: unknown[]; ofItems: boolean } | undefined {
+  const c = constraint as { enum?: unknown; items?: { enum?: unknown } } | undefined;
+  if (Array.isArray(c?.enum)) return { values: c.enum, ofItems: false };
+  if (Array.isArray(c?.items?.enum)) return { values: c.items.enum, ofItems: true };
+  return undefined;
+}
+
+/**
+ * The enum values of a type's required attributes, for the ones that have an enum. An array whose
+ * items have an enum is keyed `name[]`: each item is one of the values.
+ */
 function requiredEnums(info: { requiredAttributes: string[]; attributeConstraints: Record<string, unknown> }): Record<string, unknown[]> {
   const enums: Record<string, unknown[]> = {};
   for (const name of info.requiredAttributes) {
-    const values = (info.attributeConstraints[name] as { enum?: unknown } | undefined)?.enum;
-    if (Array.isArray(values)) enums[name] = values;
+    const found = enumOf(info.attributeConstraints[name]);
+    if (found) enums[found.ofItems ? `${name}[]` : name] = found.values;
   }
   return enums;
 }

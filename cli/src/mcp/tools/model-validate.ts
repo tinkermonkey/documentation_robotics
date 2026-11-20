@@ -43,7 +43,10 @@ const PER_ELEMENT_KINDS = new Set<WarningKind>(["orphan", "no-source-reference",
  */
 export const VALIDATE_LIST_LIMIT = 150;
 
-/** The most errors the default returns whole; the rest are counted. `detail: "full"` returns all. */
+/**
+ * The most errors the default returns whole; the rest are counted by layer and type.
+ * `allErrors: true` returns every error and still only counts the warnings.
+ */
 export const VALIDATE_ERROR_LIMIT = 100;
 
 const inputSchema = {
@@ -71,13 +74,20 @@ const inputSchema = {
       "Return only the orphaned elements (no relationship and no cross-layer reference), counted by layer and type " +
         `and listed by id when ${VALIDATE_LIST_LIMIT} or fewer match, without running validation. layers narrows it.`
     ),
+  allErrors: z
+    .boolean()
+    .optional()
+    .describe(
+      `Return every error whole. The default returns the first ${VALIDATE_ERROR_LIMIT} and counts the rest by layer and ` +
+        "type (errorsOmitted, errorsByLayer). Warnings stay counted. layers also narrows the errors."
+    ),
   detail: z
     .enum(["summary", "full"])
     .optional()
     .describe(
-      "summary (default): validity, the errors whole, warnings counted by kind, layer and type. full: nothing " +
-        "counted in place of listing: every error and warning whole (about 400 characters each), or with warnings / " +
-        "orphans every match listed however many."
+      `summary (default): validity, the errors whole (the first ${VALIDATE_ERROR_LIMIT}; allErrors: true for the rest), ` +
+        "warnings counted by kind, layer and type. full: nothing counted in place of listing: every error and " +
+        "warning whole (about 400 characters each), or with warnings / orphans every match listed however many."
     ),
   rootPath: rootPathSchema,
 };
@@ -168,7 +178,8 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     // The whole report, as the tool returned it before the summary default.
     if (full && listed.length === 0) return jsonResult({ ...header, ...formatted, valid });
 
-    const errors = full ? result.errors : result.errors.slice(0, VALIDATE_ERROR_LIMIT);
+    const errors = full || args.allErrors ? result.errors : result.errors.slice(0, VALIDATE_ERROR_LIMIT);
+    const errorsOmitted = result.errors.length - errors.length;
     const byKind = new Map<WarningKind, ValidationIssue[]>();
     for (const warning of result.warnings) {
       const kind = warningKind(warning);
@@ -181,10 +192,13 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
         ...header,
         summary: formatted.summary,
         errors,
-        ...(errors.length < result.errors.length
+        ...(errorsOmitted > 0
           ? {
-              errorsOmitted: result.errors.length - errors.length,
+              errorsOmitted,
               errorsByLayer: countByLayerAndType(result.errors.map(issueId)),
+              errorsMore:
+                `The first ${errors.length} of ${result.errors.length} errors are listed; errorsByLayer counts them all. ` +
+                "Pass allErrors: true for every error (warnings stay counted), or layers to validate fewer layers.",
             }
           : {}),
         warningCounts: [...byKind].map(([kind, issues]) => ({
@@ -329,7 +343,8 @@ export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_validate",
   description:
     "Run the full schema/naming/reference/semantic/relationship validation pipeline against the model, as the active " +
-    "changeset leaves it (view says which). The default fits one result: valid, the errors whole, and the warnings " +
+    "changeset leaves it (view says which). The default fits one result: valid, the errors whole (the first " +
+    `${VALIDATE_ERROR_LIMIT}, the rest counted; allErrors: true returns them all), and the warnings ` +
     "counted by kind, layer and type. warnings: [\"<kind>\"] lists a kind as element ids, orphans: true reports the " +
     'orphaned elements alone, and detail: "full" returns every warning whole. Motivation, business and product ' +
     "elements are not asked for a source reference: they have no implementation to point at.",

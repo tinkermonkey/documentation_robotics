@@ -1,22 +1,21 @@
 /**
- * model_trace — dependency trace for an element. Mirrors `dr trace`.
+ * model_trace — dependency trace for an element. The MCP form of `dr trace`, with the changeset
+ * projection added.
  *
  * Changeset-aware: when a changeset is active (or one is named with `changeset`), the trace runs
  * over that changeset's projected graph (`ChangesetGraph`): relationships it stages are followed,
  * relationships it deletes are not, and the result lists the added and deleted edges the trace
  * walked. Pass `base: true` to trace the committed model only.
  *
- * Which end of a relationship depends on the other comes from its predicate, not from its layers
- * (spec/DESIGN_CHARTER.md, "What a relationship models"). Most predicates run from the dependent
- * to what it depends on (`uses`, `depends-on`, `accesses`, `realizes`, `composes`, ...), so an
- * element's outgoing relationships are its dependencies. `serves` runs provider -> consumer: the
- * element it points at is the one that depends (#1204). See {@link PROVIDER_TO_CONSUMER_PREDICATES}.
+ * Which end of a relationship depends on the other comes from its predicate, not from its layers:
+ * core/dependency-direction.ts holds the rule, and `dr trace` reads the same one.
  */
 
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import type { Changeset } from "../../core/changeset.js";
+import { dependencyEnds } from "../../core/dependency-direction.js";
 import type { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
 import { ReferenceRegistry } from "../../core/reference-registry.js";
@@ -26,23 +25,6 @@ import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js"
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset, changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
 
-/**
- * Predicates whose source is what the target depends on: the charter's provider -> consumer
- * direction. `A serves B` makes A a dependency of B and B a dependent of A, so a downward trace of
- * an application component reaches the technology that serves it, and an upward trace of that
- * technology reaches the component.
- *
- * `serves` is the only catalog predicate the charter and the catalog describe this way ("Service
- * available to consumer"). The others that point "into" what they act on were weighed and left as
- * they are: `provides` and `exposes` point at the functionality made available, not at a consumer;
- * `supports`, `delivers` and `satisfies` point at intent like `realizes`; `governs`, `constrains`
- * and `protects` run controller -> controlled and `triggers` and `flows-to` cause -> effect, which
- * the charter does not call a dependency in either direction. The predicate catalog has no field
- * for this (every predicate's `semantics.directionality` is "bidirectional"), so the set is kept
- * here by name.
- */
-export const PROVIDER_TO_CONSUMER_PREDICATES: ReadonlySet<string> = new Set(["serves"]);
-
 const inputSchema = {
   id: z.string().describe("Element ID or path to trace."),
   direction: z
@@ -51,8 +33,9 @@ const inputSchema = {
     .describe(
       "'up' = what depends on this element (dependents), 'down' = what this element depends on (dependencies), " +
         "'both' (default). A relationship's predicate says which end depends on the other: an element depends on " +
-        "what it uses, depends-on, accesses, realizes or composes, and on what serves it (serves runs provider to " +
-        "consumer, so the technology that serves a component is among the component's dependencies)."
+        "what it uses, depends-on, accesses or composes, on what serves it and on what realizes it. So down from a " +
+        "component reaches the technology that serves it and the artifacts that realize it, and up from a function " +
+        "reaches the service, feature and goal it realizes."
     ),
   depth: z.number().int().positive().optional().describe("Maximum trace depth. Omit for unlimited."),
   ...changesetArgFields(
@@ -191,7 +174,7 @@ async function projectedLayers(model: Model, changeset: Changeset, warnings: str
 }
 
 /** A relationship or cross-layer reference, as modelled, with its standing in the changeset. */
-interface TraceEdge {
+export interface TraceEdge {
   source: string;
   predicate: string;
   target: string;
@@ -204,19 +187,28 @@ interface TraceEdge {
  * The model's relationships as dependencies: each edge filed under the element that depends and
  * under the element depended on, by its predicate.
  */
-class DependencyGraph {
+export class DependencyGraph {
   /** Edges by the element that depends, and by the element depended on. */
   readonly dependencies = new Map<string, TraceEdge[]>();
   readonly dependents = new Map<string, TraceEdge[]>();
-  private readonly seen = new Set<string>();
+  private readonly byKey = new Map<string, TraceEdge>();
 
+  /**
+   * Adds an edge once. The same source, predicate and target given again with a standing (a
+   * relationship that repeats a cross-layer reference an element carries) keeps the one edge and
+   * takes that standing, so a staged or removed relationship is not hidden by the reference.
+   */
   add(
     rel: { source: string; predicate: string; target: string },
     standing: { status?: string; follow?: boolean } = {}
   ): void {
     const key = `${rel.source}\0${rel.predicate}\0${rel.target}`;
-    if (this.seen.has(key)) return;
-    this.seen.add(key);
+    const existing = this.byKey.get(key);
+    if (existing) {
+      if (standing.status) existing.status = standing.status;
+      if (standing.follow !== undefined) existing.follow = standing.follow;
+      return;
+    }
     const edge: TraceEdge = {
       source: rel.source,
       predicate: rel.predicate,
@@ -224,6 +216,7 @@ class DependencyGraph {
       ...(standing.status ? { status: standing.status } : {}),
       follow: standing.follow ?? true,
     };
+    this.byKey.set(key, edge);
     const { dependent, dependency } = dependencyEnds(edge);
     push(this.dependencies, dependent, edge);
     push(this.dependents, dependency, edge);
@@ -245,16 +238,6 @@ function push(map: Map<string, TraceEdge[]>, key: string, edge: TraceEdge): void
   const list = map.get(key);
   if (list) list.push(edge);
   else map.set(key, [edge]);
-}
-
-/** Which end of an edge depends on the other, by its predicate. */
-export function dependencyEnds(edge: { source: string; predicate: string; target: string }): {
-  dependent: string;
-  dependency: string;
-} {
-  return PROVIDER_TO_CONSUMER_PREDICATES.has(edge.predicate)
-    ? { dependent: edge.target, dependency: edge.source }
-    : { dependent: edge.source, dependency: edge.target };
 }
 
 /**
@@ -328,11 +311,12 @@ export const modelTraceTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_trace",
   description:
     "Trace dependents and/or dependencies of an element across cross-layer references and relationships. Which " +
-    "end depends on the other comes from the predicate: an element depends on what it uses, accesses, realizes or " +
-    "composes, and on what serves it (serves runs provider to consumer), so direction down from a component " +
-    "reaches the technology that serves it. With an active changeset (or changeset) it traces the changeset's " +
-    "projected graph: staged relationships are followed, staged removals are not, and changedEdges / " +
-    "changedElements mark what the changeset adds or deletes among the edges walked and the elements reached.",
+    "end depends on the other comes from the predicate: an element depends on what it uses, accesses or composes, " +
+    "on what serves it and on what realizes it. So direction down from a component reaches the technology that " +
+    "serves it and whatever realizes it, and direction up from a function reaches the service, feature and goal " +
+    "it realizes. With an active changeset (or changeset) it traces the changeset's projected graph: staged " +
+    "relationships are followed, staged removals are not, and changedEdges / changedElements mark what the " +
+    "changeset adds or deletes among the edges walked and the elements reached.",
   inputSchema,
   handler: modelTraceHandler,
 };

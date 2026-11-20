@@ -6,16 +6,23 @@
  *   elements for a source reference (#1215)
  * - spec_type queries the catalog across types and shows required enums in a layer listing (#1216)
  * - model_trace reports only the changeset edges it walked (#1203)
- * - model_trace counts what serves an element among its dependencies (#1204)
+ * - model_trace counts what serves or realizes an element among its dependencies (#1204), by one
+ *   rule that `dr trace` reads too
  * - model_list lists orphans only, by layer and type
  *
  * Each test builds its own project (the unit suite runs under `bun test --concurrent`).
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DependencyTracker, TraceDirection } from "../../../src/core/dependency-tracker.js";
+import {
+  buildDependencyGraph,
+  dependencyEnds,
+  SOURCE_IS_DEPENDENCY_PREDICATES,
+} from "../../../src/core/dependency-direction.js";
 import { Model } from "../../../src/core/model.js";
 import { StatsCollector } from "../../../src/core/stats-collector.js";
 import { loadModel } from "../../../src/mcp/tools/shared.js";
@@ -23,16 +30,13 @@ import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecyc
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelListHandler } from "../../../src/mcp/tools/model-list.js";
 import { modelStatsHandler } from "../../../src/mcp/tools/model-stats.js";
-import {
-  dependencyEnds,
-  modelTraceHandler,
-  PROVIDER_TO_CONSUMER_PREDICATES,
-} from "../../../src/mcp/tools/model-trace.js";
+import { DependencyGraph, modelTraceHandler } from "../../../src/mcp/tools/model-trace.js";
 import { modelValidateHandler, VALIDATE_ERROR_LIMIT, VALIDATE_LIST_LIMIT } from "../../../src/mcp/tools/model-validate.js";
 import { relationshipAddHandler, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { specTypeHandler } from "../../../src/mcp/tools/spec-type.js";
 import { addModelWarnings } from "../../../src/validators/model-warnings.js";
 import { ValidationResult } from "../../../src/validators/types.js";
+import { Validator } from "../../../src/validators/validator.js";
 
 function parse(result: any): any {
   expect(result.isError).toBeFalsy();
@@ -134,22 +138,134 @@ describe("model_trace: which end depends on the other (#1204)", () => {
     });
   });
 
-  it("leaves the other predicates running from the dependent to what it depends on", async () => {
-    expect([...PROVIDER_TO_CONSUMER_PREDICATES]).toEqual(["serves"]);
-    expect(dependencyEnds({ source: "a", predicate: "serves", target: "b" })).toEqual({ dependent: "b", dependency: "a" });
-    for (const predicate of ["uses", "depends-on", "accesses", "realizes", "composes", "satisfies", "governs", "triggers"]) {
+  it("counts what realizes an element among its dependencies: the artifact that realizes a component", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      const ARTIFACT = "technology.artifact.recorder-bundle";
+      const SERVICE = "application.applicationservice.recording";
+      const added = parse(
+        await modelAddHandler({
+          elements: [
+            { layer: "technology", type: "artifact", name: "recorder-bundle", attributes: { artifactType: "archive" } },
+            { layer: "application", type: "applicationservice", name: "recording", attributes: { serviceType: "synchronous" } },
+            { layer: "motivation", type: "goal", name: "record-a-session", attributes: { priority: "high" } },
+          ],
+          relationships: [
+            { source: ARTIFACT, predicate: "realizes", target: RECORDER },
+            { source: RECORDER, predicate: "realizes", target: SERVICE },
+            { source: SERVICE, predicate: "realizes", target: GOAL },
+          ],
+          rootPath,
+        })
+      );
+      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+
+      // Down from the component: what it uses, what serves it, and the artifact that realizes it.
+      // Not the service it realizes, nor the goal behind that.
+      const down = parse(await modelTraceHandler({ id: RECORDER, direction: "down", rootPath }));
+      expect(down.dependencies.direct.sort()).toEqual([ENCODER, ARTIFACT, ELECTRON, HOST].sort());
+      expect(down.dependencies.transitive).toEqual([FFMPEG]);
+
+      // Up from the component: what uses it, and what it realizes, through to the goal.
+      const up = parse(await modelTraceHandler({ id: RECORDER, direction: "up", rootPath }));
+      expect(up.dependents.direct.sort()).toEqual([SERVICE, UI].sort());
+      expect(up.dependents.transitive).toEqual([GOAL]);
+
+      // Down from the goal reaches everything that implements it; nothing depends on the artifact but that chain.
+      const goal = parse(await modelTraceHandler({ id: GOAL, rootPath }));
+      expect(goal.dependents).toEqual({ direct: [], transitive: [] });
+      expect(goal.dependencies.direct).toEqual([SERVICE]);
+      expect(goal.dependencies.transitive).toEqual(expect.arrayContaining([RECORDER, ARTIFACT, ELECTRON, FFMPEG]));
+      const artifact = parse(await modelTraceHandler({ id: ARTIFACT, rootPath }));
+      expect(artifact.dependencies).toEqual({ direct: [], transitive: [] });
+      expect(artifact.dependents.direct).toEqual([RECORDER]);
+    });
+  });
+
+  it("puts each edge's ends on opposite sides: no element is both a dependency and a dependent through one edge", async () => {
+    expect([...SOURCE_IS_DEPENDENCY_PREDICATES].sort()).toEqual(["realizes", "serves"]);
+    for (const predicate of ["serves", "realizes"]) {
+      expect(dependencyEnds({ source: "a", predicate, target: "b" })).toEqual({ dependent: "b", dependency: "a" });
+    }
+    // The control and cause predicates, and the rest, run from the dependent to what it depends on.
+    for (const predicate of ["uses", "depends-on", "accesses", "composes", "satisfies", "supports", "governs", "constrains", "protects", "triggers", "flows-to"]) {
       expect(dependencyEnds({ source: "a", predicate, target: "b" })).toEqual({ dependent: "a", dependency: "b" });
     }
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      for (const id of [RECORDER, ENCODER, UI, PLAYER, ELECTRON, FFMPEG, HOST]) {
+        const trace = parse(await modelTraceHandler({ id, depth: 1, rootPath }));
+        const both = trace.dependencies.direct.filter((other: string) => trace.dependents.direct.includes(other));
+        expect(both).toEqual([]);
+      }
+    });
   });
 
   it("does not list the traced element in its own trace when relationships form a cycle", async () => {
     await withProject(async (rootPath) => {
       await recorderModel(rootPath);
-      parse(await relationshipAddHandler({ source: ENCODER, predicate: "uses", target: RECORDER, rootPath }));
-      const trace = parse(await modelTraceHandler({ id: RECORDER, direction: "down", rootPath }));
-      expect([...trace.dependencies.direct, ...trace.dependencies.transitive]).not.toContain(RECORDER);
-      expect(trace.dependencies.direct).toContain(ENCODER);
+      // Two cycles through the recorder: one of uses alone, one that mixes uses with a flipped
+      // predicate (the encoder realizes a service that serves the recorder).
+      const added = parse(
+        await modelAddHandler({
+          elements: [{ layer: "application", type: "applicationservice", name: "encoding", attributes: { serviceType: "synchronous" } }],
+          relationships: [
+            { source: ENCODER, predicate: "uses", target: RECORDER },
+            { source: ENCODER, predicate: "realizes", target: "application.applicationservice.encoding" },
+            { source: "application.applicationservice.encoding", predicate: "serves", target: RECORDER },
+          ],
+          rootPath,
+        })
+      );
+      expect(added.relationships.results.every((r: any) => r.status === "added")).toBe(true);
+
+      for (const direction of ["down", "up"] as const) {
+        const trace = parse(await modelTraceHandler({ id: RECORDER, direction, rootPath }));
+        const side = direction === "down" ? trace.dependencies : trace.dependents;
+        const reached = [...side.direct, ...side.transitive];
+        // The walk ends, the recorder is not in its own trace, and nothing is listed twice.
+        expect(reached).not.toContain(RECORDER);
+        expect(new Set(reached).size).toBe(reached.length);
+        expect(side.direct).toContain(ENCODER);
+      }
+      const down = parse(await modelTraceHandler({ id: RECORDER, direction: "down", rootPath }));
+      expect(down.dependencies.direct).toContain("application.applicationservice.encoding");
     });
+  });
+
+  it("keeps one edge, with the relationship's standing, when a relationship repeats a cross-layer reference", () => {
+    const edge = { source: "a", predicate: "uses", target: "b" };
+    const staged = new DependencyGraph();
+    staged.add(edge); // the reference the element carries
+    staged.add(edge, { status: "added", follow: true }); // the staged relationship
+    expect(staged.dependencies.get("a")).toEqual([{ ...edge, status: "added", follow: true }]);
+    expect(staged.dependents.get("b")).toHaveLength(1);
+
+    const removed = new DependencyGraph();
+    removed.add(edge);
+    removed.add(edge, { status: "deleted", follow: false });
+    expect(removed.dependencies.get("a")).toEqual([{ ...edge, status: "deleted", follow: false }]);
+
+    // A plain repeat changes nothing.
+    removed.add(edge);
+    expect(removed.dependencies.get("a")).toEqual([{ ...edge, status: "deleted", follow: false }]);
+  });
+});
+
+describe("dr trace reads the same direction rule", () => {
+  it("builds the tracker's graph from the dependent to what it depends on", () => {
+    const graph = buildDependencyGraph([
+      { source: "component", predicate: "uses", target: "library" },
+      { source: "runtime", predicate: "serves", target: "component" },
+      { source: "artifact", predicate: "realizes", target: "component" },
+      { source: "component", predicate: "realizes", target: "service" },
+      { source: "runtime", predicate: "serves", target: "other" },
+    ]);
+    const tracker = new DependencyTracker(graph);
+    // TraceDirection.UP is what the element depends on; DOWN is what depends on it (dr trace's naming).
+    expect(tracker.traceDependencies("component", TraceDirection.UP, null).sort()).toEqual(["artifact", "library", "runtime"]);
+    expect(tracker.traceDependencies("component", TraceDirection.DOWN, null)).toEqual(["service"]);
+    expect(tracker.traceDependencies("runtime", TraceDirection.DOWN, null).sort()).toEqual(["component", "other", "service"]);
   });
 });
 
@@ -275,6 +391,25 @@ describe("model_stats and model_validate over the same view (#1214)", () => {
       );
       const stats = await new StatsCollector(await loadModel(rootPath)).collect();
       expect(stats.validation).toMatchObject({ isValid: true, errors: 0 });
+    });
+  });
+
+  it("model_stats still returns the statistics when validation cannot run, with the sentinel and the reason", async () => {
+    await withProject(async (rootPath) => {
+      await recorderModel(rootPath);
+      const failing = spyOn(Validator.prototype, "validateModel").mockRejectedValueOnce(new Error("projection failed"));
+      try {
+        const stats = parse(await modelStatsHandler({ rootPath }));
+        expect(stats.validation).toMatchObject({ isValid: false, errors: -1, warnings: 0, error: "projection failed" });
+        expect(stats.view.model).toBe("unknown");
+        expect(stats.statistics.totalElements).toBe(7);
+        expect(stats.statistics.totalRelationships).toBe(6);
+        expect(stats.orphans.count).toBe(0);
+      } finally {
+        failing.mockRestore();
+      }
+      // The next call validates again.
+      expect(parse(await modelStatsHandler({ rootPath })).validation).toMatchObject({ isValid: true, errors: 0 });
     });
   });
 
@@ -478,6 +613,16 @@ describe("model_validate: summary by default (#1215)", () => {
       expect(data.errorsOmitted).toBe(data.summary.errorCount - VALIDATE_ERROR_LIMIT);
       expect(data.errorsOmitted).toBeGreaterThanOrEqual(5);
       expect(data.errorsByLayer.reduce((sum: number, l: any) => sum + l.count, 0)).toBe(data.summary.errorCount);
+      // It says how to get the rest without the warnings.
+      expect(data.errorsMore).toContain("allErrors: true");
+      expect(data.errorsMore).toContain("layers");
+
+      const all = parse(await modelValidateHandler({ allErrors: true, rootPath }));
+      expect(all.errors).toHaveLength(data.summary.errorCount);
+      expect(all.errorsOmitted).toBeUndefined();
+      expect(all.errorsMore).toBeUndefined();
+      expect(all.warnings).toBeUndefined();
+      expect(all.warningCounts).toEqual(data.warningCounts);
 
       const full = parse(await modelValidateHandler({ detail: "full", rootPath }));
       expect(full.errors).toHaveLength(data.summary.errorCount);
@@ -714,5 +859,33 @@ describe("spec_type: the catalog across types (#1216)", () => {
     const api = parse(await specTypeHandler({ layer: "api" }));
     expect(api.types.find((t: any) => t.type === "operation").requiredEnums).toBeUndefined();
     expect(data.more).toContain("requiredEnums");
+  });
+
+  it("shows the enum of a required array's items, keyed name[]", async () => {
+    const store = parse(await specTypeHandler({ layer: "data-store" }));
+    const handler = store.types.find((t: any) => t.type === "eventhandler");
+    expect(handler.requiredAttributes).toEqual(["handlerType", "events"]);
+    expect(Object.keys(handler.requiredEnums).sort()).toEqual(["events[]", "handlerType"]);
+    expect(handler.requiredEnums["events[]"]).toEqual(expect.arrayContaining(["INSERT", "UPDATE", "DELETE"]));
+    expect(handler.requiredEnums["events[]"]).toHaveLength(13);
+
+    // The one-type form names the items' values too.
+    const one = parse(await specTypeHandler({ layer: "data-store", type: "eventhandler" }));
+    const events = one.attributes.find((a: any) => a.name === "events");
+    expect(events).toMatchObject({ required: true, type: "array" });
+    expect(events.itemsEnum).toHaveLength(13);
+    expect(events.enum).toBeUndefined();
+  });
+
+  it("keeps one side of a type's relationships with direction", async () => {
+    const both = parse(await specTypeHandler({ layer: "application", type: "applicationfunction", otherLayer: "application" }));
+    expect(both.outgoing.length).toBeGreaterThan(0);
+    expect(both.incoming.length).toBeGreaterThan(0);
+    const out = parse(await specTypeHandler({ layer: "application", type: "applicationfunction", otherLayer: "application", direction: "out" }));
+    expect(out.outgoing).toEqual(both.outgoing);
+    expect(out.incoming).toBeUndefined();
+    const into = parse(await specTypeHandler({ layer: "application", type: "applicationfunction", otherLayer: "application", direction: "in" }));
+    expect(into.incoming).toEqual(both.incoming);
+    expect(into.outgoing).toBeUndefined();
   });
 });

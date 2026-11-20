@@ -8,7 +8,7 @@
  * not asked for one. Under `strict` it is asked for the document that states it instead.
  */
 
-import { INTENT_LAYERS } from "../core/changeset-analysis.js";
+import { INTENT_LAYERS } from "../core/layers.js";
 import type { Model } from "../core/model.js";
 import { ValidationFormatter } from "./validation-formatter.js";
 import type { ValidationIssue, ValidationResult } from "./types.js";

@@ -27,8 +27,9 @@ import { changesetRevisionToken } from "./changeset-graph.js";
 import type { ChangesetGraph, GraphElement, GraphRelationship, Neighbor } from "./changeset-graph.js";
 import { acceptedGapView, findAcceptedGap, toShortDirection, type AcceptedGapView } from "./accepted-gaps.js";
 
-/** Layers that state why the system exists; every change should trace to one of them. */
-export const INTENT_LAYERS = new Set(["motivation", "business", "product"]);
+import { INTENT_LAYERS } from "./layers.js";
+
+export { INTENT_LAYERS };
 
 const INTENT_TRACE_DEPTH = 4;
 
