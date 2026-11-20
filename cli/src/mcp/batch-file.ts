@@ -30,7 +30,7 @@ export const MAX_BATCH_FILE_BYTES = 64 * 1024 * 1024;
 export const BATCH_FILE_DESCRIPTION =
   "Path to a JSON file holding the batch, instead of sending the lists inline: absolute, or relative to the " +
   "project root (rootPath's project when that is sent). Use it for a large batch written by a script, so the " +
-  "items are not copied into the call.";
+  `items are not copied into the call. A file may be up to ${MAX_BATCH_FILE_BYTES / (1024 * 1024)} MB; split a larger batch.`;
 
 /** Where the first JSON syntax error is, for a message an agent can act on without the file's text. */
 export interface JsonErrorPosition {
@@ -253,18 +253,20 @@ export async function readBatchFile<Shape extends ZodRawShape>(
   const checked = z.strictObject(optional).safeParse(parsed);
   if (!checked.success) {
     const issues = checked.error.issues;
-    const shown = issues.slice(0, MAX_FILE_ISSUES).map((issue) => `${formatIssuePath(issue.path)}: ${issue.message}`);
+    // Every malformed item is named: grouped by what is wrong with it, so a mistake a script made
+    // on each of 5,000 items is one line with its positions, and none is left out.
+    const byMessage = new Map<string, string[]>();
+    for (const issue of issues) {
+      byMessage.set(issue.message, [...(byMessage.get(issue.message) ?? []), formatIssuePath(issue.path)]);
+    }
     throw new CLIError(
       `${tool}: ${resolved} has ${issues.length} item${issues.length === 1 ? "" : "s"} the tool can't read; nothing was staged`,
       ErrorCategory.USER,
-      [...shown, ...(issues.length > shown.length ? [`and ${issues.length - shown.length} more`] : [])]
+      [...byMessage].map(([message, paths]) => `${paths.join(", ")}: ${message}`)
     );
   }
   return checked.data as z.infer<z.ZodObject<Shape>>;
 }
-
-/** How many of a file's malformed items a refusal lists. */
-const MAX_FILE_ISSUES = 20;
 
 /** `elements[3].name` for a zod issue path. */
 function formatIssuePath(issuePath: PropertyKey[]): string {

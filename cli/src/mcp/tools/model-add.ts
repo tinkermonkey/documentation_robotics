@@ -35,7 +35,7 @@ import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessa
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
 import { applyRelationshipPlan, previewChangeset, relationshipItemSchema } from "./relationship-tools.js";
-import { batchReport, verboseSchema, type BatchItemResult } from "./batch-result.js";
+import { batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
 
 const provenanceSchema = z
   .enum(["extracted", "manual", "inferred", "generated"])
@@ -96,6 +96,7 @@ const inputSchema = {
     .optional()
     .describe(`${BATCH_FILE_DESCRIPTION} The file is one JSON object: {"elements": [...], "relationships": [...]}.`),
   verbose: verboseSchema,
+  limit: limitSchema,
   rootPath: rootPathSchema,
 };
 
@@ -251,7 +252,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         );
       }
       if (args.file === undefined) {
-        return jsonResult(await addElementBatch(args.elements!, args.relationships ?? [], args.rootPath, args.verbose));
+        return jsonResult(await addElementBatch(args.elements!, args.relationships ?? [], args.rootPath, args));
       }
       const inline = (["elements", "relationships"] as const).filter((field) => args[field] !== undefined);
       if (inline.length > 0) {
@@ -264,7 +265,7 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         elements: elementsSchema,
         relationships: relationshipsSchema,
       });
-      return jsonResult(await addElementBatch(batch.elements ?? [], batch.relationships ?? [], args.rootPath, args.verbose));
+      return jsonResult(await addElementBatch(batch.elements ?? [], batch.relationships ?? [], args.rootPath, args));
     }
     if (args.relationships !== undefined) {
       throw new CLIError("relationships goes with the elements list", ErrorCategory.USER, [
@@ -372,7 +373,7 @@ async function addElementBatch(
   specs: ElementSpec[],
   relationships: z.infer<typeof relationshipItemSchema>[],
   rootPath: string | undefined,
-  verbose?: boolean
+  report: { verbose?: boolean; limit?: number } = {}
 ) {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
@@ -499,10 +500,10 @@ async function addElementBatch(
   return {
     ...(active ? { changeset: active.name } : {}),
     elements: {
-      ...batchReport(results, { verbose, written }),
+      ...batchReport(results, { ...report, written }),
       ...(Object.keys(requiredAttributes).length > 0 ? { requiredAttributes } : {}),
     },
-    ...(relationships.length > 0 ? { relationships: batchReport(plan.results, { verbose, written }) } : {}),
+    ...(relationships.length > 0 ? { relationships: batchReport(plan.results, { ...report, written }) } : {}),
   };
 }
 
@@ -540,8 +541,10 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
     "hyphens or by its name. A list returns, for elements and for relationships, counts by status (staged, or " +
     "added with no changeset active; restored or duplicate for relationships; invalid) and attention: only the " +
     "items that are invalid, duplicate or restored, or that carry a warning or a note (an id the name does not " +
-    "make obvious, a reference read by name). verbose: true returns every item as results. Invalid items are " +
-    "skipped; the rest are still staged.",
+    "make obvious, a reference read by name). " +
+    "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +
+    "verbose: true returns every item as results. A name longer than 100 characters as an id is cut with a hash, " +
+    "and the item says so. Invalid items are skipped; the rest are still staged.",
   inputSchema,
   handler: modelAddHandler,
 };

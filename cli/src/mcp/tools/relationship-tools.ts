@@ -38,7 +38,7 @@ import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
-import { batchReport, verboseSchema, type BatchReport } from "./batch-result.js";
+import { batchReport, limitSchema, verboseSchema, type BatchReport } from "./batch-result.js";
 
 // ---------------------------------------------------------------------------
 // relationship_add
@@ -71,6 +71,7 @@ const addInputSchema = {
     ),
   file: z.string().optional().describe(`${BATCH_FILE_DESCRIPTION} The file is one JSON object: {"relationships": [...]}.`),
   verbose: verboseSchema,
+  limit: limitSchema,
   rootPath: rootPathSchema,
 };
 
@@ -97,7 +98,7 @@ export async function relationshipAddHandler(args: RelationshipAddArgs): Promise
         const batch = await readBatchFile("relationship_add", args.file!, model.rootPath, { relationships: relationshipsSchema });
         items = batch.relationships ?? [];
       }
-      return jsonResult(await addRelationshipBatch(items, args.rootPath, args.verbose));
+      return jsonResult(await addRelationshipBatch(items, args.rootPath, args));
     }
     if (!args.source || !args.predicate || !args.target) {
       throw new CLIError(
@@ -160,7 +161,7 @@ export interface RelationshipBatchSummary extends BatchReport<RelationshipBatchP
 export async function addRelationshipBatch(
   items: RelationshipBatchItem[],
   rootPath?: string,
-  verbose?: boolean
+  report: { verbose?: boolean; limit?: number } = {}
 ): Promise<RelationshipBatchSummary> {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
@@ -174,7 +175,7 @@ export async function addRelationshipBatch(
   }
   return {
     ...(active ? { changeset: active.name } : {}),
-    ...batchReport(plan.results, { verbose, written: ["staged", "added"] }),
+    ...batchReport(plan.results, { ...report, written: ["staged", "added"] }),
   };
 }
 
@@ -250,8 +251,9 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
     "status: 'staged' or 'added'; 'duplicate' when the model or " +
     "the changeset already has it (nothing staged); 'restored' when the changeset had staged its deletion (that " +
     "deletion is unstaged). A list returns counts by status and attention: only the items that are invalid (with " +
-    "the reason and suggestions), duplicate or restored, or that were read by name. verbose: true returns every " +
-    "item as results. Invalid items are skipped; the rest are still staged.",
+    "the reason and suggestions), duplicate or restored, or that were read by name. " +
+    "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +
+    "verbose: true returns every item as results. Invalid items are skipped; the rest are still staged.",
   inputSchema: addInputSchema,
   handler: relationshipAddHandler,
 };

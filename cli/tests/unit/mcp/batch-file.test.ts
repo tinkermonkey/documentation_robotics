@@ -115,6 +115,19 @@ describe("readBatchFile", () => {
     expect(error.suggestions?.[1]).toContain("elements[2]: An elements[] item doesn't take 'nmae'");
   });
 
+  it("names every malformed item, grouped by what is wrong, however many there are", async () => {
+    const elements = Array.from({ length: 300 }, (_, i) => (i % 3 === 0 ? { layer: "api", type: "operation" } : { layer: "api", type: "operation", name: `op ${i}` }));
+    await writeFile(join(root, "many.json"), JSON.stringify({ elements }));
+    const error = await refusal(join(root, "many.json"));
+    expect(error.message).toContain("has 100 items the tool can't read; nothing was staged");
+    // One line for the one mistake, with all 100 positions.
+    expect(error.suggestions).toHaveLength(1);
+    const positions = error.suggestions![0].match(/elements\[\d+\]\.name/g)!;
+    expect(positions).toHaveLength(100);
+    expect(positions[0]).toBe("elements[0].name");
+    expect(positions[99]).toBe("elements[297].name");
+  });
+
   it("still answers plainly for a file nested too deep to locate the error in", async () => {
     await writeFile(join(root, "deep.json"), "[".repeat(200_000));
     const error = await refusal(join(root, "deep.json"));

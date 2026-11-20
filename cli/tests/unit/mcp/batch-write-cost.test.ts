@@ -20,7 +20,7 @@ import { Model } from "../../../src/core/model.js";
 import { Element } from "../../../src/core/element.js";
 import { extractedElementId } from "../../../src/analyzers/extraction-plan.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
-import { MAX_ATTENTION } from "../../../src/mcp/tools/batch-result.js";
+import { DEFAULT_ATTENTION_LIMIT, batchReport, reasonPattern } from "../../../src/mcp/tools/batch-result.js";
 import { modelAddHandler, modelAddTool } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelUpdateHandler, modelUpdateTool } from "../../../src/mcp/tools/model-update.js";
@@ -127,12 +127,15 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     });
 
     expect(result.relationships.counts).toEqual({ staged: 2, duplicate: 1, invalid: 1 });
+    // What was not staged comes first, then what was staged with a note.
     expect(result.relationships.attention.map((r: any) => [r.index, r.status])).toEqual([
       [1, "duplicate"],
-      [2, "staged"],
       [3, "invalid"],
+      [2, "staged"],
     ]);
-    expect(result.relationships.attention[1].notes).toEqual([
+    expect(result.relationships.attentionTotal).toBe(3);
+    expect(result.relationships.attentionNotListed).toBeUndefined();
+    expect(result.relationships.attention[2].notes).toEqual([
       "Source exportOrders read as application.applicationfunction.export-orders, which this call adds",
       "Target importOrders read as application.applicationfunction.import-orders, which this call adds",
     ]);
@@ -164,31 +167,139 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(again.results).toHaveLength(1);
   });
 
-  it("caps the attention list, gives the rest by index, and says repeated suggestions once", async () => {
+  it("accounts for every failure in one response when there are more than the default lists in full", async () => {
     await createChangeset();
+    await add({ elements: [fn("exportOrders"), fn("archiveOrders")] });
+    const EXPORT = "application.applicationfunction.export-orders";
+    const extra = 20;
+    // Two causes, interleaved: an end that does not exist, and a triple the catalog does not have.
+    const relationships = Array.from({ length: DEFAULT_ATTENTION_LIMIT + extra }, (_, i) =>
+      i % 2 === 0
+        ? { source: EXPORT, predicate: "depends-on", target: `application.applicationfunction.missing-${i}` }
+        : { source: EXPORT, predicate: "tests", target: "application.applicationfunction.archive-orders" }
+    );
+    relationships.push({ source: EXPORT, predicate: "depends-on", target: "application.applicationfunction.archive-orders" });
+    const sent = relationships.length;
+    const body = parse(await relationshipAddHandler({ relationships, rootPath } as any));
+
+    // Counts are over the whole batch, not the part listed.
+    expect(body.total).toBe(sent);
+    expect(body.counts).toEqual({ invalid: DEFAULT_ATTENTION_LIMIT + extra, staged: 1 });
+    expect(body.attentionTotal).toBe(DEFAULT_ATTENTION_LIMIT + extra);
+    expect(body.attention).toHaveLength(DEFAULT_ATTENTION_LIMIT);
+    expect(body.attentionNotListed.count).toBe(extra);
+
+    // Every failure past the default is under its reason, by position: none is dropped.
+    const groups = body.attentionNotListed.groups;
+    expect(groups.map((g: any) => [g.status, g.count])).toEqual([
+      ["invalid", extra / 2],
+      ["invalid", extra / 2],
+    ]);
+    expect(groups[0].reason).toBe("Target element <id> not found");
+    expect(groups[1].reason).toContain("The catalog has no application.applicationfunction --[tests]--> application.applicationfunction");
+    const listed = body.attention.map((r: any) => r.index);
+    const grouped = groups.flatMap((g: any) => g.indexes);
+    expect([...listed, ...grouped].sort((a: number, b: number) => a - b)).toEqual(Array.from({ length: sent - 1 }, (_, i) => i));
+    expect(groups.every((g: any) => g.count === g.indexes.length)).toBe(true);
+    expect(body.attentionNotListed.more).toContain(`limit: ${DEFAULT_ATTENTION_LIMIT + extra}`);
+    expect(body.attentionNotListed.more).toContain("verbose: true");
+
+    // Suggestions repeated across items are listed once and pointed at.
+    expect(body.attention[1].suggestions.length).toBeGreaterThan(0);
+    expect(body.attention[3].suggestions).toBeUndefined();
+    expect(body.attention[3].suggestionsAsFor).toBe(1);
+
+    // Sending the failures again writes nothing twice, and limit returns each one in full.
+    const again = parse(await relationshipAddHandler({ relationships, limit: sent, rootPath } as any));
+    expect(again.counts).toEqual({ invalid: DEFAULT_ATTENTION_LIMIT + extra, duplicate: 1 });
+    expect(again.attention).toHaveLength(sent);
+    expect(again.attentionTotal).toBe(sent);
+    expect(again.attentionNotListed).toBeUndefined();
+    expect(again.attention.every((r: any) => typeof r.reason === "string")).toBe(true);
+  });
+
+  it("lists failures before notes, and gives a written item past the limit by position and id", async () => {
+    await createChangeset();
+    // Six elements staged with a note about their id, then two that are refused.
+    const elements = [
+      ...Array.from({ length: 6 }, (_, i) => fn(`${i + 1}D Preview`)),
+      schema("OrderExport", { attributes: { type: 7 } }),
+      schema("OrderImport", { attributes: { type: 7 } }),
+    ];
+    const result = await add({ elements, limit: 3 });
+    expect(result.elements.counts).toEqual({ staged: 6, invalid: 2 });
+    expect(result.elements.attentionTotal).toBe(8);
+    // The limit is spent on the failures first.
+    expect(result.elements.attention.map((r: any) => [r.index, r.status])).toEqual([
+      [6, "invalid"],
+      [7, "invalid"],
+      [0, "staged"],
+    ]);
+    expect(result.elements.attentionNotListed).toMatchObject({
+      count: 5,
+      groups: [
+        {
+          status: "staged",
+          reason: "The name starts with a digit and an id must start with a letter, so the id is prefixed with 'n-'.",
+          count: 5,
+          indexes: [1, 2, 3, 4, 5],
+          ids: [2, 3, 4, 5, 6].map((n) => `application.applicationfunction.n-${n}d-preview`),
+        },
+      ],
+    });
+
+    // limit: 0 lists none in full and still accounts for all eight.
     await add({ elements: [fn("exportOrders")] });
-    const relationships = Array.from({ length: MAX_ATTENTION + 20 }, (_, i) => ({
-      source: "application.applicationfunction.export-orders",
-      predicate: "realizes",
-      target: `application.applicationfunction.missing-${i}`,
+    const none = await update({
+      updates: [{ id: "application.applicationfunction.nope-a", description: "x" }, { id: "application.applicationfunction.nope-b", description: "x" }],
+      limit: 0,
+    });
+    expect(none.attention).toEqual([]);
+    expect(none.attentionTotal).toBe(2);
+    expect(none.attentionNotListed.groups).toEqual([{ status: "invalid", reason: "Element <id> not found", count: 2, indexes: [0, 1] }]);
+  });
+
+  it("batchReport: listed and grouped items together are every item that needs attention", () => {
+    const results = Array.from({ length: 500 }, (_, index) => ({
+      index,
+      id: `api.operation.op-${index}`,
+      status: index % 5 === 0 ? "invalid" : "staged",
+      ...(index % 5 === 0 ? { reason: `Element api.operation.op-${index} has invalid attributes` } : {}),
+      ...(index % 7 === 0 && index % 5 !== 0 ? { warnings: ["sourceProvenance 'extracted' was ignored"] } : {}),
     }));
-    const result = await relationshipAddHandler({ relationships, rootPath } as any);
-    const body = parse(result);
-    expect(body.counts).toEqual({ invalid: MAX_ATTENTION + 20 });
-    expect(body.attention).toHaveLength(MAX_ATTENTION);
-    expect(body.attentionNotListed.count).toBe(20);
-    expect(body.attentionNotListed.indexes.invalid).toEqual(Array.from({ length: 20 }, (_, i) => MAX_ATTENTION + i));
-    expect(body.attentionNotListed.note).toContain("verbose: true");
-    // Every item has the same "use model_search" suggestion: listed on the first, pointed at after.
-    expect(body.attention[0].suggestions).toHaveLength(1);
-    expect(body.attention[1].suggestions).toBeUndefined();
-    expect(body.attention[1].suggestionsAsFor).toBe(0);
+    const flagged = results.filter((r) => r.status === "invalid" || "warnings" in r).length;
+    for (const limit of [0, 1, 50, flagged - 1, flagged, 10_000]) {
+      const report = batchReport(results, { limit, written: ["staged"] });
+      expect(report.total).toBe(500);
+      expect(report.counts).toEqual({ invalid: 100, staged: 400 });
+      expect(report.attentionTotal).toBe(flagged);
+      const listed = report.attention!.map((r) => r.index);
+      const grouped = (report.attentionNotListed?.groups ?? []).flatMap((g) => g.indexes);
+      expect(listed).toHaveLength(Math.min(limit, flagged));
+      expect(new Set([...listed, ...grouped]).size).toBe(flagged);
+      expect(report.attentionNotListed?.count ?? 0).toBe(flagged - listed.length);
+    }
+    expect(batchReport(results, { verbose: true, written: ["staged"] }).results).toHaveLength(500);
+  });
+
+  it("reasonPattern takes out what differs between items and keeps the cause", () => {
+    expect(reasonPattern("Source element application.applicationfunction.missing-3 not found")).toBe("Source element <id> not found");
+    expect(reasonPattern('"GET *" gives the same id as elements[1] "GET /*" (api.operation.get)')).toBe(
+      '"<name>" gives the same id as elements[n] "<name>" (<id>)'
+    );
+    expect(reasonPattern("Element api.operation.x has invalid attributes:\n  At /attributes: missing required property 'tags'")).toBe(
+      "Element <id> has invalid attributes: At /attributes: missing required property 'tags'"
+    );
   });
 
   it("documents the result shape and verbose in the tool descriptions", () => {
     for (const tool of [modelAddTool, relationshipAddTool, modelUpdateTool]) {
       expect(tool.description).toContain("attention");
       expect(tool.description).toContain("verbose: true");
+      // The default is a named argument, stated in the description, and nothing is left out past it.
+      expect(tool.description).toContain("up to limit items in full (default 50)");
+      expect(tool.description).toContain("attentionNotListed");
+      expect(Object.keys(tool.inputSchema)).toContain("limit");
       expect(Object.keys(tool.inputSchema)).toContain("verbose");
       expect(Object.keys(tool.inputSchema)).toContain("file");
     }
@@ -530,8 +641,8 @@ describe("ids a name derives (#1212, #1184)", () => {
     const result = await add({ elements: [op("GET /"), op("GET /*"), op("GET *"), op("GET /")] });
     // "GET /" is the root route (get-root); "GET /*" and "GET *" both come down to "get".
     expect(result.elements.counts).toEqual({ staged: 2, invalid: 2 });
-    const [root, star, repeat] = result.elements.attention;
-    // The root route was staged, and is listed for its id: not the name's plain kebab case.
+    const [star, repeat, root] = result.elements.attention;
+    // The root route was staged, and is listed (after the refusals) for its id: not the name's plain kebab case.
     expect(root).toMatchObject({ index: 0, id: "api.operation.get-root", notes: ["A route on the root path gets an id that ends in -root."] });
     expect(star).toMatchObject({
       index: 2,

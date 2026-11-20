@@ -135,7 +135,10 @@ describe("deriveElementId: one id function for dr add, model_add and extraction 
     expect(a.slug).toMatch(/^changeset-commit-preview-refuses-.*-[0-9a-f]{8}$/);
     expect(a.slug).not.toBe(b.slug);
     expect(a.slug.slice(0, -8)).toBe(b.slug.slice(0, -8));
-    expect(a.notes[0]).toContain("longer than 100 characters");
+    // The note says the id was shortened, and from what.
+    expect(a.notes).toEqual([
+      "The id is shortened: the name is 140 characters as an id and an id keeps 100, so it is cut at a word and ends with a hash of the whole. The element keeps its full name.",
+    ]);
     // Stable: the same name gives the same id every time.
     expect(deriveElementId("testing", "testcasesketch", `${base} already`).id).toBe(a.id);
   });

@@ -120,11 +120,15 @@ export function deriveElementId(layer: string, elementType: string, name: string
   }
 
   if (slug.length > MAX_ID_SLUG) {
+    const whole = slug.length;
     const hash = crypto.createHash("sha1").update(slug).digest("hex").slice(0, 8);
     const cut = slug.slice(0, MAX_ID_SLUG);
     const atWord = cut.lastIndexOf("-");
     slug = `${(atWord > MAX_ID_SLUG / 2 ? cut.slice(0, atWord) : cut).replace(/-+$/, "")}-${hash}`;
-    notes.push(`The name is longer than ${MAX_ID_SLUG} characters as an id, so the id is cut and ends with a hash of the whole name.`);
+    notes.push(
+      `The id is shortened: the name is ${whole} characters as an id and an id keeps ${MAX_ID_SLUG}, so it is cut at a word ` +
+        `and ends with a hash of the whole. The element keeps its full name.`
+    );
   }
 
   return { id: `${layer}.${elementType}.${slug}`, slug, notes };
