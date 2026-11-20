@@ -518,7 +518,78 @@ dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
 
 # Combined example: custom viewer on custom port without browser
 dr visualize --viewer-path ./my-viewer --port 3000 --no-browser
+
+# See every viewer running on this machine: project, port, pid, CLI version, started at
+dr visualize --list
+
+# Stop the current project's viewers, another project's, one port's, or all of them
+dr visualize --stop
+dr visualize --stop ../other-project
+dr visualize --stop --port 8084
+dr visualize --stop --all
 ```
+
+**Running viewers**:
+
+A viewer runs until it is stopped. One that an agent's `review_open` starts runs in the background, so
+nothing on screen says it is there:
+
+- `dr visualize --list` shows all of them, including viewers the registry has no record of (it also reads
+  the process table). `--json` gives the list to a script. A viewer keeps the code it started with, so after a
+  CLI upgrade the list marks the ones that are older than the installed CLI.
+- `dr visualize --stop` stops viewers and waits for each to exit. It acts on the viewers this registry
+  records. A viewer found only in the process table (its record was lost, or a session with another
+  `DR_STATE_DIR` started it) is named and left running unless you add `--include-unrecorded`.
+- `--stop` signals a process only when it is confirmed to be the viewer. Where the process table can be
+  read, it decides: the recorded pid started no later than its record, is a `dr visualize` launcher, and has a
+  server under it whose script is the dr CLI's (when the viewer also names itself on `/health`, that server
+  must be the one it names). Where it cannot be read, the viewer must name itself on `/health`: its id, its
+  pid and its launcher's, which it tells only to a caller with its auth token (taken from its record). A
+  viewer started with `--no-auth` tells nobody, so without a process table it is never stopped from here.
+  Before a SIGKILL, and before signalling a server after its launcher, the start time is read again; a pid
+  that was reused while `--stop` waited is not signalled, and one whose start time cannot be read is not
+  killed (reported as "did not exit in time"). Anything else (a reused pid, another program's
+  `dist/server-entry.js`, another user's viewer) is reported and left alone.
+- A `review_open` viewer exits on its own after 24 hours with no browser tab connected and no authenticated
+  API request; an open tab keeps it alive. Idle time is wall-clock time, so hours the machine sleeps count
+  for a viewer with no tab open. `DR_VIEWER_IDLE_HOURS` changes the period, and `0` means never; the `dr mcp`
+  server reads it when `review_open` starts a viewer, so a change applies to viewers started after it.
+  `--idle-exit <hours>` gives any `dr visualize` the same limit.
+- `review_open` replaces a viewer older than the CLI only when `review_open` started it and it reports no
+  browser tab connected, both when it first looks and again just before stopping it. Otherwise it returns the
+  link with a notice, and `restart: true` replaces it. A viewer from before 0.7.0 does not name itself, so it
+  is reused only when the process table shows the record's own process serving its port; otherwise
+  `review_open` starts a new viewer rather than risk a link to another project's.
+- Any viewer exits when its project's `documentation-robotics/` folder is removed.
+- `--exit-with-parent` makes `dr visualize` exit when the process that started it is gone, for scripts and
+  test runs that must not leave a server behind.
+
+Neither command gives a partial answer as if it were whole:
+
+- `--list` ends with how many viewers it found and where (the registry, the process table), what reading the
+  registry removed (stale records, old logs), and what it leaves out: viewers the registry has lost when the
+  process table cannot be read (no `ps`, or `DR_VIEWER_PROCESS_SCAN=off`), processes it could not confirm to
+  be dr's, other users' viewers, and registry records it could not read (left in place). `--json` carries the
+  same as `caveats`, `processScan`, `counts` and `swept`. It never claims to be complete.
+- `--stop` ends with how many viewers were running, how many matched and how many it stopped. It names each
+  one it did not stop, with its pid and why, and exits 1 when any matching viewer is still running.
+
+**Time limits** are settings, each with a default and an environment variable. `dr visualize --list --json`
+prints the values in effect (`settings`), and a value that cannot be used is reported instead of being
+replaced quietly.
+
+| Variable                             | Default | What it sets                                                                              |
+| ------------------------------------ | ------- | ----------------------------------------------------------------------------------------- |
+| `DR_VIEWER_IDLE_HOURS`               | 24      | Idle time before a `review_open` viewer exits. `0` means never.                           |
+| `DR_VIEWER_HEALTH_TIMEOUT_MS`        | 1500    | How long a viewer gets to answer its health check.                                        |
+| `DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS`  | 5000    | The second try, made when none answered, before `review_open` calls a viewer unreachable. |
+| `DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS` | 500     | How long `project_status` gives a viewer to answer (the retry twice that), to stay fast.  |
+| `DR_VIEWER_STOP_TIMEOUT_MS`          | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
+| `DR_VIEWER_LOG_KEEP_DAYS`            | 7       | How long the log of a viewer that is gone is kept.                                        |
+| `DR_VIEWER_LIFETIME_CHECK_MS`        | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
+
+`DR_VIEWER_PROCESS_SCAN=off` makes `--list` and `--stop` use the registry alone and never read the process
+table; they say so.
 
 **Custom Viewer Path**:
 
