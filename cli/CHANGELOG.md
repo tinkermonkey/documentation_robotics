@@ -7,28 +7,218 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-20
+
+**Specification Support:** v0.14.0
+
+This release is about the friction sister projects hit using the dr MCP server and DrBot chat.
+Answers that could run to megabytes now fit one response: batch writes return counts and the items
+that need attention, and every long list in the read, brief, verify, extract and status tools is a
+page with its true total and the exact call for the next one, never a silent cut. Drift no longer
+refuses a landing: a person always has a way to confirm one, and the summary they confirm names
+every overlap. DrBot stages into a changeset by default and can reach the dr MCP tools, and a call
+it is refused says why. `codebase_extract` hands a large run back grouped, takes decisions in bulk by
+rule, and keeps those rules in the repo. Verification says "not checked" where it used to say
+"no drift" or "missing". `dr upgrade` touches only what it says it touches. Viewers can be listed
+and stopped, and ones an agent started exit when idle. Bundles viewer 0.13.0; the spec is unchanged.
+
+**Upgrading from 0.6.0:**
+
+- **Batch writes return counts, not a result per item.** `model_add`, `relationship_add` and
+  `model_update` with a list return `total`, `counts` by status and `attention` (only the items not
+  written as sent, or written with a warning), up to `limit` (default 50) in full and the rest
+  grouped by reason with every position. New element ids are listed only when they are not the
+  name's plain kebab case. Pass `verbose: true` for the old per-item `results`. `codebase_extract`'s
+  `reject` and `decide` answer the same way, and `changeset_adopt_source_references` returns compact
+  `adopted` items without `missing` (`verbose: true` for the earlier shape).
+- **Long lists are pages.** `model_validate`, `model_list` (`detail: "compact"` and `"full"`),
+  `model_trace`, `changeset_brief` `sections`, `changeset_impact`, `changeset_verify` `sections`,
+  `codebase_verify`, `codebase_extract` and `project_status` take `limit` and `offset` and report
+  `page` (`total` or `totals`, `returned`, `offset`, and `nextOffset`, absent on the last page),
+  with a `more` line naming the next call. A caller that read one of these lists whole must now
+  follow `nextOffset` or pass a larger `limit`. Counts and verdicts are always over the whole set.
+- **`model_validate` returns a summary by default** (warnings counted by kind, layer and type; a page
+  of errors). `detail: "full"` returns the old report. `model_stats` gives `orphans: {count,
+byLayer}` in place of `orphanedElements`.
+- **`changeset_brief` with `sections` changes shape** for `intent`, `gaps`, `layers`, `codeTouched`
+  and `delta`. `detail: "full"` with `sections` now returns only those sections, in full.
+- **Trace direction changed for five predicates.** In `model_trace` and `dr trace`, `A serves B`,
+  `A realizes B`, `A satisfies B`, `A delivers B` and `A supports B` now make A a dependency of B.
+  Trace `up` from code to reach its feature, requirement and goal; `down` from a goal reaches what
+  implements it. `model_delete`'s cascade and `changeset_impact` are unchanged.
+- **New element ids derive differently; existing ids are never renamed.** A digit before a capital
+  ends a word (`tool1Handler` → `tool1-handler`), a name starting with a digit gets `n-`
+  (`3D Object Effect` → `n-3d-object-effect`), and `dr add` and `model_add` now share extraction's
+  rule: dots, slashes and braces break words (`Node.js` → `node-js`), a root route is
+  `<method>-root`, and a name over 100 characters is cut with a hash. Adding a name whose element
+  exists under an id an earlier release derived is refused and names that element, so re-adding a
+  model's names does not create twins. A relationship end named by a name two elements share is
+  refused as ambiguous (0.6.0 picked the call's own element).
+- **Drift no longer blocks a landing.** `force` on `changeset_commit` and on the viewer API is
+  accepted and ignored, the commit route no longer answers 409 for drift, and `drift.blocksCommit`
+  is always false. `dr changeset commit` and `apply` ask at a terminal; unattended, real overlaps
+  still need `--force`. A preview token now lasts one hour and no longer binds `force`. A changeset's
+  base hash has a new format (`v2:sha256:`); hashes recorded by 0.6.0 keep working.
+- **DrBot stages into a changeset by default.** `dr visualize --read-only` limits it to reads;
+  `--with-changesets` is still accepted and changes nothing. Landing stays with the person.
+- **Viewer API.** Every `/api` route needs the viewer's token (401 without, 403 with a wrong one),
+  and whoever holds it can stage, commit and discard; `--no-auth` is the only opt-out. `GET /health`
+  gives `status` and `cliVersion` to anyone, and `viewerId`, `pid`, `launcherPid` and `clients` only
+  with the token. Viewer registry records are now one per viewer (`<hash>.<pid>.json`); 0.6.0's
+  records are still read. A 0.6.0 `dr mcp` still running does not see the new records and may start
+  a second viewer until it restarts.
+- **`documentation-robotics/extraction-rules.yaml`** is written when `codebase_extract`'s `decide`
+  is called with `keep: true`. Commit it: every later run, in every checkout, applies its rules.
+- **`.prettierignore` gets the whole `documentation-robotics/` folder.** `dr init` and `dr upgrade`
+  replace the changesets line 0.6.0 wrote. `.prettierignore` alone does not keep a prettier
+  pre-commit hook away from the folder; `dr init` and `dr upgrade` say so and print the `exclude`
+  line to add to the hook. dr does not edit the hook configuration.
+- **`dr upgrade` and model writes leave layer files alone when their data is unchanged.** A file
+  prettier formatted, or with its keys in another order, keeps its bytes; only files whose data
+  changed are written. `dr upgrade` no longer adds a `.dr/` ignore rule over files git tracks there:
+  it asks, or takes `--dot-dr untrack|keep-tracked|skip` (`gitignore` on `project_upgrade`).
+- **Older changeset argument names are still accepted.** 0.6.0 said `changesetId`, `planned` and
+  `against.changesetId` would go in this release; they did not, and are accepted in 0.7.0 with a
+  note to pass only `changeset`.
+
+### Added
+
+- **Batch writes from a file** (#1217). `model_add`, `relationship_add` and `model_update` take
+  `file`, a JSON file inside the project (`.dr/` is the suggested place) holding the tool's own
+  lists, up to 64 MB. `model_update` also takes a list, `updates: [...]`. A refused `model_add`
+  batch lists once per refused type what it requires and what each attribute takes (#1153).
+- **`relationship_add` reads an element by its name** or its id without hyphens, across calls and in
+  its single form, and reports the readings once as `readByName` (#1230).
+- **`codebase_extract` triage by rule** (#1154, #1177). A run with more cards than a page answers
+  with `undecided.groups` (by folder, counted by label and visibility) and `byKind`; cards are read
+  with `view` and `page`, and `preview: true` shows the groups before anything is created. `decide`
+  takes decisions in bulk by a stated rule (`where`, `card` or `relationship`, `as`, `reason`), with
+  `preview: true` for a count and a sample; `keep: true` records the rule in
+  `documentation-robotics/extraction-rules.yaml`. Each run reports what every rule decided. Cards
+  carry `visibility`, `nested` and, for a member, `owner`. `reject` and `decide` take a JSON `file`.
+- **`codebase_extract` reports more of the run.** `since` runs list the symbols the range changed and
+  count the rest; with a plan active, `planCoverage` lists planned elements with no as-built element
+  yet (#1162). `sharedHelpers` lists functions that realize more services than `sharedBy` (default
+  5); `testLinks` reports test cases linked by their file's name and those still unwired (#1181).
+  `intent` creates the changeset with that description even when nothing is staged.
+- **Extraction stages more relationships**: `function|component realizes service` from a service's
+  calls, `accesses` to used schema definitions, and `composes` for a rendered child component.
+- **`spec_type` queries the catalog across a layer** (#1216). Without `type`, `otherLayers`,
+  `otherType`, `predicate`, `types`, `direction` or `relationships: true` return the relationships
+  allowed between the layer's types and the other ends; the layer listing shows `requiredEnums`.
+- **`model_list` and `model_validate` take `orphans: true`**, counted by layer and type and listed by
+  id. `model_validate` takes `warnings: ["<kind>"]` to list one kind.
+- **`changeset_brief` arguments** (#1183, #1232): `offset`, `limit`, `targetBytes` (the 40 KB page
+  target), `traced`, `maxConnections`, `otherLayers`, `idsPerType`, `hubThreshold`, `maxHops`, and
+  `driftLimit`/`driftOffset` for the drift section's base-change lists. `intent.walk` names the walk's
+  bounds and how many elements the hub rule leaves untraced; `intent.note` says why an intent is
+  empty (#1221). `changeset_impact` takes `offset` and returns `page`.
+- **`changeset_update` with `rebaseline: true`** takes the current base as the changeset's base and
+  returns what moved and which overlaps remain; `rebaseline: "preview"` writes nothing (#1169). A
+  re-baseline is recorded and shown in the landing summary, and clears no real overlap.
+- **`changeset_adopt_source_references` takes `references`** (`{id, sourceFile, sourceSymbol}`) for
+  planned elements extraction can't see; `changeset_verify` lists candidate files for them (#1159).
+- **`project_status` drift detail and paging.** Each staged changeset whose base changed carries
+  `drift` (state, what landing does, the `changeset_brief` call that lists it) (#1227); `codeDrift`
+  gains `rule`, `landedSince`, `countedFrom` and `unreferenced` (#1228); a `server` section says when
+  the running dr server predates the installed CLI. `list`, `limit` and `offset` return any
+  shortened list in full.
+- **`dr upgrade` options** (#1165, #1166, #1185): `--model-only` (`modelOnly`) migrates the model and
+  installs the spec reference only; `--dot-dr`; `--remove-stale [paths...]` removes leftovers an
+  earlier dr installed (matched by content, never a project's own files); `--full` (`detail:
+"full"`) lists everything. Derived values for newly required attributes (`operationId`, `summary`,
+  `title`, `label`, `description`) are staged in an `upgrade-fills-<spec version>` plan changeset for
+  review, never written to the base model. The dry run rehearses the migration on a copy and names
+  the model files it would write and the validation errors it would leave.
+- **Viewer lifecycle** (#1237). `dr visualize --list` shows every running viewer (project, port, pid,
+  CLI version, start time), including ones the registry lost, and says what it could not see.
+  `--stop [project]`, `--stop --port <n>` and `--stop --all` stop viewers, signalling only a process
+  confirmed to be one; `--include-unrecorded` adds viewers found only in the process table. `--json`
+  works on both. `--idle-exit <hours>` and `--exit-with-parent` bound a viewer's life. `review_open`
+  takes `restart: true`. Time limits are `DR_VIEWER_*` settings, printed by `--list --json`.
+
 ### Changed
 
-- **Bundled viewer bumped to v0.13.0**: `documentation_robotics_viewer` moves `0.12.0` → `0.13.0`
-  (`cli/scripts/download-viewer.sh`). In the viewer:
-  - A search box in the topbar finds any element or node type by name (`/` or ⌘K).
-  - The Model nav tree groups a layer's elements by node type, and a View control draws a layer's
-    elements as lanes or a hive by type.
-  - DrBot opens as a floating panel that no longer resizes the canvas, with an opt-in Dock.
-  - Node and changeset descriptions render as markdown (no raw HTML), so a changeset description
-    written as markdown (#1210) reads as intended.
-  - A node type has one display name everywhere, and the review rows and the change inspector no
-    longer show raw type ids.
-  - A first visit opens on the light canvas with DrBot closed.
+- **`model_add` provenance default is silent over MCP**: `sourceFile` without `sourceProvenance`
+  is `manual` with no warning (#1233).
+- **One id function** (#1225, #1184). `dr add`, `model_add` and extraction derive ids with
+  `deriveElementId`; a new id that differs from an existing one only by hyphens warns; two names in
+  one batch that derive one id are refused with both names.
+- **`changeset_brief` intent** traces a part through the whole that composes or aggregates it and an
+  element through what it realizes, even past a hub, naming the carrier in `through` (#1231).
+  Elements whose type the catalog relates to no intent type are listed under `noCatalogRoute`, not
+  `untraced`.
+- **`changeset_impact` always walks to its depth**; `reached`, `perHop` and `hubs` count everything.
+- **Drift warns instead of refusing** (#1200). `changeset_commit` and Apply land a drifted changeset
+  and report each overlap with its `consequence` and `resolve`; the commit result names every overlap
+  it landed over. The preview and dialog give the true count of overlaps and name the call that
+  lists them all. Token comparisons in the viewer are constant-time.
+- **`project_status`** counts code drift from the commit the last as-built landing's extraction read
+  (`countedFrom`), and reads `unknown`, never `in-step`, when the repository lacks it (#1195).
+  `commitsSince` ignores commits that touch only `documentation-robotics/`. Its lists are short by
+  default with true counts beside them.
+- **`model_validate` stops asking motivation, business and product elements for a source
+  reference**; under `strict` it asks for a document reference (#1215).
+- **`codebase_verify` leads with a `status` per layer**: `in_step`, `drifted` or `not_checked`, with
+  coverage, and lists what it could not compare by reason (#1180). It checks an API described by an
+  OpenAPI file, reads JS/TS test cases, compares system software with a dependency manifest, and
+  honours recorded rejections for routes. Its hints name `codebase_extract`, not `/dr-map`.
+- **Extraction roll-up**: a symbol with no element passes its relationships to the element that owns
+  its file (#1162). A test of code a cross-cutting element cites tests the implementing element.
+- **DrBot** (#1240, #1238): an installed `dr-architect` that predates the MCP tools is passed with
+  the mode's tools added, so the dr MCP server connects; only DrBot's own MCP server loads. Every
+  read-only `dr` command is allowed in chat. Writes are held to a changeset by the launch flags, a
+  PreToolUse hook and dr's own guard (`DR_CHAT_MODE`).
+- **`review_open`** compares the viewer's CLI version with its own: an older viewer it started is
+  replaced on the same port and token when no tab is connected; any other older viewer is reused
+  with `outdated` and a `notice`. Viewers it starts exit after 24 hours idle
+  (`DR_VIEWER_IDLE_HOURS`, `0` for never). Any viewer exits when its project folder is removed.
+- **`dr upgrade` lists every file it touches outside the model** (#1165), by group, and
+  `project_upgrade` returns them as `outsideModel`. It notes a pre-commit hook that would block
+  committing dr's files.
+- **Bundled viewer bumped to v0.13.0**: a topbar search over elements and node types (`/` or ⌘K);
+  the Model tree grouped by node type, with lanes or a hive view; DrBot as a floating panel with an
+  opt-in Dock; descriptions rendered as markdown (#1210); one display name per node type; a first
+  visit opens on the light canvas with DrBot closed.
+- **The planning skill** says when a verification record is created and what keeping or discarding
+  it means (#1197).
+- Tests: no machine-wide `sync` in test set-up, and a golden-copy cache that repairs itself
+  (#1244, #1220).
 
 ### Fixed
 
-- **A stopped viewer could leave its server running.** Under Bun, the visualization server
-  closed its file watcher on SIGTERM or Ctrl-C, and that deadlocked when the project folder was
-  being deleted at the same moment: the server never exited and ignored every later signal. It now
-  leaves the watcher to the process exit. `dr visualize` also force-kills a server that has not
-  exited 3 seconds after it was told to stop; the fallback that was meant to do this never ran
-  (#1235).
+- **`model_stats` reported staged relationships as errors** with a changeset active; it, `dr stats`
+  and `dr report` now validate the projection, and `model_stats` and `model_validate` agree
+  (`view`) (#1214).
+- **`model_trace` `changedEdges`** lists only the staged edges the trace walked (#1203), and a trace
+  through a cycle no longer lists its start among its own dependents.
+- **A landing could always be confirmed** (#1239, #1207): the preview token lands a drifted changeset
+  where no dialog can be shown, Apply lands it in the viewer, and `changeset_commit` no longer says
+  "the user declined" when no confirmation came back.
+- **Overlaps are only what could make a landing wrong**: an edit to a link's end element is not one
+  (#1208), and an update restaged on the current base no longer reads `changed-in-base`.
+- **A landing replaced a base element** when an add named the same path under another id; it is now
+  skipped. Changeset files quote `off`, `on`, `yes` and `no`.
+- **A name starting with a digit** derived an id the tool then rejected (#1212). A dangling
+  relationship end is offered the id that starts the same.
+- **`model_add` relationships could not name elements staged by an earlier call** (#1230).
+- **`changeset_verify` reports an element the build registers only by a name string as
+  unverifiable**, with the file and the string, not missing (#1226).
+- **`codebase_extract` `reject`** records the items that apply instead of refusing the batch
+  (#1213); a `layers` filter that hides every symbol no longer reads as "nothing to stage".
+- **A model write rewrote every file of every loaded layer** in dr's layout (#1246, part).
+- **`dr validate` says when the spec reference is not installed** in the checkout, and that
+  validation is unaffected (#1168, part).
+- **DrBot could not write, and blocked reads** (#1240, #1238); a refused call said only "This
+  command requires approval". It is now told its mode at launch, and a refusal says which rule,
+  that nobody was asked and how to allow it; `chat.status` reports `permission_mode` (#1241).
+- **A stopped viewer could leave its server running** (#1235). Under Bun, closing the file watcher
+  on shutdown could deadlock; the server now leaves it to the process exit, and `dr visualize`
+  force-kills a server that has not exited 3 seconds after it was told to stop.
+- **A viewer's server outlived a killed launcher**; it now exits when its launcher is gone. A second
+  `dr visualize` in a project no longer replaces a live viewer's registry record, and stale records
+  are swept whenever the registry is read (#1237). Tests for the custom viewer take allocated ports
+  and wait for their servers (#1236).
 
 ## [0.6.0] - 2026-11-19
 
@@ -86,7 +276,7 @@ type, and "a declared shape is a schema") and viewer 0.12.0.
   hand. An upgrade record never lands: `dr changeset commit`, `changeset_commit` (and its preview)
   and the viewer's Apply (409) refuse it, its `actions` are `discard` only, base drift is
   `not-applicable`, and later migrations leave it alone. It cannot be made active either (`dr
-  changeset activate` and `changeset_activate` refuse it), so no change is staged into a changeset
+changeset activate` and `changeset_activate` refuse it), so no change is staged into a changeset
   that could never land. `dr upgrade --dry-run` names the
   changeset it would write, and `project_upgrade` returns `dropRecord` in the preview and the
   applied result. A run that drops nothing writes no changeset. The REST API's `purpose` gains
@@ -128,7 +318,7 @@ type, and "a declared shape is a schema") and viewer 0.12.0.
   counts, one line per missing, divergent and probable match, source references and the warning
   come back, with unplanned changes as counts by type; `detail: "full"`, `sections`, `layers` and
   `ids` give more. This repo's largest plan verifies in 5.9 KB instead of 159 KB. `dr changeset
-  verify --json` still prints the full report.
+verify --json` still prints the full report.
 - **`changeset_verify` lists planned elements with no source reference to copy**
   (`sourceReferences.unreferenced`, #1159), with how to set one by hand, and **warns when the
   as-built changeset is too thin** to match the plan's relationships (#1162).
@@ -209,10 +399,10 @@ type, and "a declared shape is a schema") and viewer 0.12.0.
 - **Bundled spec: code can access a database as a whole, and a service serves the view it backs**
   (see `spec/CHANGELOG.md`, 0.14.0). Three relationship types, which brings the catalog to
   1,004: `applicationcomponent accesses data-store.database`, `applicationservice accesses
-  data-store.database` and `applicationservice serves ux.view`. The application, data-store and ux
+data-store.database` and `applicationservice serves ux.view`. The application, data-store and ux
   layer skills list them. Additive for a model already in line with the catalog. A model that
   still holds the links spec 0.11.0 removed (`database serves applicationcomponent`, `database
-  serves applicationservice`, `ux.view serves applicationservice`) now has them rewritten to these
+serves applicationservice`, `ux.view serves applicationservice`) now has them rewritten to these
   types by `dr upgrade` (see Fixed, #1164); links an earlier upgrade already dropped are not
   restored by it.
 - **Tier 1 is re-measured on those definitions, and Clef stays in hide mode.** The definitions
@@ -256,7 +446,7 @@ type, and "a declared shape is a schema") and viewer 0.12.0.
   and the `test:coverage*` scripts joined their `bun test` blocks with `;`, so only the last block's
   exit code counted: in the 0.5.0 release prep, 30 failures in the first (`--concurrent`) block still
   exited 0 and would have passed the release workflow's `npm test` gate (and `npm run test:linux --
-  test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
+test`). The blocks now run through `scripts/run-test-blocks.sh`, which runs every block, lists the
   failed ones and exits 1 if any failed. The blocks, flags, paths and `--test-name-pattern`
   exclusions are unchanged.
 
@@ -275,12 +465,12 @@ type, and "a declared shape is a schema") and viewer 0.12.0.
   now fails with "The change was not saved" instead of storing nothing. This repository no longer
   tracks its own `.active` file, and the marker has moved to `.dr/` (see Changed).
 - **`dr upgrade` rewrites three links it used to drop** (#1164). Spec 0.11.0 removed `database
-  serves applicationcomponent`, `database serves applicationservice` and `ux.view serves
-  applicationservice` with no replacement, so the migration dropped every such relationship.
+serves applicationcomponent`, `database serves applicationservice` and `ux.view serves
+applicationservice` with no replacement, so the migration dropped every such relationship.
   Context Studio proposals 93d40a94 and 38fa8fa3 have since added the types that say the same
   thing the other way round, and the migration now rewrites the old links to `applicationcomponent
-  accesses database`, `applicationservice accesses database` and `applicationservice serves
-  ux.view`, each with source and target swapped, in `relationships.yaml` and in staged changesets
+accesses database`, `applicationservice accesses database` and `applicationservice serves
+ux.view`, each with source and target swapped, in `relationships.yaml` and in staged changesets
   alike. The rewrite table's generator (`scripts/generate-relationship-migration.ts`) gains a
   `replace-dropped` action for this: a hand-written change record
   (`applied-routes-for-dropped-relationships.json`) names the catalog type that replaces a triple
@@ -296,7 +486,7 @@ type, and "a declared shape is a schema") and viewer 0.12.0.
   covers the manifest, which every landing rewrites. When the hash differs but nothing the
   changeset was staged against changed (its base index), the drift is content-free and doesn't
   block landing. `project_upgrade`'s drift note names `force: true`, not a CLI flag, and `dr
-  upgrade` lists drifted changesets in its final summary.
+upgrade` lists drifted changesets in its final summary.
 - **`dr upgrade` migrates the model in one run** (#1163). With a stale or missing spec reference it
   upgraded the reference and reported success, leaving the model for a second run; it now targets
   the spec dr carries, as `project_upgrade` does, stamps `cli_version` whenever it writes the
@@ -399,7 +589,7 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
     gold labels, Clef's predictions), `held-out.ts`, `fit-stability.ts` (margins, ties,
     leave-one-corpus-out and bootstrap of a fit), `label.ts --estimate` (cost before labelling) and
     `--sync --max-usd`, `report.ts --bands --corpora` writing its own file, `compare.ts --corpus
-    a,b,c` (pooled paired test), `fit-thresholds.ts` printing grid ties, and decision-model
+a,b,c` (pooled paired test), `fit-thresholds.ts` printing grid ties, and decision-model
     predictions recording `criteria_digest`.
 - **Tier 1's cache fill in the `codebase_index` job, `warming`, and ledger pruning** (rollout PR 7
   of `docs/analyzers/TIER1_DESIGN.md`, section 4.4).
@@ -532,7 +722,7 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
     carry it too (`agent` for a card the agent staged).
   - New MCP tool `tier1_status`: state and why, provider and model, where each key comes from
     (never its value), this month's spend against the cap and by source, and the cache; `probe:
-    true` sends the probe (one synthetic card, no project code) and records its cost. It writes no
+true` sends the probe (one synthetic card, no project code) and records its cost. It writes no
     configuration. `project_status` gains a `tier1` section (state, provider, model, the month's
     spend). `dr analyzer tier1 status` shares the same code and gains `bySource`.
 
@@ -687,7 +877,7 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
   (CBM's `is_test` modules, or DR's test-path pattern) with the TypeScript parser and makes one
   card per call: an `it` / `test` (with `.skip`, `.only`, `.each`, template-literal titles) is
   staged as a `testing.testcasesketch` named by its title path (`ModelLoader > loads every
-  layer`); a `describe` is rejected as an element and gives its title to the cases in it. The
+layer`); a `describe` is rejected as an element and gives its title to the cases in it. The
   test module's `CALLS` and `HTTP_CALLS` are attributed to the cases whose callback calls the
   callee as CBM spells it (`writeFile`, `Model.load`; `fs.writeFile` is not `writeFile`), or
   quotes the route's whole URL path (not a longer path that starts with it, and with the same
@@ -795,7 +985,7 @@ version now reports as stale. Tier 1 needs nothing unless you opt in.
 
 - **Cross-model references from codebase-memory-mcp's cross-repository edges (opt-in).** For code
   that calls services in other repositories, `codebase_index` takes `crossRepo: [{codebase, model?,
-  modelPath?}]`: each repository is tied to a model the manifest declares under `models:` (by name,
+modelPath?}]`: each repository is tied to a model the manifest declares under `models:` (by name,
   or by its origin remote matching the declared `url`) and recorded in
   `.dr/analyzers/cbm/cross-repo.json`. Each index run then ends with CBM's
   `cross-repo-intelligence` pass against them, and `codebase_extract` stages a reference
@@ -1124,7 +1314,7 @@ API key.
 - **The `dr` Claude Code plugin** (#1037). `.claude-plugin/marketplace.json` lists a `dr` plugin
   rooted at `integrations/claude_code`: the MCP server, `/dr-plan`, the skills and (#1044) the
   agents. Install it once per machine with `claude plugin marketplace add
-  tinkermonkey/documentation_robotics`, then `claude plugin install dr@documentation-robotics`. The
+tinkermonkey/documentation_robotics`, then `claude plugin install dr@documentation-robotics`. The
   plugin runs the `dr` on `PATH`, so it needs this release or later.
 - **`dr mcp` serves the open project** (#1037). Over stdio the server asks the client for its MCP
   roots and moves to the first one inside a DR project (or the first root, when none has a model

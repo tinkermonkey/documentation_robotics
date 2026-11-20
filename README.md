@@ -7,7 +7,7 @@ check each other.
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 [![Specification](https://img.shields.io/badge/Specification-v0.14.0-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.6.0-green)](cli/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.7.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **New here? Start with the [overview](https://tinkermonkey.github.io/documentation_robotics/).** It explains the idea behind DR, follows one
