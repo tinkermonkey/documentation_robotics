@@ -509,6 +509,85 @@ describe("codebase_extract intent and plan coverage", () => {
   }, SLOW);
 });
 
+describe("codebase_extract relationships: a file's other symbols count as its element (#1162, #1181)", () => {
+  const javaQn = (file: string, ...names: string[]) => `${P}.${file.replace(/\.java$/, "").replace(/\//g, ".")}.${names.join(".")}`;
+  const WS = "src/net/WebSocketClient.java";
+  const ORDERS = "src/orders/Orders.java";
+  const PANEL = "src/ui/Panel.java";
+  const testMethod = (file: string, cls: string, name: string): FakeNode => ({
+    label: "Method",
+    name,
+    qualified_name: javaQn(file, cls, name),
+    file_path: file,
+    parent_class: javaQn(file, cls),
+    start_line: 10,
+    end_line: 18,
+    source: `@Test\nvoid ${name}() {\n}`,
+    decorators: ["@Test"],
+  });
+
+  function wiredProject(): FakeProject {
+    const p: FakeProject = { nodes: [], edges: [] };
+    p.nodes.push(
+      { label: "Class", name: "WebSocketClient", qualified_name: javaQn(WS, "WebSocketClient"), file_path: WS, start_line: 1, end_line: 80, source: "public class WebSocketClient {\n}" },
+      { label: "Method", name: "connect", qualified_name: javaQn(WS, "WebSocketClient", "connect"), file_path: WS, parent_class: javaQn(WS, "WebSocketClient"), start_line: 10, end_line: 20, source: "public void connect() {\n}" },
+      { label: "Class", name: "Orders", qualified_name: javaQn(ORDERS, "Orders"), file_path: ORDERS, start_line: 1, end_line: 40, source: "public class Orders {\n}" },
+      { label: "Method", name: "total", qualified_name: javaQn(ORDERS, "Orders", "total"), file_path: ORDERS, parent_class: javaQn(ORDERS, "Orders"), start_line: 5, end_line: 9, source: "private int total() {\n}" },
+      { label: "Class", name: "Panel", qualified_name: javaQn(PANEL, "Panel"), file_path: PANEL, start_line: 1, end_line: 40, source: "public class Panel {\n}" },
+      { label: "Function", name: "tally", qualified_name: javaQn(ORDERS, "tally"), file_path: ORDERS, start_line: 50, end_line: 60, source: "static int tally() {\n}" },
+      testMethod("src/test/net/WsTests.java", "WsTests", "testConnect"),
+      testMethod("src/test/orders/OrdersTest.java", "OrdersTest", "testEmptyOrder"),
+      testMethod("src/test/misc/MiscTests.java", "MiscTests", "testNothingInParticular")
+    );
+    p.edges.push(
+      // The test constructs the client and calls a member of it.
+      { type: "USAGE", from: javaQn("src/test/net/WsTests.java", "WsTests", "testConnect"), to: javaQn(WS, "WebSocketClient") },
+      { type: "CALLS", from: javaQn("src/test/net/WsTests.java", "WsTests", "testConnect"), to: javaQn(WS, "WebSocketClient", "connect") },
+      // The panel calls a helper of the orders file that has no element of its own.
+      { type: "CALLS", from: javaQn(PANEL, "Panel"), to: javaQn(ORDERS, "tally") }
+    );
+    return p;
+  }
+
+  it("links a helper's caller to the file's element, a test to the implementing element, and a test file to the file it is named after", async () => {
+    const component = (name: string, file: string, symbol: string) => ({ layer: "application", type: "applicationcomponent", name, attributes: { type: "internal" }, sourceFile: file, sourceSymbol: symbol });
+    ok(
+      await modelAddHandler({
+        elements: [
+          // The service that implements the client is named after the exported instance; a security element cites the class.
+          { layer: "application", type: "applicationservice", name: "web socket client", attributes: { serviceType: "synchronous" }, sourceFile: WS, sourceSymbol: "websocketClient" },
+          { layer: "security", type: "secureresource", name: "web socket channel", attributes: { resource: "websocket", type: "api" }, sourceFile: WS, sourceSymbol: "WebSocketClient" },
+          component("Orders", ORDERS, "Orders"),
+          component("Panel", PANEL, "Panel"),
+        ],
+        rootPath,
+      })
+    );
+    clearModelCache();
+    const handler = createCodebaseExtractHandler(harness(wiredProject()).deps);
+    const run = ok(await handler({ pageSize: 50, rootPath }));
+    const rels = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "relationship-add");
+    const keys = rels.map((c) => c.elementId);
+    const T = "testing.testcasesketch";
+    // The helper has no element: its caller uses the element that owns the helper's file.
+    expect(keys).toContain("application.applicationcomponent.panel::uses::application.applicationcomponent.orders");
+    // The test exercises the class a security element cites: it tests the service that implements it.
+    expect(keys).toContain(`${T}.ws-tests-test-connect::tests::application.applicationservice.web-socket-client`);
+    expect(keys.some((k) => k.includes("security.secureresource"))).toBe(false);
+    // No call reaches an element, but the test file is named after Orders.java: inferred, and marked.
+    const inferred = rels.find((c) => c.elementId === `${T}.orders-test-test-empty-order::tests::application.applicationcomponent.orders`);
+    expect(inferred?.origin).toEqual({ by: "tier0", rule: "edge:TEST_FILE_NAME" });
+    // What is still unwired is reported by file.
+    expect(run.testLinks).toMatchObject({ inferredFromFileName: 1, unwired: { cases: 1 } });
+    expect(run.testLinks.unwired.files.items).toEqual([{ file: "src/test/misc/MiscTests.java", cases: 1 }]);
+
+    // A test case someone wired by hand is left alone: no second, inferred link.
+    clearModelCache();
+    const again = ok(await handler({ changeset: run.changeset.name, rootPath }));
+    expect(again.staged.relationships).toBe(0);
+  }, SLOW);
+});
+
 describe("codebase_extract lists: nothing is shortened without its total and the call for the rest", () => {
   it("pages candidate deletes past the default, and the pages together are the whole list", async () => {
     ok(

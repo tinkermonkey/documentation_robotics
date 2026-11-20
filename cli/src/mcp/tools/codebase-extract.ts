@@ -82,6 +82,7 @@ import {
   needsAttributesCard,
   planElements,
   planRelationships,
+  INFERRED_TEST_EDGE,
   findBySymbol,
   indexExisting,
   sortUndecided,
@@ -873,6 +874,8 @@ function relationshipChange(r: PlannedRelationship, origin: ChangeOrigin): Omit<
  * edge mapping (`edge:<CBM edge>`), which is Tier 0's.
  */
 function relationshipOrigin(r: PlannedRelationship, addOrigins: ReadonlyMap<string, ChangeOrigin>): ChangeOrigin {
+  // A tests link inferred from a test file's name says so, whoever decided its ends.
+  if (r.edge === INFERRED_TEST_EDGE) return { by: "tier0", rule: `edge:${r.edge}` };
   const ends = [addOrigins.get(r.source), addOrigins.get(r.target)].filter((o): o is ChangeOrigin => !!o);
   return structuredClone(ends.find((o) => o.by === "tier1") ?? ends[0] ?? { by: "tier0", rule: `edge:${r.edge}` });
 }
@@ -3599,6 +3602,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         keepList("rules", ruleReports);
         keepList("sharedHelpers", helpers.helpers);
         keepList("planCoverage", coverage);
+        keepList("unwiredTests", planned.unwiredTests);
         keepList("tier1NotElementCards", tier1NotElementCards);
         keepList("contradictedGaps", contradictedGaps);
         keepList("retiredDecisions", plan.decisions?.retired ?? []);
@@ -3850,6 +3854,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     'Call codebase_extract with view: {} for the cards a page at a time, or view: {files: "<a group\'s path>"} (with label, visibility or kind) for some of them.',
                 }
               : undecidedSection(cards, items, fit, pageSize, { ...(changes && !rangeOnly ? { changedInRange: changedCards } : {}), ...untouchedSection }),
+            ...(planned.unwiredTests.length || planned.inferredTests
+              ? {
+                  testLinks: {
+                    ...(planned.inferredTests ? { inferredFromFileName: planned.inferredTests } : {}),
+                    unwired: {
+                      cases: planned.unwiredTests.reduce((n, f) => n + f.cases, 0),
+                      files: capped(planned.unwiredTests, Math.min(fit.listLimit ?? 20, 20), "unwiredTests"),
+                    },
+                    note:
+                      "Test cases with an element that test nothing: no call from the test reaches an element, and no source file is named as the test file is. " +
+                      "inferredFromFileName counts links made from the name alone (foo.spec.ts tests the element that owns foo.ts; origin rule edge:TEST_FILE_NAME). " +
+                      "Wire an unwired file's cases with relationship_add (testcasesketch tests <element>), one file at a time.",
+                  },
+                }
+              : {}),
             ...rejectResult,
             ...rulesSection(fit.listLimit),
             ...decideSection,

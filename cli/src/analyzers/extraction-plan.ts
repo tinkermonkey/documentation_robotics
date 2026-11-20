@@ -36,6 +36,7 @@ import {
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
+import { TEST_PATH } from "./cards/routes.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
 import type { Tier1Hint } from "./classifier/types.js";
 import type { Visibility } from "./cards/visibility.js";
@@ -1376,12 +1377,43 @@ export interface RelationshipPlan {
   /** Those relationships, with {@link PlanRelationshipsOptions.includePresent}. */
   present?: PlannedRelationship[];
   /**
+   * Test cases this run has an element for that test nothing: no call into an element, no element
+   * they already test, and no source file their file is named after. By test file, most first.
+   */
+  unwiredTests: Array<{ file: string; cases: number }>;
+  /** `tests` links inferred from a test file's name ({@link INFERRED_TEST_EDGE}), among `relationships` and `present`. */
+  inferredTests: number;
+  /**
    * Call edges between two elements left out because CBM resolved them by name with low confidence
    * and nothing corroborates them (src/analyzers/call-evidence.ts), in the layers asked for. A pair
    * the model already has is not left out: it counts in `alreadyPresent` (and is in `present` with
    * includePresent).
    */
   weakCalls: number;
+}
+
+/**
+ * The edge a `tests` link has when no call gave it: the test file is named after a source file
+ * (`uiStore.spec.ts` after `uiStore.ts`), so its cases test the element that owns that file. An
+ * inference from the name, marked as such by this edge on the staged relationship's origin.
+ */
+export const INFERRED_TEST_EDGE = "TEST_FILE_NAME";
+
+/**
+ * The source-file stem a test file is named after: `uiStore.spec.ts` and `uiStore.test.tsx` are
+ * `uiStore`; `test_orders.py` and `orders_test.go` are `orders`; `OwnerTests.java` is `Owner`. Null
+ * when the name follows none of these.
+ */
+export function testedStem(file: string): string | null {
+  const base = path.posix.basename(file);
+  const m =
+    /^(.+)\.(?:test|spec)\.[cm]?[jt]sx?$/.exec(base) ??
+    /^test_(.+)\.py$/.exec(base) ??
+    /^(.+)_test\.(?:py|go)$/.exec(base) ??
+    /^(.+?)Tests?\.(?:java|kt|cs)$/.exec(base) ??
+    /^(.+)_spec\.rb$/.exec(base) ??
+    /^(.+)Spec\.(?:kt|groovy|scala)$/.exec(base);
+  return m ? m[1] : null;
 }
 
 export interface PlanRelationshipsOptions {
@@ -1428,6 +1460,31 @@ export function planRelationships(
     const here = file ? (declaredIn.get(file) ?? sourcedIn.get(file)) : undefined;
     return here?.size === 1 ? [...here][0] : undefined;
   };
+  // The element that owns a file's other symbols (#1162, #1181): the one element sourced there,
+  // else the one application-layer element (the implementation, as against a security, technology
+  // or APM element that cites the same code), else among several the one named after the file.
+  // A file whose elements are several of a kind (a function each) has no owner.
+  const ownerCache = new Map<string, string | undefined>();
+  const fileOwner = (file: string | null): string | undefined => {
+    if (!file) return undefined;
+    if (ownerCache.has(file)) return ownerCache.get(file);
+    const here = [...new Set([...(declaredIn.get(file) ?? []), ...(sourcedIn.get(file) ?? [])])].filter((id) => elements.has(id));
+    const implementing = here.filter((id) => elements.get(id)!.layer === "application");
+    const stem = toKebabCase(path.posix.basename(file).replace(/\.[^.]+$/, ""));
+    const named = (ids: string[]) => ids.filter((id) => id.split(".").slice(2).join(".") === stem);
+    const owner =
+      here.length === 1
+        ? here[0]
+        : implementing.length === 1
+          ? implementing[0]
+          : named(implementing).length === 1
+            ? named(implementing)[0]
+            : !implementing.length && named(here).length === 1
+              ? named(here)[0]
+              : undefined;
+    ownerCache.set(file, owner);
+    return owner;
+  };
   const layerSet = layers?.length ? new Set(layers) : null;
   const mappings = new Map(extraction.config.edgeMappings.map((m) => [m.cbm_edge, m]));
   // What each file refers to (USAGE, IMPORTS or CALLS edges from any of its symbols). The index
@@ -1458,7 +1515,10 @@ export function planRelationships(
   };
   // An edge end: its own element; for a file-joined edge, the one element its file declares; else,
   // for a member with no element of its own (a method), the class it is in.
-  const resolve = (end: EdgeEnd, fileJoined: boolean): { id: string; rolledUp?: string } | undefined => {
+  // An edge end: its own element; for a file-joined edge, the one element its file declares; else,
+  // for a member with no element of its own (a method), the class it is in; else the element that
+  // owns its file (a module's helper counts as the module's element).
+  const resolve = (end: EdgeEnd, fileJoined: boolean): { id: string; rolledUp?: string; viaFile?: true } | undefined => {
     const own = direct(end.qualifiedName, end.name, end.file);
     if (own) return { id: own };
     if (fileJoined) {
@@ -1468,10 +1528,15 @@ export function planRelationships(
     if (parseRouteName(end.name)) return undefined;
     const cut = end.qualifiedName.lastIndexOf(".");
     const parent = cut > 0 ? end.qualifiedName.slice(0, cut) : "";
-    if (!parent || parent === project) return undefined;
-    const id = direct(parent, parent.slice(parent.lastIndexOf(".") + 1), end.file);
-    return id ? { id, rolledUp: parent } : undefined;
+    if (parent && parent !== project) {
+      const id = direct(parent, parent.slice(parent.lastIndexOf(".") + 1), end.file);
+      if (id) return { id, rolledUp: parent };
+    }
+    const owner = fileOwner(end.file);
+    return owner ? { id: owner, viaFile: true } : undefined;
   };
+  /** Layers whose elements cite code they are about rather than implement: a test of that code tests its implementation. */
+  const CROSS_CUTTING: ReadonlySet<string> = new Set(["security", "technology", "apm"]);
 
   type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string };
   const found: Found[] = [];
@@ -1486,12 +1551,24 @@ export function planRelationships(
     if (!ra || !rb) continue;
     // A member rolled up to its class says nothing about that class's own members.
     if ((ra.rolledUp && edge.to.qualifiedName.startsWith(ra.rolledUp + ".")) || (rb.rolledUp && edge.from.qualifiedName.startsWith(rb.rolledUp + "."))) continue;
+    // Two symbols of one file that both count as its owner say nothing about the owner.
+    if (ra.viaFile && rb.viaFile && edge.from.file === edge.to.file) continue;
     const a = ra.id;
-    const b = rb.id;
+    let b = rb.id;
     if (a === b) continue;
     const ea = elements.get(a);
-    const eb = elements.get(b);
+    let eb = elements.get(b);
     if (!ea || !eb) continue;
+    // A test's call into code that a cross-cutting element (security, technology, APM) cites is a
+    // test of the element that implements that code, when the file has one (#1181).
+    if (ea.layer === "testing" && CROSS_CUTTING.has(eb.layer)) {
+      const owner = fileOwner(edge.to.file);
+      const implementation = owner ? elements.get(owner) : undefined;
+      if (owner && implementation && implementation.layer === "application" && owner !== a) {
+        b = owner;
+        eb = implementation;
+      }
+    }
     // A test's call to a member of a class it never refers to is the index matching a name, not
     // the test exercising that class.
     if (ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
@@ -1507,6 +1584,43 @@ export function planRelationships(
     }
     found.push({ sourceId, destinationId, relationship: rel, edge: edge.type });
   }
+  // Test cases no call links to anything: fall back to the element that owns the source file the
+  // test file is named after, when exactly one file has that name and it has an owner (#1181). A
+  // test case that already tests something (by a call, or in the model: someone wired it) is left.
+  const tested = new Set(found.filter((r) => r.relationship.predicate === "tests").map((r) => r.sourceId));
+  // (Optional call: a graph stand-in that holds no relationships has no list of them.)
+  for (const r of existing.relationships?.() ?? []) if (r.predicate === "tests" && r.status !== "deleted") tested.add(r.source);
+  const filesByStem = new Map<string, Set<string>>();
+  for (const file of new Set([...declaredIn.keys(), ...sourcedIn.keys()])) {
+    if (TEST_PATH.test(file)) continue;
+    const stem = toKebabCase(path.posix.basename(file).replace(/\.[^.]+$/, ""));
+    (filesByStem.get(stem) ?? filesByStem.set(stem, new Set()).get(stem)!).add(file);
+  }
+  const unwired = new Map<string, number>();
+  let inferredTests = 0;
+  for (const s of extraction.symbols) {
+    const id = elementOf.get(s.qualifiedName);
+    const element = id ? elements.get(id) : undefined;
+    const file = s.card.file_path;
+    if (!id || !file || element?.layer !== "testing" || element.type !== "testcasesketch" || tested.has(id)) continue;
+    const stem = testedStem(file);
+    const named = stem ? filesByStem.get(toKebabCase(stem)) : undefined;
+    const owner = named?.size === 1 ? fileOwner([...named][0]) : undefined;
+    const target = owner ? elements.get(owner) : undefined;
+    const triple = target ? `testing.testcasesketch.tests.${target.layer}.${target.type}` : "";
+    if (owner && target && hasTriple(triple)) {
+      found.push({
+        sourceId: id,
+        destinationId: owner,
+        relationship: { id: triple, source: "testing.testcasesketch", predicate: "tests", destination: `${target.layer}.${target.type}`, inverted: false },
+        edge: INFERRED_TEST_EDGE,
+      });
+      tested.add(id);
+      inferredTests++;
+    } else unwired.set(file, (unwired.get(file) ?? 0) + 1);
+  }
+  const unwiredTests = [...unwired].map(([file, cases]) => ({ file, cases })).sort((x, y) => y.cases - x.cases || x.file.localeCompare(y.file));
+
   const kept = dedupeRelationships(found);
   const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
   const inLayers = (r: Found) => !layerSet || layerSet.has(elements.get(r.sourceId)!.layer) || layerSet.has(elements.get(r.destinationId)!.layer);
@@ -1551,7 +1665,7 @@ export function planRelationships(
     relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent, weakCalls, ...(options.includePresent ? { present } : {}) };
+  return { relationships, alreadyPresent, weakCalls, unwiredTests, inferredTests, ...(options.includePresent ? { present } : {}) };
 }
 
 // ---------------------------------------------------------------------------

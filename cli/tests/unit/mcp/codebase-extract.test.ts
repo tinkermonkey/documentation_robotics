@@ -189,6 +189,11 @@ const HANDLER = "application.applicationfunction.owner-controller-show-owner";
 const INTERFACE = "application.applicationinterface.owner-controller";
 const SCHEMA = "data-model.objectschema.owner";
 const TEST_SKETCH = "testing.testcasesketch.owner-tests-test-show-owner";
+/**
+ * OwnerTests.java is named after Owner.java: a test case of it that no call links to anything
+ * tests the element that owns Owner.java (#1181), inferred from the name.
+ */
+const INFERRED_TEST = `${TEST_SKETCH}::tests::data-model.objectschema.owner`;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -210,9 +215,11 @@ describe("codebase_extract", () => {
       api: { adds: 1, updates: 0, relationships: 1 },
       application: { adds: 2, updates: 0, relationships: 1 },
       "data-model": { adds: 1, updates: 0, relationships: 0 },
-      testing: { adds: 1, updates: 0, relationships: 0 },
+      testing: { adds: 1, updates: 0, relationships: 1 },
     });
-    expect(result.staged.relationships).toBe(2);
+    // The two from the code, and the test case's link inferred from its file's name.
+    expect(result.staged.relationships).toBe(3);
+    expect(result.testLinks).toMatchObject({ inferredFromFileName: 1 });
     expect(result.candidateDeletes.total).toBe(0);
 
     const changeset = await changesetOf(result.changeset.id);
@@ -227,7 +234,7 @@ describe("codebase_extract", () => {
     const handler = adds.find((c) => c.elementId === HANDLER)!.after as any;
     expect(handler.source_reference.locations).toEqual([{ file: CONTROLLER_FILE, symbol: "OwnerController.showOwner" }]);
     const rels = changeset.changes.filter((c) => c.type === "relationship-add").map((c) => c.elementId).sort();
-    expect(rels).toEqual([`${OPERATION}::realizes::${HANDLER}`, `${HANDLER}::accesses::${SCHEMA}`].sort());
+    expect(rels).toEqual([`${OPERATION}::realizes::${HANDLER}`, `${HANDLER}::accesses::${SCHEMA}`, INFERRED_TEST].sort());
 
     // A constructor named after its class is not a card.
     expect(result.undecided.items.map((c: any) => c.symbol)).not.toContain("OwnerController.OwnerController");
@@ -883,21 +890,25 @@ describe("codebase_extract validation fixes (2026-11-10)", () => {
 
     const unrelated = harness();
     unrelated.project.edges.push(callsName);
-    const without = await relationshipIds(ok(await createCodebaseExtractHandler(unrelated.deps)({ rootPath })).changeset.id);
-    expect(without).not.toContain(`${TEST_SKETCH}::tests::${SCHEMA}`);
+    const withoutRun = ok(await createCodebaseExtractHandler(unrelated.deps)({ rootPath }));
+    // The member call does not make the link. The test file's name does (#1181), and says so in its origin.
+    const testsSchema = async (changesetId: string) =>
+      (await changesetOf(changesetId)).changes.find((c) => c.type === "relationship-add" && c.elementId === `${TEST_SKETCH}::tests::${SCHEMA}`);
+    expect((await testsSchema(withoutRun.changeset.id))?.origin).toEqual({ by: "tier0", rule: "edge:TEST_FILE_NAME" });
 
     await indexed();
     const related = harness();
     related.project.edges.push(callsName, { type: "USAGE", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: owner });
-    const withUse = await relationshipIds(ok(await createCodebaseExtractHandler(related.deps)({ rootPath })).changeset.id);
-    expect(withUse).toContain(`${TEST_SKETCH}::tests::${SCHEMA}`);
+    const withUseRun = ok(await createCodebaseExtractHandler(related.deps)({ changeset: "with-use", rootPath }));
+    // Now the call makes it: not an inference from the name.
+    expect((await testsSchema(withUseRun.changeset.id))?.origin?.rule).not.toBe("edge:TEST_FILE_NAME");
 
     // The index records `new Owner()` against the constructor, Owner.Owner: that refers to the class.
     await indexed();
     const constructs = harness();
     constructs.project.edges.push(callsName, { type: "CALLS", from: qnOf(TEST_FILE, "OwnerTests", "testShowOwner"), to: `${owner}.Owner` });
-    const withNew = await relationshipIds(ok(await createCodebaseExtractHandler(constructs.deps)({ rootPath })).changeset.id);
-    expect(withNew).toContain(`${TEST_SKETCH}::tests::${SCHEMA}`);
+    const withNewRun = ok(await createCodebaseExtractHandler(constructs.deps)({ changeset: "with-new", rootPath }));
+    expect((await testsSchema(withNewRun.changeset.id))?.origin?.rule).not.toBe("edge:TEST_FILE_NAME");
   });
 
   it("bug 7: since leaves out DR's own files and files that are neither source nor named by the model", async () => {
@@ -2080,7 +2091,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(await relationshipIds(first.changeset.id)).not.toContain(WRONG_KEY);
     // Kept for the project: a run into another changeset leaves it out too.
     const other = ok(await handler({ changeset: "as-built-2", rootPath }));
-    expect(await relationshipIds(other.changeset.id)).toEqual([`${OPERATION}::realizes::${HANDLER}`]);
+    expect((await relationshipIds(other.changeset.id)).sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, INFERRED_TEST].sort());
 
     // clearRejected forgets it by source::predicate::target.
     expect(ok(await handler({ changeset: "as-built-2", clearRejected: [WRONG_KEY], rootPath })).notRelationships).toMatchObject({ total: 0, cleared: 1 });
@@ -2116,15 +2127,15 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     const h = harness();
     const handler = createCodebaseExtractHandler(h.deps);
     const first = ok(await handler({ rootPath }));
-    expect((await storedRecord(first.changeset.id)).stagedRelationships.sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, WRONG_KEY].sort());
+    expect((await storedRecord(first.changeset.id)).stagedRelationships.sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, WRONG_KEY, INFERRED_TEST].sort());
     ok(await changesetUnstageHandler({ ...WRONG, rootPath }));
     clearModelCache();
 
     const again = ok(await handler({ rootPath }));
     expect(again.staged.relationships).toBe(0);
     expect(again.notRelationships).toMatchObject({ total: 1, skipped: 1, recorded: { items: [{ ...WRONG, how: "unstaged" }] } });
-    expect(await relationshipIds(first.changeset.id)).toEqual([`${OPERATION}::realizes::${HANDLER}`]);
-    expect((await storedRecord(first.changeset.id)).stagedRelationships).toEqual([`${OPERATION}::realizes::${HANDLER}`]);
+    expect((await relationshipIds(first.changeset.id)).sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, INFERRED_TEST].sort());
+    expect((await storedRecord(first.changeset.id)).stagedRelationships.sort()).toEqual([`${OPERATION}::realizes::${HANDLER}`, INFERRED_TEST].sort());
 
     const third = ok(await handler({ rootPath }));
     expect(third.staged.relationships).toBe(0);
@@ -2149,7 +2160,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     ok(await changesetDiscardHandler({ changesetId: first.changeset.id, confirm: true, rootPath }));
     clearModelCache();
     const fresh = ok(await handler({ changeset: "as-built-2", rootPath }));
-    expect(fresh.staged.relationships).toBe(2);
+    expect(fresh.staged.relationships).toBe(3);
     expect(fresh.notRelationships).toBeUndefined();
   }, SLOW);
 
@@ -2327,7 +2338,7 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     const preview = ok(await handler({ since: "main", preview: true, rootPath }));
     expect(preview.preview).toBe(true);
     expect(preview.message).toContain("nothing was staged or recorded");
-    expect(preview.wouldStage).toMatchObject({ adds: 5, relationships: 2 });
+    expect(preview.wouldStage).toMatchObject({ adds: 5, relationships: 3 });
     expect(preview.undecided.total).toBe(3);
     expect(preview.range).toEqual({
       commits: 127,
