@@ -211,6 +211,11 @@ cs-177ff609-...`). A staged add the upgrade removed from another changeset is re
   changeset the same way and reports the same overlaps. The commit is `StagingAreaManager.commit`, the same
   code `dr changeset commit` and the viewer's `POST /api/changesets/:id/commit` run, on a fresh read
   of the model. An active changeset is deactivated afterwards.
+- The viewer API trusts its token: every `/api` route and the websocket require it (401 without,
+  403 with a wrong one), and an authenticated `POST /api/changesets/:id/commit` lands. Nothing
+  proves a person clicked Apply; whoever holds the token, the agent holding `review_open`'s link
+  included, can commit and discard through the API. `dr visualize --no-auth` turns auth off, at
+  the person's choice; `review_open` always starts the viewer with auth.
 - It commits only what the person saw. After they accept, it re-reads the changeset (its staged
   changes, modified time and status) and the base model (elements and relationships), and refuses
   if anything changed while the dialog was open.

@@ -524,3 +524,55 @@ describe("model reloads", () => {
     expect(sent.filter((m) => m.type === "model.updated")).toHaveLength(1);
   });
 });
+
+// The maintainer's rule for the viewer API (review of PR 1272): every API call is authenticated, and
+// an authenticated call is trusted. Nothing proves a person clicked Apply: the token is what
+// permits it, and an unauthenticated request is refused. The MCP path keeps its own confirmation.
+describe("the changeset routes need the token", () => {
+  const TOKEN = "test-token-1272";
+
+  async function authed() {
+    server?.stop();
+    const { model } = await fresh();
+    server = createServerWithoutChatDetection(model, { authEnabled: true, authToken: TOKEN });
+    return (path: string, init: RequestInit = {}) => (server as any).app.request(path, init) as Promise<Response>;
+  }
+
+  it.serial("refuses commit and discard without a token (401) or with a wrong one (403), and writes nothing", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    const request = await authed();
+    for (const action of ["commit", "discard"]) {
+      expect((await request(`/api/changesets/${planId}/${action}`, { method: "POST" })).status).toBe(401);
+      const wrong = await request(`/api/changesets/${planId}/${action}`, { method: "POST", headers: { Authorization: "Bearer nope" } });
+      expect(wrong.status).toBe(403);
+      expect((await request(`/api/changesets/${planId}/${action}?token=nope`, { method: "POST" })).status).toBe(403);
+    }
+    const { manager } = await fresh();
+    expect((await manager.load(planId))!.status).toBe("staged");
+  });
+
+  it.serial("lands with the token, as Apply does", async () => {
+    const planId = await planAdding("export-orders", service(SERVICE));
+    const request = await authed();
+    const landed = await request(`/api/changesets/${planId}/commit`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } });
+    expect(landed.status).toBe(200);
+    expect((await landed.json()).status).toBe("committed");
+  });
+
+  it.serial("every registered API route refuses a request with no token", async () => {
+    const request = await authed();
+    const routes = ((server as any).app.routes as Array<{ method: string; path: string }>).filter(
+      (route) => route.path.startsWith("/api/") && route.method !== "ALL"
+    );
+    expect(routes.length).toBeGreaterThan(20);
+    const open: string[] = [];
+    for (const route of routes) {
+      const path = route.path.replace(/:[A-Za-z]+/g, "x");
+      const status = (await request(path, { method: route.method })).status;
+      if (status !== 401) open.push(`${route.method} ${route.path} -> ${status}`);
+    }
+    expect(open).toEqual([]);
+    // The websocket too.
+    expect((await request("/ws")).status).not.toBe(200);
+  });
+});
