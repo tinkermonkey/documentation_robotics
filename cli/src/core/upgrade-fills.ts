@@ -186,6 +186,40 @@ export function deriveFills(
   return { fills, left: [...left.values()] };
 }
 
+/** Values an earlier upgrade derived and staged in a fills changeset that has not landed yet */
+export interface StagedEarlier {
+  /** The staged fills changeset's name */
+  changeset: string;
+  fills: Array<{ elementId: string; attribute: string }>;
+}
+
+/**
+ * The attribute values the project's unlanded fills changesets (`upgrade-fills-…`, still staged)
+ * already hold, per changeset: every attribute a staged update adds to an element. A later upgrade
+ * leaves these alone instead of staging the same value a second time.
+ */
+export async function fillsStagedEarlier(rootPath: string): Promise<StagedEarlier[]> {
+  const storage = new StagedChangesetStorage(rootPath);
+  const earlier: StagedEarlier[] = [];
+  for (const listed of await storage.list()) {
+    if (listed.status !== "staged" || !listed.name?.startsWith(FILLS_NAME_PREFIX) || listed.origin?.kind !== "upgrade") {
+      continue;
+    }
+    const changeset = listed.id ? await storage.load(listed.id) : listed;
+    const fills: StagedEarlier["fills"] = [];
+    for (const change of changeset?.changes ?? []) {
+      if (change.type !== "update") continue;
+      const before = ((change.before as { attributes?: unknown } | undefined)?.attributes ?? {}) as Record<string, unknown>;
+      const after = ((change.after as { attributes?: unknown } | undefined)?.attributes ?? {}) as Record<string, unknown>;
+      for (const attribute of Object.keys(after)) {
+        if (before[attribute] === undefined) fills.push({ elementId: change.elementId, attribute });
+      }
+    }
+    if (fills.length > 0) earlier.push({ changeset: listed.name, fills });
+  }
+  return earlier;
+}
+
 /** The fills grouped per element, in the order the elements first appear */
 function byElement(fills: DerivedFill[]): Map<string, DerivedFill[]> {
   const groups = new Map<string, DerivedFill[]>();

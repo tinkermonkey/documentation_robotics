@@ -159,6 +159,34 @@ describe("outsideModelLines (#1165)", () => {
     expect(lines.join("\n")).toContain("decide    .gitignore: git tracks 22 file(s) under .dr/ (--dot-dr untrack, keep-tracked or skip)");
   });
 
+  it("names every line a .dr choice writes and replaces, and the files it takes out of git's index", () => {
+    const text = outsideModelLines(
+      {
+        errors: [],
+        gitignore: {
+          path: ".gitignore",
+          add: ["/.dr/"],
+          replace: ["# The spec pin (.dr/spec, .dr/manifest.json) stays tracked"],
+          untrack: 14,
+        },
+      },
+      []
+    ).join("\n");
+    expect(text).toContain("  Ignore files and git's index");
+    expect(text).toContain("    add       /.dr/ to .gitignore");
+    expect(text).toContain(
+      "    remove    1 line(s) about .dr that .gitignore already has: # The spec pin (.dr/spec, .dr/manifest.json) stays tracked"
+    );
+    expect(text).toContain("    untrack   14 file(s) under .dr/ from git's index (git rm -r --cached .dr");
+
+    const keep = outsideModelLines(
+      { errors: [], gitignore: { path: ".gitignore", add: ["/.dr/*", "!/.dr/manifest.json", "!/.dr/spec/"] } },
+      []
+    ).join("\n");
+    expect(keep).toContain("    add       /.dr/*, !/.dr/manifest.json, !/.dr/spec/ to .gitignore");
+    expect(keep).not.toContain("untrack");
+  });
+
   it("leaves the spec reference out of what --model-only skips", () => {
     const text = outsideModelLines(outside, [copilot()], { skipped: true }).join("\n");
     expect(text).not.toContain("Spec reference");

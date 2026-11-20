@@ -51,8 +51,18 @@ export interface DotDrDecision {
   files: string[];
   /** `.dr/` is already ignored: an earlier run added the rule and left the files tracked. */
   alreadyIgnored: boolean;
-  /** Each choice and what it means for the next commit. */
-  options: Array<{ choice: DotDrTrackedChoice; effect: string }>;
+  /**
+   * Each choice, what it means for the next commit, and exactly what it changes: the rule lines
+   * it writes to `.gitignore` (`writes`), the lines about `.dr` already there that they replace
+   * (`replaces`), and how many files it removes from git's index (`untracks`). `skip` has none.
+   */
+  options: Array<{
+    choice: DotDrTrackedChoice;
+    effect: string;
+    writes?: string[];
+    replaces?: string[];
+    untracks?: number;
+  }>;
 }
 
 export interface DotDrIgnoreResult {
@@ -62,6 +72,10 @@ export interface DotDrIgnoreResult {
   added: boolean;
   /** With `dryRun`: the call would write DR's lines. */
   wouldAdd?: boolean;
+  /** With `dryRun`: the rule lines it would write (`/.dr/`, or `/.dr/*` and the re-include lines). */
+  wouldWrite?: string[];
+  /** With `dryRun` and `untrack`: how many files it would remove from git's index. */
+  wouldUntrack?: number;
   /**
    * Whether `.dr/` is ignored after the call. From `git check-ignore` inside a git work tree
    * (which also sees parent `.gitignore` files, `info/exclude` and the global excludes file);
@@ -85,7 +99,7 @@ export interface DotDrIgnoreResult {
   untracked?: number;
   /** With `keep-tracked`: the re-include lines written, one per tracked path directly under `.dr/`. */
   keptTracked?: string[];
-  /** The `.dr` rules and comments already in the file that DR's lines replaced. */
+  /** The `.dr` rules and comments already in the file that DR's lines replaced (with `dryRun`: would replace). */
   replaced?: string[];
 }
 
@@ -96,14 +110,24 @@ export interface DotDrIgnoreOptions {
   dryRun?: boolean;
 }
 
+/** How many times a git call that failed to run is tried before the failure is reported */
+const GIT_ATTEMPTS = 3;
+
+/**
+ * Run git in the project. Null means git is not installed, which callers read as "not a git
+ * repository". Any other failure to run it (a timeout, a spawn error on a loaded machine) is
+ * retried and then thrown: what git tracks under `.dr/` decides whether an ignore rule is safe to
+ * write, so "git did not answer" must never be taken for "git tracks nothing".
+ */
 function git(projectRoot: string, args: string[]): { status: number | null; stdout: string; stderr: string } | null {
-  try {
+  let failure: Error | undefined;
+  for (let attempt = 0; attempt < GIT_ATTEMPTS; attempt++) {
     const result = spawnSync("git", args, { cwd: projectRoot, stdio: "pipe", encoding: "utf-8", timeout: 10_000 });
-    if (result.error) return null;
-    return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
-  } catch {
-    return null;
+    if (!result.error) return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+    if ((result.error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    failure = result.error;
   }
+  throw new Error(`git ${args[0]} did not run: ${failure?.message ?? "unknown error"}`);
 }
 
 /** True inside a git work tree with git installed. */
@@ -124,7 +148,11 @@ function gitSaysIgnored(projectRoot: string): boolean | null {
 /** The files git tracks under `.dr/`, relative to the project root. */
 function trackedUnderDotDr(projectRoot: string): string[] {
   const result = git(projectRoot, ["ls-files", "--", ".dr"]);
-  if (!result || result.status !== 0) return [];
+  if (!result) return [];
+  // Inside a work tree this always succeeds: a failure is not "nothing is tracked"
+  if (result.status !== 0) {
+    throw new Error(`git ls-files could not list what is tracked under .dr/: ${result.stderr.trim() || `exit ${result.status}`}`);
+  }
   return result.stdout
     .split("\n")
     .map((line) => line.trim())
@@ -142,9 +170,17 @@ function isDotDrRule(line: string): boolean {
   return pattern === ".dr" || pattern.startsWith(".dr/");
 }
 
-/** Whether a comment line talks about the `.dr` folder (not `.dr-version` or a longer name). */
+/**
+ * Whether a comment line names the `.dr` folder or a path in it: a word that is `.dr`, `.dr/`,
+ * `/.dr/` or `.dr/spec` once the punctuation around it is set aside. `.dr-version`, `.drawio` and
+ * `*.dr` (a file extension) are other things, and a comment about them is left alone.
+ */
 function commentNamesDotDr(line: string): boolean {
-  return /(^|[^\w./-])\.dr(\/|(?![\w-]))/.test(line);
+  return line
+    .replace(/^#+/, "")
+    .split(/\s+/)
+    .map((word) => word.replace(/^[`'"(\[{<]+/, "").replace(/[`'")\]}>,.;:!?]+$/, ""))
+    .some((word) => /^!?\/?\.dr(\/\S*)?$/.test(word));
 }
 
 /** The lines of a `.gitignore` that are about `.dr`: its rules, DR's own headings, and comments naming the folder. */
@@ -170,7 +206,14 @@ function keepLines(tracked: string[]): string[] {
   return [...kept].sort();
 }
 
-function decisionFor(tracked: string[], alreadyIgnored: boolean): DotDrDecision {
+/** What a choice would change, as a decision's option carries it */
+type ChoiceChanges = { writes?: string[]; replaces?: string[]; untracks?: number };
+
+function decisionFor(
+  tracked: string[],
+  alreadyIgnored: boolean,
+  changes: Record<"untrack" | "keep-tracked", ChoiceChanges>
+): DotDrDecision {
   const n = tracked.length;
   return {
     wouldIgnoreTracked: n,
@@ -179,10 +222,12 @@ function decisionFor(tracked: string[], alreadyIgnored: boolean): DotDrDecision 
     options: [
       {
         choice: "untrack",
-        effect: `Ignore .dr/ and remove its ${n} file(s) from git's index (git rm -r --cached .dr; they stay on disk). The removals are staged, so the next commit drops them from the repository, and each checkout recreates .dr/ with dr.`,
+        ...changes.untrack,
+        effect: `Ignore .dr/ and remove its ${n} file(s) from git's index (git rm -r --cached .dr; they stay on disk). The removals are staged, so the next commit drops them from the repository, and each checkout recreates .dr/ with dr. Stage the rest of the upgrade with git add -A: git refuses git add .dr once the folder is ignored.`,
       },
       {
         choice: "keep-tracked",
+        ...changes["keep-tracked"],
         effect: `Keep the ${n} file(s) tracked: .gitignore ignores the rest of .dr/ (${DOT_DR_CONTENTS_LINE}) and re-includes the tracked paths, so git add .dr stages them and nothing else. Every dr upgrade then shows up as a change to them.`,
       },
       {
@@ -246,37 +291,76 @@ export async function ensureDotDrIgnored(
     return { ...result, ignored: keepsSome ? true : result.ignored };
   }
 
+  // The file's own lines about .dr, which DR's block takes the place of
+  const indexes = dotDrLineIndexes(rawLines);
+  const existing = indexes.map((index) => rawLines[index].trim());
+
+  /** The existing lines a block takes the place of: the ones that are not themselves in the block */
+  const replacedBy = (block: string[]): string[] => existing.filter((line) => !block.includes(line));
+
   /** Put DR's block where the file's `.dr` lines were (or at its end) and write it. */
-  const writeBlock = async (block: string[]): Promise<string[]> => {
-    const indexes = dotDrLineIndexes(rawLines);
-    const replaced = indexes.map((index) => rawLines[index].trim());
+  const writeBlock = async (block: string[]): Promise<void> => {
     if (indexes.length === 0) {
       const separator = text === "" || text.endsWith(`${eol}${eol}`) ? "" : text.endsWith(eol) ? eol : `${eol}${eol}`;
       await writeFile(file, `${text}${separator}${block.join(eol)}${eol}`, "utf-8");
-      return replaced;
+      return;
     }
     const drop = new Set(indexes);
     const lines = rawLines.flatMap((line, index) => (index === indexes[0] ? block : drop.has(index) ? [] : [line]));
     await writeFile(file, lines.join(eol) + (text.endsWith(eol) || lines[lines.length - 1] === "" ? "" : eol), "utf-8");
-    return replaced;
   };
   const withReplaced = (replaced: string[]) => (replaced.length > 0 ? { replaced } : {});
+  /** What a dry run says a block would do: the rule lines written, and the lines they replace */
+  const wouldWrite = (block: string[]) => ({
+    wouldAdd: true,
+    wouldWrite: block.filter((line) => !line.startsWith("#")),
+    ...withReplaced(replacedBy(block)),
+  });
+
+  const ignoreBlock = [HEADING, DOT_DR_IGNORE_LINE];
+  // Lines here that say something else about .dr than "ignore the folder": a comment that is not
+  // DR's heading (a note that the spec pin stays tracked, say), or a rule for a path inside it.
+  // With them the file contradicts an untrack even when git already ignores the folder (#1185).
+  const saysOtherwise = existing.some((line) =>
+    line.startsWith("#") ? line !== HEADING : patternPath(line) !== ".dr"
+  );
 
   if (tracked.length > 0) {
     const choice = options.tracked;
     if (!choice) {
-      return { ...result, decision: decisionFor(tracked, alreadyIgnored) };
+      const changesOf = (block: string[] | null, untracks?: number): ChoiceChanges => ({
+        ...(block ? { writes: block.filter((line) => !line.startsWith("#")) } : {}),
+        ...(block && replacedBy(block).length > 0 ? { replaces: replacedBy(block) } : {}),
+        ...(untracks ? { untracks } : {}),
+      });
+      return {
+        ...result,
+        decision: decisionFor(tracked, alreadyIgnored, {
+          untrack: changesOf(!alreadyIgnored || saysOtherwise ? ignoreBlock : null, tracked.length),
+          "keep-tracked": changesOf([KEEP_HEADING, DOT_DR_CONTENTS_LINE, ...keepLines(tracked)]),
+        }),
+      };
     }
-    if (choice === "skip" || options.dryRun) {
-      return { ...result, applied: choice, ...(choice !== "skip" ? { wouldAdd: true } : {}) };
+    if (choice === "skip") {
+      return { ...result, applied: choice };
     }
     if (choice === "keep-tracked") {
       const keptTracked = keepLines(tracked);
-      const replaced = await writeBlock([KEEP_HEADING, DOT_DR_CONTENTS_LINE, ...keptTracked]);
+      const block = [KEEP_HEADING, DOT_DR_CONTENTS_LINE, ...keptTracked];
+      if (options.dryRun) return { ...result, applied: choice, keptTracked, ...wouldWrite(block) };
+      const replaced = replacedBy(block);
+      await writeBlock(block);
       return { ...result, added: true, ignored: true, applied: choice, keptTracked, ...withReplaced(replaced) };
     }
-    // untrack: the rule first, so a failure to untrack leaves the half state the user already had
-    const replaced = alreadyIgnored ? [] : await writeBlock([HEADING, DOT_DR_IGNORE_LINE]);
+    // untrack. The rule is written when nothing ignores the folder yet, and also when the file's
+    // own lines say otherwise, so it does not go on contradicting what was just done.
+    const writes = !alreadyIgnored || saysOtherwise;
+    if (options.dryRun) {
+      return { ...result, applied: choice, wouldUntrack: tracked.length, ...(writes ? wouldWrite(ignoreBlock) : {}) };
+    }
+    // The rule first, so a failure to untrack leaves the half state the user already had
+    const replaced = writes ? replacedBy(ignoreBlock) : [];
+    if (writes) await writeBlock(ignoreBlock);
     const removed = git(projectRoot, ["rm", "-r", "--cached", "--quiet", "--", ".dr"]);
     if (!removed || removed.status !== 0) {
       throw new Error(
@@ -285,7 +369,7 @@ export async function ensureDotDrIgnored(
     }
     return {
       ...result,
-      added: !alreadyIgnored,
+      added: writes,
       ignored: gitSaysIgnored(projectRoot) ?? true,
       trackedFiles: trackedUnderDotDr(projectRoot).length,
       applied: choice,
@@ -295,9 +379,10 @@ export async function ensureDotDrIgnored(
   }
 
   if (alreadyIgnored) return result;
-  if (options.dryRun) return { ...result, wouldAdd: true };
+  if (options.dryRun) return { ...result, ...wouldWrite(ignoreBlock) };
 
-  const replaced = await writeBlock([HEADING, DOT_DR_IGNORE_LINE]);
+  const replaced = replacedBy(ignoreBlock);
+  await writeBlock(ignoreBlock);
   const after = gitChecked ? gitSaysIgnored(projectRoot) : null;
   return { ...result, added: true, ignored: after ?? true, ...withReplaced(replaced) };
 }
@@ -315,7 +400,12 @@ export function dotDrDecisionLines(decision: DotDrDecision, options: { full?: bo
       ? `git tracks ${decision.wouldIgnoreTracked} file(s) under .dr/, which .gitignore already ignores: they stay tracked and modified, and git add .dr refuses them.`
       : `git tracks ${decision.wouldIgnoreTracked} file(s) under .dr/, which is per-checkout state dr recreates. An ignore rule alone would not untrack them, so .gitignore was left alone.`,
     `  ${shown.join(", ")}${more > 0 ? `, and ${more} more of ${decision.files.length} (git ls-files .dr lists them all)` : ""}`,
-    ...decision.options.map((option) => `  ${option.choice}: ${option.effect}`),
+    ...decision.options.flatMap((option) => [
+      `  ${option.choice}: ${option.effect}`,
+      ...(option.writes ? [`      writes to .gitignore: ${option.writes.join("  ")}`] : []),
+      ...(option.replaces ? [`      removes from .gitignore: ${option.replaces.join(" | ")}`] : []),
+      ...(option.untracks ? [`      removes from git's index: ${option.untracks} file(s) under .dr/`] : []),
+    ]),
   ];
 }
 
@@ -328,7 +418,11 @@ export function dotDrIgnoreNotes(result: DotDrIgnoreResult): string[] {
       `${file} now ignores .dr/ except ${result.keptTracked?.map((line) => line.slice(1)).join(", ")} (commit the .gitignore change)`
     );
   } else if (result.added) {
-    notes.push(`Added ${DOT_DR_IGNORE_LINE} to ${file} (DR's per-checkout state; commit the .gitignore change)`);
+    notes.push(
+      result.ignored && result.replaced?.length && result.applied === "untrack"
+        ? `${file} now says only ${DOT_DR_IGNORE_LINE} about .dr/ (commit the .gitignore change)`
+        : `Added ${DOT_DR_IGNORE_LINE} to ${file} (DR's per-checkout state; commit the .gitignore change)`
+    );
   }
   if (result.untracked) {
     notes.push(
@@ -336,7 +430,7 @@ export function dotDrIgnoreNotes(result: DotDrIgnoreResult): string[] {
     );
   }
   if (result.replaced?.length) {
-    notes.push(`Replaced ${result.replaced.length} .dr line(s) already in ${file}: ${result.replaced.join(" | ")}`);
+    notes.push(`Removed ${result.replaced.length} line(s) about .dr that ${file} already had: ${result.replaced.join(" | ")}`);
   }
   if (result.applied === "skip") {
     notes.push(`Left ${file} and the ${result.trackedFiles} file(s) git tracks under .dr/ as they are`);

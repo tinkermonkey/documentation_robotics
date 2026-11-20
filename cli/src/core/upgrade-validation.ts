@@ -96,6 +96,13 @@ export function unfilledRequired(errors: ValidationIssue[]): UnfilledRequired[] 
     .map((group) => ({ elementId: group.elementId!, layer: group.layer, attributes: group.missingAttributes }));
 }
 
+/** Derived values staged for review in one changeset (upgrade-fills.ts) */
+export interface StagedFills {
+  name: string;
+  error?: string;
+  fills: Array<{ elementId: string; attribute: string }>;
+}
+
 /** Drop the attributes that have a value staged for review; elements left with none are dropped too */
 export function withoutStaged(
   unfilled: UnfilledRequired[],
@@ -116,7 +123,7 @@ export function withoutStaged(
 export async function validationSummary(
   model: Model,
   maxIssues: number = MAX_VALIDATION_ISSUES,
-  fills?: { name: string; error?: string; fills: Array<{ elementId: string; attribute: string }> },
+  fills?: StagedFills | StagedFills[],
   options: { full?: boolean } = {}
 ) {
   // The counts and the verdict are of the whole model. The lists are shortened by default and say
@@ -132,7 +139,10 @@ export async function validationSummary(
   const errors = result.errors.slice(0, issueLimit).map(issue);
   const warnings = result.warnings.slice(0, issueLimit).map(issue);
   const shortened = result.errors.length > errors.length || result.warnings.length > warnings.length;
-  const staged = fills && !fills.error ? fills.fills : [];
+  const stagedIn = (Array.isArray(fills) ? fills : fills ? [fills] : []).filter(
+    (entry) => !entry.error && entry.fills.length > 0
+  );
+  const staged = stagedIn.flatMap((entry) => entry.fills);
   const unfilled = withoutStaged(unfilledRequired(result.errors), staged);
   return {
     scope: "base model (staged changesets not included)",
@@ -142,8 +152,9 @@ export async function validationSummary(
     ...(staged.length > 0
       ? {
           stagedForReview: {
-            note: "Required attributes with a derived value staged in this changeset. They stay validation errors on the base model until the user lands it.",
-            changeset: fills!.name,
+            note: "Required attributes with a derived value staged for review. They stay validation errors on the base model until the user lands the changeset.",
+            changeset: stagedIn[0].name,
+            ...(stagedIn.length > 1 ? { changesets: stagedIn.map((entry) => entry.name) } : {}),
             attributeCount: staged.length,
           },
         }

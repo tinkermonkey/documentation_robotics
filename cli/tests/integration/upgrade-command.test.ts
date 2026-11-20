@@ -1581,6 +1581,15 @@ describe("upgrade command - unified flow", () => {
       expect(await fileExists(join(tempDir.path, ".gitignore"))).toBe(false);
       expect(git(tempDir.path, "ls-files", "--", ".dr").trim().split("\n")).toHaveLength(tracked);
 
+      // With a choice, the dry run names what that choice does, down to the index
+      const plan = await runDr(["upgrade", "--dry-run", "--dot-dr", "untrack"], { cwd: tempDir.path });
+      assertOutputContains(plan, "add       /.dr/ to .gitignore");
+      assertOutputContains(plan, `untrack   ${tracked} file(s) under .dr/ from git's index`);
+      const keepPlan = await runDr(["upgrade", "--dry-run", "--dot-dr", "keep-tracked"], { cwd: tempDir.path });
+      assertOutputContains(keepPlan, "add       /.dr/*, !/.dr/");
+      expect(keepPlan.stdout).not.toContain("untrack   ");
+      expect(await fileExists(join(tempDir.path, ".gitignore"))).toBe(false);
+
       const chosen = await runDr(["upgrade", "--yes", "--dot-dr", "untrack"], { cwd: tempDir.path });
       expect(chosen.exitCode).toBe(0);
       assertOutputContains(chosen, `Removed ${tracked} file(s) under .dr/ from git's index`);

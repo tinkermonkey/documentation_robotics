@@ -165,21 +165,57 @@ describe("upgrade fills (#1166)", () => {
     });
   });
 
-  it("names a second run's changeset apart, and derives nothing when the spec version doesn't change", async () => {
+  it("a second run stages nothing the first run's unlanded changeset already holds", async () => {
     await withModel(async (root) => {
       const first = await upgradeModel(root, { fromVersion: "0.13.0", toVersion: "0.14.0" });
       expect(first.fills!.name).toBe("upgrade-fills-0.14.0");
+      expect(first.stagedEarlier).toBeUndefined();
 
-      // A catalog-only pass at the same version lists what is empty and stages nothing
-      const second = await upgradeModel(root, { fromVersion: "0.14.0", toVersion: "0.14.0", catalogOnly: true });
+      // The same upgrade again (a re-run after a failure further on, or with --force)
+      const second = await upgradeModel(root, { fromVersion: "0.13.0", toVersion: "0.14.0" });
       expect(second.fills).toBeUndefined();
-      expect(second.unfilled!.map((item) => item.elementId)).toEqual([
+      expect(second.stagedEarlier).toEqual([
+        {
+          changeset: "upgrade-fills-0.14.0",
+          fills: [
+            { elementId: "api.operation.create-order", attribute: "operationId" },
+            { elementId: "api.operation.create-order", attribute: "summary" },
+          ],
+        },
+      ]);
+      // What is left empty is the same list: the staged values are not on it, and not counted twice
+      expect(second.unfilled).toEqual(first.unfilled);
+      const staged = (await new StagedChangesetStorage(root).list()).map((changeset) => changeset.name);
+      expect(staged).toEqual(["upgrade-fills-0.14.0"]);
+    });
+  });
+
+  it("once the first changeset lands, a later run has nothing staged earlier and nothing to derive again", async () => {
+    await withModel(async (root) => {
+      const first = await upgradeModel(root, { fromVersion: "0.13.0", toVersion: "0.14.0" });
+      const model = await Model.load(root, { lazyLoad: false });
+      await new StagingAreaManager(root, model).commit(model, first.fills!.id!, { validate: false });
+
+      const later = await upgradeModel(root, { fromVersion: "0.13.0", toVersion: "0.14.0" });
+      expect(later.fills).toBeUndefined();
+      expect(later.stagedEarlier).toBeUndefined();
+      expect(later.unfilled).toEqual(first.unfilled);
+    });
+  });
+
+  it("derives nothing when the spec version doesn't change, or when told not to", async () => {
+    await withModel(async (root) => {
+      // A catalog-only pass at the same version lists what is empty and stages nothing
+      const sameVersion = await upgradeModel(root, { fromVersion: "0.14.0", toVersion: "0.14.0", catalogOnly: true });
+      expect(sameVersion.fills).toBeUndefined();
+      expect(sameVersion.unfilled!.map((item) => item.elementId)).toEqual([
         "api.operation.create-order",
         "api.operation.list-orders",
       ]);
 
       const optedOut = await upgradeModel(root, { fromVersion: "0.13.0", toVersion: "0.14.0", stageFills: false });
       expect(optedOut.fills).toBeUndefined();
+      expect(await new StagedChangesetStorage(root).list()).toEqual([]);
     });
   });
 
@@ -194,7 +230,12 @@ describe("upgrade fills (#1166)", () => {
         removed: [],
       });
       expect(rehearsal.result.fills).toMatchObject({ name: "upgrade-fills-0.14.0", count: 2 });
-      expect(rehearsal.otherFiles.added.some((file) => file.endsWith("/changes.yaml"))).toBe(true);
+      // The new changeset's files are named by the changeset, not by the copy's throwaway id
+      expect(rehearsal.otherFiles.added).toEqual([
+        "documentation-robotics/changesets/<new: upgrade-fills-0.14.0>/base-index.json",
+        "documentation-robotics/changesets/<new: upgrade-fills-0.14.0>/changes.yaml",
+        "documentation-robotics/changesets/<new: upgrade-fills-0.14.0>/metadata.yaml",
+      ]);
       expect(rehearsal.otherFiles.modified).toEqual([]);
 
       // The project itself is untouched: same manifest, no changesets folder

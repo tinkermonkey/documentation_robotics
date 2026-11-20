@@ -26,8 +26,8 @@ import {
   type DroppedRelationship,
   type UpgradeDropRecord,
 } from "./upgrade-drop-record.js";
-import { deriveFills, stageFills, type UpgradeFills } from "./upgrade-fills.js";
-import { unfilledRequired, validateBaseModel, type UnfilledRequired } from "./upgrade-validation.js";
+import { deriveFills, fillsStagedEarlier, stageFills, type StagedEarlier, type UpgradeFills } from "./upgrade-fills.js";
+import { unfilledRequired, validateBaseModel, withoutStaged, type UnfilledRequired } from "./upgrade-validation.js";
 import type { ValidationIssue } from "../validators/types.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
@@ -90,7 +90,12 @@ export interface ModelUpgradeResult {
    * leaves empty; absent when none could be derived. With `error` set it could not be written.
    */
   fills?: UpgradeFills;
-  /** The required attributes still empty after the derived values, per element */
+  /**
+   * Values an earlier upgrade already staged in a fills changeset that has not landed: this run
+   * stages none of them again. Absent when there are none.
+   */
+  stagedEarlier?: StagedEarlier[];
+  /** The required attributes still empty after the derived values (this run's and earlier ones'), per element */
   unfilled?: UnfilledRequired[];
 }
 
@@ -170,7 +175,7 @@ export async function upgradeModel(
 async function fillRequired(
   rootPath: string,
   options: ModelUpgradeOptions
-): Promise<Pick<ModelUpgradeResult, "validationErrors" | "validationError" | "fills" | "unfilled">> {
+): Promise<Pick<ModelUpgradeResult, "validationErrors" | "validationError" | "fills" | "stagedEarlier" | "unfilled">> {
   let upgraded: Model;
   let errors: ValidationIssue[];
   try {
@@ -179,21 +184,36 @@ async function fillRequired(
   } catch (error) {
     return { validationError: getErrorMessage(error) };
   }
-  const unfilled = unfilledRequired(errors);
+  // What an unlanded fills changeset from an earlier run already stages is neither derived again
+  // nor listed as left empty: it is waiting for review where it is.
+  let stagedEarlier: StagedEarlier[] = [];
+  try {
+    stagedEarlier = await fillsStagedEarlier(rootPath);
+  } catch {
+    // An unreadable changeset says nothing about what is staged
+  }
+  const earlier = stagedEarlier.length > 0 ? { stagedEarlier } : {};
+  const unfilled = withoutStaged(
+    unfilledRequired(errors),
+    stagedEarlier.flatMap((entry) => entry.fills)
+  );
   if (unfilled.length === 0 || options.stageFills === false || options.fromVersion === options.toVersion) {
-    return { validationErrors: errors, ...(unfilled.length > 0 ? { unfilled } : {}) };
+    return { validationErrors: errors, ...earlier, ...(unfilled.length > 0 ? { unfilled } : {}) };
   }
   const derived = deriveFills(upgraded, unfilled);
   const fills = await stageFills(rootPath, options, derived.fills);
   return {
     validationErrors: errors,
     ...(fills ? { fills } : {}),
+    ...earlier,
     // A changeset that could not be written fills nothing
     ...(fills && !fills.error
       ? derived.left.length > 0
         ? { unfilled: derived.left }
         : {}
-      : { unfilled }),
+      : unfilled.length > 0
+        ? { unfilled }
+        : {}),
   };
 }
 

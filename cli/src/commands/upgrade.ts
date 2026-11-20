@@ -506,6 +506,7 @@ async function handleUpgrade(
   if (modelResult) {
     printValidationChecklist(modelResult, options);
     printFills(modelResult.fills, options);
+    printStagedEarlier(modelResult);
   }
 
   // Drifted changesets lead the summary, where they can't be missed at the end of a long log
@@ -771,7 +772,9 @@ async function printRehearsal(projectRoot: string, action: UpgradeAction, option
   console.log(ansis.dim(`Model files it would write (${countFiles(modelFiles)}):`));
   printFileList(modelFiles, options, FULL_DRY_RUN);
   if (countFiles(otherFiles) > 0) {
-    console.log(ansis.dim(`Changesets (${DR_FOLDER}/changesets/), ${countFiles(otherFiles)} file(s):`));
+    console.log(ansis.dim(`Changeset files it would write (${countFiles(otherFiles)}):`));
+    // A new changeset's folder is shown by its name: its id is made when the run creates it
+    printFileList(otherFiles, options, FULL_DRY_RUN);
     if (result.changesets.rebaselined.length > 0) {
       console.log(
         ansis.dim(
@@ -790,6 +793,7 @@ async function printRehearsal(projectRoot: string, action: UpgradeAction, option
   }
   printValidationChecklist(result, options, true);
   printFills(result.fills, options, true);
+  printStagedEarlier(result);
   console.log();
 }
 
@@ -819,7 +823,12 @@ function printValidationChecklist(result: ModelUpgradeResult, options: UpgradeOp
     return;
   }
 
-  const derived = new Set((result.fills?.error ? [] : result.fills?.fills ?? []).map((fill) => `${fill.elementId} ${fill.attribute}`));
+  const derived = new Set(
+    [
+      ...(result.fills?.error ? [] : result.fills?.fills ?? []),
+      ...(result.stagedEarlier ?? []).flatMap((entry) => entry.fills),
+    ].map((fill) => `${fill.elementId} ${fill.attribute}`)
+  );
   const groups = errorsByElement(errors);
   console.log(
     ansis.yellow(
@@ -845,6 +854,17 @@ function printValidationChecklist(result: ModelUpgradeResult, options: UpgradeOp
     console.log(
       ansis.dim(
         `  ...and ${groups.length - shownGroups.length} more of ${groups.length} element(s); ${would ? FULL_DRY_RUN : "dr validate lists them all"}`
+      )
+    );
+  }
+}
+
+/** Values an earlier run staged that this one leaves where they are, not staged a second time */
+function printStagedEarlier(result: ModelUpgradeResult): void {
+  for (const entry of result.stagedEarlier ?? []) {
+    console.log(
+      ansis.dim(
+        `${entry.fills.length} derived value(s) are already staged in the changeset '${entry.changeset}' from an earlier upgrade, waiting for review; they are not staged again.`
       )
     );
   }

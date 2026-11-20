@@ -13,7 +13,7 @@
  */
 
 import path from "node:path";
-import { ensureDotDrIgnored, DOT_DR_IGNORE_LINE, type DotDrDecision, type DotDrTrackedChoice } from "./dot-dr-ignore.js";
+import { ensureDotDrIgnored, type DotDrDecision, type DotDrTrackedChoice } from "./dot-dr-ignore.js";
 import { ensurePrettierIgnoresDrFiles } from "./prettier-ignore.js";
 import { commitHookNotes } from "./commit-hooks.js";
 import type { UpgradeScan } from "./upgrade-plan.js";
@@ -36,8 +36,12 @@ export interface OutsideModel {
   specReference?: { folder: string; description: string };
   /** Layer reports and the README, generated when the project has none */
   reports?: { files: string[] };
-  /** `.gitignore`: the line the upgrade would add, or the decision it needs first */
-  gitignore?: { path: string; add?: string[]; decision?: DotDrDecision };
+  /**
+   * `.gitignore` and git's index: the rule lines the upgrade would write (`add`), the lines about
+   * `.dr` already there that they replace (`replace`), the files under `.dr/` it would remove from
+   * the index (`untrack`), or the decision it needs before it does any of that.
+   */
+  gitignore?: { path: string; add?: string[]; replace?: string[]; untrack?: number; decision?: DotDrDecision };
   /** `.prettierignore`: the entries the upgrade would add */
   prettierignore?: { path: string; add: string[] };
   /** What the project's commit hooks would do to a commit of the files dr writes; dr changes nothing */
@@ -86,8 +90,16 @@ export async function scanOutsideModel(
   try {
     const ignore = await ensureDotDrIgnored(projectRoot, { dryRun: true, tracked: options.dotDr });
     const file = inProject(projectRoot, ignore.path);
-    if (ignore.decision) outside.gitignore = { path: file, decision: ignore.decision };
-    else if (ignore.wouldAdd) outside.gitignore = { path: file, add: [DOT_DR_IGNORE_LINE] };
+    if (ignore.decision) {
+      outside.gitignore = { path: file, decision: ignore.decision };
+    } else if (ignore.wouldWrite || ignore.wouldUntrack) {
+      outside.gitignore = {
+        path: file,
+        ...(ignore.wouldWrite ? { add: ignore.wouldWrite } : {}),
+        ...(ignore.replaced?.length ? { replace: ignore.replaced } : {}),
+        ...(ignore.wouldUntrack ? { untrack: ignore.wouldUntrack } : {}),
+      };
+    }
   } catch (error) {
     outside.errors.push(`Could not check .gitignore: ${getErrorMessage(error)}`);
   }
@@ -189,7 +201,18 @@ export function outsideModelLines(
   const ignoreFiles: string[] = [];
   if (outside.gitignore?.add) {
     ignoreFiles.push(`${"add".padEnd(9)} ${outside.gitignore.add.join(", ")} to ${outside.gitignore.path}`);
-  } else if (outside.gitignore?.decision) {
+  }
+  if (outside.gitignore?.replace) {
+    ignoreFiles.push(
+      `${"remove".padEnd(9)} ${outside.gitignore.replace.length} line(s) about .dr that ${outside.gitignore.path} already has: ${outside.gitignore.replace.join(" | ")}`
+    );
+  }
+  if (outside.gitignore?.untrack) {
+    ignoreFiles.push(
+      `${"untrack".padEnd(9)} ${outside.gitignore.untrack} file(s) under .dr/ from git's index (git rm -r --cached .dr: staged removals, the files stay on disk)`
+    );
+  }
+  if (outside.gitignore?.decision) {
     ignoreFiles.push(
       `${"decide".padEnd(9)} ${outside.gitignore.path}: git tracks ${outside.gitignore.decision.wouldIgnoreTracked} file(s) under .dr/ (--dot-dr untrack, keep-tracked or skip)`
     );
@@ -197,7 +220,7 @@ export function outsideModelLines(
   if (outside.prettierignore) {
     ignoreFiles.push(`${"add".padEnd(9)} ${outside.prettierignore.add.join(" and ")} to ${outside.prettierignore.path}`);
   }
-  group("Ignore files", ignoreFiles);
+  group("Ignore files and git's index", ignoreFiles);
 
   return lines;
 }

@@ -442,6 +442,18 @@ function fillsReport(fills: UpgradeFills | undefined, written: boolean) {
   };
 }
 
+/** Values an earlier upgrade staged in a fills changeset that has not landed: not staged a second time. */
+function stagedEarlierReport(result: Pick<ModelUpgradeResult, "stagedEarlier"> | undefined) {
+  const earlier = result?.stagedEarlier ?? [];
+  if (earlier.length === 0) return {};
+  return {
+    alreadyStaged: {
+      note: "Derived values an earlier upgrade staged in these changesets, which have not landed. They are waiting for the user's review there and are not staged again.",
+      changesets: earlier.map((entry) => ({ changeset: entry.changeset, values: entry.fills.length })),
+    },
+  };
+}
+
 /** The required attributes no derivation covers, per element. */
 function unfilledReport(unfilled: UnfilledRequired[] | undefined) {
   if (!unfilled || unfilled.length === 0) return {};
@@ -490,6 +502,7 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
           : { validationError: `The upgraded copy could not be validated: ${result.validationError}` }),
       },
       ...fillsReport(result.fills, false),
+      ...stagedEarlierReport(result),
       ...unfilledReport(result.unfilled ?? (errors && !result.fills ? unfilledRequired(errors) : undefined)),
     };
   } catch (error) {
@@ -839,7 +852,16 @@ async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
   const groups = {
     ...(outside.specReference ? { specReference: outside.specReference.description } : {}),
     ...(outside.reports ? { reports: { generate: outside.reports.files, note: "No layer reports yet; applying generates them." } } : {}),
-    ...(outside.gitignore?.add ? { gitignore: { path: outside.gitignore.path, add: outside.gitignore.add } } : {}),
+    ...(outside.gitignore && !outside.gitignore.decision
+      ? {
+          gitignore: {
+            path: outside.gitignore.path,
+            ...(outside.gitignore.add ? { add: outside.gitignore.add } : {}),
+            ...(outside.gitignore.replace ? { replace: outside.gitignore.replace } : {}),
+            ...(outside.gitignore.untrack ? { untrack: outside.gitignore.untrack } : {}),
+          },
+        }
+      : {}),
     ...(outside.prettierignore ? { prettierignore: { path: outside.prettierignore.path, add: outside.prettierignore.add } } : {}),
   };
   return {
@@ -1082,6 +1104,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
       ...(cannotMigrate.length > 0 ? { dropped: cannotMigrate } : {}),
       ...dropRecordReport(dropRecord, true),
       ...fillsReport(modelResult?.fills, true),
+      ...stagedEarlierReport(modelResult),
       ...(changesets ? { changesets: changesetSummary(changesets) } : {}),
     };
     const warnings = [...checkErrors];
@@ -1115,7 +1138,15 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         }
       }
       const model = await reloadModel(args.rootPath);
-      const validation = await validationSummary(model, undefined, modelResult?.fills, { full: args.detail === "full" });
+      const validation = await validationSummary(
+        model,
+        undefined,
+        [
+          ...(modelResult?.fills ? [modelResult.fills] : []),
+          ...(modelResult?.stagedEarlier ?? []).map((entry) => ({ name: entry.changeset, fills: entry.fills })),
+        ],
+        { full: args.detail === "full" }
+      );
       const decisionOpen = Boolean((gitignore.gitignore as { options?: unknown } | undefined)?.options);
       return jsonResult(
         {

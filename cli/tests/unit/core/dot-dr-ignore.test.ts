@@ -97,7 +97,34 @@ describe("ensureDotDrIgnored", () => {
     expect(text).toBe(
       `node_modules/\n# Documentation Robotics: per-checkout spec reference and analyzer state (recreated by the CLI)\n${DOT_DR_IGNORE_LINE}\n.dr-version\ndist/\n`
     );
-    expect(dotDrIgnoreNotes(result).join(" ")).toContain("Replaced 2 .dr line(s)");
+    expect(dotDrIgnoreNotes(result).join(" ")).toContain("Removed 2 line(s) about .dr that .gitignore already had");
+
+    // A dry run names the same lines, and writes nothing
+    await writeFile(
+      path.join(dir, ".gitignore"),
+      "node_modules/\n# the spec pin (.dr/spec, .dr/manifest.json) stays tracked\n.dr/analyzers/\n",
+      "utf-8"
+    );
+    const dry = await ensureDotDrIgnored(dir, { dryRun: true });
+    expect(dry).toMatchObject({
+      added: false,
+      wouldAdd: true,
+      wouldWrite: [DOT_DR_IGNORE_LINE],
+      replaced: ["# the spec pin (.dr/spec, .dr/manifest.json) stays tracked", ".dr/analyzers/"],
+    });
+    expect(await readFile(path.join(dir, ".gitignore"), "utf-8")).toContain(".dr/analyzers/");
+  });
+
+  it.serial("leaves a comment about something else alone: a *.dr extension, .dr-version, .drawio", async () => {
+    gitInit(dir);
+    const own = "# old *.dr exports live in exports/\n# .dr-version is ours\n# diagrams: .drawio files\nexports/\n";
+    await writeFile(path.join(dir, ".gitignore"), own, "utf-8");
+    const result = await ensureDotDrIgnored(dir);
+    expect(result).toMatchObject({ added: true, ignored: true });
+    expect(result.replaced).toBeUndefined();
+    const text = await readFile(path.join(dir, ".gitignore"), "utf-8");
+    expect(text.startsWith(own)).toBe(true);
+    expect(text.endsWith(`${DOT_DR_IGNORE_LINE}\n`)).toBe(true);
   });
 
   describe("when git tracks files under .dr/ (#1185)", () => {
@@ -121,6 +148,16 @@ describe("ensureDotDrIgnored", () => {
         alreadyIgnored: false,
       });
       expect(result.decision!.options.map((option) => option.choice)).toEqual(["untrack", "keep-tracked", "skip"]);
+      // Each option says exactly what it would change
+      const [untrack, keep, skip] = result.decision!.options;
+      expect(untrack).toMatchObject({ writes: ["/.dr/"], untracks: 3 });
+      expect(untrack.replaces).toBeUndefined();
+      expect(keep).toMatchObject({ writes: ["/.dr/*", "!/.dr/manifest.json", "!/.dr/spec/"] });
+      expect(keep.untracks).toBeUndefined();
+      expect(skip.writes).toBeUndefined();
+      const lines = dotDrDecisionLines(result.decision!).join("\n");
+      expect(lines).toContain("writes to .gitignore: /.dr/*  !/.dr/manifest.json  !/.dr/spec/");
+      expect(lines).toContain("removes from git's index: 3 file(s) under .dr/");
       await expect(readFile(path.join(dir, ".gitignore"), "utf-8")).rejects.toThrow();
       expect(git(dir, "ls-files", "--", ".dr").trim().split("\n")).toHaveLength(3);
       expect(dotDrDecisionLines(result.decision!)[0]).toContain("git tracks 3 file(s) under .dr/");
@@ -215,10 +252,66 @@ describe("ensureDotDrIgnored", () => {
       expect(full[1]).not.toContain("more of");
     });
 
+    it.serial("untrack removes a comment that says the files stay tracked, even when .dr/ is already ignored (#1185 follow-up)", async () => {
+      await trackDotDr();
+      const before = "node_modules/\n# The spec pin (.dr/spec, .dr/manifest.json) stays tracked\n/.dr/\n";
+      await writeFile(path.join(dir, ".gitignore"), before, "utf-8");
+
+      // The decision and the dry run both name the line that goes
+      const { decision } = await ensureDotDrIgnored(dir);
+      expect(decision!.alreadyIgnored).toBe(true);
+      expect(decision!.options[0]).toMatchObject({
+        choice: "untrack",
+        writes: ["/.dr/"],
+        replaces: ["# The spec pin (.dr/spec, .dr/manifest.json) stays tracked"],
+        untracks: 3,
+      });
+      const dry = await ensureDotDrIgnored(dir, { tracked: "untrack", dryRun: true });
+      expect(dry).toMatchObject({
+        wouldWrite: ["/.dr/"],
+        wouldUntrack: 3,
+        replaced: ["# The spec pin (.dr/spec, .dr/manifest.json) stays tracked"],
+      });
+      expect(await readFile(path.join(dir, ".gitignore"), "utf-8")).toBe(before);
+
+      const result = await ensureDotDrIgnored(dir, { tracked: "untrack" });
+      expect(result).toMatchObject({ applied: "untrack", untracked: 3, trackedFiles: 0, ignored: true });
+      expect(result.replaced).toEqual(["# The spec pin (.dr/spec, .dr/manifest.json) stays tracked"]);
+      const text = await readFile(path.join(dir, ".gitignore"), "utf-8");
+      expect(text).not.toContain("stays tracked");
+      expect(text).toBe(
+        `node_modules/\n# Documentation Robotics: per-checkout spec reference and analyzer state (recreated by the CLI)\n${DOT_DR_IGNORE_LINE}\n`
+      );
+      expect(dotDrIgnoreNotes(result).join(" ")).toContain("Removed 1 line(s) about .dr that .gitignore already had");
+    });
+
+    it.serial("a dry run of keep-tracked names the lines it would write and the ones they replace", async () => {
+      await trackDotDr();
+      await writeFile(path.join(dir, ".gitignore"), "# keep the spec\n.dr/analyzers/\n.dr/active-changeset\n", "utf-8");
+      const dry = await ensureDotDrIgnored(dir, { tracked: "keep-tracked", dryRun: true });
+      expect(dry).toMatchObject({
+        applied: "keep-tracked",
+        wouldWrite: ["/.dr/*", "!/.dr/manifest.json", "!/.dr/spec/"],
+        replaced: [".dr/analyzers/", ".dr/active-changeset"],
+      });
+      expect(dry.wouldUntrack).toBeUndefined();
+      // "# keep the spec" names no .dr path, so it is not dr's to remove
+      const applied = await ensureDotDrIgnored(dir, { tracked: "keep-tracked" });
+      expect(applied.replaced).toEqual([".dr/analyzers/", ".dr/active-changeset"]);
+      expect(await readFile(path.join(dir, ".gitignore"), "utf-8")).toContain("# keep the spec\n");
+    });
+
     it.serial("a dry run reports the choice and writes nothing", async () => {
       await trackDotDr();
       const result = await ensureDotDrIgnored(dir, { tracked: "untrack", dryRun: true });
-      expect(result).toMatchObject({ added: false, wouldAdd: true, applied: "untrack", trackedFiles: 3 });
+      expect(result).toMatchObject({
+        added: false,
+        wouldAdd: true,
+        wouldWrite: ["/.dr/"],
+        wouldUntrack: 3,
+        applied: "untrack",
+        trackedFiles: 3,
+      });
       await expect(readFile(path.join(dir, ".gitignore"), "utf-8")).rejects.toThrow();
       expect(git(dir, "ls-files", "--", ".dr").trim().split("\n")).toHaveLength(3);
     });

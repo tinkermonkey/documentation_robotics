@@ -80,8 +80,26 @@ export interface UpgradeRehearsal {
   result: ModelUpgradeResult;
   /** The files it wrote under `documentation-robotics/model/`, relative to the project root */
   modelFiles: FilesChanged;
-  /** The files it wrote under `documentation-robotics/` outside the model (changesets), likewise */
+  /**
+   * The files it wrote under `documentation-robotics/` outside the model (changesets), likewise.
+   * A changeset the upgrade creates gets its id when it is created, so the copy's id is not the
+   * one the real run will use: those paths carry the changeset's name in its place, as
+   * `documentation-robotics/changesets/<new: upgrade-fills-0.14.0>/changes.yaml`.
+   */
   otherFiles: FilesChanged;
+}
+
+/** Replace the ids of the changesets the rehearsal created with their names: the ids won't recur */
+function nameNewChangesets(files: FilesChanged, result: ModelUpgradeResult): FilesChanged {
+  const created = [result.fills, result.dropRecord].filter(
+    (changeset): changeset is NonNullable<typeof changeset> & { id: string } => typeof changeset?.id === "string"
+  );
+  const named = (file: string) =>
+    created.reduce(
+      (path, changeset) => path.replace(`/changesets/${changeset.id}/`, `/changesets/<new: ${changeset.name}>/`),
+      file
+    );
+  return { modified: files.modified.map(named), added: files.added.map(named).sort(), removed: files.removed.map(named) };
 }
 
 /**
@@ -102,7 +120,7 @@ export async function rehearseModelUpgrade(
     return {
       result,
       modelFiles: filesUnder(changed, modelPrefix),
-      otherFiles: filesOutside(changed, modelPrefix),
+      otherFiles: nameNewChangesets(filesOutside(changed, modelPrefix), result),
     };
   } finally {
     await rm(copy, { recursive: true, force: true });
