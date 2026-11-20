@@ -10,15 +10,66 @@
  * - Automatic cache lifecycle management
  * - Optional warm-up for eager element loading
  * - Support for custom golden copy configurations
+ *
+ * On disk (the cache directory is shared by every test process on the machine, whatever
+ * checkout it runs from):
+ *
+ *   <cacheDir>/<key>/golden-model/   the model that clones are copied from
+ *   <cacheDir>/<key>/files.json      the files the model was built with
+ *
+ * - <key> names what the model depends on (CLI version, bundled spec version, model options,
+ *   warm-up), so checkouts on different versions never load each other's model.
+ * - An entry is built under a temporary name and renamed into place, so a run that is killed
+ *   while building leaves nothing at <key>, and two runs building at once both end up on
+ *   whichever finished first.
+ * - An entry whose files are gone is rebuilt. That happens without any run failing: the
+ *   operating system's temp cleaner removes old files and keeps their folders.
  */
 
 import { Model } from "./model.js";
 import { Layer } from "./layer.js";
 import { Element } from "./element.js";
-import { mkdir, cp, rm, access } from "fs/promises";
-import { join } from "path";
+import { mkdir, cp, rm, access, rename, readdir, readFile, writeFile, stat } from "fs/promises";
+import { createHash, randomUUID } from "crypto";
+import { dirname, join, relative } from "path";
 import { tmpdir } from "os";
 import { getErrorMessage } from "../utils/errors.js";
+import { getCliVersion, getCliBundledSpecVersion } from "../utils/spec-version.js";
+
+/** Folder inside a cache entry that holds the model. */
+const GOLDEN_MODEL_DIR = "golden-model";
+
+/** File inside a cache entry that lists the model's files, relative to the model folder. */
+const FILE_LIST = "files.json";
+
+/** Bumped when the layout of a cache entry changes, so old entries are not read as new ones. */
+const CACHE_LAYOUT = 1;
+
+/** Infix of the temporary folders an entry is built in or moved aside to. */
+const TEMP_INFIX = ".tmp-";
+
+/** A temporary folder older than this belongs to a run that was killed, and is removed. */
+const STALE_TEMP_MS = 60 * 60 * 1000;
+
+/** What looking at a cache entry on disk found. */
+type CacheEntryState =
+  | { status: "usable"; model: Model }
+  | { status: "absent" }
+  | { status: "incomplete"; reason: string };
+
+/** Every file under `dir`, as sorted paths relative to it. */
+async function listFiles(dir: string, base: string = dir): Promise<string[]> {
+  const files: string[] = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listFiles(full, base)));
+    } else {
+      files.push(relative(base, full));
+    }
+  }
+  return files.sort();
+}
 
 /**
  * Configuration for the golden copy cache
@@ -205,67 +256,239 @@ export class GoldenCopyCacheManager {
       // Create cache directory
       await mkdir(this.config.cacheDir, { recursive: true });
 
-      // Check if golden copy already exists on disk
-      const goldenPath = join(this.config.cacheDir, "golden-model");
-      let modelExists = false;
+      const entryDir = join(this.config.cacheDir, this.cacheKey());
+      const existing = await this.readEntry(entryDir);
 
-      try {
-        await access(goldenPath);
-        modelExists = true;
-      } catch {
-        // Directory doesn't exist, will create new
-      }
-
-      if (!modelExists) {
-        // Create new golden model
-        const created = await Model.init(
-          goldenPath,
-          {
-            name: this.config.modelOptions.name || "Golden Copy Test Model",
-            version: this.config.modelOptions.version || "0.1.0",
-            specVersion: this.config.modelOptions.specVersion || "0.7.1",
-            description:
-              this.config.modelOptions.description || "Shared golden copy for test initialization",
-            author: this.config.modelOptions.author || "Test Suite",
-            created: new Date().toISOString(),
-          },
-          { lazyLoad: !this.config.eagerLoad }
-        );
-
-        this.goldenModel = created;
-        this.goldenRootPath = goldenPath;
-
-        // Optional warm-up: populate with sample data
-        if (this.config.warmup) {
-          await this.populateGoldenCopy();
-          await created.save();
-        }
+      let model: Model;
+      if (existing.status === "usable") {
+        model = existing.model;
       } else {
-        // Load existing golden model
-        this.goldenModel = await Model.load(goldenPath, { lazyLoad: !this.config.eagerLoad });
-        this.goldenRootPath = goldenPath;
+        if (existing.status === "incomplete") {
+          // The one line a rebuild prints. A first build prints nothing.
+          console.warn(
+            `[GoldenCopy] Rebuilding the golden copy cache at ${entryDir}: ${existing.reason}.`
+          );
+        }
+        model = await this.buildEntry(entryDir);
       }
+
+      this.goldenModel = model;
+      this.goldenRootPath = join(entryDir, GOLDEN_MODEL_DIR);
 
       this.stats.initCount++;
       this.stats.totalInitTime += Date.now() - startTime;
       this.stats.avgInitTime = this.stats.totalInitTime / this.stats.initCount;
 
       // Mark as initialized
-      if (this.goldenModel && this.goldenRootPath) {
-        this.lifecycleState = {
-          status: "initialized",
-          model: this.goldenModel,
-          rootPath: this.goldenRootPath,
-        };
-      }
+      this.lifecycleState = {
+        status: "initialized",
+        model: this.goldenModel,
+        rootPath: this.goldenRootPath,
+      };
 
       if (process.env.DEBUG_GOLDEN_COPY) {
         console.log(`[GoldenCopy] Initialized in ${Date.now() - startTime}ms`);
       }
     } catch (error) {
-      throw new Error(
-        `Failed to initialize golden copy cache: ${getErrorMessage(error)}`
+      throw new Error(`Failed to initialize golden copy cache: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Name of this configuration's entry in the cache directory.
+   *
+   * It covers everything the model on disk depends on, so a process only ever loads a model
+   * built the way it would build one itself. `eagerLoad` is left out: it changes how the model
+   * is read, not what is written.
+   * @private
+   */
+  private cacheKey(): string {
+    const cliVersion = getCliVersion();
+    const specVersion = getCliBundledSpecVersion();
+    const hash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          layout: CACHE_LAYOUT,
+          cliVersion,
+          specVersion,
+          modelOptions: this.config.modelOptions,
+          warmup: this.config.warmup,
+        })
+      )
+      .digest("hex")
+      .slice(0, 12);
+    return `cli${cliVersion}-spec${specVersion}-${hash}`;
+  }
+
+  /**
+   * Look at a cache entry: usable (and loaded), absent, or incomplete with the reason.
+   *
+   * An entry is complete when every file it was built with is still there and the model loads.
+   * @private
+   */
+  private async readEntry(entryDir: string): Promise<CacheEntryState> {
+    try {
+      await access(entryDir);
+    } catch {
+      return { status: "absent" };
+    }
+
+    const goldenPath = join(entryDir, GOLDEN_MODEL_DIR);
+
+    let files: unknown;
+    try {
+      files = (
+        JSON.parse(await readFile(join(entryDir, FILE_LIST), "utf-8")) as {
+          files?: unknown;
+        }
+      ).files;
+    } catch (error) {
+      const missing = (error as NodeJS.ErrnoException).code === "ENOENT";
+      return {
+        status: "incomplete",
+        reason: missing
+          ? `${FILE_LIST} is missing`
+          : `${FILE_LIST} cannot be read (${getErrorMessage(error)})`,
+      };
+    }
+    if (!Array.isArray(files) || files.some((file) => typeof file !== "string")) {
+      return {
+        status: "incomplete",
+        reason: `${FILE_LIST} is not a list of files`,
+      };
+    }
+
+    const gone: string[] = [];
+    for (const file of files as string[]) {
+      try {
+        await access(join(goldenPath, file));
+      } catch {
+        gone.push(file);
+      }
+    }
+    if (gone.length > 0) {
+      return {
+        status: "incomplete",
+        reason: `${gone.length} of its ${files.length} files are missing (${gone[0]}${gone.length > 1 ? ", ..." : ""})`,
+      };
+    }
+
+    try {
+      // A warmed-up model is read with its layers, as it was when the process that built it kept
+      // the model it had just populated. The model is the same whoever built the entry.
+      const model = await Model.load(goldenPath, {
+        lazyLoad: !(this.config.eagerLoad || this.config.warmup),
+      });
+      return { status: "usable", model };
+    } catch (error) {
+      return {
+        status: "incomplete",
+        reason: `its model does not load (${getErrorMessage(error)})`,
+      };
+    }
+  }
+
+  /**
+   * Build a cache entry under a temporary name and rename it into place.
+   *
+   * The rename is the only step that touches `entryDir`, so a run killed at any earlier point
+   * leaves `entryDir` as it was. When something is already there, it is either another run's
+   * finished entry (use it and drop ours) or an incomplete one (move it aside and try again).
+   * @private
+   */
+  private async buildEntry(entryDir: string): Promise<Model> {
+    await this.removeStaleTempFolders();
+
+    const staging = `${entryDir}${TEMP_INFIX}build-${process.pid}-${randomUUID().slice(0, 8)}`;
+
+    try {
+      const stagedRoot = join(staging, GOLDEN_MODEL_DIR);
+      const staged = await Model.init(
+        stagedRoot,
+        {
+          name: this.config.modelOptions.name || "Golden Copy Test Model",
+          version: this.config.modelOptions.version || "0.1.0",
+          specVersion: this.config.modelOptions.specVersion || "0.7.1",
+          description:
+            this.config.modelOptions.description || "Shared golden copy for test initialization",
+          author: this.config.modelOptions.author || "Test Suite",
+          created: new Date().toISOString(),
+        },
+        { lazyLoad: !this.config.eagerLoad }
       );
+
+      // Optional warm-up: populate with sample data
+      if (this.config.warmup) {
+        await this.populateGoldenCopy(staged);
+        await staged.save();
+      }
+
+      await writeFile(
+        join(staging, FILE_LIST),
+        JSON.stringify({ files: await listFiles(stagedRoot) }, null, 2)
+      );
+
+      let renameError: unknown;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await rename(staging, entryDir);
+          renameError = undefined;
+          break;
+        } catch (error) {
+          renameError = error;
+        }
+
+        const current = await this.readEntry(entryDir);
+        if (current.status === "usable") {
+          // Another run finished first. Its entry is as good as ours.
+          return current.model;
+        }
+        if (current.status === "incomplete") {
+          const aside = `${entryDir}${TEMP_INFIX}incomplete-${process.pid}-${randomUUID().slice(0, 8)}`;
+          try {
+            await rename(entryDir, aside);
+            await rm(aside, { recursive: true, force: true });
+          } catch {
+            // Another run moved it first. The next attempt finds out what is there now.
+          }
+        }
+      }
+
+      const installed = await this.readEntry(entryDir);
+      if (installed.status === "usable") {
+        return installed.model;
+      }
+      throw new Error(
+        `could not put a golden copy at ${entryDir} (` +
+          (installed.status === "incomplete" ? installed.reason : "nothing is there") +
+          (renameError ? `; last rename error: ${getErrorMessage(renameError)}` : "") +
+          `)`
+      );
+    } finally {
+      // Gone already when the rename worked.
+      await rm(staging, { recursive: true, force: true });
+    }
+  }
+
+  /**
+   * Remove temporary folders that killed runs left in the cache directory. Best effort.
+   * @private
+   */
+  private async removeStaleTempFolders(): Promise<void> {
+    try {
+      for (const name of await readdir(this.config.cacheDir)) {
+        if (!name.includes(TEMP_INFIX)) continue;
+        const path = join(this.config.cacheDir, name);
+        try {
+          if (Date.now() - (await stat(path)).mtimeMs > STALE_TEMP_MS) {
+            await rm(path, { recursive: true, force: true });
+          }
+        } catch {
+          // Removed by another run in the meantime.
+        }
+      }
+    } catch {
+      // Not worth failing a build over.
     }
   }
 
@@ -412,16 +635,12 @@ export class GoldenCopyCacheManager {
   /**
    * Populate the golden copy with standard test data
    *
-   * This is called during warmup to pre-populate the golden model with
+   * This is called during warmup to pre-populate the model being built with
    * a canonical set of test elements across layers.
    *
    * @private
    */
-  private async populateGoldenCopy(): Promise<void> {
-    if (!this.goldenModel) {
-      throw new Error("Golden model not initialized");
-    }
-
+  private async populateGoldenCopy(model: Model): Promise<void> {
     const addElement = async (
       layerName: string,
       type: string,
@@ -429,10 +648,10 @@ export class GoldenCopyCacheManager {
       name: string,
       attributes?: Record<string, unknown>
     ) => {
-      let layer = await this.goldenModel!.getLayer(layerName);
+      let layer = await model.getLayer(layerName);
       if (!layer) {
         layer = new Layer(layerName);
-        this.goldenModel!.addLayer(layer);
+        model.addLayer(layer);
       }
 
       const element = new Element({
@@ -540,7 +759,10 @@ export class GoldenCopyCacheManager {
    * Clean up the golden copy cache
    *
    * Removes the cached golden model and resets the cache manager.
-   * Should be called at the end of test suite execution.
+   *
+   * For a cache directory of your own. The default cache directory is shared by every test
+   * process on the machine, and one of them removing the entry would pull it out from under the
+   * others: leave it in place there (it is small, and it is rebuilt when it goes missing).
    *
    * Idempotent: Safe to call multiple times without error.
    */
@@ -555,7 +777,11 @@ export class GoldenCopyCacheManager {
 
     try {
       if (this.goldenRootPath) {
-        await rm(this.goldenRootPath, { recursive: true, force: true });
+        // The whole entry: the model and its file list.
+        await rm(dirname(this.goldenRootPath), {
+          recursive: true,
+          force: true,
+        });
       }
       this.goldenModel = null;
       this.goldenRootPath = null;
