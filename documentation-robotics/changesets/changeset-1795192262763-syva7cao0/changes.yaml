@@ -85,11 +85,13 @@
     type: applicationservice
     layer_id: application
     name: stopViewersCommand
-    description: "dr visualize --stop [project] [--all] [--port n]: stops the
-      viewers of the current or named project, of one port, or all of them, and
-      waits for each to exit. It says how many viewers were running, how many
-      matched and how many it stopped, names each one it could not stop with its
-      pid and why, and exits 1 when any is still running."
+    description: "dr visualize --stop [project] [--all] [--port n]
+      [--include-unrecorded]: stops the viewers this registry records for the
+      current or named project, one port, or all; viewers found only in the
+      process table are named and left unless --include-unrecorded is given.
+      Only pids confirmed to be the viewer's are signalled. It says how many
+      were running, matched and stopped, names each one not stopped with its pid
+      and why, and exits 1 when a matching viewer is still running."
     attributes:
       serviceType: synchronous
     metadata:
@@ -101,7 +103,7 @@
       locations:
         - file: cli/src/commands/visualize-viewers.ts
           symbol: stopViewersCommand
-  timestamp: 2026-11-20T17:12:05.093Z
+  timestamp: 2026-11-20T18:16:34.393Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.sweep-viewer-registry
@@ -485,8 +487,11 @@
     type: objectschema
     layer_id: data-model
     name: ViewerHealth
-    description: "What a viewer's health check says: status and the cliVersion of
-      the CLI serving it (absent before 0.6.0)."
+    description: "What a viewer's health check says: status, the cliVersion of the
+      CLI serving it (absent before 0.6.0), and since 0.7.0 its viewerId, its
+      pid, its launcher's pid and the browser tabs connected. The id and pids
+      let a caller confirm the viewer answering is the one a record names; the
+      tab count decides whether review_open may replace an older viewer."
     attributes:
       type: object
     metadata:
@@ -498,7 +503,7 @@
       locations:
         - file: cli/src/server/viewer-registry.ts
           symbol: ViewerHealth
-  timestamp: 2026-11-20T17:01:02.404Z
+  timestamp: 2026-11-20T18:16:35.012Z
   sequenceNumber: 29
 - type: relationship-add
   elementId: application.applicationservice.list-viewers-command::accesses::data-model.objectschema.running-viewer
@@ -1068,3 +1073,191 @@
     category: structural
   timestamp: 2026-11-20T17:12:03.073Z
   sequenceNumber: 78
+- type: add
+  elementId: application.applicationfunction.confirm-recorded-viewer
+  layerName: application
+  after:
+    id: f6e27bad-3294-4af9-a328-0b6713edf935
+    path: application.applicationfunction.confirm-recorded-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: confirmRecordedViewer
+    description: "Decides whether a recorded viewer's pid may be signalled:
+      confirmed by the viewer itself (its /health names the record's viewerId,
+      its pid and its launcher's, which must be the recorded pid) or by the
+      process table (the pid started no later than the record was written, runs
+      `visualize`, and has a server child whose script is the dr CLI's).
+      Otherwise the record is stale (the pid is gone or reused) or unconfirmed,
+      with the reason; nothing unconfirmed is ever signalled."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: confirmRecordedViewer
+    metadata:
+      created_at: 2026-11-20T18:16:33.742Z
+      updated_at: 2026-11-20T18:16:33.742Z
+      version: 1
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 81
+- type: add
+  elementId: application.applicationfunction.is-dr-server-script
+  layerName: application
+  after:
+    id: e15d0302-727e-4364-923c-6f29e1f58ad9
+    path: application.applicationfunction.is-dr-server-script
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: isDrServerScript
+    description: "Whether a process's dist/server-entry.js is the dr CLI's: the
+      package.json beside its dist/ names @documentation-robotics/cli. Another
+      package's server is never taken for a viewer; one whose package cannot be
+      read is a candidate, reported and never signalled."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-processes.ts
+          symbol: isDrServerScript
+    metadata:
+      created_at: 2026-11-20T18:16:33.742Z
+      updated_at: 2026-11-20T18:16:33.742Z
+      version: 1
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 82
+- type: add
+  elementId: application.applicationfunction.survey-caveats
+  layerName: application
+  after:
+    id: db697f2e-05b8-48f1-9c66-6f26a1715747
+    path: application.applicationfunction.survey-caveats
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: surveyCaveats
+    description: "What a viewer survey leaves out, as sentences --list and --stop
+      always show: no process scan (unavailable or turned off by
+      DR_VIEWER_PROCESS_SCAN), unconfirmed server candidates, other users'
+      viewers, registry records this CLI could not read."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: surveyCaveats
+    metadata:
+      created_at: 2026-11-20T18:16:33.742Z
+      updated_at: 2026-11-20T18:16:33.742Z
+      version: 1
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.stop-viewer::depends-on::application.applicationfunction.confirm-recorded-viewer
+  layerName: application
+  after:
+    source: application.applicationfunction.stop-viewer
+    target: application.applicationfunction.confirm-recorded-viewer
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: application.applicationfunction.survey-viewers::depends-on::application.applicationfunction.confirm-recorded-viewer
+  layerName: application
+  after:
+    source: application.applicationfunction.survey-viewers
+    target: application.applicationfunction.confirm-recorded-viewer
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: application.applicationfunction.confirm-recorded-viewer::depends-on::application.applicationfunction.viewer-health
+  layerName: application
+  after:
+    source: application.applicationfunction.confirm-recorded-viewer
+    target: application.applicationfunction.viewer-health
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 86
+- type: relationship-add
+  elementId: application.applicationfunction.find-viewer-processes::depends-on::application.applicationfunction.is-dr-server-script
+  layerName: application
+  after:
+    source: application.applicationfunction.find-viewer-processes
+    target: application.applicationfunction.is-dr-server-script
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 87
+- type: relationship-add
+  elementId: application.applicationservice.list-viewers-command::serves::application.applicationfunction.survey-caveats
+  layerName: application
+  after:
+    source: application.applicationservice.list-viewers-command
+    target: application.applicationfunction.survey-caveats
+    predicate: serves
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 88
+- type: relationship-add
+  elementId: application.applicationservice.stop-viewers-command::serves::application.applicationfunction.survey-caveats
+  layerName: application
+  after:
+    source: application.applicationservice.stop-viewers-command
+    target: application.applicationfunction.survey-caveats
+    predicate: serves
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T18:16:33.773Z
+  sequenceNumber: 89
+- type: update
+  elementId: application.applicationservice.create-review-open-handler
+  layerName: application
+  before:
+    id: 13e671fd-e909-468b-b2fd-dd5544d4f470
+    path: application.applicationservice.create-review-open-handler
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: createReviewOpenHandler
+    description: "Builds the review_open handler. It compares the running viewer's
+      cliVersion with its own: an older viewer that review_open started is
+      replaced on the same port with the same token; any other older viewer is
+      reused with a notice, and restart: true replaces it."
+    attributes: &a14
+      serviceType: synchronous
+    source_reference: &a15
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/review-open.ts
+          symbol: createReviewOpenHandler
+    metadata: &a16
+      created_at: 2026-11-20T15:05:59.975Z
+      updated_at: 2026-11-20T15:05:59.975Z
+      version: 1
+  after:
+    id: 13e671fd-e909-468b-b2fd-dd5544d4f470
+    path: application.applicationservice.create-review-open-handler
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: createReviewOpenHandler
+    description: "Builds the review_open handler. It compares the running viewer's
+      cliVersion with its own: an older viewer is replaced without asking only
+      when review_open started it and it reports no browser tab connected, on
+      the same port with the same token. Any other older viewer is reused with a
+      notice; restart: true replaces it. A viewer whose pid cannot be confirmed
+      is never signalled, and no second viewer is started beside one that
+      answers."
+    attributes: *a14
+    source_reference: *a15
+    metadata: *a16
+  timestamp: 2026-11-20T18:16:35.632Z
+  sequenceNumber: 92
