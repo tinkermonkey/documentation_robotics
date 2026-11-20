@@ -12,17 +12,17 @@ description: "Viewers that review_open starts no longer pile up or get lost
   gone. Done: with two viewers for one project and a third that died uncleanly,
   --list shows both live ones and review_open reuses one."
 created: 2026-11-20T16:31:02.777Z
-modified: 2026-11-20T17:01:19.240Z
+modified: 2026-11-20T17:12:05.121Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 39
+  additions: 52
   modifications: 6
   deletions: 0
-lastSequence: 65
+lastSequence: 80
 unstaged:
   - sequence: 6
     removedAt: 47
@@ -408,4 +408,62 @@ unstaged:
           updated_at: 2026-11-20T16:31:40.294Z
           version: 1
       timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 79
+    change:
+      type: add
+      elementId: application.applicationservice.list-viewers-command
+      layerName: application
+      after:
+        id: 3527cc7b-7000-431d-acad-336973cc5a98
+        path: application.applicationservice.list-viewers-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: listViewersCommand
+        description: "dr visualize --list: prints each running viewer with its project,
+          port, pid, CLI version and start time, from the registry and a process
+          scan (--json for a machine-readable list)."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-20T16:31:40.308Z
+          updated_at: 2026-11-20T16:31:40.308Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/visualize-viewers.ts
+              symbol: listViewersCommand
+      timestamp: 2026-11-20T17:01:02.404Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 80
+    change:
+      type: add
+      elementId: application.applicationservice.stop-viewers-command
+      layerName: application
+      after:
+        id: 6bae33d5-f374-48c2-ac66-c69e0f586e1c
+        path: application.applicationservice.stop-viewers-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: stopViewersCommand
+        description: "dr visualize --stop [project] [--all] [--port n]: stops the
+          viewers of the current or named project, of one port, or all of them,
+          and waits for each to exit."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-20T16:31:40.309Z
+          updated_at: 2026-11-20T16:31:40.309Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/visualize-viewers.ts
+              symbol: stopViewersCommand
+      timestamp: 2026-11-20T17:01:02.404Z
     rewritten: true

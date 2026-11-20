@@ -58,7 +58,10 @@
     name: listViewersCommand
     description: "dr visualize --list: prints each running viewer with its project,
       port, pid, CLI version and start time, from the registry and a process
-      scan (--json for a machine-readable list)."
+      scan (--json for a machine-readable list). It ends with how many viewers
+      it found and where, and what reading the registry removed; when the
+      process table cannot be read it says that viewers the registry has lost
+      are not shown."
     attributes:
       serviceType: synchronous
     metadata:
@@ -70,7 +73,7 @@
       locations:
         - file: cli/src/commands/visualize-viewers.ts
           symbol: listViewersCommand
-  timestamp: 2026-11-20T17:01:02.404Z
+  timestamp: 2026-11-20T17:12:04.073Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationservice.stop-viewers-command
@@ -84,7 +87,9 @@
     name: stopViewersCommand
     description: "dr visualize --stop [project] [--all] [--port n]: stops the
       viewers of the current or named project, of one port, or all of them, and
-      waits for each to exit."
+      waits for each to exit. It says how many viewers were running, how many
+      matched and how many it stopped, names each one it could not stop with its
+      pid and why, and exits 1 when any is still running."
     attributes:
       serviceType: synchronous
     metadata:
@@ -96,7 +101,7 @@
       locations:
         - file: cli/src/commands/visualize-viewers.ts
           symbol: stopViewersCommand
-  timestamp: 2026-11-20T17:01:02.404Z
+  timestamp: 2026-11-20T17:12:05.093Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.sweep-viewer-registry
@@ -858,3 +863,208 @@
     category: structural
   timestamp: 2026-11-20T17:01:09.726Z
   sequenceNumber: 63
+- type: add
+  elementId: application.applicationfunction.survey-viewers
+  layerName: application
+  after:
+    id: 4999dfb8-5f02-4336-acb8-c958243628a6
+    path: application.applicationfunction.survey-viewers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: surveyViewers
+    description: "Every running viewer on this machine with how complete the answer
+      is: whether the process table could be read (when not, viewers the
+      registry lost are not listed, and callers must say so) and what reading
+      the registry removed."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: surveyViewers
+    metadata:
+      created_at: 2026-11-20T17:12:03.027Z
+      updated_at: 2026-11-20T17:12:03.027Z
+      version: 1
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 66
+- type: add
+  elementId: application.applicationfunction.viewer-setting
+  layerName: application
+  after:
+    id: 96663706-691b-4d15-a3e9-e07334797de6
+    path: application.applicationfunction.viewer-setting
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerSetting
+    description: "A viewer time limit by name, from its environment variable or its
+      default: idle hours (DR_VIEWER_IDLE_HOURS, 24), health check timeout and
+      retry (DR_VIEWER_HEALTH_TIMEOUT_MS 1500, DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS
+      5000), stop timeout (DR_VIEWER_STOP_TIMEOUT_MS, 8000), log keep period
+      (DR_VIEWER_LOG_KEEP_DAYS, 7) and lifetime check interval
+      (DR_VIEWER_LIFETIME_CHECK_MS, 30000). A value that cannot be used is
+      reported by ignoredViewerSettings, not silently replaced."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-settings.ts
+          symbol: viewerSetting
+    metadata:
+      created_at: 2026-11-20T17:12:03.027Z
+      updated_at: 2026-11-20T17:12:03.027Z
+      version: 1
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 67
+- type: add
+  elementId: data-model.objectschema.viewer-survey
+  layerName: data-model
+  after:
+    id: a47cf827-01d2-43fb-b122-1ed7642beafc
+    path: data-model.objectschema.viewer-survey
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ViewerSurvey
+    description: The running viewers that could be found, whether the process table
+      could be read, and what the registry sweep removed.
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: ViewerSurvey
+    metadata:
+      created_at: 2026-11-20T17:12:03.027Z
+      updated_at: 2026-11-20T17:12:03.027Z
+      version: 1
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 68
+- type: add
+  elementId: data-model.objectschema.sweep-result
+  layerName: data-model
+  after:
+    id: 04d9f381-76e4-49be-a782-9daec171139a
+    path: data-model.objectschema.sweep-result
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: SweepResult
+    description: "What a sweep of the viewers directory removed: every path, and a
+      count of stale records, markers of dead starts, old logs and leftover temp
+      files."
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: SweepResult
+    metadata:
+      created_at: 2026-11-20T17:12:03.027Z
+      updated_at: 2026-11-20T17:12:03.027Z
+      version: 1
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 69
+- type: relationship-add
+  elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.survey-viewers
+  layerName: application
+  after:
+    source: application.applicationfunction.list-running-viewers
+    target: application.applicationfunction.survey-viewers
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 70
+- type: relationship-add
+  elementId: application.applicationfunction.survey-viewers::depends-on::application.applicationfunction.list-viewer-records
+  layerName: application
+  after:
+    source: application.applicationfunction.survey-viewers
+    target: application.applicationfunction.list-viewer-records
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 71
+- type: relationship-add
+  elementId: application.applicationfunction.survey-viewers::depends-on::application.applicationfunction.find-viewer-processes
+  layerName: application
+  after:
+    source: application.applicationfunction.survey-viewers
+    target: application.applicationfunction.find-viewer-processes
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 72
+- type: relationship-add
+  elementId: application.applicationfunction.survey-viewers::depends-on::application.applicationfunction.viewer-setting
+  layerName: application
+  after:
+    source: application.applicationfunction.survey-viewers
+    target: application.applicationfunction.viewer-setting
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 73
+- type: relationship-add
+  elementId: application.applicationfunction.survey-viewers::accesses::data-model.objectschema.viewer-survey
+  layerName: application
+  after:
+    source: application.applicationfunction.survey-viewers
+    target: data-model.objectschema.viewer-survey
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 74
+- type: relationship-add
+  elementId: application.applicationfunction.sweep-viewer-registry::accesses::data-model.objectschema.sweep-result
+  layerName: application
+  after:
+    source: application.applicationfunction.sweep-viewer-registry
+    target: data-model.objectschema.sweep-result
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 75
+- type: relationship-add
+  elementId: application.applicationfunction.sweep-viewer-registry::depends-on::application.applicationfunction.viewer-setting
+  layerName: application
+  after:
+    source: application.applicationfunction.sweep-viewer-registry
+    target: application.applicationfunction.viewer-setting
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 76
+- type: relationship-add
+  elementId: application.applicationfunction.stop-viewer::depends-on::application.applicationfunction.viewer-setting
+  layerName: application
+  after:
+    source: application.applicationfunction.stop-viewer
+    target: application.applicationfunction.viewer-setting
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 77
+- type: relationship-add
+  elementId: application.applicationfunction.probe-viewer::depends-on::application.applicationfunction.viewer-setting
+  layerName: application
+  after:
+    source: application.applicationfunction.probe-viewer
+    target: application.applicationfunction.viewer-setting
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T17:12:03.073Z
+  sequenceNumber: 78
