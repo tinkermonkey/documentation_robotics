@@ -518,7 +518,32 @@ dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
 
 # Combined example: custom viewer on custom port without browser
 dr visualize --viewer-path ./my-viewer --port 3000 --no-browser
+
+# See every viewer running on this machine: project, port, pid, CLI version, started at
+dr visualize --list
+
+# Stop the current project's viewers, another project's, one port's, or all of them
+dr visualize --stop
+dr visualize --stop ../other-project
+dr visualize --stop --port 8084
+dr visualize --stop --all
 ```
+
+**Running viewers**:
+
+A viewer runs until it is stopped. One that an agent's `review_open` starts runs in the background, so
+nothing on screen says it is there:
+
+- `dr visualize --list` shows all of them, including viewers the registry has no record of (it also reads
+  the process table). `--json` gives the list to a script. A viewer keeps the code it started with, so after a
+  CLI upgrade the list marks the ones that are older than the installed CLI.
+- `dr visualize --stop` stops viewers and waits for each to exit.
+- A `review_open` viewer exits on its own after 24 hours with no browser tab connected and no request; an
+  open tab keeps it alive. `DR_VIEWER_IDLE_HOURS` changes the period, and `0` means never. `--idle-exit <hours>`
+  gives any `dr visualize` the same limit.
+- Any viewer exits when its project's `documentation-robotics/` folder is removed.
+- `--exit-with-parent` makes `dr visualize` exit when the process that started it is gone, for scripts and
+  test runs that must not leave a server behind.
 
 **Custom Viewer Path**:
 

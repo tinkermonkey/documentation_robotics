@@ -445,6 +445,8 @@ export class VisualizationServer {
   private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
+  /** When the viewer was last used (see getActivity); the idle exit is measured from it. */
+  private lastActivityAt = Date.now();
   /**
    * Annotations live on disk (documentation-robotics/annotations/), shared with the MCP
    * annotation_* tools, which run in other processes.
@@ -619,6 +621,12 @@ export class VisualizationServer {
 
     // Add telemetry middleware to instrument all HTTP requests
     this.app.use("/*", telemetryMiddleware);
+
+    // Any request but the health check counts as use of the viewer (see getActivity)
+    this.app.use("/*", async (c, next) => {
+      if (c.req.path !== "/health") this.lastActivityAt = Date.now();
+      return next();
+    });
 
     // Add authentication middleware (except for health endpoint and root)
     this.app.use("/api/*", async (c, next) => {
@@ -1996,6 +2004,7 @@ export class VisualizationServer {
           });
 
           this.clients.add(ws);
+          this.lastActivityAt = Date.now();
 
           // Send connected message per spec
           ws.send(
@@ -2018,6 +2027,7 @@ export class VisualizationServer {
           });
 
           this.clients.delete(ws);
+          this.lastActivityAt = Date.now();
           if (process.env.VERBOSE) {
             console.log(`[WebSocket] Client disconnected (total: ${this.clients.size})`);
           }
@@ -4926,6 +4936,15 @@ export class VisualizationServer {
         `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`
       );
     }
+  }
+
+  /**
+   * How the viewer is being used, for the idle exit (server/viewer-lifetime.ts): the browser tabs
+   * connected now, and when it was last used (a request other than /health, or a tab's WebSocket
+   * opening or closing).
+   */
+  getActivity(): { clients: number; lastActivityAt: number } {
+    return { clients: this.clients.size, lastActivityAt: this.lastActivityAt };
   }
 
   /**

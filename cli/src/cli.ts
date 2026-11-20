@@ -656,6 +656,20 @@ program
     "--viewer-path <path>",
     "Path to custom viewer build (e.g., ./dist/embedded/dr-viewer-bundle)"
   )
+  .option(
+    "--idle-exit <hours>",
+    "Exit after this many hours with no browser tab connected and no request (default: never)"
+  )
+  .option(
+    "--exit-with-parent",
+    "Exit when the process that started this viewer is gone (for scripts and test runs)"
+  )
+  .option("--list", "List the viewers running on this machine and exit")
+  .option(
+    "--stop [project]",
+    "Stop the viewers of a project (default: the current one) and exit; with --port, the one on that port"
+  )
+  .option("--all", "With --stop: stop every running viewer")
   .addHelpText(
     "after",
     `
@@ -668,6 +682,24 @@ Examples:
   $ dr visualize --with-danger
   $ dr visualize --with-changesets
   $ dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
+  $ dr visualize --list
+  $ dr visualize --stop
+  $ dr visualize --stop ../other-project
+  $ dr visualize --stop --port 8084
+  $ dr visualize --stop --all
+
+Running viewers (--list, --stop):
+  - A viewer keeps running until it is stopped: Ctrl-C in its terminal, or
+    --stop. One that an agent's review_open started runs in the background
+    and exits on its own after 24 hours with no browser tab connected and no
+    request (DR_VIEWER_IDLE_HOURS changes that; 0 means never).
+  - --list shows every viewer on this machine: project, port, pid, the CLI
+    version it runs and when it started. It also finds viewers the registry
+    has no record of. Add --json for a machine-readable list.
+  - A viewer keeps the code it started with: after a CLI upgrade, --list
+    marks the ones that are older than this CLI.
+  - Any viewer exits when its project's documentation-robotics/ folder is
+    removed.
 
 Default mode (read-safe permissions) enables:
   - Running 'dr' CLI commands to query the architecture model
@@ -693,6 +725,23 @@ The --viewer-path option allows loading a local build of the web UI:
   - Useful for developing custom viewers or using bundled distributions`
   )
   .action(async (options) => {
+    if (options.list || options.stop !== undefined) {
+      const { listViewersCommand, stopViewersCommand } = await import("./commands/visualize-viewers.js");
+      if (options.list) {
+        await listViewersCommand();
+      } else {
+        await stopViewersCommand({
+          project: typeof options.stop === "string" ? options.stop : undefined,
+          all: options.all === true,
+          port: options.port,
+        });
+      }
+      return;
+    }
+    if (options.all) {
+      const { CLIError } = await import("./utils/errors.js");
+      throw new CLIError("--all goes with --stop: dr visualize --stop --all");
+    }
     const { visualizeCommand } = await import("./commands/visualize.js");
     await visualizeCommand({
       port: options.port,
@@ -702,6 +751,8 @@ The --viewer-path option allows loading a local build of the web UI:
       withDanger: options.withDanger,
       withChangesets: options.withChangesets,
       viewerPath: options.viewerPath,
+      idleExit: options.idleExit,
+      exitWithParent: options.exitWithParent,
     });
   });
 

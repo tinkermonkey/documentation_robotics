@@ -8,6 +8,8 @@
 import { Model } from "./core/model.js";
 import { VisualizationServer } from "./server/server.js";
 import { getErrorMessage } from "./utils/errors.js";
+import { LIFETIME_CHECK_INTERVAL_MS, watchViewerLifetime } from "./server/viewer-lifetime.js";
+import { watchParent } from "./utils/parent-watch.js";
 
 // Get configuration from environment variables
 const port = parseInt(process.env.DR_VISUALIZE_PORT || "8080", 10);
@@ -21,6 +23,10 @@ const authToken =
 const withDanger = process.env.DR_WITH_DANGER === "true";
 const withChangesets = process.env.DR_WITH_CHANGESETS === "true";
 const viewerPath = process.env.DR_VIEWER_PATH;
+// Hours without a browser tab or a request after which the server ends (dr visualize --idle-exit)
+const idleExitHours = Number(process.env.DR_VIEWER_IDLE_EXIT_HOURS);
+// How often the idle and project-folder checks run; tests shorten it
+const lifetimeCheckMs = Number(process.env.DR_VIEWER_LIFETIME_CHECK_MS) || LIFETIME_CHECK_INTERVAL_MS;
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -86,6 +92,26 @@ async function main() {
 
     // Setup graceful shutdown handlers
     setupShutdownHandlers();
+
+    // End on its own when the project folder is gone or, given a limit, when idle. The launcher
+    // prints lines that start with "[viewer]".
+    watchViewerLifetime({
+      projectRoot: model.rootPath,
+      activity: () => server.getActivity(),
+      idleExitMs: idleExitHours > 0 ? idleExitHours * 3_600_000 : undefined,
+      intervalMs: lifetimeCheckMs,
+      onExit: (reason) => {
+        console.log(`[viewer] Stopping: ${reason}`);
+        void gracefulShutdown(0);
+      },
+    });
+
+    // The launcher is this server's only reason to run: without it nothing stops the server or
+    // removes its record, and the port stays taken.
+    watchParent(() => {
+      console.log("[viewer] Stopping: the dr visualize process that started this server is gone");
+      void gracefulShutdown(0);
+    });
   } catch (error) {
     const message = getErrorMessage(error);
     console.error(`Error: ${message}`);

@@ -1,0 +1,25 @@
+id: changeset-1795192262763-syva7cao0
+name: viewer-lifecycle
+description: "Viewers that review_open starts no longer pile up or get lost
+  (#1237). The registry keeps one record per running viewer instead of one per
+  project, so a second `dr visualize` in a folder can't replace a live viewer's
+  record; reading the registry removes records of dead pids and old logs. `dr
+  visualize --list` and `--stop [project | --all]` show and stop every running
+  viewer, including ones the registry lost (found by a process scan).
+  review_open compares the viewer's cliVersion with its own. A review_open
+  viewer exits after 24 hours with no browser tab connected and no API request,
+  and any viewer exits when its project's documentation-robotics/ folder is
+  gone. Done: with two viewers for one project and a third that died uncleanly,
+  --list shows both live ones and review_open reuses one."
+created: 2026-11-20T16:31:02.777Z
+modified: 2026-11-20T16:32:15.632Z
+status: staged
+baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 41
+  modifications: 6
+  deletions: 0
+lastSequence: 46

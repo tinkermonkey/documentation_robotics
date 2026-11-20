@@ -4,7 +4,16 @@
  * Reuses the `dr visualize` already serving this project (found through the viewer registry,
  * server/viewer-registry.ts) or starts one: a detached `dr visualize --with-changesets
  * --no-browser` run in the project root with this installation's runtime and CLI entry. A viewer
- * it starts keeps running after the session ends, so the human can review at their own pace.
+ * it starts keeps running after the session ends, so the human can review at their own pace. It
+ * ends on its own after 24 hours with no browser tab connected and no request
+ * (DR_VIEWER_IDLE_HOURS; 0 means never), or when its project folder is gone.
+ *
+ * A running viewer keeps the code it started with, so after a CLI upgrade the viewer is older
+ * than the CLI asking for it (#1237). review_open compares the viewer's cliVersion (from its
+ * health check) with its own. An older viewer that review_open started is replaced, on the same
+ * port and with the same token, so an open tab and links already given keep working. Any other
+ * older viewer (one a person runs in a terminal, or one whose record does not say who started
+ * it) is reused, with a notice; `restart: true` replaces it.
  *
  * Never two viewers for one project: a viewer whose process is alive but doesn't answer is
  * reported, not replaced, and one still loading its model (a `.starting` marker next to the
@@ -22,6 +31,8 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { DR_MCP_ROOT_PATH_ENV, resolveDrCommand } from "../../coding-agents/drbot-mcp.js";
 import {
+  EXIT_WITH_PARENT_ENV,
+  VIEWER_STARTED_BY_ENV,
   canonicalProjectRoot,
   describePortHolder,
   ensureViewerRecordDir,
@@ -36,12 +47,21 @@ import {
   type ViewerRecord,
   type ViewerStarting,
 } from "../../server/viewer-registry.js";
+import { isOlderViewer, stopRecordedViewer } from "../../server/viewer-control.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { getCliVersion } from "../../utils/spec-version.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
 
 const inputSchema = {
   changeset: z.string().optional().describe("Changeset ID or name. Defaults to the active changeset."),
+  restart: z
+    .boolean()
+    .optional()
+    .describe(
+      "Replace the viewer running for this project with a fresh one (same port and token when they are free). " +
+        "Use it when review_open says the viewer is older than this CLI or does not answer; it ends any chat running in that viewer, so ask the user first."
+    ),
   rootPath: rootPathSchema,
 };
 
@@ -64,7 +84,11 @@ export interface ReviewOpenDeps {
   /** A viewer another call started that is still loading, if its process is alive. */
   readStarting: (projectRoot: string) => Promise<ViewerStarting | null>;
   /** Starts a detached viewer for a project, from a port when given (default: from 8080). */
-  startViewer: (projectRoot: string, options?: { port?: number }) => Promise<StartedViewer>;
+  startViewer: (projectRoot: string, options?: StartViewerOptions) => Promise<StartedViewer>;
+  /** Stops a running viewer and waits for it to be gone (to replace it). */
+  stopViewer: (record: ViewerRecord) => Promise<void>;
+  /** This CLI's version, compared with the running viewer's. */
+  cliVersion: string;
   /** Says what holds a port, for the error when every port tried was taken. */
   describePortHolder: (port: number) => Promise<string>;
   /** How many viewers to start, each from the next port, when one finds its port taken (default 3). */
@@ -79,11 +103,31 @@ export interface ReviewOpenDeps {
   pollMs: number;
 }
 
+export interface StartViewerOptions {
+  /** The first port to try (default 8080). */
+  port?: number;
+  /** The auth token to serve with, when replacing a viewer whose links should keep working. */
+  token?: string;
+}
+
+/** Env var for how many hours a viewer review_open starts may sit idle before it exits (0: never). */
+export const VIEWER_IDLE_HOURS_ENV = "DR_VIEWER_IDLE_HOURS";
+const DEFAULT_IDLE_HOURS = 24;
+
+/** The idle limit, in hours, for a viewer review_open starts: DR_VIEWER_IDLE_HOURS, else 24. */
+export function viewerIdleHours(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env[VIEWER_IDLE_HOURS_ENV];
+  if (raw === undefined || raw.trim() === "") return DEFAULT_IDLE_HOURS;
+  const hours = Number(raw);
+  return Number.isFinite(hours) && hours >= 0 ? hours : DEFAULT_IDLE_HOURS;
+}
+
 /**
- * Starts `dr visualize --with-changesets --no-browser` for the project, detached and unref'd.
- * dr visualize takes the first port that is free from 8080, or from `port` when given.
+ * Starts `dr visualize --with-changesets --no-browser --idle-exit <hours>` for the project,
+ * detached and unref'd, marked as started by review_open. dr visualize takes the first port that
+ * is free from 8080, or from `port` when given.
  */
-export async function spawnDetachedViewer(projectRoot: string, options: { port?: number } = {}): Promise<StartedViewer> {
+export async function spawnDetachedViewer(projectRoot: string, options: StartViewerOptions = {}): Promise<StartedViewer> {
   const dr = resolveDrCommand();
   await ensureViewerRecordDir();
   const logPath = viewerLogPath(projectRoot);
@@ -94,11 +138,19 @@ export async function spawnDetachedViewer(projectRoot: string, options: { port?:
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env[CHANGESET_ONLY_ENV];
   delete env[DR_MCP_ROOT_PATH_ENV];
+  // It outlives this session by design, whatever started the MCP server.
+  delete env[EXIT_WITH_PARENT_ENV];
+  env[VIEWER_STARTED_BY_ENV] = "review_open";
+  // The token goes in the environment, not the arguments, which any user can read with ps.
+  if (options.token) env.DR_AUTH_TOKEN = options.token;
+  else delete env.DR_AUTH_TOKEN;
 
   let child;
   try {
     const portArgs = options.port !== undefined ? ["--port", String(options.port)] : [];
-    child = spawn(dr.command, [...dr.args, "visualize", "--with-changesets", "--no-browser", ...portArgs], {
+    const idleHours = viewerIdleHours();
+    const idleArgs = idleHours > 0 ? ["--idle-exit", String(idleHours)] : [];
+    child = spawn(dr.command, [...dr.args, "visualize", "--with-changesets", "--no-browser", ...idleArgs, ...portArgs], {
       cwd: projectRoot,
       detached: true,
       stdio: ["ignore", fd, fd],
@@ -120,6 +172,10 @@ const DEFAULT_DEPS: ReviewOpenDeps = {
   probeViewer: (projectRoot) => probeViewer(projectRoot),
   readStarting: (projectRoot) => readViewerStarting(projectRoot),
   startViewer: spawnDetachedViewer,
+  stopViewer: async (record) => {
+    await stopRecordedViewer(record);
+  },
+  cliVersion: getCliVersion(),
   describePortHolder: (port) => describePortHolder(port),
   portAttempts: 3,
   isAlive: isProcessAlive,
@@ -250,31 +306,32 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       ErrorCategory.SYSTEM,
       [
         ...(existsSync(logPath) ? [`Its output is in ${logPath}`] : []),
-        `Wait and call review_open again, or stop it (kill ${record.pid}) and call review_open to start a fresh one`,
+        `Wait and call review_open again, or call it with restart: true to replace that viewer with a fresh one`,
       ]
     );
   }
 
-  async function viewerFor(projectRoot: string): Promise<{ record: ViewerRecord; reused: boolean }> {
-    const inFlight = pending.get(projectRoot);
-    if (inFlight) return { record: await awaitReady(inFlight), reused: true };
+  /** Why a running viewer was replaced, for the result. */
+  type Replaced = { pid: number; port: number; cliVersion: string | null; reason: "older" | "restart" };
+  interface ViewerChoice {
+    record: ViewerRecord;
+    reused: boolean;
+    /** The reused viewer's CLI version, when its health check gave one. */
+    viewerCliVersion?: string;
+    /** The reused viewer is older than this CLI and was left running. */
+    outdated?: boolean;
+    replaced?: Replaced;
+  }
 
-    const probe = await deps.probeViewer(projectRoot);
-    if (probe.state === "running") return { record: probe.record, reused: true };
-    if (probe.state === "unreachable") throw unreachable(probe.record, projectRoot);
-
-    // Another call (this server's or another session's) may have started one that is still loading.
-    const again = pending.get(projectRoot);
-    if (again) return { record: await awaitReady(again), reused: true };
-    const marker = await deps.readStarting(projectRoot);
-    const meanwhile = pending.get(projectRoot); // a concurrent call may have registered during that read
-    if (meanwhile) return { record: await awaitReady(meanwhile), reused: true };
-    if (marker) {
-      const entry = track(projectRoot, { pid: marker.pid, logPath: marker.logPath });
-      return { record: await awaitReady(entry), reused: true };
-    }
-
-    // Register before the first await so a concurrent call waits on this start.
+  /**
+   * Starts a viewer and waits for it. Registered in `pending` before the first await, so a
+   * concurrent call waits on this start. `replace` is stopped first; the new viewer then takes
+   * its port and token, so links to the old one keep working.
+   */
+  async function startNew(projectRoot: string, replace?: ViewerRecord): Promise<ViewerRecord> {
+    const startOptions: StartViewerOptions = replace
+      ? { port: replace.port, ...(replace.token ? { token: replace.token } : {}) }
+      : {};
     let resolveStart!: (viewer: StartedViewer) => void;
     let rejectStart!: (error: unknown) => void;
     const started = new Promise<StartedViewer>((resolve, reject) => {
@@ -299,7 +356,7 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
           const taken = error instanceof ViewerExitedError ? portInUse(error.tail) : null;
           if (taken === null) throw error;
           if (attempt >= deps.portAttempts) throw await portTakenError(taken, viewer.logPath);
-          viewer = await deps.startViewer(projectRoot, { port: taken + 1 });
+          viewer = await deps.startViewer(projectRoot, { ...startOptions, port: taken + 1 });
           entry.pid = viewer.pid;
           entry.logPath = viewer.logPath;
         }
@@ -316,7 +373,8 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       .catch(() => {});
 
     try {
-      const viewer = await deps.startViewer(projectRoot);
+      if (replace) await deps.stopViewer(replace);
+      const viewer = await deps.startViewer(projectRoot, startOptions);
       entry.pid = viewer.pid;
       entry.logPath = viewer.logPath;
       resolveStart(viewer);
@@ -324,7 +382,64 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       rejectStart(error);
       throw error;
     }
-    return { record: await awaitReady(entry), reused: false };
+    return awaitReady(entry);
+  }
+
+  async function viewerFor(projectRoot: string, restart: boolean): Promise<ViewerChoice> {
+    const inFlight = pending.get(projectRoot);
+    if (inFlight) return { record: await awaitReady(inFlight), reused: true };
+
+    const probe = await deps.probeViewer(projectRoot);
+    // A concurrent call may have registered a start (or a replacement) during the probe.
+    const again = pending.get(projectRoot);
+    if (again) return { record: await awaitReady(again), reused: true };
+
+    if (probe.state === "running") {
+      const older = isOlderViewer(probe.cliVersion, deps.cliVersion);
+      // Replaced without asking only when review_open started it: nobody's terminal is running
+      // it, and its port and token carry over. Anyone else's viewer is theirs to restart.
+      if (restart || (older && probe.record.startedBy === "review_open")) {
+        const replaced: Replaced = {
+          pid: probe.record.pid,
+          port: probe.record.port,
+          cliVersion: probe.cliVersion ?? null,
+          reason: restart ? "restart" : "older",
+        };
+        return { record: await startNew(projectRoot, probe.record), reused: false, replaced };
+      }
+      return {
+        record: probe.record,
+        reused: true,
+        ...(probe.cliVersion ? { viewerCliVersion: probe.cliVersion } : {}),
+        ...(older ? { outdated: true } : {}),
+      };
+    }
+    if (probe.state === "unreachable") {
+      if (!restart) throw unreachable(probe.record, projectRoot);
+      const replaced: Replaced = { pid: probe.record.pid, port: probe.record.port, cliVersion: null, reason: "restart" };
+      return { record: await startNew(projectRoot, probe.record), reused: false, replaced };
+    }
+
+    // Another session may have started one that is still loading.
+    const marker = await deps.readStarting(projectRoot);
+    const meanwhile = pending.get(projectRoot); // a concurrent call may have registered during that read
+    if (meanwhile) return { record: await awaitReady(meanwhile), reused: true };
+    if (marker) {
+      const entry = track(projectRoot, { pid: marker.pid, logPath: marker.logPath });
+      return { record: await awaitReady(entry), reused: true };
+    }
+
+    return { record: await startNew(projectRoot), reused: false };
+  }
+
+  /** What to tell the human about a viewer that is older than this CLI and was left running. */
+  function outdatedNotice(viewerCliVersion: string | undefined): string {
+    const theirs = viewerCliVersion ? `CLI ${viewerCliVersion}` : "a CLI older than 0.6.0";
+    return (
+      `This viewer runs ${theirs}; this CLI is ${deps.cliVersion}, so the viewer lacks its fixes. ` +
+      `To replace it, ask the user, then call review_open with restart: true. ` +
+      `That ends any chat running in the viewer; the link stays the same when its port is still free.`
+    );
   }
 
   return async function reviewOpenHandler(args: ReviewOpenArgs): Promise<CallToolResult> {
@@ -334,13 +449,19 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
       const manager = new StagingAreaManager(model.rootPath, model);
       const changeset = await resolveChangeset(manager, args.changeset, "changeset");
 
-      const { record, reused } = await viewerFor(projectRoot);
+      const choice = await viewerFor(projectRoot, args.restart === true);
+      const { record, reused } = choice;
       return jsonResult({
         url: viewerUrl(record, { changesetId: changeset.id }),
         reused,
         port: record.port,
         changesetId: changeset.id,
         changesetName: changeset.name,
+        ...(choice.viewerCliVersion ? { viewerCliVersion: choice.viewerCliVersion } : {}),
+        ...(choice.outdated
+          ? { outdated: true, cliVersion: deps.cliVersion, notice: outdatedNotice(choice.viewerCliVersion) }
+          : {}),
+        ...(choice.replaced ? { replaced: choice.replaced } : {}),
       });
     });
   };
@@ -353,7 +474,10 @@ export const reviewOpenTool: McpToolDefinition<typeof inputSchema> = {
   description:
     "Get a link that opens a changeset (by id or name; default the active one) on the graph in the DR viewer, " +
     "for the human to review. Reuses the viewer already running for this project, or starts one on a free " +
-    "local port that keeps running after this session. It returns a link, or says what holds the port; never " +
+    "local port that keeps running after this session (it exits on its own after a day with no browser tab " +
+    "connected). A viewer older than this CLI is replaced when review_open started it; otherwise the result " +
+    "has outdated: true and a notice to relay, and restart: true replaces it. " +
+    "It returns a link, or says what holds the port; never " +
     "send the human to the CLI. Give the human the url; they comment on elements there, including ones the plan " +
     "adds (read them with annotation_list, answer with annotation_reply) and commit the changeset there when the " +
     "work lands. If it says the viewer is still starting, call it again.",

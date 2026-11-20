@@ -18,15 +18,21 @@ import {
   describePortHolder,
   findRunningViewer,
   isProcessAlive,
+  legacyViewerRecordPath,
+  listViewerRecords,
   probeViewer,
-  readViewerRecord,
+  readViewerRecords,
   removeStaleTempFiles,
   removeViewerRecord,
   removeViewerRecordSync,
   stateDir,
+  sweepViewerRegistry,
   viewerAnswers,
+  viewerHealth,
+  viewerLogPath,
   viewerRecordDir,
   viewerRecordPath,
+  viewerStartingPath,
   viewersOnPort,
   viewerUrl,
   writeViewerRecord,
@@ -59,6 +65,18 @@ async function withFixture(body: (fx: Fixture) => Promise<void>): Promise<void> 
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
+}
+
+/**
+ * Puts a record file in place as a viewer with that pid would have, without the sweep that
+ * writeViewerRecord runs first (which removes the records of pids that are not alive, as the
+ * made-up pids of these tests are not).
+ */
+async function putRecord(record: ViewerRecord, env: NodeJS.ProcessEnv): Promise<string> {
+  await mkdir(viewerRecordDir(env), { recursive: true });
+  const path = viewerRecordPath(record.projectRoot, record.pid, env);
+  await writeFile(path, JSON.stringify({ ...record, projectRoot: await realpath(record.projectRoot) }));
+  return path;
 }
 
 /** A pid that has exited. */
@@ -104,8 +122,40 @@ describe("writeViewerRecord", () => {
     withFixture(async ({ env, scratch, projectRoot }) => {
       const link = join(scratch, "link");
       await symlink(projectRoot, link);
-      expect(viewerRecordPath(link, env)).toBe(viewerRecordPath(projectRoot, env));
-      expect(viewerRecordPath(join(scratch, "other"), env)).not.toBe(viewerRecordPath(projectRoot, env));
+      expect(viewerRecordPath(link, 7, env)).toBe(viewerRecordPath(projectRoot, 7, env));
+      expect(viewerRecordPath(join(scratch, "other"), 7, env)).not.toBe(viewerRecordPath(projectRoot, 7, env));
+    }));
+
+  it("gives each viewer of a project its own record, so a second one replaces nothing (#1237)", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      const first = await putRecord(record({ pid: 111, port: 8082 }), env);
+      // A later `dr visualize` in the same folder, which then dies without cleaning up.
+      const second = await putRecord(record({ pid: 222, port: 8099, token: null }), env);
+      expect(second).not.toBe(first);
+      expect((await readViewerRecords(projectRoot, env)).map((r) => r.port).sort()).toEqual([8082, 8099]);
+
+      // The second viewer is dead, the first alive: the first is still what the registry finds.
+      const found = await findRunningViewer(projectRoot, {
+        env,
+        isAlive: (pid) => pid === 111,
+        answers: async (port) => port === 8082,
+      });
+      expect(found).toMatchObject({ pid: 111, port: 8082 });
+      expect((await readViewerRecords(projectRoot, env)).map((r) => r.pid)).toEqual([111]);
+    }));
+
+  it("records the CLI version, the server's pid and who started the viewer", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      await writeViewerRecord(
+        record({ cliVersion: "0.7.0", serverPid: 4321, startedBy: "review_open", idleExitHours: 24 }),
+        env
+      );
+      expect((await readViewerRecords(projectRoot, env))[0]).toMatchObject({
+        cliVersion: "0.7.0",
+        serverPid: 4321,
+        startedBy: "review_open",
+        idleExitHours: 24,
+      });
     }));
 
   it("leaves no temp file and clears temp files older than a minute", () =>
@@ -129,7 +179,7 @@ describe("writeViewerRecord", () => {
   it("records a null token for a viewer without auth", () =>
     withFixture(async ({ env, projectRoot, record }) => {
       await writeViewerRecord(record({ token: null }), env);
-      expect((await readViewerRecord(projectRoot, env))?.token).toBeNull();
+      expect((await readViewerRecords(projectRoot, env))[0]?.token).toBeNull();
     }));
 });
 
@@ -138,18 +188,39 @@ describe("removeViewerRecord", () => {
     withFixture(async ({ env, projectRoot, record }) => {
       await writeViewerRecord(record({ pid: 12345 }), env);
       await removeViewerRecord(projectRoot, { env, pid: 999 });
-      expect(await readViewerRecord(projectRoot, env)).toBeTruthy();
+      expect(await readViewerRecords(projectRoot, env)).toHaveLength(1);
       removeViewerRecordSync(projectRoot, { env, pid: 999 });
-      expect(await readViewerRecord(projectRoot, env)).toBeTruthy();
+      expect(await readViewerRecords(projectRoot, env)).toHaveLength(1);
       await removeViewerRecord(projectRoot, { env, pid: 12345 });
-      expect(await readViewerRecord(projectRoot, env)).toBeUndefined();
+      expect(await readViewerRecords(projectRoot, env)).toHaveLength(0);
+    }));
+
+  it("leaves another viewer's record for the same project alone", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      await putRecord(record({ pid: 111 }), env);
+      await putRecord(record({ pid: 222 }), env);
+      removeViewerRecordSync(projectRoot, { env, pid: 222 });
+      expect((await readViewerRecords(projectRoot, env)).map((r) => r.pid)).toEqual([111]);
+      await removeViewerRecord(projectRoot, { env });
+      expect(await readViewerRecords(projectRoot, env)).toEqual([]);
+    }));
+
+  it("removes the record an older CLI wrote, when it is that pid's", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      await mkdir(viewerRecordDir(env), { recursive: true });
+      await writeFile(legacyViewerRecordPath(projectRoot, env), JSON.stringify(record({ pid: 333, projectRoot: await realpath(projectRoot) })));
+      expect((await readViewerRecords(projectRoot, env)).map((r) => r.pid)).toEqual([333]);
+      await removeViewerRecord(projectRoot, { env, pid: 999 });
+      expect(existsSync(legacyViewerRecordPath(projectRoot, env))).toBe(true);
+      await removeViewerRecord(projectRoot, { env, pid: 333 });
+      expect(existsSync(legacyViewerRecordPath(projectRoot, env))).toBe(false);
     }));
 
   it("removes the temp files a viewer left mid-write, at exit", () =>
     withFixture(async ({ env, projectRoot }) => {
       await mkdir(viewerRecordDir(env), { recursive: true });
-      const mine = `${viewerRecordPath(projectRoot, env)}.4242.1.tmp`;
-      const other = `${viewerRecordPath(projectRoot, env)}.4343.1.tmp`;
+      const mine = `${viewerRecordPath(projectRoot, 4242, env)}.4242.1.tmp`;
+      const other = `${viewerRecordPath(projectRoot, 4343, env)}.4343.1.tmp`;
       await writeFile(mine, "{}");
       await writeFile(other, "{}");
       removeViewerRecordSync(projectRoot, { env, pid: 4242 });
@@ -176,7 +247,7 @@ describe("findRunningViewer", () => {
       expect(isProcessAlive(pid)).toBe(false);
       await writeViewerRecord(record({ pid }), env);
       expect(await findRunningViewer(projectRoot, { env, answers: async () => true })).toBeNull();
-      expect(await readViewerRecord(projectRoot, env)).toBeUndefined();
+      expect(await readViewerRecords(projectRoot, env)).toEqual([]);
     }));
 
   it("keeps the record of a live viewer that does not answer, and reports it unreachable", () =>
@@ -187,9 +258,10 @@ describe("findRunningViewer", () => {
         timeouts.push(timeoutMs);
         return false;
       };
-      expect(await findRunningViewer(projectRoot, { env, answers })).toBeNull();
-      expect(await readViewerRecord(projectRoot, env)).toBeTruthy();
-      const probe = await probeViewer(projectRoot, { env, answers });
+      const looksLikeViewer = () => true;
+      expect(await findRunningViewer(projectRoot, { env, answers, looksLikeViewer })).toBeNull();
+      expect(await readViewerRecords(projectRoot, env)).toHaveLength(1);
+      const probe = await probeViewer(projectRoot, { env, answers, looksLikeViewer });
       expect(probe.state).toBe("unreachable");
       expect(probe.state === "unreachable" && probe.record.pid).toBe(process.pid);
       // One probe, then one retry with a longer timeout, per lookup.
@@ -208,9 +280,62 @@ describe("findRunningViewer", () => {
   it("removes an unreadable record", () =>
     withFixture(async ({ env, projectRoot }) => {
       await mkdir(viewerRecordDir(env), { recursive: true });
-      await writeFile(viewerRecordPath(projectRoot, env), "not json");
+      await writeFile(viewerRecordPath(projectRoot, 4242, env), "not json");
       expect(await findRunningViewer(projectRoot, { env })).toBeNull();
-      expect(await readViewerRecord(projectRoot, env)).toBeUndefined();
+      expect(existsSync(viewerRecordPath(projectRoot, 4242, env))).toBe(false);
+    }));
+
+  it("drops the record of a pid that another program now holds (reused after a reboot)", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      // This test process is alive and is no `dr visualize`.
+      await writeViewerRecord(record(), env);
+      const probe = await probeViewer(projectRoot, { env, answers: async () => false });
+      expect(probe.state).toBe("none");
+      expect(await readViewerRecords(projectRoot, env)).toEqual([]);
+    }));
+
+  it("keeps a silent viewer's record when its command line cannot be read", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      await writeViewerRecord(record(), env);
+      const probe = await probeViewer(projectRoot, { env, answers: async () => false, looksLikeViewer: () => null });
+      expect(probe.state).toBe("unreachable");
+    }));
+
+  it("reports the viewer's CLI version from its health check", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      const { server, port } = await healthServer({ status: "ok", version: "0.1.0", cliVersion: "0.6.0" });
+      try {
+        await writeViewerRecord(record({ port }), env);
+        expect(await probeViewer(projectRoot, { env })).toMatchObject({ state: "running", cliVersion: "0.6.0" });
+      } finally {
+        server.close();
+      }
+    }));
+
+  it("with several viewers, reuses one on this CLI's version, then one with changeset mode, then the oldest", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      const versions: Record<number, string> = { 9001: "0.6.0", 9002: "0.7.0", 9003: "0.7.0", 9004: "0.7.0" };
+      const options = {
+        env,
+        isAlive: () => true,
+        cliVersion: "0.7.0",
+        health: async (port: number) => ({ status: "ok" as const, cliVersion: versions[port] }),
+      };
+      await putRecord(record({ pid: 1, port: 9001, startedAt: "2026-11-17T10:00:00.000Z" }), env);
+      await putRecord(record({ pid: 2, port: 9002, withChangesets: false, startedAt: "2026-11-18T10:00:00.000Z" }), env);
+      expect(await probeViewer(projectRoot, options)).toMatchObject({ state: "running", record: { port: 9002 } });
+      await putRecord(record({ pid: 4, port: 9004, startedAt: "2026-11-20T10:00:00.000Z" }), env);
+      await putRecord(record({ pid: 3, port: 9003, startedAt: "2026-11-19T10:00:00.000Z" }), env);
+      expect(await probeViewer(projectRoot, options)).toMatchObject({ state: "running", record: { port: 9003 } });
+    }));
+
+  it("reuses the viewer that answers when another for the project is alive but silent", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      await putRecord(record({ pid: 1, port: 9001 }), env);
+      await putRecord(record({ pid: 2, port: 9002 }), env);
+      const probe = await probeViewer(projectRoot, { env, isAlive: () => true, answers: async (port) => port === 9002 });
+      expect(probe).toMatchObject({ state: "running", record: { pid: 2 } });
+      expect(await readViewerRecords(projectRoot, env)).toHaveLength(2);
     }));
 
   it("returns a live viewer that answers its health check", () =>
@@ -224,6 +349,81 @@ describe("findRunningViewer", () => {
         server.close();
       }
     }));
+});
+
+describe("sweepViewerRegistry", () => {
+  it("removes records of dead pids, markers of dead starts and old logs, and keeps what is live", () =>
+    withFixture(async ({ env, scratch, projectRoot, record }) => {
+      const dead = await deadPid();
+      const other = join(scratch, "other");
+      await mkdir(other, { recursive: true });
+      await writeViewerRecord(record({ pid: process.pid, port: 8085 }), env);
+      const stale = await putRecord(record({ pid: dead, port: 8099, token: null }), env);
+      // Another project: only a dead viewer's record, an old log and a marker of a start that died.
+      const gone = await putRecord(record({ pid: dead, projectRoot: other, port: 8099 }), env);
+      const week = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+      const oldLog = viewerLogPath(other, env);
+      await writeFile(oldLog, "old output");
+      await utimes(oldLog, week, week);
+      const marker = viewerStartingPath(other, env);
+      await writeFile(marker, JSON.stringify({ pid: dead, startedAt: "" }));
+      // The live project's log is as old, and stays: its viewer is still running.
+      const liveLog = viewerLogPath(projectRoot, env);
+      await writeFile(liveLog, "output");
+      await utimes(liveLog, week, week);
+      // A recent log of a dead viewer stays too, for whoever asks why it died.
+      const third = join(scratch, "third");
+      await mkdir(third, { recursive: true });
+      const recentLog = viewerLogPath(third, env);
+      await writeFile(recentLog, "it crashed");
+
+      const removed = await sweepViewerRegistry({ env });
+      expect(removed.sort()).toEqual([stale, gone, oldLog, marker].sort());
+      expect(existsSync(liveLog)).toBe(true);
+      expect(existsSync(recentLog)).toBe(true);
+      expect((await readViewerRecords(projectRoot, env)).map((r) => r.pid)).toEqual([process.pid]);
+    }));
+
+  it("is run when the registry is read", () =>
+    withFixture(async ({ env, projectRoot, record }) => {
+      const dead = await deadPid();
+      await writeViewerRecord(record({ pid: process.pid, port: 8085 }), env);
+      const stale = await putRecord(record({ pid: dead, port: 8099 }), env);
+      expect((await listViewerRecords({ env })).map((r) => r.port)).toEqual([8085]);
+      expect(existsSync(stale)).toBe(false);
+
+      await putRecord(record({ pid: dead, port: 8099 }), env);
+      await probeViewer(projectRoot, { env, answers: async () => true });
+      expect(existsSync(stale)).toBe(false);
+
+      // A viewer that starts clears what dead ones left, too.
+      await putRecord(record({ pid: dead, port: 8099 }), env);
+      await writeViewerRecord(record({ pid: process.pid, port: 8086 }), env);
+      expect(existsSync(stale)).toBe(false);
+    }));
+
+  it("is fine when there is no viewers directory", () =>
+    withFixture(async ({ env }) => {
+      expect(await sweepViewerRegistry({ env })).toEqual([]);
+      expect(await listViewerRecords({ env })).toEqual([]);
+    }));
+});
+
+describe("viewerHealth", () => {
+  it("returns the status and the CLI version, or null when nothing answers as a viewer", async () => {
+    const current = await healthServer({ status: "ok", version: "0.1.0", cliVersion: "0.6.0" });
+    const old = await healthServer({ status: "ok", version: "0.1.0" });
+    const other = await healthServer({ hello: "world" });
+    try {
+      expect(await viewerHealth(current.port)).toEqual({ status: "ok", cliVersion: "0.6.0" });
+      expect(await viewerHealth(old.port)).toEqual({ status: "ok" });
+      expect(await viewerHealth(other.port)).toBeNull();
+    } finally {
+      current.server.close();
+      old.server.close();
+      other.server.close();
+    }
+  });
 });
 
 describe("viewerAnswers", () => {

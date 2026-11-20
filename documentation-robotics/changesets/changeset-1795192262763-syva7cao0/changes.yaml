@@ -1,0 +1,798 @@
+- type: add
+  elementId: product.feature.viewer-lifecycle
+  layerName: product
+  after:
+    id: 739052bf-20b9-4144-acba-85486be6c3e4
+    path: product.feature.viewer-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Viewer lifecycle
+    description: "CLI: dr visualize --list shows every running viewer (project,
+      port, pid, CLI version, started at) and dr visualize --stop [project |
+      --all] stops them, including viewers the registry lost. MCP: review_open
+      replaces an older viewer it started and says when another viewer is older;
+      restart: true replaces it. A viewer review_open starts exits after 24
+      hours with no browser tab and no request; any viewer exits when its
+      project's documentation-robotics/ folder is gone."
+    attributes:
+      priority: high
+      status: planned
+    metadata:
+      created_at: 2026-11-20T16:31:40.294Z
+      updated_at: 2026-11-20T16:31:40.294Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationservice.list-viewers-command
+  layerName: application
+  after:
+    id: 3527cc7b-7000-431d-acad-336973cc5a98
+    path: application.applicationservice.list-viewers-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: listViewersCommand
+    description: "dr visualize --list: prints each running viewer with its project,
+      port, pid, CLI version and start time, from the registry and a process
+      scan (--json for a machine-readable list)."
+    attributes:
+      serviceType: synchronous
+    metadata:
+      created_at: 2026-11-20T16:31:40.308Z
+      updated_at: 2026-11-20T16:31:40.308Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationservice.stop-viewers-command
+  layerName: application
+  after:
+    id: 6bae33d5-f374-48c2-ac66-c69e0f586e1c
+    path: application.applicationservice.stop-viewers-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: stopViewersCommand
+    description: "dr visualize --stop [project] [--all] [--port n]: stops the
+      viewers of the current or named project, of one port, or all of them, and
+      waits for each to exit."
+    attributes:
+      serviceType: synchronous
+    metadata:
+      created_at: 2026-11-20T16:31:40.309Z
+      updated_at: 2026-11-20T16:31:40.309Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.sweep-viewer-registry
+  layerName: application
+  after:
+    id: af897dd2-426b-4d6e-a6c9-48f96f7552d8
+    path: application.applicationfunction.sweep-viewer-registry
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sweepViewerRegistry
+    description: "Removes what dead viewers left in the viewers directory: records
+      whose pid is dead or unreadable, starting markers of dead pids, logs older
+      than a week with no live viewer, and stale temp files. Run whenever the
+      registry is read."
+    metadata:
+      created_at: 2026-11-20T16:31:40.310Z
+      updated_at: 2026-11-20T16:31:40.310Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.list-viewer-records
+  layerName: application
+  after:
+    id: 21ba392f-83ae-470c-a32d-7ccaff088da3
+    path: application.applicationfunction.list-viewer-records
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: listViewerRecords
+    description: Every live viewer record in the registry, across projects, after a sweep.
+    metadata:
+      created_at: 2026-11-20T16:31:40.310Z
+      updated_at: 2026-11-20T16:31:40.310Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.viewer-health
+  layerName: application
+  after:
+    id: ace2b18c-1ced-4f47-83f0-7cbaaf75711b
+    path: application.applicationfunction.viewer-health
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerHealth
+    description: A dr viewer's answer to GET /health on a port (status and
+      cliVersion), or null when nothing answers as a viewer.
+    metadata:
+      created_at: 2026-11-20T16:31:40.310Z
+      updated_at: 2026-11-20T16:31:40.310Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.scan-viewer-processes
+  layerName: application
+  after:
+    id: a617583c-ccd4-4689-b477-eb9efc876db7
+    path: application.applicationfunction.scan-viewer-processes
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: scanViewerProcesses
+    description: Finds running dr visualize launchers and their server processes
+      with ps, and each one's working directory and listening port, so viewers
+      the registry has no record of are still found.
+    metadata:
+      created_at: 2026-11-20T16:31:40.310Z
+      updated_at: 2026-11-20T16:31:40.310Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.list-running-viewers
+  layerName: application
+  after:
+    id: a37f3adb-dd09-476b-ab69-9be610018db2
+    path: application.applicationfunction.list-running-viewers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: listRunningViewers
+    description: "Every running viewer on this machine: registry records joined with
+      the process scan, each with its CLI version from its health check."
+    metadata:
+      created_at: 2026-11-20T16:31:40.311Z
+      updated_at: 2026-11-20T16:31:40.311Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.stop-viewer
+  layerName: application
+  after:
+    id: d55a3f40-9f69-4486-bff9-e3beedab4a94
+    path: application.applicationfunction.stop-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: stopViewer
+    description: "Stops one viewer: SIGTERM to its launcher (or its server when the
+      launcher is gone), SIGKILL if it has not exited in time, then removes its
+      record."
+    metadata:
+      created_at: 2026-11-20T16:31:40.311Z
+      updated_at: 2026-11-20T16:31:40.311Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 8
+- type: add
+  elementId: application.applicationfunction.watch-parent
+  layerName: application
+  after:
+    id: 19dcb35f-adcf-43e0-a7d0-9a6c20b8ae9e
+    path: application.applicationfunction.watch-parent
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: watchParent
+    description: Calls back once when the process that started this one is gone (its
+      parent pid changed or died). The viewer's server always watches its
+      launcher; the launcher watches its parent with --exit-with-parent.
+    metadata:
+      created_at: 2026-11-20T16:31:40.311Z
+      updated_at: 2026-11-20T16:31:40.311Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 9
+- type: add
+  elementId: application.applicationfunction.watch-viewer-lifetime
+  layerName: application
+  after:
+    id: 968c4d76-952b-464a-95a7-c41ede05ee63
+    path: application.applicationfunction.watch-viewer-lifetime
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: watchViewerLifetime
+    description: Ends a viewer's server when its project's documentation-robotics/
+      folder is gone, or, with an idle limit, after that long with no WebSocket
+      client and no request other than /health.
+    metadata:
+      created_at: 2026-11-20T16:31:40.311Z
+      updated_at: 2026-11-20T16:31:40.311Z
+      version: 1
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: product.feature.viewer-lifecycle::realizes::product.softwarecapability.change-review
+  layerName: product
+  after:
+    source: product.feature.viewer-lifecycle
+    target: product.softwarecapability.change-review
+    predicate: realizes
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: product.feature.viewer-lifecycle::serves::product.persona.reviewer
+  layerName: product
+  after:
+    source: product.feature.viewer-lifecycle
+    target: product.persona.reviewer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: product.feature.viewer-lifecycle::depends-on::product.feature.changeset-overlay-in-the-viewer
+  layerName: product
+  after:
+    source: product.feature.viewer-lifecycle
+    target: product.feature.changeset-overlay-in-the-viewer
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: application.applicationservice.list-viewers-command::realizes::product.feature.viewer-lifecycle
+  layerName: application
+  after:
+    source: application.applicationservice.list-viewers-command
+    target: product.feature.viewer-lifecycle
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationservice.stop-viewers-command::realizes::product.feature.viewer-lifecycle
+  layerName: application
+  after:
+    source: application.applicationservice.stop-viewers-command
+    target: product.feature.viewer-lifecycle
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationservice.create-review-open-handler::realizes::product.feature.viewer-lifecycle
+  layerName: application
+  after:
+    source: application.applicationservice.create-review-open-handler
+    target: product.feature.viewer-lifecycle
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationservice.visualize-command::realizes::product.feature.viewer-lifecycle
+  layerName: application
+  after:
+    source: application.applicationservice.visualize-command
+    target: product.feature.viewer-lifecycle
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.list-viewer-records
+  layerName: application
+  after:
+    source: application.applicationfunction.list-running-viewers
+    target: application.applicationfunction.list-viewer-records
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.scan-viewer-processes
+  layerName: application
+  after:
+    source: application.applicationfunction.list-running-viewers
+    target: application.applicationfunction.scan-viewer-processes
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.viewer-health
+  layerName: application
+  after:
+    source: application.applicationfunction.list-running-viewers
+    target: application.applicationfunction.viewer-health
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.list-viewer-records::depends-on::application.applicationfunction.sweep-viewer-registry
+  layerName: application
+  after:
+    source: application.applicationfunction.list-viewer-records
+    target: application.applicationfunction.sweep-viewer-registry
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.list-viewer-records::accesses::data-model.objectschema.viewer-record
+  layerName: application
+  after:
+    source: application.applicationfunction.list-viewer-records
+    target: data-model.objectschema.viewer-record
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: application.applicationfunction.probe-viewer::depends-on::application.applicationfunction.sweep-viewer-registry
+  layerName: application
+  after:
+    source: application.applicationfunction.probe-viewer
+    target: application.applicationfunction.sweep-viewer-registry
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 23
+- type: relationship-add
+  elementId: application.applicationfunction.probe-viewer::depends-on::application.applicationfunction.viewer-health
+  layerName: application
+  after:
+    source: application.applicationfunction.probe-viewer
+    target: application.applicationfunction.viewer-health
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 24
+- type: relationship-add
+  elementId: application.applicationfunction.stop-viewer::depends-on::application.applicationfunction.remove-viewer-record
+  layerName: application
+  after:
+    source: application.applicationfunction.stop-viewer
+    target: application.applicationfunction.remove-viewer-record
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 25
+- type: relationship-add
+  elementId: application.applicationservice.list-viewers-command::serves::application.applicationfunction.list-running-viewers
+  layerName: application
+  after:
+    source: application.applicationservice.list-viewers-command
+    target: application.applicationfunction.list-running-viewers
+    predicate: serves
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 26
+- type: relationship-add
+  elementId: application.applicationservice.stop-viewers-command::serves::application.applicationfunction.stop-viewer
+  layerName: application
+  after:
+    source: application.applicationservice.stop-viewers-command
+    target: application.applicationfunction.stop-viewer
+    predicate: serves
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:31:40.334Z
+  sequenceNumber: 27
+- type: add
+  elementId: data-model.objectschema.running-viewer
+  layerName: data-model
+  after:
+    id: bf7fe840-9535-4ae7-b01c-1fbaedcbd396
+    path: data-model.objectschema.running-viewer
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: RunningViewer
+    description: "One running viewer as dr visualize --list reports it: project
+      root, port, launcher and server pids, CLI version, start time, who started
+      it and whether the registry has a record of it."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:57.509Z
+      updated_at: 2026-11-20T16:31:57.509Z
+      version: 1
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 28
+- type: add
+  elementId: data-model.objectschema.viewer-health
+  layerName: data-model
+  after:
+    id: 6cfe8ba8-0cf2-4882-9a70-7b4fbfe10a21
+    path: data-model.objectschema.viewer-health
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ViewerHealth
+    description: "What a viewer's health check says: status and the cliVersion of
+      the CLI serving it (absent before 0.6.0)."
+    attributes:
+      type: object
+    metadata:
+      created_at: 2026-11-20T16:31:57.510Z
+      updated_at: 2026-11-20T16:31:57.510Z
+      version: 1
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 29
+- type: relationship-add
+  elementId: application.applicationservice.list-viewers-command::accesses::data-model.objectschema.running-viewer
+  layerName: application
+  after:
+    source: application.applicationservice.list-viewers-command
+    target: data-model.objectschema.running-viewer
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 30
+- type: relationship-add
+  elementId: application.applicationservice.stop-viewers-command::accesses::data-model.objectschema.running-viewer
+  layerName: application
+  after:
+    source: application.applicationservice.stop-viewers-command
+    target: data-model.objectschema.running-viewer
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 31
+- type: relationship-add
+  elementId: application.applicationfunction.list-running-viewers::accesses::data-model.objectschema.running-viewer
+  layerName: application
+  after:
+    source: application.applicationfunction.list-running-viewers
+    target: data-model.objectschema.running-viewer
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 32
+- type: relationship-add
+  elementId: application.applicationfunction.viewer-health::accesses::data-model.objectschema.viewer-health
+  layerName: application
+  after:
+    source: application.applicationfunction.viewer-health
+    target: data-model.objectschema.viewer-health
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 33
+- type: relationship-add
+  elementId: application.applicationfunction.stop-viewer::accesses::data-model.objectschema.running-viewer
+  layerName: application
+  after:
+    source: application.applicationfunction.stop-viewer
+    target: data-model.objectschema.running-viewer
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:31:57.711Z
+  sequenceNumber: 34
+- type: update
+  elementId: data-model.objectschema.viewer-record
+  layerName: data-model
+  before:
+    id: 70986455-4bb8-4bc0-a773-e7835b19f2ef
+    path: data-model.objectschema.viewer-record
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ViewerRecord
+    description: A running `dr visualize` for one project.
+    attributes: &a1
+      type: object
+    source_reference: &a2
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: ViewerRecord
+    metadata: &a3
+      created_at: 2026-11-20T15:06:23.132Z
+      updated_at: 2026-11-20T15:06:23.132Z
+      version: 1
+  after:
+    id: 70986455-4bb8-4bc0-a773-e7835b19f2ef
+    path: data-model.objectschema.viewer-record
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ViewerRecord
+    description: One running `dr visualize`. The registry keeps a record per viewer
+      (per launcher pid), so a project can have several; each carries the CLI
+      version serving it, its server's pid and who started it (review_open or
+      the CLI).
+    attributes: *a1
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-20T16:31:59.954Z
+  sequenceNumber: 35
+- type: update
+  elementId: application.applicationfunction.write-viewer-record
+  layerName: application
+  before:
+    id: 8b3c2ded-9338-4460-8946-e25ae74e7d9f
+    path: application.applicationfunction.write-viewer-record
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: writeViewerRecord
+    description: Writes a project's viewer record (0600), replacing any earlier one.
+    source_reference: &a4
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: writeViewerRecord
+    metadata: &a5
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 8b3c2ded-9338-4460-8946-e25ae74e7d9f
+    path: application.applicationfunction.write-viewer-record
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: writeViewerRecord
+    description: Writes this viewer's own record (0600), keyed by project and pid;
+      it never replaces another viewer's record.
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-20T16:32:01.628Z
+  sequenceNumber: 36
+- type: update
+  elementId: application.applicationfunction.read-viewer-record
+  layerName: application
+  before:
+    id: 2431592d-1687-414e-a67c-6f18c470364c
+    path: application.applicationfunction.read-viewer-record
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readViewerRecord
+    description: A project's viewer record as written, without checking that the
+      viewer still runs.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: readViewerRecord
+    metadata: &a6
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 2431592d-1687-414e-a67c-6f18c470364c
+    path: application.applicationfunction.read-viewer-record
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readViewerRecords
+    description: A project's viewer records as written (one per viewer, plus the
+      single record an older CLI wrote), without checking that the viewers still
+      run.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: readViewerRecord
+        - file: cli/src/server/viewer-registry.ts
+          symbol: readViewerRecords
+    metadata: *a6
+  timestamp: 2026-11-20T16:32:02.142Z
+  sequenceNumber: 37
+- type: update
+  elementId: application.applicationfunction.probe-viewer
+  layerName: application
+  before:
+    id: 297197f6-e7d3-4282-ba11-eb6d6662bd62
+    path: application.applicationfunction.probe-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: probeViewer
+    description: Checks a project's viewer record against its process and its health check.
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: probeViewer
+    metadata: &a8
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 297197f6-e7d3-4282-ba11-eb6d6662bd62
+    path: application.applicationfunction.probe-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: probeViewer
+    description: "Checks a project's viewer records against their processes and
+      health checks, and picks the viewer to reuse when several run: one on the
+      caller's CLI version first, then one with changeset mode, then the oldest.
+      Reports the viewer's cliVersion."
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T16:32:02.645Z
+  sequenceNumber: 38
+- type: update
+  elementId: application.applicationservice.create-review-open-handler
+  layerName: application
+  before:
+    id: 13e671fd-e909-468b-b2fd-dd5544d4f470
+    path: application.applicationservice.create-review-open-handler
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: createReviewOpenHandler
+    description: Builds the review_open handler
+    attributes: &a9
+      serviceType: synchronous
+    source_reference: &a10
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/review-open.ts
+          symbol: createReviewOpenHandler
+    metadata: &a11
+      created_at: 2026-11-20T15:05:59.975Z
+      updated_at: 2026-11-20T15:05:59.975Z
+      version: 1
+  after:
+    id: 13e671fd-e909-468b-b2fd-dd5544d4f470
+    path: application.applicationservice.create-review-open-handler
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: createReviewOpenHandler
+    description: "Builds the review_open handler. It compares the running viewer's
+      cliVersion with its own: an older viewer that review_open started is
+      replaced on the same port with the same token; any other older viewer is
+      reused with a notice, and restart: true replaces it."
+    attributes: *a9
+    source_reference: *a10
+    metadata: *a11
+  timestamp: 2026-11-20T16:32:03.199Z
+  sequenceNumber: 39
+- type: update
+  elementId: application.applicationfunction.spawn-detached-viewer
+  layerName: application
+  before:
+    id: 5a6a49e3-de75-4060-964f-aca4679cbd59
+    path: application.applicationfunction.spawn-detached-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: spawnDetachedViewer
+    description: Starts `dr visualize --with-changesets --no-browser` for the
+      project, detached and unref'd.
+    source_reference: &a12
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/review-open.ts
+          symbol: spawnDetachedViewer
+    metadata: &a13
+      created_at: 2026-11-20T15:07:06.100Z
+      updated_at: 2026-11-20T15:07:06.100Z
+      version: 1
+  after:
+    id: 5a6a49e3-de75-4060-964f-aca4679cbd59
+    path: application.applicationfunction.spawn-detached-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: spawnDetachedViewer
+    description: Starts `dr visualize --with-changesets --no-browser --idle-exit
+      <hours>` for the project, detached and unref'd, marked as started by
+      review_open (24 hours unless DR_VIEWER_IDLE_HOURS says otherwise; 0 means
+      never).
+    source_reference: *a12
+    metadata: *a13
+  timestamp: 2026-11-20T16:32:03.662Z
+  sequenceNumber: 40
+- type: relationship-add
+  elementId: application.applicationfunction.watch-parent::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-parent
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:32:15.626Z
+  sequenceNumber: 41
+- type: relationship-add
+  elementId: application.applicationfunction.watch-viewer-lifetime::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-viewer-lifetime
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:32:15.626Z
+  sequenceNumber: 42
+- type: relationship-add
+  elementId: application.applicationfunction.watch-viewer-lifetime::depends-on::application.applicationfunction.watch-parent
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-viewer-lifetime
+    target: application.applicationfunction.watch-parent
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:32:15.626Z
+  sequenceNumber: 43
+- type: relationship-add
+  elementId: application.applicationfunction.sweep-viewer-registry::depends-on::application.applicationfunction.remove-stale-temp-files
+  layerName: application
+  after:
+    source: application.applicationfunction.sweep-viewer-registry
+    target: application.applicationfunction.remove-stale-temp-files
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:32:15.626Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: application.applicationfunction.sweep-viewer-registry::accesses::data-model.objectschema.viewer-record
+  layerName: application
+  after:
+    source: application.applicationfunction.sweep-viewer-registry
+    target: data-model.objectschema.viewer-record
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-20T16:32:15.626Z
+  sequenceNumber: 45
+- type: relationship-add
+  elementId: application.applicationfunction.stop-viewer::realizes::application.applicationservice.create-review-open-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.stop-viewer
+    target: application.applicationservice.create-review-open-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:32:15.626Z
+  sequenceNumber: 46
