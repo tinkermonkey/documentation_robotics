@@ -12,14 +12,400 @@ description: "Viewers that review_open starts no longer pile up or get lost
   gone. Done: with two viewers for one project and a third that died uncleanly,
   --list shows both live ones and review_open reuses one."
 created: 2026-11-20T16:31:02.777Z
-modified: 2026-11-20T16:32:15.632Z
+modified: 2026-11-20T17:01:19.240Z
 status: staged
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 41
+  additions: 39
   modifications: 6
   deletions: 0
-lastSequence: 46
+lastSequence: 65
+unstaged:
+  - sequence: 6
+    removedAt: 47
+    change:
+      type: add
+      elementId: application.applicationfunction.scan-viewer-processes
+      layerName: application
+      after:
+        id: a617583c-ccd4-4689-b477-eb9efc876db7
+        path: application.applicationfunction.scan-viewer-processes
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: scanViewerProcesses
+        description: Finds running dr visualize launchers and their server processes
+          with ps, and each one's working directory and listening port, so
+          viewers the registry has no record of are still found.
+        metadata:
+          created_at: 2026-11-20T16:31:40.310Z
+          updated_at: 2026-11-20T16:31:40.310Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 43
+    removedAt: 48
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.watch-viewer-lifetime::depends-on::application.applicationfunction.watch-parent
+      layerName: application
+      after:
+        source: application.applicationfunction.watch-viewer-lifetime
+        target: application.applicationfunction.watch-parent
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:32:15.626Z
+  - sequence: 46
+    removedAt: 48
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.stop-viewer::realizes::application.applicationservice.create-review-open-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.stop-viewer
+        target: application.applicationservice.create-review-open-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:32:15.626Z
+  - sequence: 7
+    removedAt: 49
+    change:
+      type: add
+      elementId: application.applicationfunction.list-running-viewers
+      layerName: application
+      after:
+        id: a37f3adb-dd09-476b-ab69-9be610018db2
+        path: application.applicationfunction.list-running-viewers
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: listRunningViewers
+        description: "Every running viewer on this machine: registry records joined with
+          the process scan, each with its CLI version from its health check."
+        metadata:
+          created_at: 2026-11-20T16:31:40.311Z
+          updated_at: 2026-11-20T16:31:40.311Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 50
+    change:
+      type: add
+      elementId: application.applicationfunction.list-viewer-records
+      layerName: application
+      after:
+        id: 21ba392f-83ae-470c-a32d-7ccaff088da3
+        path: application.applicationfunction.list-viewer-records
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: listViewerRecords
+        description: Every live viewer record in the registry, across projects, after a
+          sweep.
+        metadata:
+          created_at: 2026-11-20T16:31:40.310Z
+          updated_at: 2026-11-20T16:31:40.310Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 8
+    removedAt: 51
+    change:
+      type: add
+      elementId: application.applicationfunction.stop-viewer
+      layerName: application
+      after:
+        id: d55a3f40-9f69-4486-bff9-e3beedab4a94
+        path: application.applicationfunction.stop-viewer
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: stopViewer
+        description: "Stops one viewer: SIGTERM to its launcher (or its server when the
+          launcher is gone), SIGKILL if it has not exited in time, then removes
+          its record."
+        metadata:
+          created_at: 2026-11-20T16:31:40.311Z
+          updated_at: 2026-11-20T16:31:40.311Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 52
+    change:
+      type: add
+      elementId: application.applicationfunction.sweep-viewer-registry
+      layerName: application
+      after:
+        id: af897dd2-426b-4d6e-a6c9-48f96f7552d8
+        path: application.applicationfunction.sweep-viewer-registry
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sweepViewerRegistry
+        description: "Removes what dead viewers left in the viewers directory: records
+          whose pid is dead or unreadable, starting markers of dead pids, logs
+          older than a week with no live viewer, and stale temp files. Run
+          whenever the registry is read."
+        metadata:
+          created_at: 2026-11-20T16:31:40.310Z
+          updated_at: 2026-11-20T16:31:40.310Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 53
+    change:
+      type: add
+      elementId: application.applicationfunction.viewer-health
+      layerName: application
+      after:
+        id: ace2b18c-1ced-4f47-83f0-7cbaaf75711b
+        path: application.applicationfunction.viewer-health
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: viewerHealth
+        description: A dr viewer's answer to GET /health on a port (status and
+          cliVersion), or null when nothing answers as a viewer.
+        metadata:
+          created_at: 2026-11-20T16:31:40.310Z
+          updated_at: 2026-11-20T16:31:40.310Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 9
+    removedAt: 54
+    change:
+      type: add
+      elementId: application.applicationfunction.watch-parent
+      layerName: application
+      after:
+        id: 19dcb35f-adcf-43e0-a7d0-9a6c20b8ae9e
+        path: application.applicationfunction.watch-parent
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: watchParent
+        description: Calls back once when the process that started this one is gone (its
+          parent pid changed or died). The viewer's server always watches its
+          launcher; the launcher watches its parent with --exit-with-parent.
+        metadata:
+          created_at: 2026-11-20T16:31:40.311Z
+          updated_at: 2026-11-20T16:31:40.311Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 10
+    removedAt: 55
+    change:
+      type: add
+      elementId: application.applicationfunction.watch-viewer-lifetime
+      layerName: application
+      after:
+        id: 968c4d76-952b-464a-95a7-c41ede05ee63
+        path: application.applicationfunction.watch-viewer-lifetime
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: watchViewerLifetime
+        description: Ends a viewer's server when its project's documentation-robotics/
+          folder is gone, or, with an idle limit, after that long with no
+          WebSocket client and no request other than /health.
+        metadata:
+          created_at: 2026-11-20T16:31:40.311Z
+          updated_at: 2026-11-20T16:31:40.311Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 56
+    change:
+      type: add
+      elementId: application.applicationservice.list-viewers-command
+      layerName: application
+      after:
+        id: 3527cc7b-7000-431d-acad-336973cc5a98
+        path: application.applicationservice.list-viewers-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: listViewersCommand
+        description: "dr visualize --list: prints each running viewer with its project,
+          port, pid, CLI version and start time, from the registry and a process
+          scan (--json for a machine-readable list)."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-20T16:31:40.308Z
+          updated_at: 2026-11-20T16:31:40.308Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 57
+    change:
+      type: add
+      elementId: application.applicationservice.stop-viewers-command
+      layerName: application
+      after:
+        id: 6bae33d5-f374-48c2-ac66-c69e0f586e1c
+        path: application.applicationservice.stop-viewers-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: stopViewersCommand
+        description: "dr visualize --stop [project] [--all] [--port n]: stops the
+          viewers of the current or named project, of one port, or all of them,
+          and waits for each to exit."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-20T16:31:40.309Z
+          updated_at: 2026-11-20T16:31:40.309Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true
+  - sequence: 28
+    removedAt: 58
+    change:
+      type: add
+      elementId: data-model.objectschema.running-viewer
+      layerName: data-model
+      after:
+        id: bf7fe840-9535-4ae7-b01c-1fbaedcbd396
+        path: data-model.objectschema.running-viewer
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: RunningViewer
+        description: "One running viewer as dr visualize --list reports it: project
+          root, port, launcher and server pids, CLI version, start time, who
+          started it and whether the registry has a record of it."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:57.509Z
+          updated_at: 2026-11-20T16:31:57.509Z
+          version: 1
+      timestamp: 2026-11-20T16:31:57.711Z
+    rewritten: true
+  - sequence: 29
+    removedAt: 59
+    change:
+      type: add
+      elementId: data-model.objectschema.viewer-health
+      layerName: data-model
+      after:
+        id: 6cfe8ba8-0cf2-4882-9a70-7b4fbfe10a21
+        path: data-model.objectschema.viewer-health
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ViewerHealth
+        description: "What a viewer's health check says: status and the cliVersion of
+          the CLI serving it (absent before 0.6.0)."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-20T16:31:57.510Z
+          updated_at: 2026-11-20T16:31:57.510Z
+          version: 1
+      timestamp: 2026-11-20T16:31:57.711Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 60
+    change:
+      type: add
+      elementId: application.applicationfunction.scan-viewer-processes
+      layerName: application
+      after:
+        id: a617583c-ccd4-4689-b477-eb9efc876db7
+        path: application.applicationfunction.scan-viewer-processes
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: findViewerProcesses
+        description: "The viewers in the process table (read with ps by listProcesses):
+          each `dr visualize` launcher with its server, and each server whose
+          launcher is gone, so viewers the registry has no record of are still
+          found. Each one's working directory and listening port come from
+          processCwd and listeningPort."
+        metadata:
+          created_at: 2026-11-20T16:31:40.310Z
+          updated_at: 2026-11-20T16:31:40.310Z
+          version: 1
+      timestamp: 2026-11-20T17:00:55.953Z
+  - sequence: 19
+    removedAt: 61
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.scan-viewer-processes
+      layerName: application
+      after:
+        source: application.applicationfunction.list-running-viewers
+        target: application.applicationfunction.scan-viewer-processes
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-20T16:31:40.334Z
+  - sequence: 62
+    removedAt: 64
+    change:
+      type: add
+      elementId: application.applicationfunction.find-viewer-processes
+      layerName: application
+      after:
+        id: 4097d959-16a7-4358-b9e2-c3f1d35d2a55
+        path: application.applicationfunction.find-viewer-processes
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: findViewerProcesses
+        description: "The viewers in the process table (read with ps by listProcesses):
+          each `dr visualize` launcher with its server, and each server whose
+          launcher is gone, so viewers the registry has no record of are still
+          found. Each one's working directory and listening port come from
+          processCwd and listeningPort."
+        metadata:
+          created_at: 2026-11-20T17:01:09.694Z
+          updated_at: 2026-11-20T17:01:09.694Z
+          version: 1
+      timestamp: 2026-11-20T17:01:09.726Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 65
+    change:
+      type: add
+      elementId: product.feature.viewer-lifecycle
+      layerName: product
+      after:
+        id: 739052bf-20b9-4144-acba-85486be6c3e4
+        path: product.feature.viewer-lifecycle
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Viewer lifecycle
+        description: "CLI: dr visualize --list shows every running viewer (project,
+          port, pid, CLI version, started at) and dr visualize --stop [project |
+          --all] stops them, including viewers the registry lost. MCP:
+          review_open replaces an older viewer it started and says when another
+          viewer is older; restart: true replaces it. A viewer review_open
+          starts exits after 24 hours with no browser tab and no request; any
+          viewer exits when its project's documentation-robotics/ folder is
+          gone."
+        attributes:
+          priority: high
+          status: planned
+        metadata:
+          created_at: 2026-11-20T16:31:40.294Z
+          updated_at: 2026-11-20T16:31:40.294Z
+          version: 1
+      timestamp: 2026-11-20T16:31:40.334Z
+    rewritten: true

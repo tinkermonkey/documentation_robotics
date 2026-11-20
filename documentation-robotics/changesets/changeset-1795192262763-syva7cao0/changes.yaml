@@ -17,12 +17,34 @@
       project's documentation-robotics/ folder is gone."
     attributes:
       priority: high
-      status: planned
+      status: delivered
+      documentation: "CLI: dr visualize --list and --stop [project | --all | --port n]
+        (cli/src/commands/visualize-viewers.ts) list and stop every running
+        viewer; the list joins the registry (cli/src/server/viewer-registry.ts,
+        one record per viewer, swept on every read) with a scan of the process
+        table (cli/src/server/viewer-processes.ts), so viewers the registry lost
+        are found, and a pid is signalled only when it is known to be a viewer's
+        (cli/src/server/viewer-control.ts). MCP: review_open compares the
+        viewer's cliVersion with its own; an older viewer review_open started is
+        replaced on the same port with the same token, any other older viewer is
+        reused with outdated and a notice, and restart: true replaces it. A
+        viewer review_open starts runs with --idle-exit 24
+        (DR_VIEWER_IDLE_HOURS; 0 means never): it exits after that long with no
+        WebSocket client and no request other than /health
+        (cli/src/server/viewer-lifetime.ts). Any viewer exits when its project's
+        documentation-robotics/ folder is missing on two checks 30 seconds
+        apart. The server exits when its launcher is gone, and dr visualize
+        --exit-with-parent has the launcher do the same
+        (cli/src/utils/parent-watch.ts)."
     metadata:
       created_at: 2026-11-20T16:31:40.294Z
       updated_at: 2026-11-20T16:31:40.294Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/commands/visualize-viewers.ts
+  timestamp: 2026-11-20T17:01:19.212Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationservice.list-viewers-command
@@ -43,7 +65,12 @@
       created_at: 2026-11-20T16:31:40.308Z
       updated_at: 2026-11-20T16:31:40.308Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/visualize-viewers.ts
+          symbol: listViewersCommand
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationservice.stop-viewers-command
@@ -64,7 +91,12 @@
       created_at: 2026-11-20T16:31:40.309Z
       updated_at: 2026-11-20T16:31:40.309Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/visualize-viewers.ts
+          symbol: stopViewersCommand
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.sweep-viewer-registry
@@ -84,7 +116,12 @@
       created_at: 2026-11-20T16:31:40.310Z
       updated_at: 2026-11-20T16:31:40.310Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: sweepViewerRegistry
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.list-viewer-records
@@ -101,7 +138,12 @@
       created_at: 2026-11-20T16:31:40.310Z
       updated_at: 2026-11-20T16:31:40.310Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: listViewerRecords
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 4
 - type: add
   elementId: application.applicationfunction.viewer-health
@@ -119,27 +161,13 @@
       created_at: 2026-11-20T16:31:40.310Z
       updated_at: 2026-11-20T16:31:40.310Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: viewerHealth
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 5
-- type: add
-  elementId: application.applicationfunction.scan-viewer-processes
-  layerName: application
-  after:
-    id: a617583c-ccd4-4689-b477-eb9efc876db7
-    path: application.applicationfunction.scan-viewer-processes
-    spec_node_id: application.applicationfunction
-    type: applicationfunction
-    layer_id: application
-    name: scanViewerProcesses
-    description: Finds running dr visualize launchers and their server processes
-      with ps, and each one's working directory and listening port, so viewers
-      the registry has no record of are still found.
-    metadata:
-      created_at: 2026-11-20T16:31:40.310Z
-      updated_at: 2026-11-20T16:31:40.310Z
-      version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
-  sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.list-running-viewers
   layerName: application
@@ -156,7 +184,12 @@
       created_at: 2026-11-20T16:31:40.311Z
       updated_at: 2026-11-20T16:31:40.311Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: listRunningViewers
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.stop-viewer
@@ -175,7 +208,12 @@
       created_at: 2026-11-20T16:31:40.311Z
       updated_at: 2026-11-20T16:31:40.311Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: stopViewer
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 8
 - type: add
   elementId: application.applicationfunction.watch-parent
@@ -194,7 +232,12 @@
       created_at: 2026-11-20T16:31:40.311Z
       updated_at: 2026-11-20T16:31:40.311Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/parent-watch.ts
+          symbol: watchParent
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 9
 - type: add
   elementId: application.applicationfunction.watch-viewer-lifetime
@@ -213,7 +256,12 @@
       created_at: 2026-11-20T16:31:40.311Z
       updated_at: 2026-11-20T16:31:40.311Z
       version: 1
-  timestamp: 2026-11-20T16:31:40.334Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-lifetime.ts
+          symbol: watchViewerLifetime
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 10
 - type: relationship-add
   elementId: product.feature.viewer-lifecycle::realizes::product.softwarecapability.change-review
@@ -307,17 +355,6 @@
     category: structural
   timestamp: 2026-11-20T16:31:40.334Z
   sequenceNumber: 18
-- type: relationship-add
-  elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.scan-viewer-processes
-  layerName: application
-  after:
-    source: application.applicationfunction.list-running-viewers
-    target: application.applicationfunction.scan-viewer-processes
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:31:40.334Z
-  sequenceNumber: 19
 - type: relationship-add
   elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.viewer-health
   layerName: application
@@ -426,7 +463,12 @@
       created_at: 2026-11-20T16:31:57.509Z
       updated_at: 2026-11-20T16:31:57.509Z
       version: 1
-  timestamp: 2026-11-20T16:31:57.711Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-control.ts
+          symbol: RunningViewer
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 28
 - type: add
   elementId: data-model.objectschema.viewer-health
@@ -446,7 +488,12 @@
       created_at: 2026-11-20T16:31:57.510Z
       updated_at: 2026-11-20T16:31:57.510Z
       version: 1
-  timestamp: 2026-11-20T16:31:57.711Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: ViewerHealth
+  timestamp: 2026-11-20T17:01:02.404Z
   sequenceNumber: 29
 - type: relationship-add
   elementId: application.applicationservice.list-viewers-command::accesses::data-model.objectschema.running-viewer
@@ -752,17 +799,6 @@
   timestamp: 2026-11-20T16:32:15.626Z
   sequenceNumber: 42
 - type: relationship-add
-  elementId: application.applicationfunction.watch-viewer-lifetime::depends-on::application.applicationfunction.watch-parent
-  layerName: application
-  after:
-    source: application.applicationfunction.watch-viewer-lifetime
-    target: application.applicationfunction.watch-parent
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-20T16:32:15.626Z
-  sequenceNumber: 43
-- type: relationship-add
   elementId: application.applicationfunction.sweep-viewer-registry::depends-on::application.applicationfunction.remove-stale-temp-files
   layerName: application
   after:
@@ -785,14 +821,40 @@
     category: structural
   timestamp: 2026-11-20T16:32:15.626Z
   sequenceNumber: 45
-- type: relationship-add
-  elementId: application.applicationfunction.stop-viewer::realizes::application.applicationservice.create-review-open-handler
+- type: add
+  elementId: application.applicationfunction.find-viewer-processes
   layerName: application
   after:
-    source: application.applicationfunction.stop-viewer
-    target: application.applicationservice.create-review-open-handler
-    predicate: realizes
+    id: 4097d959-16a7-4358-b9e2-c3f1d35d2a55
+    path: application.applicationfunction.find-viewer-processes
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: findViewerProcesses
+    description: "The viewers in the process table (read with ps by listProcesses):
+      each `dr visualize` launcher with its server, and each server whose
+      launcher is gone, so viewers the registry has no record of are still
+      found. Each one's working directory and listening port come from
+      processCwd and listeningPort."
+    metadata:
+      created_at: 2026-11-20T17:01:09.694Z
+      updated_at: 2026-11-20T17:01:09.694Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-processes.ts
+          symbol: findViewerProcesses
+  timestamp: 2026-11-20T17:01:18.578Z
+  sequenceNumber: 62
+- type: relationship-add
+  elementId: application.applicationfunction.list-running-viewers::depends-on::application.applicationfunction.find-viewer-processes
+  layerName: application
+  after:
+    source: application.applicationfunction.list-running-viewers
+    target: application.applicationfunction.find-viewer-processes
+    predicate: depends-on
     layer: application
     category: structural
-  timestamp: 2026-11-20T16:32:15.626Z
-  sequenceNumber: 46
+  timestamp: 2026-11-20T17:01:09.726Z
+  sequenceNumber: 63
