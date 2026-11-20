@@ -951,16 +951,19 @@ Then `/dr-plan <change>` runs the loop:
    it is staged with the plan and read back on every later pass.
 5. `review_open` and hand the human its link, which opens the changeset on the graph in the viewer
    (`dr visualize`); read their annotations, revise.
-6. Build from the brief. Keep the changeset staged and commit its files on the branch. Don't
-   extract or verify during the build.
+6. Build from the brief. Keep the changeset staged and commit only its own directory on the branch.
+   The as-built verification record is created in Verify, after this build commit. Don't extract or
+   verify during the build.
 7. Verify as its own step, once the build is committed: `codebase_index`, then `codebase_extract`
    with `since` (the branch the work started from) stages the build into an as-built changeset;
    `changeset_verify` the plan against it. The as-built side comes only from extraction: elements
    are named after their cards, and plan elements are never copied into it. Cards the agent can't
    place with confidence go to the developer as one short list of questions. Fix what diverges, in
    the code or in the plan, and copy the source references the report lists
-   (`changeset_adopt_source_references`), then `changeset_activate` the plan again. The as-built
-   changeset is then discarded or kept as a record, not landed.
+   (`changeset_adopt_source_references`), then `changeset_activate` the plan again. Then ask
+   whether to discard the as-built changeset (`changeset_discard`) or keep it as a record, and
+   discard it only if the human chooses that. A kept record stays staged, and its directory is
+   committed beside the plan's directory in the same PR. It is never landed.
 8. The human commits the plan in the PR that ships the code: they ask the agent to land it
    (`changeset_commit`) and confirm in the dialog (from Claude Code, approve the commit call that
    carries `changeset_commit_preview`'s token), or commit it in the viewer or the CLI. Once

@@ -40,9 +40,10 @@ In short:
 6. **Build** from the brief: `changeset_brief` with `sections: ["changes"]` for each changed
    element's attributes and connections (for a large plan, one layer at a time with
    `layers: ["<layer>"]`, from the default brief's `byLayer`). Commit only the plan's own changeset directory
-   (`documentation-robotics/changesets/<id>/`) on the branch with the code; keep the
-   as-built changeset out of the commit. Don't verify during the build: no `codebase_extract`, no
-   as-built changeset and no `changeset_verify` until the build is committed.
+   (`documentation-robotics/changesets/<id>/`) on the branch with the code.
+   The as-built verification record is created in Verify, after this build commit. Don't verify
+   during the build: no `codebase_extract`, no as-built changeset and no `changeset_verify` until
+   the build is committed.
 7. **Verify**, as its own step after the build is committed: `codebase_index` with `wait: 30`
    (then `status: true`, `wait: 30` until it is done; if it reports `ignoreFile`, tell the developer
    to commit that file), then `codebase_extract`
@@ -56,7 +57,9 @@ In short:
    differences) need no plan edit; never edit the plan to match extracted placeholder text. Then the
    plan is what lands; ask the human whether to discard the as-built changeset or keep it as a
    record. It is the plan's verification record: `changeset_commit` refuses to land it,
-   `force` or not. A kept record stays staged, and its directory is committed to git with the plan's.
+   `force` or not. If they choose to discard it, call `changeset_discard` with `confirm: true`; if
+   they choose to keep it, leave it staged and commit its directory with the plan's directory on
+   the same branch and in the same PR. Never land the verification record.
 8. **Land**: the human commits the plan in the PR, not the as-built changeset. When they ask you to land it, call
    `changeset_commit`; they confirm it in a dialog, and it commits only then. From Claude Code, call
    `changeset_commit_preview` first, show them its summary, and pass its `confirmToken` to

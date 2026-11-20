@@ -46,7 +46,9 @@ describe("change-planning integration", () => {
         expect(existsSync(path)).toBe(true);
       });
 
-      const text = existsSync(path) ? readFileSync(path, "utf-8") : "";
+      const text = existsSync(path)
+        ? readFileSync(path, "utf-8").replace(/\r\n/g, "\n")
+        : "";
 
       it("names only tools the dr MCP server registers", () => {
         const tools = namedTools(text);
@@ -77,14 +79,18 @@ describe("change-planning integration", () => {
       it("confirms the changeset's name and intent before creating it (D4)", () => {
         expect(text).toMatch(/confirm both with the human\s+before/);
         expect(text).toContain("`project_init`");
-        expect(text).toMatch(/bootstrap\s+(?:the model\s+)?(?:it\s+)?from the code/);
+        expect(text).toMatch(
+          /bootstrap\s+(?:the model\s+)?(?:it\s+)?from the code/
+        );
       });
 
       it("waits on the index instead of polling, and stages in batches", () => {
         expect(text).toContain("`wait: 30`");
         expect(text).not.toContain("polling with `status: true`");
         expect(text).toContain("`elements: [...]`");
-        expect(text).toMatch(/`relationships: \[(?:\.\.\.|\{source, predicate, target, properties\?\})\]`/);
+        expect(text).toMatch(
+          /`relationships: \[(?:\.\.\.|\{source, predicate, target, properties\?\})\]`/
+        );
         expect(text).toContain('`sourceProvenance: "extracted"`');
         expect(text).toMatch(/no code\s+yet[^.]*no source fields/);
         expect(text).toContain('`detail: "full"`');
@@ -94,11 +100,13 @@ describe("change-planning integration", () => {
         expect(text).toMatch(/`sections: \["unwired"\], unwiredLayers: \[/);
         expect(text).toMatch(/always pass a filter/i);
         expect(text).toContain('`sections: ["changes"]`');
-        expect(text).toContain('`byLayer`');
+        expect(text).toContain("`byLayer`");
         expect(text).not.toContain('sections: ["layers"]');
         expect(text).not.toContain('unwired: "summary"');
         expect(text).toContain("`unverifiable`");
-        expect(text).toMatch(/never edit the plan to match extracted placeholder text/i);
+        expect(text).toMatch(
+          /never edit the plan to match extracted placeholder text/i
+        );
         expect(text).toContain("`annotation_reply`");
       });
 
@@ -114,6 +122,12 @@ describe("change-planning integration", () => {
         // Which changeset is active is local state in .dr/ (#1218), so there is no marker to keep out
         expect(text).not.toContain("`.active`");
         expect(text).toContain("as-built");
+        // #1197: the build step no longer reads as "keep the verification record out of git"
+        expect(text).toMatch(
+          /as-built verification record is created in Verify,\s+after this build commit/
+        );
+        expect(text).not.toMatch(/as-built changeset\s+stays? out of the commit/);
+        expect(text).not.toMatch(/keep the\s+as-built changeset out of the commit/);
       });
 
       it("lands only when the human asks and confirms", () => {
@@ -126,14 +140,20 @@ describe("change-planning integration", () => {
       // Round-2 wording: verify ran inside the build turn, the as-built side copied the plan, the
       // as-built changeset landed first, and triage asked the developer nothing.
       it("verifies after the build is committed, from extraction only, and lands the plan", () => {
-        expect(text).toMatch(/Don't verify during the build/);
+        expect(text).toMatch(/Don't verify\s+during the build/);
         expect(text).toMatch(/as its own step,? after the build[^.]*committed/);
         expect(text).toMatch(/never copy\s+plan elements into it/);
-        expect(text).toMatch(/discard the as-built\s+changeset[^.]*or keep it as a\s+record/);
-        // #1171/#1172: the as-built side is the plan's verification record; landing refuses it, and
-        // a kept record stays staged and goes to git with the plan.
-        expect(text).toMatch(/`changeset_commit` refuses to land it,\s+`force` or not/);
-        expect(text).toMatch(/A kept record\s+stays staged, and its directory is committed to git with the plan's/);
+        expect(text).toMatch(
+          /discard the as-built\s+changeset[^.]*or keep it as a\s+record/
+        );
+        // #1171/#1172: the as-built side is the plan's verification record; landing refuses it.
+        expect(text).toMatch(
+          /`changeset_commit` refuses to land it,\s+`force` or not/
+        );
+        expect(text).toMatch(/`changeset_discard` with `confirm: true`/);
+        expect(text).toMatch(
+          /commit its directory with\s+the plan's directory on\s+the same branch and in the same PR/
+        );
       });
 
       it("asks the developer about cards it can't place, in one short list", () => {
@@ -155,7 +175,7 @@ describe("change-planning integration", () => {
       await import("../../../src/coding-agents/drbot-mcp.js");
     const drbot = new Set([...DR_MCP_READ_TOOLS, ...DR_MCP_CHANGESET_TOOLS]);
     for (const path of [FILES.claudeSkill, FILES.copilotSkill]) {
-      const text = readFileSync(path, "utf-8");
+      const text = readFileSync(path, "utf-8").replace(/\r\n/g, "\n");
       const missing = namedTools(text).filter(
         (t) => !drbot.has(t) && t !== "changeset_discard"
       );
@@ -172,7 +192,7 @@ describe("change-planning integration", () => {
 
   it("the skills carry name and description frontmatter", () => {
     for (const path of [FILES.claudeSkill, FILES.copilotSkill]) {
-      const text = readFileSync(path, "utf-8");
+      const text = readFileSync(path, "utf-8").replace(/\r\n/g, "\n");
       expect(text).toMatch(/^---\nname: dr_change_planning\ndescription: .+/);
     }
   });
