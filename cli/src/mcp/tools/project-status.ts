@@ -27,6 +27,7 @@ import {
   collectTier1,
   collectViewer,
   compareVersions,
+  LANDING_WHEN_DRIFT_BLOCKS,
   LIST_DEFAULTS,
   RESTART_SERVER,
   runGit,
@@ -212,7 +213,8 @@ export async function projectStatusList(
   args: ProjectStatusArgs & { list: StatusList },
   options: StatusOptions = {}
 ): Promise<StatusListPage> {
-  const ctx = await statusContext(args, options);
+  // The list is the call for the rest, so every staged changeset's drift is described in full here.
+  const ctx: StatusContext = { ...(await statusContext(args, options)), describeDrift: "all" };
   const key = LIST_SECTION[args.list];
   let section: Sections[typeof key];
   try {
@@ -450,6 +452,20 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
 
+  // The baseline is out of reach and nothing is seen to have changed: that is not "in step".
+  if (codeDrift.status === "unknown" && codeDrift.incompleteHistory) {
+    const fetch = codeDrift.shallow
+      ? "Fetch the full history (git fetch --unshallow) and call project_status again"
+      : "Fetch the branch that holds that commit and call project_status again";
+    return {
+      summary:
+        `Code drift can't be measured here: ${codeDrift.reason}. Don't take the model as current with the code. ${fetch}; ` +
+        "if the commit is gone for good, run codebase_extract with no since and no plan active, and land the changeset it makes " +
+        "when the user asks, which records a new baseline.",
+      tool: null,
+    };
+  }
+
   if (codeIndex.status === "absent") {
     return {
       summary: "The code has no index. Build one with codebase_index.",
@@ -500,7 +516,11 @@ function pickNextStep(s: Sections, root: string): NextStep {
       ? `The model is in step with the code: no source file it references changed ${sinceLanding(codeDrift)}.${unseen}`
       : codeDrift.status === "in-step"
         ? `The model is current and in step with the code, counted from its last commit: no as-built landing is recorded yet.${unseen}`
-        : "The model is current.";
+        : codeDrift.status === "unlinked"
+          ? "No element has a source reference, so changed code can't be tied to the model."
+          : codeDrift.status === "unknown" || codeDrift.status === "no-git" || codeDrift.status === "error"
+            ? `Whether the model is in step with the code could not be checked${"reason" in codeDrift && codeDrift.reason ? `: ${codeDrift.reason}` : "error" in codeDrift ? `: ${codeDrift.error}` : ""}.`
+            : "The model is current.";
   // New source files no element references are code no extraction has read: offer the catch-up.
   const catchUp =
     codeDrift.status === "in-step" && (codeDrift.unreferenced?.newSourceFiles ?? 0) > 0
@@ -547,17 +567,24 @@ function baseChangeCounts(counts: NonNullable<ChangesetDriftEntry["baseChanges"]
     .join(", ");
 }
 
+/**
+ * What landing a changeset takes while its drift blocks a commit. With LANDING_WHEN_DRIFT_BLOCKS,
+ * the one place that says so: #1200 (drift warns, never refuses) retires both.
+ */
+const BLOCKED_LANDING = "changeset_commit refuses to land it unless the user agrees to force: true (the viewer's Apply has no force).";
+
 /** What a landing does about a changeset's base drift. */
 function landingSentence(drift: ChangesetDriftEntry): string {
-  if (drift.landing === "refused-without-force") {
-    return "changeset_commit refuses to land it unless the user agrees to force: true (the viewer's Apply has no force).";
-  }
+  if (drift.landing === LANDING_WHEN_DRIFT_BLOCKS) return BLOCKED_LANDING;
+  if (drift.landing === "unknown") return "Whether it can land can't be told until its drift can be checked.";
   return drift.landing === "allowed-with-warning" ? "Landing it is allowed, with a warning." : "Landing it is not blocked.";
 }
 
 /** A changeset's base drift in a sentence or two: what moved, what overlaps, what a landing does. */
 function changesetDriftSentence(drift: ChangesetDriftEntry): string {
-  if (drift.state === "unknown") return `Its base drift could not be checked: ${drift.reason ?? "no reason given"}`;
+  if (drift.state === "unknown") {
+    return `Its base drift could not be checked (${drift.reason ?? "no reason given"}). ${landingSentence(drift)}`;
+  }
   const moved = drift.baseChanges ? baseChangeCounts(drift.baseChanges) : "";
   if (drift.state === "content-free") {
     return `The base model changed since it was created${moved ? ` (${moved})` : ""}, but nothing it stages against. ${landingSentence(drift)}`;
@@ -567,7 +594,7 @@ function changesetDriftSentence(drift: ChangesetDriftEntry): string {
     ? `${moved} in the base`
     : drift.baseIndex
       ? `it has no readable base index (${drift.baseIndex}), so what changed can't be named`
-      : "the base's hash differs";
+      : "what it stages against changed";
   const overlap =
     overlaps > 0
       ? `; ${overlaps} of its staged changes overlap${drift.overlapping!.first.length > 0 ? ` (${drift.overlapping!.first.join("; ")}${overlaps > drift.overlapping!.first.length ? "; ..." : ""})` : ""}`
@@ -599,7 +626,7 @@ function unreferencedSentence(codeDrift: CodeDrift): string {
 /** Code drift in a sentence or two: how many referenced files changed, counted from where, and what did not clear it. */
 function codeDriftSentence(codeDrift: CodeDrift): string {
   const committed = codeDrift.referencedFilesChanged ?? codeDrift.changedSourceFiles.length;
-  const edited = codeDrift.uncommittedSourceFiles.length;
+  const edited = codeDrift.referencedFilesUncommitted ?? codeDrift.uncommittedSourceFiles.length;
   const reconciled = codeDrift.basis === "last-reconciling-commit";
   const from = (codeDrift.countedFrom ?? codeDrift.modelCommit).sha.slice(0, 7);
   const since = reconciled ? sinceLanding(codeDrift) : `since the model was last updated, not counting spec migrations (${from})`;
@@ -680,10 +707,13 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
       tool: "changeset_deactivate",
     };
   }
+  // What a landing takes when the base moved under it: said here, not left to the refusal.
+  const drift = asBuilt.drift && asBuilt.drift.state !== "content-free" ? ` ${changesetDriftSentence(asBuilt.drift)}` : "";
   return {
     summary:
       `${intro} No plan is staged, so it is a keep-as-built catch-up: it holds what was built and is reviewed and ` +
-      "landed as itself. Show it to the user with review_open, and land it with changeset_commit when they ask.",
+      `landed as itself. Show it to the user with review_open, and land it with changeset_commit when they ask.${drift}` +
+      `${asBuilt.drift?.state === "drifted" ? ' changeset_brief with sections: ["drift"] lists what moved.' : ""}`,
     tool: "review_open",
     args: { changeset: asBuilt.id },
   };
@@ -706,7 +736,7 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: what changed under it, what overlaps and whether landing needs force), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
     `${LIST_DEFAULTS.stagedChangesets} staged changesets, ${LIST_DEFAULTS.changedSourceFiles} changed source files with ${LIST_DEFAULTS.elementsPerFile} elements each, ` +
     `${LIST_DEFAULTS.unreferencedFiles} unreferenced files, the ${LIST_DEFAULTS.landedSince} latest changesets landed since, ${LIST_DEFAULTS.changedSinceIndex} files changed since the index, ` +
     "and 3 overlapping changes per drifted changeset (changeset_brief with sections: [\"drift\"] lists those). Each shortened list has its true count beside it and a more line naming the call for the rest: " +

@@ -15,6 +15,7 @@ import yaml from "yaml";
 import { runDr } from "../helpers/cli-runner.js";
 import { getCliBundledSpecVersion, getCliVersion } from "../../src/utils/spec-version.js";
 import { MigrationRegistry } from "../../src/core/migration-registry.js";
+import { LANDING_WHEN_DRIFT_BLOCKS } from "../../src/mcp/tools/project-status-collectors.js";
 
 const CLI_PATH = path.join(process.cwd(), "dist", "cli.js");
 const PROTOCOL_VERSION = "2025-06-18";
@@ -414,6 +415,12 @@ describe("project_upgrade over MCP", () => {
   }, 60000);
 });
 
+// Follows tranche 2 (#1200, drift warns and never refuses): today a drifted changeset's landing is
+// refused without force, and the status says so. When that lands, these three lines are the edit.
+const DRIFTED_LANDING = LANDING_WHEN_DRIFT_BLOCKS;
+const DRIFTED_LANDING_WORDS = "force: true";
+const DRIFT_REFUSES_LANDING = true;
+
 describe("project_status over MCP", () => {
   function git(cwd: string, ...args: string[]): string {
     const result = spawnSync(
@@ -480,25 +487,29 @@ describe("project_status over MCP", () => {
     const status = result.body;
 
     // This server is the CLI on disk.
-    expect(status.server).toEqual({ status: "current", version: getCliVersion() });
+    expect(status.server).toEqual({ status: "current", version: getCliVersion(), comparedWith: process.cwd() });
 
-    // The plan: what moved under it, that it overlaps, that landing needs force, and the call for the detail.
+    // The plan, set aside: that it drifted, what a landing does about it and the call for the detail.
     expect(status.changesets.staged).toHaveLength(1);
     expect(status.changesets.staged[0]).toMatchObject({
       name: "reword-audit",
       baseDrifted: true,
       drift: {
         state: "drifted",
-        landing: "refused-without-force",
-        baseChanges: { elementsChanged: 1 },
-        overlapping: { elements: 1, relationships: 0, first: ["application.applicationfunction.audit (changed-in-base)"] },
+        landing: DRIFTED_LANDING,
         next: { tool: "changeset_brief", args: { changeset: plan.id, sections: ["drift"] } },
       },
     });
-    // The landing is refused as the status said it would be.
+    // The staged list in full says what moved under it and what overlaps.
+    const staged = await call("project_status", { list: "stagedChangesets" });
+    expect(staged.items[0].drift).toMatchObject({
+      baseChanges: { elementsChanged: 1 },
+      overlapping: { elements: 1, relationships: 0, first: ["application.applicationfunction.audit (changed-in-base)"] },
+    });
+    // The landing is refused as the status said it would be (follows tranche 2: see DRIFTED_LANDING).
     const preview = await callTool(state, "changeset_commit_preview", { changeset: "reword-audit" });
-    expect(preview.isError).toBe(true);
-    expect(JSON.stringify(preview.body)).toContain("force: true");
+    expect(preview.isError).toBe(DRIFT_REFUSES_LANDING);
+    expect(JSON.stringify(preview.body)).toContain(DRIFTED_LANDING_WORDS);
     // The call the status names answers with the drift.
     const brief = await call("changeset_brief", status.changesets.staged[0].drift.next.args);
     expect(JSON.stringify(brief)).toContain("application.applicationfunction.audit");

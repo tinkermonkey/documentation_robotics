@@ -11,7 +11,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
-import { driftDetail, type DriftDetail } from "../../core/changeset-drift-status.js";
+import { BaseSnapshotManager } from "../../core/base-snapshot-manager.js";
+import { driftDetail, driftStatus, type DriftDetail } from "../../core/changeset-drift-status.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { MigrationRegistry } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
@@ -52,6 +53,13 @@ export interface StatusContext {
   tier1?: Tier1StatusOptions;
   /** The CLI on disk where this process was loaded from (default: its package.json, read now). */
   installedCli?: () => Promise<InstalledCli | null>;
+  /**
+   * Which staged changesets get their base drift described in full (what changed in the base and
+   * what overlaps). Describing costs a pass over the model per changeset, and the status opens
+   * every session, so by default only the active one is; the others get the state, what a landing
+   * does and the call that describes them. `all` is what the `stagedChangesets` list uses.
+   */
+  describeDrift?: "active" | "all";
 }
 
 /** A section a collector could not produce. */
@@ -208,9 +216,14 @@ export interface InstalledCli {
 
 export type ServerSection =
   | {
-      /** The process answering is the CLI that is installed. */
+      /**
+       * The process answering is the CLI found in `comparedWith`, the package folder it was loaded
+       * from. A newer dr installed somewhere else (another node version's global folder, say) is
+       * not looked for, so this does not mean nothing newer is installed.
+       */
       status: "current";
       version: string;
+      comparedWith: string;
     }
   | {
       /**
@@ -220,13 +233,15 @@ export type ServerSection =
        */
       status: "stale";
       version: string;
+      /** The package folder this process was loaded from, where the installed CLI was read. */
+      comparedWith: string;
       installed: { version: string; spec: string | null };
       /** When the installed files changed, when that is what gave it away. */
       changedAt?: string;
       /** What happened and what to do, in a sentence: shown as it is. */
       note: string;
     }
-  | { status: "unknown"; version: string; reason: string };
+  | { status: "unknown"; version: string; comparedWith: string; reason: string };
 
 /** How a session gets the installed CLI's server: nothing the agent can call. */
 export const RESTART_SERVER = "Restart the session's dr server (reconnect the dr MCP server, or restart the session)";
@@ -259,7 +274,9 @@ export async function readInstalledCli(packageRoot: string = PACKAGE_ROOT): Prom
   }
   if (typeof version !== "string" || !version) return null;
   let spec: string | null = null;
-  for (const dir of ["dist", "src"]) {
+  // The tree this process runs from first (dist when built, src under a dev runner), then the other.
+  const running = path.relative(PACKAGE_ROOT, THIS_FILE).split(path.sep)[0] === "src" ? "src" : "dist";
+  for (const dir of [running, running === "src" ? "dist" : "src"]) {
     try {
       const manifest = JSON.parse(await readFile(path.join(packageRoot, dir, "schemas", "bundled", "manifest.json"))) as {
         specVersion?: unknown;
@@ -292,14 +309,16 @@ const STARTUP_MARGIN_MS = 5_000;
 export async function collectServer(ctx: StatusContext): Promise<ServerSection> {
   const version = getCliVersion();
   const installed = await (ctx.installedCli ?? readInstalledCli)();
+  const comparedWith = PACKAGE_ROOT;
   if (!installed) {
-    return { status: "unknown", version, reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}` };
+    return { status: "unknown", version, comparedWith, reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}` };
   }
   const found = { version: installed.version, spec: installed.spec };
   if (installed.version !== version) {
     return {
       status: "stale",
       version,
+      comparedWith,
       installed: found,
       note:
         `This dr server process is CLI ${version}, and ${installed.version} is installed now: it started before the CLI ` +
@@ -312,6 +331,7 @@ export async function collectServer(ctx: StatusContext): Promise<ServerSection> 
     return {
       status: "stale",
       version,
+      comparedWith,
       installed: found,
       changedAt,
       note:
@@ -319,7 +339,7 @@ export async function collectServer(ctx: StatusContext): Promise<ServerSection> 
         `${version}): the process runs the code it started with. ${RESTART_SERVER} to use what is installed.`,
     };
   }
-  return { status: "current", version };
+  return { status: "current", version, comparedWith };
 }
 
 /** The section when it says the server is stale, else undefined. */
@@ -329,6 +349,13 @@ export function staleServer(section: ServerSection | ErrorSection | null | undef
 
 // ---------------------------------------------------------------------------------------------
 // changesets
+
+/**
+ * `landing` for a changeset whose drift blocks a commit. One of the places that say what a blocked
+ * landing takes; #1200 (drift warns, never refuses) retires it, and the core's `blocksCommit`
+ * then never selects it.
+ */
+export const LANDING_WHEN_DRIFT_BLOCKS = "refused-without-force";
 
 /**
  * How the base model moved under a staged changeset, and what that does to landing it. The state
@@ -343,19 +370,24 @@ export interface ChangesetDriftEntry {
    */
   state: "content-free" | "drifted" | "unknown";
   /**
-   * What a landing does about it. refused-without-force: changeset_commit refuses unless the user
-   * agrees to force: true, and the viewer's Apply, which has no force, refuses.
+   * What a landing does about it, from the core's `blocksCommit`. refused-without-force:
+   * changeset_commit refuses unless the user agrees to force: true, and the viewer's Apply, which
+   * has no force, refuses. unknown: drift could not be checked, so neither could this.
    */
-  landing: "allowed" | "allowed-with-warning" | "refused-without-force";
+  landing: "allowed" | "allowed-with-warning" | typeof LANDING_WHEN_DRIFT_BLOCKS | "unknown";
   /** Set when the changeset has no usable record of the base it was staged against: what changed can't be named. */
   baseIndex?: "not-recorded" | "unreadable";
-  /** How many base elements and relationships changed since the changeset was created. Zero counts are left out. */
+  /**
+   * How many base elements and relationships changed since the changeset was created. Zero counts
+   * are left out. In the status, on the active changeset only; `next` or the `stagedChangesets`
+   * list gives it for any other.
+   */
   baseChanges?: Partial<Record<BaseChangeCount, number>>;
   /** For `drifted`: how many of the changeset's own staged changes the base now overlaps, and the first few. */
   overlapping?: { elements: number; relationships: number; first: string[] };
   /** Why it could not be told (state unknown, or drifted with no base index). */
   reason?: string;
-  /** For `drifted`: the call that lists what moved and what overlaps. */
+  /** For `drifted` and `unknown`: the call that lists what moved and what overlaps. */
   next?: { tool: "changeset_brief"; args: { changeset: string; sections: ["drift"] } };
 }
 
@@ -364,10 +396,16 @@ export type BaseChangeCount = "elementsAdded" | "elementsRemoved" | "elementsCha
 /** How many overlapping changes an entry names; changeset_brief with sections: ["drift"] lists them all. */
 const MAX_OVERLAPS_NAMED = 3;
 
-/** The entry's `drift` from the core's detail, or undefined when there is nothing to say. */
+/**
+ * The entry's `drift` from the core's answer, or undefined when there is nothing to say. Given the
+ * summary alone (DriftStatus), it carries the state, what a landing does and the call for the
+ * rest; given the detail, the counts and the overlaps too.
+ */
 function driftEntry(changesetId: string, detail: DriftDetail): ChangesetDriftEntry | undefined {
   if (detail.state === "none" || detail.state === "not-applicable") return undefined;
-  if (detail.state === "unknown") return { state: "unknown", landing: "allowed", reason: detail.message };
+  const next = { tool: "changeset_brief" as const, args: { changeset: changesetId, sections: ["drift"] as ["drift"] } };
+  // Not "allowed": a commit makes the same check, and what failed here may fail there.
+  if (detail.state === "unknown") return { state: "unknown", landing: "unknown", reason: detail.message, next };
   const counts = detail.baseChanges?.counts;
   const baseChanges = counts
     ? (Object.fromEntries(Object.entries(counts).filter(([, n]) => n > 0)) as Partial<Record<BaseChangeCount, number>>)
@@ -387,12 +425,12 @@ function driftEntry(changesetId: string, detail: DriftDetail): ChangesetDriftEnt
   return {
     state: "drifted",
     // The core's answer, so a rule that stops refusing on drift (#1200) is reported as it lands.
-    landing: detail.blocksCommit ? "refused-without-force" : "allowed-with-warning",
+    landing: detail.blocksCommit ? LANDING_WHEN_DRIFT_BLOCKS : "allowed-with-warning",
     ...common,
     ...(detail.overlapping ? { overlapping: { elements: elements.length, relationships: relationships.length, first } } : {}),
     // Only what could not be told: with a base index and overlaps named, the counts say it.
     ...(detail.warnings?.length ? { reason: detail.warnings.join(" ") } : {}),
-    next: { tool: "changeset_brief", args: { changeset: changesetId, sections: ["drift"] } },
+    next,
   };
 }
 
@@ -448,13 +486,18 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
   const staged = changesets.filter((changeset) => changeset.status === "staged");
 
   // Drift is read through changeset-drift-status.ts, the answer a commit acts on, against the base
-  // model as loaded: one manager for the call.
-  let base: { model: Model; manager: StagingAreaManager } | undefined;
+  // model as loaded: one manager for the call. The model is hashed once here: a changeset whose
+  // base hash still matches has nothing to check, and that is most of them in a quiet project.
+  let base: { model: Model; manager: StagingAreaManager; snapshot: string } | undefined;
   let driftUnknown: string | undefined;
   if (staged.length > 0) {
     try {
       const model = await ctx.model();
-      base = { model, manager: new StagingAreaManager(model.rootPath, model) };
+      base = {
+        model,
+        manager: new StagingAreaManager(model.rootPath, model),
+        snapshot: await new BaseSnapshotManager().captureSnapshot(model),
+      };
     } catch (error) {
       driftUnknown = `the model could not be loaded: ${getErrorMessage(error)}`;
     }
@@ -472,13 +515,18 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     const previousActive = asBuilt ? await extractionPreviousActive(projectRoot, changeset.id) : undefined;
     let baseDrifted: boolean | null = null;
     let drift: ChangesetDriftEntry | undefined;
-    if (base) {
+    if (base && changeset.baseSnapshot === base.snapshot) {
+      // The base is byte for byte what the changeset was created on: no drift of any kind.
+      baseDrifted = false;
+    } else if (base) {
       const plan = verifies ? changesets.find((other) => other.id === verifies) : undefined;
-      const detail = await driftDetail(base.model, base.manager, {
-        changeset,
-        purpose,
-        ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}),
-      });
+      const subject = { changeset, purpose, ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}) };
+      // The summary classifies; the detail also describes what changed, at the cost of another
+      // pass over the model, so it is kept for the active changeset unless all are asked for.
+      const describe = ctx.describeDrift === "all" || changeset.id === activeId;
+      const detail = describe
+        ? await driftDetail(base.model, base.manager, subject)
+        : await driftStatus(base.manager, subject);
       baseDrifted = detail.state === "unknown" ? null : detail.state === "drifted";
       drift = driftEntry(changeset.id, detail);
     }
@@ -689,7 +737,7 @@ async function codebaseRootOf(ctx: StatusContext): Promise<string> {
  * in full. Verdicts and counts are always computed over the whole lists.
  */
 export const LIST_DEFAULTS = {
-  stagedChangesets: 20,
+  stagedChangesets: 10,
   changedSourceFiles: 15,
   uncommittedSourceFiles: 15,
   /** Element ids per changed file; `elementCount` is the whole count. */
@@ -750,7 +798,25 @@ export interface UnreferencedFile {
 
 export type CodeDriftSection =
   | { status: "no-model" }
-  | { status: "no-git" | "unknown"; reason: string }
+  | {
+      /**
+       * unknown: drift could not be measured, so nothing here says the model is in step. Besides
+       * git failures, that is the case when the history the count starts from is not in this
+       * repository and no referenced file is seen to have changed: `incompleteHistory` says which.
+       */
+      status: "no-git" | "unknown";
+      reason: string;
+      /**
+       * missing-code-commit: the as-built landing read a code commit this repository doesn't have
+       * (a shallow clone, a branch never fetched, a commit squashed away). shallow-clone: the commit
+       * the count would start from is where this clone's history was cut.
+       */
+      incompleteHistory?: "missing-code-commit" | "shallow-clone";
+      /** With incompleteHistory: the as-built landing whose baseline can't be reached. */
+      reconciledBy?: { changeset: string; changesetId: string; landedAt: string; codeCommit?: string };
+      /** Whether this repository is a shallow clone. */
+      shallow?: true;
+    }
   | {
       /**
        * drift: files the model references changed since `countedFrom`. in-step: none did (files
@@ -933,6 +999,8 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   const short = (commit: string) => commit.slice(0, 7);
   let countedFrom: CommitInfo = baseline;
   let rule: string;
+  // Set when the history the count should start from is not in this repository.
+  let incomplete: "missing-code-commit" | "shallow-clone" | undefined;
   if (reconciled) {
     const moves =
       "Only landing a bootstrap or reconcile changeset (one codebase_extract makes) moves it; a landed plan does not, verified or not.";
@@ -944,10 +1012,19 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
         : null;
     if (codeCommit) {
       countedFrom = codeCommit;
+      // Extraction reads the working tree but the stamp names HEAD, so a file that was uncommitted
+      // then and committed with the model can't be told from one that merged in between.
       rule =
         `Counted from ${short(codeCommit.sha)}, the code the as-built landing "${reconciled.changeset}" read` +
-        `${codeCommit.sha !== sha ? ` (the model was committed later, in ${short(sha)})` : ""}. ${moves}`;
+        `${
+          codeCommit.sha !== sha
+            ? ` (the model was committed later, in ${short(sha)}; files committed between the two count as changed, ` +
+              "including any the extraction read before they were committed)"
+            : ""
+        }. ${moves}`;
     } else {
+      // The count can only start later than it should: what it finds is drift, but finding nothing proves nothing.
+      if (code) incomplete = "missing-code-commit";
       const why = code
         ? `: the code commit it read (${short(code)}) is not in this repository, so code that merged between the two is not counted`
         : " (it recorded no code commit)";
@@ -964,6 +1041,17 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
       "migration (note says why). Any commit to the model moves it.";
   }
   const from = countedFrom.sha;
+
+  // A shallow clone's history stops at a commit that looks like the one that created everything:
+  // a baseline found by walking history (not the stamp's code commit, which is compared tree to
+  // tree) may be that cut, not the commit that really brought the model in.
+  const shallow = await ctx
+    .git(["rev-parse", "--is-shallow-repository"], repo.top)
+    .then((result) => result.ok && result.stdout.trim() === "true");
+  if (shallow && !incomplete && from === sha) {
+    const parents = await ctx.git(["log", "-1", "--format=%P", sha], repo.top);
+    if (parents.ok && parents.stdout.trim() === "") incomplete = "shallow-clone";
+  }
 
   // Source references are relative to the codebase root; git names files from the top of the repo.
   const toPosix = (p: string) => p.split(path.sep).join("/");
@@ -992,6 +1080,35 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
   const matchedUncommitted = matchReferenced(uncommitted, referenced);
   const unreferenced = unreferencedChanges(changedEntries, referenced, prefix);
   const landedSince = reconciled ? landedSinceReconciliation(model, reconciled, uncommittedReconciliation) : undefined;
+  const reconciledBy = reconciled
+    ? {
+        changeset: reconciled.changeset,
+        changesetId: reconciled.changeset_id,
+        landedAt: reconciled.landed_at,
+        ...(reconciled.code_commit ? { codeCommit: reconciled.code_commit } : {}),
+      }
+    : undefined;
+
+  // With the start of the count out of reach, changed files that are seen are still drift (and
+  // `rule` says more may be hidden). Seeing none is not "in step": it is unknown.
+  if (incomplete && referenced.size > 0 && matched.length + matchedUncommitted.length === 0) {
+    const reason =
+      incomplete === "missing-code-commit"
+        ? `the as-built landing "${reconciled?.changeset}" read code commit ${short(reconciled?.code_commit ?? "")}, which this repository ` +
+          `doesn't have${shallow ? " (it is a shallow clone)" : " (a branch that was not fetched, or a commit squashed or rebased away)"}, ` +
+          `so what changed since can't be counted; nothing changed since ${short(sha)}, the earliest commit that can be compared`
+        : `this repository is a shallow clone and its history stops at ${short(sha)}, so the commit drift should be counted from can't be found`;
+    return {
+      status: "unknown",
+      reason,
+      incompleteHistory: incomplete,
+      ...(reconciledBy ? { reconciledBy } : {}),
+      ...(shallow ? { shallow: true as const } : {}),
+    };
+  }
+  if (incomplete === "shallow-clone") {
+    rule += ` This repository is a shallow clone whose history stops at ${short(sha)}, so changes before it are not counted.`;
+  }
 
   return {
     status:
@@ -1000,16 +1117,7 @@ export async function collectCodeDrift(ctx: StatusContext): Promise<CodeDriftSec
     countedFrom,
     basis,
     rule,
-    ...(reconciled
-      ? {
-          reconciledBy: {
-            changeset: reconciled.changeset,
-            changesetId: reconciled.changeset_id,
-            landedAt: reconciled.landed_at,
-            ...(reconciled.code_commit ? { codeCommit: reconciled.code_commit } : {}),
-          },
-        }
-      : {}),
+    ...(reconciledBy ? { reconciledBy } : {}),
     ...(landedSince ? { landedSince } : {}),
     ...(uncommittedReconciliation ? { uncommittedReconciliation } : {}),
     ...(lastModelCommit.sha !== sha ? { lastModelCommit } : {}),

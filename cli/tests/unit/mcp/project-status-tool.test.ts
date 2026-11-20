@@ -28,6 +28,7 @@ import {
 } from "../../../src/mcp/tools/project-status.js";
 import {
   changesSpecVersion,
+  LANDING_WHEN_DRIFT_BLOCKS,
   readInstalledCli,
   runGit,
   type GitRunner,
@@ -37,6 +38,12 @@ import { markEnvProjectRoot, resetProjectRoot } from "../../../src/mcp/project-r
 import { getCliBundledSpecVersion, getCliVersion } from "../../../src/utils/spec-version.js";
 
 const SERVICE = "application.applicationservice.checkout";
+
+// Follows tranche 2 (#1200, drift warns and never refuses): today a drifted changeset's landing is
+// refused without force. When that lands, these two lines are the edit: the entry's `landing` for
+// real drift, and the words the next step uses for it.
+const DRIFTED_LANDING = LANDING_WHEN_DRIFT_BLOCKS;
+const DRIFTED_LANDING_WORDS = "unless the user agrees to force: true";
 
 async function status(rootPath?: string): Promise<any> {
   const result = await projectStatusHandler(rootPath === undefined ? {} : { rootPath });
@@ -227,7 +234,8 @@ describe("project_status", () => {
     expect(data.nextStep.tool).toBeNull();
     expect(data.nextStep.summary).toContain("Update the dr CLI");
     // This server is the installed CLI, so the CLI itself is too old: an update, then a restart.
-    expect(data.server).toEqual({ status: "current", version: getCliVersion() });
+    // `comparedWith` says which install was read: "current" is about that one, not every dr on the machine.
+    expect(data.server).toEqual({ status: "current", version: getCliVersion(), comparedWith: expect.stringContaining("cli") });
     expect(data.spec.reason).toContain("update the dr CLI");
     expect(data.nextStep.summary).toContain("restart the session's dr server");
   });
@@ -305,7 +313,7 @@ describe("project_status", () => {
 
       // Files older than the process are the ones it was started from.
       const asStarted = await projectStatus({ rootPath }, sameVersion(Date.now() - 24 * 60 * 60 * 1000));
-      expect(asStarted.server).toEqual({ status: "current", version: getCliVersion() });
+      expect(asStarted.server).toMatchObject({ status: "current", version: getCliVersion() });
     });
 
     it("says so when the installed CLI can't be read, and reports this server's version", async () => {
@@ -445,49 +453,57 @@ describe("project_status", () => {
     expect(data.changesets.staged).toHaveLength(1);
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(true);
-    // #1227: what moved under it, what overlaps, what a landing does and the call that lists it.
-    expect(data.changesets.staged[0].drift).toEqual({
+    // #1227: set aside, it says that it drifted, what a landing does and the call that lists what moved.
+    const next = { tool: "changeset_brief", args: { changeset: data.changesets.staged[0].id, sections: ["drift"] } };
+    expect(data.changesets.staged[0].drift).toEqual({ state: "drifted", landing: DRIFTED_LANDING, next });
+    // The staged list in full describes every changeset's drift, as the active one's is.
+    const described = {
       state: "drifted",
-      landing: "refused-without-force",
+      landing: DRIFTED_LANDING,
       baseChanges: { elementsChanged: 1 },
       overlapping: { elements: 1, relationships: 0, first: ["application.applicationfunction.audit (changed-in-base)"] },
-      next: { tool: "changeset_brief", args: { changeset: data.changesets.staged[0].id, sections: ["drift"] } },
-    });
+      next,
+    };
+    expect((await page(rootPath, "stagedChangesets")).items[0].drift).toEqual(described);
 
     // Active, it is the next step: read the drift before building from the plan or landing it.
     await ok(await changesetActivateHandler({ changeset: "parked-plan", rootPath }));
     const active = await status(rootPath);
+    expect(active.changesets.active.drift).toEqual(described);
     expect(active.nextStep.tool).toBe("changeset_brief");
     expect(active.nextStep.args).toEqual({ sections: ["drift"], rootPath });
     expect(active.nextStep.summary).toContain("1 element changed in the base");
     expect(active.nextStep.summary).toContain("1 of its staged changes overlap (application.applicationfunction.audit (changed-in-base))");
-    expect(active.nextStep.summary).toContain("refuses to land it unless the user agrees to force: true");
+    expect(active.nextStep.summary).toContain(DRIFTED_LANDING_WORDS);
   });
 
-  it("says a drifted changeset with no base index can't name what changed, and still needs force (#1227)", async () => {
+  it("says a drifted changeset with no base index can't name what changed (#1227)", async () => {
     await initModel(rootPath);
     await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
     const created = await ok(await changesetCreateHandler({ name: "old-plan", rootPath }));
-    await ok(await changesetDeactivateHandler({ rootPath }));
     // A changeset made before base indexes were recorded has only the hash to go on.
     await rm(join(rootPath, "documentation-robotics", "changesets", created.id, "base-index.json"));
+    await ok(await changesetDeactivateHandler({ rootPath }));
     await ok(
       await modelUpdateHandler({ id: "application.applicationfunction.audit", description: "Audit trail", rootPath } as any)
     );
+    await ok(await changesetActivateHandler({ changeset: "old-plan", rootPath }));
     clearModelCache();
 
-    const entry = (await status(rootPath)).changesets.staged[0];
+    const data = await status(rootPath);
+    const entry = data.changesets.active;
 
     expect(entry.baseDrifted).toBe(true);
     expect(entry.drift.state).toBe("drifted");
-    expect(entry.drift.landing).toBe("refused-without-force");
+    expect(entry.drift.landing).toBe(DRIFTED_LANDING);
     expect(entry.drift.baseIndex).toBe("not-recorded");
     expect(entry.drift.baseChanges).toBeUndefined();
     expect(entry.drift.reason).toBeTruthy();
     expect(entry.drift.next.tool).toBe("changeset_brief");
+    expect(data.nextStep.summary).toContain("it has no readable base index (not-recorded), so what changed can't be named");
   });
 
-  it("shows twenty staged changesets by default, counts them all, and judges drift over every one", async () => {
+  it("shows ten staged changesets by default, counts them all, and judges drift over every one", async () => {
     await initModel(rootPath);
     await ok(await modelAddHandler({ layer: "application", type: "applicationfunction", name: "audit", rootPath }));
     // One plan rewords an element, 21 more stage nothing, and the base then changes that element.
@@ -509,15 +525,15 @@ describe("project_status", () => {
     const data = await status(rootPath);
 
     expect(data.changesets.stagedTotal).toBe(22);
-    expect(data.changesets.staged).toHaveLength(20);
+    expect(data.changesets.staged).toHaveLength(10);
     expect(data.changesets.more).toHaveLength(1);
     expect(data.changesets.more[0]).toContain(
-      `stagedChangesets shows 20 of 22: project_status with list: "stagedChangesets", offset: 20, rootPath: "${rootPath}" returns the rest.`
+      `stagedChangesets shows 10 of 22: project_status with list: "stagedChangesets", offset: 10, rootPath: "${rootPath}" returns the rest.`
     );
 
     // Every staged changeset is reachable, each exactly once, across the status and the call it names.
-    const rest = await page(rootPath, "stagedChangesets", { offset: 20 });
-    expect(rest).toMatchObject({ total: 22, returned: 2 });
+    const rest = await page(rootPath, "stagedChangesets", { offset: 10 });
+    expect(rest).toMatchObject({ total: 22, returned: 12 });
     expect(rest.nextOffset).toBeUndefined();
     const names = [...data.changesets.staged, ...rest.items].map((entry: any) => entry.name).sort();
     expect(names).toEqual(Array.from({ length: 22 }, (_, i) => `plan-${String(i).padStart(2, "0")}`));
@@ -531,6 +547,8 @@ describe("project_status", () => {
     expect(data.nextStep.summary).toContain("No changeset is active; 22 staged:");
     expect(data.nextStep.summary).toContain("and 17 more");
     expect(data.nextStep.summary).toContain('The base model changed under "plan-00"');
+    // The answer stays small with many changesets staged.
+    expect(JSON.stringify(data).length).toBeLessThan(6000);
   });
 
   it("refuses limit or offset without list, and says which lists there are", async () => {
@@ -576,8 +594,10 @@ describe("project_status", () => {
 
     expect(data.changesets.staged[0].name).toBe("parked-plan");
     expect(data.changesets.staged[0].baseDrifted).toBe(false);
-    // The base moved, and the entry says by how much and that landing is not blocked.
-    expect(data.changesets.staged[0].drift).toEqual({
+    // The base moved elsewhere: the entry says so and that landing is not blocked.
+    expect(data.changesets.staged[0].drift).toEqual({ state: "content-free", landing: "allowed" });
+    // The staged list in full says by how much.
+    expect((await page(rootPath, "stagedChangesets")).items[0].drift).toEqual({
       state: "content-free",
       landing: "allowed",
       baseChanges: { elementsChanged: 1 },
@@ -861,6 +881,37 @@ describe("project_status", () => {
       expect(all.items[0].elements).toHaveLength(5);
     });
 
+    it("counts every referenced file with uncommitted edits, not only the ones it lists", async () => {
+      const names = Array.from({ length: 18 }, (_, i) => `edit-${String(i).padStart(2, "0")}`);
+      for (const name of names) {
+        await writeFile(join(rootPath, "src", `${name}.ts`), "export const edit = 1;\n");
+        await ok(
+          await modelAddHandler({
+            layer: "application",
+            type: "applicationfunction",
+            name,
+            sourceFile: `src/${name}.ts`,
+            sourceProvenance: "manual",
+            rootPath,
+          })
+        );
+      }
+      git(rootPath, "add", "-A");
+      git(rootPath, "commit", "-q", "-m", "model the files");
+      for (const name of names) await writeFile(join(rootPath, "src", `${name}.ts`), "export const edit = 2;\n");
+
+      const data = await status(rootPath);
+
+      expect(data.codeDrift.status).toBe("drift");
+      expect(data.codeDrift.referencedFilesUncommitted).toBe(18);
+      expect(data.codeDrift.uncommittedSourceFiles).toHaveLength(15);
+      expect(data.codeDrift.more).toEqual([
+        `uncommittedSourceFiles shows 15 of 18: project_status with list: "uncommittedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`,
+      ]);
+      expect(data.nextStep.summary).toContain("18 source files the model references have uncommitted edits");
+      expect(await page(rootPath, "uncommittedSourceFiles", { offset: 15 })).toMatchObject({ total: 18, returned: 3 });
+    });
+
     it("names five unreferenced files, counts them all, and returns every one through list", async () => {
       await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
       for (let i = 0; i < 7; i++) await writeFile(join(rootPath, "src", `new-${i}.ts`), "export const n = 1;\n");
@@ -970,22 +1021,44 @@ describe("project_status", () => {
         expect(data.nextStep.summary).toContain(`since the code the as-built landing "extract-bootstrap" read (${modelSha.slice(0, 7)})`);
       });
 
-      it("falls back to the model's commit, and says so, when the repository doesn't have the extraction's commit", async () => {
+      it("says unknown, never in step, when the repository doesn't have the commit the extraction read", async () => {
         const missing = "0123456789abcdef0123456789abcdef01234567";
         await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: missing });
         const landingSha = commitModel();
+        await writeIndex(rootPath, landingSha);
 
         const data = await status(rootPath);
 
+        // Nothing changed since the model's commit, but the count should start earlier: not in step.
+        expect(data.codeDrift.status).toBe("unknown");
+        expect(data.codeDrift.incompleteHistory).toBe("missing-code-commit");
+        expect(data.codeDrift.reconciledBy).toMatchObject({ changeset: "extract-bootstrap", codeCommit: missing });
+        expect(data.codeDrift.reason).toContain(`read code commit ${missing.slice(0, 7)}, which this repository doesn't have`);
+        expect(data.codeDrift.shallow).toBeUndefined();
+        expect(data.nextStep.tool).toBeNull();
+        expect(data.nextStep.summary).toContain("Code drift can't be measured here");
+        expect(data.nextStep.summary).toContain("Don't take the model as current with the code");
+        expect(data.nextStep.summary).not.toContain("in step");
+      });
+
+      it("still reports the drift it can see from the model's commit, and says more may be hidden", async () => {
+        const missing = "0123456789abcdef0123456789abcdef01234567";
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: missing });
+        const landingSha = commitModel();
+        await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+        git(rootPath, "commit", "-q", "-am", "change checkout");
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
         expect(data.codeDrift.countedFrom.sha).toBe(landingSha);
-        expect(data.codeDrift.reconciledBy.codeCommit).toBe(missing);
         expect(data.codeDrift.rule).toContain(`the code commit it read (${missing.slice(0, 7)}) is not in this repository`);
         expect(data.codeDrift.rule).toContain("code that merged between the two is not counted");
       });
 
       it("never hands git a stamp's code commit that isn't a commit id", async () => {
         await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: "--output=stolen" });
-        const landingSha = commitModel();
+        commitModel();
         const seen: string[] = [];
         const spy: GitRunner = async (args, cwd) => {
           seen.push(...args);
@@ -995,7 +1068,77 @@ describe("project_status", () => {
         const data = (await projectStatus({ rootPath }, { git: spy })) as any;
 
         expect(seen.some((arg) => arg.includes("--output"))).toBe(false);
-        expect(data.codeDrift.countedFrom.sha).toBe(landingSha);
+        // It names no commit this repository has, so the baseline is out of reach.
+        expect(data.codeDrift.status).toBe("unknown");
+      });
+
+      it("counts from a commit that is in the repository but off this branch, tree to tree", async () => {
+        // The extraction ran on a branch whose commit never became an ancestor of HEAD (a squash merge).
+        git(rootPath, "checkout", "-q", "-b", "feature");
+        await writeFile(join(rootPath, "src", "other.ts"), "export const other = 2;\n");
+        git(rootPath, "commit", "-q", "-am", "work on the branch");
+        const branchSha = git(rootPath, "rev-parse", "HEAD");
+        git(rootPath, "checkout", "-q", "-");
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: branchSha });
+        commitModel();
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.countedFrom.sha).toBe(branchSha);
+        // The model's file is the same in both trees; the branch's other change is not on HEAD.
+        expect(data.codeDrift.status).toBe("in-step");
+        expect(data.codeDrift.unreferenced).toMatchObject({ files: 1, sourceFiles: 1, newSourceFiles: 0, first: ["src/other.ts"] });
+      });
+
+      it("says the rule can't tell files committed with the model from files merged in between", async () => {
+        // The extraction read checkout.ts with uncommitted edits; they were committed with the model.
+        await writeFile(join(rootPath, "src", "checkout.ts"), "export const checkout = 2;\n");
+        await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "land the model with the code it describes");
+
+        const data = await status(rootPath);
+
+        expect(data.codeDrift.status).toBe("drift");
+        expect(data.codeDrift.rule).toContain("files committed between the two count as changed, including any the extraction read before they were committed");
+      });
+
+      describe("in a shallow clone", () => {
+        let clone: string;
+
+        beforeEach(() => {
+          clone = `${rootPath}-shallow`;
+        });
+
+        afterEach(async () => {
+          await rm(clone, { recursive: true, force: true });
+        });
+
+        it("says unknown when the as-built landing's code commit is past where the history was cut", async () => {
+          await stampReconciled(rootPath, { changeset: "extract-bootstrap", codeCommit: modelSha });
+          commitModel();
+          git(rootPath, "clone", "-q", "--depth", "1", `file://${rootPath}`, clone);
+          clearModelCache();
+
+          const data = await status(clone);
+
+          expect(data.codeDrift).toMatchObject({ status: "unknown", incompleteHistory: "missing-code-commit", shallow: true });
+          expect(data.codeDrift.reason).toContain("it is a shallow clone");
+          expect(data.nextStep.tool).toBeNull();
+          expect(data.nextStep.summary).toContain("git fetch --unshallow");
+          expect(data.nextStep.summary).not.toContain("in step");
+        });
+
+        it("says unknown for a model with no as-built landing when history stops at the baseline", async () => {
+          git(rootPath, "clone", "-q", "--depth", "1", `file://${rootPath}`, clone);
+          clearModelCache();
+
+          const data = await status(clone);
+
+          expect(data.codeDrift).toMatchObject({ status: "unknown", incompleteHistory: "shallow-clone", shallow: true });
+          expect(data.codeDrift.reason).toContain("shallow clone and its history stops at");
+          expect(data.nextStep.summary).not.toContain("in step");
+        });
       });
 
       it("names the five latest changesets landed since, counts them all, and returns every one through list", async () => {
@@ -1570,7 +1713,7 @@ describe("suggestNextStep on base drift and a stale server", () => {
   });
   const drifted = {
     state: "drifted",
-    landing: "refused-without-force",
+    landing: DRIFTED_LANDING,
     baseChanges: { elementsChanged: 2, relationshipsAdded: 1 },
     overlapping: { elements: 4, relationships: 0, first: ["a.b.c (changed-in-base)", "a.b.d (removed-in-base)", "a.b.e (changed-in-base)"] },
     next: { tool: "changeset_brief", args: { changeset: "cs-1", sections: ["drift"] } },
@@ -1581,7 +1724,7 @@ describe("suggestNextStep on base drift and a stale server", () => {
 
     expect(step.tool).toBe("changeset_activate");
     expect(step.summary).toContain('The base model changed under "parked"');
-    expect(step.summary).toContain("unless the user agrees to force: true (the viewer's Apply has no force)");
+    expect(step.summary).toContain(DRIFTED_LANDING_WORDS);
     expect(step.summary).toContain('changeset_brief with changeset: "parked" and sections: ["drift"] names what moved');
   });
 
@@ -1610,6 +1753,33 @@ describe("suggestNextStep on base drift and a stale server", () => {
     expect(step.args).toBeUndefined();
     expect(step.summary).toContain("The base model changed since it was created (3 elements added), but nothing it stages against. Landing it is not blocked.");
     expect(step.summary).toContain("pick up the plan");
+  });
+
+  it("doesn't say a landing is allowed when drift could not be checked", () => {
+    const unchecked = { state: "unknown", landing: "unknown", reason: "Drift could not be checked: boom" };
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: plan(unchecked), staged: [plan(unchecked)] } }, { root: "/p" });
+
+    expect(step.summary).toContain("Its base drift could not be checked (Drift could not be checked: boom).");
+    expect(step.summary).toContain("Whether it can land can't be told until its drift can be checked.");
+    expect(step.summary).not.toContain("not blocked");
+  });
+
+  it("tells a drifted as-built changeset what landing it takes, not only to land it", () => {
+    const asBuilt = { ...plan(drifted), name: "extract-abc", purpose: "reconcile", asBuilt: true };
+    const step = suggestNextStep({ ...fresh, changesets: { ...fresh.changesets, active: asBuilt, staged: [asBuilt] } }, { root: "/p" });
+
+    expect(step.tool).toBe("review_open");
+    expect(step.summary).toContain("keep-as-built catch-up");
+    expect(step.summary).toContain("The base model changed under it since it was created");
+    expect(step.summary).toContain(DRIFTED_LANDING_WORDS);
+    expect(step.summary).toContain('changeset_brief with sections: ["drift"] lists what moved.');
+  });
+
+  it("doesn't call the model current when code drift could not be checked", () => {
+    const step = suggestNextStep({ ...fresh, codeDrift: { status: "unknown", reason: "git log failed: timed out" } }, { root: "/p" });
+
+    expect(step.summary).toContain("Whether the model is in step with the code could not be checked: git log failed: timed out.");
+    expect(step.summary).not.toContain("The model is current");
   });
 
   it("says nothing about drift for a plan whose base is as it was", () => {

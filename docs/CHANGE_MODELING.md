@@ -268,7 +268,7 @@ It reads local files and git only. It makes no network call and never starts the
 Each section comes from its own collector (`cli/src/mcp/tools/project-status-collectors.ts`); one
 that fails reports `status: "error"` and the others still answer.
 
-The status opens every session, so its lists show their first entries by default: 20 staged
+The status opens every session, so its lists show their first entries by default: 10 staged
 changesets, 15 changed source files with 3 elements each, 5 unreferenced files, the 5 latest
 changesets landed since the last as-built landing, 15 files changed since the index, and 3
 overlapping changes per drifted changeset. These are defaults, not cut-offs. Each shortened list
@@ -291,16 +291,20 @@ computed over the whole lists before anything is shortened.
   server when `server` is `stale`). A manifest without `spec_version` is read as 0.6.0, as
   `dr upgrade` reads it, with `assumed: true`.
 - `server`: the CLI version of the process answering, against the one installed where it was
-  loaded from. `stale` when they differ: a `dr mcp` process started before an upgrade still runs
-  the old code and the old bundled spec, and the fix is to restart the session's dr server, not to
-  update the CLI.
-- `changesets`: the active changeset and every staged one, with change counts by operation,
+  loaded from (`comparedWith`, the package folder; a newer `dr` installed elsewhere is not looked
+  for). `stale` when the versions differ, or when they are the same and the installed files were
+  written after the process started (the same version installed or built again): a `dr mcp`
+  process started before the change still runs the old code and the old bundled spec, and the fix
+  is to restart the session's dr server, not to update the CLI.
+- `changesets`: the active changeset and the staged ones, with change counts by operation,
   `baseDrifted` and, when the base's hash changed since the changeset was created, `drift`: its
   `state` and whether it blocks (`core/changeset-drift-status.ts`, the answer a commit acts on),
-  `landing` (`refused-without-force`, `allowed` or `allowed-with-warning`), how many base elements
-  and relationships changed (`baseChanges`), how many of the changeset's own changes they overlap
-  (`overlapping`, with the first few) and, for `drifted`, the `changeset_brief` call that lists
-  them (`next`).
+  `landing` (`refused-without-force`, `allowed`, `allowed-with-warning`, or `unknown` when drift
+  could not be checked) and, for `drifted`, the `changeset_brief` call that lists what moved
+  (`next`). The active changeset's `drift` also says how many base elements and relationships
+  changed (`baseChanges`) and how many of its own changes they overlap (`overlapping`, with the
+  first few); describing that costs a pass over the model per changeset, so the others get it from
+  `next` or from `list: "stagedChangesets"`, which describes every one.
 - `codeIndex`: what `dr analyzer status` reads in `.dr/analyzers/`, for the active analyzer (or,
   when none is active, the first with an index, and it says so). Its `status` follows the one
   freshness rule the codebase tools share (`judgeIndex` in `cli/src/mcp/tools/codebase-shared.ts`):
@@ -321,7 +325,12 @@ computed over the whole lists before anything is shortened.
   (`modelCommit`) counts; `rule` says which rule applies in a sentence. Changed files that no
   element references can't show as drift: `unreferenced` counts them, the source files and the new
   ones among them. `landedSince` names the changesets landed after the as-built landing, none of
-  which moved the baseline. Only an as-built landing
+  which moved the baseline. When the code commit the landing read is not in the repository (a
+  shallow clone, a branch never fetched, a commit squashed away), or a shallow clone's history
+  stops at the commit the count would start from, the status is `drift` if changed files are seen
+  from the later baseline and `unknown` otherwise (`incompleteHistory` says which case): never
+  `in-step`. Files committed between the extraction's commit and the model's count as changed,
+  including any the extraction read before they were committed; `rule` says so. Only an as-built landing
   reconciles the model with the code: a bootstrap, or a keep-as-built changeset staged by
   `codebase_extract` (see [Which landings reconcile](#which-landings-reconcile-the-model-with-the-code)).
   `modelCommit` is the commit that brought in the manifest's current `reconciled` stamp
