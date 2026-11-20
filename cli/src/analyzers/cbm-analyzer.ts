@@ -40,7 +40,7 @@ import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./v
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
 import { VerifyEngine, apiLayerReport } from "./verify-engine.js";
-import { LAYER_CHECKS, readRecordedDecisions, verifyLayers } from "./layer-verify.js";
+import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, verifyLayers, type RecordedDecisions } from "./layer-verify.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { Model } from "../core/model.js";
 import { Changeset } from "../core/changeset.js";
@@ -2536,16 +2536,25 @@ export class CbmAnalyzer implements AnalyzerBackend {
       const analyzerName = this.name;
       // What codebase_extract was told is not an element holds for routes as it does for the
       // other layers' symbols. Unreadable decisions leave every route in.
-      let recorded: Awaited<ReturnType<typeof readRecordedDecisions>> | null = null;
+      // Read once for every layer. A failure to read them is reported with the result, never
+      // swallowed: without it a checkout with no decisions and one that could not read its
+      // decisions would look the same, and both differ from a checkout that applied them.
+      let recorded: RecordedDecisions;
       try {
         const decisionModel = await Model.load(projectRoot);
         recorded = await readRecordedDecisions(projectRoot, await new StagingAreaManager(decisionModel.rootPath, decisionModel).list());
-      } catch {
-        recorded = null;
+      } catch (error) {
+        recorded = {
+          notElements: new Set(),
+          notRelationships: new Set(),
+          file: path.join(".dr", "analyzers", "extract", "decisions.json"),
+          found: false,
+          error: `could not read the recorded rejections: ${error instanceof Error ? error.message : String(error)}`,
+        };
       }
       const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed, {
         declaredRoutes,
-        ...(recorded ? { notElements: recorded.notElements } : {}),
+        notElements: recorded.notElements,
       });
 
       // The other layers: what extraction makes of the code's tables, infrastructure and test
@@ -2566,7 +2575,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           const graph = await ChangesetGraph.build(model, active ?? base);
           // What codebase_extract was told is not an element or relationship, and the ignore file,
           // hold here as they do for extraction and the API check.
-          const decisions = await readRecordedDecisions(projectRoot, await manager.list());
+          const decisions = recorded;
           const ignoreRules = await IgnoreFileLoader.load(options?.ignoreFilePath || path.join(projectRoot, ".dr-verify-ignore.yaml"));
           const result = await verifyLayers({
             graph: cbmCardGraph(tools, projectName),
@@ -2602,11 +2611,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
       layers.sort((a, b) => requested.indexOf(a.layer) - requested.indexOf(b.layer));
       // A layer whose check failed was not verified: it is listed under layers_not_verified only.
       const failed = new Set(layersNotVerified.map((n) => n.layer));
+      // Nor was a layer whose check ran and compared nothing: its status is not_checked, and it
+      // is in layers with why, not among the layers verified.
+      for (const layer of layers) if (layer.status === "not_checked") failed.add(layer.layer);
       return {
         ...report,
         ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
         layers,
         ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}),
+        rejections: rejectionsApplied(recorded, layers),
       };
     } finally {
       client.close();

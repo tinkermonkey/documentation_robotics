@@ -13,6 +13,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { mkdir as mkdirAsync, realpath, rm, writeFile } from "node:fs/promises";
@@ -281,6 +282,112 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     clearModelCache();
     const after = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-helpers", against: { changeset: "add-helpers-as-built" }, rootPath }));
     expect(after.sourceReferences).toBeUndefined();
+  }, 120_000);
+
+  it("lists the build's files that may hold an unreferenced planned add, from the range the as-built changeset read (#1159)", async () => {
+    // The build, in git: one commit on main, then the feature's file on a branch.
+    const git = (...args: string[]) => spawnSync("git", args, { cwd: rootPath, stdio: "pipe" });
+    git("init", "-q", "-b", "main");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test");
+    await writeFile(join(rootPath, "README.md"), "# project\n");
+    git("add", "README.md");
+    git("commit", "-q", "-m", "base");
+    git("checkout", "-q", "-b", "feature");
+    await mkdirAsync(join(rootPath, "src", "core"), { recursive: true });
+    await writeFile(join(rootPath, "src", "core", "commit-confirmation-token.ts"), "export function issueToken() {}\n");
+    await writeFile(join(rootPath, "src", "core", "model.ts"), "export class Model {}\n");
+    git("add", "src");
+    git("commit", "-q", "-m", "build");
+
+    const plan = ok(await changesetCreateHandler({ name: "add-token", description: "Confirm a commit with a token.", rootPath }));
+    ok(await modelAddHandler({ layer: "product", type: "feature", name: "Commit confirmation token", attributes: { priority: "medium", status: "planned" }, rootPath } as any));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const first = ok(await extract({ changeset: "add-token-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-token-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    const asBuilt = ok(await extract({ changeset: "add-token-as-built" }));
+    // The as-built changeset is the plan's verification record, read from the range since main.
+    const { manager: m } = await manager();
+    await m.declarePurpose(asBuilt.changeset.id, { purpose: "verification", verifies: plan.id, scope: { since: "main" } });
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-token", against: { changeset: "add-token-as-built" }, rootPath }));
+    // Extraction never reads a feature, so nothing matches it; the file named after it is offered.
+    expect(report.sourceReferences.unreferenced).toEqual([
+      {
+        planned: "product.feature.commit-confirmation-token",
+        result: "unverifiable",
+        candidates: [{ file: "src/core/commit-confirmation-token.ts", evidence: "file-name" }],
+      },
+    ]);
+    expect(report.sourceReferences.next).toContain("each with the build's files that may hold its code as candidates");
+    // The compact report carries it on the element's line.
+    const compact = ok(await changesetVerifyHandler({ changeset: "add-token", against: { changeset: "add-token-as-built" }, rootPath }));
+    expect(compact.sourceReferences.unreferenced).toEqual([
+      "product.feature.commit-confirmation-token (unverifiable): may be src/core/commit-confirmation-token.ts (file-name)",
+    ]);
+  }, 120_000);
+
+  it("stores a confirmed reference as a file path relative to the root, with provenance manual (#1159 review)", async () => {
+    ok(await changesetCreateHandler({ name: "add-helpers", description: "Add the string helpers.", rootPath }));
+    const feature = { layer: "product", type: "feature", attributes: { priority: "medium", status: "planned" }, rootPath };
+    ok(await modelAddHandler({ ...feature, name: "absolute" } as any));
+    ok(await modelAddHandler({ ...feature, name: "dotted" } as any));
+    ok(await modelAddHandler({ ...feature, name: "folder" } as any));
+    ok(await modelAddHandler({ ...feature, name: "outside" } as any));
+    // Already sourced, by inference: the confirmed location is added and the reference becomes manual.
+    ok(await modelAddHandler({ ...feature, name: "inferred", sourceFile: "src/util", sourceProvenance: "inferred" } as any));
+    ok(await modelAddHandler({ ...feature, name: "same", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers", sourceProvenance: "manual" } as any));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    ok(await changesetCreateHandler({ name: "add-helpers-as-built", rootPath }));
+    ok(await changesetDeactivateHandler({ rootPath }));
+    await mkdirAsync(join(rootPath, "src", "util"), { recursive: true });
+    await writeFile(join(rootPath, HELPERS_FILE), "public class Helpers {\n}\n");
+    clearModelCache();
+
+    const result = ok(
+      await changesetAdoptSourceReferencesHandler({
+        changeset: "add-helpers",
+        against: { changeset: "add-helpers-as-built" },
+        references: [
+          { id: "product.feature.absolute", sourceFile: join(rootPath, HELPERS_FILE), sourceSymbol: "Helpers" },
+          { id: "product.feature.dotted", sourceFile: "src/../src/util/./Helpers.java" },
+          { id: "product.feature.folder", sourceFile: "src/util" },
+          { id: "product.feature.outside", sourceFile: "../elsewhere/Helpers.java" },
+          { id: "product.feature.inferred", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers" },
+          { id: "product.feature.same", sourceFile: HELPERS_FILE, sourceSymbol: "Helpers" },
+        ],
+        rootPath,
+      })
+    );
+    // An absolute path inside the root and a path with `..` are stored as the model keeps paths.
+    expect(result.confirmed).toEqual([
+      { planned: "product.feature.absolute", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers" }] } },
+      { planned: "product.feature.dotted", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE }] } },
+      {
+        planned: "product.feature.inferred",
+        reference: { provenance: "manual", locations: [{ file: "src/util" }, { file: HELPERS_FILE, symbol: "Helpers" }] },
+      },
+    ]);
+    expect(result.skipped.map((k: any) => [k.planned, k.reason.split(":")[0]])).toEqual([
+      ["product.feature.folder", "src/util is a folder, not a file"],
+      ["product.feature.outside", "../elsewhere/Helpers.java is not a file under the codebase root"],
+      ["product.feature.same", `it already names ${HELPERS_FILE}#Helpers`],
+    ]);
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 3, skipped: 3, unknownIds: 0 });
+    expect(result.total).toBe(6);
   }, 120_000);
 
   it("reports a planned element the code registers by a name string as unverifiable, not missing (#1226)", async () => {

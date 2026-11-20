@@ -9,7 +9,10 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { readFileSync } from "fs";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "fs/promises";
+import { tmpdir } from "os";
 import { join } from "path";
+import { Model } from "@/core/model.js";
 import { CbmAnalyzer } from "@/analyzers/cbm-analyzer.js";
 import { MappingLoader } from "@/analyzers/mapping-loader.js";
 import { StdioClient } from "@/analyzers/stdio-client.js";
@@ -175,6 +178,34 @@ describe("CbmAnalyzer with CBM 0.12.1 responses", () => {
       } as any;
       await analyzer.verify(CODEBASE_ROOT);
       expect(compared.map((r) => `${r.http_method} ${r.http_path}`).sort()).toEqual(["GET /", "GET /oups"]);
+    });
+
+    it("verify(): hands the routes an OpenAPI file declares, and the recorded rejections, to the comparison", async () => {
+      // A project with one recorded rejection, in a folder of its own (the code stays the fixture's).
+      const projectRoot = await realpath(await mkdtemp(join(tmpdir(), "dr-cbm-verify-")));
+      try {
+        await Model.init(projectRoot, { name: "verify wiring", version: "0.1.0" });
+        await mkdir(join(projectRoot, ".dr", "analyzers", "extract"), { recursive: true });
+        await writeFile(
+          join(projectRoot, ".dr", "analyzers", "extract", "decisions.json"),
+          JSON.stringify({ version: 1, notElements: { "fixtures/main.py#GET /todos": { how: "rejected", reason: "a fixture", symbol: "GET /todos", file: "fixtures/main.py" } } })
+        );
+        let context: any;
+        VerifyEngine.prototype.computeReport = async function (...args: any[]) {
+          context = args[6];
+          return {} as any;
+        } as any;
+        const report = await analyzer.verify(projectRoot, { codebaseRoot: CODEBASE_ROOT, layers: ["api"] });
+        // Without these two the API check cannot compare a frontend's operations, nor leave out a
+        // rejected route: the comparison must receive both.
+        expect(context.declaredRoutes.map((r: any) => [r.http_method, r.http_path, r.source_file])).toEqual([["GET", "/pets", "openapi.yaml"]]);
+        expect([...context.notElements]).toEqual(["fixtures/main.py#GET /todos"]);
+        // And the report says which decisions it had.
+        expect(report.rejections).toMatchObject({ found: true, recorded: { elements: 1, relationships: 0 } });
+        expect(report.rejections!.note).toContain("is not in git");
+      } finally {
+        await rm(projectRoot, { recursive: true, force: true });
+      }
     });
   });
 

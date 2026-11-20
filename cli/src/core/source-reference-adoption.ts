@@ -32,7 +32,7 @@ import type { SourceReferenceGap, VerifyReport } from "./changeset-verify.js";
 import type { SourceLocation, SourceReference } from "../types/source-reference.js";
 import { readStagedSourceReference } from "./staged-source-reference.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 
 export interface AdoptionResult {
@@ -169,10 +169,11 @@ export interface ConfirmedAdoptionResult {
 
 /**
  * Stage onto the plan the references the caller confirmed in the code, for elements the plan adds
- * or updates. Each is added to the element's reference (kept when it already names that file and
- * symbol), with provenance `manual` when the element had none. Skipped, with why: an id the plan
- * doesn't stage, a file that doesn't exist under the codebase root, and an element with an as-built
- * match to copy from (`copyable`: its reference comes from extraction, not from the caller).
+ * or updates. Each is added to the element's reference as a path relative to the codebase root,
+ * and the reference's provenance becomes `manual`: the caller confirmed it by hand. Skipped, with
+ * why: an id the plan doesn't stage, a path that is not a file under the codebase root (a folder,
+ * a path outside it, nothing there), a location the element already names, and an element with an
+ * as-built match to copy from (`copyable`: its reference comes from extraction, not the caller).
  */
 export async function adoptConfirmedReferences(
   model: Model,
@@ -198,7 +199,7 @@ export async function adoptConfirmedReferences(
   const root = path.resolve(model.codebaseRoot);
   for (const ref of references) {
     const id = graph.resolve(ref.id);
-    const file = ref.sourceFile.replace(/\\/g, "/").replace(/^\.\//, "");
+    const file = ref.sourceFile.trim();
     const own = changes.filter((c) => (c.type === "add" || c.type === "update") && c.after && graph.resolve(c.elementId) === id);
     const latest = own[own.length - 1];
     if (!latest?.after) {
@@ -213,22 +214,40 @@ export async function adoptConfirmedReferences(
       skipped.push({ planned: id, reason: "it has an as-built match to copy the reference from (sourceReferences.missing): leave it out of references" });
       continue;
     }
+    // The reference is stored as the model keeps every other one: a file path relative to the
+    // codebase root, with forward slashes. An absolute path inside the root and a path with `..`
+    // segments are brought to that form; a path outside the root, a directory, or nothing there
+    // is refused.
     const abs = path.resolve(root, file);
-    if (!file || !abs.startsWith(root + path.sep) || !existsSync(abs)) {
-      skipped.push({ planned: id, reason: `${ref.sourceFile} is not a file under the codebase root: pass the path as the code has it, relative to the root` });
+    const relative = path.relative(root, abs).split(path.sep).join("/");
+    const inside = !!file && !!relative && !relative.startsWith("../") && relative !== ".." && !path.isAbsolute(relative);
+    const kind = !inside || !existsSync(abs) ? "none" : statSync(abs).isFile() ? "file" : "other";
+    if (kind !== "file") {
+      skipped.push({
+        planned: id,
+        reason:
+          kind === "other"
+            ? `${ref.sourceFile} is a folder, not a file: name the file that holds the element's code`
+            : `${ref.sourceFile} is not a file under the codebase root: pass the path as the code has it, relative to the root`,
+      });
       continue;
     }
     seen.add(id);
     const current = readStagedSourceReference(latest.after).value;
-    const location: SourceLocation = { file, ...(ref.sourceSymbol ? { symbol: ref.sourceSymbol } : {}) };
+    const location: SourceLocation = { file: relative, ...(ref.sourceSymbol ? { symbol: ref.sourceSymbol } : {}) };
     const locations = (current?.locations ?? []).filter((l) => typeof l?.file === "string");
-    const has = locations.some((l) => l.file === location.file && (l.symbol ?? "") === (location.symbol ?? ""));
+    if (locations.some((l) => l.file === location.file && (l.symbol ?? "") === (location.symbol ?? ""))) {
+      skipped.push({ planned: id, reason: `it already names ${location.file}${location.symbol ? `#${location.symbol}` : ""}: nothing to set` });
+      continue;
+    }
     // A location naming only this file is sharpened by one that names its symbol too.
     const kept = location.symbol ? locations.filter((l) => !(l.file === location.file && !l.symbol)) : locations;
+    // The caller confirmed this location by hand, so the reference is `manual` from here on,
+    // whatever it was: it no longer rests on extraction alone.
     const reference: SourceReference = {
       ...(current ? structuredClone(current) : {}),
-      provenance: current?.provenance ?? "manual",
-      locations: has ? locations : [...kept, location],
+      provenance: "manual",
+      locations: [...kept, location],
     };
     const after = structuredClone(latest.after);
     setStagedSourceReference(after, reference);

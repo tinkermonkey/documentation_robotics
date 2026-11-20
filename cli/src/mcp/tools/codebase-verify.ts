@@ -200,8 +200,14 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       };
       let limit = args.limit ?? VERIFY_PAGE_SIZE;
       let page = pageAt({ limit, offset: args.offset });
-      // Measured as the result is printed (indented), since that is what the caller receives.
-      const sizeOf = (p: typeof page) => JSON.stringify([p.paged.map((x) => x.layer), p.buckets], null, 2).length;
+      // Measured as the result is printed (indented), since that is what the caller receives: the
+      // lists, plus what the result carries whatever the page (the report's own fields, the scope,
+      // each layer's status line, the sentence naming the next call).
+      const fixed =
+        JSON.stringify({ ...report, buckets: undefined, layers: undefined, scope: VERIFY_SCOPE }, null, 2).length +
+        layers.reduce((n, l) => n + l.status_text.length + 200, 0) +
+        600;
+      const sizeOf = (p: typeof page) => fixed + JSON.stringify([p.paged.map((x) => x.layer), p.buckets], null, 2).length;
       while (args.limit === undefined && limit > VERIFY_MIN_PAGE_SIZE && sizeOf(page) > VERIFY_SIZE_TARGET) {
         limit = Math.max(Math.ceil(limit / 2), VERIFY_MIN_PAGE_SIZE);
         page = pageAt({ limit, offset: args.offset });
@@ -243,7 +249,11 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
         buckets,
         ...(report.layers ? { layers: paged.map((p) => p.layer) } : {}),
         ...(hints.length > 0 ? { hints } : {}),
-        ...(report.layers_verified ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l)) } : {}),
+        // The layers compared with the code: not one whose check failed, and not one whose check
+        // ran and could compare nothing (status not_checked).
+        ...(report.layers_verified
+          ? { layers_verified: report.layers_verified.filter((l) => !failed.has(l) && !layers.some((x) => x.layer === l && x.status === "not_checked")) }
+          : {}),
         ...(acceptedGaps ? { acceptedGaps } : {}),
         ...(notVerifiedAll.length > 0 ? { layers_not_verified: notVerifiedAll } : {}),
         scope: VERIFY_SCOPE,
@@ -312,7 +322,8 @@ export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
     `limit entries (default ${VERIFY_PAGE_SIZE}) from offset. Statuses, coverage and counts are always over everything; a layer's ` +
     "page.totals gives every list's true length, page.nextOffset is the next offset (absent on the last page), and more " +
     "names the call for the next page. Symbols " +
-    "codebase_extract recorded as not elements (reject) are left out. It doesn't check other layers. Needs a fresh index: if there is none, " +
+    "codebase_extract recorded as not elements (reject) are left out of in_graph_only and listed under ignored; rejections " +
+    "says where those decisions were read from, how many, and how many each layer applied (they are local to a checkout). It doesn't check other layers. Needs a fresh index: if there is none, " +
     "a run is in flight, or source files changed since, it says so; run codebase_index first. Read-only.",
   inputSchema,
   handler: codebaseVerifyHandler,

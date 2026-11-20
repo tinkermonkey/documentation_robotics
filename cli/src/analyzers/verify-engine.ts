@@ -27,7 +27,7 @@ import { VERIFIABLE_LAYERS } from "./types.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { SOURCE_CODE_EXT_RE } from "./cbm-analyzer.js";
 import { decisionKey, routeKey } from "./extraction-plan.js";
-import { groupNotChecked, layerStatus, type LayerNouns, type NotCheckedElement } from "./verify-status.js";
+import { groupNotChecked, layerStatus, REJECTED_REASON, type LayerNouns, type NotCheckedElement } from "./verify-status.js";
 
 /**
  * A discovered route from the graph
@@ -311,7 +311,6 @@ export class VerifyEngine {
       if (!context.notElements?.size || !route.http_method || !route.http_path) return false;
       return context.notElements.has(decisionKey(route.source_file || null, `${route.http_method} ${route.http_path}`));
     };
-    const REJECTED_REASON = "recorded as not an element (codebase_extract reject)";
     /** Files the analyzer reads served routes from, and the routes it reads, as `METHOD /path`. */
     const filesWithRoutes = new Set<string>();
     const servedKeys = new Set<string>();
@@ -689,16 +688,20 @@ export function apiLayerReport(report: VerifyReport): LayerVerifyReport {
   const declaredIn = [...new Set(buckets.matched.map((e) => e.declared_in).filter((f): f is string => !!f))];
   if (declaredIn.length > 0) {
     const declared = buckets.matched.filter((e) => e.declared_in).length;
-    const inStepWithCode = "in step with the code.";
-    if (declared === buckets.matched.length && status.status_text.includes(inStepWithCode)) {
-      // Nothing was compared with code that serves a route: say what it is in step with.
-      status.status_text = status.status_text.replace(
-        inStepWithCode,
-        `in step with the API description (${declaredIn.join(", ")}), which declares each of them. That does not show that code here serves them.`
-      );
-    } else {
+    const served = buckets.matched.length - declared;
+    const files = declaredIn.join(", ");
+    const inStepWithCode = "in step with the code";
+    // "In step with the code" is said only of what was compared with code that serves a route. A
+    // match against a description says the description declares the route: it may be stale.
+    const withDescription =
+      served === 0
+        ? `in step with the API description (${files}), which declares each of them. That does not show that code here serves them`
+        : `in step: ${served} with routes the code serves, and ${declared} with routes an API description declares (${files}), ` +
+          "which does not show that code here serves those";
+    if (status.status_text.includes(inStepWithCode)) status.status_text = status.status_text.replace(inStepWithCode, withDescription);
+    else {
       status.status_text +=
-        ` ${declared} of the matched operations were compared with the routes an API description declares (${declaredIn.join(", ")}): ` +
+        ` ${declared} of the matched operations were compared with the routes an API description declares (${files}): ` +
         "it declares them, which does not show that code here serves them.";
     }
   }

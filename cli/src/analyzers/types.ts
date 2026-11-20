@@ -704,7 +704,7 @@ export interface VerifyReport {
   analyzer_indexed_at: string;
   /** Changeset context information */
   changeset_context: VerifyChangesetContext;
-  /** Array of layer names that were verified */
+  /** The layers compared with the code: a layer whose check failed, or whose status is `not_checked`, is not among them. */
   layers_verified: string[];
   /** Buckets of categorized entries */
   buckets: VerifyBuckets;
@@ -719,4 +719,26 @@ export interface VerifyReport {
   layers?: LayerVerifyReport[];
   /** Requested layers whose check failed, with why; the others' results stand. */
   layers_not_verified?: Array<{ layer: string; reason: string }>;
+  /** The recorded rejections this report applied, and where they were read from. */
+  rejections?: VerifyRejections;
+}
+
+/**
+ * The "not an element" decisions codebase_extract recorded, as a verification used them. They live
+ * under `.dr/`, which git ignores: two checkouts of one commit can hold different decisions and so
+ * give different results, and this says which a report had.
+ */
+export interface VerifyRejections {
+  /** The decisions file, relative to the project root. */
+  file: string;
+  /** Whether the file exists in this checkout. */
+  found: boolean;
+  /** Decisions read: symbols recorded as not elements, and relationships recorded as not relationships. */
+  recorded: { elements: number; relationships: number };
+  /** Per verified layer, how many entries a recorded rejection kept out of "in the code only" (they are listed under that layer's `ignored`). */
+  applied: Record<string, number>;
+  /** Set when the file exists and could not be read: no rejection was applied. */
+  error?: string;
+  /** What this means for the reader, in a sentence. */
+  note: string;
 }

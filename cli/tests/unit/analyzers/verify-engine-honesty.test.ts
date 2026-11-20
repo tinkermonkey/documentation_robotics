@@ -133,6 +133,26 @@ describe("API check on a frontend: routes described only by an OpenAPI file (#11
     ]);
   });
 
+  it("says what each match was compared with when some are served by code and some only declared", async () => {
+    await writeModel([
+      { name: "get-users", method: "GET", path: "/users", file: "src/users.ts", symbol: "listUsers" },
+      { name: "get-model", method: "GET", path: "/api/model", file: "docs/api-spec.yaml", symbol: "GET /api/model" },
+    ]);
+    await file("src/users.ts", "export function listUsers() {}\n");
+    await file("docs/api-spec.yaml", "openapi: 3.0.0\n");
+    const routes: DiscoveredRoute[] = [{ id: "r", http_method: "GET", http_path: "/users", source_file: "src/users.ts", source_symbol: "listUsers" }];
+    const layer = apiLayerReport(
+      await new VerifyEngine().computeReport(root, routes, { changesetAware: false }, "cbm", undefined, undefined, { declaredRoutes: [declared("GET", "/api/model")] })
+    );
+    expect(layer.status).toBe("in_step");
+    // "In step with the code" is never said of a match against a description, which may be stale.
+    expect(layer.status_text).toBe(
+      "Checked 2 of the model's 2 API operations: in step: 1 with routes the code serves, and 1 with routes an API description declares " +
+        "(docs/api-spec.yaml), which does not show that code here serves those."
+    );
+    expect(layer.status_text).not.toContain("in step with the code");
+  });
+
   it("never lets a route that only the description declares stand for an operation sourced to code", async () => {
     await writeModel([{ name: "get-model", method: "GET", path: "/api/model", file: "src/server.ts", symbol: "getModel" }]);
     await file("src/server.ts", "export const other = 1;\n");

@@ -533,8 +533,20 @@ describe("codebase_verify", () => {
     await writeIndexMeta(META, rootPath, "cbm");
     const h = harness();
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["api", "data-model"], rootPath }));
-    expect(report.layers_verified).toEqual(["api"]);
+    // The API check ran and had nothing to compare (no operations, no routes): not checked, so
+    // not among the layers verified either.
+    expect(report.layers_verified).toEqual([]);
+    expect(report.status.map((s: any) => [s.layer, s.status])).toEqual([
+      ["api", "not_checked"],
+      ["data-model", "not_checked"],
+    ]);
     expect(report.layers_not_verified).toEqual([{ layer: "data-model", reason: "No verification available for this layer" }]);
+
+    // With something compared, the layer is verified.
+    await addOperation();
+    h.routes = [{ id: "r1", http_method: "GET", http_path: "/users", source_file: "src/handlers/users.ts", source_symbol: "getUsers" }];
+    const compared = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["api", "data-model"], rootPath }));
+    expect(compared.layers_verified).toEqual(["api"]);
 
     const none = ok(await createCodebaseVerifyHandler(h.deps)({ layers: ["ux"], rootPath }));
     expect(none.layers_verified).toEqual([]);
@@ -555,6 +567,9 @@ describe("codebase_verify", () => {
       }),
     } as unknown as AnalyzerBackend;
     const deps = { ...h.deps, getAnalyzer: async (name: string) => (name === "cbm" ? failing : undefined) };
+    await addOperation();
+    await mkdir(join(rootPath, "src", "handlers"), { recursive: true });
+    // The handler file is gone from the code: the operation is compared, and in the model only.
     const report = ok(await createCodebaseVerifyHandler(deps)({ layers: ["api", "technology", "data-model"], rootPath }));
     expect(report.layers_verified).toEqual(["api"]);
     expect(report.layers_not_verified).toEqual([
@@ -784,7 +799,10 @@ describe("index freshness (bug 11)", () => {
     expect(index.message).toContain("nothing to do");
 
     const report = ok(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
-    expect(report.layers_verified).toEqual(["api", "data-store", "technology", "testing"]);
+    // The index is usable: the checks ran. (The API layer had nothing to compare, so it is not
+    // listed as verified; this harness's analyzer reports no status for the other three.)
+    expect(report.status[0]).toMatchObject({ layer: "api", status: "not_checked" });
+    expect(report.layers_verified).toEqual(["data-store", "technology", "testing"]);
   });
 
   it("calls the index stale when commits since it changed source files", async () => {

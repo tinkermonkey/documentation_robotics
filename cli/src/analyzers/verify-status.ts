@@ -8,6 +8,9 @@
  */
 import type { LayerVerifyCoverage, LayerVerifyStatus, NotCheckedGroup } from "./types.js";
 
+/** The reason on an entry a recorded rejection covers, in every layer's `ignored` bucket. */
+export const REJECTED_REASON = "recorded as not an element (codebase_extract reject)";
+
 /** A model element a check could not compare, with why and what would make it checkable. */
 export interface NotCheckedElement {
   id: string;
@@ -92,9 +95,17 @@ export function layerStatus(
     return { status: "drifted", status_text: `${text}${unchecked}`, coverage };
   }
   if (checked > 0) {
+    // An element in the model only that an ignore rule covers was compared and did not match: the
+    // layer is in step only by that rule, and the sentence says so.
+    const byRule =
+      ignored === 0
+        ? "in step with the code."
+        : findings.matched === 0
+          ? `none matched the code; all ${count(ignored)} are in the model only and covered by an ignore rule, so nothing counts as drift.`
+          : `in step with the code, apart from ${count(ignored)} in the model only that an ignore rule covers.`;
     return {
       status: "in_step",
-      status_text: `Checked ${count(checked)} of the model's ${count(coverage.model_elements)} ${nouns.model}: in step with the code.${unchecked}`,
+      status_text: `Checked ${count(checked)} of the model's ${count(coverage.model_elements)} ${nouns.model}: ${byRule}${unchecked}`,
       coverage,
     };
   }

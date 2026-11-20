@@ -36,7 +36,8 @@ const inputSchema = {
     .describe(
       "Source references you confirmed in the code for planned elements with no as-built match to copy from: the ones " +
         "extraction can't see (a feature, a requirement, a tool the code registers by a name string), which changeset_verify " +
-        "lists under sourceReferences.unreferenced with candidate files. Each is staged onto the plan with provenance manual."
+        "lists under sourceReferences.unreferenced with candidate files. Each is staged onto the plan as a file path relative to " +
+        "the codebase root, with provenance manual; a folder or a path outside the root is skipped with the reason."
     ),
   limit: z
     .number()

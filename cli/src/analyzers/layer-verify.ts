@@ -39,10 +39,10 @@ import { collectExtraction, type ExtractionConfig, type ExtractionGraph } from "
 import { TEST_PATH } from "./cards/routes.js";
 import { TEST_CASE_LABEL } from "./cards/test-cases.js";
 import type { CardGraph } from "./cards/types.js";
-import { planElements, planRelationships, type ElementPlan } from "./extraction-plan.js";
-import type { LayerVerifyEntry, LayerVerifyRelationship, LayerVerifyReport } from "./types.js";
+import { decisionKey, planElements, planRelationships, sourceSymbolOf, type ElementPlan } from "./extraction-plan.js";
+import type { LayerVerifyEntry, LayerVerifyRelationship, LayerVerifyReport, VerifyRejections } from "./types.js";
 import { IgnoreFileLoader, type IgnoreRule } from "./verify-ignore.js";
-import { groupNotChecked, layerStatus, type LayerNouns, type NotCheckedElement } from "./verify-status.js";
+import { groupNotChecked, layerStatus, REJECTED_REASON, type LayerNouns, type NotCheckedElement } from "./verify-status.js";
 
 /** A model element's source location. */
 interface Location {
@@ -235,13 +235,43 @@ export interface LayerVerifyResult {
  * decision inferred from an unstage (`how: "unstaged"`) holds only as codebase_extract keeps it:
  * while its changeset is staged, and for a relationship also once that changeset landed. Others
  * are left out here (codebase_extract drops them from the file on its next run).
+ *
+ * The result also says where the decisions live, whether the file was found, and why it could not
+ * be read when it could not: the file is under `.dr/`, which git ignores, so two checkouts of one
+ * commit can hold different decisions, and a verdict that depends on them has to say which it used.
  */
+export interface RecordedDecisions {
+  notElements: Set<string>;
+  notRelationships: Set<string>;
+  /** The decisions file, relative to the project root. */
+  file: string;
+  /** Whether the file exists in this checkout. */
+  found: boolean;
+  /** Set when the file exists and could not be read or parsed: no decision was applied. */
+  error?: string;
+}
+
 export async function readRecordedDecisions(
   projectRoot: string,
   changesets?: ReadonlyArray<{ id: string; status: string }>
-): Promise<{ notElements: Set<string>; notRelationships: Set<string> }> {
+): Promise<RecordedDecisions> {
+  const file = path.join(".dr", "analyzers", "extract", "decisions.json");
+  let text: string;
   try {
-    const stored = JSON.parse(await readFile(path.join(projectRoot, ".dr", "analyzers", "extract", "decisions.json"), "utf-8"));
+    text = await readFile(path.join(projectRoot, file), "utf-8");
+  } catch (error) {
+    // No file: nothing was recorded in this checkout. Anything else is a read error, and is said.
+    const missing = (error as NodeJS.ErrnoException).code === "ENOENT";
+    return {
+      notElements: new Set(),
+      notRelationships: new Set(),
+      file,
+      found: false,
+      ...(missing ? {} : { error: `could not read ${file}: ${error instanceof Error ? error.message : String(error)}` }),
+    };
+  }
+  try {
+    const stored = JSON.parse(text);
     const staged = new Set((changesets ?? []).filter((c) => c.status === "staged").map((c) => c.id));
     const landed = new Set((changesets ?? []).filter((c) => c.status === "committed").map((c) => c.id));
     const keys = (o: unknown, holds: (changesetId: string | undefined) => boolean) =>
@@ -255,10 +285,43 @@ export async function readRecordedDecisions(
     return {
       notElements: keys(stored?.notElements, (id) => !!id && staged.has(id)),
       notRelationships: keys(stored?.notRelationships, (id) => !!id && (staged.has(id) || landed.has(id))),
+      file,
+      found: true,
     };
-  } catch {
-    return { notElements: new Set(), notRelationships: new Set() };
+  } catch (error) {
+    return {
+      notElements: new Set(),
+      notRelationships: new Set(),
+      file,
+      found: true,
+      error: `${file} is not valid JSON, so no recorded rejection was applied: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
+}
+
+/**
+ * What a verification says about the recorded rejections it used: the file, how many decisions it
+ * read, how many entries each layer left out because of one (listed under that layer's `ignored`),
+ * and the read error when there was one.
+ */
+export function rejectionsApplied(recorded: RecordedDecisions, layers: LayerVerifyReport[]): VerifyRejections {
+  const applied: Record<string, number> = {};
+  for (const layer of layers) applied[layer.layer] = (layer.buckets.ignored ?? []).filter((e) => e.reason === REJECTED_REASON).length;
+  const total = Object.values(applied).reduce((n, c) => n + c, 0);
+  const counts = { elements: recorded.notElements.size, relationships: recorded.notRelationships.size };
+  const local = `${recorded.file} is not in git (.dr/ is ignored), so another checkout of this commit may hold other decisions and report differently.`;
+  return {
+    file: recorded.file,
+    found: recorded.found,
+    recorded: counts,
+    applied,
+    ...(recorded.error ? { error: recorded.error } : {}),
+    note: recorded.error
+      ? `No recorded rejection was applied: ${recorded.error}. Entries someone rejected may be listed as in the code only.`
+      : !recorded.found
+        ? `This checkout has no recorded rejections, so nothing was left out because of one. ${local}`
+        : `${counts.elements} recorded rejection(s) were read and ${total} kept an entry out of "in the code only" (each is under its layer's ignored bucket). ${local}`,
+  };
 }
 
 /**
@@ -390,6 +453,29 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
     }
   }
 
+  // Symbols a recorded rejection keeps out of "in the code only": listed under ignored with why,
+  // as the API layer lists its rejected routes, so a rejection never changes a status unseen.
+  const rejected: LayerVerifyEntry[] = [];
+  if (planned && input.notElements?.size) {
+    const seen = new Set<string>();
+    for (const s of planned.extraction.symbols) {
+      const t = s.tier0;
+      if (t?.kind !== "decide" || !checked(t.layer, t.type) || planned.plan.elementOf.has(s.qualifiedName)) continue;
+      const symbol = sourceSymbolOf(s);
+      const key = decisionKey(s.card.file_path, symbol);
+      if (!input.notElements.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      rejected.push({
+        id: key,
+        type: `${t.layer}.${t.type}`,
+        name: s.card.name,
+        files: s.card.file_path ? [s.card.file_path] : [],
+        symbol,
+        reason: REJECTED_REASON,
+      });
+    }
+  }
+
   // The model's elements of the checked types that no symbol matched: each ends in the model only
   // (drift), not indexed, or not checked with why. None is only counted.
   const candidates: Array<{ e: GraphElement; files: string[]; symbol?: string }> = [];
@@ -461,7 +547,7 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
   }
 
   // What .dr-verify-ignore.yaml covers is neither a gap nor drift.
-  const ignored: LayerVerifyEntry[] = [];
+  const ignored: LayerVerifyEntry[] = [...rejected];
   const unlessIgnored = (entries: LayerVerifyEntry[], as: "route" | "element") =>
     entries.filter((entry) => {
       const reason = input.ignoreRules?.length ? IgnoreFileLoader.matches({ element_id: entry.id, handler: entry.symbol }, as, input.ignoreRules) : null;
