@@ -234,6 +234,19 @@ describe("codebase_extract triage: groups before cards (#1154, #1177)", () => {
     expect(fail(await handler({ preview: true, reject: [{ files: "design/**", reason: "x" }], rootPath })).error).toContain("can't be combined with reject");
   }, SLOW);
 
+  it("decides one card a preview showed, before any real run, and a real run removes the preview's store", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ preview: true, rootPath }));
+    const card = ok(await handler({ preview: true, view: { label: "Interface" }, rootPath })).undecided.items.find((c: any) => c.symbol === "PlanOptions");
+    const previewed = ok(await handler({ preview: true, verbose: true, decide: [{ card: card.cardId, as: "data-model.objectschema", reason: "options" }], rootPath }));
+    expect(previewed.decide.results[0]).toMatchObject({ status: "would-apply", id: "data-model.objectschema.plan-options" });
+    const store = join(rootPath, ".dr", "analyzers", "extract", "preview.json");
+    expect(existsSync(store)).toBe(true);
+    const run = ok(await handler({ decide: [{ card: card.cardId, as: "data-model.objectschema", reason: "options" }], verbose: true, rootPath }));
+    expect(run.decide.results[0]).toMatchObject({ status: "applied" });
+    expect(existsSync(store)).toBe(false);
+  }, SLOW);
+
   it("reports every rule, one that decided nothing included", async () => {
     const handler = createCodebaseExtractHandler(harness().deps);
     await mkdir(join(rootPath, "documentation-robotics"), { recursive: true });

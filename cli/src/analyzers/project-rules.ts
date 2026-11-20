@@ -327,7 +327,8 @@ export async function loadProjectRules(projectRoot: string): Promise<CompiledRul
   const body = parsed as Record<string, unknown>;
   const unknownKeys = Object.keys(body).filter((k) => !(FILE_KEYS as readonly string[]).includes(k));
   if (unknownKeys.length) throw fail(`${rel} has unknown key ${unknownKeys.map((k) => `'${k}'`).join(", ")} (it takes ${FILE_KEYS.join(" and ")})`);
-  if (body.version !== undefined && body.version !== PROJECT_RULES_VERSION) {
+  if (body.version === undefined) throw fail(`${rel} has no version: add version: ${PROJECT_RULES_VERSION} at the top`);
+  if (body.version !== PROJECT_RULES_VERSION) {
     throw fail(`${rel} is version ${JSON.stringify(body.version)}; this dr reads version ${PROJECT_RULES_VERSION}`);
   }
   const rules = body.rules;

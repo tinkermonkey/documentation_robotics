@@ -2880,7 +2880,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const descriptionsFile = path.join(extractDir(projectRoot), DESCRIPTIONS_FILE);
         const extractedDescriptions = (await readJson<Record<string, string>>(descriptionsFile)) ?? {};
         // The call's decide items, as rules ahead of the project's file, and decisions on single cards.
-        const decided = compileDecide(decideItems, storedBefore?.cards ?? pendingFor(name)?.cards ?? [], new Set(fileRules.map((r) => r.rule.name)));
+        // Cards a decide item may name: the last run's, else the waiting ones, else the last preview's at this commit.
+        const lastPreview = decideItems.some((d) => d.card !== undefined) && !storedBefore?.cards && !pendingFor(name)?.cards
+          ? await readJson<StoredCards>(path.join(extractDir(projectRoot), PREVIEW_FILE))
+          : null;
+        const previewCards = lastPreview && lastPreview.gitHead === head ? [...lastPreview.cards, ...((lastPreview.earlierCards ?? []) as UndecidedCard[])] : [];
+        const decided = compileDecide(decideItems, storedBefore?.cards ?? pendingFor(name)?.cards ?? previewCards, new Set(fileRules.map((r) => r.rule.name)));
         const rules: CompiledRule[] = [...decided.rules.map((r) => r.compiled), ...fileRules];
         // A member's owner for ownerType: the element the model (or this changeset) has for its class.
         const existingIndex = indexExisting(before);
@@ -3486,6 +3491,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               baseModified,
               createdAt: now,
               cards: undecided,
+              // Cards this preview's card items decided, so a run that applies them still finds them.
+              ...(decided.byCard.size ? { earlierCards: [...decided.byCard.values()].map((d) => d.card) } : {}),
               ...(rangeOnly ? { rangeOnly: true } : {}),
               ...(Object.keys(runLists).length ? { lists: runLists } : {}),
             };
@@ -3772,6 +3779,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           await rm(pendingPath, { force: true });
         }
         await pruneCardFiles(projectRoot, manager);
+        // A real run supersedes the last preview: its store (cards and lists, about 2 MB on a large codebase) goes.
+        await rm(path.join(extractDir(projectRoot), PREVIEW_FILE), { force: true });
 
         // Relationships this extraction staged in an earlier run that a decide item of this call
         // rules out: unstaged now, so the decision holds in the changeset and not only in later runs.

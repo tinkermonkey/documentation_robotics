@@ -250,16 +250,18 @@ describe("project rules", () => {
       await mkdir(join(root, "documentation-robotics"), { recursive: true });
       await writeFile(projectRulesPath(root), "version: 1\nrules:\n  - name: bad\n    where: { label: Function }\n    as: application.nothing\n    reason: x\n", "utf-8");
       await expect(loadProjectRules(root)).rejects.toThrow("rule 'bad': the application layer has no type 'nothing'");
-      await writeFile(projectRulesPath(root), "rules: nope\n", "utf-8");
+      await writeFile(projectRulesPath(root), "version: 1\nrules: nope\n", "utf-8");
       await expect(loadProjectRules(root)).rejects.toThrow("'rules' must be a list");
+      await writeFile(projectRulesPath(root), "rules: []\n", "utf-8");
+      await expect(loadProjectRules(root)).rejects.toThrow("has no version");
       // A top-level typo, another version, an unknown label or predicate: refused, not silently ignored.
       await writeFile(projectRulesPath(root), "version: 1\nrule:\n  - name: x\n", "utf-8");
       await expect(loadProjectRules(root)).rejects.toThrow("unknown key 'rule'");
       await writeFile(projectRulesPath(root), "version: 9\nrules: []\n", "utf-8");
       await expect(loadProjectRules(root)).rejects.toThrow("is version 9");
-      await writeFile(projectRulesPath(root), "rules:\n  - name: x\n    where: { label: Funktion }\n    as: none\n    reason: y\n", "utf-8");
+      await writeFile(projectRulesPath(root), "version: 1\nrules:\n  - name: x\n    where: { label: Funktion }\n    as: none\n    reason: y\n", "utf-8");
       await expect(loadProjectRules(root)).rejects.toThrow("'Funktion' is not a card label");
-      await writeFile(projectRulesPath(root), "rules:\n  - name: x\n    relationship: { source: a.b.c, predicate: realises }\n    as: none\n    reason: y\n", "utf-8");
+      await writeFile(projectRulesPath(root), "version: 1\nrules:\n  - name: x\n    relationship: { source: a.b.c, predicate: realises }\n    as: none\n    reason: y\n", "utf-8");
       await expect(loadProjectRules(root)).rejects.toThrow("'realises' is not a predicate");
     });
   });

@@ -124,7 +124,7 @@ export function compileDecide(items: readonly DecideItem[], cards: readonly Unde
       if (matches.length !== 1) {
         problem(
           matches.length ? "ambiguous" : "no-match",
-          matches.length ? `'${ref}' names more than one card: ${matches.map((c) => c.cardId).join(", ")}` : `'${ref}' is not a card of the last run`,
+          matches.length ? `'${ref}' names more than one card: ${matches.map((c) => c.cardId).join(", ")}` : `'${ref}' is not a card of the last run (or the last preview, when no run has been made)`,
           ["Pass the card's cardId, as the cards list it"]
         );
         return;
