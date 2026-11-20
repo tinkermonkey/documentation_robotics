@@ -406,6 +406,22 @@ describe("changeset_commit drift and edge cases", () => {
     });
   });
 
+  it("says in the summary what could not be checked without a base index, and does not claim nothing overlaps", async () => {
+    await rm(join(rootPath, "documentation-robotics", "changesets", await planId(), "base-index.json"));
+    await changesetDeactivateHandler({ rootPath });
+    await modelAddHandler({ layer: "motivation", type: "goal", name: "lower-costs", attributes: { priority: "low" }, rootPath });
+
+    const c = await connect({ elicitation: false, clientInfo: CLAUDE_CODE });
+    const shown = parse(await preview(c));
+    expect(shown.summary).toContain("No overlap was found in what could be checked.");
+    expect(shown.summary).toContain("Not checked: 1 staged relationship change(s) were not checked");
+    expect(shown.summary).toContain("rebaseline: true records a base index");
+    expect(shown.summary).not.toContain("Nothing this changeset stages overlaps it");
+    const landed = parse(await commit(c, { confirmToken: shown.confirmToken }));
+    expect(landed.status).toBe("committed");
+    expect(landed.drift.notChecked).toContain("Not checked:");
+  });
+
   it("accepts force, ignores it and says so", async () => {
     await overlapTheGoal();
     const c = await connect({ elicitation: true, answer: ACCEPT });

@@ -208,8 +208,13 @@ export function driftLines(
     if (parts.length > 0) lines.push(`  In the base: ${parts.join(", ")}.`);
   }
   const overlaps = overlapSummary(drift, namedPerKind);
+  // What could not be checked is said wherever overlaps are, so a count is never read as complete.
+  const notChecked = drift?.notChecked ? [`  ${drift.notChecked.sentence}`] : [];
   if (overlaps.total > 0) {
-    lines.push(`  ${overlaps.total} staged change(s) overlap the base. Landing goes ahead, and does this:`);
+    lines.push(
+      `  ${overlaps.total} staged change(s) overlap the base${notChecked.length > 0 ? " (of those that could be checked)" : ""}. ` +
+        "Landing goes ahead, and does this:"
+    );
     for (const kind of overlaps.kinds) {
       lines.push(`  - ${kind.reason}, ${kind.items.length} ${kind.of}(s): ${kind.consequence}`);
       for (const item of kind.items.slice(0, namedPerKind)) lines.push(`      ${item}`);
@@ -221,17 +226,14 @@ export function driftLines(
           `${everyOverlapCall(changeset)} names every one, as does the changeset in the viewer.`
       );
     }
-  } else if (hash.contentFree || !hash.isDrifted) {
-    lines.push("  Nothing this changeset stages overlaps it.");
   } else if (!drift) {
     lines.push("  What it overlaps could not be read. Landing goes ahead all the same.");
+  } else if (notChecked.length > 0) {
+    lines.push("  No overlap was found in what could be checked. Landing goes ahead.");
   } else {
-    lines.push(
-      "  This changeset has no base index, so the staged changes the base overlaps cannot all be listed. Landing " +
-        "goes ahead all the same: a staged update replaces the base's version of its element."
-    );
+    lines.push("  Nothing this changeset stages overlaps it.");
   }
-  return lines;
+  return [...lines, ...notChecked];
 }
 
 /** The description codebase_extract gives the changesets it creates. */
@@ -736,7 +738,8 @@ export async function changesetCommitHandler(
       confirmedBy: token !== undefined ? "permission-prompt" : "dialog",
       committed: result.committed,
       skipped: result.skipped ?? 0,
-      ...(result.skippedDetails?.length ? { skippedDetails: result.skippedDetails.slice(0, 10) } : {}),
+      // Every one: a landed changeset's skips can't be read again anywhere else.
+      ...(result.skippedDetails?.length ? { skippedDetails: result.skippedDetails } : {}),
       failed: result.failed,
       preExistingErrors: result.validation.preExistingErrors ?? 0,
       deactivated: result.deactivated,
@@ -748,6 +751,7 @@ export async function changesetCommitHandler(
                   ? `The base overlapped ${overlapTotal} staged change(s); the changeset landed, and did this about each kind.`
                   : "The base had changed under this changeset and what it overlapped could not be listed; the changeset landed all the same.",
               total: overlapTotal,
+              ...(result.driftDetail?.notChecked ? { notChecked: result.driftDetail.notChecked.sentence } : {}),
               ...(overlapTotal > 0
                 ? { kinds: landedOver.map((kind) => ({ reason: kind.reason, of: kind.of, count: kind.items.length, consequence: kind.consequence, items: kind.items })) }
                 : {}),

@@ -820,6 +820,14 @@ The full brief:
   refuses a landing: a commit lands the changeset and reports `overlapping`, and any other base
   change (another plan landing that adds, edits or removes other elements) is content-free. Without
   a base index a changed base hash warns without a full list, since the two can't be told apart.
+  What could not be checked is said, not left to read as "no overlap": `notChecked` names staged
+  changes that record no element they were made on (compared through the base index alone, and
+  listed when the index can't tell), and, without a base index, the relationship changes that
+  could not be checked against what the base removed. The landing summary, the CLI and the viewer
+  API's drift carry it. A changeset without a base index still lands; `notChecked` says
+  `changeset_update` with `rebaseline: true` records one. A re-baseline keeps the earlier index
+  entry for an element whose change records no element, so it can't make a base edit read as
+  current.
   The base hash (`baseSnapshot`, `v2:sha256:...`) covers the content of the base's elements and its
   relationships only, so a landing or an upgrade that changes no content is not drift; a hash
   recorded before CLI 0.7.0 (`sha256:...`, the whole model with its manifest) is compared with one

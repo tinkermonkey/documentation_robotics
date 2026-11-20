@@ -54,6 +54,8 @@ export interface DriftDetail extends DriftStatus {
   baseIndex?: ChangesetDrift["baseIndex"];
   /** Set when the changeset was re-baselined: baseChanges then counts from that base. */
   rebaselined?: ChangesetDrift["rebaselined"];
+  /** What could not be checked for overlaps, when anything could not. */
+  notChecked?: ChangesetDrift["notChecked"];
   overlapping?: ChangesetDrift["overlapping"];
   baseChanges?: ChangesetDrift["baseChanges"];
 }
@@ -212,6 +214,7 @@ export async function driftDetail(
       warnings: described.warnings,
       baseIndex: described.baseIndex,
       ...(described.rebaselined ? { rebaselined: described.rebaselined } : {}),
+      ...(described.notChecked ? { notChecked: described.notChecked } : {}),
       overlapping: described.overlapping,
       ...(described.baseChanges ? { baseChanges: described.baseChanges } : {}),
     };

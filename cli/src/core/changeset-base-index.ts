@@ -43,6 +43,12 @@ export interface BaseIndex {
    * confirming knows the base changes before then are no longer listed.
    */
   rebaselined?: { at: string; from: string; to?: string; times: number };
+  /**
+   * Elements whose base content this index can't vouch for as what a staged change was made on:
+   * a change to each records no element it was made on, and a re-baseline had no earlier entry to
+   * keep for it. A change to one of them is reported as not checked, never as current.
+   */
+  unchecked?: string[];
 }
 
 export interface RelationshipRef {
@@ -223,8 +229,38 @@ export class BaseRead {
 }
 
 const NO_BASE_INDEX_WARNING =
-  "No base index was recorded for this changeset (it predates them), so what changed in the base cannot be " +
-  "listed beyond the staged changes it overlaps.";
+  "No base index was recorded for this changeset (it predates them, or was imported), so what changed in the base " +
+  "cannot be listed beyond the staged changes it overlaps. changeset_update with rebaseline: \"preview\" shows what " +
+  "it can, and rebaseline: true records an index from the base as it is now.";
+
+/**
+ * Whether a staged change's `before` is an element as it was (an element's toJSON), which its
+ * content can be compared with. Some writers record something else there (farm sync records the
+ * source file it read), which would always read as changed.
+ */
+export function isElementRecord(before: unknown): before is Record<string, unknown> {
+  if (!before || typeof before !== "object") return false;
+  const record = before as Record<string, unknown>;
+  return typeof record.type === "string" && (typeof record.name === "string" || typeof record.path === "string");
+}
+
+/**
+ * The elements a changeset first changes with no element record of what it changed (its first
+ * change to each, not an add, records no usable `before`): their content can only be compared
+ * with the base through the base index.
+ */
+export function elementsWithoutRecordedBase(changeset: Changeset, resolve: (id: string) => string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const change of changeset.changes) {
+    if (change.type === "relationship-add" || change.type === "relationship-delete") continue;
+    const id = resolve(change.elementId);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (change.type !== "add" && !isElementRecord(change.before)) result.push(id);
+  }
+  return result;
+}
 
 /**
  * A description made before its reader knew the base had changed (`StagingAreaManager.detectDrift`
@@ -267,6 +303,14 @@ export interface ChangesetDrift {
   baseIndex: "recorded" | "not-recorded" | "unreadable";
   /** Set when the changeset was re-baselined: `baseChanges` then counts from that base, not from its creation. */
   rebaselined?: BaseIndex["rebaselined"];
+  /**
+   * What could not be checked for overlaps, so `overlapping` is not the whole answer. Absent when
+   * everything was. `elements`: staged changes to these elements record no element they were made
+   * on and the base index can't tell (a base edit to them would not be seen). `relationships`: how
+   * many staged relationship changes could not be checked against relationships the base removed,
+   * and ends it removed, for want of a base index. `sentence` says it for a person.
+   */
+  notChecked?: { elements: string[]; relationships: number; sentence: string };
   /**
    * Staged changes that the base now overlaps, each with what landing does about it
    * (`consequence`) and how to resolve it in the plan (`resolve`):
@@ -341,6 +385,8 @@ export interface ChangesetDrift {
       totals: Record<BaseChangeList, number>;
       returned: Record<BaseChangeList, number>;
       nextOffset?: number;
+      /** With nextOffset: the call that reads the next entries, in words. */
+      more?: string;
     };
   };
 }
@@ -514,7 +560,7 @@ export async function describeDrift(
       const id = graph.resolve(change.elementId);
       if (!elementOps.has(id)) {
         if (change.type === "add") addedHere.add(id);
-        else stagedOn.set(id, { ...(change.before ? { before: change.before } : {}), layer: change.layerName });
+        else stagedOn.set(id, { ...(isElementRecord(change.before) ? { before: change.before } : {}), layer: change.layerName });
       }
       if (change.type === "add") staged.adds.add(id);
       if (change.type === "delete") staged.deletes.add(id);
@@ -670,10 +716,57 @@ export async function describeDrift(
       relationshipsRemoved: cut(relationshipsRemoved).map(parseKey),
       layers: [...layers].sort(),
       truncated: names.some((name) => returned[name] < totals[name]),
-      page: { offset, limit, totals, returned, ...(more ? { nextOffset: offset + limit } : {}) },
+      page: {
+        offset,
+        limit,
+        totals,
+        returned,
+        ...(more
+          ? {
+              nextOffset: offset + limit,
+              // A call that reads on from any reader, the brief's included: a preview writes nothing.
+              more:
+                `changeset_update with changeset: "${changeset.name}", rebaseline: "preview", limit: ${limit}, ` +
+                `offset: ${offset + limit} lists the next entries of each (moved, in its result); the viewer API ` +
+                `takes driftLimit and driftOffset.`,
+            }
+          : {}),
+      },
     };
   } else if (read.status === "not-recorded" && (hash?.isDrifted || overlapping.elements.length + overlapping.relationships.length > 0)) {
     warnings.push(NO_BASE_INDEX_WARNING);
+  }
+
+  // What this description could not check, said rather than left to pass for "no overlap". A
+  // change with no element record of what it was made on falls back to the index, which can't tell
+  // when there is none or when the element is one it lists as unchecked.
+  const uncheckedElements = [...stagedOn]
+    .filter(([id, on]) => !on.before && id in now.elements && !listedElements.has(id))
+    .map(([id]) => id)
+    .filter((id) => !read.index || !(id in read.index.elements) || (read.index.unchecked ?? []).includes(id));
+  const uncheckedRelationships = read.index ? 0 : net.size;
+  let notChecked: ChangesetDrift["notChecked"];
+  if (uncheckedElements.length + uncheckedRelationships > 0) {
+    const parts: string[] = [];
+    if (uncheckedElements.length > 0) {
+      parts.push(
+        `${uncheckedElements.length} staged change(s) to elements record no element they were made on, so a base edit ` +
+          `to them would not be seen (${uncheckedElements.slice(0, 5).join(", ")}${uncheckedElements.length > 5 ? ", ..." : ""})`
+      );
+    }
+    if (uncheckedRelationships > 0) {
+      parts.push(
+        `${uncheckedRelationships} staged relationship change(s) were not checked against relationships the base removed ` +
+          "or ends it removed, for want of a base index"
+      );
+    }
+    notChecked = {
+      elements: uncheckedElements,
+      relationships: uncheckedRelationships,
+      sentence:
+        `Not checked: ${parts.join("; ")}.` +
+        (read.index ? "" : ' changeset_update with rebaseline: "preview" shows what it can; rebaseline: true records a base index.'),
+    };
   }
 
   const baseChanged =
@@ -701,6 +794,7 @@ export async function describeDrift(
     ...(hash?.currentSnapshotId ? { currentSnapshotId: hash.currentSnapshotId } : {}),
     baseIndex: read.status,
     ...(read.index?.rebaselined ? { rebaselined: read.index.rebaselined } : {}),
+    ...(notChecked ? { notChecked } : {}),
     overlapping,
     ...(baseChanges ? { baseChanges } : {}),
   };

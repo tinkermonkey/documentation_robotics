@@ -327,9 +327,22 @@ export async function landsOverOverlaps(
   const total = kinds.reduce((n, kind) => n + kind.items.length, 0);
   const interactive = options.interactive ?? (!!process.stdin.isTTY && !!process.stdout.isTTY && !isJson());
   const decision = overlapDecision(total, { force: options.force, interactive });
-  if (decision === "land") return true;
+  if (decision === "land") {
+    // Nothing to ask about, but the base did move: say so, and what could not be checked.
+    if (!isJson() && (report.contentFree || report.isDrifted) && total === 0) {
+      const notChecked = report.described?.notChecked?.sentence;
+      console.log(
+        ansis.yellow(
+          `⚠ The base model changed since this changeset was created; nothing it stages was found to overlap the change.` +
+            (notChecked ? ` ${notChecked}` : "")
+        )
+      );
+    }
+    return true;
+  }
 
   const lines = overlapReport(kinds);
+  if (report.described?.notChecked) lines.push(`  ${report.described.notChecked.sentence}`);
   if (decision === "ask") {
     console.log(ansis.yellow(`\n⚠ ${lines[0]}`));
     for (const line of lines.slice(1)) console.log(ansis.yellow(line));
@@ -1832,7 +1845,7 @@ export async function changesetCommitCommand(
                   ),
                 ]
               : [];
-            commitDetails.driftOverlaps = overlaps;
+            if (overlaps.length > 0) commitDetails.driftOverlaps = overlaps;
             if (!isJson()) {
               console.log(
                 ansis.yellow(

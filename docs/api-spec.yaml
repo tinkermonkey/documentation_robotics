@@ -140,6 +140,31 @@ components:
             rebaseline): baseChanges then counts from that base, not from its
             creation. A re-baseline clears no overlap: overlapping is read from
             the base as it is now"
+        notChecked:
+          type: object
+          properties:
+            elements:
+              type: array
+              items:
+                type: string
+              description:
+                Elements staged changes record no element for, whose base edits
+                could not be seen
+            relationships:
+              type: integer
+              description:
+                Staged relationship changes not checked against what the base
+                removed, for want of a base index
+            sentence:
+              type: string
+              description:
+                "The same, for a person: show it beside overlapping, which is not
+                the whole answer when this is present"
+          required:
+            - elements
+            - relationships
+            - sentence
+          description: What could not be checked for overlaps; absent when everything was
         overlapping:
           type: object
           properties:
@@ -376,6 +401,9 @@ components:
                   description:
                     The driftOffset that continues the lists; absent when every list
                     has been read to its end
+                more:
+                  type: string
+                  description: "With nextOffset: the call that reads the next entries, in words"
               required:
                 - offset
                 - limit

@@ -143,6 +143,9 @@ describe("dr changeset commit with no terminal attached", () => {
     const result = await runDr(["changeset", "commit", "add-unrelated"], { cwd: dir });
     expect(result.exitCode).toBe(0);
     expect(`${result.stdout}\n${result.stderr}`).not.toContain("was not committed");
+    // It lands with a warning: the base moved, and nothing it stages was found to overlap.
+    expect(`${result.stdout}\n${result.stderr}`).toContain("The base model changed since this changeset was created");
+    expect(`${result.stdout}\n${result.stderr}`).not.toContain("Drift Overlaps");
     expect(await status(id)).toBe("committed");
   });
 

@@ -722,3 +722,74 @@ describe("the lists of what changed in the base are a page, never a silent cut",
     expect(whole.baseChanges!.truncated).toBe(false);
   });
 });
+
+describe("a staged change that records no element it was made on (review of PR 1272)", () => {
+  /** A staged update of the element with no usable `before`: none at all, or one that is not an element. */
+  async function rewordWithout(id: string, description: string, before?: Record<string, unknown>): Promise<Staged> {
+    const base = await inBase(id);
+    return { type: "update", elementId: id, layerName: id.split(".")[0], ...(before ? { before } : {}), after: { ...base, description } };
+  }
+
+  it.serial("is compared through the base index, and a re-baseline does not make a base edit read as current", async () => {
+    const id = await plan("reword-faster", [await rewordWithout(FASTER, "Checkout in under a minute")]);
+    await land(await plan("other-reword", [await reword(FASTER, "Checkout in thirty seconds")]));
+    expect((await drift(id)).overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+
+    const result = await (await fresh()).manager.rebaseline(id);
+    expect(result.after.overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+    const after = await drift(id);
+    expect(after.report.isDrifted).toBe(true);
+    expect(after.overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+    // Twice changes nothing.
+    await (await fresh()).manager.rebaseline(id);
+    expect((await drift(id)).overlapping.elements).toMatchObject([{ id: FASTER, reason: "changed-in-base" }]);
+  });
+
+  it.serial("without an earlier index, a re-baseline lists it as not checked rather than current", async () => {
+    const id = await plan("reword-faster", [await rewordWithout(FASTER, "Checkout in under a minute")]);
+    await rm(join(rootPath, "documentation-robotics", "changesets", id, BASE_INDEX_FILE));
+    await land(await plan("other-reword", [await reword(FASTER, "Checkout in thirty seconds")]));
+
+    const before = await (await fresh()).manager.rebaseline(id, { preview: true });
+    expect(before.before.notChecked?.elements).toEqual([FASTER]);
+    await (await fresh()).manager.rebaseline(id);
+    expect((await readBaseIndex(rootPath, id))!.unchecked).toEqual([FASTER]);
+
+    const { model, manager } = await fresh();
+    const described = await describeDrift(model, await ChangesetGraph.build(model, (await manager.load(id))!));
+    expect(described.notChecked?.elements).toEqual([FASTER]);
+    expect(described.notChecked?.sentence).toContain("a base edit to them would not be seen");
+    expect(described.notChecked?.sentence).toContain(FASTER);
+  });
+
+  it.serial("a before that is not an element (farm sync's) is not read as a base edit", async () => {
+    const id = await plan("sync", [await rewordWithout(CHEAPER, "Synced", { sourceFile: "src/costs.ts", syncSource: "codebase" })]);
+    // Unedited in the base: no overlap (it used to read changed-in-base on every check).
+    expect((await drift(id)).overlapping).toEqual({ elements: [], relationships: [] });
+    // Edited in the base: the index tells.
+    await land(await plan("other-reword", [await reword(CHEAPER, "Halve hosting costs")]));
+    expect((await drift(id)).overlapping.elements).toMatchObject([{ id: CHEAPER, reason: "changed-in-base" }]);
+  });
+});
+
+describe("what could not be checked is said, never left to read as no overlap", () => {
+  it.serial("without a base index: the relationship changes that could not be checked, and the option to record one", async () => {
+    const id = await plan("rewire", [link("relationship-add", { source: REQUIREMENT, predicate: "realizes", target: CHEAPER })]);
+    await rm(join(rootPath, "documentation-robotics", "changesets", id, BASE_INDEX_FILE));
+    await land(await plan("reword", [await reword(SPARE, "Halve the return rate")]));
+
+    const { model, manager } = await fresh();
+    const described = await describeDrift(model, await ChangesetGraph.build(model, (await manager.load(id))!));
+    expect(described.overlapping).toEqual({ elements: [], relationships: [] });
+    expect(described.notChecked).toMatchObject({ elements: [], relationships: 1 });
+    expect(described.notChecked?.sentence).toContain("1 staged relationship change(s) were not checked");
+    expect(described.notChecked?.sentence).toContain('rebaseline: "preview"');
+    expect(described.notChecked?.sentence).toContain("rebaseline: true records a base index");
+
+    // With an index, everything is checked and nothing is said.
+    await manager.rebaseline(id);
+    const after = await fresh();
+    const again = await describeDrift(after.model, await ChangesetGraph.build(after.model, (await after.manager.load(id))!));
+    expect(again.notChecked).toBeUndefined();
+  });
+});

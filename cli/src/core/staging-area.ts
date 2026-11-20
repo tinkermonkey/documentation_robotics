@@ -804,9 +804,8 @@ export class StagingAreaManager {
       throw new Error("Model required for re-baselining a changeset");
     }
     const model = this.model;
-    const { BaseRead, describeDrift, readBaseIndex, snapshotOfIndex, writeBaseIndex } = await import(
-      "./changeset-base-index.js"
-    );
+    const { BaseRead, describeDrift, elementsWithoutRecordedBase, readBaseIndex, snapshotOfIndex, writeBaseIndex } =
+      await import("./changeset-base-index.js");
     const { ChangesetGraph } = await import("./changeset-graph.js");
 
     const id = (await this.load(changesetId))?.id;
@@ -837,15 +836,28 @@ export class StagingAreaManager {
         offset: options.offset,
       });
 
-      let previous: { rebaselined?: { times: number } } | undefined;
+      let previous: Awaited<ReturnType<typeof readBaseIndex>>;
       try {
         previous = await readBaseIndex(this.rootPath, id);
       } catch {
         // An unreadable index is replaced.
       }
       const previousBaseSnapshot = changeset.baseSnapshot || null;
+      // A staged change that records no element it was made on is compared with the base through
+      // the index alone. The new index keeps the old entry for such an element, so a base edit since
+      // still reads as one; with no old entry it lists the element as unchecked. Either way a
+      // re-baseline can't make it read as current (review of PR 1272, finding 1).
+      const elements = { ...base.index.elements };
+      const unchecked = new Set(previous?.unchecked ?? []);
+      for (const id of elementsWithoutRecordedBase(changeset, (ref) => graph.resolve(ref))) {
+        if (!(id in elements)) continue;
+        if (previous && id in previous.elements && !unchecked.has(id)) elements[id] = previous.elements[id];
+        else unchecked.add(id);
+      }
       const index = {
         ...base.index,
+        elements,
+        ...(unchecked.size > 0 ? { unchecked: [...unchecked].sort() } : {}),
         rebaselined: {
           at: base.index.captured,
           from: previousBaseSnapshot ?? "unknown",

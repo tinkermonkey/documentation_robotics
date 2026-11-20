@@ -406,6 +406,11 @@ export const ChangesetDriftSchema = z.object({
     to: z.string().optional().describe('The base hash it was re-baselined to'),
     times: z.number().int().describe('How many times it was re-baselined'),
   }).optional().describe('Set when the changeset was re-baselined (changeset_update with rebaseline): baseChanges then counts from that base, not from its creation. A re-baseline clears no overlap: overlapping is read from the base as it is now'),
+  notChecked: z.object({
+    elements: z.array(z.string()).describe('Elements staged changes record no element for, whose base edits could not be seen'),
+    relationships: z.number().int().describe('Staged relationship changes not checked against what the base removed, for want of a base index'),
+    sentence: z.string().describe('The same, for a person: show it beside overlapping, which is not the whole answer when this is present'),
+  }).optional().describe('What could not be checked for overlaps; absent when everything was'),
   overlapping: ChangesetOverlappingSchema(
     'The staged changes the base now overlaps, each with what landing does about it. Show them before Apply: a commit lands over them. A base change not listed here overlaps nothing the changeset stages'
   ).optional(),
@@ -426,6 +431,7 @@ export const ChangesetDriftSchema = z.object({
       returned: baseChangeCountsSchema.describe('How many entries of each list this page carries'),
       nextOffset: z.number().int().optional()
         .describe('The driftOffset that continues the lists; absent when every list has been read to its end'),
+      more: z.string().optional().describe('With nextOffset: the call that reads the next entries, in words'),
     }).describe('What this page of the five lists holds. Read on with driftLimit and driftOffset on GET /api/changesets/:id'),
   }).optional().describe('What changed in the base since the changeset was created or last re-baselined (dotted ids); needs a base index'),
 })
