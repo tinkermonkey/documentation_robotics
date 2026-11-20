@@ -1,0 +1,414 @@
+- type: add
+  elementId: application.applicationfunction.dr-bot-session-prompt
+  layerName: application
+  after:
+    id: 40c50ce4-f2c1-40c4-b521-10372422b6e1
+    path: application.applicationfunction.dr-bot-session-prompt
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: drBotSessionPrompt
+    description: "What DrBot is told at the start of every launch, with or without
+      the dr MCP server: its permission mode, what it may run, that a refused
+      call was shown to nobody and no prompt is coming, that the allowlist comes
+      from how the viewer was started and not from a settings file, and how the
+      person allows more."
+    metadata:
+      created_at: 2026-11-20T16:33:48.277Z
+      updated_at: 2026-11-20T16:33:48.277Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: drBotSessionPrompt
+  timestamp: 2026-11-20T16:51:17.137Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.explain-denied-tool-call
+  layerName: application
+  after:
+    id: fe20bfdc-1514-4809-b770-166191614425
+    path: application.applicationfunction.explain-denied-tool-call
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: explainDeniedToolCall
+    description: Turns a tool call the permission allowlist refused into the rule
+      that blocked it and the way the person allows it, for the viewer's failed
+      tool result.
+    metadata:
+      created_at: 2026-11-20T16:33:48.296Z
+      updated_at: 2026-11-20T16:33:48.296Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: explainDeniedToolCall
+  timestamp: 2026-11-20T16:51:17.137Z
+  sequenceNumber: 1
+- type: relationship-add
+  elementId: application.applicationfunction.dr-bot-session-prompt::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.dr-bot-session-prompt
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:33:48.308Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: application.applicationfunction.explain-denied-tool-call::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.explain-denied-tool-call
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:33:48.308Z
+  sequenceNumber: 3
+- type: relationship-add
+  elementId: application.applicationservice.visualize-command::realizes::product.feature.dr-bot
+  layerName: application
+  after:
+    source: application.applicationservice.visualize-command
+    target: product.feature.dr-bot
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-20T16:33:48.308Z
+  sequenceNumber: 4
+- type: update
+  elementId: product.feature.dr-bot
+  layerName: product
+  before:
+    id: 3cf21932-32f1-4b74-97e6-418fa4c73ca8
+    path: product.feature.dr-bot
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DrBot
+    description: "Viewer chat agent running on dr mcp; --with-changesets enables
+      staging in changeset-only mode. Known gaps #988-#991."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "Viewer chat agent running on dr mcp; --with-changesets enables
+        staging in changeset-only mode. Known gaps #988-#991."
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/coding-agents/drbot-mcp.ts
+    metadata: &a2
+      created_at: 2026-11-09T21:54:57.744Z
+      updated_at: 2026-11-09T21:54:57.744Z
+      version: 1
+  after:
+    id: 3cf21932-32f1-4b74-97e6-418fa4c73ca8
+    path: product.feature.dr-bot
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: DrBot
+    description: "Viewer chat agent running on dr mcp. It stages changes in a
+      changeset by default (changeset-only mode: no commit, apply or discard);
+      --read-only turns staging off. It always reaches the dr MCP tools, is told
+      its permission mode at launch, and a blocked call says which rule blocked
+      it and how to allow it."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "Viewer chat agent running on dr mcp. It stages changes in a
+        changeset by default (changeset-only mode: no commit, apply or discard);
+        --read-only turns staging off. It always reaches the dr MCP tools, is
+        told its permission mode at launch, and a blocked call says which rule
+        blocked it and how to allow it."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-20T16:33:49.831Z
+  sequenceNumber: 5
+- type: update
+  elementId: application.applicationfunction.prepare-dr-bot-agent
+  layerName: application
+  before:
+    id: 68a69135-091d-4c36-b28b-31bf7ddce340
+    path: application.applicationfunction.prepare-dr-bot-agent
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: prepareDrBotAgent
+    description: Resolves DrBot's dr-architect once and derives both the launch
+      arguments and the tool check from it.
+    source_reference: &a3
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/drbot-mcp.ts
+          symbol: prepareDrBotAgent
+    metadata: &a4
+      created_at: 2026-11-20T15:06:32.643Z
+      updated_at: 2026-11-20T15:06:32.643Z
+      version: 1
+  after:
+    id: 68a69135-091d-4c36-b28b-31bf7ddce340
+    path: application.applicationfunction.prepare-dr-bot-agent
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: prepareDrBotAgent
+    description: Resolves DrBot's dr-architect once and derives both the launch
+      arguments and the tool check from it. An installed copy whose tools field
+      leaves out dr MCP tools the mode uses is passed with --agents with those
+      tools added, so the dr MCP server still connects.
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-20T16:33:52.691Z
+  sequenceNumber: 6
+- type: update
+  elementId: application.applicationfunction.dr-bot-agent-args
+  layerName: application
+  before:
+    id: c0b9061c-8c4d-41b6-b1d8-4a1a7a3894db
+    path: application.applicationfunction.dr-bot-agent-args
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: drBotAgentArgs
+    description: Extra `claude` arguments that make `--agent dr-architect` run `agent`.
+    source_reference: &a5
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/drbot-mcp.ts
+          symbol: drBotAgentArgs
+    metadata: &a6
+      created_at: 2026-11-20T15:06:32.643Z
+      updated_at: 2026-11-20T15:06:32.643Z
+      version: 1
+  after:
+    id: c0b9061c-8c4d-41b6-b1d8-4a1a7a3894db
+    path: application.applicationfunction.dr-bot-agent-args
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: drBotAgentArgs
+    description: "Extra `claude` arguments that make `--agent dr-architect` run
+      `agent`: the bundled copy as it is, or an installed copy with the mode's
+      missing dr MCP tools added."
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-20T16:33:55.365Z
+  sequenceNumber: 7
+- type: update
+  elementId: application.applicationfunction.format-for-claude-code
+  layerName: application
+  before:
+    id: 487fd11f-7f18-4835-a71c-d1cc62ea8542
+    path: application.applicationfunction.format-for-claude-code
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: formatForClaudeCode
+    description: Convert read-safe permissions to Claude Code CLI format
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/default-permissions.ts
+          symbol: formatForClaudeCode
+    metadata: &a8
+      created_at: 2026-11-20T15:05:58.731Z
+      updated_at: 2026-11-20T15:05:58.731Z
+      version: 1
+  after:
+    id: 487fd11f-7f18-4835-a71c-d1cc62ea8542
+    path: application.applicationfunction.format-for-claude-code
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: formatForClaudeCode
+    description: Convert read-safe permissions to Claude Code CLI format. The Bash
+      rules cover every read-only dr command (trace, the changeset reads,
+      schema, catalog, relationship list and show, help).
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-20T16:33:55.924Z
+  sequenceNumber: 8
+- type: update
+  elementId: application.applicationservice.visualize-command
+  layerName: application
+  before:
+    id: 70233765-8913-4fee-b921-84b694d3a126
+    path: application.applicationservice.visualize-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: visualizeCommand
+    attributes: &a9
+      serviceType: synchronous
+    source_reference: &a10
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/visualize.ts
+          symbol: visualizeCommand
+    metadata: &a11
+      created_at: 2026-11-20T15:05:23.845Z
+      updated_at: 2026-11-20T15:05:23.845Z
+      version: 1
+  after:
+    id: 70233765-8913-4fee-b921-84b694d3a126
+    path: application.applicationservice.visualize-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: visualizeCommand
+    attributes: *a9
+    source_reference: *a10
+    metadata: *a11
+    description: Starts the viewer. Its chat agent stages changes in a changeset by
+      default; --read-only limits it to reads and --with-danger removes the
+      allowlist.
+  timestamp: 2026-11-20T16:33:56.389Z
+  sequenceNumber: 9
+- type: update
+  elementId: data-model.objectschema.agent-mcp-tool-check
+  layerName: data-model
+  before:
+    id: ea5f86cd-ce75-480f-9b8b-650265390241
+    path: data-model.objectschema.agent-mcp-tool-check
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: AgentMcpToolCheck
+    description: The dr MCP tools a mode uses that the dr-architect DrBot runs can't see.
+    attributes: &a12
+      type: object
+    source_reference: &a13
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/drbot-mcp.ts
+          symbol: AgentMcpToolCheck
+    metadata: &a14
+      created_at: 2026-11-20T15:07:03.798Z
+      updated_at: 2026-11-20T15:07:03.798Z
+      version: 1
+  after:
+    id: ea5f86cd-ce75-480f-9b8b-650265390241
+    path: data-model.objectschema.agent-mcp-tool-check
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: AgentMcpToolCheck
+    description: The dr MCP tools a mode uses that the dr-architect DrBot runs
+      doesn't list, and whether the launch adds them (added).
+    attributes: *a12
+    source_reference: *a13
+    metadata: *a14
+  timestamp: 2026-11-20T16:33:56.910Z
+  sequenceNumber: 10
+- type: update
+  elementId: data-model.objectschema.visualize-options
+  layerName: data-model
+  before:
+    id: aa437622-7a7e-43d8-a6b9-f4671da290ff
+    path: data-model.objectschema.visualize-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: VisualizeOptions
+    attributes: &a15
+      type: object
+    source_reference: &a16
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/visualize.ts
+          symbol: VisualizeOptions
+    metadata: &a17
+      created_at: 2026-11-20T15:07:38.103Z
+      updated_at: 2026-11-20T15:07:38.103Z
+      version: 1
+  after:
+    id: aa437622-7a7e-43d8-a6b9-f4671da290ff
+    path: data-model.objectschema.visualize-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: VisualizeOptions
+    attributes: *a15
+    source_reference: *a16
+    metadata: *a17
+    description: Options of dr visualize. readOnly turns off the chat agent's
+      default changeset staging; withChangesets is kept as the old name for that
+      default.
+  timestamp: 2026-11-20T16:33:57.450Z
+  sequenceNumber: 11
+- type: add
+  elementId: application.applicationfunction.is-permission-denial
+  layerName: application
+  after:
+    id: 9ae43f84-f780-410d-aa59-bafd3480d759
+    path: application.applicationfunction.is-permission-denial
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: isPermissionDenial
+    description: Whether a failed tool result reads as a permission refusal rather
+      than the tool's own error.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/coding-agents/drbot-permissions.ts
+          symbol: isPermissionDenial
+    metadata:
+      created_at: 2026-11-20T16:51:24.207Z
+      updated_at: 2026-11-20T16:51:24.207Z
+      version: 1
+  timestamp: 2026-11-20T16:51:24.233Z
+  sequenceNumber: 14
+- type: add
+  elementId: application.applicationfunction.resolve-chat-mode
+  layerName: application
+  after:
+    id: 4b039cb1-7a2f-49f7-b957-9acc72406537
+    path: application.applicationfunction.resolve-chat-mode
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: resolveChatMode
+    description: "The chat agent's permission mode for dr visualize's options:
+      changeset staging by default, read-only with --read-only, and danger mode
+      wins over both."
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/visualize.ts
+          symbol: resolveChatMode
+    metadata:
+      created_at: 2026-11-20T16:51:24.208Z
+      updated_at: 2026-11-20T16:51:24.208Z
+      version: 1
+  timestamp: 2026-11-20T16:51:24.233Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationfunction.is-permission-denial::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.is-permission-denial
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:51:24.233Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.resolve-chat-mode::realizes::application.applicationservice.visualize-command
+  layerName: application
+  after:
+    source: application.applicationfunction.resolve-chat-mode
+    target: application.applicationservice.visualize-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-20T16:51:24.233Z
+  sequenceNumber: 17
