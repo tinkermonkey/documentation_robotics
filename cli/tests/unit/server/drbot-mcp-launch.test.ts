@@ -192,8 +192,14 @@ describe("launchClaudeCodeChat with the dr MCP server", () => {
   });
 
   it("gives every process of the launch the chat mode, so dr and dr mcp refuse on their own", async () => {
-    const { server } = await createServer();
+    const { server, rootPath } = await createServer();
     expect((server as any).buildChatEnv().DR_CHAT_MODE).toBe("changesets");
+    // "Inside the project" is measured from the served root, not a shell's directory.
+    expect((server as any).buildChatEnv().DR_CHAT_PROJECT_ROOT).toBe(rootPath);
+    // This launch's own dr goes first on PATH when there is one.
+    const env = (server as any).buildChatEnv("/tmp/launch/bin");
+    expect(env.PATH.split(":")[0]).toBe("/tmp/launch/bin");
+    expect((server as any).buildChatEnv().PATH).toBe(process.env.PATH);
     const readOnly = (await createServer({ readOnly: true })).server;
     expect((readOnly as any).buildChatEnv().DR_CHAT_MODE).toBe("read-safe");
     server.stop();

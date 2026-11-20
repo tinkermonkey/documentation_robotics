@@ -111,6 +111,34 @@ describe("dr in a chat process", () => {
     expect(existsSync(join(workdir.path, "stats-plain.txt"))).toBe(true);
   });
 
+  it("fails closed: the hook denies input it can't read, and any call with no chat mode", async () => {
+    const run = async (stdin: string, env: Record<string, string | undefined>) => {
+      const proc = Bun.spawn(["node", new URL("../../dist/cli.js", import.meta.url).pathname, "chat-permission-hook"], {
+        cwd: workdir.path,
+        env: { ...process.env, DR_CHAT_MODE: undefined, ...env },
+        stdin: new Blob([stdin]),
+        stdout: "pipe",
+      });
+      const out = await new Response(proc.stdout).text();
+      expect(await proc.exited).toBe(0);
+      return JSON.parse(out).hookSpecificOutput;
+    };
+    for (const decision of [
+      await run("not json", { DR_CHAT_MODE: "changesets" }),
+      await run("", { DR_CHAT_MODE: "read-safe" }),
+      await run(JSON.stringify({ tool_name: "Bash", tool_input: { command: "dr trace x" } }), {}),
+    ]) {
+      expect(decision.permissionDecision).toBe("deny");
+      expect(decision.permissionDecisionReason).toContain("could not read this call");
+    }
+  });
+
+  it("refuses dr mcp with options, and lets the plain form the launch runs through", async () => {
+    const result = await chat("read-safe", ["mcp", "--regenerate-key"]);
+    expect(result.exitCode).not.toBe(0);
+    expect(output(result)).toContain("`dr mcp` runs only as the viewer starts it, with no options");
+  });
+
   it("answers the permission hook: a deny decision with the reason, or nothing", async () => {
     const hook = async (command: string) => {
       const proc = Bun.spawn(["node", new URL("../../dist/cli.js", import.meta.url).pathname, "chat-permission-hook"], {

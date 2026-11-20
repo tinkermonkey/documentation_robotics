@@ -50,6 +50,7 @@ import { getErrorMessage, CLIError } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
 import {
   CHAT_PERMISSION_HOOK_COMMAND,
+  HOOK_CANNOT_DECIDE,
   assertChatCommandAllowed,
   chatPermissionHookDecision,
   chatPermissionHookOutput,
@@ -723,16 +724,23 @@ program
   .command(CHAT_PERMISSION_HOOK_COMMAND, { hidden: true })
   .description("Decide one chat tool call (used by dr visualize; not for direct use)")
   .action(async () => {
-    const chunks: Buffer[] = [];
-    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-    let input: unknown = null;
+    // Fails closed: unreadable input is denied, and any error exits 2, which Claude Code treats
+    // as blocking the call (any other non-zero exit would let it through).
     try {
-      input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    } catch {
-      // Not a hook call: decide nothing, and Claude Code's own rules apply.
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+      let input: unknown = null;
+      try {
+        input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      } catch {
+        // Not a hook call: denied below.
+      }
+      const reason = chatPermissionHookDecision(input);
+      if (reason) process.stdout.write(chatPermissionHookOutput(reason));
+    } catch (error) {
+      process.stderr.write(`${HOOK_CANNOT_DECIDE} (${getErrorMessage(error)})\n`);
+      process.exitCode = 2;
     }
-    const reason = chatPermissionHookDecision(input);
-    if (reason) process.stdout.write(chatPermissionHookOutput(reason));
   });
 
 program

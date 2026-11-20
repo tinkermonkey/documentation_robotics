@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { CHANGESET_ORIGIN_ENV } from "../../../src/core/changeset-review.js";
@@ -186,6 +186,32 @@ describe("prepareDrMcpLaunch", () => {
     await launch.cleanup();
     expect(existsSync(launch.configPath)).toBe(false);
     await launch.cleanup(); // idempotent
+  });
+
+  it("writes a private dr that runs this installation, for the front of the chat's PATH", async () => {
+    if (process.platform === "win32") return;
+    const script = join(scratch, "fake-cli.js");
+    await writeFile(script, 'console.log("fake-dr " + process.argv.slice(2).join(" "));\n');
+    const launch = await prepareDrMcpLaunch({
+      rootPath: "/work/project",
+      changesetOnly: true,
+      drCommand: { command: process.execPath, args: [script] },
+      tempRoot: scratch,
+    });
+    try {
+      expect(launch.binDir).toBe(join(dirname(launch.configPath), "bin"));
+      const shim = join(launch.binDir!, "dr");
+      expect(statSync(shim).mode & 0o777).toBe(0o700);
+      const { stdout } = Bun.spawnSync([shim, "list", "it's"]);
+      expect(stdout.toString().trim()).toBe("fake-dr list it's");
+    } finally {
+      await launch.cleanup();
+    }
+    expect(existsSync(launch.binDir!)).toBe(false);
+    // Nothing to pin when this dr is the one on PATH.
+    const plain = await prepareDrMcpLaunch({ rootPath: "/w", changesetOnly: false, drCommand: { command: "dr", args: [] }, tempRoot: scratch });
+    expect(plain.binDir).toBeUndefined();
+    await plain.cleanup();
   });
 });
 

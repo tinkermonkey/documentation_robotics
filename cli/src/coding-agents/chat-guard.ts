@@ -21,12 +21,24 @@
  * Danger mode (`dr visualize --with-danger`) sets no mode, so nothing here applies to it.
  */
 
-import { resolve, sep } from "node:path";
+import { realpathSync } from "node:fs";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
 import { CHANGESET_WRITE_COMMANDS, READ_SAFE_DR_COMMANDS, USER_ONLY_DR_COMMANDS } from "./default-permissions.js";
 
 /** Set to a ChatMode in every process a non-danger chat launch starts. */
 export const CHAT_MODE_ENV = "DR_CHAT_MODE";
+
+/**
+ * The project the chat serves, set beside CHAT_MODE_ENV. "Inside the project" is measured from
+ * it, not from the working directory a shell command happens to run in.
+ */
+export const CHAT_PROJECT_ROOT_ENV = "DR_CHAT_PROJECT_ROOT";
+
+/** The served project: CHAT_PROJECT_ROOT_ENV, or the working directory when a launch set none. */
+export function chatProjectRoot(env: NodeJS.ProcessEnv = process.env): string {
+  return env[CHAT_PROJECT_ROOT_ENV]?.trim() || process.cwd();
+}
 
 /** What a chat process may do: read only, or also stage into a changeset. */
 export type ChatMode = "read-safe" | "changesets";
@@ -87,11 +99,33 @@ export function matchDrCommand(commandLine: string, commands: readonly string[])
     .sort((a, b) => b.length - a.length)[0];
 }
 
-/** Whether `path` is `root` or inside it. Both are resolved first; symlinks are not followed. */
+/**
+ * A path with its symlinks resolved: the deepest part that exists is resolved on disk, the rest
+ * (a file not written yet) appended as it is.
+ */
+function realPath(path: string): string {
+  const missing: string[] = [];
+  let current = resolve(path);
+  for (;;) {
+    try {
+      return join(realpathSync(current), ...missing);
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return resolve(path);
+      missing.unshift(basename(current));
+      current = parent;
+    }
+  }
+}
+
+/**
+ * Whether `path` (relative to `root`) is `root` or inside it, with symlinks resolved on both
+ * sides, so a link inside the project that points out of it counts as outside.
+ */
 export function isInsideProject(path: string, root: string): boolean {
-  const resolvedRoot = resolve(root);
-  const resolved = resolve(resolvedRoot, path);
-  return resolved === resolvedRoot || resolved.startsWith(resolvedRoot + sep);
+  const realRoot = realPath(root);
+  const real = realPath(resolve(resolve(root), path));
+  return real === realRoot || real.startsWith(realRoot.endsWith(sep) ? realRoot : realRoot + sep);
 }
 
 /** Why a chat process may not do something, and what to do about it. */
@@ -254,7 +288,7 @@ export function commandPath(command: CommandLike): string {
 export function assertChatCommandAllowed(
   actionCommand: CommandLike,
   env: NodeJS.ProcessEnv = process.env,
-  projectRoot: string = process.cwd()
+  projectRoot: string = chatProjectRoot(env)
 ): void {
   const mode = chatMode(env);
   if (!mode) return;
@@ -340,6 +374,11 @@ export function splitShellLine(line: string): ShellLine {
       } else {
         push();
       }
+    } else if ("*?[".includes(char)) {
+      // A glob the shell expands into file names (a file named `--output=x` among them).
+      complex = true;
+      current += char;
+      inToken = true;
     } else if ("|&;<>(){}".includes(char)) {
       complex = true;
       push();
@@ -413,18 +452,27 @@ export function chatBashRefusal(mode: ChatMode, commandLine: string, projectRoot
   return null;
 }
 
+/** The hook's refusal when it can't decide: it denies rather than let a call through unjudged. */
+export const HOOK_CANNOT_DECIDE =
+  `${REFUSAL_MARKER}: the chat's permission hook could not read this call, so it was denied. ` +
+  "Nobody was asked to approve it and no prompt is coming. If it keeps happening, restart the viewer.";
+
 /**
  * The PreToolUse hook's answer for one tool call: the reason to deny it with, or null to leave
  * the decision to Claude Code's own rules. Only Bash is judged here: the file tools are confined
  * to the project by the launch, and the dr MCP server judges its own tools.
+ *
+ * It fails closed. The launch registers it only on chats under an allowlist, so input that is not
+ * a tool call, or a process with no chat mode, means something is wrong: the call is denied.
  */
 export function chatPermissionHookDecision(input: unknown, env: NodeJS.ProcessEnv = process.env): string | null {
   const mode = chatMode(env);
-  if (!mode || typeof input !== "object" || input === null) return null;
+  if (!mode || typeof input !== "object" || input === null) return HOOK_CANNOT_DECIDE;
   const call = input as { tool_name?: unknown; tool_input?: { command?: unknown } | null; cwd?: unknown };
   if (call.tool_name !== "Bash") return null;
   const commandLine = typeof call.tool_input?.command === "string" ? call.tool_input.command : "";
-  const projectRoot = typeof call.cwd === "string" && call.cwd ? call.cwd : process.cwd();
+  const projectRoot =
+    env[CHAT_PROJECT_ROOT_ENV]?.trim() || (typeof call.cwd === "string" && call.cwd ? call.cwd : process.cwd());
   const refusal = chatBashRefusal(mode, commandLine, projectRoot);
   return refusal ? formatChatRefusal(mode, refusal) : null;
 }

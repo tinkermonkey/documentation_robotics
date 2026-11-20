@@ -16,7 +16,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync, type Dirent } from "node:fs";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -184,6 +184,12 @@ export function buildDrMcpConfig(options: DrMcpConfigOptions): {
 /** A written MCP config and the function that removes it again (safe to call more than once). */
 export interface DrMcpLaunch {
   configPath: string;
+  /**
+   * A private folder holding a `dr` that runs this same installation, for the front of the chat's
+   * PATH: the agent's `dr` commands then run the dr whose guards match this launch, not an older
+   * global install. Absent when this dr itself is the one on PATH, or on Windows.
+   */
+  binDir?: string;
   cleanup: () => Promise<void>;
 }
 
@@ -226,11 +232,30 @@ export async function prepareDrMcpLaunch(options: PrepareDrMcpLaunchOptions): Pr
     await writeFile(configPath, JSON.stringify(config, null, 2), {
       mode: 0o600,
     });
-    return { configPath, cleanup };
+    const binDir = await writeDrShim(dir, options.drCommand ?? resolveDrCommand());
+    return { configPath, ...(binDir ? { binDir } : {}), cleanup };
   } catch (error) {
     await cleanup();
     throw error;
   }
+}
+
+/** A word quoted for sh. */
+function shQuote(word: string): string {
+  return `'${word.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Writes `<dir>/bin/dr`, a script that runs `drCommand`, and returns the folder; null when there
+ * is nothing to pin (drCommand is `dr` from PATH) or the platform has no sh (Windows).
+ */
+async function writeDrShim(dir: string, drCommand: DrCommand): Promise<string | null> {
+  if (process.platform === "win32" || drCommand.command === "dr") return null;
+  const binDir = join(dir, "bin");
+  await mkdir(binDir, { mode: 0o700 });
+  const script = `#!/bin/sh\nexec ${[drCommand.command, ...drCommand.args].map(shQuote).join(" ")} "$@"\n`;
+  await writeFile(join(binDir, "dr"), script, { mode: 0o700 });
+  return binDir;
 }
 
 /** Appended to DrBot's system prompt when the dr MCP server is connected. */

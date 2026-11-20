@@ -20,11 +20,15 @@ const warnedValues = new Set<string>();
 /**
  * Whether this process may only change the model through a changeset.
  *
- * Unset or empty means off. true/1/yes/on (any case) mean on, false/0/no/off mean off. Any
+ * On whenever DR_CHAT_MODE is set. Otherwise: unset or empty means off. true/1/yes/on (any case) mean on, false/0/no/off mean off. Any
  * other value fails safe: the guard is on, and a warning naming the value goes to stderr once,
  * so a typo never silently lets an agent write the base model.
  */
 export function isChangesetOnly(env: NodeJS.ProcessEnv = process.env): boolean {
+  // A process the viewer's chat started (DR_CHAT_MODE, coding-agents/chat-guard.ts) never writes
+  // the base model, whatever DR_CHANGESET_ONLY says: its mode alone implies changeset-only. The
+  // name is spelled out here, not imported, to keep core free of the chat module.
+  if (env.DR_CHAT_MODE?.trim()) return true;
   const raw = env[CHANGESET_ONLY_ENV];
   if (raw === undefined) return false;
   const value = raw.trim().toLowerCase();

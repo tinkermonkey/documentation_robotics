@@ -13,9 +13,15 @@ import {
   USER_ONLY_DR_COMMANDS,
 } from "../../../src/coding-agents/default-permissions.js";
 import { DR_MCP_CHANGESET_TOOLS, DR_MCP_READ_TOOLS } from "../../../src/coding-agents/drbot-mcp.js";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   CHAT_MODE_ENV,
+  CHAT_PROJECT_ROOT_ENV,
+  HOOK_CANNOT_DECIDE,
   REFUSAL_MARKER,
+  chatProjectRoot,
   assertChatCommandAllowed,
   chatBashRefusal,
   chatCommandRefusal,
@@ -225,6 +231,10 @@ describe("rule 3, forbidden stays forbidden: one plain dr command, nothing outsi
       "dr show 'unclosed",
       "dr list --model ~/elsewhere",
       "dr list (sub)",
+      // Globs the shell expands into file names, a file named `--output=x` among them.
+      "dr list *",
+      "dr show motivation.goal.?",
+      "dr show [ab]",
     ]) {
       const refusal = bash("changesets", line);
       expect(refusal).not.toBeNull();
@@ -270,6 +280,26 @@ describe("rule 3, forbidden stays forbidden: one plain dr command, nothing outsi
       expect(chatToolRefusal("model_show", `${ROOT}/`, ROOT, lists, env)).toBeNull();
       expect(chatToolRefusal("model_show", "", ROOT, lists, env)).toBeNull();
       expect(chatToolRefusal("model_show", `${ROOT}/../project-two`, ROOT, lists, env)).not.toBeNull();
+    }
+  });
+
+  it("follows symlinks: a link inside the project that points out of it is outside (second review, finding 5)", () => {
+    const base = mkdtempSync(join(tmpdir(), "dr-chat-guard-link-"));
+    try {
+      const project = join(base, "project");
+      const outside = join(base, "outside");
+      mkdirSync(project);
+      mkdirSync(outside);
+      symlinkSync(outside, join(project, "escape"));
+      expect(isInsideProject("escape", project)).toBe(false);
+      expect(isInsideProject("escape/new-file.json", project)).toBe(false);
+      expect(isInsideProject("documentation-robotics/not-yet", project)).toBe(true);
+      // The project reached through a link is still the project.
+      symlinkSync(project, join(base, "project-link"));
+      expect(isInsideProject(".", join(base, "project-link"))).toBe(true);
+      expect(isInsideProject(join(project, "a"), join(base, "project-link"))).toBe(true);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
     }
   });
 
@@ -358,17 +388,30 @@ describe("the PreToolUse hook (chatPermissionHookDecision)", () => {
     });
   });
 
-  it("leaves an allowed call, another tool, and anything outside a chat to Claude Code", () => {
+  it("leaves an allowed call and another tool to Claude Code", () => {
     expect(chatPermissionHookDecision(call("dr trace a.b.c --direction up"), { [CHAT_MODE_ENV]: "read-safe" })).toBeNull();
     expect(chatPermissionHookDecision({ tool_name: "Read", tool_input: { file_path: "/etc/hosts" } }, { [CHAT_MODE_ENV]: "read-safe" })).toBeNull();
-    expect(chatPermissionHookDecision(call("rm -rf /"), {})).toBeNull();
   });
 
-  it("denies a call it can't read as a dr command rather than letting it through", () => {
+  it("fails closed: denies a call it can't read, and any call when the chat mode is missing (second review, finding 3)", () => {
     for (const input of [{ tool_name: "Bash" }, { tool_name: "Bash", tool_input: null }, { tool_name: "Bash", tool_input: { command: 7 } }]) {
       expect(chatPermissionHookDecision(input, { [CHAT_MODE_ENV]: "changesets" })).toContain("not a `dr` command");
     }
-    expect(chatPermissionHookDecision(null, { [CHAT_MODE_ENV]: "changesets" })).toBeNull();
-    expect(chatPermissionHookDecision("not json", { [CHAT_MODE_ENV]: "changesets" })).toBeNull();
+    for (const input of [null, undefined, "not json", 42]) {
+      expect(chatPermissionHookDecision(input, { [CHAT_MODE_ENV]: "changesets" })).toBe(HOOK_CANNOT_DECIDE);
+    }
+    expect(chatPermissionHookDecision(call("dr trace a.b.c"), {})).toBe(HOOK_CANNOT_DECIDE);
+    expect(chatPermissionHookDecision(call("rm -rf /"), {})).toBe(HOOK_CANNOT_DECIDE);
+    expect(HOOK_CANNOT_DECIDE).toContain(REFUSAL_MARKER);
+  });
+
+  it("measures 'inside the project' from the served root, not the shell's directory (second review, finding 4)", () => {
+    const env = { [CHAT_MODE_ENV]: "read-safe", [CHAT_PROJECT_ROOT_ENV]: ROOT };
+    const elsewhere = { tool_name: "Bash", tool_input: { command: "dr list --model ." }, cwd: "/tmp" };
+    expect(chatPermissionHookDecision(elsewhere, env)).toBeNull();
+    const out = { tool_name: "Bash", tool_input: { command: "dr list --model /tmp" }, cwd: "/tmp" };
+    expect(chatPermissionHookDecision(out, env)).toContain("points outside the project this viewer serves (/work/project)");
+    expect(chatProjectRoot(env)).toBe(ROOT);
+    expect(chatProjectRoot({})).toBe(process.cwd());
   });
 });

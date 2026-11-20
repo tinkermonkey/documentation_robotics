@@ -201,8 +201,10 @@ export function drBotSessionPrompt(mode: DrBotMode, options: DrBotSessionOptions
         `"Permission to use … has been denied", or with "${REFUSAL_MARKER}", was refused by this session's ` +
         "allowlist. The person saw no prompt and none is coming: don't wait for one, don't retry the same call, " +
         "and don't look for another tool or command that does the same thing.",
-      "- The allowlist is fixed when the viewer starts, by the flags given to `dr visualize`. This chat reads no " +
-        "settings file (not .claude/settings.json, not ~/.claude): don't look for one and don't suggest editing one.",
+      "- The allowlist is fixed when the viewer starts, by the flags given to `dr visualize`. This chat reads none " +
+        "of the person's or the project's Claude settings files (not .claude/settings.json, not ~/.claude), only " +
+        "what the launch passes and any policy their organisation manages: don't look for a settings file and " +
+        "don't suggest editing one.",
       `- Allowed: ${allowed.join("; ")}. \`dr help <command>\` shows any command's help.`,
       `- Blocked on purpose: ${blocked}.`,
       "- So don't plan steps this mode can't carry out. When the person asks for one, or a call is refused, tell " +

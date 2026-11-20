@@ -161,6 +161,17 @@ describe("dr mcp in a chat process", () => {
     expect(changesets(served)).toHaveLength(1);
   });
 
+  it("keeps writes in a changeset from the chat mode alone, without DR_CHANGESET_ONLY (second review, finding 2)", async () => {
+    process.env[CHAT_MODE_ENV] = "changesets";
+    delete process.env[CHANGESET_ONLY_ENV];
+    const before = await manifest(served);
+    const goal = { layer: "motivation", type: "goal", name: "unguarded", attributes: { priority: "high" }, rootPath: served };
+    const refused = await call("model_add", goal);
+    expect(refused.isError).toBe(true);
+    expect(text(refused)).toContain("no changeset is active");
+    expect(await manifest(served)).toBe(before);
+  });
+
   it("decides nothing outside a chat", async () => {
     expect((await call("model_stats", { rootPath: other })).isError).toBeFalsy();
   });

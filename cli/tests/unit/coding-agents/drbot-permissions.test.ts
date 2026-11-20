@@ -236,7 +236,8 @@ describe("drBotSessionPrompt", () => {
       expect(prompt).toContain("Blocked by DrBot's permissions");
       expect(prompt).toContain("The person saw no prompt and none is coming");
       expect(prompt).toContain("fixed when the viewer starts, by the flags given to `dr visualize`");
-      expect(prompt).toContain("This chat reads no settings file");
+      expect(prompt).toContain("This chat reads none of the person's or the project's Claude settings files");
+      expect(prompt).toContain("any policy their organisation manages");
       expect(prompt).toContain("--with-danger");
       expect(prompt).toContain("can't be approved from inside the viewer");
     }

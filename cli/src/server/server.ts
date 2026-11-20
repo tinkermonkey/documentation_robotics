@@ -75,7 +75,7 @@ import {
   isExplainedRefusal,
   isPermissionDenial,
 } from "../coding-agents/drbot-permissions.js";
-import { CHAT_MODE_ENV, REFUSAL_MARKER } from "../coding-agents/chat-guard.js";
+import { CHAT_MODE_ENV, CHAT_PROJECT_ROOT_ENV, REFUSAL_MARKER } from "../coding-agents/chat-guard.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { hasExited } from "../utils/stop-child-process.js";
 import {
@@ -2990,7 +2990,7 @@ export class VisualizationServer {
    * CHANGESET_ONLY_ENV, so any `dr` command the agent runs refuses to save the base
    * model and can only stage changes in an active changeset (core/changeset-only-guard.ts).
    */
-  private buildChatEnv(): NodeJS.ProcessEnv {
+  private buildChatEnv(binDir?: string): NodeJS.ProcessEnv {
     // A changeset DrBot creates records origin.kind "chat" (core/changeset-review.ts).
     const env: NodeJS.ProcessEnv = { ...process.env, [CHANGESET_ORIGIN_ENV]: "chat" };
     if (this.withChangesets && !this.withDanger) {
@@ -3001,8 +3001,15 @@ export class VisualizationServer {
     const mode = this.chatPermissionMode();
     if (mode === "danger") {
       delete env[CHAT_MODE_ENV];
+      delete env[CHAT_PROJECT_ROOT_ENV];
     } else {
       env[CHAT_MODE_ENV] = mode;
+      env[CHAT_PROJECT_ROOT_ENV] = this.model.rootPath;
+    }
+    // This launch's own dr first, so the agent's `dr` commands carry the guards above even
+    // where an older dr is installed globally (drbot-mcp.ts writes it).
+    if (binDir) {
+      env.PATH = env.PATH ? `${binDir}${path.delimiter}${env.PATH}` : binDir;
     }
     return env;
   }
@@ -3079,7 +3086,7 @@ export class VisualizationServer {
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = spawn(cmd[0], cmd.slice(1), {
         cwd: this.model.rootPath,
-        env: this.buildChatEnv(),
+        env: this.buildChatEnv(drMcp?.binDir),
         stdio: ["pipe", "pipe", "pipe"],
       });
 
