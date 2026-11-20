@@ -39,7 +39,15 @@ import { stagedSourceReference } from "./staged-source-reference.js";
 import { loadExtractionCoverage, type ExtractionCoverage } from "./extraction-observability.js";
 import { currentGitHead, resolveAnalyzerName } from "../analyzers/active-analyzer.js";
 import { decisionKey } from "../analyzers/extraction-plan.js";
-import { readBuildFiles, registeredByName, sourceCandidates, SOURCE_CANDIDATES_SHOWN, type BuildFile, type SourceCandidate } from "./build-evidence.js";
+import {
+  readBuildFiles,
+  registeredByName,
+  sourceCandidates,
+  SOURCE_CANDIDATES_SHOWN,
+  type BuildFile,
+  type RegisteredByName,
+  type SourceCandidate,
+} from "./build-evidence.js";
 import { PagedLists, type MultiListPage } from "./list-page.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
@@ -224,6 +232,12 @@ export interface UnverifiableElement {
   reason: string;
   /** For a planned update of a found element: the fields extraction doesn't write. */
   fields?: FieldDifference[];
+  /**
+   * Set when it is unverifiable only because a code file's text may register it by name: where,
+   * and by which string. Evidence from text, not from the code graph: the verdict names the
+   * element, and a clean match never rests on it.
+   */
+  registeredByName?: RegisteredByName;
 }
 
 export interface UnplannedElement {
@@ -1928,12 +1942,19 @@ export async function verifyChangesetInModel(
   // name string (unverifiable, not missing), and the files a planned add with no source reference
   // may live in (build-evidence.ts). Read only when the built side came from extraction.
   let buildFiles: BuildFile[] = [];
+  /** Why the build's files were not all searched, when they were not. */
+  let unsearched: string | undefined;
+  /** Planned elements reported unverifiable only because a file's text may register them by name. */
+  const mayBeRegistered = new Map<string, RegisteredByName>();
   if (observability) {
     const since = "changeset" in options.against ? options.against.changeset.scope?.since : undefined;
     const adds = plan.elements.filter((e) => e.op === "add");
     const read = await readBuildFiles(model.codebaseRoot, since, adds.flatMap((e) => sourceFiles(e)));
     buildFiles = read.files;
-    if (read.note) notes.push(read.note);
+    if (read.note) {
+      notes.push(read.note);
+      unsearched = read.note;
+    }
     const builtIds = new Set(built.elements.map((e) => e.id));
     const byName = new Map(
       adds
@@ -1949,12 +1970,17 @@ export async function verifyChangesetInModel(
           const verdict = inner.element(element);
           const hit = verdict.observable ? byName.get(element.id) : undefined;
           if (!hit) return verdict;
+          // Asked only for a planned element no as-built element matched: it is reported as
+          // unverifiable, and named in the verdict so that a match never rests on it.
+          mayBeRegistered.set(element.id, hit);
           return {
             observable: false,
             reason:
-              `the build names it only as a string ("${hit.string}" in ${hit.file}): it is registered by name, with no declaration of ` +
-              "that name for extraction to stage. Confirm it in that file; changeset_adopt_source_references takes it in references " +
-              "({id, sourceFile, sourceSymbol}) to tie the element to the code",
+              `it may be registered by name: the build names it only as a string ("${hit.string}", ` +
+              `${hit.how === "call-argument" ? "an argument of a call" : "the value of a name property"} at ${hit.file}:${hit.line}), with no ` +
+              "declaration of that name for extraction to stage. This is read from the file's text, not from the code graph: confirm it " +
+              "there. If it is the element, changeset_adopt_source_references takes it in references ({id, sourceFile, sourceSymbol}); " +
+              "if it is not, the element is missing",
           };
         },
       };
@@ -1964,6 +1990,22 @@ export async function verifyChangesetInModel(
   const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
   report.extraction = extraction;
   report.notes.push(...notes);
+  // "May be registered by name" is read from a file's text. It keeps the element out of "missing",
+  // and it is never grounds for a clean match: the verdict names each one to confirm.
+  const registered = report.elements.unverifiable.filter((u) => mayBeRegistered.has(u.planned));
+  for (const u of registered) u.registeredByName = mayBeRegistered.get(u.planned);
+  if (registered.length > 0) {
+    if (report.verdict === "match") report.verdict = "probable-match";
+    report.verdictText +=
+      ` ${registered.length} planned ${registered.length === 1 ? "element" : "elements"} may be registered by name, which the build's text suggests and ` +
+      `extraction can't show (${registered.map((u) => `${u.planned} at ${u.registeredByName!.file}:${u.registeredByName!.line}`).join(", ")}): ` +
+      "confirm each in its file before taking the build as matching the plan.";
+  }
+  // A missing element was looked for in the build's files too. When not all of them were searched,
+  // "missing" may be "registered by name in a file that was not read": the verdict says so.
+  if (unsearched && report.elements.missing.some((m) => m.op === "add")) {
+    report.verdictText += ` Not every file of the build was searched for the missing elements: ${unsearched}`;
+  }
   if ("changeset" in options.against) {
     // Said with the as-built share's warning below (an as-built changeset always has a share).
     const thin = thinAsBuiltWarning(report, built);

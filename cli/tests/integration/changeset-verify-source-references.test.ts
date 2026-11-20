@@ -288,7 +288,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     await mkdirAsync(join(rootPath, "src"), { recursive: true });
     await writeFile(
       join(rootPath, "src", "server.ts"),
-      'export function registerTools(server: Server) {\n  server.registerTool("diff_set", diffSetHandler);\n  server.registerTool("grid_lookup", lookup);\n}\n'
+      'export function registerTools(server: Server) {\n  server.registerTool("diff_set", diffSetHandler);\n  server.registerTool("grid_lookup", lookup);\n  track("AuditLog");\n}\n'
     );
     ok(await changesetCreateHandler({ name: "add-tools", description: "Add the diff_set and merge_set tools.", rootPath }));
     const service = { layer: "application", type: "applicationservice", attributes: { serviceType: "synchronous" }, rootPath };
@@ -296,6 +296,20 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     ok(await modelAddHandler({ ...service, name: "diff_set", sourceFile: "src/server.ts", sourceSymbol: "diff_set", sourceProvenance: "manual" } as any));
     // Planned and never built: the file doesn't name it.
     ok(await modelAddHandler({ ...service, name: "merge_set", sourceFile: "src/server.ts", sourceSymbol: "merge_set", sourceProvenance: "manual" } as any));
+    // A planned class that was never written: the build only quotes its name. A component is
+    // declared, not registered, so the quoted name is no evidence for it.
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "AuditLog",
+        attributes: { type: "internal" },
+        sourceFile: "src/server.ts",
+        sourceSymbol: "AuditLog",
+        sourceProvenance: "manual",
+        rootPath,
+      } as any)
+    );
     ok(await changesetDeactivateHandler({ rootPath }));
     const first = ok(await extract({ changeset: "add-tools-as-built" }));
     if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-tools-as-built", rootPath }));
@@ -316,12 +330,65 @@ describe("changeset_verify and the source references extraction found (#1096)", 
 
     const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "add-tools", against: { changeset: "add-tools-as-built" }, rootPath }));
     expect(report.elements.unverifiable.map((u: any) => u.planned)).toEqual(["application.applicationservice.diff-set"]);
-    expect(report.elements.unverifiable[0].reason).toContain('the build names it only as a string ("diff_set" in src/server.ts)');
-    expect(report.elements.unverifiable[0].reason).toContain("registered by name");
-    // What the build really lacks is still missing, and still decides the verdict.
-    expect(report.elements.missing.map((m: any) => m.planned)).toEqual(["application.applicationservice.merge-set"]);
+    expect(report.elements.unverifiable[0].reason).toContain(
+      'it may be registered by name: the build names it only as a string ("diff_set", an argument of a call at src/server.ts:2)'
+    );
+    expect(report.elements.unverifiable[0].registeredByName).toEqual({ file: "src/server.ts", string: "diff_set", line: 2, how: "call-argument" });
+    // What the build really lacks is still missing, and still decides the verdict: the tool no file
+    // names, and the class the build only quotes.
+    expect(report.elements.missing.map((m: any) => m.planned).sort()).toEqual([
+      "application.applicationcomponent.audit-log",
+      "application.applicationservice.merge-set",
+    ]);
     expect(report.verdict).toBe("incomplete");
-    expect(report.summary.elements).toMatchObject({ unverifiable: 1, missing: 1 });
+    expect(report.summary.elements).toMatchObject({ unverifiable: 1, missing: 2 });
+    // The verdict names the element that rests on text alone.
+    expect(report.verdictText).toContain("1 planned element may be registered by name");
+    expect(report.verdictText).toContain("application.applicationservice.diff-set at src/server.ts:2");
+  }, 120_000);
+
+  it("never gives a clean match that rests on a by-name element (#1226 review)", async () => {
+    await mkdirAsync(join(rootPath, "src"), { recursive: true });
+    await writeFile(join(rootPath, "src", "server.ts"), 'export function registerTools(server: Server) {\n  server.registerTool("diff_set", diffSetHandler);\n}\n');
+    ok(await changesetCreateHandler({ name: "add-tool", description: "Add the diff_set tool and its helpers.", rootPath }));
+    // Matched exactly by the as-built side.
+    ok(await modelAddHandler({ layer: "application", type: "applicationcomponent", name: "helpers", attributes: { type: "internal" }, rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationservice",
+        name: "diff_set",
+        attributes: { serviceType: "synchronous" },
+        sourceFile: "src/server.ts",
+        sourceSymbol: "diff_set",
+        sourceProvenance: "manual",
+        rootPath,
+      } as any)
+    );
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const first = ok(await extract({ changeset: "add-tool-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "add-tool-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    ok(await extract({ changeset: "add-tool-as-built" }));
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ changeset: "add-tool", against: { changeset: "add-tool-as-built" }, rootPath }));
+    // Everything extraction can see was found, and nothing is missing: still not a clean match.
+    expect(report.summary.elements).toMatchObject({ matched: 1, missing: 0, unverifiable: 1 });
+    expect(report.verdict).toBe("probable-match");
+    expect(report.verdictText).toContain("may be registered by name");
+    expect(report.verdictText).toContain("confirm each in its file before taking the build as matching the plan");
   }, 120_000);
 
   it("reproduces the bug: a plan landed without them is offered again by the next extract", async () => {

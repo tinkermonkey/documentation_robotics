@@ -188,8 +188,9 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "wrote (with since, the branch's base), or the base model. Elements match by id, then by layer + type + name " +
     "ignoring case and separators, then by source file; relationships match through those element matches. The " +
     "verdict counts matched, missing (planned, not built), unverifiable (planned, but extraction can't see it: intent, " +
-    "re-exports, planned JavaScript and TypeScript test cases, something the code registers by a name string such as " +
-    "an MCP tool, relationships no code edge maps to; not part of the verdict; each with its reason), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
+    "re-exports, planned JavaScript and TypeScript test cases, a service or operation the code may register by a name " +
+    "string such as an MCP tool (text evidence: the verdict names it and is at best probable-match until you confirm " +
+    "it), relationships no code edge maps to; not part of the verdict; each with its reason), unplanned (built, not planned), divergent (matched but type, name or attributes differ, with both " +
     "values), and planned deletions that still exist. Description differences are notes on a match, not divergence: " +
     "don't edit the plan to match extracted text. By default the result is compact: the verdict and counts; missing, " +
     "divergent and probable matches one line each (confirm probable ones in the code); unverifiable items one line " +

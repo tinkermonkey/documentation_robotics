@@ -740,9 +740,68 @@ describe("Verify Formatters", () => {
       };
       const output = formatVerifyMarkdown(report);
       expect(output).toContain("_No matched entries._");
-      expect(output).toContain("_No gaps detected");
-      expect(output).toContain("_No drift detected");
+      // Nothing on either side: nothing was compared, so neither "no gaps" nor "no drift" is claimed.
+      expect(output).toContain("_No routes were discovered in the code, so none could be missing from the model._");
+      expect(output).toContain("_The model has no API operations to compare._");
+      expect(output).not.toContain("No gaps detected");
+      expect(output).not.toContain("No drift detected");
       expect(output).toContain("_No ignored entries._");
+    });
+
+    it("never says no drift beside operations that could not be checked (#1180)", () => {
+      // Two operations sourced to a file the analyzer reads no route from: nothing matched, nothing
+      // in the model only, and nothing checked.
+      const unchecked: VerifyReport = {
+        ...sampleReport,
+        buckets: { matched: [], in_graph_only: [], in_model_only: [], ignored: [] },
+        summary: {
+          matched_count: 0,
+          gap_count: 0,
+          drift_count: 0,
+          ignored_count: 0,
+          total_graph_entries: 0,
+          total_model_entries: 2,
+          elements_without_source_ref: 0,
+          elements_not_checked: 2,
+        },
+        layers: [
+          {
+            layer: "api",
+            status: "not_checked",
+            status_text: "Not checked: none of the model's 2 API operations could be compared with the code, and the analyzer found no HTTP routes.",
+            coverage: { model_elements: 2, checked: 0, not_checked: 2, code_entries: 0 },
+            not_checked: [{ reason: "sourced to a code file the analyzer reads no HTTP route from", count: 2, ids: ["api.operation.a", "api.operation.b"] }],
+            checks: "HTTP routes against API operations",
+            buckets: { matched: [], in_graph_only: [], in_model_only: [], not_indexed: [] },
+            summary: { matched_count: 0, gap_count: 0, drift_count: 0, not_indexed_count: 0, elements_without_source_ref: 0, elements_not_checked: 2 },
+          },
+        ],
+      };
+      for (const output of [formatVerifyMarkdown(unchecked), formatVerifyText(unchecked)]) {
+        expect(output).not.toContain("No drift detected");
+        expect(output).not.toContain("No gaps detected");
+        expect(output).toContain("No operation is in the model only among the 0 checked. 2 of the model's 2 could not be checked");
+        expect(output).toContain("none of the model's 2 API operations could be compared");
+        // The label is printed once, not "Not checked: Not checked:".
+        expect(output).not.toMatch(/Not checked:\W*Not checked:/);
+        expect(output).toContain("api.operation.a, api.operation.b");
+      }
+      // The status leads the summary, ahead of the counts.
+      const markdown = formatVerifyMarkdown(unchecked);
+      expect(markdown.indexOf("**Not checked:**")).toBeLessThan(markdown.indexOf("| Matched | 0 |"));
+    });
+
+    it("keeps the no-drift line when every operation was checked, and names no deprecated command in the gaps tip", () => {
+      const output = formatVerifyMarkdown(sampleReport);
+      expect(output).not.toContain("/dr-map");
+      expect(output).not.toContain("dr analyzer endpoints");
+      expect(formatVerifyText(sampleReport)).not.toContain("/dr-map");
+      const clean: VerifyReport = {
+        ...sampleReport,
+        buckets: { ...sampleReport.buckets, in_model_only: [] },
+        summary: { ...sampleReport.summary, drift_count: 0, elements_without_source_ref: 0 },
+      };
+      expect(formatVerifyMarkdown(clean)).toContain("_No drift detected");
     });
 
     it("should have source column in matched entries table", () => {

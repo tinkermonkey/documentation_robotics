@@ -786,11 +786,16 @@ writes itself proves little: a copy of the plan matches by definition.
   `missing` with that advice); test cases are not in JavaScript or TypeScript files,
   which get no test cards; edges between infrastructure labels no mapping produces make nothing; a
   component's `assigned-to` a function is only when the function is a class method. Nor is an
-  element the build names only as a string: a tool, command or event the code registers by name
-  (`server.registerTool("diff_set", handler)`), with no declaration of that name for extraction to
-  stage. The reason gives the file and the string (`cli/src/core/build-evidence.ts` reads the
-  planned element's own source files and the files changed in the as-built changeset's `since`
-  range); a planned element no file names stays `missing`. A planned update
+  element the build may register by name: a tool, command or event named only in a string
+  (`server.registerTool("diff_set", handler)`, `{ name: "diff_set" }`), with no declaration of that
+  name for extraction to stage. This applies only to types that can be registered that way
+  (application services, interfaces, functions, events and processes, and API operations), and only
+  to a string used as a call's argument or a name property in a code file; a component or a schema
+  is declared, so one the build only quotes stays `missing`. The reason gives the file, line and
+  string. The evidence is the file's text, not the code graph, so the verdict names each such
+  element and is at best `probable-match` while one is unconfirmed
+  (`cli/src/core/build-evidence.ts` reads the planned element's own source files and the files
+  changed in the as-built changeset's `since` range). A planned element no file names stays `missing`. A planned update
   to a field extraction never writes (the description, an attribute the node mapping doesn't fill)
   that the build left alone is unverifiable per field (`unverifiableFields` on the match, or `fields`
   on an unverifiable element); `http_method` and `http_path` are code facts and are checked, with

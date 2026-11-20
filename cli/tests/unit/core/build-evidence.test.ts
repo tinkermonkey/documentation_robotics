@@ -25,6 +25,8 @@ const HANDLER: BuildFile = { file: "src/mcp/tools/diff-set.ts", text: "export as
 const element = (id: string, name: string, file?: string, symbol?: string) => ({
   id,
   name,
+  layer: id.split(".")[0],
+  type: id.split(".")[1],
   ...(file ? { sourceReference: { provenance: "manual" as const, locations: [{ file, ...(symbol ? { symbol } : {}) }] } } : {}),
 });
 
@@ -38,9 +40,60 @@ describe("nameSpellings", () => {
 
 describe("registeredByName (#1226)", () => {
   it("finds a tool the code registers by a name string, with no declaration of that name", () => {
-    expect(registeredByName(element("application.applicationservice.diff-set", "diff_set"), [SERVER])).toEqual({ file: "src/mcp/server.ts", string: "diff_set" });
+    expect(registeredByName(element("application.applicationservice.diff-set", "diff_set"), [SERVER])).toEqual({
+      file: "src/mcp/server.ts",
+      string: "diff_set",
+      line: 3,
+      how: "call-argument",
+    });
     // Single quotes, and a name given in words.
-    expect(registeredByName(element("application.applicationservice.grid-lookup", "Grid lookup"), [SERVER])).toEqual({ file: "src/mcp/server.ts", string: "grid_lookup" });
+    expect(registeredByName(element("application.applicationservice.grid-lookup", "Grid lookup"), [SERVER])).toMatchObject({
+      file: "src/mcp/server.ts",
+      string: "grid_lookup",
+      line: 4,
+    });
+  });
+
+  it("finds one named by a property of a definition object", () => {
+    const tool: BuildFile = { file: "src/tools/verify.ts", text: 'export const tool = {\n  name: "codebase_verify",\n  handler,\n};\n' };
+    expect(registeredByName(element("api.operation.codebase-verify", "codebase_verify"), [tool])).toEqual({
+      file: "src/tools/verify.ts",
+      string: "codebase_verify",
+      line: 2,
+      how: "name-property",
+    });
+    const decorated: BuildFile = { file: "server.py", text: '@mcp.tool(name="grid_lookup")\ndef lookup(cell):\n    return cell\n' };
+    expect(registeredByName(element("application.applicationfunction.grid-lookup", "grid_lookup"), [decorated])).toMatchObject({ how: "name-property", line: 1 });
+  });
+
+  it("never applies to a type that is declared, not registered: a planned class that was never written stays missing", () => {
+    // The review's case: the plan adds component AuditLog; the build only has track("AuditLog").
+    const events: BuildFile = { file: "src/events.ts", text: 'export function record() {\n  track("AuditLog");\n}\n' };
+    expect(registeredByName(element("application.applicationcomponent.audit-log", "AuditLog", "src/events.ts"), [events])).toBeNull();
+    expect(registeredByName(element("data-model.objectschema.audit-log", "AuditLog", "src/events.ts"), [events])).toBeNull();
+    // The same text is evidence for a type that can be registered by name.
+    expect(registeredByName(element("application.applicationevent.audit-log", "AuditLog", "src/events.ts"), [events])).toMatchObject({ string: "AuditLog", line: 2 });
+  });
+
+  it("reads code only: a name quoted in a document or a configuration file registers nothing", () => {
+    const readme: BuildFile = { file: "docs/plan.md", text: "`RateLimiter` is not written yet. See register(\"rate_limiter\", h).\n" };
+    const config: BuildFile = { file: "config/tools.json", text: '{ "name": "rate_limiter" }\n' };
+    const yaml: BuildFile = { file: "deploy/jobs.yaml", text: 'name: "rate_limiter"\n' };
+    expect(registeredByName(element("application.applicationservice.rate-limiter", "RateLimiter"), [readme, config, yaml])).toBeNull();
+  });
+
+  it("takes only a string used as a registration: a call's argument or a name property", () => {
+    const service = element("application.applicationservice.diff-set", "diff_set");
+    for (const text of [
+      'if (tool === "diff_set") return;\n', // a comparison
+      'const label = "diff_set";\n', // an assignment to something else
+      'throw new Error(`unknown tool ${"diff_set"}`);\n', // inside a template
+      'const names = ["diff_set"];\n', // a list of strings is not a registration
+      '// TODO: add "diff_set" later\n', // prose
+    ]) {
+      expect(registeredByName(service, [{ file: "src/a.ts", text }])).toBeNull();
+    }
+    expect(registeredByName(service, [{ file: "src/a.ts", text: 'server.tool(\n  "diff_set",\n  handler\n);\n' }])).toMatchObject({ line: 2, how: "call-argument" });
   });
 
   it("is not one when a file declares or references the name as a symbol", () => {
@@ -57,13 +110,13 @@ describe("registeredByName (#1226)", () => {
   it("takes a one-word name only from the element's own source file", () => {
     const flags: BuildFile = { file: "src/flags.ts", text: 'enable("status");\n' };
     expect(registeredByName(element("application.applicationservice.status", "status"), [flags])).toBeNull();
-    expect(registeredByName(element("application.applicationservice.status", "status", "src/flags.ts"), [flags])).toEqual({ file: "src/flags.ts", string: "status" });
+    expect(registeredByName(element("application.applicationservice.status", "status", "src/flags.ts"), [flags])).toMatchObject({ file: "src/flags.ts", string: "status" });
   });
 
   it("looks for the element's source symbol, in its own file first", () => {
     const other: BuildFile = { file: "src/other.ts", text: 'log("tools/diff");\n' };
     const hit = registeredByName(element("application.applicationservice.diff-tool", "Diff tool", "src/mcp/server.ts", "diff_set"), [other, SERVER]);
-    expect(hit).toEqual({ file: "src/mcp/server.ts", string: "diff_set" });
+    expect(hit).toMatchObject({ file: "src/mcp/server.ts", string: "diff_set" });
   });
 });
 

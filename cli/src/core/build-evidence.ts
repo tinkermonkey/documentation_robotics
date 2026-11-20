@@ -6,11 +6,13 @@
  * neither is "missing" from the build:
  *
  * - something the code registers by a name string, with no declaration of that name: an MCP tool
- *   (`server.registerTool("diff_set", handler)`), a CLI command, an event, a job, a feature flag.
- *   The file names it, only inside quotes, so no symbol of that name exists for extraction to
- *   stage. `registeredByName` finds these; verify reports them as unverifiable, with the file and
- *   the string, so the agent checks one place once instead of treating "missing" as a false report
- *   on every run (#1226);
+ *   (`server.registerTool("diff_set", handler)`), a CLI command, an event, a job. A code file names
+ *   it as a call's argument or a name property, only inside quotes, so no symbol of that name
+ *   exists for extraction to stage. `registeredByName` finds these, for the element types that can
+ *   be registered that way; verify reports them as unverifiable ("may be registered by name"),
+ *   with the file, line and string, so the agent checks one place once instead of treating
+ *   "missing" as a false report on every run (#1226). The evidence is textual, so a clean match
+ *   never rests on it: the verdict names these elements;
  * - an intent-layer element (a feature, a requirement) that the build has code for. Extraction
  *   never reads intent, so no as-built match exists to copy a source reference from.
  *   `sourceCandidates` ranks the build's files by how they name the element, for the agent to
@@ -35,6 +37,9 @@ export interface BuildFile {
 export interface EvidenceElement {
   id: string;
   name: string;
+  /** Needed to tell whether the element is of a kind code can register by name. */
+  layer?: string;
+  type?: string;
   sourceReference?: SourceReference;
 }
 
@@ -102,23 +107,73 @@ function mentions(text: string, spelling: string): { quoted: number; bare: numbe
   return { quoted, bare };
 }
 
-/** Where the code registers an element by a name string. */
+/** Where the code may register an element by a name string. */
 export interface RegisteredByName {
   file: string;
   /** The string the file names it by. */
   string: string;
+  /** The line of the first such string, 1-based. */
+  line: number;
+  /** How the string is used: an argument of a call, or the value of a `name`-like property. */
+  how: "call-argument" | "name-property";
 }
 
 /**
- * The file that names this element only as a quoted string, when one does: some spelling of its
- * name (or one of its source symbols) is a whole string literal in the file, and no spelling
- * appears there outside quotes as a word (which would be a declaration or a reference, something
- * extraction can see). The element's own source files are looked at first, then the build's.
+ * Element types that code may register by a name string instead of declaring: a service, an
+ * interface, a function, an event or a process of the application layer (an MCP tool, a CLI
+ * command, an RPC method, an event name, a job), and an API operation. A component, a data object
+ * or a schema is a class, a module or a type: it is declared, so one that no declaration matches is
+ * missing, whatever string the build quotes.
+ */
+export const REGISTRABLE_BY_NAME: ReadonlySet<string> = new Set([
+  "application.applicationservice",
+  "application.applicationinterface",
+  "application.applicationfunction",
+  "application.applicationevent",
+  "application.applicationprocess",
+  "api.operation",
+]);
+
+/** Source code, where a registration is made. Documents and configuration quote names without registering anything. */
+const CODE_FILE = /\.(?:[cm]?[jt]sx?|py|go|rb|java|kt|kts|cs|rs|php|swift|scala|groovy|vue|svelte)$/i;
+
+/** A property or keyword a registration names its subject by: `name: "diff_set"`, `command = "export"`. */
+const NAME_PROPERTY = /(?:^|[^\w$])["']?(?:name|id|command|tool|event|method|key|type|action|topic|channel|job|task)["']?\s*[:=]\s*$/;
+
+/**
+ * Whether the quoted string starting at `at` (the index of its first character, after the opening
+ * quote) is used the way a registration uses one: an argument of a call (`register("x", h)`,
+ * `on('x', h)`), or the value of a name-like property (`{ name: "x" }`, `name="x"`). A string in a
+ * comparison, an assignment to something else, a message or a comment's prose is none of these.
+ */
+function registrationUse(text: string, at: number, length: number): RegisteredByName["how"] | null {
+  const before = text.slice(Math.max(0, at - 1 - 80), at - 1);
+  const after = text.slice(at + length + 1, at + length + 1 + 40);
+  if (NAME_PROPERTY.test(before)) return "name-property";
+  // The argument of a call: `(` or `,` before it, `,` or `)` after, and the `(` follows a callee.
+  const lead = before.replace(/\s+$/, "");
+  const trail = after.replace(/^\s+/, "");
+  if (!/^[,)]/.test(trail)) return null;
+  if (lead.endsWith("(")) return /[\w$\]>)]\s*\($/.test(lead) ? "call-argument" : null;
+  return lead.endsWith(",") ? "call-argument" : null;
+}
+
+/**
+ * The code file that may register this element by a name string, when one does: the element is of
+ * a type that can be registered that way ({@link REGISTRABLE_BY_NAME}); some spelling of its name
+ * (or one of its source symbols) is a whole string in a code file, used as a call's argument or as
+ * the value of a name-like property; and no spelling appears in that file outside quotes as an
+ * identifier (which would be a declaration or a reference, something extraction can see). The
+ * element's own source files are looked at first, then the build's.
+ *
+ * This is evidence that the element may be registered by name, not that it is: the caller reports
+ * it as unverifiable with the file and line, and never lets a clean match rest on it.
  *
  * A one-word name is taken only from the element's own source files: `"status"` in some file of
  * the build says nothing about an element called Status.
  */
 export function registeredByName(element: EvidenceElement, buildFiles: BuildFile[]): RegisteredByName | null {
+  if (!element.layer || !element.type || !REGISTRABLE_BY_NAME.has(`${element.layer}.${element.type}`)) return null;
   const own = new Set(
     (element.sourceReference?.locations ?? []).map((l) => (typeof l?.file === "string" ? l.file.replace(/\\/g, "/").replace(/^\.\//, "") : "")).filter(Boolean)
   );
@@ -128,17 +183,24 @@ export function registeredByName(element: EvidenceElement, buildFiles: BuildFile
   const spellings = [...new Set([...symbols, ...nameSpellings(element)])];
   if (spellings.length === 0) return null;
   const oneWord = nameWords(element.name).length < 2 && symbols.length === 0;
-  const ordered = [...buildFiles.filter((f) => own.has(f.file)), ...buildFiles.filter((f) => !own.has(f.file))];
+  const code = buildFiles.filter((f) => CODE_FILE.test(f.file));
+  const ordered = [...code.filter((f) => own.has(f.file)), ...code.filter((f) => !own.has(f.file))];
   for (const { file, text } of ordered) {
     if (oneWord && !own.has(file)) continue;
-    let found: string | null = null;
+    let found: Omit<RegisteredByName, "file"> | null = null;
     let declared = false;
     for (const spelling of spellings) {
-      const m = mentions(text, spelling);
-      if (m.bare > 0) declared = true;
-      if (m.quoted > 0 && !found) found = spelling;
+      const identifier = /^[A-Za-z_$][\w$]*$/.test(spelling);
+      for (let at = text.indexOf(spelling); at !== -1; at = text.indexOf(spelling, at + spelling.length)) {
+        const before = text[at - 1];
+        const after = text[at + spelling.length];
+        if (before !== undefined && QUOTES.includes(before) && after === before) {
+          const how = registrationUse(text, at, spelling.length);
+          if (how && !found) found = { string: spelling, line: text.slice(0, at).split("\n").length, how };
+        } else if (identifier && !isWordChar(before) && !isWordChar(after)) declared = true;
+      }
     }
-    if (found && !declared) return { file, string: found };
+    if (found && !declared) return { file, ...found };
   }
   return null;
 }
