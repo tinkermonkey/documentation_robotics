@@ -48,8 +48,13 @@ async function readChangesetHistoryOnDisk(
 }
 
 /**
- * Whether two YAML texts hold the same data, whatever their layout (line folding, quoting, key
- * order). Text that doesn't parse is never the same, so the writer replaces it.
+ * Whether two YAML texts hold the same data, whatever their layout: line folding, quoting,
+ * comments, and the order of a mapping's keys. Key order is not data here on purpose. The model
+ * reads elements and their attributes by name, and the writer emits an element's own fields in a
+ * fixed order, so a file that differs from what the writer would produce only in the order of its
+ * keys (elements in the file, or the keys inside `attributes`) loads to the same model and is left
+ * as it is. The order of a list's items is data and does count. Text that doesn't parse is never
+ * the same, so the writer replaces it.
  */
 export function sameYamlData(a: string, b: string, parse: (text: string) => unknown): boolean {
   if (a === b) return true;
@@ -58,6 +63,43 @@ export function sameYamlData(a: string, b: string, parse: (text: string) => unkn
   } catch {
     return false;
   }
+}
+
+/**
+ * What a layer save does to the YAML files already in its folder, given the names it will write.
+ *
+ * A file whose name differs from a wanted name only in letter case (`Goal.yaml` for `goal.yaml`)
+ * is the same file as the wanted one on a case-insensitive filesystem (macOS, Windows), where
+ * unlinking it as "stale" after the write would delete the data just written. So such a file is
+ * renamed to the wanted name before anything is written, and is never stale. When the folder also
+ * holds the exactly named file, the filesystem tells the two apart and the variant is an ordinary
+ * stale file.
+ *
+ * @param existing - the YAML file names in the layer folder
+ * @param wanted - the file names the save will write
+ * @returns `renames`: [from, to] pairs to apply first; `stale`: files to remove after the writes
+ */
+export function planLayerFiles(
+  existing: string[],
+  wanted: string[]
+): { renames: Array<[string, string]>; stale: string[] } {
+  const present = new Set(existing);
+  const wantedNames = new Set(wanted);
+  const wantedByLowerCase = new Map(wanted.map((name) => [name.toLowerCase(), name]));
+  const renames: Array<[string, string]> = [];
+  const claimed = new Set<string>();
+  const stale: string[] = [];
+  for (const name of existing) {
+    if (wantedNames.has(name)) continue;
+    const target = wantedByLowerCase.get(name.toLowerCase());
+    if (target !== undefined && !present.has(target) && !claimed.has(target)) {
+      renames.push([name, target]);
+      claimed.add(target);
+    } else {
+      stale.push(name);
+    }
+  }
+  return { renames, stale };
 }
 
 /**
@@ -619,11 +661,11 @@ export class Model {
       elementsByType.get(typeKey)!.elements.push(element);
     }
 
-    // Write each type to its own YAML file
-    const written = new Set<string>();
+    // Each type's elements as the text of its own YAML file. Nothing on disk changes until every
+    // file's text exists.
+    const outputs = new Map<string, string>();
     for (const [, { stem, elements }] of elementsByType) {
       const filename = `${stem}.yaml`;
-      const filePath = `${layerPath}/${filename}`;
 
       // Convert elements to spec-node format YAML
       const yamlData: any = {};
@@ -660,20 +702,32 @@ export class Model {
         };
       }
 
-      written.add(filename);
-      const text = yaml.stringify(yamlData);
+      outputs.set(filename, yaml.stringify(yamlData));
+    }
+
+    // A file named like a wanted one but for letter case is renamed to it first: on a
+    // case-insensitive filesystem it is the same file, and removing it as stale after the write
+    // would delete what was just written (planLayerFiles).
+    const { renames, stale } = planLayerFiles([...existingFiles.keys()], [...outputs.keys()]);
+    for (const [from, to] of renames) {
+      await fs.rename(`${layerPath}/${from}`, `${layerPath}/${to}`);
+      existingFiles.set(to, existingFiles.get(from)!);
+      existingFiles.delete(from);
+    }
+
+    for (const [filename, text] of outputs) {
       const onDisk = existingFiles.get(filename);
       if (onDisk !== undefined && sameYamlData(onDisk, text, yaml.parse)) {
         continue;
       }
-      await writeFile(filePath, text);
+      await writeFile(`${layerPath}/${filename}`, text);
     }
 
-    // Remove the files of types the layer no longer has, so no stale file outlives a deletion
-    for (const file of existingFiles.keys()) {
-      if (!written.has(file)) {
-        await fs.unlink(`${layerPath}/${file}`);
-      }
+    // Remove the files of types the layer no longer has, so no stale file outlives a deletion.
+    // None of them is a file just written: a case variant of a written name was renamed above,
+    // unless the folder also listed the exact name, which only a case-sensitive filesystem allows.
+    for (const file of stale) {
+      await fs.unlink(`${layerPath}/${file}`);
     }
 
     layer.markClean();

@@ -34,6 +34,7 @@ import {
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCliVersion as getCliVersionFromUtils } from "../utils/spec-version.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { shippedEntries } from "./shipped-entries.js";
 
 /** One file an integration upgrade would write or remove, by path relative to the project root */
 export interface IntegrationFileChange {
@@ -58,15 +59,12 @@ export interface IntegrationUpgradePlan {
   /** The version file, rewritten by every upgrade */
   versionFile: string;
   /**
-   * DR-named files and folders in the integration's folders that this dr's integration doesn't
-   * have and no earlier install recorded, so no upgrade updates or removes them. Folders end in
-   * a slash. See {@link BaseIntegrationManager.findStaleEntries}.
+   * Files and folders an earlier dr installed that this dr's integration no longer has and the
+   * version file doesn't record, so no upgrade updates or removes them. Folders end in a slash.
+   * See {@link BaseIntegrationManager.findStaleEntries}.
    */
   stale: string[];
 }
-
-/** Names DR gives its integration files: `dr-advisor.md`, `dr_02_business_layer/` */
-const DR_NAMED = /^dr[-_]/i;
 
 /**
  * Abstract base class for integration managers
@@ -622,11 +620,21 @@ export abstract class BaseIntegrationManager {
   }
 
   /**
-   * DR-named files and folders (`dr-*`, `dr_*`) directly inside the installed components' folders
-   * that this dr's integration doesn't have and the version file doesn't record: left over from a
-   * layout older than the version file, or put there by hand. No upgrade touches them, and the
-   * agent keeps loading them (a Copilot skill folder from an old layer numbering, say). Paths are
-   * relative to the project root; folders end in a slash.
+   * The names dr has ever installed in a component's target folder (shipped-entries.ts). Only an
+   * entry with one of these names can be a leftover: a name pattern would also match the
+   * project's own `dr-…` files.
+   */
+  protected shippedEntries(config: ComponentConfig): readonly string[] {
+    return shippedEntries(this.integrationSourceDir, config.target);
+  }
+
+  /**
+   * Leftovers of older integration layouts: files and folders directly inside the installed
+   * components' folders whose name an earlier dr installed there (see {@link shippedEntries}),
+   * that this dr's integration doesn't have and the version file doesn't record. No upgrade
+   * touches them, and the agent keeps loading them (a Copilot skill folder from an old layer
+   * numbering, say). Anything else in those folders is the project's own and is never listed,
+   * whatever it is called. Paths are relative to the project root; folders end in a slash.
    */
   public async findStaleEntries(): Promise<string[]> {
     const versionData = await this.loadVersionFile();
@@ -644,13 +652,15 @@ export abstract class BaseIntegrationManager {
       const targetPath = join(absoluteTargetDir, config.target);
       if (!existsSync(targetPath)) continue;
 
+      const shipped = new Set(this.shippedEntries(config));
+      if (shipped.size === 0) continue;
       const current = new Set(
         [...(await computeDirectoryHashes(join(sourceRoot, config.source), config.prefix)).keys()].map(first)
       );
       // What the version file records is the upgrade's to update or remove
       const tracked = new Set(Object.keys(recorded || {}).map(first));
       for (const entry of await readdir(targetPath, { withFileTypes: true })) {
-        if (!DR_NAMED.test(entry.name) || current.has(entry.name) || tracked.has(entry.name)) continue;
+        if (!shipped.has(entry.name) || current.has(entry.name) || tracked.has(entry.name)) continue;
         if (!entry.isFile() && !entry.isDirectory()) continue;
         stale.push(`${folder}/${config.target}/${entry.name}${entry.isDirectory() ? "/" : ""}`);
       }
@@ -659,8 +669,8 @@ export abstract class BaseIntegrationManager {
   }
 
   /**
-   * Remove stale entries (see {@link findStaleEntries}). Only paths that are stale now are
-   * removed, whatever the caller passes.
+   * Remove the stale entries the caller names (see {@link findStaleEntries}): the ones the person
+   * chose, one path each. A path that is not a stale entry now is skipped, whatever it is.
    *
    * @returns the paths removed
    */

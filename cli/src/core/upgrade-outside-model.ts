@@ -173,7 +173,7 @@ export function outsideModelLines(
     }
     if (plan.stale.length > 0) {
       entries.push(
-        "(stale: DR-named, not part of this dr's integration and not recorded as installed, so no upgrade updates or removes it; kept unless you remove it with --remove-stale)"
+"(stale: installed by an earlier dr under that name, absent from this dr's integration and from the version file, so no upgrade updates or removes it; kept unless you remove it: --remove-stale [path...])"
       );
     }
     const counts = plan.upgrade

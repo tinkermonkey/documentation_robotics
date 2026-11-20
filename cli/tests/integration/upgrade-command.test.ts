@@ -1400,6 +1400,12 @@ describe("upgrade command - unified flow", () => {
       await rm(join(tempDir.path, ".github/agents/dr-advisor.md"));
       await mkdir(join(tempDir.path, ".github/skills/dr_layer_02_business"), { recursive: true });
       await writeFile(join(tempDir.path, ".github/skills/dr_layer_02_business/SKILL.md"), "old layout\n");
+      await mkdir(join(tempDir.path, ".github/skills/dr_layer_04_app"), { recursive: true });
+      await writeFile(join(tempDir.path, ".github/skills/dr_layer_04_app/SKILL.md"), "old layout\n");
+      // The project's own files, named like dr's: no dr ever installed these names
+      await mkdir(join(tempDir.path, ".github/skills/dr_house_style"), { recursive: true });
+      await writeFile(join(tempDir.path, ".github/skills/dr_house_style/SKILL.md"), "ours\n");
+      await writeFile(join(tempDir.path, ".github/agents/dr-who.md"), "ours\n");
       await rm(join(tempDir.path, "documentation-robotics/reports"), { recursive: true, force: true });
       gitInit(tempDir.path);
       git(tempDir.path, "add", "-A");
@@ -1412,6 +1418,9 @@ describe("upgrade command - unified flow", () => {
       assertOutputContains(dryRun, "add       .github/agents/dr-advisor.md");
       assertOutputContains(dryRun, "update    .github/.dr-copilot-version");
       assertOutputContains(dryRun, "stale     .github/skills/dr_layer_02_business/");
+      assertOutputContains(dryRun, "stale     .github/skills/dr_layer_04_app/");
+      expect(dryRun.stdout).not.toContain("dr_house_style");
+      expect(dryRun.stdout).not.toContain("dr-who.md");
       assertOutputContains(dryRun, "Reports (none yet)");
       assertOutputContains(dryRun, "generate  documentation-robotics/README.md");
       assertOutputContains(dryRun, "documentation-robotics/ to .prettierignore");
@@ -1426,26 +1435,40 @@ describe("upgrade command - unified flow", () => {
       expect(await getModelSpecVersion(tempDir.path)).toBe("0.14.0");
       expect(git(tempDir.path, "status", "--short").trim()).toBe("M documentation-robotics/model/manifest.yaml");
 
-      // Without it the rest follows, and the stale entry is listed but kept
+      // Without it the rest follows, and the leftovers are listed but kept
       const rest = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(rest.exitCode).toBe(0);
-      assertOutputContains(rest, "1 DR-named entry in .github/ is not part of this dr's GitHub Copilot integration");
-      assertOutputContains(rest, "Remove them with: dr upgrade --remove-stale");
+      assertOutputContains(rest, "2 entries in .github/ are left over from an earlier dr's GitHub Copilot integration");
+      assertOutputContains(rest, "Kept 2. Remove any of them with: dr upgrade --remove-stale <path>...");
       expect(await fileExists(join(tempDir.path, ".github/agents/dr-advisor.md"))).toBe(true);
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business/SKILL.md"))).toBe(true);
       expect(await fileExists(join(tempDir.path, ".prettierignore"))).toBe(true);
       expect(await fileExists(join(tempDir.path, "documentation-robotics/README.md"))).toBe(true);
 
-      // Everything is up to date now; the stale entry is still offered, and goes only when asked
-      const upToDate = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
-      assertOutputContains(upToDate, "Everything is up to date");
-      assertOutputContains(upToDate, "stale     .github/skills/dr_layer_02_business/");
-      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business/SKILL.md"))).toBe(true);
-
-      const removed = await runDr(["upgrade", "--yes", "--remove-stale"], { cwd: tempDir.path });
-      expect(removed.exitCode).toBe(0);
-      assertOutputContains(removed, "Removed 1 stale entry from .github/");
+      // Everything is up to date now; the leftovers are still offered, and one goes when it is named
+      const one = await runDr(["upgrade", "--yes", "--remove-stale", ".github/skills/dr_layer_02_business"], {
+        cwd: tempDir.path,
+      });
+      expect(one.exitCode).toBe(0);
+      assertOutputContains(one, "Everything is up to date");
+      assertOutputContains(one, "Removed 1 of them from .github/: .github/skills/dr_layer_02_business/");
+      assertOutputContains(one, "Kept 1. Remove it with: dr upgrade --remove-stale .github/skills/dr_layer_04_app/");
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_02_business"))).toBe(false);
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_04_app/SKILL.md"))).toBe(true);
+
+      // The project's own dr-named files can't be removed this way, by name or by "all"
+      const own = await runDr(
+        ["upgrade", "--yes", "--remove-stale", ".github/skills/dr_house_style", ".github/agents/dr-who.md"],
+        { cwd: tempDir.path }
+      );
+      expect(own.exitCode).toBe(0);
+      assertOutputContains(own, "--remove-stale .github/skills/dr_house_style: not a leftover of an earlier dr's integration");
+      const all = await runDr(["upgrade", "--yes", "--remove-stale"], { cwd: tempDir.path });
+      expect(all.exitCode).toBe(0);
+      assertOutputContains(all, "Removed 1 of them from .github/: .github/skills/dr_layer_04_app/");
+      expect(await fileExists(join(tempDir.path, ".github/skills/dr_layer_04_app"))).toBe(false);
+      expect(await readFile(join(tempDir.path, ".github/skills/dr_house_style/SKILL.md"), "utf-8")).toBe("ours\n");
+      expect(await readFile(join(tempDir.path, ".github/agents/dr-who.md"), "utf-8")).toBe("ours\n");
       expect(await fileExists(join(tempDir.path, ".github/skills/dr_change_planning/SKILL.md"))).toBe(true);
     });
 

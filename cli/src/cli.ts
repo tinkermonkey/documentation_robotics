@@ -875,7 +875,10 @@ program
       "What to do when git tracks files under .dr/: untrack them, keep them tracked (ignore the rest of .dr/), or skip"
     ).choices(["untrack", "keep-tracked", "skip"])
   )
-  .option("--remove-stale", "Remove DR-named integration files this dr's integration no longer has, without asking")
+  .option(
+    "--remove-stale [paths...]",
+    "Remove leftovers of older integration layouts (names an earlier dr installed that this one no longer has): the paths given, as the plan lists them, or all of them when none is given"
+  )
   .option("--full", "List every file, element and derived value; long lists otherwise show their first entries with the total")
   .addHelpText(
     "after",

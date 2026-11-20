@@ -56,6 +56,12 @@ class TestIntegrationManager extends BaseIntegrationManager {
     return this.sourceRoot;
   }
 
+  // The names "earlier releases" of this test integration installed, per target folder
+  public shipped: Record<string, string[]> = {};
+  protected shippedEntries(config: ComponentConfig): readonly string[] {
+    return this.shipped[config.target] ?? [];
+  }
+
   public setSourceRoot(path: string): void {
     this.sourceRoot = path;
   }
@@ -811,31 +817,83 @@ components:
       expect(await readFile(join(targetDir, "commands", "cmd2.md"), "utf-8")).toBe("Command 2");
     });
 
-    it("finds DR-named entries the integration doesn't have and never recorded, and removes only those", async () => {
+    /** Leftovers of an older layout beside the project's own files that happen to carry dr's prefix */
+    async function leftoversAndOwnFiles() {
       await install();
-      // Left by a layout older than the version file: a file and a folder
+      manager.shipped = {
+        agents: ["dr-agent1.md", "dr-old-agent.md"],
+        commands: ["cmd1.md", "cmd2.md", "dr_layer_02_business", "dr_layer_04_app"],
+        templates: ["dr-template.md"],
+      };
+      // Installed by an earlier dr, before the version file recorded anything: a file and two folders
       await writeFile(join(targetDir, "agents", "dr-old-agent.md"), "old", "utf-8");
-      await mkdir(join(targetDir, "commands", "dr_layer_02_business"), { recursive: true });
-      await writeFile(join(targetDir, "commands", "dr_layer_02_business", "SKILL.md"), "old", "utf-8");
-      // Not DR-named: the project's own
+      for (const name of ["dr_layer_02_business", "dr_layer_04_app"]) {
+        await mkdir(join(targetDir, "commands", name), { recursive: true });
+        await writeFile(join(targetDir, "commands", name, "SKILL.md"), "old", "utf-8");
+      }
+      // The project's own, named like dr's: never an earlier dr's, so never a leftover
+      await writeFile(join(targetDir, "agents", "dr-who.md"), "mine", "utf-8");
+      await writeFile(join(targetDir, "agents", "Dr-Strange.agent.md"), "mine", "utf-8");
+      await mkdir(join(targetDir, "commands", "dr_house_style", "nested"), { recursive: true });
+      await writeFile(join(targetDir, "commands", "dr_house_style", "nested", "rules.md"), "mine", "utf-8");
       await writeFile(join(targetDir, "agents", "my-agent.md"), "mine", "utf-8");
-      // In the untracked component: never looked at
+      // A shipped name in the untracked component: never looked at
       await mkdir(join(targetDir, "templates"), { recursive: true });
       await writeFile(join(targetDir, "templates", "dr-template.md"), "mine", "utf-8");
-      // Recorded and dropped from this dr: the upgrade removes it, so it is not stale
+      // Recorded and dropped from this dr: the upgrade removes it, so it is not a leftover
       await rm(join(sourceDir, "commands", "cmd2.md"));
+    }
 
-      const stale = ["target/agents/dr-old-agent.md", "target/commands/dr_layer_02_business/"];
+    const ownFiles = [
+      ["agents", "dr-who.md"],
+      ["agents", "Dr-Strange.agent.md"],
+      ["commands", "dr_house_style", "nested", "rules.md"],
+      ["agents", "my-agent.md"],
+      ["templates", "dr-template.md"],
+    ];
+
+    it("lists as stale only names an earlier dr installed, never the project's own dr-named files", async () => {
+      await leftoversAndOwnFiles();
+      const stale = [
+        "target/agents/dr-old-agent.md",
+        "target/commands/dr_layer_02_business/",
+        "target/commands/dr_layer_04_app/",
+      ];
       expect(await manager.findStaleEntries()).toEqual(stale);
       expect((await manager.planUpgrade())!.stale).toEqual(stale);
 
-      // A path that isn't stale is ignored, whatever the caller passes
-      const removed = await manager.removeStaleEntries([...stale, "target/agents/my-agent.md", "target/commands/cmd1.md"]);
-      expect(removed).toEqual(stale);
+      // With no shipped names known, nothing is a leftover: a name pattern is not enough
+      manager.shipped = {};
       expect(await manager.findStaleEntries()).toEqual([]);
-      expect(await readFile(join(targetDir, "agents", "my-agent.md"), "utf-8")).toBe("mine");
+    });
+
+    it("removes the entries chosen, one path each, and nothing that is not a leftover", async () => {
+      await leftoversAndOwnFiles();
+
+      // One chosen; the user's own files and a current file are passed too and refused
+      const removed = await manager.removeStaleEntries([
+        "target/commands/dr_layer_02_business/",
+        "target/agents/dr-who.md",
+        "target/commands/dr_house_style/",
+        "target/commands/cmd1.md",
+        "../outside.md",
+      ]);
+      expect(removed).toEqual(["target/commands/dr_layer_02_business/"]);
+      expect(await manager.findStaleEntries()).toEqual([
+        "target/agents/dr-old-agent.md",
+        "target/commands/dr_layer_04_app/",
+      ]);
+      for (const parts of ownFiles) {
+        expect(await readFile(join(targetDir, ...parts), "utf-8")).toBe("mine");
+      }
       expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1");
-      expect(await readFile(join(targetDir, "templates", "dr-template.md"), "utf-8")).toBe("mine");
+
+      // Removing every leftover still leaves every one of the project's own files
+      expect(await manager.removeStaleEntries(await manager.findStaleEntries())).toHaveLength(2);
+      expect(await manager.findStaleEntries()).toEqual([]);
+      for (const parts of ownFiles) {
+        expect(await readFile(join(targetDir, ...parts), "utf-8")).toBe("mine");
+      }
     });
   });
 });

@@ -13,7 +13,7 @@
  */
 
 import ansis from "ansis";
-import { confirm, isCancel, select } from "@clack/prompts";
+import { confirm, isCancel, multiselect, select } from "@clack/prompts";
 import { findProjectRoot, getModelPath } from "../utils/project-paths.js";
 import { getCliVersion, getCliBundledSpecVersion, getModelSpecVersion } from "../utils/spec-version.js";
 import {
@@ -85,8 +85,11 @@ export interface UpgradeOptions {
   modelOnly?: boolean;
   /** What to do about files git tracks under .dr/; without it the upgrade asks, or leaves them */
   dotDr?: DotDrTrackedChoice;
-  /** Remove stale DR-named integration files without asking */
-  removeStale?: boolean;
+  /**
+   * Remove leftovers of older integration layouts without asking: `true` for every one listed, or
+   * the paths to remove (as the plan lists them). A path that isn't a listed leftover is refused.
+   */
+  removeStale?: boolean | string[];
   /**
    * List every file, element and derived value, however many. Without it long lists show their
    * first entries with the true total and say how to see the rest; nothing is ever touched that
@@ -668,36 +671,69 @@ async function keepPrettierOffDrFiles(projectRoot: string): Promise<void> {
   }
 }
 
+/** A stale entry's path without a trailing slash, for comparing what the user typed */
+const withoutSlash = (entry: string) => entry.replace(/\/+$/, "");
+
 /**
- * Stale DR-named integration files (see BaseIntegrationManager.findStaleEntries): removed with
- * --remove-stale or on a yes in a terminal, else listed with how to remove them.
+ * Leftovers of older integration layouts (see BaseIntegrationManager.findStaleEntries): names an
+ * earlier dr installed that this dr's integration no longer has. Each is the person's to keep or
+ * remove: --remove-stale removes them all, --remove-stale <path>... the ones named, a terminal
+ * offers a pick-list, and otherwise they are listed with how to remove them.
  */
 async function offerStaleRemoval(options: UpgradeOptions, integrations: IntegrationPlan[]): Promise<void> {
+  const listed = integrations.flatMap((plan) => plan.stale);
+  const asked = Array.isArray(options.removeStale) ? options.removeStale.map(withoutSlash) : [];
+  // A path that is not a listed leftover is never removed: say so, and remove nothing in its place
+  const unknown = asked.filter((entry) => !listed.some((stale) => withoutSlash(stale) === entry));
+  for (const entry of unknown) {
+    console.warn(
+      ansis.yellow(`⚠ --remove-stale ${entry}: not a leftover of an earlier dr's integration, so it was left alone`)
+    );
+  }
+
   for (const plan of integrations) {
     if (plan.stale.length === 0) continue;
     const manager = INTEGRATIONS.find((integration) => integration.name === plan.name)!.create();
+    const one = plan.stale.length === 1;
 
-    let remove = options.removeStale === true;
     console.log(
       ansis.yellow(
-        `\n⚠ ${plan.stale.length} DR-named entr${plan.stale.length === 1 ? "y" : "ies"} in ${plan.folder}/ ${plan.stale.length === 1 ? "is" : "are"} not part of this dr's ${plan.label} integration, so no upgrade updates or removes ${plan.stale.length === 1 ? "it" : "them"}:`
+        `\n⚠ ${plan.stale.length} entr${one ? "y" : "ies"} in ${plan.folder}/ ${one ? "is" : "are"} left over from an earlier dr's ${plan.label} integration: dr installed ${one ? "it" : "them"} under ${one ? "that name" : "those names"}, this dr's integration has no such entry, and no upgrade updates or removes ${one ? "it" : "them"}:`
       )
     );
     plan.stale.forEach((entry) => console.log(ansis.dim(`   ${entry}`)));
 
-    if (!remove && !options.yes && process.stdin.isTTY && process.stdout.isTTY) {
-      const response = await confirm({ message: `Remove ${plan.stale.length === 1 ? "it" : "them"}?`, initialValue: false });
-      remove = response === true;
+    let chosen: string[] = [];
+    if (options.removeStale === true) {
+      chosen = plan.stale;
+    } else if (Array.isArray(options.removeStale)) {
+      chosen = plan.stale.filter((entry) => asked.includes(withoutSlash(entry)));
+    } else if (!options.yes && process.stdin.isTTY && process.stdout.isTTY) {
+      const picked = await multiselect({
+        message: "Remove which? (space to pick, enter to confirm; none picked keeps them all)",
+        options: plan.stale.map((entry) => ({ value: entry, label: entry })),
+        required: false,
+      });
+      chosen = isCancel(picked) ? [] : (picked as string[]);
     }
-    if (!remove) {
-      console.log(ansis.dim("   Left in place. Remove them with: dr upgrade --remove-stale"));
-      continue;
+
+    const kept = plan.stale.filter((entry) => !chosen.includes(entry));
+    if (chosen.length > 0) {
+      try {
+        const removed = await manager.removeStaleEntries(chosen);
+        console.log(
+          ansis.green(`✓ Removed ${removed.length} of them from ${plan.folder}/: ${removed.join(", ")}`)
+        );
+      } catch (error) {
+        console.warn(ansis.yellow(`⚠ Warning: could not remove the stale entries: ${getErrorMessage(error)}`));
+      }
     }
-    try {
-      const removed = await manager.removeStaleEntries(plan.stale);
-      console.log(ansis.green(`✓ Removed ${removed.length} stale entr${removed.length === 1 ? "y" : "ies"} from ${plan.folder}/`));
-    } catch (error) {
-      console.warn(ansis.yellow(`⚠ Warning: could not remove the stale entries: ${getErrorMessage(error)}`));
+    if (kept.length > 0) {
+      console.log(
+        ansis.dim(
+          `   Kept ${kept.length}. Remove ${kept.length === 1 ? "it" : "any of them"} with: dr upgrade --remove-stale ${kept.length === 1 ? kept[0] : "<path>..."} (or --remove-stale alone for all)`
+        )
+      );
     }
   }
 }

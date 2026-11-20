@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import YAML from "yaml";
-import { Model, sameYamlData } from "../../../src/core/model.js";
+import { Model, planLayerFiles, sameYamlData } from "../../../src/core/model.js";
 import { upgradeModel } from "../../../src/core/model-upgrade.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
@@ -182,6 +182,87 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
       expect(await readFile(featureFile(root), "utf-8")).toBe(files.feature);
       const manifest = YAML.parse(await readFile(join(root, "documentation-robotics", "model", "manifest.yaml"), "utf-8"));
       expect(manifest.spec_version).toBe("0.14.0");
+    });
+  });
+});
+
+describe("a layer file named in another letter case is never deleted by a save (PR 1266 review)", () => {
+  it("plans a rename for a case variant of a wanted file, and treats it as stale only beside the exact name", () => {
+    // What a case-insensitive filesystem lists: the variant alone. It is the wanted file.
+    expect(planLayerFiles(["Goal.yaml", "requirement.yaml"], ["goal.yaml", "requirement.yaml"])).toEqual({
+      renames: [["Goal.yaml", "goal.yaml"]],
+      stale: [],
+    });
+    // Only a case-sensitive filesystem lists both: there the variant is a different, stale file.
+    expect(planLayerFiles(["Goal.yaml", "goal.yaml"], ["goal.yaml"])).toEqual({ renames: [], stale: ["Goal.yaml"] });
+    // Two variants and no exact name: one becomes the wanted file, the other is stale.
+    expect(planLayerFiles(["GOAL.yaml", "Goal.yaml"], ["goal.yaml"])).toEqual({
+      renames: [["GOAL.yaml", "goal.yaml"]],
+      stale: ["Goal.yaml"],
+    });
+    // A type the layer no longer has, and another extension, are stale; exact names are neither.
+    expect(planLayerFiles(["goal.yaml", "driver.yaml", "elements.yml"], ["goal.yaml"])).toEqual({
+      renames: [],
+      stale: ["driver.yaml", "elements.yml"],
+    });
+    expect(planLayerFiles([], ["goal.yaml"])).toEqual({ renames: [], stale: [] });
+  });
+
+  const motivationDir = (root: string) => join(root, "documentation-robotics", "model", "01_motivation");
+
+  /** The goal's file under a capitalised name: on macOS and Windows that is the file `goal.yaml` names */
+  async function capitalise(root: string): Promise<void> {
+    await rename(join(motivationDir(root), "goal.yaml"), join(motivationDir(root), "Goal.yaml"));
+    expect((await readdir(motivationDir(root))).sort()).toEqual(["Goal.yaml", "requirement.yaml"]);
+  }
+
+  it("keeps the type's data when nothing changed (runs on whatever filesystem the tests are on)", async () => {
+    await withModel(async (root, files) => {
+      await capitalise(root);
+      const model = await Model.load(root, { lazyLoad: false });
+      await model.saveDirtyLayers();
+
+      // The file has the writer's name, and its bytes: renamed, not rewritten, never removed
+      expect((await readdir(motivationDir(root))).sort()).toEqual(["goal.yaml", "requirement.yaml"]);
+      expect(await readFile(layerFile(root, "goal.yaml"), "utf-8")).toBe(files.goal);
+      const reloaded = await Model.load(root, { lazyLoad: false });
+      expect(reloaded.layers.get("motivation")!.listElements().map((element) => element.path).sort()).toEqual([
+        "motivation.goal.fewer-refusals",
+        "motivation.requirement.drift-on-overlap",
+      ]);
+    });
+  });
+
+  it("keeps the type's data when an element in it changed", async () => {
+    await withModel(async (root) => {
+      await capitalise(root);
+      const model = await Model.load(root, { lazyLoad: false });
+      const layer = model.layers.get("motivation")!;
+      const goal = layer.listElements().find((element) => element.type === "goal")!;
+      goal.description = "Shorter now";
+      layer.updateElement(goal);
+      await model.saveDirtyLayers();
+
+      expect((await readdir(motivationDir(root))).sort()).toEqual(["goal.yaml", "requirement.yaml"]);
+      const written = YAML.parse(await readFile(layerFile(root, "goal.yaml"), "utf-8"));
+      expect(written["motivation.goal.fewer-refusals"].description).toBe("Shorter now");
+    });
+  });
+
+  it("still removes a legacy file of another name once its elements are in their types' files", async () => {
+    await withModel(async (root) => {
+      // An older layout: every element of the layer in one elements.yaml
+      const dir = motivationDir(root);
+      const all = { ...YAML.parse(await readFile(join(dir, "goal.yaml"), "utf-8")), ...YAML.parse(await readFile(join(dir, "requirement.yaml"), "utf-8")) };
+      await rm(join(dir, "goal.yaml"));
+      await rm(join(dir, "requirement.yaml"));
+      await writeFile(join(dir, "elements.yaml"), YAML.stringify(all));
+
+      const model = await Model.load(root, { lazyLoad: false });
+      await model.saveDirtyLayers();
+      expect((await readdir(dir)).sort()).toEqual(["goal.yaml", "requirement.yaml"]);
+      const reloaded = await Model.load(root, { lazyLoad: false });
+      expect(reloaded.layers.get("motivation")!.listElements()).toHaveLength(2);
     });
   });
 });
