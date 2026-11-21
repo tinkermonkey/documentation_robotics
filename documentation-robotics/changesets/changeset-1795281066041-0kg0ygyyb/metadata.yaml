@@ -8,17 +8,17 @@ description: One central DR process per user serves the MCP interface, a
   DrBot launching are planned across layers, and the unscoped /api routes are
   planned out.
 created: 2026-11-21T17:11:06.057Z
-modified: 2026-11-21T17:22:16.922Z
+modified: 2026-11-21T17:44:01.635Z
 status: staged
 baseSnapshot: v2:sha256:98a17a8e4ba0a39a8239e65f0be06af9a0d614125762e7f1dee3ce40df8e7401
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 557
-  modifications: 24
+  additions: 565
+  modifications: 25
   deletions: 43
-lastSequence: 628
+lastSequence: 650
 unstaged:
   - sequence: 23
     removedAt: 485
@@ -155,4 +155,272 @@ unstaged:
             decided_at: 2026-11-21T17:16:37.009Z
             changeset: changeset-1795281066041-0kg0ygyyb
       timestamp: 2026-11-21T17:16:37.043Z
+    rewritten: true
+  - sequence: 47
+    removedAt: 629
+    change:
+      type: add
+      elementId: application.applicationcomponent.project-registry
+      layerName: application
+      after:
+        id: 7259351a-2da4-4815-ac92-0db5f4fbc681
+        path: application.applicationcomponent.project-registry
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: ProjectRegistry
+        description: "The one project registry every interface reads: loads the user
+          farm, names projects, discovers each project's checkouts from git, and
+          resolves a path, a project name or a CheckoutRef to a project and
+          checkout."
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.902Z
+          updated_at: 2026-11-21T17:14:10.902Z
+          version: 1
+        accepted_gaps:
+          - direction: outgoing
+            predicate: accesses
+            other_spec_node_id: application.dataobject
+            reason: Everything the registry reads and writes has a declared shape
+              (FarmProject, Repository, Checkout, CheckoutRef,
+              ProjectListEntry), so it accesses object schemas, not data
+              objects.
+            decided_by: agent
+            decided_at: 2026-11-21T17:16:37.667Z
+            changeset: changeset-1795281066041-0kg0ygyyb
+      timestamp: 2026-11-21T17:16:37.702Z
+    rewritten: true
+  - sequence: 40
+    removedAt: 630
+    change:
+      type: add
+      elementId: data-store.collection.user-farm-manifest
+      layerName: data-store
+      after:
+        id: 37a01071-2ff0-4f9e-9185-7ddffd525529
+        path: data-store.collection.user-farm-manifest
+        spec_node_id: data-store.collection
+        type: collection
+        layer_id: data-store
+        name: User farm manifest
+        description: "farm.yaml of the user farm (dr-farm-v2): the one project registry.
+          Default $XDG_CONFIG_HOME/dr/farm.yaml (~/.config/dr/farm.yaml);
+          DR_FARM names another."
+        metadata:
+          created_at: 2026-11-21T17:14:10.901Z
+          updated_at: 2026-11-21T17:14:10.901Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 33
+    removedAt: 631
+    change:
+      type: add
+      elementId: data-model.objectschema.server-record
+      layerName: data-model
+      after:
+        id: 1e218e2c-98b9-4608-aef6-c08d7a6bef0b
+        path: data-model.objectschema.server-record
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ServerRecord
+        description: "The one record of the user's central DR process: pid, port,
+          cliVersion, startedAt, launcher pid, and the path of the token file
+          (the token itself is in a 0600 file beside it)."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 41
+    removedAt: 632
+    change:
+      type: add
+      elementId: data-store.collection.server-record
+      layerName: data-store
+      after:
+        id: 59ed0dfb-e609-475e-8679-201bd3346c41
+        path: data-store.collection.server-record
+        spec_node_id: data-store.collection
+        type: collection
+        layer_id: data-store
+        name: Server record
+        description: "server.json and server.token (0600) in the user state directory:
+          the one central process."
+        metadata:
+          created_at: 2026-11-21T17:14:10.902Z
+          updated_at: 2026-11-21T17:14:10.902Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 63
+    removedAt: 633
+    change:
+      type: add
+      elementId: application.applicationfunction.ensure-central-server
+      layerName: application
+      after:
+        id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+        path: application.applicationfunction.ensure-central-server
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: ensureCentralServer
+        description: The running central process from the server record, or a new one
+          started detached (dr serve) under the starting marker; replaces an
+          older one only when no browser tab, MCP session or DrBot turn is
+          connected, else returns it with a notice.
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 34
+    removedAt: 635
+    change:
+      type: add
+      elementId: data-model.objectschema.viewer-link
+      layerName: data-model
+      after:
+        id: 4e412e4c-4339-487f-b011-d2aac9abfe3d
+        path: data-model.objectschema.viewer-link
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ViewerLink
+        description: "A deep link into the shared viewer: url, project, checkout, and
+          optionally changeset and element; built from the server record, never
+          by starting a process."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 51
+    removedAt: 636
+    change:
+      type: add
+      elementId: application.applicationfunction.register-project
+      layerName: application
+      after:
+        id: 8a62af3f-5bbe-4a0e-b62c-5d9c513961f0
+        path: application.applicationfunction.register-project
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: registerProject
+        description: Adds a project to the user farm through the one code path every
+          interface uses, including a path an MCP call or dr visualize names
+          that no registered project owns.
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 49
+    removedAt: 637
+    change:
+      type: add
+      elementId: application.applicationfunction.discover-checkouts
+      layerName: application
+      after:
+        id: c52d27cd-c754-476b-96a4-c85602e4620e
+        path: application.applicationfunction.discover-checkouts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: discoverCheckouts
+        description: A project's checkouts from git worktree list --porcelain run in its
+          repository, cached until <commonDir>/worktrees changes; a worktree
+          whose folder is gone is reported missing or prunable.
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 70
+    removedAt: 638
+    change:
+      type: add
+      elementId: application.applicationfunction.migrate-farm-manifest
+      layerName: application
+      after:
+        id: a015c690-5c98-4c3c-a65c-6e0ad4849857
+        path: application.applicationfunction.migrate-farm-manifest
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: migrateFarmManifest
+        description: "dr-farm-v1 to dr-farm-v2: groups entries by repository (git common
+          dir); the entry whose source is the main checkout names the project,
+          else the main checkout's folder name; the other entries' paths become
+          checkouts and their names are reported as dropped; branch is dropped."
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 138
+    removedAt: 649
+    change:
+      type: relationship-add
+      elementId: data-store.database.dr-user-state::composes::data-store.collection.user-farm-manifest
+      layerName: data-store
+      after:
+        source: data-store.database.dr-user-state
+        target: data-store.collection.user-farm-manifest
+        predicate: composes
+        layer: data-store
+        category: structural
+      timestamp: 2026-11-21T17:14:10.921Z
+  - sequence: 572
+    removedAt: 649
+    change:
+      type: relationship-add
+      elementId: data-store.database.dr-user-state::composes::data-store.collection.farm-sync-state
+      layerName: data-store
+      after:
+        source: data-store.database.dr-user-state
+        target: data-store.collection.farm-sync-state
+        predicate: composes
+        layer: data-store
+        category: structural
+      timestamp: 2026-11-21T17:21:34.280Z
+  - sequence: 38
+    removedAt: 650
+    change:
+      type: add
+      elementId: data-store.database.dr-user-state
+      layerName: data-store
+      after:
+        id: 2957a703-72cb-455c-b1fc-643ba31b2f86
+        path: data-store.database.dr-user-state
+        spec_node_id: data-store.database
+        type: database
+        layer_id: data-store
+        name: DR user state
+        description: "The user's DR state directory ($XDG_STATE_HOME/dr or
+          ~/.local/state/dr) and the user farm: YAML and JSON files the central
+          process and the CLI read and write."
+        attributes:
+          engine: filesystem (YAML and JSON files)
+          paradigm: DOCUMENT
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
     rewritten: true

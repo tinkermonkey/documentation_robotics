@@ -722,16 +722,18 @@
     type: objectschema
     layer_id: data-model
     name: ServerRecord
-    description: "The one record of the user's central DR process: pid, port,
-      cliVersion, startedAt, launcher pid, and the path of the token file (the
-      token itself is in a 0600 file beside it)."
+    description: "The record of the central DR process serving one farm: farm root,
+      pid, port, cliVersion, startedAt and launcher pid, with the path of the
+      token file (the token is in a 0600 file beside it). Kept at
+      servers/<farm-hash>.json in the user state directory: one record for the
+      user farm, and one for each folder farm a process was started in."
     attributes:
       type: object
     metadata:
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:52.060Z
   sequenceNumber: 33
 - type: add
   elementId: data-model.objectschema.viewer-link
@@ -744,15 +746,16 @@
     layer_id: data-model
     name: ViewerLink
     description: "A deep link into the shared viewer: url, project, checkout, and
-      optionally changeset and element; built from the server record, never by
-      starting a process."
+      optionally changeset and element. The token travels in the URL fragment,
+      never in the query string. Built from the server record, never by starting
+      a process."
     attributes:
       type: object
     metadata:
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:53.191Z
   sequenceNumber: 34
 - type: add
   elementId: data-model.objectschema.dr-bot-session-key
@@ -829,8 +832,9 @@
     layer_id: data-store
     name: DR user state
     description: "The user's DR state directory ($XDG_STATE_HOME/dr or
-      ~/.local/state/dr) and the user farm: YAML and JSON files the central
-      process and the CLI read and write."
+      ~/.local/state/dr): the central process records and tokens, the starting
+      marker and the legacy viewer records. The farms themselves are in the Farm
+      root database."
     attributes:
       engine: filesystem (YAML and JSON files)
       paradigm: DOCUMENT
@@ -838,7 +842,7 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:44:01.511Z
   sequenceNumber: 38
 - type: add
   elementId: data-store.database.checkout-dr-state
@@ -873,14 +877,15 @@
     type: collection
     layer_id: data-store
     name: User farm manifest
-    description: "farm.yaml of the user farm (dr-farm-v2): the one project registry.
-      Default $XDG_CONFIG_HOME/dr/farm.yaml (~/.config/dr/farm.yaml); DR_FARM
-      names another."
+    description: "farm.yaml (dr-farm-v2), the project registry of the farm in use:
+      the folder at DR_FARM_PATH, else a farm root found upward from the working
+      directory, else the user farm at $XDG_CONFIG_HOME/dr/farm.yaml
+      (~/.config/dr/farm.yaml)."
     metadata:
       created_at: 2026-11-21T17:14:10.901Z
       updated_at: 2026-11-21T17:14:10.901Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:51.835Z
   sequenceNumber: 40
 - type: add
   elementId: data-store.collection.server-record
@@ -892,13 +897,14 @@
     type: collection
     layer_id: data-store
     name: Server record
-    description: "server.json and server.token (0600) in the user state directory:
-      the one central process."
+    description: "servers/<farm-hash>.json and <farm-hash>.token (0600) in the user
+      state directory: one central process per farm, so normally just the user
+      farm's."
     metadata:
       created_at: 2026-11-21T17:14:10.902Z
       updated_at: 2026-11-21T17:14:10.902Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:52.422Z
   sequenceNumber: 41
 - type: add
   elementId: data-store.collection.legacy-viewer-records
@@ -999,10 +1005,10 @@
     type: applicationcomponent
     layer_id: application
     name: ProjectRegistry
-    description: "The one project registry every interface reads: loads the user
-      farm, names projects, discovers each project's checkouts from git, and
-      resolves a path, a project name or a CheckoutRef to a project and
-      checkout."
+    description: The one project registry every interface reads. It loads the farm
+      in use (resolveFarm), names projects, discovers each project's checkouts
+      from git, and resolves a path, a project name or a CheckoutRef to a
+      project and checkout.
     attributes:
       type: internal
     metadata:
@@ -1019,7 +1025,7 @@
         decided_by: agent
         decided_at: 2026-11-21T17:16:37.667Z
         changeset: changeset-1795281066041-0kg0ygyyb
-  timestamp: 2026-11-21T17:16:37.702Z
+  timestamp: 2026-11-21T17:43:51.400Z
   sequenceNumber: 47
 - type: add
   elementId: application.applicationfunction.resolve-checkout
@@ -1050,14 +1056,16 @@
     type: applicationfunction
     layer_id: application
     name: discoverCheckouts
-    description: A project's checkouts from git worktree list --porcelain run in its
-      repository, cached until <commonDir>/worktrees changes; a worktree whose
-      folder is gone is reported missing or prunable.
+    description: A project's checkouts, from git worktree list --porcelain run in
+      its repository and cached until <commonDir>/worktrees changes. A linked
+      checkout's key is the name git gives the worktree (maintainer answer,
+      2026-11-21). A worktree whose folder is gone is reported missing or
+      prunable.
     metadata:
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:53.750Z
   sequenceNumber: 49
 - type: add
   elementId: application.applicationfunction.derive-project-name
@@ -1089,14 +1097,15 @@
     type: applicationfunction
     layer_id: application
     name: registerProject
-    description: Adds a project to the user farm through the one code path every
-      interface uses, including a path an MCP call or dr visualize names that no
-      registered project owns.
+    description: Adds a project to the farm in use through the one code path every
+      interface uses. A path an MCP call or dr visualize names that no
+      registered project owns is registered automatically (maintainer answer,
+      2026-11-21).
     metadata:
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:53.425Z
   sequenceNumber: 51
 - type: add
   elementId: application.applicationfunction.list-projects
@@ -1345,15 +1354,16 @@
     type: applicationfunction
     layer_id: application
     name: ensureCentralServer
-    description: The running central process from the server record, or a new one
-      started detached (dr serve) under the starting marker; replaces an older
-      one only when no browser tab, MCP session or DrBot turn is connected, else
-      returns it with a notice.
+    description: Finds the running central process for the farm in use from its
+      server record, or starts one detached (dr serve) under the starting
+      marker. It replaces an older process only when no browser tab, MCP session
+      or DrBot turn is connected; otherwise it returns the older one with a
+      notice.
     metadata:
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:52.642Z
   sequenceNumber: 63
 - type: add
   elementId: application.applicationfunction.sweep-per-project-viewers
@@ -1483,15 +1493,16 @@
     type: applicationfunction
     layer_id: application
     name: migrateFarmManifest
-    description: "dr-farm-v1 to dr-farm-v2: groups entries by repository (git common
-      dir); the entry whose source is the main checkout names the project, else
-      the main checkout's folder name; the other entries' paths become checkouts
-      and their names are reported as dropped; branch is dropped."
+    description: dr-farm-v1 to dr-farm-v2. It groups entries by repository (git
+      common dir); the entry whose source is the main checkout names the
+      project, else the main checkout's folder name does. The other entries'
+      paths become checkouts, and their names are dropped, never kept as aliases
+      (maintainer answer, 2026-11-21). branch is dropped.
     metadata:
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+  timestamp: 2026-11-21T17:43:54.039Z
   sequenceNumber: 70
 - type: add
   elementId: application.applicationservice.farm-migrate-command
@@ -2345,17 +2356,6 @@
     category: structural
   timestamp: 2026-11-21T17:14:10.921Z
   sequenceNumber: 137
-- type: relationship-add
-  elementId: data-store.database.dr-user-state::composes::data-store.collection.user-farm-manifest
-  layerName: data-store
-  after:
-    source: data-store.database.dr-user-state
-    target: data-store.collection.user-farm-manifest
-    predicate: composes
-    layer: data-store
-    category: structural
-  timestamp: 2026-11-21T17:14:10.921Z
-  sequenceNumber: 138
 - type: relationship-add
   elementId: data-store.database.dr-user-state::composes::data-store.collection.server-record
   layerName: data-store
@@ -8904,17 +8904,6 @@
   timestamp: 2026-11-21T17:21:34.280Z
   sequenceNumber: 571
 - type: relationship-add
-  elementId: data-store.database.dr-user-state::composes::data-store.collection.farm-sync-state
-  layerName: data-store
-  after:
-    source: data-store.database.dr-user-state
-    target: data-store.collection.farm-sync-state
-    predicate: composes
-    layer: data-store
-    category: structural
-  timestamp: 2026-11-21T17:21:34.280Z
-  sequenceNumber: 572
-- type: relationship-add
   elementId: data-store.database.dr-user-state::composes::data-store.collection.server-starting-marker
   layerName: data-store
   after:
@@ -9676,3 +9665,176 @@
     category: structural
   timestamp: 2026-11-21T17:22:16.879Z
   sequenceNumber: 628
+- type: update
+  elementId: application.applicationfunction.viewer-url
+  layerName: application
+  before:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: "A deep link into the shared viewer for a CheckoutRef, optionally a
+      changeset or element: http://127.0.0.1:<port>/p/<project>/c/<checkout>/...
+      with the token, from the server record."
+    source_reference: &a65
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: viewerUrl
+    metadata: &a66
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    source_reference: *a65
+    metadata: *a66
+  timestamp: 2026-11-21T17:43:52.912Z
+  sequenceNumber: 634
+- type: add
+  elementId: application.applicationfunction.resolve-farm
+  layerName: application
+  after:
+    id: 33eff7f6-1b23-46eb-bbee-dcef3159b449
+    path: application.applicationfunction.resolve-farm
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: resolveFarm
+    description: "The farm in use, in this order: DR_FARM_PATH, else a farm root
+      found upward from the working directory (findFarmRoot), else the user farm
+      (~/.config/dr/farm.yaml, created empty on first use). The CLI launched in
+      a folder farm uses that farm's definition, and so does any central process
+      it starts."
+    metadata:
+      created_at: 2026-11-21T17:43:54.697Z
+      updated_at: 2026-11-21T17:43:54.697Z
+      version: 1
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 639
+- type: add
+  elementId: data-store.database.farm-root
+  layerName: data-store
+  after:
+    id: 134a5764-754d-46ec-97e8-44baeaa5eebb
+    path: data-store.database.farm-root
+    spec_node_id: data-store.database
+    type: database
+    layer_id: data-store
+    name: Farm root
+    description: "A farm's folder: the user farm at ~/.config/dr/, or a folder farm
+      with its own farm.yaml. It holds the farm manifest and each project's
+      .farm-sync.yaml."
+    attributes:
+      engine: filesystem (YAML and JSON files)
+      paradigm: DOCUMENT
+    metadata:
+      created_at: 2026-11-21T17:43:54.697Z
+      updated_at: 2026-11-21T17:43:54.697Z
+      version: 1
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 640
+- type: relationship-add
+  elementId: application.applicationcomponent.project-registry::assigned-to::application.applicationfunction.resolve-farm
+  layerName: application
+  after:
+    source: application.applicationcomponent.project-registry
+    target: application.applicationfunction.resolve-farm
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 641
+- type: relationship-add
+  elementId: application.applicationfunction.resolve-farm::accesses::data-store.collection.user-farm-manifest
+  layerName: application
+  after:
+    source: application.applicationfunction.resolve-farm
+    target: data-store.collection.user-farm-manifest
+    predicate: accesses
+    layer: application
+    targetLayer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 642
+- type: relationship-add
+  elementId: application.applicationfunction.resolve-farm::depends-on::application.applicationfunction.find-farm-root
+  layerName: application
+  after:
+    source: application.applicationfunction.resolve-farm
+    target: application.applicationfunction.find-farm-root
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 643
+- type: relationship-add
+  elementId: application.applicationfunction.resolve-farm::satisfies::motivation.requirement.projects-resolve-through-one-registry
+  layerName: application
+  after:
+    source: application.applicationfunction.resolve-farm
+    target: motivation.requirement.projects-resolve-through-one-registry
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 644
+- type: relationship-add
+  elementId: data-store.database.farm-root::composes::data-store.collection.user-farm-manifest
+  layerName: data-store
+  after:
+    source: data-store.database.farm-root
+    target: data-store.collection.user-farm-manifest
+    predicate: composes
+    layer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 645
+- type: relationship-add
+  elementId: data-store.database.farm-root::composes::data-store.collection.farm-sync-state
+  layerName: data-store
+  after:
+    source: data-store.database.farm-root
+    target: data-store.collection.farm-sync-state
+    predicate: composes
+    layer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 646
+- type: relationship-add
+  elementId: data-store.database.farm-root::depends-on::technology.systemsoftware.workstation-operating-system
+  layerName: data-store
+  after:
+    source: data-store.database.farm-root
+    target: technology.systemsoftware.workstation-operating-system
+    predicate: depends-on
+    layer: data-store
+    targetLayer: technology
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 647
+- type: relationship-add
+  elementId: data-store.database.farm-root::satisfies::motivation.requirement.projects-resolve-through-one-registry
+  layerName: data-store
+  after:
+    source: data-store.database.farm-root
+    target: motivation.requirement.projects-resolve-through-one-registry
+    predicate: satisfies
+    layer: data-store
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-21T17:43:54.796Z
+  sequenceNumber: 648

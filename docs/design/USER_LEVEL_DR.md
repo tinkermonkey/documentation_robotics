@@ -43,7 +43,7 @@ Project  (name: "documentation-robotics")    registered in the user farm
   same common directory, so the repository identity is deterministic from any checkout. It is
   derived and never stored.
 - **Checkout** (`data-model.objectschema.checkout`): one working tree. It is identified by a
-  **key** that is unique within its project _(recommendation)_:
+  **key** that is unique within its project (maintainer answer to Q3: git's worktree name):
   - `main` for the main worktree;
   - for a linked worktree, the name git itself gives it under `<commonDir>/worktrees/<name>`.
     Git guarantees that name is unique per repository, and it stays stable for the worktree's
@@ -92,7 +92,7 @@ A **checkout** is addressed as project plus checkout, the `CheckoutRef`
 | Interface  | How a checkout is named                                                                                                                                                                       |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MCP        | `rootPath` still works and resolves through the registry. New optional `project` and `checkout` arguments name it directly _(recommendation)_. Every result carries `project` and `checkout`. |
-| Viewer URL | `/p/<project>/c/<checkout>/...`, e.g. `/p/documentation-robotics/c/main/changesets/<id>`                                                                                                      |
+| Viewer URL | `/#/p/<project>/c/<checkout>/...` (route and token in the fragment), e.g. `/#/p/documentation-robotics/c/main/changesets/<id>`                                                                |
 | API        | `/api/projects/{project}/checkouts/{checkout}/...`                                                                                                                                            |
 | CLI        | `dr visualize [path]` resolves a path. `--project <name> [--checkout <key>]` names one.                                                                                                       |
 | Farm       | Checkouts are not written to `farm.yaml`; they are discovered (section 4).                                                                                                                    |
@@ -105,7 +105,7 @@ A **checkout** is addressed as project plus checkout, the `CheckoutRef`
 which is the same code for every interface. That is how ruling 1 holds even for first use. The
 alternative was to refuse until the user runs `dr farm add`. It was rejected because the agent
 would then have to stop and ask on every new repository; auto-registration is deterministic
-because it writes the registry before serving _(recommendation)_.
+because it writes the registry before serving (maintainer answer to Q2: auto-register).
 
 **Checkouts** are discovered, not registered:
 `application.applicationfunction.discover-checkouts` runs `git worktree list --porcelain` in the
@@ -163,12 +163,25 @@ questions:
 The MCP server (`pick-project-root`, `follow-client-roots`, every tool's `rootPath`), the viewer API
 (`GET /api/projects...`) and the CLI (`dr farm`, `dr visualize`) all call it.
 
-**Where the registry lives** _(recommendation; open question Q1)_: in the **user farm**, a
-`farm.yaml` at `$XDG_CONFIG_HOME/dr/farm.yaml` (`~/.config/dr/farm.yaml`), with `DR_FARM` naming
-another. The farm is already "where the list starts" (issue 1279). Keeping one file avoids a
-second registry that could disagree with it. Config, not state, because it is the user's list of
-projects. Farms elsewhere on disk (CI farms, the portfolio fleet) keep working with `dr farm
---farm <path>`. The central process serves only the user farm.
+**Where the registry lives** (maintainer answer to Q1, 2026-11-21). The registry is a farm,
+and `application.applicationfunction.resolve-farm` picks which farm is in use:
+
+1. the folder `DR_FARM_PATH` names (this variable already exists in `findFarmRoot`);
+2. else a farm root found upward from the working directory (`findFarmRoot`). The CLI launched
+   in a folder with an existing farm uses that folder's farm definition;
+3. else the **user farm**, `farm.yaml` at `$XDG_CONFIG_HOME/dr/farm.yaml`
+   (`~/.config/dr/farm.yaml`), created empty on first use. This is the registry of the
+   user-level process.
+
+The farm is already "where the list starts" (issue 1279), and keeping one file per farm avoids a
+second registry that could disagree with it.
+
+**One central process per farm** _(recommendation)_. A folder farm keeps working with the central
+process design: the process started from inside a folder farm serves that farm, keyed by its
+farm root (`servers/<farm-hash>.json`). Normally only the user farm's process runs. Each process
+serves one list with one set of names, so ruling 1 holds per farm. The CLI, the MCP bridge and
+`dr visualize` started in the same place all resolve the same farm, so they reach the same
+process.
 
 **Farm v2** (`data-model.objectschema.farm-manifest-data`, version `dr-farm-v2`), point 5:
 
@@ -222,7 +235,7 @@ is a build-time choice.
 
 **Getting MCP clients onto it** _(recommendation)_: `dr mcp` over stdio, which the Claude Code
 plugin and Copilot run, becomes `application.applicationcomponent.mcp-stdio-bridge`. It finds the
-central process from `server.json` (`ensure-central-server`), starts it detached when absent, and
+central process for the farm in use from its server record (`ensure-central-server`), starts it detached when absent, and
 forwards MCP messages to `/mcp` with the token. It passes the client's roots so tools resolve the
 session's checkout. The plugin configuration doesn't change, and no token is written into a
 client's config.
@@ -246,7 +259,7 @@ context on first use (`acquire-checkout-context`) and evicts it (`evict-checkout
 
 It never evicts a context that has a websocket subscriber or a running DrBot turn. Eviction drops
 memory only: everything durable is already in the checkout's files. The defaults are guesses
-(open question Q4). The repository's own model (2,491 elements) is the size to measure against.
+(maintainer answer to Q4: safe defaults). The repository's own model (2,491 elements) is the size to measure against.
 
 **WebSocket.** There is one socket per browser tab, and it subscribes per checkout
 (`application.message.subscribe-to-checkout-feed`, `FeedSubscription`).
@@ -256,9 +269,9 @@ was rejected: a tab that shows a project's checkouts side by side would need sev
 
 **Lifecycle and the registry.**
 
-- `server.json` (`data-model.objectschema.server-record`) replaces the per-project
-  `viewers/<hash>.<pid>.json` records. It holds pid, port, cliVersion, startedAt and the launcher
-  pid. The token sits in `server.token` (0600) beside it.
+- `servers/<farm-hash>.json` (`data-model.objectschema.server-record`) replaces the per-project
+  `viewers/<hash>.<pid>.json` records. It holds the farm root, pid, port, cliVersion, startedAt
+  and the launcher pid. The token sits in `<farm-hash>.token` (0600) beside it.
 - The port defaults to 8080, or the next free port, and is recorded. It is not fixed, so a
   stray process on 8080 can't block DR.
 - **Idle exit** keeps #1237's rule: 24 hours (`DR_VIEWER_IDLE_HOURS`) with no websocket client,
@@ -277,7 +290,7 @@ connected tab (the rule #1237 already uses). It reports the rest, with pids, und
 their processes are gone. `--list` and `--stop` otherwise show and stop the one central process.
 
 **`dr visualize [path]`** ensures the central process runs and opens the browser at
-`/p/<project>/c/<checkout>/` for the checkout the path (default: cwd) resolves to. `--port` sets
+`/#/p/<project>/c/<checkout>/` for the checkout the path (default: cwd) resolves to. `--port` sets
 the port only when it starts the process. `--no-browser` prints the link instead.
 
 ## 8. Project- and checkout-scoped API routes (ruling 5)
@@ -315,8 +328,14 @@ from the scoped routes as part of the build.
 `CheckoutRef`, plus optionally a changeset or element:
 
 ```
-http://127.0.0.1:8080/p/documentation-robotics/c/t11-test-reliability-4a7e32/changesets/<id>?token=…
+http://127.0.0.1:8080/#/p/documentation-robotics/c/t11-test-reliability-4a7e32/changesets/<id>?token=…
 ```
+
+The route and the token are both in the URL fragment (maintainer answer to Q6). A browser never
+sends the fragment to the server, so the token stays out of server logs and `Referer` headers.
+The viewer already routes on the fragment (`#/changesets/...`). It reads the token from there,
+keeps it for API and websocket calls, and removes it from the address bar with
+`history.replaceState`. That last part is for the viewer companion issue.
 
 - **`review_open`** resolves the session's checkout and returns that link. Because MCP now runs in
   the central process (through the bridge), the process that answers is the one the link points
@@ -338,7 +357,7 @@ http://127.0.0.1:8080/p/documentation-robotics/c/t11-test-reliability-4a7e32/cha
 - **the agent** comes from `prepareDrBotAgent` for that checkout;
 - **conversations** are keyed by `DrBotSessionKey {project, checkout, conversationId}`, so a
   conversation id reused in another checkout starts a new session;
-- **concurrency** is capped per user (default 3 running turns _(recommendation)_). A turn over the
+- **concurrency** is capped per user (default 3 running turns, confirmed in the maintainer's answer to Q4). A turn over the
   cap waits, and the chat tells the user it is queued;
 - **checkout removal** ends that checkout's turns.
 
@@ -358,22 +377,21 @@ that kept launched programs out of the model.
   addition if wanted.
 - **Remote or multi-user DR:** out of scope. Everything binds to `127.0.0.1`.
 
-## 11. Open questions for the maintainer
+## 11. Maintainer answers (2026-11-21)
 
-- **Q1.** Is the user farm at `~/.config/dr/farm.yaml` the registry, or should an existing farm
-  root be designated (`DR_FARM` only, no default)?
-- **Q2.** Should an MCP call or `dr visualize` on an unregistered path auto-register it (this
-  design), or refuse and ask for `dr farm add`?
-- **Q3.** Checkout key from git's worktree name (this design), or from the folder name? They
-  differ when a worktree folder is renamed after `git worktree add`.
-- **Q4.** Pool defaults (`maxLoaded` 4, idle 30 minutes) and the DrBot cap (3 turns per user).
-- **Q5.** Should old v1 farm names be dropped at migration (this design) or kept as aliases for
-  one release?
-- **Q6.** Should the token stay in the deep link's query string, as today, or move to the URL
-  fragment, so it stays out of server logs and `Referer` headers? This is not a trust-model
-  change (ruling 3). It is about where the one token travels.
+- **Q1, the registry.** The user farm is the registry for the user-level process. The CLI
+  launched in a folder with an existing farm uses that folder's farm definition. See section 6.
+- **Q2, unregistered paths.** They are registered automatically.
+- **Q3, the checkout key.** It is git's worktree name.
+- **Q4, the defaults.** `maxLoaded` 4, 30 idle minutes and 3 DrBot turns per user are safe
+  defaults.
+- **Q5, v1 farm names.** They are dropped at migration, not kept as aliases.
+- **Q6, the token.** It moves to the URL fragment.
 
-## 12. Spec gaps found while modelling (Context Studio proposals, not edits)
+Still open: whether running one process per folder farm (section 6) is what Q1 intends. The
+alternative is for the user-level process to serve a folder farm's projects as well.
+
+## 12. Spec gaps found while modelling
 
 - `technology.systemsoftware.softwareType` has no value for a language runtime (Node.js), a
   version-control tool (git) or a developer CLI or coding agent (Claude Code, Copilot). The plan
