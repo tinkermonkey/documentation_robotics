@@ -176,7 +176,7 @@ and `application.applicationfunction.resolve-farm` picks which farm is in use:
 The farm is already "where the list starts" (issue 1279), and keeping one file per farm avoids a
 second registry that could disagree with it.
 
-**One central process per farm** _(recommendation)_. A folder farm keeps working with the central
+**One central process per farm** (maintainer answer, 2026-11-21). A folder farm keeps working with the central
 process design: the process started from inside a folder farm serves that farm, keyed by its
 farm root (`servers/<farm-hash>.json`). Normally only the user farm's process runs. Each process
 serves one list with one set of names, so ruling 1 holds per farm. The CLI, the MCP bridge and
@@ -388,8 +388,8 @@ that kept launched programs out of the model.
 - **Q5, v1 farm names.** They are dropped at migration, not kept as aliases.
 - **Q6, the token.** It moves to the URL fragment.
 
-Still open: whether running one process per folder farm (section 6) is what Q1 intends. The
-alternative is for the user-level process to serve a folder farm's projects as well.
+- **Folder farms.** Each farm gets its own central process. The user-level process does not
+  serve a folder farm's projects.
 
 ## 12. Spec gaps found while modelling
 
