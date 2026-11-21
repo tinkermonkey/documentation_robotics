@@ -1,0 +1,123 @@
+id: changeset-1795281066041-0kg0ygyyb
+name: user-level-dr
+description: One central DR process per user serves the MCP interface, a
+  multi-project viewer and DrBot from one project registry. Projects are named
+  once for every interface, and a project's repository and checkouts (main
+  checkout plus worktrees) are first-class. Done when the registry, checkout
+  structure, central process, project- and checkout-scoped API, deep links and
+  DrBot launching are planned across layers, and the unscoped /api routes are
+  planned out.
+created: 2026-11-21T17:11:06.057Z
+modified: 2026-11-21T17:17:40.775Z
+status: staged
+baseSnapshot: v2:sha256:98a17a8e4ba0a39a8239e65f0be06af9a0d614125762e7f1dee3ce40df8e7401
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 469
+  modifications: 24
+  deletions: 43
+lastSequence: 539
+unstaged:
+  - sequence: 23
+    removedAt: 485
+    change:
+      type: add
+      elementId: product.feature.farm-v2-migration
+      layerName: product
+      after:
+        id: 0ac95c40-adab-4457-b7c3-a4f633f65ffd
+        path: product.feature.farm-v2-migration
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Farm v2 migration
+        description: "dr farm migrate (preview, then apply) moves a dr-farm-v1 farm.yaml
+          to dr-farm-v2: entries that share a git repository become one project;
+          the others' paths become checkouts, and their names are listed as
+          dropped."
+        attributes:
+          priority: medium
+          status: planned
+        metadata:
+          created_at: 2026-11-21T17:14:10.885Z
+          updated_at: 2026-11-21T17:14:10.885Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 47
+    removedAt: 486
+    change:
+      type: add
+      elementId: application.applicationcomponent.project-registry
+      layerName: application
+      after:
+        id: 7259351a-2da4-4815-ac92-0db5f4fbc681
+        path: application.applicationcomponent.project-registry
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: ProjectRegistry
+        description: "The one project registry every interface reads: loads the user
+          farm, names projects, discovers each project's checkouts from git, and
+          resolves a path, a project name or a CheckoutRef to a project and
+          checkout."
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.902Z
+          updated_at: 2026-11-21T17:14:10.902Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 55
+    removedAt: 487
+    change:
+      type: add
+      elementId: application.applicationcomponent.checkout-context-pool
+      layerName: application
+      after:
+        id: 9e17e91b-bf58-4720-99ef-7cd5d53625c8
+        path: application.applicationcomponent.checkout-context-pool
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: CheckoutContextPool
+        description: Loads a CheckoutContext on first use and evicts it when idle or
+          when the pool is full (least recently used first); never evicts a
+          context with a websocket subscriber or a running DrBot turn.
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 59
+    removedAt: 488
+    change:
+      type: add
+      elementId: application.applicationcomponent.dr-bot-launcher
+      layerName: application
+      after:
+        id: 12857632-8725-4783-81dc-2398a6b297ca
+        path: application.applicationcomponent.dr-bot-launcher
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: DrBotLauncher
+        description: "Launches DrBot sub-processes (Claude Code CLI, GitHub Copilot CLI)
+          for the central process: cwd is the checkout's path, DR_MCP_ROOT_PATH
+          and the MCP config pin the agent's dr MCP to that project and
+          checkout, conversations are keyed by DrBotSessionKey, and the number
+          of running turns per user is capped."
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
