@@ -387,3 +387,43 @@ that kept launched programs out of the model.
 - `data-store.database.engine` takes free text, and the plan uses
   `filesystem (YAML and JSON files)`. The data-store layer has no notion of a file store, though
   CLIs and agents commonly keep state that way.
+- `apm.span` requires runtime values as model attributes (`traceId`, `spanId`, `parentSpanId`,
+  the start and end times, dropped counts), and types the times and two of the counts as strings.
+  A span in an architecture model is a span _name_ and its attributes, not one recorded span. The
+  plan puts `runtime` and `"0"` placeholders in those fields.
+
+## 13. Gaps in DR's own model that this changeset fills
+
+Before this changeset, DR's own model had no technology, data-store, APM or testing layer. That
+is missing data, not intent. So the changeset stages, from the code as it is today, what the
+design touches in those layers, beside the planned elements:
+
+- **Technology:**
+  - the workstation, its operating system, and the Node.js and Bun runtimes the CLI and
+    `server-entry.ts` run on;
+  - git, and the Claude Code and Copilot CLIs that DrBot launches;
+  - the `@documentation-robotics/cli` package, the `server-entry.js` artifact and the downloaded
+    `dr-viewer` bundle (`cli/scripts/download-viewer.sh`);
+  - the OTLP collector the telemetry build exports to.
+- **APM** (`cli/src/telemetry/`, `cli/src/server/telemetry-middleware.ts`, the WebSocket spans in
+  `server.ts`):
+  - the `dr-cli` resource, tracer scope, trace configuration and OTLP exporter;
+  - the existing `http.server.request` and `ws.message.processed` spans;
+  - two planned spans, `drbot.turn` and `checkout_context.evict`. Spans gain `dr.project` and
+    `dr.checkout` (`motivation.requirement.telemetry-names-its-project-and-checkout`).
+- **Data store:**
+  - the per-checkout state DR keeps today: the active changeset marker, analyzer index,
+    changesets and annotations;
+  - the user state it keeps today: the legacy viewer records, the starting marker and
+    `.farm-sync.yaml`;
+  - the object schemas that map to each.
+- **Testing:** the existing test files that cover what the design changes. These are
+  `review-open-viewer`, `project-status-tool`, `project-root`, `farm`,
+  `visualization-server-api`, `drbot-mcp-launch`, `visualize-viewer-lifetime` and
+  `viewer-control`. Each is an automated test case sketch with its source file, under the
+  coverage target the design moves it to.
+- **Product:** the "Move to user-level DR" workflow (preview the farm migration, apply it, stop
+  the old viewers). It replaces an earlier accepted gap that said the migration had no workflow.
+
+The three accepted gaps that remain are connections that don't apply. The registry, the pool and
+the DrBot launcher work only with declared shapes (object schemas), not domain data objects.

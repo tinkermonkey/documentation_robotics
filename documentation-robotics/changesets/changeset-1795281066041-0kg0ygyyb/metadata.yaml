@@ -8,17 +8,17 @@ description: One central DR process per user serves the MCP interface, a
   DrBot launching are planned across layers, and the unscoped /api routes are
   planned out.
 created: 2026-11-21T17:11:06.057Z
-modified: 2026-11-21T17:17:40.775Z
+modified: 2026-11-21T17:22:16.922Z
 status: staged
 baseSnapshot: v2:sha256:98a17a8e4ba0a39a8239e65f0be06af9a0d614125762e7f1dee3ce40df8e7401
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 469
+  additions: 557
   modifications: 24
   deletions: 43
-lastSequence: 539
+lastSequence: 628
 unstaged:
   - sequence: 23
     removedAt: 485
@@ -120,4 +120,39 @@ unstaged:
           updated_at: 2026-11-21T17:14:10.904Z
           version: 1
       timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 23
+    removedAt: 610
+    change:
+      type: add
+      elementId: product.feature.farm-v2-migration
+      layerName: product
+      after:
+        id: 0ac95c40-adab-4457-b7c3-a4f633f65ffd
+        path: product.feature.farm-v2-migration
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Farm v2 migration
+        description: "dr farm migrate (preview, then apply) moves a dr-farm-v1 farm.yaml
+          to dr-farm-v2: entries that share a git repository become one project;
+          the others' paths become checkouts, and their names are listed as
+          dropped."
+        attributes:
+          priority: medium
+          status: planned
+        metadata:
+          created_at: 2026-11-21T17:14:10.885Z
+          updated_at: 2026-11-21T17:14:10.885Z
+          version: 1
+        accepted_gaps:
+          - direction: incoming
+            predicate: uses
+            other_spec_node_id: product.workflowstep
+            reason: A one-time migration a maintainer runs once per machine when upgrading
+              to CLI 0.8.0; no recurring user workflow exercises it.
+            decided_by: agent
+            decided_at: 2026-11-21T17:16:37.009Z
+            changeset: changeset-1795281066041-0kg0ygyyb
+      timestamp: 2026-11-21T17:16:37.043Z
     rewritten: true

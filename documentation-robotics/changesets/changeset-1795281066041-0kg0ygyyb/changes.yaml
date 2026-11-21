@@ -520,16 +520,8 @@
       created_at: 2026-11-21T17:14:10.885Z
       updated_at: 2026-11-21T17:14:10.885Z
       version: 1
-    accepted_gaps:
-      - direction: incoming
-        predicate: uses
-        other_spec_node_id: product.workflowstep
-        reason: A one-time migration a maintainer runs once per machine when upgrading
-          to CLI 0.8.0; no recurring user workflow exercises it.
-        decided_by: agent
-        decided_at: 2026-11-21T17:16:37.009Z
-        changeset: changeset-1795281066041-0kg0ygyyb
-  timestamp: 2026-11-21T17:16:37.043Z
+    accepted_gaps: []
+  timestamp: 2026-11-21T17:21:59.104Z
   sequenceNumber: 23
 - type: add
   elementId: product.milestone.cli-0-8-0
@@ -8321,3 +8313,1366 @@
     metadata: *a64
   timestamp: 2026-11-21T17:17:40.700Z
   sequenceNumber: 539
+- type: add
+  elementId: apm.resource.dr-cli-resource
+  layerName: apm
+  after:
+    id: 7dbc306a-a534-4c72-a22f-ee15cdc77c17
+    path: apm.resource.dr-cli-resource
+    spec_node_id: apm.resource
+    type: resource
+    layer_id: apm
+    name: dr-cli resource
+    description: "The OpenTelemetry resource the dr CLI builds once per process:
+      service.name dr-cli (DR_OTLP_SERVICE_NAME or OTEL_SERVICE_NAME override
+      it) and service.version. In the central process it describes the one
+      per-user server."
+    attributes:
+      droppedAttributesCount: 0
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/telemetry/index.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.223Z
+      updated_at: 2026-11-21T17:21:34.223Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 540
+- type: add
+  elementId: apm.instrumentationscope.dr-cli-tracer
+  layerName: apm
+  after:
+    id: 9367f6c7-b900-4cd6-8980-07e98a969797
+    path: apm.instrumentationscope.dr-cli-tracer
+    spec_node_id: apm.instrumentationscope
+    type: instrumentationscope
+    layer_id: apm
+    name: dr-cli tracer
+    description: The tracer scope (trace.getTracer("dr-cli", cliVersion)) every DR
+      span is emitted under.
+    attributes:
+      droppedAttributesCount: 0
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/telemetry/index.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.229Z
+      updated_at: 2026-11-21T17:21:34.229Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 541
+- type: add
+  elementId: apm.traceconfiguration.dr-cli-trace-configuration
+  layerName: apm
+  after:
+    id: f80dc214-a1e8-4f69-b85a-1d23ebd5dd9c
+    path: apm.traceconfiguration.dr-cli-trace-configuration
+    spec_node_id: apm.traceconfiguration
+    type: traceconfiguration
+    layer_id: apm
+    name: dr-cli trace configuration
+    description: "The tracer provider the CLI sets up when built with telemetry
+      (DR_TELEMETRY=true at build time): resilient OTLP span exporter, no
+      sampling."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/telemetry/index.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.229Z
+      updated_at: 2026-11-21T17:21:34.229Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 542
+- type: add
+  elementId: apm.exporterconfig.dr-cli-otlp-exporter
+  layerName: apm
+  after:
+    id: d69a6d2b-9782-49ce-8ba5-63e9de5d39de
+    path: apm.exporterconfig.dr-cli-otlp-exporter
+    spec_node_id: apm.exporterconfig
+    type: exporterconfig
+    layer_id: apm
+    name: dr-cli OTLP exporter
+    description: "OTLP/HTTP exporter for spans and logs: DR_OTLP_ENDPOINT (default
+      http://localhost:4318/v1/traces), DR_OTLP_LOGS_ENDPOINT, wrapped to
+      survive an unreachable collector."
+    attributes:
+      type: otlp
+      endpoint: http://localhost:4318/v1/traces
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/telemetry/resilient-exporter.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.230Z
+      updated_at: 2026-11-21T17:21:34.230Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 543
+- type: add
+  elementId: technology.technologyservice.otlp-collector
+  layerName: technology
+  after:
+    id: 75dd8485-5eac-418a-a224-fceade772d33
+    path: technology.technologyservice.otlp-collector
+    spec_node_id: technology.technologyservice
+    type: technologyservice
+    layer_id: technology
+    name: OTLP collector
+    description: The OpenTelemetry collector the CLI exports to when built with
+      telemetry (default localhost:4318); optional, outside DR.
+    attributes:
+      serviceType: monitoring
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 544
+- type: add
+  elementId: technology.artifact.server-entry-js
+  layerName: technology
+  after:
+    id: 4d7b0adf-ec74-43a8-a5ed-f5a54a78bd4e
+    path: technology.artifact.server-entry-js
+    spec_node_id: technology.artifact
+    type: artifact
+    layer_id: technology
+    name: server-entry.js
+    description: "The server process's entry point (cli/src/server-entry.ts bundled
+      to dist): today spawned per project by dr visualize; becomes the entry of
+      dr serve, the one central process."
+    attributes:
+      artifactType: file
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server-entry.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 545
+- type: add
+  elementId: technology.artifact.dr-viewer-bundle
+  layerName: technology
+  after:
+    id: 6a2ae421-3b83-4fd3-92a5-61c6d1696856
+    path: technology.artifact.dr-viewer-bundle
+    spec_node_id: technology.artifact
+    type: artifact
+    layer_id: technology
+    name: dr-viewer bundle
+    description: The viewer build (dr-viewer-bundle-<version>.zip from the viewer
+      repository's releases, v0.13.0 today) that the CLI build downloads into
+      src/viewer and the server serves.
+    attributes:
+      artifactType: archive
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/scripts/download-viewer.sh
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 546
+- type: add
+  elementId: technology.systemsoftware.bun-runtime
+  layerName: technology
+  after:
+    id: 32529f32-d9fa-422b-978d-9b3a218b8a32
+    path: technology.systemsoftware.bun-runtime
+    spec_node_id: technology.systemsoftware
+    type: systemsoftware
+    layer_id: technology
+    name: Bun runtime
+    description: Bun, which runs the dr CLI and the server process when the CLI
+      itself runs under Bun (server-entry uses whichever runtime started the
+      CLI).
+    attributes:
+      softwareType: middleware
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 547
+- type: add
+  elementId: data-store.collection.farm-sync-state
+  layerName: data-store
+  after:
+    id: c97f9e40-f7ed-4445-a782-42f605a6a7cd
+    path: data-store.collection.farm-sync-state
+    spec_node_id: data-store.collection
+    type: collection
+    layer_id: data-store
+    name: Farm sync state
+    description: ".farm-sync.yaml per farm project: last synced commit and
+      ambiguities (FarmSyncState). Per project, kept for the main checkout."
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 548
+- type: add
+  elementId: data-store.collection.server-starting-marker
+  layerName: data-store
+  after:
+    id: f1519dc5-2331-4b7b-a26e-6f95c4155b56
+    path: data-store.collection.server-starting-marker
+    spec_node_id: data-store.collection
+    type: collection
+    layer_id: data-store
+    name: Server starting marker
+    description: The 'a viewer is starting' marker (viewers/<hash>.starting today);
+      the central process uses one marker so concurrent bridges wait for one
+      start.
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 549
+- type: add
+  elementId: testing.testcoveragetarget.central-process-lifecycle
+  layerName: testing
+  after:
+    id: a3766d0e-f3f4-49c3-8262-9fdf6bd7b11a
+    path: testing.testcoveragetarget.central-process-lifecycle
+    spec_node_id: testing.testcoveragetarget
+    type: testcoveragetarget
+    layer_id: testing
+    name: Central process lifecycle
+    description: Covers the central process's start, reuse, version replacement,
+      idle exit and --list/--stop.
+    attributes:
+      targetType: application-component
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 550
+- type: add
+  elementId: testing.testcasesketch.review-open-reuses-the-running-viewer
+  layerName: testing
+  after:
+    id: 7a1ad9f8-0388-403f-8d66-9f784ef0d4ff
+    path: testing.testcasesketch.review-open-reuses-the-running-viewer
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: review_open reuses the running viewer
+    description: "Today: review_open starts or reuses a per-project viewer.
+      Rewritten for the design: it returns a deep link on the central process
+      and spawns nothing."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/integration/review-open-viewer.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 551
+- type: add
+  elementId: testing.testcasesketch.project-status-reports-the-viewer
+  layerName: testing
+  after:
+    id: 918db5e4-4548-4289-8039-6d35dbc0273f
+    path: testing.testcasesketch.project-status-reports-the-viewer
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: project_status reports the viewer
+    description: "Today: the viewer section from the per-project record. Rewritten:
+      project, checkout, sibling checkouts and the deep link."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/project-status-tool.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 552
+- type: add
+  elementId: testing.testcasesketch.mcp-root-resolution
+  layerName: testing
+  after:
+    id: 27c18e45-c4a6-4b12-aed5-fd3b84a2c024
+    path: testing.testcasesketch.mcp-root-resolution
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: MCP root resolution
+    description: "Today: rootPath, client roots and cwd pick a root. Extended: every
+      route resolves through the registry to a project and checkout."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/project-root.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 553
+- type: add
+  elementId: testing.testcasesketch.farm-commands
+  layerName: testing
+  after:
+    id: 778d3cdb-116b-4594-bce9-4aa8a36a2fe5
+    path: testing.testcasesketch.farm-commands
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: Farm commands
+    description: "Today: dr-farm-v1 add/remove/status. Extended: v2 entries, a
+      worktree path adding its project, v1 read with a notice."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/integration/farm.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 554
+- type: add
+  elementId: testing.testcasesketch.viewer-api-routes
+  layerName: testing
+  after:
+    id: e40495e9-4450-41b0-b009-162646a4cd99
+    path: testing.testcasesketch.viewer-api-routes
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: Viewer API routes
+    description: "Today: the unscoped /api routes. Rewritten against
+      /api/projects/:project/checkouts/:checkout/..., plus 404 for the old
+      paths."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/integration/visualization-server-api.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 555
+- type: add
+  elementId: testing.testcasesketch.dr-bot-mcp-launch
+  layerName: testing
+  after:
+    id: 0863034e-ef37-4568-89ba-b77329ae6d74
+    path: testing.testcasesketch.dr-bot-mcp-launch
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: DrBot MCP launch
+    description: "Today: DrBot's agent and MCP launch for the one project. Extended:
+      cwd and DR_MCP_ROOT_PATH per checkout."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/server/drbot-mcp-launch.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 556
+- type: add
+  elementId: testing.testcasesketch.viewer-lifetime
+  layerName: testing
+  after:
+    id: 58f17032-7ea0-4044-a0e4-d9a2f3a18e20
+    path: testing.testcasesketch.viewer-lifetime
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: Viewer lifetime
+    description: "Today: idle exit, folder-gone exit and parent watch of a
+      per-project viewer. Rewritten: idle exit of the central process; checkout
+      removal closes a context instead of exiting."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/integration/visualize-viewer-lifetime.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.233Z
+      updated_at: 2026-11-21T17:21:34.233Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 557
+- type: add
+  elementId: testing.testcasesketch.viewer-list-and-stop
+  layerName: testing
+  after:
+    id: 6768fe53-81f6-4e48-b2d0-f31b801824ab
+    path: testing.testcasesketch.viewer-list-and-stop
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: Viewer list and stop
+    description: "Today: --list and --stop over per-project records and a ps scan.
+      Extended: the central process plus legacy viewers found by the sweep."
+    attributes:
+      status: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/server/viewer-control.test.ts
+    metadata:
+      created_at: 2026-11-21T17:21:34.234Z
+      updated_at: 2026-11-21T17:21:34.234Z
+      version: 1
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 558
+- type: relationship-add
+  elementId: apm.resource.dr-cli-resource::aggregates::apm.instrumentationscope.dr-cli-tracer
+  layerName: apm
+  after:
+    source: apm.resource.dr-cli-resource
+    target: apm.instrumentationscope.dr-cli-tracer
+    predicate: aggregates
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 559
+- type: relationship-add
+  elementId: apm.resource.dr-cli-resource::maps-to::application.applicationcomponent.visualization-server
+  layerName: apm
+  after:
+    source: apm.resource.dr-cli-resource
+    target: application.applicationcomponent.visualization-server
+    predicate: maps-to
+    layer: apm
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 560
+- type: relationship-add
+  elementId: apm.traceconfiguration.dr-cli-trace-configuration::depends-on::apm.resource.dr-cli-resource
+  layerName: apm
+  after:
+    source: apm.traceconfiguration.dr-cli-trace-configuration
+    target: apm.resource.dr-cli-resource
+    predicate: depends-on
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 561
+- type: relationship-add
+  elementId: apm.traceconfiguration.dr-cli-trace-configuration::aggregates::apm.exporterconfig.dr-cli-otlp-exporter
+  layerName: apm
+  after:
+    source: apm.traceconfiguration.dr-cli-trace-configuration
+    target: apm.exporterconfig.dr-cli-otlp-exporter
+    predicate: aggregates
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 562
+- type: relationship-add
+  elementId: technology.technologyservice.otlp-collector::serves::apm.exporterconfig.dr-cli-otlp-exporter
+  layerName: technology
+  after:
+    source: technology.technologyservice.otlp-collector
+    target: apm.exporterconfig.dr-cli-otlp-exporter
+    predicate: serves
+    layer: technology
+    targetLayer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 563
+- type: relationship-add
+  elementId: technology.artifact.server-entry-js::realizes::application.applicationcomponent.visualization-server
+  layerName: technology
+  after:
+    source: technology.artifact.server-entry-js
+    target: application.applicationcomponent.visualization-server
+    predicate: realizes
+    layer: technology
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 564
+- type: relationship-add
+  elementId: technology.systemsoftware.node-js-runtime::accesses::technology.artifact.server-entry-js
+  layerName: technology
+  after:
+    source: technology.systemsoftware.node-js-runtime
+    target: technology.artifact.server-entry-js
+    predicate: accesses
+    layer: technology
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 565
+- type: relationship-add
+  elementId: technology.systemsoftware.bun-runtime::accesses::technology.artifact.server-entry-js
+  layerName: technology
+  after:
+    source: technology.systemsoftware.bun-runtime
+    target: technology.artifact.server-entry-js
+    predicate: accesses
+    layer: technology
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 566
+- type: relationship-add
+  elementId: technology.systemsoftware.node-js-runtime::accesses::technology.artifact.dr-viewer-bundle
+  layerName: technology
+  after:
+    source: technology.systemsoftware.node-js-runtime
+    target: technology.artifact.dr-viewer-bundle
+    predicate: accesses
+    layer: technology
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 567
+- type: relationship-add
+  elementId: technology.systemsoftware.bun-runtime::serves::application.applicationcomponent.visualization-server
+  layerName: technology
+  after:
+    source: technology.systemsoftware.bun-runtime
+    target: application.applicationcomponent.visualization-server
+    predicate: serves
+    layer: technology
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 568
+- type: relationship-add
+  elementId: technology.systemsoftware.bun-runtime::depends-on::technology.device.developer-workstation
+  layerName: technology
+  after:
+    source: technology.systemsoftware.bun-runtime
+    target: technology.device.developer-workstation
+    predicate: depends-on
+    layer: technology
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 569
+- type: relationship-add
+  elementId: technology.systemsoftware.bun-runtime::realizes::technology.technologyservice.per-user-dr-service
+  layerName: technology
+  after:
+    source: technology.systemsoftware.bun-runtime
+    target: technology.technologyservice.per-user-dr-service
+    predicate: realizes
+    layer: technology
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 570
+- type: relationship-add
+  elementId: apm.resource.dr-cli-resource::references::technology.systemsoftware.node-js-runtime
+  layerName: apm
+  after:
+    source: apm.resource.dr-cli-resource
+    target: technology.systemsoftware.node-js-runtime
+    predicate: references
+    layer: apm
+    targetLayer: technology
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 571
+- type: relationship-add
+  elementId: data-store.database.dr-user-state::composes::data-store.collection.farm-sync-state
+  layerName: data-store
+  after:
+    source: data-store.database.dr-user-state
+    target: data-store.collection.farm-sync-state
+    predicate: composes
+    layer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 572
+- type: relationship-add
+  elementId: data-store.database.dr-user-state::composes::data-store.collection.server-starting-marker
+  layerName: data-store
+  after:
+    source: data-store.database.dr-user-state
+    target: data-store.collection.server-starting-marker
+    predicate: composes
+    layer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 573
+- type: relationship-add
+  elementId: data-model.objectschema.farm-sync-state-data::maps-to::data-store.collection.farm-sync-state
+  layerName: data-model
+  after:
+    source: data-model.objectschema.farm-sync-state-data
+    target: data-store.collection.farm-sync-state
+    predicate: maps-to
+    layer: data-model
+    targetLayer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 574
+- type: relationship-add
+  elementId: data-model.objectschema.viewer-starting::maps-to::data-store.collection.server-starting-marker
+  layerName: data-model
+  after:
+    source: data-model.objectschema.viewer-starting
+    target: data-store.collection.server-starting-marker
+    predicate: maps-to
+    layer: data-model
+    targetLayer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 575
+- type: relationship-add
+  elementId: application.applicationcomponent.farm-sync-state::accesses::data-store.collection.farm-sync-state
+  layerName: application
+  after:
+    source: application.applicationcomponent.farm-sync-state
+    target: data-store.collection.farm-sync-state
+    predicate: accesses
+    layer: application
+    targetLayer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 576
+- type: relationship-add
+  elementId: application.applicationfunction.ensure-central-server::accesses::data-store.collection.server-starting-marker
+  layerName: application
+  after:
+    source: application.applicationfunction.ensure-central-server
+    target: data-store.collection.server-starting-marker
+    predicate: accesses
+    layer: application
+    targetLayer: data-store
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 577
+- type: relationship-add
+  elementId: application.applicationcomponent.checkout-context::uses::application.applicationcomponent.model
+  layerName: application
+  after:
+    source: application.applicationcomponent.checkout-context
+    target: application.applicationcomponent.model
+    predicate: uses
+    layer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 578
+- type: relationship-add
+  elementId: testing.testcoveragemodel.user-level-dr-coverage::composes::testing.testcoveragetarget.central-process-lifecycle
+  layerName: testing
+  after:
+    source: testing.testcoveragemodel.user-level-dr-coverage
+    target: testing.testcoveragetarget.central-process-lifecycle
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 579
+- type: relationship-add
+  elementId: testing.testcoveragetarget.central-process-lifecycle::covers::application.applicationcomponent.visualization-server
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.central-process-lifecycle
+    target: application.applicationcomponent.visualization-server
+    predicate: covers
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 580
+- type: relationship-add
+  elementId: testing.testcoveragetarget.central-process-lifecycle::covers::application.applicationservice.visualize-command
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.central-process-lifecycle
+    target: application.applicationservice.visualize-command
+    predicate: covers
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 581
+- type: relationship-add
+  elementId: testing.testcoveragetarget.deep-links::composes::testing.testcasesketch.review-open-reuses-the-running-viewer
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.deep-links
+    target: testing.testcasesketch.review-open-reuses-the-running-viewer
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 582
+- type: relationship-add
+  elementId: testing.testcasesketch.review-open-reuses-the-running-viewer::tests::application.applicationservice.create-review-open-handler
+  layerName: testing
+  after:
+    source: testing.testcasesketch.review-open-reuses-the-running-viewer
+    target: application.applicationservice.create-review-open-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 583
+- type: relationship-add
+  elementId: testing.testcoveragetarget.deep-links::composes::testing.testcasesketch.project-status-reports-the-viewer
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.deep-links
+    target: testing.testcasesketch.project-status-reports-the-viewer
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 584
+- type: relationship-add
+  elementId: testing.testcasesketch.project-status-reports-the-viewer::tests::application.applicationservice.project-status-handler
+  layerName: testing
+  after:
+    source: testing.testcasesketch.project-status-reports-the-viewer
+    target: application.applicationservice.project-status-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 585
+- type: relationship-add
+  elementId: testing.testcoveragetarget.project-naming::composes::testing.testcasesketch.mcp-root-resolution
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.project-naming
+    target: testing.testcasesketch.mcp-root-resolution
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 586
+- type: relationship-add
+  elementId: testing.testcasesketch.mcp-root-resolution::tests::application.applicationfunction.pick-project-root
+  layerName: testing
+  after:
+    source: testing.testcasesketch.mcp-root-resolution
+    target: application.applicationfunction.pick-project-root
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 587
+- type: relationship-add
+  elementId: testing.testcoveragetarget.farm-v2-migration::composes::testing.testcasesketch.farm-commands
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.farm-v2-migration
+    target: testing.testcasesketch.farm-commands
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 588
+- type: relationship-add
+  elementId: testing.testcasesketch.farm-commands::tests::application.applicationcomponent.farm-manifest
+  layerName: testing
+  after:
+    source: testing.testcasesketch.farm-commands
+    target: application.applicationcomponent.farm-manifest
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 589
+- type: relationship-add
+  elementId: testing.testcoveragetarget.scoped-routes::composes::testing.testcasesketch.viewer-api-routes
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.scoped-routes
+    target: testing.testcasesketch.viewer-api-routes
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 590
+- type: relationship-add
+  elementId: testing.testcasesketch.viewer-api-routes::tests::application.applicationcomponent.visualization-server
+  layerName: testing
+  after:
+    source: testing.testcasesketch.viewer-api-routes
+    target: application.applicationcomponent.visualization-server
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 591
+- type: relationship-add
+  elementId: testing.testcoveragetarget.dr-bot-scoping::composes::testing.testcasesketch.dr-bot-mcp-launch
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.dr-bot-scoping
+    target: testing.testcasesketch.dr-bot-mcp-launch
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 592
+- type: relationship-add
+  elementId: testing.testcasesketch.dr-bot-mcp-launch::tests::application.applicationfunction.prepare-dr-bot-agent
+  layerName: testing
+  after:
+    source: testing.testcasesketch.dr-bot-mcp-launch
+    target: application.applicationfunction.prepare-dr-bot-agent
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 593
+- type: relationship-add
+  elementId: testing.testcoveragetarget.central-process-lifecycle::composes::testing.testcasesketch.viewer-lifetime
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.central-process-lifecycle
+    target: testing.testcasesketch.viewer-lifetime
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 594
+- type: relationship-add
+  elementId: testing.testcasesketch.viewer-lifetime::tests::application.applicationservice.visualize-command
+  layerName: testing
+  after:
+    source: testing.testcasesketch.viewer-lifetime
+    target: application.applicationservice.visualize-command
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 595
+- type: relationship-add
+  elementId: testing.testcoveragetarget.central-process-lifecycle::composes::testing.testcasesketch.viewer-list-and-stop
+  layerName: testing
+  after:
+    source: testing.testcoveragetarget.central-process-lifecycle
+    target: testing.testcasesketch.viewer-list-and-stop
+    predicate: composes
+    layer: testing
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 596
+- type: relationship-add
+  elementId: testing.testcasesketch.viewer-list-and-stop::tests::application.applicationfunction.find-running-viewer
+  layerName: testing
+  after:
+    source: testing.testcasesketch.viewer-list-and-stop
+    target: application.applicationfunction.find-running-viewer
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:34.280Z
+  sequenceNumber: 597
+- type: add
+  elementId: apm.span.http-server-request
+  layerName: apm
+  after:
+    id: 811e153c-8056-4a89-9468-66bc61f71f2a
+    path: apm.span.http-server-request
+    spec_node_id: apm.span
+    type: span
+    layer_id: apm
+    name: http.server.request
+    description: One span per HTTP request to the server (http.method, http.route,
+      http.status_code, http.duration_ms). In the central process it also
+      carries dr.project and dr.checkout for scoped routes, so traces separate
+      per checkout.
+    attributes:
+      traceId: runtime
+      spanId: runtime
+      traceState: ""
+      parentSpanId: runtime
+      startTimeUnixNano: runtime
+      endTimeUnixNano: runtime
+      droppedAttributesCount: 0
+      droppedEventsCount: "0"
+      droppedLinksCount: "0"
+      spanKind: SERVER
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/telemetry-middleware.ts
+          symbol: telemetryMiddleware
+    metadata:
+      created_at: 2026-11-21T17:21:40.996Z
+      updated_at: 2026-11-21T17:21:40.996Z
+      version: 1
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 598
+- type: add
+  elementId: apm.span.ws-message-processed
+  layerName: apm
+  after:
+    id: 6c34b3c2-04b9-4982-870c-e5433d26b25a
+    path: apm.span.ws-message-processed
+    spec_node_id: apm.span
+    type: span
+    layer_id: apm
+    name: ws.message.processed
+    description: A websocket message handled (ws.message.type,
+      ws.message.duration_ms, ws.message.status); with ws.connection.open/close
+      and ws.message.received/error. In the central process it also carries
+      dr.project and dr.checkout of the subscription the message is for.
+    attributes:
+      traceId: runtime
+      spanId: runtime
+      traceState: ""
+      parentSpanId: runtime
+      startTimeUnixNano: runtime
+      endTimeUnixNano: runtime
+      droppedAttributesCount: 0
+      droppedEventsCount: "0"
+      droppedLinksCount: "0"
+      spanKind: INTERNAL
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: VisualizationServer.recordWebSocketEvent
+    metadata:
+      created_at: 2026-11-21T17:21:40.996Z
+      updated_at: 2026-11-21T17:21:40.996Z
+      version: 1
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 599
+- type: add
+  elementId: apm.span.drbot-turn
+  layerName: apm
+  after:
+    id: 16247b7d-88e9-44bb-8310-9718b5233571
+    path: apm.span.drbot-turn
+    spec_node_id: apm.span
+    type: span
+    layer_id: apm
+    name: drbot.turn
+    description: "One DrBot turn launched by the central process: dr.project,
+      dr.checkout, the coding agent, exit status and duration (planned)."
+    attributes:
+      traceId: runtime
+      spanId: runtime
+      traceState: ""
+      parentSpanId: runtime
+      startTimeUnixNano: runtime
+      endTimeUnixNano: runtime
+      droppedAttributesCount: 0
+      droppedEventsCount: "0"
+      droppedLinksCount: "0"
+      spanKind: INTERNAL
+    metadata:
+      created_at: 2026-11-21T17:21:40.996Z
+      updated_at: 2026-11-21T17:21:40.996Z
+      version: 1
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 600
+- type: add
+  elementId: apm.span.checkout-context-evict
+  layerName: apm
+  after:
+    id: 49369a0c-1729-4598-b35d-a5116a2925c2
+    path: apm.span.checkout-context-evict
+    spec_node_id: apm.span
+    type: span
+    layer_id: apm
+    name: checkout_context.evict
+    description: "A checkout context evicted from the pool: dr.project, dr.checkout,
+      reason (idle or capacity), loaded count (planned)."
+    attributes:
+      traceId: runtime
+      spanId: runtime
+      traceState: ""
+      parentSpanId: runtime
+      startTimeUnixNano: runtime
+      endTimeUnixNano: runtime
+      droppedAttributesCount: 0
+      droppedEventsCount: "0"
+      droppedLinksCount: "0"
+      spanKind: INTERNAL
+    metadata:
+      created_at: 2026-11-21T17:21:40.996Z
+      updated_at: 2026-11-21T17:21:40.996Z
+      version: 1
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 601
+- type: relationship-add
+  elementId: apm.instrumentationscope.dr-cli-tracer::aggregates::apm.span.http-server-request
+  layerName: apm
+  after:
+    source: apm.instrumentationscope.dr-cli-tracer
+    target: apm.span.http-server-request
+    predicate: aggregates
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 602
+- type: relationship-add
+  elementId: apm.instrumentationscope.dr-cli-tracer::aggregates::apm.span.ws-message-processed
+  layerName: apm
+  after:
+    source: apm.instrumentationscope.dr-cli-tracer
+    target: apm.span.ws-message-processed
+    predicate: aggregates
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 603
+- type: relationship-add
+  elementId: apm.instrumentationscope.dr-cli-tracer::aggregates::apm.span.drbot-turn
+  layerName: apm
+  after:
+    source: apm.instrumentationscope.dr-cli-tracer
+    target: apm.span.drbot-turn
+    predicate: aggregates
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 604
+- type: relationship-add
+  elementId: apm.instrumentationscope.dr-cli-tracer::aggregates::apm.span.checkout-context-evict
+  layerName: apm
+  after:
+    source: apm.instrumentationscope.dr-cli-tracer
+    target: apm.span.checkout-context-evict
+    predicate: aggregates
+    layer: apm
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 605
+- type: relationship-add
+  elementId: apm.span.http-server-request::monitors::application.applicationcomponent.visualization-server
+  layerName: apm
+  after:
+    source: apm.span.http-server-request
+    target: application.applicationcomponent.visualization-server
+    predicate: monitors
+    layer: apm
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 606
+- type: relationship-add
+  elementId: apm.span.ws-message-processed::monitors::application.applicationcomponent.visualization-server
+  layerName: apm
+  after:
+    source: apm.span.ws-message-processed
+    target: application.applicationcomponent.visualization-server
+    predicate: monitors
+    layer: apm
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 607
+- type: relationship-add
+  elementId: apm.span.drbot-turn::monitors::application.applicationcomponent.dr-bot-launcher
+  layerName: apm
+  after:
+    source: apm.span.drbot-turn
+    target: application.applicationcomponent.dr-bot-launcher
+    predicate: monitors
+    layer: apm
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 608
+- type: relationship-add
+  elementId: apm.span.checkout-context-evict::monitors::application.applicationcomponent.checkout-context-pool
+  layerName: apm
+  after:
+    source: apm.span.checkout-context-evict
+    target: application.applicationcomponent.checkout-context-pool
+    predicate: monitors
+    layer: apm
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-21T17:21:41.043Z
+  sequenceNumber: 609
+- type: add
+  elementId: product.userworkflow.move-to-user-level-dr
+  layerName: product
+  after:
+    id: 1fbf913c-8c09-419a-8cc1-8755c416ea88
+    path: product.userworkflow.move-to-user-level-dr
+    spec_node_id: product.userworkflow
+    type: userworkflow
+    layer_id: product
+    name: Move to user-level DR
+    description: Move a machine from per-project viewers and a dr-farm-v1 farm to
+      one central DR process and a dr-farm-v2 user farm.
+    attributes:
+      complexity: simple
+    metadata:
+      created_at: 2026-11-21T17:21:59.655Z
+      updated_at: 2026-11-21T17:21:59.655Z
+      version: 1
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 611
+- type: add
+  elementId: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+  layerName: product
+  after:
+    id: ee839b07-1753-4bd8-8fc3-a3859ff89f64
+    path: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Move to user-level DR: Preview the farm migration"
+    description: Reads which farm entries become one project with checkouts and
+      which names are dropped
+    attributes:
+      sequence: 1
+      action: Asks the agent to preview the farm migration
+    metadata:
+      created_at: 2026-11-21T17:21:59.655Z
+      updated_at: 2026-11-21T17:21:59.655Z
+      version: 1
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 612
+- type: add
+  elementId: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+  layerName: product
+  after:
+    id: 910e2c7c-65d7-451b-9a98-9472312c2a0d
+    path: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Move to user-level DR: Apply the farm migration"
+    description: Approves writing the dr-farm-v2 user farm
+    attributes:
+      sequence: 2
+      action: Approves the migration
+    metadata:
+      created_at: 2026-11-21T17:21:59.655Z
+      updated_at: 2026-11-21T17:21:59.655Z
+      version: 1
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 613
+- type: add
+  elementId: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+  layerName: product
+  after:
+    id: 18100d12-95b9-45ce-a568-475469f62161
+    path: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+    spec_node_id: product.workflowstep
+    type: workflowstep
+    layer_id: product
+    name: "Move to user-level DR: Stop the old viewers"
+    description: Sees which per-project viewers the central process stopped and
+      stops the rest
+    attributes:
+      sequence: 3
+      action: Stops the old per-project viewers the sweep reports
+    metadata:
+      created_at: 2026-11-21T17:21:59.655Z
+      updated_at: 2026-11-21T17:21:59.655Z
+      version: 1
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 614
+- type: relationship-add
+  elementId: product.userworkflow.move-to-user-level-dr::composes::product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+  layerName: product
+  after:
+    source: product.userworkflow.move-to-user-level-dr
+    target: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 615
+- type: relationship-add
+  elementId: product.userworkflow.move-to-user-level-dr::composes::product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+  layerName: product
+  after:
+    source: product.userworkflow.move-to-user-level-dr
+    target: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 616
+- type: relationship-add
+  elementId: product.userworkflow.move-to-user-level-dr::composes::product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+  layerName: product
+  after:
+    source: product.userworkflow.move-to-user-level-dr
+    target: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+    predicate: composes
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 617
+- type: relationship-add
+  elementId: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration::flows-to::product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+  layerName: product
+  after:
+    source: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+    target: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 618
+- type: relationship-add
+  elementId: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration::flows-to::product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+  layerName: product
+  after:
+    source: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+    target: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+    predicate: flows-to
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 619
+- type: relationship-add
+  elementId: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration::uses::product.feature.farm-v2-migration
+  layerName: product
+  after:
+    source: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+    target: product.feature.farm-v2-migration
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 620
+- type: relationship-add
+  elementId: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration::uses::product.feature.farm-v2-migration
+  layerName: product
+  after:
+    source: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+    target: product.feature.farm-v2-migration
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 621
+- type: relationship-add
+  elementId: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers::uses::product.feature.central-dr-process
+  layerName: product
+  after:
+    source: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+    target: product.feature.central-dr-process
+    predicate: uses
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 622
+- type: relationship-add
+  elementId: product.userworkflow.move-to-user-level-dr::serves::product.persona.project-maintainer
+  layerName: product
+  after:
+    source: product.userworkflow.move-to-user-level-dr
+    target: product.persona.project-maintainer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 623
+- type: relationship-add
+  elementId: product.userworkflow.move-to-user-level-dr::delivers::motivation.outcome.one-viewer-process-serves-every-mapped-project
+  layerName: product
+  after:
+    source: product.userworkflow.move-to-user-level-dr
+    target: motivation.outcome.one-viewer-process-serves-every-mapped-project
+    predicate: delivers
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-21T17:21:59.713Z
+  sequenceNumber: 624
+- type: relationship-add
+  elementId: application.applicationservice.farm-add-command::realizes::product.feature.project-registry
+  layerName: application
+  after:
+    source: application.applicationservice.farm-add-command
+    target: product.feature.project-registry
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-21T17:22:09.788Z
+  sequenceNumber: 625
+- type: add
+  elementId: motivation.requirement.telemetry-names-its-project-and-checkout
+  layerName: motivation
+  after:
+    id: bb4d59a0-104c-42c2-9d43-2c05c82a89e6
+    path: motivation.requirement.telemetry-names-its-project-and-checkout
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: Telemetry names its project and checkout
+    description: When the CLI is built with telemetry, every span the central
+      process emits for project data carries dr.project and dr.checkout, so
+      traces from one per-user process can be told apart per checkout in the
+      collector.
+    attributes:
+      requirementType: non-functional
+      priority: low
+    metadata:
+      created_at: 2026-11-21T17:22:16.827Z
+      updated_at: 2026-11-21T17:22:16.827Z
+      version: 1
+  timestamp: 2026-11-21T17:22:16.879Z
+  sequenceNumber: 626
+- type: relationship-add
+  elementId: motivation.requirement.telemetry-names-its-project-and-checkout::realizes::motivation.goal.one-dr-per-user
+  layerName: motivation
+  after:
+    source: motivation.requirement.telemetry-names-its-project-and-checkout
+    target: motivation.goal.one-dr-per-user
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-21T17:22:16.879Z
+  sequenceNumber: 627
+- type: relationship-add
+  elementId: technology.technologyservice.otlp-collector::satisfies::motivation.requirement.telemetry-names-its-project-and-checkout
+  layerName: technology
+  after:
+    source: technology.technologyservice.otlp-collector
+    target: motivation.requirement.telemetry-names-its-project-and-checkout
+    predicate: satisfies
+    layer: technology
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-21T17:22:16.879Z
+  sequenceNumber: 628
