@@ -241,6 +241,90 @@ These are small things that keep the earlier results comparable:
 - drop the frontier, residual and same-symbol finders from the default run, and keep them behind a
   flag.
 
+## From experiment to product: the question bank's path
+
+The questions go through four stages. Each stage has to pass before the next starts. This follows
+the rule that harnesses stay beside the product until an algorithm proves itself (last section).
+
+### 1. Use: the review protocol on real models
+
+Run `cli/scripts/assess-eval/RUNBOOK.md` on one repository at a time: the heimdall pilot first,
+then the fleet. Each review leaves three things behind:
+
+- the answer logs (`answers.jsonl`, `open.jsonl`), saying which question proposed what;
+- the maintainer's verdicts;
+- a better model.
+
+The better model is track C's purpose, and it becomes reference data for tracks D and E.
+
+### 2. Evaluate: what "adds value" means
+
+A scoring script, `score.ts` (not written yet), reads those outputs. Verdicts are not recorded by
+hand: an item is accepted if it is in the model at the `assess/after` tag, and rejected otherwise.
+The reasons come from the maintainer's viewer annotations.
+
+Per question, pooled over the fleet:
+
+| Measure                                                                                              | Tells you                                      |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Precision: accepted over proposed, with a Wilson interval                                            | Whether its answers can be trusted             |
+| Unique yield: accepted items no other question, P0 or free finder produced                           | Whether it earns its place (a set-cover curve) |
+| Share of everything accepted in steps A and B                                                        | How much of a full review the bank covers      |
+| Tokens per accepted item, from the log's `begin` and `end` timestamps against the session transcript | Its cost                                       |
+| Applicability: how often it applies and its witnesses fire                                           | Whether it is worth asking                     |
+| Agreement between two step A runs on the same frozen model (ideally Claude Code and Copilot)         | Whether it is repeatable                       |
+
+**Decision rules,** from the design doc and applied per question:
+
+- **Keep** when precision is at least 0.7 and either:
+  - at least 10% of its accepted items are ones nothing cheaper found, or
+  - it is the cheapest source of the ones it shares.
+- **Drop** when precision is below 0.5, or when an accepted item costs more than three times the
+  median.
+- **Demote** to a free check when its verdicts are mechanical, that is, its witness alone gives the
+  answer and the agent adds nothing.
+
+**The pilot cannot decide this.** One repository yields a handful of items per question. The pilot
+settles the protocol and the cost per repository. Verdicts on questions need the fleet pooled, and
+they are measured on the held-out repositories with the bank unchanged. The same rule applies to
+step B's categories: one that no question covers becomes a candidate for the next bank version, not
+a change mid-round.
+
+### 3. Integrate into assess-eval
+
+There are two halves, at different speeds.
+
+- **The witnesses become finders.** They are free and can go in now. The bank's model witnesses
+  replace the `review-check` finder. `checks.json` stays so earlier results can be reproduced.
+  `seeded.ts` then measures how well the witnesses point at seeded gaps. That makes it a free
+  regression test for every new bank version, run before any tokens are spent on it.
+- **A headless step A runner.** This needs the agent. It drives step A by script, with the dr and
+  CBM MCP servers attached: the Agent SDK or `claude -p` for Claude Code, and Copilot's equivalent
+  for the comparison between agents. It writes the same answer log, and `score.ts` reads it. It is
+  what makes the repeatability measure and track D possible without someone running a session each
+  time. Every run records its bank version, so results compare across versions.
+
+### 4. Integrate into released DR
+
+Only the questions that passed stage 2 go in, as a change of its own planned with `/dr-plan`. The
+proposed shape:
+
+1. **The bank becomes versioned data that ships with DR**, beside the CBM mapping in
+   `spec/analyzers/`. `witnesses.ts --check` becomes a unit test, as the mapping's catalog test is,
+   so a spec change that breaks a witness fails CI. Who owns it is decision 6 below.
+2. **The witnesses become a `dr` command and MCP tool,** either a mode of `dr audit` or a review
+   tool of their own. It is deterministic and free: it reports per question what the model lacks.
+   This is where the bank would change or replace `dr audit`'s gap analysis.
+3. **The agent half ships as a skill in the dr plugin, not as DR calling a model.**
+   - The user's own coding agent fetches the witnesses through the MCP tool, investigates, and
+     stages its answers into a changeset the user reviews.
+   - Claude Code gets the plugin skill, and Copilot gets the same instructions through its
+     integration, so DR stays neutral about which agent runs it.
+4. **It hooks into the existing flows:**
+   - after a bootstrap, `project_status` names the review as the next step;
+   - in `/dr-plan`, the questions run scoped to a changeset's elements, the way the brief's intent
+     trace does now.
+
 ## Order
 
 ```
@@ -251,19 +335,25 @@ B  draft bank → curate → pilot on heimdall ─┐       │
 D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 ```
 
-1. **B: draft and curate the bank.** One sitting with the maintainer over the draft above. Then
-   write it as data with witnesses and a runbook.
+1. **B: draft and curate the bank.** Done 2026-11-21 (bank 0.1).
 2. **B and C: pilot on heimdall.** All three protocol steps. This gives the cost per repository and
    the first precision and recall numbers.
-3. **C: the fleet,** one session per repository, after the pilot's lessons are folded in.
-4. **E: re-measure** on the hardened models.
-5. **D:** arm 1 on one hardened repository, then arm 2 on two or three fresh repositories.
+3. **`score.ts`,** written against the pilot's outputs.
+4. **C: the fleet,** one session per repository, after the pilot's lessons are folded in. Then the
+   per-question verdicts (stage 2 above), and bank 0.2.
+5. **The headless step A runner,** for the repeatability measure and for track D.
+6. **E: re-measure** on the hardened models.
+7. **D:** arm 1 on one hardened repository, then arm 2 on two or three fresh repositories.
+8. **The product change** (stage 4 above), for the questions that passed.
+
+Turning the witnesses into finders (stage 3) is cheap and can be done at any point.
 
 Track A runs whenever there is a gap. It touches extraction and the catalog, not the bank.
 
 ## Decisions needed
 
-1. **The bank.** Which of Q1 to Q14 stay, what is missing, and the wording.
+1. **The bank.** Settled for version 0.1 on 2026-11-21 (see
+   [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md)); wording and cuts are revised between rounds.
 2. **Which repository is held out from step A** as the clean reference for track D.
 3. **Review load.** Step C puts every proposed item in front of the maintainer. Choose between
    reviewing everything in the pilot and sampling in the fleet, for example all of step B's items
@@ -271,6 +361,10 @@ Track A runs whenever there is a gap. It touches extraction and the catalog, not
 4. **Budget per repository** for steps A and B. The pilot measures it. Set a ceiling before the
    fleet starts.
 5. **Experiment 2** (pair labels): drop it, or keep it as a cross-check on the pilot.
+6. **Who owns the bank once it ships.** Either DR owns it, like the CBM mapping in
+   `spec/analyzers/`, and changes it with ordinary PRs. Or it is spec content, since its witnesses
+   restate the layers' modelling rules, and it changes through Context Studio like the rest of the
+   spec. This needs deciding before stage 4.
 
 ## How this stays organised
 
