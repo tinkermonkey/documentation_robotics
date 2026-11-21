@@ -22,7 +22,8 @@ import {
 } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler, relationshipDeleteHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { changesetBriefHandler, changesetImpactHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
-import { specTypeHandler } from "../../../src/mcp/tools/spec-type.js";
+import { specTypeHandler, specTypeTool } from "../../../src/mcp/tools/spec-type.js";
+import { registeredInputSchema } from "../../../src/mcp/tool-registry.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -447,6 +448,24 @@ describe("model_add in a long-running server", () => {
 });
 
 describe("spec_type", () => {
+  it("accepts a qualified type without a separate layer", async () => {
+    const schema = registeredInputSchema("spec_type", specTypeTool.inputSchema);
+    expect(schema.safeParse({ type: "product.feature" }).success).toBe(true);
+    const result = parse(await specTypeHandler({ type: "product.feature" }));
+    expect(result.specNodeId).toBe("product.feature");
+  });
+
+  it("accepts a qualified type with its matching layer", async () => {
+    const result = parse(await specTypeHandler({ layer: "product", type: "product.feature" }));
+    expect(result.specNodeId).toBe("product.feature");
+  });
+
+  it("rejects a qualified type when the supplied layer conflicts", async () => {
+    const result = await specTypeHandler({ layer: "api", type: "product.feature" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].type === "text" && result.content[0].text).toContain("not api");
+  });
+
   it("returns a type's attributes and allowed relationships", async () => {
     const result = parse(await specTypeHandler({ layer: "api", type: "operation" }));
     expect(result.specNodeId).toBe("api.operation");

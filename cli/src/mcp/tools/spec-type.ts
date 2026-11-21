@@ -34,12 +34,12 @@ import { acceptedGapView, findAcceptedGap, type AcceptedGap } from "../../core/a
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
-  layer: z.string().describe("Canonical layer name, e.g. 'api', 'data-model'."),
+  layer: z.string().optional().describe("Canonical layer name, e.g. 'api', 'data-model'. Omit when type is a qualified layer.type id."),
   type: z
     .string()
     .optional()
     .describe(
-      "Node type within the layer, e.g. 'operation'. Omit to list the layer's types (with required attributes and " +
+      "Node type within the layer, e.g. 'operation', or a qualified id, e.g. 'product.feature'. Omit to list the layer's types (with required attributes and " +
         "their enum values), or, with any relationship filter, to query the catalog across the layer's types."
     ),
   types: z
@@ -91,8 +91,31 @@ function specLoader(): Promise<SpecDataLoader> {
   return loaderPromise;
 }
 
-export async function specTypeHandler(args: SpecTypeArgs): Promise<CallToolResult> {
+export async function specTypeHandler(inputArgs: SpecTypeArgs): Promise<CallToolResult> {
   return runTool(async () => {
+    let layerName = inputArgs.layer;
+    let typeName = inputArgs.type;
+    if (typeName?.includes(".")) {
+      const [qualifiedLayer, qualifiedType, ...extra] = typeName.split(".");
+      if (!qualifiedLayer || !qualifiedType || extra.length > 0) {
+        throw new CLIError(`Invalid qualified type "${typeName}"`, ErrorCategory.USER, [
+          'Use "layer.type", e.g. "product.feature"',
+        ]);
+      }
+      if (layerName && layerName !== qualifiedLayer) {
+        throw new CLIError(`Type "${typeName}" is in the ${qualifiedLayer} layer, not ${layerName}`, ErrorCategory.USER, [
+          `Pass layer "${qualifiedLayer}" or omit layer when using a qualified type`,
+        ]);
+      }
+      layerName = qualifiedLayer;
+      typeName = qualifiedType;
+    }
+
+    if (!layerName) {
+      throw new CLIError('Missing "layer"', ErrorCategory.USER, ['Pass "layer" or use a qualified "layer.type" value for "type"']);
+    }
+    let args: SpecTypeArgs & { layer: string } = { ...inputArgs, layer: layerName, type: typeName };
+
     if (!isValidLayer(args.layer)) {
       const layers = getAllLayerIds();
       const similar = findSimilar(args.layer, layers, 3);
@@ -331,7 +354,7 @@ function layerOf(specNodeId: string): string {
  * ends the filters leave, grouped by source type and predicate. One call replaces a spec_type call
  * per type when wiring across layers.
  */
-function catalogQuery(args: SpecTypeArgs, otherLayers: string[]): Record<string, unknown> {
+function catalogQuery(args: SpecTypeArgs & { layer: string }, otherLayers: string[]): Record<string, unknown> {
   if (args.element) {
     throw new CLIError('"element" reads one type: pass it without types, otherLayers or the other query filters, or drop it', ErrorCategory.USER);
   }
