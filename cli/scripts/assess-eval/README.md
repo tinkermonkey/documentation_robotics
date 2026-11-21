@@ -18,6 +18,7 @@ M="viewer=~/workspace/documentation_robotics_viewer,context-studio=~/workspace/c
 bun ledger.ts --models $M        # experiment 1: the ledger and each finder's volume
 bun seeded.ts --models $M        # experiment 3: seeded gaps
 bun label-sheet.ts --models viewer=~/workspace/documentation_robotics_viewer,context-studio=~/workspace/context-studio   # experiment 2: the sheet to fill in
+bun witnesses.ts --models $M     # track B: the question bank's witnesses (--check validates questions.json only)
 ```
 
 `--models` takes `name=path` pairs; a path is a repository root or a model directory.
@@ -41,6 +42,9 @@ The code finders need a current index. They do not build one: index the reposito
 | `ledger.ts`      | Experiment 1 report                                                              |
 | `seeded.ts`      | Experiment 3: trials, scoring and report                                         |
 | `label-sheet.ts` | Experiment 2 sheet (`data/pair-labels.csv`); keeps verdicts already filled in    |
+| `questions.json` | The review question bank (track B), with its witnesses                           |
+| `witnesses.ts`   | Validates the bank against the spec; writes each model's witnesses for the agent |
+| `RUNBOOK.md`     | The model review protocol the agent follows (track C, steps A to C)              |
 
 ## Data
 
@@ -49,6 +53,8 @@ The code finders need a current index. They do not build one: index the reposito
   `data/.gitignore` keeps them local.
 - `data/seeded-report.md`, `data/seeded-results.json`: experiment 3.
 - `data/pair-labels.csv`: experiment 2, filled in by the maintainer.
+- `data/witness-report.md`: the bank's witness counts per model. The per-model
+  `data/<model>/witnesses.*`, `answers.jsonl` and `open.jsonl` stay local.
 
 ## Reading a finding
 
