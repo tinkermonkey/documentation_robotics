@@ -325,6 +325,91 @@ proposed shape:
    - in `/dr-plan`, the questions run scoped to a changeset's elements, the way the brief's intent
      trace does now.
 
+## Upstream fixes from the heimdall pilot
+
+The pilot (2026-11-21, bank 0.1, steps A and B) found problems that belong upstream, in the spec,
+the dr tools, the CBM mapping, or the bank itself. Most of what step B found and step A missed comes
+from these problems, not from the questions being badly chosen. Fixing them in the right place is
+part of this roadmap. A workaround in one repository's model does not count as a fix.
+
+This table is the index. Each row gets a link when it is filed, and its status changes when it
+lands. Nothing is filed without the maintainer's OK. Spec rows go to Context Studio as proposals and
+are never edited into `spec/` directly. Tool rows are `dogfood` issues on this repository. Bank and
+runbook rows change in this repository, in bank 0.2.
+
+**Blocks the fleet** marks rows that the fleet (step 4 of the order below) would otherwise
+rediscover in every repository.
+
+### Spec (Context Studio proposals)
+
+| #   | Problem                                                                                                                                                                                                                                                     | Seen in | Blocks the fleet | Filed |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------- | ----- |
+| S1  | A library's public API has no type. `api.operation` is OpenAPI-only. Step A logged 29 spec-gaps and left about 225 exports unstaged; step B staged 131 exports as `api.operation` anyway. Needs a ruling: a new type, or `application.applicationinterface` | A, B    | yes              | —     |
+| S2  | No design-token type                                                                                                                                                                                                                                        | B       |                  | —     |
+| S3  | The `technology.systemsoftware` type enum has no browser or JavaScript runtime value                                                                                                                                                                        | A       | yes              | —     |
+| S4  | Only system software and technology services may `satisfies` a requirement. Technology artifacts, functions and processes, and application processes cannot                                                                                                 | B       |                  | —     |
+| S5  | A technology process cannot compose a technology function or realize a countermeasure                                                                                                                                                                       | B       |                  | —     |
+| S6  | A UX library cannot aggregate state patterns. A UX library component has no link to a product feature or a data-model schema                                                                                                                                | A, B    |                  | —     |
+| S7  | An API operation cannot reach a data-model schema directly                                                                                                                                                                                                  | B       |                  | —     |
+| S8  | Testing can link to navigation flows, guards and transitions, but not to the route a suite exercises                                                                                                                                                        | B       |                  | —     |
+| S9  | The technology layer's rule text allows a node `assigned-to` a technology process, but the catalog refuses it. One of the two is wrong                                                                                                                      | A       |                  | —     |
+| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | —     |
+
+### DR tools (`dogfood` issues)
+
+| #   | Tool                                | Problem                                                                                                                         | Blocks the fleet | Filed |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----- |
+| D1  | `relationship_add`, `model_add`     | Cannot reference an element staged in another changeset, so step B's 131 operations could not be wired to step A's components   | yes              | —     |
+| D2  | `changeset_brief`                   | Its unwired count (81,024) counts every catalog triple an element lacks, so it cannot be acted on                               | yes              | —     |
+| D3  | `changeset_show`, `changeset_brief` | Neither pages a 6,000-change changeset by layer and type. The agent parsed `changes.yaml` itself                                |                  | —     |
+| D4  | `model_add`                         | A 1,770-element batch returned 113 KB; `limit` did not cap it. One bad target produced one failure per relationship (123 lines) |                  | —     |
+| D5  | `model_add`                         | A re-sent element comes back `invalid`, a re-sent relationship `duplicate`. Both should report as idempotent                    |                  | —     |
+| D6  | `model_add`, `spec_type`            | Required attributes and enum values for several types cannot be fetched in one call (5 refusals in step B)                      |                  | —     |
+| D7  | `model_add`                         | Names that differ only in case or punctuation get the same id, and links are silently merged into the wrong target              | yes              | —     |
+| D8  | `codebase_extract` `view`           | Repeats the same candidate list on every card; `groupBy: file` is ignored in view                                               |                  | —     |
+| D9  | `changeset_unstage`, `model_trace`  | No compact output; `limit` does not cap `model_trace`                                                                           |                  | —     |
+| D10 | `changeset_deactivate`              | Deletes the tracked `changesets/.active` file                                                                                   |                  | —     |
+| D11 | `codebase_index`                    | Writes `.cbmignore` into a frozen tree, which forces a commit and a moved tag                                                   |                  | —     |
+| D12 | `project_status`                    | Recommends drift actions to a review session                                                                                    |                  | —     |
+| D13 | `model_add`                         | Shortened-id notices grouped by name length (about 80 identical groups)                                                         |                  | —     |
+
+### CBM mapping (track A)
+
+| #   | Problem                                                                                                                | Filed |
+| --- | ---------------------------------------------------------------------------------------------------------------------- | ----- |
+| C1  | All 8 `Route` nodes and all `HTTP_CALLS` in heimdall are false positives (Playwright `page.goto`, JSX text, a comment) | —     |
+| C2  | A decisions file outside an `adr/` folder gives no ADR node                                                            | —     |
+| C3  | `query_graph` prefix compression (`rows_refs`) makes some results unreadable                                           | —     |
+
+C1 and C2 can be filtered in this repository's mapping. Whether codebase-memory itself should change
+is a separate question for its maintainers.
+
+### Bank and runbook (bank 0.2, this repository)
+
+These are mistakes in bank 0.1, mostly the assumption that every system is a service with HTTP,
+storage and authentication.
+
+| #   | Fix                                                                                                                                                                                                 | Blocks the fleet |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| B1  | Q10's precondition: client-side and supply-chain threats count, not only authentication code (markdown injection, tabnabbing, a tampered release)                                                   | yes              |
+| B2  | Q11's precondition: dev-mode warnings and benchmarks count, not only telemetry libraries                                                                                                            | yes              |
+| B3  | Q5 covers a library's public API (after S1)                                                                                                                                                         | yes              |
+| B4  | Q7 covers public types, not only persisted data                                                                                                                                                     | yes              |
+| B5  | Q9 covers packaging and distribution                                                                                                                                                                | yes              |
+| B6  | A quality-attribute question (performance budgets, accessibility, reduced motion, server rendering)                                                                                                 | yes              |
+| B7  | Q8 covers UI events, not only asynchronous messaging                                                                                                                                                |                  |
+| B8  | The ledger assigns `application ~ data-model` to Q6, not Q8                                                                                                                                         |                  |
+| B9  | Runbook: a log key for `outside`; a verdict for a stale element; whether satisfied witnesses are logged; a close step that does not depend on D2; begin and end lines written when the work happens | yes              |
+
+### How the list stays current
+
+- Each pilot or fleet run ends by comparing its friction and spec-gap lists against this table:
+  a new problem becomes a row, and a known one gets the run added to "Seen in".
+- `score.ts` (order step 3) counts `spec-gap` verdicts per row, so the spec rows can be ranked by how
+  much they cost.
+- A row is closed only when its fix lands upstream. A bank 0.2 that works around a spec row leaves
+  that row open.
+
 ## Order
 
 ```
@@ -339,7 +424,9 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 2. **B and C: pilot on heimdall.** All three protocol steps. This gives the cost per repository and
    the first precision and recall numbers.
 3. **`score.ts`,** written against the pilot's outputs.
-4. **C: the fleet,** one session per repository, after the pilot's lessons are folded in. Then the
+   - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
+     S1, S3 and S10 through Context Studio; D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
+4. **C: the fleet,** one session per repository, once the rows that block it have landed. Then the
    per-question verdicts (stage 2 above), and bank 0.2.
 5. **The headless step A runner,** for the repeatability measure and for track D.
 6. **E: re-measure** on the hardened models.
