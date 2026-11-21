@@ -393,6 +393,8 @@ alternative is for the user-level process to serve a folder farm's projects as w
 
 ## 12. Spec gaps found while modelling
 
+Filed as issue 1289 (spec, dogfood). The spec changes go to Context Studio as proposals.
+
 - `technology.systemsoftware.softwareType` has no value for a language runtime (Node.js), a
   version-control tool (git) or a developer CLI or coding agent (Claude Code, Copilot). The plan
   uses `middleware` for all four.
