@@ -31,6 +31,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 - If the project has no model yet, propose a name and confirm it with the human before
   `project_init`. Then ask whether to bootstrap the model from the code now or let it grow with
   each change, and wait for their answer.
+- When `codebase_extract` returns more cards than a page, they come grouped (`undecided.groups`,
+  `byKind`), not listed. Decide by group first: `decide: [{where, as, reason}]` with `preview: true`
+  returns each item's count and a sample; show the developer the rules you propose, then apply them.
+  `keep: true` records a rule in `documentation-robotics/extraction-rules.yaml`: commit that file.
+  Read what is left with `view`.
 - When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
   the ones you can't place with confidence: whether a card is a model element at all, which type it
   is, or whether to reject it. Don't guess. Collect them and ask once, in one short list (the card,
@@ -77,7 +82,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    exist only in the changeset. When you wire several, use the lists: `model_add` with
    `elements: [...]` (plus `relationships` that may name elements added in the same call), and
    `relationship_add` with `relationships: [{source, predicate, target, properties?}]`. Each list is
-   staged in one write; an invalid item is skipped and reported, so read the per-item results. For
+   staged in one write; an invalid item is skipped and reported, so read `attention` in the result
+   (it lists only the items that were not staged as sent; `verbose: true` lists every item). A
+   large batch goes in a JSON file passed as `file`, not in the call. `model_update` takes a list
+   too (`updates: [...]`). For
    a planned element with no code yet, send no source fields. Pass `sourceFile` and `sourceSymbol`
    (with `sourceProvenance: "manual"`) only when you know where the code goes.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
@@ -129,7 +137,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `sections: ["changes"]`: each changed element's attributes and changed fields, and its
    connections as `predicate → id` lines. For a large plan, read one layer at a time with
    `sections: ["changes"], layers: ["<layer>"]`, taking the layers from the default brief's
-   `byLayer`. The default brief's "code touched" list is what you will edit or must not
+   `byLayer`. A long list comes a page at a time: `page` gives each list's total (`totals`) and how
+   many items the answer holds (`returned`), so while `page` has a `nextOffset`, repeat the call with
+   `offset` set to it (`more` names the call) until it has none. The default brief's "code touched" list is what you will edit or must not
    break. Keep the changeset staged and commit only the plan's own directory
    (`documentation-robotics/changesets/<id>/`, with the id `changeset_show` reports) on the branch
    with the code. Don't add the whole `changesets/` directory.
@@ -157,6 +167,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    its file as its locations, not one symbol picked to stand for the file. One code file can back
    several elements in different layers (an application component and a UX sub-view), and staging
    one doesn't cover the other;
+   `planCoverage` lists the planned elements that have no as-built element yet, with the cards that
+   could be them: stage a card that is the planned element with `decide: [{card, as, reason}]`;
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `changeset: <name>` and
    `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and
@@ -184,8 +196,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `probable` one in the code, then pass its planned id in `ids`. A match marked `builtByAgent` is
    not copied: confirm it in the code and set `sourceFile` and `sourceSymbol` with `model_update`.
    Its `unreferenced` list names planned adds with no source reference and no as-built match, so
-   nothing can copy one (a product feature extraction can't see, say): for each one the build has
-   code for, set `sourceFile` and `sourceSymbol` with `model_update` (`sourceProvenance: "manual"`).
+   nothing can copy one (a product feature extraction can't see, say), with `candidates`, the build's
+   files that name it: for each one the build has code for, confirm the file in the code and pass
+   `{id, sourceFile, sourceSymbol}` in `references` to `changeset_adopt_source_references`.
    `changeset_activate` the plan again afterwards (the extract
    result's `previousActive`). After verify, the plan is what lands (step 8), not the as-built
    changeset: it is the plan's verification record, and `changeset_commit` refuses to land it,
@@ -200,8 +213,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
    the as-built changeset. When they ask you to land it, call `changeset_commit` with its name. The server asks them
    to confirm in a dialog that shows the name, intent, counts by operation, layers and drift, and
-   commits only if they confirm; if they decline, leave it staged. If it is refused for drift, show
-   them what drifted (`changeset_brief`) and pass `force: true` only if they still want it. Then add
+   commits only if they confirm; if they decline, leave it staged. Drift doesn't refuse it: the dialog lists each
+   staged change the base overlaps and what landing does about it (`force` is ignored;
+   `changeset_update` with `rebaseline: true` re-baselines a plan whose base moved). Then add
    the model's changed files and the changeset's directory to the branch. If it is refused, they land
    it in the viewer (`review_open`, then Apply on the changeset), or you call it again from an
    interactive session. Never point them to the `dr` CLI. Once the model has an as-built landing

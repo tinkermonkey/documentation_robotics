@@ -1,5 +1,5 @@
-version: 0.6.0
-installed_at: 2026-11-20T13:52:20.107Z
+version: 0.7.0
+installed_at: 2026-11-21T01:27:50.638Z
 components:
   agents:
     dr-advisor.md:
@@ -49,7 +49,7 @@ components:
       hash: 6ab6377f
       modified: false
     dr_change_planning/SKILL.md:
-      hash: d8c30750
+      hash: 0deacf8f
       modified: false
     dr_changeset_reviewer/SKILL.md:
       hash: "78519395"
