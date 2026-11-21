@@ -311,7 +311,7 @@ proposed shape:
 
 1. **The bank becomes versioned data that ships with DR**, beside the CBM mapping in
    `spec/analyzers/`. `witnesses.ts --check` becomes a unit test, as the mapping's catalog test is,
-   so a spec change that breaks a witness fails CI. Who owns it is decision 6 below.
+   so a spec change that breaks a witness fails CI. DR owns it (decision 6 below).
 2. **The witnesses become a `dr` command and MCP tool,** either a mode of `dr audit` or a review
    tool of their own. It is deterministic and free: it reports per question what the model lacks.
    This is where the bank would change or replace `dr audit`'s gap analysis.
@@ -361,10 +361,9 @@ Track A runs whenever there is a gap. It touches extraction and the catalog, not
 4. **Budget per repository** for steps A and B. The pilot measures it. Set a ceiling before the
    fleet starts.
 5. **Experiment 2** (pair labels): drop it, or keep it as a cross-check on the pilot.
-6. **Who owns the bank once it ships.** Either DR owns it, like the CBM mapping in
-   `spec/analyzers/`, and changes it with ordinary PRs. Or it is spec content, since its witnesses
-   restate the layers' modelling rules, and it changes through Context Studio like the rest of the
-   spec. This needs deciding before stage 4.
+6. **Who owns the bank once it ships.** Decided 2026-11-21: this codebase owns it, as it owns the
+   CBM mapping. It ships beside the mapping in `spec/analyzers/` and changes through ordinary DR
+   pull requests, not through Context Studio.
 
 ## How this stays organised
 
