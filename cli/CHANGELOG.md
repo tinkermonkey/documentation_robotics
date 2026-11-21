@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled viewer bumped to v0.14.0**: `documentation_robotics_viewer` moves `0.13.0` → `0.14.0`
+  (`cli/scripts/download-viewer.sh`). In the viewer:
+  - A new Architecture view draws the model as C4 System Context, Container and Component diagrams,
+    with drill-down, a breadcrumb and a details drawer whose model elements open in the Model view.
+  - Any changeset can be laid over those diagrams (a staged one applied, a committed one reverted):
+    boxes and arrows added, removed or changed are marked with a label as well as colour, removed ones
+    are drawn back faded, and each mark traces to its changes in the Changesets review.
+  - Drift follows this CLI's 0.7.0 contract: a drifted plan is flagged and its overlaps' consequences
+    are listed before Apply, instead of the viewer predicting a refusal.
+
 ## [0.7.0] - 2026-11-20
 
 **Specification Support:** v0.14.0
