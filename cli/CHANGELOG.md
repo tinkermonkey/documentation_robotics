@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-21
+
+**Specification Support:** v0.14.0
+
+This release ships viewer 0.14.0 with the CLI. `dr visualize` and `review_open` now open the
+Architecture view (the model as C4 diagrams, with any changeset laid over them) and show drift the
+way 0.7.0 lands it. The CLI's commands, MCP tools and file formats are unchanged, and the spec is
+unchanged.
+
 ### Changed
 
 - **Bundled viewer bumped to v0.14.0**: `documentation_robotics_viewer` moves `0.13.0` → `0.14.0`
