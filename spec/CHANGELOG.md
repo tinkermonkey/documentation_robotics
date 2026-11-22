@@ -7,10 +7,11 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
-Gaps found modelling heimdall, a React component library, in the review question pilot
-(2026-11-21), decided in Context Studio (proposal 3e1e77bf). The catalog goes from 1,004
-relationship types to 1,014 and from 194 node types to 195. Additive: nothing is renamed, removed or
-newly required, so no model migration.
+Gaps and rulings from the heimdall review pilot (2026-11-21) and from modelling DR's own user-level
+process (issue 1289), decided in Context Studio on 2026-11-22: proposals 3e1e77bf, f8336df1,
+73177e1d, a1bb34f1, 7030f486, 18b4f4ad, bd65fd8d and d7aa33cc. The catalog goes from 1,004
+relationship types to 1,017 and from 194 node types to 195. Nothing is renamed or removed and nothing
+becomes required, so no model migration; thirteen APM attributes stop being required.
 
 ### Added
 
@@ -27,8 +28,35 @@ newly required, so no model migration.
   processes it performs, which the layer's rules text already allowed.
 - **Component libraries:** a UX library aggregates its state patterns, and a library component
   realizes the product feature it delivers (a library has no views to do it).
+- **`softwareType`** also gains `developer-tool` (git, a coding-agent CLI) and `library` (a framework
+  the system is built on, such as React), and its description defines every new value
+  (18b4f4ad).
+- **`technology.device composes technology.systemsoftware`**: a device hosts the system software
+  installed on it, as a node already can (73177e1d).
+- **`data-model.objectschema references data-model.objectschema`**: a schema-to-schema reference
+  when the properties themselves are not modelled (a1bb34f1).
+- **`data-store.database` `paradigm` gains `FILE_STORE`**: state an application keeps as files in a
+  directory it owns, each kind of file a collection (7030f486).
+- **`application.applicationcomponent satisfies motivation.requirement`**: a component that exists
+  to meet a requirement says so directly (bd65fd8d).
 
-The application, technology and ux layer rules text and skills say the same.
+### Changed
+
+- **A library's public API uses existing types** (f8336df1). A package's entry point is an
+  `application.applicationinterface`, and its exported functions and hooks are application services
+  assigned to it. `api.operation` always has an HTTP method and a path.
+- **A UI component is modelled once, in the ux layer** (f8336df1). A React, Vue or Svelte component
+  is a `ux.librarycomponent` (or a view), never also an `application.applicationcomponent`; the
+  application or package that ships it is the application component. The application skill said
+  the opposite and named a type that does not exist (`ux.component`); it now agrees.
+- **Test case sketches on demand** (f8336df1). A sketch is made for a test a maintainer would name;
+  routine unit tests are represented by the coverage target of the unit they cover.
+- **Span and LogRecord no longer require the values of one recorded instance** (d7aa33cc). Span's
+  traceId, spanId, traceState, parentSpanId, start and end times and dropped counts, and LogRecord's
+  time, observed time, flags and dropped count, are optional; spanKind, severityNumber and body stay
+  required. Existing models stay valid.
+
+The layer rules text and skills say the same.
 
 ## [0.14.0] - 2026-11-19
 

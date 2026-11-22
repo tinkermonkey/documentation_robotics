@@ -9,9 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Bundled spec** carries the additions from Context Studio proposal 3e1e77bf: `ux.designtoken`,
-  ten relationship types and two `softwareType` values (see the spec changelog, Unreleased). The
-  application, technology and ux layer skills list the new links.
+- **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
+  Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
+  values, optional per-instance APM attributes, and the library-API, UI-component and test-sketch
+  rulings.
+- **Layer skills:** a React component is a `ux.librarycomponent`, not an application component (the
+  application skill pointed at a nonexistent `ux.component`); a library's exports are application
+  services behind an application interface, not API operations; frameworks are `softwareType:
+library` and runtimes `language-runtime`, not `middleware`; one test case sketch per test function
+  is listed as a pitfall.
 
 ## [0.7.1] - 2026-11-21
 

@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-7030f486-8e67-454a-8730-a3342bf111cd",
+  "select": {
+    "proposal_id": "7030f486-8e67-454a-8730-a3342bf111cd",
+    "title": "Database.paradigm: add FILE_STORE for state kept in files"
+  },
+  "applied_at": "2026-11-22T14:46:56.368Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "a022224fee43f9f12f0663cf6e59be2e2ce98fcf",
+    "spec_version": "0.14.0"
+  }
+}

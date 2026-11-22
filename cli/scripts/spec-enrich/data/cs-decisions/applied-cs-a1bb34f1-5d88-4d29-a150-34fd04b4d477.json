@@ -1,0 +1,31 @@
+{
+  "backend": "context-studio",
+  "record": "cs-a1bb34f1-5d88-4d29-a150-34fd04b4d477",
+  "select": {
+    "proposal_id": "a1bb34f1-5d88-4d29-a150-34fd04b4d477",
+    "title": "Allow data-model.objectschema references data-model.objectschema"
+  },
+  "applied_at": "2026-11-22T14:46:56.191Z",
+  "counts": {
+    "rename": 0,
+    "create": 1,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "data-model.objectschema.references.data-model.objectschema",
+      "to": "data-model.objectschema.references.data-model.objectschema",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal a1bb34f1-5d88-4d29-a150-34fd04b4d477 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/data-model/objectschema.references.objectschema.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "a022224fee43f9f12f0663cf6e59be2e2ce98fcf",
+    "spec_version": "0.14.0"
+  }
+}

@@ -42,7 +42,7 @@ The Data Store Layer captures **physical storage design** in a paradigm-neutral 
 - **EVENT HANDLERS** - Event-driven data triggers
 - **RETENTION POLICIES** - Data lifecycle and retention rules
 
-This layer supports **multiple storage paradigms**: relational (PostgreSQL, MySQL), document (MongoDB, Firestore), key-value (Redis, DynamoDB), time-series (InfluxDB, TimescaleDB), and graph (Neo4j, Amazon Neptune).
+This layer supports **multiple storage paradigms**: relational (PostgreSQL, MySQL), document (MongoDB, Firestore), key-value (Redis, DynamoDB), time-series (InfluxDB, TimescaleDB), graph (Neo4j, Amazon Neptune), and file stores (`FILE_STORE`: state an application keeps as YAML or JSON files in a directory it owns; each kind of file is a collection).
 
 **Central Entity:** The **Collection** (table, document collection, stream) is the core modeling unit.
 

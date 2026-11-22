@@ -66,7 +66,7 @@ Activate when the user:
 **Library Tier:**
 
 - **UXLibrary** - Container for library components
-- **LibraryComponent** - Reusable component (form-field, table, chart, card)
+- **LibraryComponent** - Reusable component (form-field, table, chart, card). A React, Vue or Svelte component is one, in a design system or in the application's own code, and is not also an `application.applicationcomponent`
 - **LibrarySubView** - Reusable component groupings
 - **StatePattern** - Reusable state machine patterns
 - **DesignToken** - Named design value (colour, spacing, font size, radius, duration) components read, so the look can be themed; usually one element per token set
