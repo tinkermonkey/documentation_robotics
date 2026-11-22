@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled spec** carries the additions from Context Studio proposal 3e1e77bf: `ux.designtoken`,
+  ten relationship types and two `softwareType` values (see the spec changelog, Unreleased). The
+  application, technology and ux layer skills list the new links.
+
 ## [0.7.1] - 2026-11-21
 
 **Specification Support:** v0.14.0

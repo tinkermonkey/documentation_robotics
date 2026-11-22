@@ -4,7 +4,7 @@
     "id": "technology",
     "number": 6,
     "name": "Technology Layer",
-    "description": "Models the infrastructure and platform the application runs on: nodes and devices, system software and runtimes, frameworks, communication networks and paths, technology services, interfaces, functions and processes, and the artifacts that are deployed to them (ArchiMate 3.2 technology layer). Package manifests, container images, deployment descriptors and infrastructure-as-code are the usual evidence. Modelling rules: nodes compose their devices, system software, interfaces and the artifacts deployed to them; nodes and system software are assigned to the functions and processes they perform, and a collaboration aggregates the nodes, system software and nested collaborations that cooperate in it and is assigned to its interactions. System software provides the interfaces it declares; an interface is assigned to the technology services it offers and serves the behaviour that uses it. Functions, processes and interactions realize technology services, and a node, system software, collaboration, path or network may realize one directly; a hand-off between behaviours is flows-to; events trigger behaviour, behaviour and services raise events, and structure does not trigger. Artifacts are passive: behaviour and system software access them, and they realize the system software they install and the application components they package, such as a container image. A communication network realizes the paths over it, and networks and paths connect the nodes and devices on them; other elements reach a network through the node they run on. Technology services serve nodes, other services and the application (components, services and functions); a node, device or system software may serve an application component directly as a shortcut for hosting it. Technology reaches the business layer through the application layer. Services carry the link to motivation: they realize goals and software capabilities and satisfy requirements; structure satisfies requirements, constraints and principles. Other layers reach technology in two ways: platform services serve the API, UX, APM, navigation and data-store elements that use them, and an element built on or run by a software product depends on that system software (a data-store database also depends on its node).",
+    "description": "Models the infrastructure and platform the application runs on: nodes and devices, system software and runtimes, frameworks, communication networks and paths, technology services, interfaces, functions and processes, and the artifacts that are deployed to them (ArchiMate 3.2 technology layer). Package manifests, container images, deployment descriptors and infrastructure-as-code are the usual evidence. Modelling rules: nodes compose their devices, system software, interfaces and the artifacts deployed to them; nodes and system software are assigned to the functions and processes they perform, and a collaboration aggregates the nodes, system software and nested collaborations that cooperate in it and is assigned to its interactions. System software provides the interfaces it declares; an interface is assigned to the technology services it offers and serves the behaviour that uses it. Functions, processes and interactions realize technology services, and a node, system software, collaboration, path or network may realize one directly; a process composes the functions that are its steps; a hand-off between behaviours is flows-to; events trigger behaviour, behaviour and services raise events, and structure does not trigger. Artifacts are passive: behaviour and system software access them, and they realize the system software they install and the application components they package, such as a container image. A communication network realizes the paths over it, and networks and paths connect the nodes and devices on them; other elements reach a network through the node they run on. Technology services serve nodes, other services and the application (components, services and functions); a node, device or system software may serve an application component directly as a shortcut for hosting it. Technology reaches the business layer through the application layer. Services carry the link to motivation: they realize goals and software capabilities and satisfy requirements; structure, artifacts included, satisfies requirements, constraints and principles, and a function or process satisfies a requirement it exists to meet. A process realizes the security countermeasures it carries out, such as trusted publishing in a release pipeline. Other layers reach technology in two ways: platform services serve the API, UX, APM, navigation and data-store elements that use them, and an element built on or run by a software product depends on that system software (a data-store database also depends on its node).",
     "inspired_by": {
       "standard": "ArchiMate 3.2",
       "version": "3.2",
@@ -386,7 +386,9 @@
                 "middleware",
                 "dbms",
                 "message-broker",
-                "cache"
+                "cache",
+                "language-runtime",
+                "web-browser"
               ],
               "description": "Platform software category, per ArchiMate 3.2 SystemSoftware element."
             },
@@ -884,6 +886,18 @@
       "required": false,
       "description": "The artifact is the installable form of the system software, such as a database engine's package or a runtime's container image."
     },
+    "technology.artifact.satisfies.motivation.requirement": {
+      "id": "technology.artifact.satisfies.motivation.requirement",
+      "source_spec_node_id": "technology.artifact",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The artifact meets the requirement, for example a package's published type declarations or per-module build output meeting a distribution requirement."
+    },
     "technology.communicationnetwork.aggregates.technology.communicationnetwork": {
       "id": "technology.communicationnetwork.aggregates.technology.communicationnetwork",
       "source_spec_node_id": "technology.communicationnetwork",
@@ -979,6 +993,18 @@
       "strength": "medium",
       "required": false,
       "description": "The node performs the technology function, such as a load balancer node performing traffic distribution."
+    },
+    "technology.node.assigned-to.technology.technologyprocess": {
+      "id": "technology.node.assigned-to.technology.technologyprocess",
+      "source_spec_node_id": "technology.node",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyprocess",
+      "destination_layer": "technology",
+      "predicate": "assigned-to",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The node performs the technology process, for example a CI runner performing a release pipeline."
     },
     "technology.node.composes.technology.artifact": {
       "id": "technology.node.composes.technology.artifact",
@@ -1451,6 +1477,18 @@
       "required": false,
       "description": "The function provides the service, such as load balancing providing a traffic-distribution service."
     },
+    "technology.technologyfunction.satisfies.motivation.requirement": {
+      "id": "technology.technologyfunction.satisfies.motivation.requirement",
+      "source_spec_node_id": "technology.technologyfunction",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The technology function meets the requirement, for example a package-exports check meeting a distribution requirement."
+    },
     "technology.technologyfunction.triggers.technology.technologyevent": {
       "id": "technology.technologyfunction.triggers.technology.technologyevent",
       "source_spec_node_id": "technology.technologyfunction",
@@ -1607,6 +1645,18 @@
       "required": false,
       "description": "The process reads or writes the artifact, such as a build producing an image or a deployment reading a manifest."
     },
+    "technology.technologyprocess.composes.technology.technologyfunction": {
+      "id": "technology.technologyprocess.composes.technology.technologyfunction",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "technology.technologyfunction",
+      "destination_layer": "technology",
+      "predicate": "composes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The technology function is a step of the technology process, for example a build function within a release pipeline."
+    },
     "technology.technologyprocess.composes.technology.technologyprocess": {
       "id": "technology.technologyprocess.composes.technology.technologyprocess",
       "source_spec_node_id": "technology.technologyprocess",
@@ -1619,6 +1669,18 @@
       "required": false,
       "description": "The process is made of narrower processes, such as the stages of a pipeline."
     },
+    "technology.technologyprocess.realizes.security.countermeasure": {
+      "id": "technology.technologyprocess.realizes.security.countermeasure",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "security.countermeasure",
+      "destination_layer": "security",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The technology process puts the countermeasure into effect, for example trusted publishing in a release pipeline countering a tampered package release."
+    },
     "technology.technologyprocess.realizes.technology.technologyservice": {
       "id": "technology.technologyprocess.realizes.technology.technologyservice",
       "source_spec_node_id": "technology.technologyprocess",
@@ -1630,6 +1692,18 @@
       "strength": "medium",
       "required": false,
       "description": "The process provides the service, such as a backup job providing a backup service."
+    },
+    "technology.technologyprocess.satisfies.motivation.requirement": {
+      "id": "technology.technologyprocess.satisfies.motivation.requirement",
+      "source_spec_node_id": "technology.technologyprocess",
+      "source_layer": "technology",
+      "destination_spec_node_id": "motivation.requirement",
+      "destination_layer": "motivation",
+      "predicate": "satisfies",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The technology process meets the requirement, for example a release pipeline meeting a trusted-publishing requirement."
     },
     "technology.technologyprocess.triggers.technology.technologyevent": {
       "id": "technology.technologyprocess.triggers.technology.technologyevent",

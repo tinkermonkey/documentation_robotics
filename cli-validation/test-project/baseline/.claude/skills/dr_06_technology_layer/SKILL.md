@@ -296,24 +296,26 @@ Networks realize paths, and networks and paths `connects` nodes and devices.
 | TechnologyProcess       | realizes    | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"          |
 | TechnologyInterface     | assigned-to | TechnologyService     | "Postgres Wire Endpoint" assigned to "Database Service" |
 | Node                    | assigned-to | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"                 |
+| Node                    | assigned-to | TechnologyProcess     | "CI Runner" assigned to "Release Pipeline"              |
 | SystemSoftware          | assigned-to | TechnologyFunction    | "NGINX" assigned to "Load Balancing"                    |
 | TechnologyCollaboration | assigned-to | TechnologyInteraction | "Postgres HA Pair" assigned to "Streaming Replication"  |
 
 ### Behavioral Relationships
 
-| Source Type           | Predicate | Target Type        | Example                                            |
-| --------------------- | --------- | ------------------ | -------------------------------------------------- |
-| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"         |
-| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold Exceeded" triggers "Auto-scaling"   |
-| TechnologyProcess     | triggers  | TechnologyEvent    | "Deploy to K8s" triggers "Deployment Completed"    |
-| TechnologyProcess     | composes  | TechnologyProcess  | "CI/CD Pipeline" composes "Build Image"            |
-| TechnologyInterface   | serves    | TechnologyProcess  | "Kubernetes API" serves "Deploy to K8s"            |
-| TechnologyFunction    | flows-to  | TechnologyProcess  | "Health Checking" flows to "Node Recovery"         |
-| TechnologyService     | serves    | TechnologyService  | "Storage Service" serves "Database Service"        |
-| TechnologyProcess     | accesses  | Artifact           | "Deploy to K8s" accesses "User Service Image"      |
-| SystemSoftware        | accesses  | Artifact           | "PostgreSQL" accesses "Data Files"                 |
-| TechnologyFunction    | accesses  | Artifact           | "Database Backup" accesses "Backup Files"          |
-| TechnologyInteraction | accesses  | Artifact           | "Streaming Replication" accesses "Write-Ahead Log" |
+| Source Type           | Predicate | Target Type        | Example                                             |
+| --------------------- | --------- | ------------------ | --------------------------------------------------- |
+| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"          |
+| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold Exceeded" triggers "Auto-scaling"    |
+| TechnologyProcess     | triggers  | TechnologyEvent    | "Deploy to K8s" triggers "Deployment Completed"     |
+| TechnologyProcess     | composes  | TechnologyProcess  | "CI/CD Pipeline" composes "Build Image"             |
+| TechnologyProcess     | composes  | TechnologyFunction | "Release Pipeline" composes "Check Package Exports" |
+| TechnologyInterface   | serves    | TechnologyProcess  | "Kubernetes API" serves "Deploy to K8s"             |
+| TechnologyFunction    | flows-to  | TechnologyProcess  | "Health Checking" flows to "Node Recovery"          |
+| TechnologyService     | serves    | TechnologyService  | "Storage Service" serves "Database Service"         |
+| TechnologyProcess     | accesses  | Artifact           | "Deploy to K8s" accesses "User Service Image"       |
+| SystemSoftware        | accesses  | Artifact           | "PostgreSQL" accesses "Data Files"                  |
+| TechnologyFunction    | accesses  | Artifact           | "Database Backup" accesses "Backup Files"           |
+| TechnologyInteraction | accesses  | Artifact           | "Streaming Replication" accesses "Write-Ahead Log"  |
 
 ---
 
@@ -321,24 +323,28 @@ Networks realize paths, and networks and paths `connects` nodes and devices.
 
 ### Outgoing References (Technology → Other Layers)
 
-| Source Type       | Predicate | Target Type                        | Example                                                    |
-| ----------------- | --------- | ---------------------------------- | ---------------------------------------------------------- |
-| Node              | serves    | `application.applicationcomponent` | "EKS Cluster" serves "User Service"                        |
-| SystemSoftware    | serves    | `application.applicationcomponent` | "Node.js 20 Runtime" serves "User Service"                 |
-| TechnologyService | serves    | `application.applicationservice`   | "Database Service" serves "Customer Management Service"    |
-| TechnologyService | serves    | `application.applicationfunction`  | "Object Storage" serves "saveAttachment"                   |
-| Artifact          | realizes  | `application.applicationcomponent` | "user-service:1.4 image" realizes "User Service"           |
-| TechnologyService | serves    | `api.operation`                    | "S3 Object Storage" serves "uploadAvatar"                  |
-| TechnologyService | serves    | `data-store.database`              | "Amazon RDS" serves "orders-db"                            |
-| TechnologyService | serves    | `apm.exporterconfig`               | "OpenTelemetry Collector" serves "OTLP Trace Exporter"     |
-| TechnologyService | realizes  | `product.softwarecapability`       | "Search Cluster Service" realizes "Full-text Search"       |
-| TechnologyService | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"   |
-| TechnologyService | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability" |
-| SystemSoftware    | satisfies | `motivation.principle`             | "PostgreSQL" satisfies "Prefer Open Source"                |
-| SystemSoftware    | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"          |
-| Node              | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"            |
-| Node              | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"   |
-| SystemSoftware    | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"               |
+| Source Type        | Predicate | Target Type                        | Example                                                        |
+| ------------------ | --------- | ---------------------------------- | -------------------------------------------------------------- |
+| Node               | serves    | `application.applicationcomponent` | "EKS Cluster" serves "User Service"                            |
+| SystemSoftware     | serves    | `application.applicationcomponent` | "Node.js 20 Runtime" serves "User Service"                     |
+| TechnologyService  | serves    | `application.applicationservice`   | "Database Service" serves "Customer Management Service"        |
+| TechnologyService  | serves    | `application.applicationfunction`  | "Object Storage" serves "saveAttachment"                       |
+| Artifact           | realizes  | `application.applicationcomponent` | "user-service:1.4 image" realizes "User Service"               |
+| TechnologyService  | serves    | `api.operation`                    | "S3 Object Storage" serves "uploadAvatar"                      |
+| TechnologyService  | serves    | `data-store.database`              | "Amazon RDS" serves "orders-db"                                |
+| TechnologyService  | serves    | `apm.exporterconfig`               | "OpenTelemetry Collector" serves "OTLP Trace Exporter"         |
+| TechnologyService  | realizes  | `product.softwarecapability`       | "Search Cluster Service" realizes "Full-text Search"           |
+| TechnologyService  | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"       |
+| TechnologyService  | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability"     |
+| Artifact           | satisfies | `motivation.requirement`           | "Type declarations" satisfy "Ship typed ESM output"            |
+| TechnologyFunction | satisfies | `motivation.requirement`           | "Check Package Exports" satisfies "Every module is importable" |
+| TechnologyProcess  | satisfies | `motivation.requirement`           | "Release Pipeline" satisfies "Publish with provenance"         |
+| TechnologyProcess  | realizes  | `security.countermeasure`          | "Release Pipeline" realizes "Trusted Publishing"               |
+| SystemSoftware     | satisfies | `motivation.principle`             | "PostgreSQL" satisfies "Prefer Open Source"                    |
+| SystemSoftware     | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"              |
+| Node               | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"                |
+| Node               | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"       |
+| SystemSoftware     | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"                   |
 
 Security properties such as encryption-at-rest, data classification, and PII flags are recorded as Artifact attributes, not relationships.
 

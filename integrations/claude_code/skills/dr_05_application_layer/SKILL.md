@@ -220,6 +220,7 @@ Explicit DO NOT rules with rationale:
 | ApplicationService     | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"                                                                             |
 | ApplicationService     | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                                                                                            |
 | ApplicationFunction    | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"                                                                          |
+| ApplicationProcess     | satisfies      | `motivation.requirement`        | "Layout Pipeline" satisfies "Layout never blocks the first paint"                                                                    |
 | ApplicationService     | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                                                                                        |
 | ApplicationService     | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"                                                                             |
 | ApplicationService     | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                                                                                               |

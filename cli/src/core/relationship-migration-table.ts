@@ -45,7 +45,8 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e7a10b16-d820-4b5e-a0bf-504dbc8cc465.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-38fa8fa3-0d48-429f-a0a3-825e47f259d5.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-93d40a94-ce9f-4e40-a641-5d7504ef1490.json",
-    "cli/scripts/spec-enrich/data/applied-routes-for-dropped-relationships.json"
+    "cli/scripts/spec-enrich/data/applied-routes-for-dropped-relationships.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-3e1e77bf-0281-4aa7-9aef-1d980727654a.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
