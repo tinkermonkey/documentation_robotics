@@ -103,7 +103,7 @@ edge route. Do it because it is cheap and it improves extraction itself, not onl
 **Status (2026-11-21):** bank 0.1 curated with the maintainer. See
 [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md) for the bank and its decisions,
 `cli/scripts/assess-eval/questions.json` for the data, and `RUNBOOK.md` beside it for the protocol.
-The heimdall pilot ran steps A and B on 2026-11-21. Step C is on hold (order step 2).
+The heimdall pilot ran steps A and B on 2026-11-21. Step C, the maintainer review, is next.
 
 The finders show where the gaps are. Filling them takes inference, and the coding agent is the
 tool for that: it has the model (dr MCP), the code graph (CBM MCP) and the source. The proposal is
@@ -353,7 +353,7 @@ rediscover in every repository.
 | S7  | An API operation cannot reach a data-model schema directly                                                                                                                                                                                                  | B       |                  | not a gap (ruled)                                                                                                                                                                                                               |
 | S8  | ~~Testing cannot link to the route a suite exercises.~~ Not a gap: `testcasesketch tests route` exists in 0.14.0; step B looked from the wrong type                                                                                                         | B       |                  | not a gap                                                                                                                                                                                                                       |
 | S9  | The technology layer's rule text allows a node `assigned-to` a technology process, but the catalog refuses it. One of the two is wrong                                                                                                                      | A       |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | ruled; spec and skills landed: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311; test clustering open in #1312                                                                  |
+| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | ruled; spec and skills landed: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311; test clustering in #1312 is a later step (order step 5) and does not block                     |
 
 Rulings of 2026-11-21:
 
@@ -366,9 +366,10 @@ Rulings of 2026-11-21:
 - **S10:** a UI component is modelled once, in the ux layer, never also as an application
   component. A React context follows the 2026-11-18 store ruling. The test half was revised on
   2026-11-23: every test in the codebase belongs in the model, and no deterministic rule (folder,
-  file pattern, runner) picks which tests matter. Extraction clusters test cases instead (#1312),
-  which replaces the 2026-11-21 wording "sketches for tests a maintainer would name; coverage
-  targets for routine unit tests".
+  file pattern, runner) picks which tests matter. Extraction will cluster test cases instead
+  (#1312, order step 5), which replaces the 2026-11-21 wording "sketches for tests a maintainer
+  would name; coverage targets for routine unit tests". Until then, reviews see one sketch per
+  test.
 
 ### DR tools (`dogfood` issues)
 
@@ -438,9 +439,9 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 1. **B: draft and curate the bank.** Done 2026-11-21 (bank 0.1).
 2. **B and C: pilot on heimdall.** All three protocol steps. This gives the cost per repository and
    the first precision and recall numbers. Steps A and B ran on 2026-11-21.
-   - **Step C is on hold** (2026-11-23) until test cases can be clustered after extraction (#1312).
-     Extraction's 1,689 per-test sketches and their links are 3,652 of step A's 5,076
-     changes, too many to review one by one, and the maintainer wants every test kept.
+   - **Step C reviews every test as extraction made it:** 1,689 per-test sketches and their links,
+     3,652 of step A's 5,076 changes. Clustering them (#1312) is order step 5 and does not hold
+     the pilot up.
    - **Already pruned:** the changes the S1 and S10 rulings reject by exact match (the 105
      application components that duplicate a `ux.librarycomponent`, and step B's 131 library
      exports staged as `api.operation` with their tags), 1,219 changes in all. Each is logged with
@@ -449,13 +450,17 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 3. **`score.ts`,** written against the pilot's outputs.
    - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
      S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's test
-     clustering is open in #1312); D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
+     clustering, #1312, is step 5 and does not block); D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
 4. **C: the fleet,** one session per repository, once the rows that block it have landed. Then the
-   per-question verdicts (stage 2 above), and bank 0.2.
-5. **The headless step A runner,** for the repeatability measure and for track D.
-6. **E: re-measure** on the hardened models.
-7. **D:** arm 1 on one hardened repository, then arm 2 on two or three fresh repositories.
-8. **The product change** (stage 4 above), for the questions that passed.
+   per-question verdicts (stage 2 above), and bank 0.2. The fleet reviews one sketch per test, as
+   extraction makes them today.
+5. **Test-case clustering after extraction** (#1312). Every test stays in the model, grouped so it
+   can be reviewed as a unit. It lands before track D, whose rebuilds and fresh builds run the
+   whole extraction pipeline.
+6. **The headless step A runner,** for the repeatability measure and for track D.
+7. **E: re-measure** on the hardened models.
+8. **D:** arm 1 on one hardened repository, then arm 2 on two or three fresh repositories.
+9. **The product change** (stage 4 above), for the questions that passed.
 
 Turning the witnesses into finders (stage 3) is cheap and can be done at any point.
 
