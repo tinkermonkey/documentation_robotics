@@ -825,6 +825,21 @@ paths:
                     description:
                       Browser tabs connected now (WebSocket clients). Only with the auth
                       token
+                  serverId:
+                    type: string
+                    description:
+                      Id of the central process, as its server record has it. Central
+                      process only, with the auth token
+                  farmRoot:
+                    type: string
+                    description:
+                      Real path of the farm root the central process serves. Central
+                      process only, with the auth token
+                  loadedCheckouts:
+                    type: integer
+                    description:
+                      Checkout contexts loaded now. Central process only, with the auth
+                      token
                 required:
                   - status
                   - version
@@ -974,6 +989,190 @@ paths:
                     description: Error message
                 required:
                   - error
+  /api/projects/:project/checkouts/:checkout/model:
+    get:
+      tags:
+        - Model
+      summary: Get full model
+      description:
+        Retrieve the complete architecture model across all layers, in the
+        named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+      responses:
+        "200":
+          description: Model data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Element ID (UUID)
+                        spec_node_id:
+                          type: string
+                          description: Spec node type ID (e.g. motivation.goal)
+                        type:
+                          type: string
+                          description: Element type (e.g. goal, endpoint)
+                        layer_id:
+                          type: string
+                          description: Layer this element belongs to
+                        name:
+                          type: string
+                          description: Element display name
+                        description:
+                          type: string
+                          description: Element description
+                        attributes:
+                          type: object
+                          additionalProperties: {}
+                          description: Typed attribute bag per spec-node schema
+                        source_reference:
+                          type: object
+                          properties:
+                            provenance:
+                              type: string
+                              enum:
+                                - extracted
+                                - manual
+                                - inferred
+                                - generated
+                            locations:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  file:
+                                    type: string
+                                  symbol:
+                                    type: string
+                                required:
+                                  - file
+                            repository:
+                              type: object
+                              properties:
+                                url:
+                                  type: string
+                                commit:
+                                  type: string
+                          required:
+                            - provenance
+                            - locations
+                          description: Source code provenance linking this element to its implementation
+                        metadata:
+                          type: object
+                          properties:
+                            created_at:
+                              type: string
+                            updated_at:
+                              type: string
+                            created_by:
+                              type: string
+                            version:
+                              type: number
+                          description: Element lifecycle metadata (timestamps, version)
+                        properties:
+                          type: object
+                          additionalProperties: {}
+                          description: Legacy property bag (deprecated — prefer attributes)
+                      required:
+                        - id
+                        - spec_node_id
+                        - type
+                        - layer_id
+                        - name
+                    description: All architecture elements across all layers
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Stable link ID derived from source, target, and type
+                        source:
+                          type: string
+                          description: Source element ID
+                        target:
+                          type: string
+                          description: Target element ID
+                        type:
+                          type: string
+                          description: Relationship predicate or reference type
+                        layer_id:
+                          type: string
+                          description: Layer ID for intra-layer relationships
+                        source_layer_id:
+                          type: string
+                          description: Source layer ID for cross-layer references
+                        target_layer_id:
+                          type: string
+                          description: Target layer ID for cross-layer references
+                      required:
+                        - id
+                        - source
+                        - target
+                        - type
+                    description: Intra-layer relationships and cross-layer references
+                required:
+                  - nodes
+                  - links
+        "404":
+          description:
+            The farm lists no such project or checkout, or the checkout is not
+            on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/layers/:layerName:
     get:
       tags:
@@ -1053,6 +1252,110 @@ paths:
                     description: Error message
                 required:
                   - error
+  /api/projects/:project/checkouts/:checkout/layers/:layerName:
+    get:
+      tags:
+        - Model
+      summary: Get layer
+      description: Retrieve a specific layer with all its elements, in the named
+        project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            enum:
+              - motivation
+              - business
+              - product
+              - security
+              - application
+              - technology
+              - api
+              - data-model
+              - data-store
+              - ux
+              - navigation
+              - apm
+              - testing
+          required: true
+          name: layerName
+          in: path
+      responses:
+        "200":
+          description: Layer retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Layer name
+                  elements:
+                    type: array
+                    items:
+                      type: object
+                      properties: {}
+                      additionalProperties: {}
+                    description:
+                      Layer elements (each element is an object with id, name, type, and
+                      properties)
+                  elementCount:
+                    type: number
+                    description: Total element count
+                required:
+                  - name
+                  - elements
+                  - elementCount
+        "404":
+          description:
+            Layer not found; or the farm lists no such project or checkout, or
+            the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/spec:
     get:
       tags:
@@ -1097,6 +1400,274 @@ paths:
                   - schemaCount
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects:
+    get:
+      tags:
+        - Projects
+      summary: List the projects
+      description:
+        Every project of the farm with its checkouts (main checkout and
+        linked worktrees)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The farm's projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: The project's name in the farm
+                        repository:
+                          type: string
+                          description: The main checkout's path
+                        model:
+                          type: string
+                          description: The model folder as the farm records it
+                        remote:
+                          type: string
+                          description: origin's URL, when it has one
+                        checkouts:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                                description: "`main`, or the linked worktree's name"
+                              path:
+                                type: string
+                                description: Real path of the working tree
+                              branch:
+                                type:
+                                  - string
+                                  - "null"
+                                description: Short branch name, or null when detached
+                              head:
+                                type: string
+                                description: Commit the working tree is at
+                              state:
+                                type: string
+                                enum:
+                                  - present
+                                  - missing
+                                  - prunable
+                                description: "`missing`: git lists it but the folder is gone"
+                              activeChangeset:
+                                type:
+                                  - string
+                                  - "null"
+                                description: The active changeset's id, when one is active
+                              stagedChangesets:
+                                type: integer
+                                description: How many changesets are staged in the checkout
+                            required:
+                              - key
+                              - path
+                              - branch
+                              - head
+                              - state
+                              - activeChangeset
+                              - stagedChangesets
+                      required:
+                        - name
+                        - repository
+                        - model
+                        - checkouts
+                required:
+                  - projects
+  /api/projects/:project:
+    get:
+      tags:
+        - Projects
+      summary: Get a project
+      description: One project of the farm with its checkouts
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+      responses:
+        "200":
+          description: The project
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: The project's name in the farm
+                  repository:
+                    type: string
+                    description: The main checkout's path
+                  model:
+                    type: string
+                    description: The model folder as the farm records it
+                  remote:
+                    type: string
+                    description: origin's URL, when it has one
+                  checkouts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          description: "`main`, or the linked worktree's name"
+                        path:
+                          type: string
+                          description: Real path of the working tree
+                        branch:
+                          type:
+                            - string
+                            - "null"
+                          description: Short branch name, or null when detached
+                        head:
+                          type: string
+                          description: Commit the working tree is at
+                        state:
+                          type: string
+                          enum:
+                            - present
+                            - missing
+                            - prunable
+                          description: "`missing`: git lists it but the folder is gone"
+                        activeChangeset:
+                          type:
+                            - string
+                            - "null"
+                          description: The active changeset's id, when one is active
+                        stagedChangesets:
+                          type: integer
+                          description: How many changesets are staged in the checkout
+                      required:
+                        - key
+                        - path
+                        - branch
+                        - head
+                        - state
+                        - activeChangeset
+                        - stagedChangesets
+                required:
+                  - name
+                  - repository
+                  - model
+                  - checkouts
+        "404":
+          description: The farm lists no project of that name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts:
+    get:
+      tags:
+        - Projects
+      summary: List a project's checkouts
+      description:
+        The project's main checkout and linked worktrees, with their state
+        and staged changesets
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+      responses:
+        "200":
+          description: The project's checkouts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    type: string
+                  checkouts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          description: "`main`, or the linked worktree's name"
+                        path:
+                          type: string
+                          description: Real path of the working tree
+                        branch:
+                          type:
+                            - string
+                            - "null"
+                          description: Short branch name, or null when detached
+                        head:
+                          type: string
+                          description: Commit the working tree is at
+                        state:
+                          type: string
+                          enum:
+                            - present
+                            - missing
+                            - prunable
+                          description: "`missing`: git lists it but the folder is gone"
+                        activeChangeset:
+                          type:
+                            - string
+                            - "null"
+                          description: The active changeset's id, when one is active
+                        stagedChangesets:
+                          type: integer
+                          description: How many changesets are staged in the checkout
+                      required:
+                        - key
+                        - path
+                        - branch
+                        - head
+                        - state
+                        - activeChangeset
+                        - stagedChangesets
+                required:
+                  - project
+                  - checkouts
+        "404":
+          description: The farm lists no project of that name
           content:
             application/json:
               schema:
@@ -1323,6 +1894,309 @@ paths:
                   - error
         "404":
           description: Element not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts/:checkout/annotations:
+    get:
+      tags:
+        - Annotations
+      summary: Get annotations
+      description:
+        Retrieve all annotations, optionally filtered by element, in the
+        named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+          required: false
+          name: elementId
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: author
+          in: query
+        - schema:
+            type: string
+          required: false
+          name: tags
+          in: query
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          required: false
+          name: resolved
+          in: query
+      responses:
+        "200":
+          description: Annotations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  annotations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Annotation ID
+                        elementId:
+                          type: string
+                          minLength: 1
+                          pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                          description: Target element ID
+                        author:
+                          type: string
+                          description: Author name
+                        content:
+                          type: string
+                          description: Annotation content
+                        createdAt:
+                          type: string
+                          description: Creation timestamp
+                        updatedAt:
+                          type: string
+                          description: Last update timestamp
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                          description: Annotation tags
+                        resolved:
+                          type: boolean
+                          description: Resolution status
+                        replies:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              author:
+                                type: string
+                              content:
+                                type: string
+                              createdAt:
+                                type: string
+                            required:
+                              - id
+                              - author
+                              - content
+                              - createdAt
+                          description: Annotation replies
+                      required:
+                        - id
+                        - elementId
+                        - author
+                        - content
+                        - createdAt
+                    description: List of annotations
+                required:
+                  - annotations
+        "404":
+          description:
+            The farm lists no such project or checkout, or the checkout is not
+            on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    post:
+      tags:
+        - Annotations
+      summary: Create annotation
+      description:
+        Create a new annotation on a model element, in the named project's
+        checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                elementId:
+                  type: string
+                  minLength: 1
+                  pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                author:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  default: Anonymous
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+                  default: []
+              required:
+                - elementId
+                - content
+              additionalProperties: false
+      responses:
+        "201":
+          description: Annotation created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "404":
+          description:
+            Element not found; or the farm lists no such project or checkout,
+            or the checkout is not on disk
           content:
             application/json:
               schema:
@@ -1730,6 +2604,490 @@ paths:
                     description: Error message
                 required:
                   - error
+  /api/projects/:project/checkouts/:checkout/annotations/:annotationId:
+    get:
+      tags:
+        - Annotations
+      summary: Get annotation by ID
+      description: Retrieve a specific annotation by its ID, in the named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      responses:
+        "200":
+          description: Annotation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
+        "404":
+          description:
+            Annotation not found; or the farm lists no such project or
+            checkout, or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    put:
+      tags:
+        - Annotations
+      summary: Update annotation (partial)
+      description:
+        "Update an existing annotation with partial fields (NOTE: partial
+        updates, use PATCH for recommended behavior), in the named project's
+        checkout"
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+                resolved:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        "200":
+          description: Annotation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
+        "404":
+          description:
+            Annotation not found; or the farm lists no such project or
+            checkout, or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    patch:
+      tags:
+        - Annotations
+      summary: Partially update annotation
+      description:
+        Partially update an existing annotation (recommended over PUT), in
+        the named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                tags:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+                resolved:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        "200":
+          description: Annotation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Annotation ID
+                  elementId:
+                    type: string
+                    minLength: 1
+                    pattern: ^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$
+                    description: Target element ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Annotation content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                  updatedAt:
+                    type: string
+                    description: Last update timestamp
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: Annotation tags
+                  resolved:
+                    type: boolean
+                    description: Resolution status
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: Annotation replies
+                required:
+                  - id
+                  - elementId
+                  - author
+                  - content
+                  - createdAt
+        "404":
+          description:
+            Annotation not found; or the farm lists no such project or
+            checkout, or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    delete:
+      tags:
+        - Annotations
+      summary: Delete annotation
+      description: Delete an existing annotation, in the named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      responses:
+        "204":
+          description: Annotation deleted successfully
+        "404":
+          description:
+            Annotation not found; or the farm lists no such project or
+            checkout, or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/annotations/:annotationId/replies:
     get:
       tags:
@@ -1851,6 +3209,197 @@ paths:
                   - createdAt
         "404":
           description: Annotation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts/:checkout/annotations/:annotationId/replies:
+    get:
+      tags:
+        - Annotations
+      summary: Get annotation replies
+      description: Retrieve all replies to an annotation, in the named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      responses:
+        "200":
+          description: Replies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Reply ID
+                        author:
+                          type: string
+                          description: Author name
+                        content:
+                          type: string
+                          description: Reply content
+                        createdAt:
+                          type: string
+                          description: Creation timestamp
+                      required:
+                        - id
+                        - author
+                        - content
+                        - createdAt
+                    description: List of replies
+                required:
+                  - replies
+        "404":
+          description:
+            Annotation not found; or the farm lists no such project or
+            checkout, or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+    post:
+      tags:
+        - Annotations
+      summary: Create annotation reply
+      description: Add a reply to an annotation, in the named project's checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: annotationId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                author:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+              required:
+                - author
+                - content
+              additionalProperties: false
+      responses:
+        "201":
+          description: Reply created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Reply ID
+                  author:
+                    type: string
+                    description: Author name
+                  content:
+                    type: string
+                    description: Reply content
+                  createdAt:
+                    type: string
+                    description: Creation timestamp
+                required:
+                  - id
+                  - author
+                  - content
+                  - createdAt
+        "404":
+          description:
+            Annotation not found; or the farm lists no such project or
+            checkout, or the checkout is not on disk
           content:
             application/json:
               schema:
@@ -2015,6 +3564,185 @@ paths:
                 required:
                   - version
                   - changesets
+  /api/projects/:project/checkouts/:checkout/changesets:
+    get:
+      tags:
+        - Changesets
+      summary: Get changesets
+      description:
+        "Retrieve a list of all changesets. Each carries its base drift
+        (drift), checked on this read with no commit attempt: whether the base
+        model changed under it and overlaps what it stages. GET
+        /api/changesets/:id adds what changed., in the named project's checkout"
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+      responses:
+        "200":
+          description: Changesets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  changesets:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                            - staged
+                            - committed
+                            - discarded
+                        created:
+                          type: string
+                        changes_count:
+                          type: number
+                        origin:
+                          type: object
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - chat
+                                - plan
+                                - extract
+                                - cli
+                                - upgrade
+                              description:
+                                "Who created the changeset: DrBot in `dr visualize` (chat), the
+                                changeset_create MCP tool (plan),
+                                codebase_extract (extract), `dr changeset
+                                create` (cli), or a spec migration run by `dr
+                                upgrade` or project_upgrade (upgrade)"
+                            detail:
+                              type: string
+                          required:
+                            - kind
+                          description:
+                            Where the changeset came from; absent on changesets made before it
+                            was recorded
+                        purpose:
+                          type: string
+                          enum:
+                            - plan
+                            - bootstrap
+                            - reconcile
+                            - verification
+                            - chat
+                            - upgrade-record
+                          description:
+                            "What the changeset is for, declared when it was made (inferred for
+                            one made before that): plan (changeset_create; lands
+                            with the code), chat (DrBot; lands after review),
+                            bootstrap (codebase_extract of the whole code; lands
+                            and reconciles code drift), reconcile
+                            (codebase_extract with since and no plan active;
+                            lands and reconciles code drift), verification
+                            (codebase_extract with since while a plan was
+                            active: the record of what was built, compared with
+                            the plan; never lands, it is kept as a record or
+                            discarded), upgrade-record (`dr upgrade` or
+                            project_upgrade: the relationships a spec migration
+                            dropped because the catalog has no replacement for
+                            their types, each a staged relationship delete;
+                            never lands, it is reviewed, restored from by hand
+                            and discarded)"
+                        verifies:
+                          type: string
+                          description:
+                            "For a verification record: the id of the plan changeset it
+                            verifies"
+                        actions:
+                          type: array
+                          items:
+                            type: string
+                            enum:
+                              - commit
+                              - discard
+                          description:
+                            "The moves its purpose and status allow now: commit and discard
+                            while staged, discard only for a verification record
+                            or an upgrade record, none once committed or
+                            discarded"
+                        drift:
+                          $ref: "#/components/schemas/ChangesetDriftSummary"
+                        revision:
+                          type: integer
+                          description: The changeset's nextSequenceNumber
+                        review:
+                          type: object
+                          properties:
+                            decided:
+                              type: integer
+                              description:
+                                Decisions whose change is still staged and was not rewritten after
+                                the decision (any verdict, ask included)
+                            total:
+                              type: integer
+                              description: Staged changes
+                            asked:
+                              type: integer
+                              description: Of the decided, those with verdict ask
+                          required:
+                            - decided
+                            - total
+                            - asked
+                      required:
+                        - name
+                        - status
+                        - created
+                        - changes_count
+                        - purpose
+                        - actions
+                        - drift
+                required:
+                  - version
+                  - changesets
+        "404":
+          description:
+            The farm lists no such project or checkout, or the checkout is not
+            on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/changesets/:changesetId:
     get:
       tags:
@@ -2349,6 +4077,374 @@ paths:
                   - changes
         "404":
           description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts/:checkout/changesets/:changesetId:
+    get:
+      tags:
+        - Changesets
+      summary: Get changeset
+      description:
+        "Retrieve a specific changeset with all its changes, and its base
+        drift (drift), checked on this read with no commit attempt: whether the
+        base model changed under it and, when it did, the staged changes the
+        base now overlaps (always all of them, each with what landing does about
+        it) and what was added, removed or changed in the base. Those five lists
+        are a page: driftLimit entries of each from driftOffset, with
+        drift.baseChanges.page giving each list's true total and the nextOffset
+        that continues them., in the named project's checkout"
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+        - schema:
+            type: integer
+            minimum: 1
+            description:
+              How many entries of each drift.baseChanges list to return (default
+              50; no upper bound)
+          required: false
+          description:
+            How many entries of each drift.baseChanges list to return (default
+            50; no upper bound)
+          name: driftLimit
+          in: query
+        - schema:
+            type:
+              - integer
+              - "null"
+            minimum: 0
+            description:
+              Where in each drift.baseChanges list to start (default 0); pass
+              drift.baseChanges.page.nextOffset to go on
+          required: false
+          description:
+            Where in each drift.baseChanges list to start (default 0); pass
+            drift.baseChanges.page.nextOffset to go on
+          name: driftOffset
+          in: query
+      responses:
+        "200":
+          description: Changeset retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - staged
+                      - committed
+                      - discarded
+                  created:
+                    type: string
+                  modified:
+                    type: string
+                  baseSnapshot:
+                    type: string
+                  stats:
+                    type: object
+                    properties:
+                      additions:
+                        type: number
+                      modifications:
+                        type: number
+                      deletions:
+                        type: number
+                    required:
+                      - additions
+                      - modifications
+                      - deletions
+                  revision:
+                    type: integer
+                    description:
+                      "The changeset's nextSequenceNumber: one past the highest sequence
+                      number used"
+                  origin:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - chat
+                          - plan
+                          - extract
+                          - cli
+                          - upgrade
+                        description:
+                          "Who created the changeset: DrBot in `dr visualize` (chat), the
+                          changeset_create MCP tool (plan), codebase_extract
+                          (extract), `dr changeset create` (cli), or a spec
+                          migration run by `dr upgrade` or project_upgrade
+                          (upgrade)"
+                      detail:
+                        type: string
+                    required:
+                      - kind
+                    description:
+                      Where the changeset came from; absent on changesets made before it
+                      was recorded
+                  purpose:
+                    type: string
+                    enum:
+                      - plan
+                      - bootstrap
+                      - reconcile
+                      - verification
+                      - chat
+                      - upgrade-record
+                    description:
+                      "What the changeset is for, declared when it was made (inferred for
+                      one made before that): plan (changeset_create; lands with
+                      the code), chat (DrBot; lands after review), bootstrap
+                      (codebase_extract of the whole code; lands and reconciles
+                      code drift), reconcile (codebase_extract with since and no
+                      plan active; lands and reconciles code drift),
+                      verification (codebase_extract with since while a plan was
+                      active: the record of what was built, compared with the
+                      plan; never lands, it is kept as a record or discarded),
+                      upgrade-record (`dr upgrade` or project_upgrade: the
+                      relationships a spec migration dropped because the catalog
+                      has no replacement for their types, each a staged
+                      relationship delete; never lands, it is reviewed, restored
+                      from by hand and discarded)"
+                  verifies:
+                    type: string
+                    description:
+                      "For a verification record: the id of the plan changeset it
+                      verifies"
+                  scope:
+                    type: object
+                    properties:
+                      since:
+                        type: string
+                        description: The git ref extraction read the changes since
+                      codeCommit:
+                        type: string
+                        description: The commit extraction read the code at
+                    required:
+                      - since
+                    description: "For a verification record: what its extraction read"
+                  actions:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - commit
+                        - discard
+                    description:
+                      "The moves its purpose and status allow now: commit and discard
+                      while staged, discard only for a verification record or an
+                      upgrade record, none once committed or discarded"
+                  drift:
+                    $ref: "#/components/schemas/ChangesetDrift"
+                  unstaged:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sequence:
+                          type: integer
+                          description: The sequence number the change had
+                        removedAt:
+                          type: integer
+                          description: The revision the unstage or rewrite took
+                        rewritten:
+                          type: boolean
+                          enum:
+                            - true
+                          description:
+                            The change was rewritten in place (still staged under the same
+                            sequence number); the tombstone holds its earlier
+                            version
+                        change:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                                - relationship-add
+                                - relationship-delete
+                            elementId:
+                              type: string
+                            layerName:
+                              type: string
+                            timestamp:
+                              type: string
+                            before: {}
+                            after: {}
+                            origin:
+                              $ref: "#/components/schemas/ChangeOrigin"
+                          required:
+                            - type
+                            - elementId
+                            - layerName
+                      required:
+                        - sequence
+                        - removedAt
+                        - change
+                    description: Unstaged and rewritten changes (tombstones), oldest first
+                  review:
+                    type: object
+                    properties:
+                      decisions:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            verdict:
+                              type: string
+                              enum:
+                                - keep
+                                - drop
+                                - ask
+                            note:
+                              type: string
+                            atRevision:
+                              type: integer
+                              description:
+                                The changeset revision (nextSequenceNumber) when the decision was
+                                made
+                            decidedAt:
+                              type: string
+                              description: ISO timestamp of the decision
+                          required:
+                            - verdict
+                            - atRevision
+                            - decidedAt
+                        description: Decisions keyed by the change's sequenceNumber, as a string
+                      lastReviewedRevision:
+                        type: integer
+                        description:
+                          The highest atRevision among the decisions; absent when there are
+                          none
+                    required:
+                      - decisions
+                  changes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - add
+                            - update
+                            - delete
+                            - relationship-add
+                            - relationship-delete
+                        elementId:
+                          type: string
+                          description: "For relationship changes: source::predicate::target"
+                        layerName:
+                          type: string
+                        sequenceNumber:
+                          type: integer
+                          description: Stable identity of the change; never renumbered
+                        timestamp:
+                          type: string
+                        before:
+                          description: Previous element state (for update/delete operations)
+                        after:
+                          description: New element state (for add/update operations)
+                        origin:
+                          $ref: "#/components/schemas/ChangeOrigin"
+                        blockers:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              relationshipId:
+                                type: string
+                                description: source::predicate::target (dotted ids)
+                              direction:
+                                type: string
+                                enum:
+                                  - in
+                                  - out
+                                description: "out: the deleted element is the source; in: it is the target"
+                              otherElementId:
+                                type: string
+                                description: The element at the other end (dotted id)
+                              predicate:
+                                type: string
+                            required:
+                              - relationshipId
+                              - direction
+                              - otherElementId
+                              - predicate
+                          description:
+                            "Delete changes of a staged changeset only: relationships in the
+                            projected model that still reference the deleted
+                            element and that the changeset does not delete"
+                      required:
+                        - type
+                        - elementId
+                        - layerName
+                required:
+                  - id
+                  - name
+                  - status
+                  - created
+                  - modified
+                  - stats
+                  - revision
+                  - purpose
+                  - actions
+                  - drift
+                  - unstaged
+                  - review
+                  - changes
+        "404":
+          description:
+            Changeset not found; or the farm lists no such project or checkout,
+            or the checkout is not on disk
           content:
             application/json:
               schema:
@@ -2988,6 +5084,660 @@ paths:
                     description: Error message
                 required:
                   - error
+  /api/projects/:project/checkouts/:checkout/changesets/:changesetId/verification:
+    get:
+      tags:
+        - Changesets
+      summary: Compare a plan changeset with an as-built changeset
+      description: "The plan changeset (staged or committed) compared with the
+        changeset named by `against` (a verification record or any as-built
+        changeset): the same report as the changeset_verify MCP tool, in full.
+        Each planned element and relationship is matched (exact or probable),
+        divergent, missing or unverifiable (extraction cannot see it), and each
+        as-built one the plan does not name is unplanned. Element ids are dotted
+        ids. Read-only; nothing is staged or written., in the named project's
+        checkout"
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+            description: The as-built changeset id to compare the plan with
+          required: true
+          description: The as-built changeset id to compare the plan with
+          name: against
+          in: query
+      responses:
+        "200":
+          description: The comparison
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plannedChangeset:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - name
+                    description: The plan
+                  asBuiltChangeset:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - name
+                    description: The changeset it was compared with
+                  planned:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      elements:
+                        type: integer
+                      relationships:
+                        type: integer
+                    required:
+                      - label
+                      - elements
+                      - relationships
+                  against:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      kind:
+                        type: string
+                        enum:
+                          - changeset
+                          - base
+                          - snapshot
+                    required:
+                      - label
+                      - kind
+                  verdict:
+                    type: string
+                    enum:
+                      - match
+                      - probable-match
+                      - diverges
+                      - incomplete
+                      - unverifiable
+                      - empty-plan
+                  verdictText:
+                    type: string
+                    description: The verdict as a sentence for a person
+                  summary:
+                    type: object
+                    properties:
+                      elements:
+                        type: object
+                        properties:
+                          planned:
+                            type: integer
+                          matched:
+                            type: integer
+                          probable:
+                            type: integer
+                          missing:
+                            type: integer
+                          divergent:
+                            type: integer
+                          unplanned:
+                            type: integer
+                          deletionsNotDone:
+                            type: integer
+                          unverifiable:
+                            type: integer
+                        required:
+                          - planned
+                          - matched
+                          - probable
+                          - missing
+                          - divergent
+                          - unplanned
+                          - deletionsNotDone
+                          - unverifiable
+                        additionalProperties: {}
+                      relationships:
+                        type: object
+                        properties:
+                          planned:
+                            type: integer
+                          matched:
+                            type: integer
+                          probable:
+                            type: integer
+                          missing:
+                            type: integer
+                          divergent:
+                            type: integer
+                          unplanned:
+                            type: integer
+                          deletionsNotDone:
+                            type: integer
+                          unverifiable:
+                            type: integer
+                        required:
+                          - planned
+                          - matched
+                          - probable
+                          - missing
+                          - divergent
+                          - unplanned
+                          - deletionsNotDone
+                          - unverifiable
+                        additionalProperties: {}
+                    required:
+                      - elements
+                      - relationships
+                  elements:
+                    type: object
+                    properties:
+                      matched:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                              description: The planned element id
+                            built:
+                              type: string
+                              description: The as-built element id it matched
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            match:
+                              type: string
+                              enum:
+                                - exact
+                                - probable
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - built
+                            - op
+                            - match
+                          additionalProperties: {}
+                        description: Built as planned (match exact) or probably (match probable)
+                      divergent:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                              description: The planned element id
+                            built:
+                              type: string
+                              description: The as-built element id it matched
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            match:
+                              type: string
+                              enum:
+                                - exact
+                                - probable
+                            reason:
+                              type: string
+                            fields:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  field:
+                                    type: string
+                                  planned: {}
+                                  built: {}
+                                required:
+                                  - field
+                          required:
+                            - planned
+                            - built
+                            - op
+                            - match
+                            - fields
+                          additionalProperties: {}
+                      missing:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                            layer:
+                              type: string
+                            type:
+                              type: string
+                            name:
+                              type: string
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - layer
+                            - type
+                            - name
+                            - op
+                            - reason
+                          additionalProperties: {}
+                        description: Planned, not found in the build
+                      unverifiable:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                            layer:
+                              type: string
+                            type:
+                              type: string
+                            name:
+                              type: string
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - layer
+                            - type
+                            - name
+                            - op
+                            - reason
+                          additionalProperties: {}
+                        description:
+                          "Planned, but extraction cannot see this kind of element: not
+                          checked"
+                      unplanned:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            layer:
+                              type: string
+                            type:
+                              type: string
+                            name:
+                              type: string
+                            change:
+                              type: string
+                              enum:
+                                - added
+                                - updated
+                                - deleted
+                                - present
+                          required:
+                            - id
+                            - layer
+                            - type
+                            - name
+                            - change
+                          additionalProperties: {}
+                        description: Built, not in the plan
+                      deletionsNotDone:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                            built:
+                              type: string
+                          required:
+                            - planned
+                            - built
+                          additionalProperties: {}
+                    required:
+                      - matched
+                      - divergent
+                      - missing
+                      - unverifiable
+                      - unplanned
+                      - deletionsNotDone
+                  relationships:
+                    type: object
+                    properties:
+                      matched:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            built:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - delete
+                            match:
+                              type: string
+                              enum:
+                                - exact
+                                - probable
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - built
+                            - op
+                            - match
+                          additionalProperties: {}
+                      divergent:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            built:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            fields:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  field:
+                                    type: string
+                                  planned: {}
+                                  built: {}
+                                required:
+                                  - field
+                          required:
+                            - planned
+                            - built
+                            - fields
+                          additionalProperties: {}
+                      missing:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - reason
+                          additionalProperties: {}
+                      unverifiable:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - delete
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - op
+                            - reason
+                          additionalProperties: {}
+                      unplanned:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            source:
+                              type: string
+                              description: Source element id
+                            predicate:
+                              type: string
+                            target:
+                              type: string
+                              description: Target element id
+                            change:
+                              type: string
+                              enum:
+                                - added
+                                - deleted
+                                - present
+                          required:
+                            - source
+                            - predicate
+                            - target
+                            - change
+                          additionalProperties: {}
+                      deletionsNotDone:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            built:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                          required:
+                            - planned
+                            - built
+                          additionalProperties: {}
+                    required:
+                      - matched
+                      - divergent
+                      - missing
+                      - unverifiable
+                      - unplanned
+                      - deletionsNotDone
+                  warning:
+                    type: string
+                    description: Set when the comparison says little about the code
+                  notes:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - plannedChangeset
+                  - asBuiltChangeset
+                  - planned
+                  - against
+                  - verdict
+                  - verdictText
+                  - summary
+                  - elements
+                  - relationships
+                  - notes
+                additionalProperties: {}
+        "400":
+          description: against is missing, or names the plan itself
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "404":
+          description:
+            The plan or the as-built changeset was not found; or the farm lists
+            no such project or checkout, or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/changesets/:changesetId/review:
     put:
       tags:
@@ -3083,6 +5833,160 @@ paths:
                   - decisions
         "404":
           description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "409":
+          description: Changeset is not staged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "422":
+          description: A sequence number names no staged change (or, to clear, no decision)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts/:checkout/changesets/:changesetId/review:
+    put:
+      tags:
+        - Changesets
+      summary: Record review decisions
+      description: Set or clear the reviewer's verdict on changes of a staged
+        changeset, by sequence number. A null verdict clears the decision. The
+        server stamps atRevision (the changeset's current revision) and
+        decidedAt. Stored in review.yaml in the changeset's directory, under its
+        file lock. Broadcasts changesets.updated., in the named project's
+        checkout
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decisions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      sequence:
+                        type: integer
+                        minimum: 0
+                      verdict:
+                        type:
+                          - string
+                          - "null"
+                        enum:
+                          - keep
+                          - drop
+                          - ask
+                          - null
+                        description: null clears the decision
+                      note:
+                        type: string
+                    required:
+                      - sequence
+                      - verdict
+              required:
+                - decisions
+      responses:
+        "200":
+          description: The changeset's review after the update
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  decisions:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        verdict:
+                          type: string
+                          enum:
+                            - keep
+                            - drop
+                            - ask
+                        note:
+                          type: string
+                        atRevision:
+                          type: integer
+                          description:
+                            The changeset revision (nextSequenceNumber) when the decision was
+                            made
+                        decidedAt:
+                          type: string
+                          description: ISO timestamp of the decision
+                      required:
+                        - verdict
+                        - atRevision
+                        - decidedAt
+                    description: Decisions keyed by the change's sequenceNumber, as a string
+                  lastReviewedRevision:
+                    type: integer
+                    description:
+                      The highest atRevision among the decisions; absent when there are
+                      none
+                required:
+                  - decisions
+        "404":
+          description:
+            Changeset not found; or the farm lists no such project or checkout,
+            or the checkout is not on disk
           content:
             application/json:
               schema:
@@ -3415,6 +6319,329 @@ paths:
                       their blockers, keyed by sequence number"
                 required:
                   - error
+  /api/projects/:project/checkouts/:checkout/changesets/:changesetId/commit:
+    post:
+      tags:
+        - Changesets
+      summary: Commit changeset
+      description: "Apply a staged changeset to the model (same as `dr changeset
+        commit`): validates it, applies every change atomically, marks it
+        committed, and deactivates it if it was active. Drift does not refuse
+        it: when the base overlaps what the changeset stages (its drift.state is
+        drifted), it lands all the same, and the result's drift lists each
+        overlap with what landing did about it. Show GET /api/changesets/:id's
+        drift.overlapping, with each consequence, before calling this. Refused
+        (409) for a verification record or an upgrade record (whose actions do
+        not include commit): it is never landed., in the named project's
+        checkout"
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                drop:
+                  type: array
+                  items:
+                    type: integer
+                  description:
+                    Sequence numbers to leave out. Changes that depend on an element a
+                    dropped add creates (relationship-adds with it at either
+                    end, updates of it) are left out too. All are unstaged
+                    (tombstoned) before the commit.
+                deleteBlockedLinks:
+                  type: array
+                  items:
+                    type: integer
+                  description:
+                    Sequence numbers of delete changes whose blockers may be deleted
+                    with the element. With either field present, any other
+                    delete with blockers is refused (422).
+      responses:
+        "200":
+          description: Action completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - staged
+                      - committed
+                      - discarded
+                  committed:
+                    type: number
+                    description: Changes applied to the model (commit only)
+                  skipped:
+                    type: number
+                    description: Changes skipped as already present (commit only)
+                  failed:
+                    type: number
+                    description: Changes that failed to apply (commit only)
+                  preExistingErrors:
+                    type: number
+                    description: Validation errors the base model already had (commit only)
+                  deactivated:
+                    type: boolean
+                    description: The changeset was active and was deactivated (commit only)
+                  deactivationError:
+                    type: string
+                  drift:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        description: What happened, in a sentence
+                      overlapping:
+                        type: object
+                        properties:
+                          elements:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  description: The element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - changed-in-base
+                                    - removed-in-base
+                                    - linked-in-base
+                                  description:
+                                    "already-in-base: a staged add of an element the base now has;
+                                    already-removed: a staged delete of one the
+                                    base no longer has; changed-in-base: any
+                                    staged change (an update, a delete, a delete
+                                    then an add) of one whose base content is
+                                    not what that change was staged on (an
+                                    update restaged on the current base is not
+                                    one); removed-in-base: a staged update or
+                                    recreate of one the base removed;
+                                    linked-in-base: a staged delete of one the
+                                    base has since linked, whose new
+                                    relationship the delete would remove"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - id
+                                - reason
+                                - consequence
+                                - resolve
+                          relationships:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element (dotted id)
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - endpoint-removed-in-base
+                                  description:
+                                    "already-in-base and already-removed as for elements;
+                                    endpoint-removed-in-base: a staged
+                                    relationship change with an end on a base
+                                    element that was removed. An edit to an
+                                    element at an end is not an overlap
+                                    (endpoint-changed-in-base is no longer
+                                    reported)"
+                                endpoints:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "For endpoint-removed-in-base: the ends the base removed"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - source
+                                - predicate
+                                - target
+                                - reason
+                                - consequence
+                                - resolve
+                        required:
+                          - elements
+                          - relationships
+                        description:
+                          Absent when the changeset has no base index, so the overlaps could
+                          not be listed
+                    required:
+                      - message
+                    description:
+                      "Commit only, when the base had drifted under the changeset: it
+                      landed all the same, and this says what the base
+                      overlapped"
+                  dropped:
+                    type: array
+                    items:
+                      type: integer
+                    description:
+                      "Commit with a body only: every sequence number left out, cascaded
+                      ones included"
+                  linksDeleted:
+                    type: integer
+                    description:
+                      "Commit with a body only: relationships deleted with the deletes
+                      named in deleteBlockedLinks"
+                required:
+                  - id
+                  - name
+                  - status
+        "400":
+          description:
+            The body is not JSON, or does not match the schema (an empty body
+            is the plain commit)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "404":
+          description:
+            Changeset not found; or the farm lists no such project or checkout,
+            or the checkout is not on disk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "409":
+          description:
+            "Changeset is not staged, or (commit) it is a verification record
+            or an upgrade record, which is never landed. Never for drift: a
+            drifted changeset lands"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "422":
+          description:
+            The changeset failed validation; nothing was applied. Or (body
+            given) a sequence number names no staged change, a delete has
+            blockers and is not in deleteBlockedLinks (blockers lists them), or
+            a staged relationship-add names an element the changeset deletes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  blockers:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          relationshipId:
+                            type: string
+                            description: source::predicate::target (dotted ids)
+                          direction:
+                            type: string
+                            enum:
+                              - in
+                              - out
+                            description: "out: the deleted element is the source; in: it is the target"
+                          otherElementId:
+                            type: string
+                            description: The element at the other end (dotted id)
+                          predicate:
+                            type: string
+                        required:
+                          - relationshipId
+                          - direction
+                          - otherElementId
+                          - predicate
+                    description:
+                      "When deletes have blockers and are not in deleteBlockedLinks:
+                      their blockers, keyed by sequence number"
+                required:
+                  - error
   /api/changesets/:changesetId/discard:
     post:
       tags:
@@ -3603,6 +6830,255 @@ paths:
                   - status
         "404":
           description: Changeset not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "409":
+          description:
+            "Changeset is not staged, or (commit) it is a verification record
+            or an upgrade record, which is never landed. Never for drift: a
+            drifted changeset lands"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "422":
+          description: The changeset failed validation; nothing was applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts/:checkout/changesets/:changesetId/discard:
+    post:
+      tags:
+        - Changesets
+      summary: Discard changeset
+      description:
+        "Throw away a staged changeset (same as `dr changeset discard`):
+        deletes it with its changes and its folder under
+        documentation-robotics/changesets/, and deactivates it if it was active.
+        No record is kept, so it no longer appears in GET /api/changesets. The
+        model is not touched., in the named project's checkout"
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+      responses:
+        "200":
+          description: Action completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - staged
+                      - committed
+                      - discarded
+                  committed:
+                    type: number
+                    description: Changes applied to the model (commit only)
+                  skipped:
+                    type: number
+                    description: Changes skipped as already present (commit only)
+                  failed:
+                    type: number
+                    description: Changes that failed to apply (commit only)
+                  preExistingErrors:
+                    type: number
+                    description: Validation errors the base model already had (commit only)
+                  deactivated:
+                    type: boolean
+                    description: The changeset was active and was deactivated (commit only)
+                  deactivationError:
+                    type: string
+                  drift:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                        description: What happened, in a sentence
+                      overlapping:
+                        type: object
+                        properties:
+                          elements:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  description: The element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - changed-in-base
+                                    - removed-in-base
+                                    - linked-in-base
+                                  description:
+                                    "already-in-base: a staged add of an element the base now has;
+                                    already-removed: a staged delete of one the
+                                    base no longer has; changed-in-base: any
+                                    staged change (an update, a delete, a delete
+                                    then an add) of one whose base content is
+                                    not what that change was staged on (an
+                                    update restaged on the current base is not
+                                    one); removed-in-base: a staged update or
+                                    recreate of one the base removed;
+                                    linked-in-base: a staged delete of one the
+                                    base has since linked, whose new
+                                    relationship the delete would remove"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - id
+                                - reason
+                                - consequence
+                                - resolve
+                          relationships:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element (dotted id)
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element (dotted id)
+                                reason:
+                                  type: string
+                                  enum:
+                                    - already-in-base
+                                    - already-removed
+                                    - endpoint-removed-in-base
+                                  description:
+                                    "already-in-base and already-removed as for elements;
+                                    endpoint-removed-in-base: a staged
+                                    relationship change with an end on a base
+                                    element that was removed. An edit to an
+                                    element at an end is not an overlap
+                                    (endpoint-changed-in-base is no longer
+                                    reported)"
+                                endpoints:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "For endpoint-removed-in-base: the ends the base removed"
+                                consequence:
+                                  type: string
+                                  description:
+                                    What landing does about this overlap, as a sentence to show the
+                                    person before they commit
+                                resolve:
+                                  type: string
+                                  description:
+                                    How the plan resolves the overlap (unstage, restage, stage a
+                                    delete), for the agent revising it
+                              required:
+                                - source
+                                - predicate
+                                - target
+                                - reason
+                                - consequence
+                                - resolve
+                        required:
+                          - elements
+                          - relationships
+                        description:
+                          Absent when the changeset has no base index, so the overlaps could
+                          not be listed
+                    required:
+                      - message
+                    description:
+                      "Commit only, when the base had drifted under the changeset: it
+                      landed all the same, and this says what the base
+                      overlapped"
+                  dropped:
+                    type: array
+                    items:
+                      type: integer
+                    description:
+                      "Commit with a body only: every sequence number left out, cascaded
+                      ones included"
+                  linksDeleted:
+                    type: integer
+                    description:
+                      "Commit with a body only: relationships deleted with the deletes
+                      named in deleteBlockedLinks"
+                required:
+                  - id
+                  - name
+                  - status
+        "404":
+          description:
+            Changeset not found; or the farm lists no such project or checkout,
+            or the checkout is not on disk
           content:
             application/json:
               schema:
@@ -4003,6 +7479,427 @@ paths:
                       the same account.
         "400":
           description: Invalid analyzer name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "500":
+          description: The status could not be read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+  /api/projects/:project/checkouts/:checkout/tier1:
+    get:
+      tags:
+        - Extraction
+      summary: Get Tier 1 state and spend
+      description:
+        'Whether Tier 1 (the decision model codebase_extract asks about the
+        cards Tier 0 cannot decide) is on for the served project''s checkout, and
+        why not: state, provider and model, where each credential comes from
+        (never its value), this calendar month''s spend (UTC) against the monthly
+        cap with the 80% warning state, spend by source, and the answer cache.
+        The same body as the tier1_status MCP tool, without its probe: this
+        endpoint never sends a request to a provider and never writes a file.
+        Returns state "off" when the project has not opted in. Tier 1 is
+        enabled and changed only with `dr analyzer tier1 ...`; nothing in this
+        API changes it., in the named project''s checkout'
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            description: The project's name in the farm
+            example: documentation-robotics
+          required: true
+          description: The project's name in the farm
+          name: project
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            description:
+              "`main` for the main worktree, else the name git gives the linked
+              worktree"
+            example: main
+          required: true
+          description:
+            "`main` for the main worktree, else the name git gives the linked
+            worktree"
+          name: checkout
+          in: path
+        - schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]+$
+            description:
+              "The analyzer Tier 1 is configured for (default: the active
+              analyzer, else cbm)"
+          required: false
+          description:
+            "The analyzer Tier 1 is configured for (default: the active
+            analyzer, else cbm)"
+          name: analyzer
+          in: query
+      responses:
+        "200":
+          description: Tier 1's state and spend
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tier1Status"
+              examples:
+                "off":
+                  summary: Not opted in (no tier1.json)
+                  value:
+                    state: "off"
+                    reason:
+                      "no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in. Enable it with `dr
+                      analyzer tier1 enable --provider <name> --model <id>`."
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    credentials: {}
+                    month:
+                      spentUsd: 0
+                      capUsd: 20
+                      remainingUsd: 20
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 0
+                      percentUsed: 0
+                    bySource: {}
+                    cache:
+                      entries: 0
+                      bytes: 0
+                      files: 0
+                      lastCompaction: null
+                    dotDrIgnored: true
+                    warnings: []
+                    nearCap: false
+                    summary:
+                      "Tier 1 is off (no .dr/analyzers/cbm/tier1.json: Tier 1 is opt-in.
+                      Enable it with `dr analyzer tier1 enable --provider <name>
+                      --model <id>`.). This month: $0.00 of the $20.00 cap,
+                      $20.00 left (0 card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
+                onNearCap:
+                  summary: On, past 80% of the cap (nearCap)
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: "on"
+                    modelId: "@cf/cloudflare/clef"
+                    credentials:
+                      accountId:
+                        set: true
+                        from: CLOUDFLARE_ACCOUNT_ID
+                      apiToken:
+                        set: true
+                        from: CLOUDFLARE_API_TOKEN
+                    month:
+                      spentUsd: 16.42
+                      capUsd: 20
+                      remainingUsd: 3.58
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 11730
+                      percentUsed: 82.1
+                    bySource:
+                      extract:
+                        cards: 9810
+                        costUsd: 13.734
+                        lastAt: "2026-11-14T09:12:40.118Z"
+                      probe:
+                        cards: 1
+                        costUsd: 0.0031
+                        lastAt: "2026-11-02T15:01:07.552Z"
+                      classify:
+                        cards: 1919
+                        costUsd: 2.6829
+                        lastAt: "2026-11-10T18:44:03.920Z"
+                    cache:
+                      entries: 11402
+                      bytes: 6815230
+                      files: 2
+                      lastCompaction: "2026-11-14T09:12:41.003Z"
+                    nearCap: true
+                    summary:
+                      "Tier 1 is on. This month: $16.42 of the $20.00 cap, $3.58 left (11730
+                      card(s)), resets 2026-12-01 (UTC). Tier 1 has used 82% of
+                      this checkout's monthly cap ($16.42 of $20.00). To raise
+                      it: `dr analyzer tier1 set monthly-cap 40`."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
+                warming:
+                  summary: On, while the codebase_index job fills the answer cache
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: warming
+                    reason:
+                      the codebase_index job is filling the answer cache (1,388 of 4,071
+                      cards, about 8 min left, $1.94 so far)
+                    modelId: "@cf/cloudflare/clef"
+                    credentials:
+                      accountId:
+                        set: true
+                        from: CLOUDFLARE_ACCOUNT_ID
+                      apiToken:
+                        set: true
+                        from: CLOUDFLARE_API_TOKEN
+                    month:
+                      spentUsd: 1.94
+                      capUsd: 20
+                      remainingUsd: 18.06
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 1388
+                      percentUsed: 9.7
+                    bySource:
+                      index:
+                        cards: 1388
+                        costUsd: 1.94
+                        lastAt: "2026-11-15T10:21:37.502Z"
+                    cache:
+                      entries: 1388
+                      bytes: 1421312
+                      files: 1
+                      lastCompaction: null
+                    warming:
+                      jobId: 5b0f6c3e-2d0a-4c39-9a51-6f1e0c8f2b7a
+                      startedAt: "2026-11-15T10:17:02.114Z"
+                      cards:
+                        done: 1388
+                        total: 4071
+                      costUsd: 1.94
+                      etaSeconds: 497
+                    nearCap: false
+                    summary:
+                      "Tier 1 is warming (the codebase_index job is filling the answer cache
+                      (1,388 of 4,071 cards, about 8 min left, $1.94 so far)).
+                      This month: $1.94 of the $20.00 cap, $18.06 left (1388
+                      card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
+                capped:
+                  summary: Opted in, but the month's cap is reached
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: capped
+                    modelId: "@cf/cloudflare/clef"
+                    credentials:
+                      accountId:
+                        set: true
+                        from: tier1.json
+                      apiToken:
+                        set: true
+                        from: tier1.json
+                    month:
+                      spentUsd: 20.0012
+                      capUsd: 20
+                      remainingUsd: 0
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 14286
+                      percentUsed: 100
+                    bySource:
+                      extract:
+                        cards: 14286
+                        costUsd: 20.0012
+                        lastAt: "2026-11-14T09:12:40.118Z"
+                    cache:
+                      entries: 13950
+                      bytes: 8290114
+                      files: 2
+                      lastCompaction: "2026-11-14T09:12:41.003Z"
+                    reason:
+                      "The $20.00 monthly cap is reached; cached answers are still used until
+                      1 Dec 2026 (UTC), when it resets. To raise it: `dr
+                      analyzer tier1 set monthly-cap <dollars>`."
+                    nearCap: false
+                    summary:
+                      "Tier 1 is capped (The $20.00 monthly cap is reached; cached answers
+                      are still used until 1 Dec 2026 (UTC), when it resets. To
+                      raise it: `dr analyzer tier1 set monthly-cap <dollars>`.).
+                      This month: $20.00 of the $20.00 cap, $0.00 left (14286
+                      card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
+                openRouter:
+                  summary: On through OpenRouter, pinned to one upstream
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: openrouter
+                    model: cloudflare/clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: "on"
+                    modelId: cloudflare/clef
+                    routing:
+                      only:
+                        - cloudflare
+                      allowFallbacks: false
+                      dataCollection: deny
+                    credentials:
+                      apiKey:
+                        set: true
+                        from: OPENROUTER_API_KEY
+                    month:
+                      spentUsd: 1.37
+                      capUsd: 20
+                      remainingUsd: 18.63
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 1032
+                      percentUsed: 6.9
+                    bySource:
+                      extract:
+                        cards: 1029
+                        costUsd: 1.3601
+                        lastAt: "2026-11-15T10:02:11.481Z"
+                      probe:
+                        cards: 3
+                        costUsd: 0.0099
+                        lastAt: "2026-11-15T09:40:52.007Z"
+                    cache:
+                      entries: 1018
+                      bytes: 1102230
+                      files: 1
+                      lastCompaction: "2026-11-15T10:02:12.310Z"
+                    nearCap: false
+                    summary:
+                      "Tier 1 is on. Through OpenRouter, forwarded only to cloudflare. This
+                      month: $1.37 of the $20.00 cap, $18.63 left (1032
+                      card(s)), resets 2026-12-01 (UTC). OpenRouter's Decisions
+                      API is in alpha and may change."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
+                noCredentials:
+                  summary: Opted in, a key missing
+                  value:
+                    analyzer: cbm
+                    config: .dr/analyzers/cbm/tier1.json
+                    provider: cloudflare-workers-ai
+                    model: clef
+                    monthlyCapUsd: 20
+                    concurrency: 4
+                    dotDrIgnored: true
+                    warnings: []
+                    state: no-credentials
+                    reason:
+                      cloudflare-workers-ai needs credentials.apiToken in tier1.json or
+                      CLOUDFLARE_API_TOKEN
+                    credentials:
+                      accountId:
+                        set: true
+                        from: CLOUDFLARE_ACCOUNT_ID
+                      apiToken:
+                        set: false
+                        from: null
+                    month:
+                      spentUsd: 0
+                      capUsd: 20
+                      remainingUsd: 20
+                      resetsAt: "2026-12-01T00:00:00.000Z"
+                      cards: 0
+                      percentUsed: 0
+                    bySource: {}
+                    cache:
+                      entries: 0
+                      bytes: 0
+                      files: 0
+                      lastCompaction: null
+                    nearCap: false
+                    summary:
+                      "Tier 1 is no-credentials (cloudflare-workers-ai needs
+                      credentials.apiToken in tier1.json or
+                      CLOUDFLARE_API_TOKEN). This month: $0.00 of the $20.00
+                      cap, $20.00 left (0 card(s)), resets 2026-12-01 (UTC)."
+                    note:
+                      A person enables, changes and disables Tier 1 with `dr analyzer tier1
+                      enable|set|disable` (no tool writes tier1.json); `dr
+                      analyzer tier1 set monthly-cap <dollars>` changes the cap,
+                      and `dr analyzer tier1 set mode suggest` keeps Tier 1 from
+                      staging or hiding anything without the agent. The spend
+                      counts this checkout only, not other clones or machines on
+                      the same account.
+        "400":
+          description: Invalid analyzer name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "404":
+          description:
+            The farm lists no such project or checkout, or the checkout is not
+            on disk
           content:
             application/json:
               schema:

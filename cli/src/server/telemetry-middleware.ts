@@ -4,6 +4,21 @@
  */
 
 import type { Context, Next } from "hono";
+import type { CheckoutRef } from "../core/checkout-types.js";
+
+/**
+ * The checkout the central server served a request from: the server's scope middleware sets it
+ * under this key once it has resolved the request's checkout.
+ */
+export const CHECKOUT_CONTEXT_KEY = "drCheckout";
+
+function checkoutOf(c: Context): CheckoutRef | undefined {
+  try {
+    return (c as any).get(CHECKOUT_CONTEXT_KEY) as CheckoutRef | undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // Conditional imports based on telemetry flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -17,6 +32,8 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_
  * - http.status_code: HTTP response status code
  * - http.url: Full request URL
  * - http.user_agent: User agent string
+ * - dr.project, dr.checkout: on the central server, the checkout a project-data request was
+ *   served from
  *
  * Also emits logs at request start and completion per SigNoz integration guide
  * for request lifecycle tracking.
@@ -78,6 +95,14 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
 
         span.setAttribute("http.status_code", statusCode);
         span.setAttribute("http.duration_ms", durationMs);
+
+        // The central process names the checkout a project-data request was served from
+        // (`motivation.requirement.telemetry-names-its-project-and-checkout`).
+        const checkout = checkoutOf(c);
+        if (checkout) {
+          span.setAttribute("dr.project", checkout.project);
+          span.setAttribute("dr.checkout", checkout.checkout);
+        }
 
         // Set span status based on HTTP status code
         if (statusCode >= 500) {
