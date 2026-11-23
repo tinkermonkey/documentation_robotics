@@ -471,13 +471,31 @@ or how `dr visualize` and `review_open` start viewers.
 | **1B Per-checkout server state**    | `checkout-context`, `checkout-context-pool` (`acquire-`, `evict-`, `close-checkout-context`), `ContextPoolSettings` from the environment. `VisualizationServer` holds its state in one `CheckoutContext` instead of `this.model.rootPath`, still serving today's unscoped routes from it                                       | `cli/src/server/checkout-context.ts`, `cli/src/server/checkout-context-pool.ts` (new), `cli/src/server/server.ts`, their tests                                                                                                 |
 | **1C Server record and deep links** | `ServerRecord` at `servers/<farm-hash>.json` with its 0600 token file, `viewer-url` building a `ViewerLink`, and a liveness check that treats an unreaped zombie as gone (issue 1275), shared by the registry and `parent-watch`                                                                                               | `cli/src/server/server-record.ts`, `cli/src/server/viewer-link.ts` (new), `cli/src/server/viewer-registry.ts` (`isProcessAlive` only), `cli/src/utils/parent-watch.ts`, `cli/src/utils/process-liveness.ts` (new), their tests |
 
+**Finishing 1C:** `sweep-per-project-viewers` is in `cli/src/server/legacy-viewer-sweep.ts`, built
+ahead of slice 4 because it is viewer-registry work that needs nothing else. It stops only an
+answering per-project viewer that `review_open` started with no browser tab open and confirmed
+pids, and reports every other one with the reason. `RunningViewer` carries the tab count its own
+server reports (`clients`). `dr serve` calls the sweep at start-up (slice 2B).
+
+### Slice 2: the central process
+
+Two pieces, built in parallel. They meet at `cli/src/server/central-server-contract.ts`:
+`CentralServerOptions`, `CentralServer`, `CentralActivity`, `CentralHealth` and
+`StartCentralServer`. The unscoped routes stay, served for the checkout the process was started
+in, until slice 4 removes them.
+
+| Piece                            | Builds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Files                                                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **2A The multi-checkout server** | `startCentralServer`: one server for every project and checkout of the farm, through `ProjectRegistry.resolver()` and the `CheckoutContextPool`; `checkout-removed` closes a context; the 19 scoped routes (`/api/projects`, `/api/projects/{project}`, `.../checkouts`, and `.../checkouts/{checkout}/...` for the model, layers, tier1, changesets and annotations), 404 for an unknown or missing checkout; the websocket `FeedSubscription` (`subscribe`/`unsubscribe` frames, every event stamped with its `CheckoutRef`); `/health` as `CentralHealth`; telemetry spans that name the project and checkout; `docs/api-spec.yaml` regenerated | `cli/src/server/central-server.ts` (new), `cli/src/server/server.ts`, `cli/src/server/checkout-context*.ts`, `cli/src/server/schemas.ts`, `cli/src/server/telemetry-middleware.ts`, `docs/api-spec.yaml`, their tests |
+| **2B `dr serve`**                | the `serve` command and its entry: resolve the farm, pick the port (8080 or the next free one), create the token, write the `ServerRecord` and token file and remove them on exit, refuse to start a second process for the same farm, run `sweepPerProjectViewers` at start-up (excluding its own pids), idle exit after `DR_VIEWER_IDLE_HOURS` (24) with no tab, MCP session, DrBot turn or request, `--foreground` and detached start, and `dr serve --status` / `--stop`                                                                                                                                                                       | `cli/src/commands/serve.ts`, `cli/src/serve-entry.ts` (new), `cli/src/server/central-lifetime.ts` (new), `cli/src/cli.ts` (registration only), their tests                                                            |
+
+The viewer companion issue is filed once 2A's routes are in `docs/api-spec.yaml`.
+
 ### Later slices (outline)
 
-- **Slice 2, the central process:** wire the registry into the pool, `dr serve`, the scoped
-  routes and OpenAPI, the websocket `FeedSubscription`, and the viewer companion issue once the
-  routes are in `docs/api-spec.yaml`.
-- **Slice 3, MCP and links:** the stdio bridge (`ensure-central-server`), `project_list`, project
-  and checkout on MCP results, `review_open` and `project_status` deep links, `DrBotLauncher`.
-- **Slice 4, migration and retirement:** `sweep-per-project-viewers`, `dr visualize` on the
-  central process, and removing the unscoped routes in the release whose bundled viewer uses the
-  scoped ones.
+- **Slice 3, MCP and links:** `/mcp` on the central process, the stdio bridge
+  (`ensure-central-server`), `project_list`, project and checkout on MCP results, `review_open` and
+  `project_status` deep links, `DrBotLauncher`.
+- **Slice 4, migration and retirement:** `dr visualize` on the central process with `--list`,
+  `--stop` and `--stop --all` over the central process and legacy viewers, and removing the
+  unscoped routes in the release whose bundled viewer uses the scoped ones.
