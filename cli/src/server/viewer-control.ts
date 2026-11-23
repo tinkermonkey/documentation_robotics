@@ -85,6 +85,8 @@ export interface RunningViewer {
   inRegistry: boolean;
   /** Whether its own server answered its health check (not merely some viewer on its port). */
   answering: boolean;
+  /** Browser tabs connected to it, when its own server reported them (CLI 0.7.0 and later). */
+  clients?: number;
   /** The pids that may be signalled to stop it; null when they could not be confirmed (see `unconfirmed`). */
   confirmed: ConfirmedPids | null;
   /** Why its pids could not be confirmed, in words; absent when they were. */
@@ -284,6 +286,7 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
         idleExitHours: record.idleExitHours ?? null,
         inRegistry: true,
         answering: own !== null,
+        ...(own?.clients !== undefined ? { clients: own.clients } : {}),
         confirmed: confirmation.kind === "confirmed" ? confirmation.pids : null,
         ...(confirmation.kind === "unconfirmed" ? { unconfirmed: confirmation.reason } : {}),
         token: record.token,
@@ -318,6 +321,7 @@ export async function surveyViewers(deps: ListRunningViewersDeps = {}): Promise<
         idleExitHours: null,
         inRegistry: false,
         answering: answer !== null,
+        ...(answer?.clients !== undefined ? { clients: answer.clients } : {}),
         // The scan lists a server only when its script is the dr CLI's.
         confirmed: { launcher: proc.launcherPid, server: proc.serverPid, by: "process" },
         token: null,
