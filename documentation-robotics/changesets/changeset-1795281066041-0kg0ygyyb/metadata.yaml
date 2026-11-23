@@ -8,7 +8,7 @@ description: One central DR process per user serves the MCP interface, a
   DrBot launching are planned across layers, and the unscoped /api routes are
   planned out.
 created: 2026-11-21T17:11:06.057Z
-modified: 2026-11-21T17:44:01.635Z
+modified: 2026-11-23T17:59:05.820Z
 status: staged
 baseSnapshot: v2:sha256:98a17a8e4ba0a39a8239e65f0be06af9a0d614125762e7f1dee3ce40df8e7401
 origin:
@@ -18,7 +18,7 @@ stats:
   additions: 565
   modifications: 25
   deletions: 43
-lastSequence: 650
+lastSequence: 673
 unstaged:
   - sequence: 23
     removedAt: 485
@@ -423,4 +423,565 @@ unstaged:
           updated_at: 2026-11-21T17:14:10.890Z
           version: 1
       timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 47
+    removedAt: 651
+    change:
+      type: add
+      elementId: application.applicationcomponent.project-registry
+      layerName: application
+      after:
+        id: 7259351a-2da4-4815-ac92-0db5f4fbc681
+        path: application.applicationcomponent.project-registry
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: ProjectRegistry
+        description: The one project registry every interface reads. It loads the farm
+          in use (resolveFarm), names projects, discovers each project's
+          checkouts from git, and resolves a path, a project name or a
+          CheckoutRef to a project and checkout.
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.902Z
+          updated_at: 2026-11-21T17:14:10.902Z
+          version: 1
+        accepted_gaps:
+          - direction: outgoing
+            predicate: accesses
+            other_spec_node_id: application.dataobject
+            reason: Everything the registry reads and writes has a declared shape
+              (FarmProject, Repository, Checkout, CheckoutRef,
+              ProjectListEntry), so it accesses object schemas, not data
+              objects.
+            decided_by: agent
+            decided_at: 2026-11-21T17:16:37.667Z
+            changeset: changeset-1795281066041-0kg0ygyyb
+      timestamp: 2026-11-21T17:43:51.400Z
+    rewritten: true
+  - sequence: 639
+    removedAt: 652
+    change:
+      type: add
+      elementId: application.applicationfunction.resolve-farm
+      layerName: application
+      after:
+        id: 33eff7f6-1b23-46eb-bbee-dcef3159b449
+        path: application.applicationfunction.resolve-farm
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: resolveFarm
+        description: "The farm in use, in this order: DR_FARM_PATH, else a farm root
+          found upward from the working directory (findFarmRoot), else the user
+          farm (~/.config/dr/farm.yaml, created empty on first use). The CLI
+          launched in a folder farm uses that farm's definition, and so does any
+          central process it starts."
+        metadata:
+          created_at: 2026-11-21T17:43:54.697Z
+          updated_at: 2026-11-21T17:43:54.697Z
+          version: 1
+      timestamp: 2026-11-21T17:43:54.796Z
+    rewritten: true
+  - sequence: 48
+    removedAt: 653
+    change:
+      type: add
+      elementId: application.applicationfunction.resolve-checkout
+      layerName: application
+      after:
+        id: 86bbc820-d0a0-4d97-916c-701bddc793b5
+        path: application.applicationfunction.resolve-checkout
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: resolveCheckout
+        description: "A path (rootPath, an MCP root, a working directory), a project
+          name or a CheckoutRef, to {project, checkout}: the checkout whose real
+          path contains the path, the project whose repository owns it."
+        metadata:
+          created_at: 2026-11-21T17:14:10.903Z
+          updated_at: 2026-11-21T17:14:10.903Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 49
+    removedAt: 654
+    change:
+      type: add
+      elementId: application.applicationfunction.discover-checkouts
+      layerName: application
+      after:
+        id: c52d27cd-c754-476b-96a4-c85602e4620e
+        path: application.applicationfunction.discover-checkouts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: discoverCheckouts
+        description: A project's checkouts, from git worktree list --porcelain run in
+          its repository and cached until <commonDir>/worktrees changes. A
+          linked checkout's key is the name git gives the worktree (maintainer
+          answer, 2026-11-21). A worktree whose folder is gone is reported
+          missing or prunable.
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:43:53.750Z
+    rewritten: true
+  - sequence: 50
+    removedAt: 655
+    change:
+      type: add
+      elementId: application.applicationfunction.derive-project-name
+      layerName: application
+      after:
+        id: 7f10aa83-19b2-490f-b2dc-48b8a536be56
+        path: application.applicationfunction.derive-project-name
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: deriveProjectName
+        description: "The name a new project gets: the farm entry's name when it has
+          one, else the main checkout's folder name in kebab case; a name
+          another repository already holds is refused with the call that names
+          it explicitly, never suffixed."
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 51
+    removedAt: 656
+    change:
+      type: add
+      elementId: application.applicationfunction.register-project
+      layerName: application
+      after:
+        id: 8a62af3f-5bbe-4a0e-b62c-5d9c513961f0
+        path: application.applicationfunction.register-project
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: registerProject
+        description: Adds a project to the farm in use through the one code path every
+          interface uses. A path an MCP call or dr visualize names that no
+          registered project owns is registered automatically (maintainer
+          answer, 2026-11-21).
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:43:53.425Z
+    rewritten: true
+  - sequence: 52
+    removedAt: 657
+    change:
+      type: add
+      elementId: application.applicationfunction.list-projects
+      layerName: application
+      after:
+        id: a51a424a-35e9-4253-9292-26ebecb4d450
+        path: application.applicationfunction.list-projects
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: listProjects
+        description: The ProjectListEntry for every registered project, in name order,
+          with its checkouts.
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 53
+    removedAt: 658
+    change:
+      type: add
+      elementId: application.applicationevent.checkout-removed
+      layerName: application
+      after:
+        id: e0b36923-65bd-485b-bf4c-c582297abfbf
+        path: application.applicationevent.checkout-removed
+        spec_node_id: application.applicationevent
+        type: applicationevent
+        layer_id: application
+        name: Checkout removed
+        description: A checkout the registry listed is gone (git worktree remove, or its
+          folder deleted).
+        attributes:
+          eventType: system
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 70
+    removedAt: 659
+    change:
+      type: add
+      elementId: application.applicationfunction.migrate-farm-manifest
+      layerName: application
+      after:
+        id: a015c690-5c98-4c3c-a65c-6e0ad4849857
+        path: application.applicationfunction.migrate-farm-manifest
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: migrateFarmManifest
+        description: dr-farm-v1 to dr-farm-v2. It groups entries by repository (git
+          common dir); the entry whose source is the main checkout names the
+          project, else the main checkout's folder name does. The other entries'
+          paths become checkouts, and their names are dropped, never kept as
+          aliases (maintainer answer, 2026-11-21). branch is dropped.
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:43:54.039Z
+    rewritten: true
+  - sequence: 71
+    removedAt: 660
+    change:
+      type: add
+      elementId: application.applicationservice.farm-migrate-command
+      layerName: application
+      after:
+        id: eb0daade-a3db-462a-94d0-f85ac14a2f7f
+        path: application.applicationservice.farm-migrate-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: farmMigrateCommand
+        description: "dr farm migrate [--apply]: previews the dr-farm-v2 migration of
+          the user farm, and writes it with --apply."
+        attributes:
+          serviceType: batch
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 54
+    removedAt: 661
+    change:
+      type: add
+      elementId: application.applicationcomponent.checkout-context
+      layerName: application
+      after:
+        id: eccd5d73-c68b-4986-bee1-b9efdb475048
+        path: application.applicationcomponent.checkout-context
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: CheckoutContext
+        description: "Everything the central process holds for one checkout: its Model,
+          StagingAreaManager, AnnotationStore, StagedChangesetStorage, file
+          watcher, websocket subscribers and DrBot conversations. Created by the
+          pool, never shared between checkouts."
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 55
+    removedAt: 662
+    change:
+      type: add
+      elementId: application.applicationcomponent.checkout-context-pool
+      layerName: application
+      after:
+        id: 9e17e91b-bf58-4720-99ef-7cd5d53625c8
+        path: application.applicationcomponent.checkout-context-pool
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: CheckoutContextPool
+        description: Loads a CheckoutContext on first use and evicts it when idle or
+          when the pool is full (least recently used first); never evicts a
+          context with a websocket subscriber or a running DrBot turn.
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+        accepted_gaps:
+          - direction: outgoing
+            predicate: accesses
+            other_spec_node_id: application.dataobject
+            reason: The pool holds CheckoutContext components and reads ContextPoolSettings
+              (an object schema); the domain objects (Model, Changeset) are
+              reached through each CheckoutContext.
+            decided_by: agent
+            decided_at: 2026-11-21T17:16:38.299Z
+            changeset: changeset-1795281066041-0kg0ygyyb
+      timestamp: 2026-11-21T17:16:38.334Z
+    rewritten: true
+  - sequence: 56
+    removedAt: 663
+    change:
+      type: add
+      elementId: application.applicationfunction.acquire-checkout-context
+      layerName: application
+      after:
+        id: f7ca5d48-c82f-41d5-b3c2-ee03d2431dda
+        path: application.applicationfunction.acquire-checkout-context
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: acquireCheckoutContext
+        description: The CheckoutContext for a CheckoutRef, loading its model lazily;
+          refuses a checkout the registry does not list.
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 57
+    removedAt: 664
+    change:
+      type: add
+      elementId: application.applicationfunction.evict-checkout-contexts
+      layerName: application
+      after:
+        id: 014dba1d-2ee7-4b06-bb99-143330c40ca7
+        path: application.applicationfunction.evict-checkout-contexts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: evictCheckoutContexts
+        description: "Closes idle contexts and the least recently used one past
+          maxLoaded: stops the watcher, drops the model, keeps nothing on disk."
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 58
+    removedAt: 665
+    change:
+      type: add
+      elementId: application.applicationfunction.close-checkout-context
+      layerName: application
+      after:
+        id: 7c3e9b0a-a416-42a0-8dbe-41d3fba1fbba
+        path: application.applicationfunction.close-checkout-context
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: closeCheckoutContext
+        description: "Closes a removed checkout's context: ends its DrBot turns, tells
+          its subscribers the checkout is gone, drops it from the pool."
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 36
+    removedAt: 666
+    change:
+      type: add
+      elementId: data-model.objectschema.context-pool-settings
+      layerName: data-model
+      after:
+        id: 83013eb1-7486-4e08-a64c-20dd9fd43e42
+        path: data-model.objectschema.context-pool-settings
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ContextPoolSettings
+        description: "Limits of the checkout context pool: maxLoaded (default 4),
+          idleMinutes (default 30); DR_SERVER_MAX_LOADED and
+          DR_SERVER_IDLE_MINUTES override them."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 29
+    removedAt: 667
+    change:
+      type: add
+      elementId: data-model.objectschema.repository
+      layerName: data-model
+      after:
+        id: 39d18cbf-eca9-4da2-b107-45783a7b2458
+        path: data-model.objectschema.repository
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: Repository
+        description: "A git repository a project lives in, identified by the real path
+          of its common git directory (git rev-parse --git-common-dir):
+          commonDir, mainCheckout (the main worktree's path), remote (origin's
+          URL when it has one). Derived from git, not stored."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.888Z
+          updated_at: 2026-11-21T17:14:10.888Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 30
+    removedAt: 668
+    change:
+      type: add
+      elementId: data-model.objectschema.checkout
+      layerName: data-model
+      after:
+        id: 6a30e209-439a-4516-a5ff-5c487a19da87
+        path: data-model.objectschema.checkout
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: Checkout
+        description: "One working tree of a project's repository: key (\"main\" for the
+          main checkout, else the name git gives the linked worktree under
+          <commonDir>/worktrees/<name>), path (real path), branch (or null when
+          detached), head, isMain, state (present, missing, prunable), locked.
+          Discovered from git worktree list --porcelain, never stored."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 31
+    removedAt: 669
+    change:
+      type: add
+      elementId: data-model.objectschema.checkout-ref
+      layerName: data-model
+      after:
+        id: d76626b1-f519-4255-bc92-fa469b0667a7
+        path: data-model.objectschema.checkout-ref
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CheckoutRef
+        description: 'The address of a checkout: {project, checkout}. Every scoped API
+          route, deep link, websocket subscription, DrBot session and MCP result
+          carries it; checkout defaults to "main".'
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 32
+    removedAt: 670
+    change:
+      type: add
+      elementId: data-model.objectschema.project-list-entry
+      layerName: data-model
+      after:
+        id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+        path: data-model.objectschema.project-list-entry
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ProjectListEntry
+        description: "What project_list, GET /api/projects and dr farm list return for a
+          project: name, repository, model path, and its checkouts with branch,
+          head, state, active changeset and staged changeset count."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 33
+    removedAt: 671
+    change:
+      type: add
+      elementId: data-model.objectschema.server-record
+      layerName: data-model
+      after:
+        id: 1e218e2c-98b9-4608-aef6-c08d7a6bef0b
+        path: data-model.objectschema.server-record
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ServerRecord
+        description: "The record of the central DR process serving one farm: farm root,
+          pid, port, cliVersion, startedAt and launcher pid, with the path of
+          the token file (the token is in a 0600 file beside it). Kept at
+          servers/<farm-hash>.json in the user state directory: one record for
+          the user farm, and one for each folder farm a process was started in."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:43:52.060Z
+    rewritten: true
+  - sequence: 34
+    removedAt: 672
+    change:
+      type: add
+      elementId: data-model.objectschema.viewer-link
+      layerName: data-model
+      after:
+        id: 4e412e4c-4339-487f-b011-d2aac9abfe3d
+        path: data-model.objectschema.viewer-link
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: ViewerLink
+        description: "A deep link into the shared viewer: url, project, checkout, and
+          optionally changeset and element. The token travels in the URL
+          fragment, never in the query string. Built from the server record,
+          never by starting a process."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:43:53.191Z
+    rewritten: true
+  - sequence: 41
+    removedAt: 673
+    change:
+      type: add
+      elementId: data-store.collection.server-record
+      layerName: data-store
+      after:
+        id: 59ed0dfb-e609-475e-8679-201bd3346c41
+        path: data-store.collection.server-record
+        spec_node_id: data-store.collection
+        type: collection
+        layer_id: data-store
+        name: Server record
+        description: "servers/<farm-hash>.json and <farm-hash>.token (0600) in the user
+          state directory: one central process per farm, so normally just the
+          user farm's."
+        metadata:
+          created_at: 2026-11-21T17:14:10.902Z
+          updated_at: 2026-11-21T17:14:10.902Z
+          version: 1
+      timestamp: 2026-11-21T17:43:52.422Z
     rewritten: true
