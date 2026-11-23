@@ -120,7 +120,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     const manifest = FarmManifest.create("Test Farm");
     manifest.addProject("test-service", {
       name: "test-service",
-      source: "test-service",
+      repository: "test-service",
       model: "test-service-model",
     });
     await manifest.save(farmYamlPath);
@@ -245,7 +245,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     manifest.addProject("test-project", {
       name: "test-project",
-      source: "test-source",
+      repository: "test-source",
       model: "models/test-model",
     });
     await manifest.save(farmYamlPath);
@@ -287,7 +287,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
     // Try to add a project with a path traversal model reference
     manifest.addProject("evil-project", {
       name: "evil-project",
-      source: "evil-source",
+      repository: "evil-source",
       model: `../parent-${Date.now()}/target`, // Path traversal attempt
     });
     await manifest.save(farmYamlPath);
@@ -341,7 +341,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     manifest.addProject("symlink-project", {
       name: "symlink-project",
-      source: "symlink-source",
+      repository: "symlink-source",
       model: "models/malicious-link",
     });
     await manifest.save(farmYamlPath);
@@ -474,7 +474,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
       const reloaded = await FarmManifest.load(farmYamlPath);
       const project = reloaded.getProject("sibling-service");
       expect(project).toBeDefined();
-      expect(project!.source).toBe(`../${siblingName}`);
+      expect(project!.repository).toBe(`../${siblingName}`);
 
       // The model folder is still created inside the farm root
       expect(await fileExists(path.join(farmDir, "sibling-service-model"))).toBe(true);
@@ -514,7 +514,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
       const manifest = FarmManifest.create("Test Farm");
       manifest.addProject("gone-service", {
         name: "gone-service",
-        source: "gone-service",
+        repository: "gone-service",
         model: "gone-service-model",
       });
       await manifest.save(farmYamlPath);
@@ -550,7 +550,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
       const manifest = FarmManifest.create("Test Farm");
       manifest.addProject("fresh-service", {
         name: "fresh-service",
-        source: "fresh-service",
+        repository: "fresh-service",
         model: "fresh-service-model",
       });
       await manifest.save(farmYamlPath);
@@ -589,7 +589,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
       const manifest = FarmManifest.create("Test Farm");
       manifest.addProject("old-service", {
         name: "old-service",
-        source: "old-service",
+        repository: "old-service",
         model: "old-service-model",
       });
       await manifest.save(farmYamlPath);
@@ -657,7 +657,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
       await model.saveLayer("application");
 
       const manifest = FarmManifest.create("Test Farm");
-      manifest.addProject("test-project", { name: "test-project", source: "codebase", model: "model" });
+      manifest.addProject("test-project", { name: "test-project", repository: "codebase", model: "model" });
       await manifest.save(farmYamlPath);
 
       // Baseline sync, then change the referenced file so the next sync stages a change
@@ -689,7 +689,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
     it("farm sync --output with a non-.json extension fails before syncing", async () => {
       const manifest = FarmManifest.create("Test Farm");
-      manifest.addProject("svc", { name: "svc", source: "svc", model: "svc-model" });
+      manifest.addProject("svc", { name: "svc", repository: "svc", model: "svc-model" });
       await manifest.save(farmYamlPath);
       await createGitRepo(path.join(farmDir, "svc"));
       const { Model } = await import("../../src/core/model.js");
@@ -810,7 +810,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
 
       // farm.yaml points at the adopted model; no duplicate was created
       const project = (await FarmManifest.load(farmYamlPath)).getProject("heimdall")!;
-      expect(project.source).toBe(`../${siblingName}`);
+      expect(project.repository).toBe(`../${siblingName}`);
       expect(project.model).toBe(`../${siblingName}/documentation-robotics/model`);
       expect(await fileExists(path.join(farmDir, "heimdall-model"))).toBe(false);
       expect(await fileExists(path.join(siblingDir, "documentation-robotics", "model", "manifest.yaml"))).toBe(true);

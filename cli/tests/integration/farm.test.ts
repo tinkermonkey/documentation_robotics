@@ -55,14 +55,14 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
       remote: "https://github.com/org/service-a.git",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "services/service-b",
+      repository: "services/service-b",
       model: "service-b-model",
     });
 
@@ -76,7 +76,7 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
@@ -101,13 +101,13 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "services/service-b",
+      repository: "services/service-b",
       model: "service-b-model",
     });
 
@@ -126,14 +126,14 @@ describe("FarmManifest", () => {
 
     manifest.addProject("api-service", {
       name: "api-service",
-      source: "services/api",
+      repository: "services/api",
       model: "api-service-model",
       remote: "https://github.com/org/api-service.git",
     });
 
     manifest.addProject("web-service", {
       name: "web-service",
-      source: "services/web",
+      repository: "services/web",
       model: "web-service-model",
       remote: "https://github.com/org/web-service.git",
     });
@@ -150,7 +150,7 @@ describe("FarmManifest", () => {
 
     const apiService = loaded.getProject("api-service");
     expect(apiService).toBeDefined();
-    expect(apiService?.source).toBe("services/api");
+    expect(apiService?.repository).toBe("services/api");
     expect(apiService?.model).toBe("api-service-model");
     expect(apiService?.remote).toBe("https://github.com/org/api-service.git");
   });
@@ -164,7 +164,7 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
@@ -176,7 +176,7 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
@@ -193,7 +193,7 @@ describe("FarmManifest", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
       remote: "https://github.com/org/service-a.git",
     });
@@ -202,7 +202,7 @@ describe("FarmManifest", () => {
 
     expect(json.name).toBe("Test Farm");
     expect(json.projects.hasOwnProperty("service-a")).toBe(true);
-    expect(json.projects["service-a"].source).toBe("services/service-a");
+    expect(json.projects["service-a"].repository).toBe("services/service-a");
   });
 
   it("should handle farm with optional fields", async () => {
@@ -261,7 +261,7 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
@@ -273,7 +273,7 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "services/service-b",
+      repository: "services/service-b",
       model: "service-b-model",
     });
 
@@ -301,7 +301,7 @@ describe("Farm integration with model paths", () => {
 
     manifest.addProject("auth-service", {
       name: "auth-service",
-      source: codebasePath,
+      repository: codebasePath,
       model: modelFolder,
     });
 
@@ -310,7 +310,7 @@ describe("Farm integration with model paths", () => {
     const loaded = await FarmManifest.load(farmYamlPath);
     const project = loaded.getProject("auth-service");
 
-    expect(project?.source).toBe(codebasePath);
+    expect(project?.repository).toBe(codebasePath);
     expect(project?.model).toBe(modelFolder);
   });
 });
@@ -359,13 +359,13 @@ project: service-b
     // Add projects to farm
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "service-a",
+      repository: "service-a",
       model: "service-a-model",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "service-b",
+      repository: "service-b",
       model: "service-b-model",
     });
 
@@ -396,7 +396,7 @@ project: service-a
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
@@ -429,7 +429,7 @@ project: ${service}
 
       manifest.addProject(service, {
         name: service,
-        source: service,
+        repository: service,
         model: `${service}-model`,
       });
     }
@@ -510,13 +510,13 @@ models:
     // Register projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "service-a",
+      repository: "service-a",
       model: "service-a", // Will use documentation-robotics/model path
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "service-b",
+      repository: "service-b",
       model: "service-b",
     });
 
@@ -593,13 +593,13 @@ models:
     // Register projects in farm
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "service-a",
+      repository: "service-a",
       model: "service-a",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "service-b",
+      repository: "service-b",
       model: "service-b",
     });
 
@@ -717,19 +717,19 @@ models:
     // Register all three projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "service-a",
+      repository: "service-a",
       model: "service-a",
     });
 
     manifest.addProject("service-b", {
       name: "service-b",
-      source: "service-b",
+      repository: "service-b",
       model: "service-b",
     });
 
     manifest.addProject("platform-view", {
       name: "platform-view",
-      source: "platform-view",
+      repository: "platform-view",
       model: "platform-view",
     });
 
@@ -951,13 +951,13 @@ models:
     // Register both projects in farm manifest
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "service-a",
+      repository: "service-a",
       model: "service-a",
     });
 
     manifest.addProject("platform-view", {
       name: "platform-view",
-      source: "platform-view",
+      repository: "platform-view",
       model: "platform-view",
     });
 
@@ -1062,7 +1062,7 @@ models:
     // Register platform-view project in farm manifest
     manifest.addProject("platform-view", {
       name: "platform-view",
-      source: "platform-view",
+      repository: "platform-view",
       model: "platform-view",
     });
 
@@ -1185,7 +1185,7 @@ projects:
     try {
       manifest.addProject("service-a", {
         name: "service-b", // Mismatch!
-        source: "services/service-b",
+        repository: "services/service-b",
         model: "service-b-model",
       });
       expect.fail("Should have thrown an error for name mismatch");
@@ -1223,14 +1223,15 @@ projects:
     const projectA = manifest.getProject("service-a");
     expect(projectA).toBeDefined();
     expect(projectA?.name).toBe("service-a");
-    expect(projectA?.source).toBe("services/service-a");
+    expect(projectA?.repository).toBe("services/service-a");
     expect(projectA?.model).toBe("service-a-model");
 
     const projectB = manifest.getProject("service-b");
     expect(projectB).toBeDefined();
     expect(projectB?.name).toBe("service-b");
     expect(projectB?.remote).toBe("https://github.com/org/service-b.git");
-    expect(projectB?.branch).toBe("main");
+    expect(manifest.legacyEntries?.get("service-b")?.branch).toBe("main");
+    expect(manifest.isLegacy()).toBe(true);
   });
 
   it("should allow addProject with matching name and project.name", async () => {
@@ -1238,7 +1239,7 @@ projects:
 
     manifest.addProject("service-a", {
       name: "service-a",
-      source: "services/service-a",
+      repository: "services/service-a",
       model: "service-a-model",
     });
 
