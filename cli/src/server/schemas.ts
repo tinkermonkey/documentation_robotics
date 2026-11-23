@@ -693,6 +693,80 @@ export const Tier1StatusResponseSchema = z.object({
   note: z.string().describe('How a person changes Tier 1 (dr analyzer tier1 ...; nothing over this API) and what the spend counts'),
 }).openapi('Tier1Status');
 
+// GET /api/changesets/:id/verification: changeset_verify's report, for a viewer to draw.
+const VerifyRelationshipSchema = z.object({
+  source: z.string().describe('Source element id'),
+  predicate: z.string(),
+  target: z.string().describe('Target element id'),
+});
+const FieldDifferenceSchema = z.object({
+  field: z.string(),
+  planned: z.unknown(),
+  built: z.unknown(),
+});
+const PlannedOpSchema = z.enum(['add', 'update', 'delete'] as const);
+const ElementMatchSchema = z.object({
+  planned: z.string().describe('The planned element id'),
+  built: z.string().describe('The as-built element id it matched'),
+  op: PlannedOpSchema,
+  match: z.enum(['exact', 'probable'] as const),
+  reason: z.string().optional(),
+}).passthrough();
+const VerificationCountsSchema = z.object({
+  planned: z.number().int(),
+  matched: z.number().int(),
+  probable: z.number().int(),
+  missing: z.number().int(),
+  divergent: z.number().int(),
+  unplanned: z.number().int(),
+  deletionsNotDone: z.number().int(),
+  unverifiable: z.number().int(),
+}).passthrough();
+
+export const ChangesetVerificationSchema = z.object({
+  plannedChangeset: z.object({ id: z.string(), name: z.string() }).describe('The plan'),
+  asBuiltChangeset: z.object({ id: z.string(), name: z.string() }).describe('The changeset it was compared with'),
+  planned: z.object({ label: z.string(), elements: z.number().int(), relationships: z.number().int() }),
+  against: z.object({ label: z.string(), kind: z.enum(['changeset', 'base', 'snapshot'] as const) }),
+  verdict: z.enum(['match', 'probable-match', 'diverges', 'incomplete', 'unverifiable', 'empty-plan'] as const),
+  verdictText: z.string().describe('The verdict as a sentence for a person'),
+  summary: z.object({ elements: VerificationCountsSchema, relationships: VerificationCountsSchema }),
+  elements: z.object({
+    matched: z.array(ElementMatchSchema).describe('Built as planned (match exact) or probably (match probable)'),
+    divergent: z.array(ElementMatchSchema.extend({ fields: z.array(FieldDifferenceSchema) })),
+    missing: z.array(z.object({
+      planned: z.string(), layer: z.string(), type: z.string(), name: z.string(), op: PlannedOpSchema, reason: z.string(),
+    }).passthrough()).describe('Planned, not found in the build'),
+    unverifiable: z.array(z.object({
+      planned: z.string(), layer: z.string(), type: z.string(), name: z.string(), op: PlannedOpSchema, reason: z.string(),
+    }).passthrough()).describe('Planned, but extraction cannot see this kind of element: not checked'),
+    unplanned: z.array(z.object({
+      id: z.string(), layer: z.string(), type: z.string(), name: z.string(),
+      change: z.enum(['added', 'updated', 'deleted', 'present'] as const),
+    }).passthrough()).describe('Built, not in the plan'),
+    deletionsNotDone: z.array(z.object({ planned: z.string(), built: z.string() }).passthrough()),
+  }),
+  relationships: z.object({
+    matched: z.array(z.object({
+      planned: VerifyRelationshipSchema, built: VerifyRelationshipSchema, op: z.enum(['add', 'delete'] as const),
+      match: z.enum(['exact', 'probable'] as const), reason: z.string().optional(),
+    }).passthrough()),
+    divergent: z.array(z.object({
+      planned: VerifyRelationshipSchema, built: VerifyRelationshipSchema, fields: z.array(FieldDifferenceSchema),
+    }).passthrough()),
+    missing: z.array(z.object({ planned: VerifyRelationshipSchema, reason: z.string() }).passthrough()),
+    unverifiable: z.array(z.object({
+      planned: VerifyRelationshipSchema, op: z.enum(['add', 'delete'] as const), reason: z.string(),
+    }).passthrough()),
+    unplanned: z.array(VerifyRelationshipSchema.extend({
+      change: z.enum(['added', 'deleted', 'present'] as const),
+    }).passthrough()),
+    deletionsNotDone: z.array(z.object({ planned: VerifyRelationshipSchema, built: VerifyRelationshipSchema }).passthrough()),
+  }),
+  warning: z.string().optional().describe('Set when the comparison says little about the code'),
+  notes: z.array(z.string()),
+}).passthrough();
+
 // Type inference from input schemas
 export type AnnotationCreate = z.infer<typeof AnnotationCreateSchema>;
 export type AnnotationUpdate = z.infer<typeof AnnotationUpdateSchema>;

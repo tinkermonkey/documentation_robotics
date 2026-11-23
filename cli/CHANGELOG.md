@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`GET /api/changesets/:id/verification?against=<as-built id>`** on `dr visualize`: a plan compared
+  with an as-built changeset, the same report `changeset_verify` gives (matched, probable, divergent,
+  missing, unverifiable and unplanned elements and relationships, by element id), plus the as-built
+  changeset's id and name. Read-only. The viewer draws it on its C4 diagrams.
+
 ### Changed
 
 - **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
