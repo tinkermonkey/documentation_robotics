@@ -65,7 +65,13 @@ IS this a deployed, executable unit (container, microservice, SPA app shell, mod
   → ApplicationComponent (type: generic/internal/external)
 
 IS this a React component, UI widget, or view?
-  → ApplicationComponent (type: generic) — link to ux.component.* for UI detail
+  → NOT an application element: model it once in the ux layer (ux.librarycomponent,
+    ux.view or ux.librarysubview). The application or package that ships it is the
+    ApplicationComponent.
+
+IS this a library package's public entry point (index file, exports map)?
+  → ApplicationInterface the package's ApplicationComponent provides, assigned to one
+    ApplicationService per exported function or hook. NOT api.operation (HTTP only).
 
 IS this a Zustand store, Redux slice, or other state container?
   → DataObject when its actions only set, derive from or reset its own state (a domain
@@ -137,18 +143,19 @@ IS this a collection of components that together form a subsystem
 
 Explicit DO NOT rules with rationale:
 
-| Misclassification                            | Correct Classification                                                                               | Why                                                                                                                                                                          |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Zustand store as `ApplicationService`        | `DataObject` (state plus the rules for changing it)                                                  | A store is one value that components read and change, not a contract that classes implement; its state-and-actions interface is a `data-model.objectschema` that realizes it |
-| Zustand store as `ApplicationFunction`       | `DataObject`, or `ApplicationComponent` when its actions call services or do I/O                     | A store is state that is held, with rules over that state; an `ApplicationFunction` is behavior a component performs                                                         |
-| WebSocket client as `ApplicationService`     | `ApplicationInterface` (protocol: WebSocket)                                                         | A WebSocket connection is an interface/access point, not a service                                                                                                           |
-| Layout algorithm as `ApplicationService`     | `ApplicationFunction`                                                                                | Stateless algorithm = function, not a service with a contract                                                                                                                |
-| Layout engine CLASS as `ApplicationFunction` | `ApplicationComponent` (type: internal)                                                              | A class implementing an interface IS a deployable, replaceable module — not a stateless function                                                                             |
-| Export function as `ApplicationService`      | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                                                                                  |
-| React UI component as `ApplicationService`   | `ApplicationComponent` (type: generic) with UX cross-reference                                       | UI components are components; link to UX layer for rendering details                                                                                                         |
-| Fetch interceptor / auth header injector     | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                                                                             |
-| Interface, DTO or record as `DataObject`     | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is a domain object, or untyped data                                                                         |
-| Protocol message as `ApplicationEvent`       | `Message` (messageType: command, request, reply or document)                                         | A message is sent to a receiver expected to act on it; an event announces what happened to whoever subscribes                                                                |
+| Misclassification                                                    | Correct Classification                                                                               | Why                                                                                                                                                                          |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zustand store as `ApplicationService`                                | `DataObject` (state plus the rules for changing it)                                                  | A store is one value that components read and change, not a contract that classes implement; its state-and-actions interface is a `data-model.objectschema` that realizes it |
+| Zustand store as `ApplicationFunction`                               | `DataObject`, or `ApplicationComponent` when its actions call services or do I/O                     | A store is state that is held, with rules over that state; an `ApplicationFunction` is behavior a component performs                                                         |
+| WebSocket client as `ApplicationService`                             | `ApplicationInterface` (protocol: WebSocket)                                                         | A WebSocket connection is an interface/access point, not a service                                                                                                           |
+| Layout algorithm as `ApplicationService`                             | `ApplicationFunction`                                                                                | Stateless algorithm = function, not a service with a contract                                                                                                                |
+| Layout engine CLASS as `ApplicationFunction`                         | `ApplicationComponent` (type: internal)                                                              | A class implementing an interface IS a deployable, replaceable module — not a stateless function                                                                             |
+| Export function as `ApplicationService`                              | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                                                                                  |
+| React UI component as `ApplicationService` or `ApplicationComponent` | `ux.librarycomponent` (or `ux.view` for a routable page)                                             | A UI component is modelled once, in the ux layer; the application or package that ships it is the application component                                                      |
+| Library export as `api.operation`                                    | `ApplicationService` behind the package's `ApplicationInterface`                                     | An API operation always has an HTTP method and a path                                                                                                                        |
+| Fetch interceptor / auth header injector                             | `ApplicationFunction`                                                                                | Stateless function that wraps fetch — NOT a service; cross-reference `security.securitypolicy.*`                                                                             |
+| Interface, DTO or record as `DataObject`                             | `data-model.objectschema`                                                                            | A declaration that only states a shape is a schema; a DataObject is a domain object, or untyped data                                                                         |
+| Protocol message as `ApplicationEvent`                               | `Message` (messageType: command, request, reply or document)                                         | A message is sent to a receiver expected to act on it; an event announces what happened to whoever subscribes                                                                |
 
 ---
 
@@ -220,6 +227,8 @@ Explicit DO NOT rules with rationale:
 | ApplicationService     | realizes       | `motivation.goal`               | "User Management API" realizes "Improve User Experience"                                                                             |
 | ApplicationService     | delivers       | `motivation.value`              | "Instant Checkout" delivers "Convenience"                                                                                            |
 | ApplicationFunction    | satisfies      | `motivation.requirement`        | "Token Validation" satisfies "Sessions Expire After 30 Min"                                                                          |
+| ApplicationProcess     | satisfies      | `motivation.requirement`        | "Layout Pipeline" satisfies "Layout never blocks the first paint"                                                                    |
+| ApplicationComponent   | satisfies      | `motivation.requirement`        | "Session Cache" satisfies "Tenants never see each other's data"                                                                      |
 | ApplicationService     | realizes       | `product.softwarecapability`    | "Search Service" realizes "Product Discovery"                                                                                        |
 | ApplicationService     | realizes       | `product.feature`               | "Graph Layout Service" realizes "Interactive Graph View"                                                                             |
 | ApplicationService     | requires       | `security.authenticationconfig` | "Order API" requires "OAuth2 JWT Auth"                                                                                               |
@@ -764,9 +773,9 @@ export function GraphViewer({ nodes, edges }: GraphViewerProps) {
 }
 ```
 
-→ `ApplicationComponent` (type: generic)
-→ Cross-reference: `technology.systemsoftware.react` serves this component (a `technology.systemsoftware` → `serves` → `ApplicationComponent` relationship)
-→ Also add `ux.component.graph-viewer` in the UX layer for rendering detail
+→ `ux.librarycomponent.graph-viewer` in the UX layer (a routable page is a `ux.view`); NOT also an `ApplicationComponent`
+→ It `depends-on` `technology.systemsoftware.react`
+→ The SPA or package that ships it is the `ApplicationComponent`
 
 ### Pattern: Zustand Store
 

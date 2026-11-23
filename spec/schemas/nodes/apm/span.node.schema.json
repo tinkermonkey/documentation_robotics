@@ -76,18 +76,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "traceId",
-        "spanId",
-        "traceState",
-        "parentSpanId",
-        "spanKind",
-        "startTimeUnixNano",
-        "endTimeUnixNano",
-        "droppedAttributesCount",
-        "droppedEventsCount",
-        "droppedLinksCount"
-      ],
+      "required": ["spanKind"],
       "additionalProperties": false
     }
   },

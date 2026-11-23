@@ -1,0 +1,121 @@
+{
+  "backend": "context-studio",
+  "record": "cs-3e1e77bf-0281-4aa7-9aef-1d980727654a",
+  "select": {
+    "proposal_id": "3e1e77bf-0281-4aa7-9aef-1d980727654a",
+    "title": "Heimdall review pilot: spec gaps S2–S6, S9"
+  },
+  "applied_at": "2026-11-22T14:42:22.964Z",
+  "counts": {
+    "rename": 0,
+    "create": 10,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.artifact.satisfies.motivation.requirement",
+      "to": "technology.artifact.satisfies.motivation.requirement",
+      "p": 0.75,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 2 (create)",
+      "file_written": "spec/schemas/relationships/technology/artifact.satisfies.requirement.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.technologyfunction.satisfies.motivation.requirement",
+      "to": "technology.technologyfunction.satisfies.motivation.requirement",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 3 (create)",
+      "file_written": "spec/schemas/relationships/technology/technologyfunction.satisfies.requirement.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.technologyprocess.satisfies.motivation.requirement",
+      "to": "technology.technologyprocess.satisfies.motivation.requirement",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 4 (create)",
+      "file_written": "spec/schemas/relationships/technology/technologyprocess.satisfies.requirement.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationprocess.satisfies.motivation.requirement",
+      "to": "application.applicationprocess.satisfies.motivation.requirement",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 5 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationprocess.satisfies.requirement.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.technologyprocess.composes.technology.technologyfunction",
+      "to": "technology.technologyprocess.composes.technology.technologyfunction",
+      "p": 0.65,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 6 (create)",
+      "file_written": "spec/schemas/relationships/technology/technologyprocess.composes.technologyfunction.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.technologyprocess.realizes.security.countermeasure",
+      "to": "technology.technologyprocess.realizes.security.countermeasure",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 7 (create)",
+      "file_written": "spec/schemas/relationships/technology/technologyprocess.realizes.countermeasure.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "ux.uxlibrary.aggregates.ux.statepattern",
+      "to": "ux.uxlibrary.aggregates.ux.statepattern",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 8 (create)",
+      "file_written": "spec/schemas/relationships/ux/uxlibrary.aggregates.statepattern.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "ux.librarycomponent.realizes.product.feature",
+      "to": "ux.librarycomponent.realizes.product.feature",
+      "p": 0.6,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 9 (create)",
+      "file_written": "spec/schemas/relationships/ux/librarycomponent.realizes.feature.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.node.assigned-to.technology.technologyprocess",
+      "to": "technology.node.assigned-to.technology.technologyprocess",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 10 (create)",
+      "file_written": "spec/schemas/relationships/technology/node.assigned-to.technologyprocess.relationship.schema.json"
+    },
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "ux.uxlibrary.aggregates.ux.designtoken",
+      "to": "ux.uxlibrary.aggregates.ux.designtoken",
+      "p": 0.6,
+      "claims": [],
+      "note": "Context Studio proposal 3e1e77bf-0281-4aa7-9aef-1d980727654a seq 12 (create)",
+      "file_written": "spec/schemas/relationships/ux/uxlibrary.aggregates.designtoken.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "0cedaa2f",
+    "spec_version": "0.14.0"
+  }
+}

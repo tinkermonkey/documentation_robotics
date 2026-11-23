@@ -4,7 +4,7 @@
     "id": "ux",
     "number": 10,
     "name": "UX Layer",
-    "description": "Models the user interface: views and screens, library components and their application-specific instances, forms, action and state patterns, component properties and the visual hierarchy they compose (HTML 5.3 vocabulary with component-library conventions). Rendered components, templates and view classes are evidence for elements here; the logic they call belongs to the application layer and the paths that reach them to the navigation layer. Modelling rules: placement is composition. A view composes its sub-views, component instances and action components; a sub-view or library sub-view composes its instances; an instance composes its nested instances, action components, slot references, chart series and table columns, and a menu composes its entries. A UX library aggregates its library components and sub-views, and a library component composes the components and slot references it is built from; an instance or placed sub-view realizes the library definition it places, and a slot reference references the component that fills it. Elements apply their layout configuration; state transitions, state patterns and action patterns use transition templates, which describe motion only. A state pattern aggregates its states; a state composes its outgoing transitions, a transition flows to its destination state, states and transitions trigger state actions, and a state action realizes its template. An action pattern governs the action components it is applied to. A view, sub-view, component instance or action component binds to its data configuration, which maps to the API or data-model data it reads; chart series and table columns bind through their component. Elements use their error configuration. A view realizes the application interface it presents and the product feature it delivers, and the application service that provides what it shows serves it; an action component triggers the API operation or application behaviour it starts. UX does not access stores, operations or services directly, and reaches the business layer through the application interfaces and features it realizes: a view serves the business role it is for and references the business object it shows. A view supports the goals and outcomes it contributes to, and UX elements satisfy requirements and principles.",
+    "description": "Models the user interface: views and screens, library components and their application-specific instances, forms, action and state patterns, component properties and the visual hierarchy they compose (HTML 5.3 vocabulary with component-library conventions). Rendered components, templates and view classes are evidence for elements here; the logic they call belongs to the application layer and the paths that reach them to the navigation layer. Modelling rules: placement is composition. A view composes its sub-views, component instances and action components; a sub-view or library sub-view composes its instances; an instance composes its nested instances, action components, slot references, chart series and table columns, and a menu composes its entries. A UX library aggregates its library components, sub-views, state patterns and design tokens, and a library component composes the components and slot references it is built from; an instance or placed sub-view realizes the library definition it places, and a slot reference references the component that fills it. Elements apply their layout configuration; state transitions, state patterns and action patterns use transition templates, which describe motion only. A state pattern aggregates its states; a state composes its outgoing transitions, a transition flows to its destination state, states and transitions trigger state actions, and a state action realizes its template. An action pattern governs the action components it is applied to. A view, sub-view, component instance or action component binds to its data configuration, which maps to the API or data-model data it reads; chart series and table columns bind through their component. Elements use their error configuration. A view realizes the application interface it presents and the product feature it delivers, and the application service that provides what it shows serves it; in a component library, which has no views, a library component realizes the feature it delivers. An action component triggers the API operation or application behaviour it starts. UX does not access stores, operations or services directly, and reaches the business layer through the application interfaces and features it realizes: a view serves the business role it is for and references the business object it shows. A view supports the goals and outcomes it contributes to, and UX elements satisfy requirements and principles.",
     "inspired_by": {
       "standard": "HTML 5.3",
       "version": "5.3",
@@ -17,6 +17,7 @@
       "ux.componentinstance",
       "ux.componentreference",
       "ux.dataconfig",
+      "ux.designtoken",
       "ux.errorconfig",
       "ux.experiencestate",
       "ux.layoutconfig",
@@ -457,6 +458,43 @@
       },
       "$id": "urn:dr:spec:node:ux.dataconfig"
     },
+    "designtoken": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DesignToken",
+      "description": "A named design decision (a colour, spacing step, font size, radius, duration or shadow) that a UX library or application exposes as a single value its components read, so the look can be themed without changing component code. Tokens are usually published as CSS custom properties, a token JSON file or a theme object. Use StatePattern instead when the element is a reusable behaviour or state shape (light and dark mode as a state a component switches between) rather than a value. Use LayoutConfig instead when the element is a layout arrangement of a view rather than a named value. Individual tokens are elements only when a maintainer names them; a token set is usually one element.",
+      "allOf": [
+        {
+          "$ref": "urn:dr:spec:base:spec-node"
+        }
+      ],
+      "properties": {
+        "spec_node_id": {
+          "const": "ux.designtoken"
+        },
+        "layer_id": {
+          "const": "ux"
+        },
+        "type": {
+          "const": "designtoken"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "x-dr-standard": "W3C Design Tokens Community Group format",
+      "x-dr-evidence": [
+        "A stylesheet whose :root block declares CSS custom properties consumed by components, e.g. --hd-color-edge, --hd-space-2",
+        "A tokens.json or *.tokens.json file in the Design Tokens Community Group format",
+        "A theme object exported by a library and passed to a provider component"
+      ],
+      "x-dr-distinguish": {
+        "ux.statepattern": "the element is a reusable behaviour or state shape (light and dark mode as a state a component switches between) rather than a value",
+        "ux.layoutconfig": "the element is a layout arrangement of a view rather than a named value"
+      },
+      "$id": "urn:dr:spec:node:ux.designtoken"
+    },
     "errorconfig": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ErrorConfig",
@@ -757,7 +795,7 @@
     "librarycomponent": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LibraryComponent",
-      "description": "A reusable UI component definition that declares an accepted property schema, named content slots and emitted events independently of any particular screen, so it can be instantiated with different configuration in many views or UXSpecs. It is the component type, not a placed, configured occurrence of it. Use ComponentInstance instead when the symbol is a specific usage of a component inside a View, SubView or LibrarySubView with concrete prop values, such as a <DataTable columns={...}/> call site, rather than the component's definition. Use ActionComponent instead when the element is a single interactive trigger, such as a button, link, menu item or voice command, modelled for the action it fires rather than as a reusable component with its own props, slots and events. Use LibrarySubView instead when the reusable unit is an ordered arrangement of several component instances, such as a filter bar plus a table, rather than one component with its own prop schema. Use View instead when the component is a routable page, modal or screen reached via a navigation route rather than a building block embedded by other components or views.",
+      "description": "A reusable UI component definition that declares an accepted property schema, named content slots and emitted events independently of any particular screen, so it can be instantiated with different configuration in many views or UXSpecs. It is the component type, not a placed, configured occurrence of it. A component written in a front-end framework (React, Vue, Svelte, a web component) is a library component whether it ships in a design system, a component library or the application's own code, and it is not also modelled as an application ApplicationComponent. Use ComponentInstance instead when the symbol is a specific usage of a component inside a View, SubView or LibrarySubView with concrete prop values, such as a <DataTable columns={...}/> call site, rather than the component's definition. Use ActionComponent instead when the element is a single interactive trigger, such as a button, link, menu item or voice command, modelled for the action it fires rather than as a reusable component with its own props, slots and events. Use LibrarySubView instead when the reusable unit is an ordered arrangement of several component instances, such as a filter bar plus a table, rather than one component with its own prop schema. Use View instead when the component is a routable page, modal or screen reached via a navigation route rather than a building block embedded by other components or views.",
       "allOf": [
         {
           "$ref": "urn:dr:spec:base:spec-node"
@@ -2327,6 +2365,18 @@
       "required": false,
       "description": "The component needs the UI framework or runtime, such as React."
     },
+    "ux.librarycomponent.realizes.product.feature": {
+      "id": "ux.librarycomponent.realizes.product.feature",
+      "source_spec_node_id": "ux.librarycomponent",
+      "source_layer": "ux",
+      "destination_spec_node_id": "product.feature",
+      "destination_layer": "product",
+      "predicate": "realizes",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The library component delivers the product feature, as a view does in an application."
+    },
     "ux.librarycomponent.satisfies.motivation.principle": {
       "id": "ux.librarycomponent.satisfies.motivation.principle",
       "source_spec_node_id": "ux.librarycomponent",
@@ -2663,6 +2713,18 @@
       "required": false,
       "description": "The client delivers the user experience the spec describes."
     },
+    "ux.uxlibrary.aggregates.ux.designtoken": {
+      "id": "ux.uxlibrary.aggregates.ux.designtoken",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.designtoken",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The library publishes the design token for its components and consumers to use."
+    },
     "ux.uxlibrary.aggregates.ux.librarycomponent": {
       "id": "ux.uxlibrary.aggregates.ux.librarycomponent",
       "source_spec_node_id": "ux.uxlibrary",
@@ -2686,6 +2748,18 @@
       "strength": "medium",
       "required": false,
       "description": "The library publishes the reusable sub-view."
+    },
+    "ux.uxlibrary.aggregates.ux.statepattern": {
+      "id": "ux.uxlibrary.aggregates.ux.statepattern",
+      "source_spec_node_id": "ux.uxlibrary",
+      "source_layer": "ux",
+      "destination_spec_node_id": "ux.statepattern",
+      "destination_layer": "ux",
+      "predicate": "aggregates",
+      "cardinality": "many-to-many",
+      "strength": "medium",
+      "required": false,
+      "description": "The library provides the state pattern for its components to use, as it provides components and sub-views."
     },
     "ux.uxlibrary.uses.ux.uxlibrary": {
       "id": "ux.uxlibrary.uses.ux.uxlibrary",

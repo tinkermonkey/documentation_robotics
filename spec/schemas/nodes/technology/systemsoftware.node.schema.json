@@ -32,9 +32,13 @@
             "middleware",
             "dbms",
             "message-broker",
-            "cache"
+            "cache",
+            "language-runtime",
+            "web-browser",
+            "developer-tool",
+            "library"
           ],
-          "description": "Platform software category, per ArchiMate 3.2 SystemSoftware element."
+          "description": "Platform software category, per ArchiMate 3.2 SystemSoftware element. language-runtime: an execution environment for a programming language (Node.js, Bun, the JVM, CPython). web-browser: a browser engine that runs client-side code (Chrome, Firefox, Safari, or a headless browser in tests). developer-tool: a command-line or agent tool the system launches or depends on to do its work (git, a coding-agent CLI, a build tool), rather than middleware it runs on. library: a third-party library or framework the system is built on and that is versioned and configured as a platform dependency (React, Spring)."
         },
         "properties": {
           "type": "object",

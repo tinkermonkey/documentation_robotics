@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Objectschema references Objectschema",
+  "description": "The object schema refers to instances of another object schema through one or more of its properties (by id, by $ref or by embedding a list of them), recorded at the grain of the whole schema when the properties themselves are not modelled. Use schemaproperty references objectschema instead when the referring property is modelled.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "data-model.objectschema.references.data-model.objectschema"
+    },
+    "source_spec_node_id": {
+      "const": "data-model.objectschema"
+    },
+    "source_layer": {
+      "const": "data-model"
+    },
+    "destination_spec_node_id": {
+      "const": "data-model.objectschema"
+    },
+    "destination_layer": {
+      "const": "data-model"
+    },
+    "predicate": {
+      "const": "references"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "JSON Schema $ref between object definitions; a foreign-key-like id field naming another entity."
+  ]
+}

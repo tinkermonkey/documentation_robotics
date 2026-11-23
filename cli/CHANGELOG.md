@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
+  Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
+  values, optional per-instance APM attributes, and the library-API, UI-component and test-sketch
+  rulings.
+- **Layer skills:** a React component is a `ux.librarycomponent`, not an application component (the
+  application skill pointed at a nonexistent `ux.component`); a library's exports are application
+  services behind an application interface, not API operations; frameworks are `softwareType:
+library` and runtimes `language-runtime`, not `middleware`; one test case sketch per test function
+  is listed as a pitfall.
+
 ### Fixed
 
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to

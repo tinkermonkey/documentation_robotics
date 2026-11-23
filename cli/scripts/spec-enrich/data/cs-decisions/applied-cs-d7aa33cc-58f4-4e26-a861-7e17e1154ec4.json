@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-d7aa33cc-58f4-4e26-a861-7e17e1154ec4",
+  "select": {
+    "proposal_id": "d7aa33cc-58f4-4e26-a861-7e17e1154ec4",
+    "title": "Span and LogRecord: stop requiring the values of one recorded instance"
+  },
+  "applied_at": "2026-11-22T14:46:56.895Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "a022224fee43f9f12f0663cf6e59be2e2ce98fcf",
+    "spec_version": "0.14.0"
+  }
+}

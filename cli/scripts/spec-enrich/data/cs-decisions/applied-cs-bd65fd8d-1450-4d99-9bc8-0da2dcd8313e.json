@@ -1,0 +1,31 @@
+{
+  "backend": "context-studio",
+  "record": "cs-bd65fd8d-1450-4d99-9bc8-0da2dcd8313e",
+  "select": {
+    "proposal_id": "bd65fd8d-1450-4d99-9bc8-0da2dcd8313e",
+    "title": "Allow application.applicationcomponent satisfies motivation.requirement"
+  },
+  "applied_at": "2026-11-22T14:46:56.715Z",
+  "counts": {
+    "rename": 0,
+    "create": 1,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "application.applicationcomponent.satisfies.motivation.requirement",
+      "to": "application.applicationcomponent.satisfies.motivation.requirement",
+      "p": 0.7,
+      "claims": [],
+      "note": "Context Studio proposal bd65fd8d-1450-4d99-9bc8-0da2dcd8313e seq 1 (create)",
+      "file_written": "spec/schemas/relationships/application/applicationcomponent.satisfies.requirement.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "a022224fee43f9f12f0663cf6e59be2e2ce98fcf",
+    "spec_version": "0.14.0"
+  }
+}

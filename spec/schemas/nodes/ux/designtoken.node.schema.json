@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DesignToken",
+  "description": "A named design decision (a colour, spacing step, font size, radius, duration or shadow) that a UX library or application exposes as a single value its components read, so the look can be themed without changing component code. Tokens are usually published as CSS custom properties, a token JSON file or a theme object. Use StatePattern instead when the element is a reusable behaviour or state shape (light and dark mode as a state a component switches between) rather than a value. Use LayoutConfig instead when the element is a layout arrangement of a view rather than a named value. Individual tokens are elements only when a maintainer names them; a token set is usually one element.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node.schema.json"
+    }
+  ],
+  "properties": {
+    "spec_node_id": {
+      "const": "ux.designtoken"
+    },
+    "layer_id": {
+      "const": "ux"
+    },
+    "type": {
+      "const": "designtoken"
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  "x-dr-standard": "W3C Design Tokens Community Group format",
+  "x-dr-evidence": [
+    "A stylesheet whose :root block declares CSS custom properties consumed by components, e.g. --hd-color-edge, --hd-space-2",
+    "A tokens.json or *.tokens.json file in the Design Tokens Community Group format",
+    "A theme object exported by a library and passed to a provider component"
+  ],
+  "x-dr-distinguish": {
+    "ux.statepattern": "the element is a reusable behaviour or state shape (light and dark mode as a state a component switches between) rather than a value",
+    "ux.layoutconfig": "the element is a layout arrangement of a view rather than a named value"
+  }
+}

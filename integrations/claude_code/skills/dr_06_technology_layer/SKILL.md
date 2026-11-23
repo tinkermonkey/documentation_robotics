@@ -78,21 +78,21 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 > **CLI Introspection:** Run `dr schema types technology` for the authoritative, always-current list of node types.
 > Run `dr schema node <type-id>` for full attribute details on any type.
 
-| Entity Type                 | Description                                             | Key Attributes                                                                               |
-| --------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Node**                    | Computational or physical resource that hosts artifacts | Types: server, container, vm, kubernetes-cluster, serverless-function, database-cluster      |
-| **Device**                  | Physical IT resource with processing capability         | Types: server, workstation, mobile, iot-device, network-device, storage-appliance            |
-| **SystemSoftware**          | Software that provides platform for applications        | Types: operating-system, database, middleware, container-runtime, web-server, message-broker |
-| **TechnologyCollaboration** | Aggregate of nodes working together                     | Examples: HA Cluster, CDN Network, Service Mesh                                              |
-| **TechnologyInterface**     | Point of access where technology services are available | Protocols: HTTP, HTTPS, TCP, UDP, WebSocket, AMQP, MQTT, SQL, gRPC                           |
-| **Path**                    | Link between nodes through which they exchange          | Types: network, vpn, direct-connect, internet, peering                                       |
-| **CommunicationNetwork**    | Set of structures that connects nodes                   | Types: lan, wan, vpn, internet, cdn, service-mesh, zero-trust-network                        |
-| **TechnologyFunction**      | Collection of technology behavior                       | Examples: Load Balancing, Data Replication, Auto-scaling, Monitoring                         |
-| **TechnologyProcess**       | Sequence of technology behaviors (CI/CD, provisioning)  | Automation: ansible, terraform, kubernetes, cloudformation, pulumi                           |
-| **TechnologyInteraction**   | Unit of collective technology behavior                  | Examples: Database Replication, Cache Synchronization, Failover                              |
-| **TechnologyEvent**         | Technology state change                                 | Types: startup, shutdown, failure, scaling, maintenance, alert                               |
-| **TechnologyService**       | Externally visible unit of technology functionality     | Types: infrastructure, platform, storage, compute, network, database, messaging              |
-| **Artifact**                | Physical piece of data used or produced                 | Types: database, file, configuration, binary, log, backup, docker-image, helm-chart          |
+| Entity Type                 | Description                                             | Key Attributes                                                                                                                              |
+| --------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node**                    | Computational or physical resource that hosts artifacts | Types: server, container, vm, kubernetes-cluster, serverless-function, database-cluster                                                     |
+| **Device**                  | Physical IT resource with processing capability         | Types: server, workstation, mobile, iot-device, network-device, storage-appliance                                                           |
+| **SystemSoftware**          | Software that provides platform for applications        | Types: operating-system, container-runtime, language-runtime, web-browser, middleware, dbms, message-broker, cache, developer-tool, library |
+| **TechnologyCollaboration** | Aggregate of nodes working together                     | Examples: HA Cluster, CDN Network, Service Mesh                                                                                             |
+| **TechnologyInterface**     | Point of access where technology services are available | Protocols: HTTP, HTTPS, TCP, UDP, WebSocket, AMQP, MQTT, SQL, gRPC                                                                          |
+| **Path**                    | Link between nodes through which they exchange          | Types: network, vpn, direct-connect, internet, peering                                                                                      |
+| **CommunicationNetwork**    | Set of structures that connects nodes                   | Types: lan, wan, vpn, internet, cdn, service-mesh, zero-trust-network                                                                       |
+| **TechnologyFunction**      | Collection of technology behavior                       | Examples: Load Balancing, Data Replication, Auto-scaling, Monitoring                                                                        |
+| **TechnologyProcess**       | Sequence of technology behaviors (CI/CD, provisioning)  | Automation: ansible, terraform, kubernetes, cloudformation, pulumi                                                                          |
+| **TechnologyInteraction**   | Unit of collective technology behavior                  | Examples: Database Replication, Cache Synchronization, Failover                                                                             |
+| **TechnologyEvent**         | Technology state change                                 | Types: startup, shutdown, failure, scaling, maintenance, alert                                                                              |
+| **TechnologyService**       | Externally visible unit of technology functionality     | Types: infrastructure, platform, storage, compute, network, database, messaging                                                             |
+| **Artifact**                | Physical piece of data used or produced                 | Types: database, file, configuration, binary, log, backup, docker-image, helm-chart                                                         |
 
 ---
 
@@ -100,31 +100,32 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 Given what you see in the codebase, which spec type does it become?
 
-| What You See in the Codebase                         | Spec Type                 | Required Attribute                   | Example ID                                          |
-| ---------------------------------------------------- | ------------------------- | ------------------------------------ | --------------------------------------------------- |
-| Framework-grade npm library (see heuristic below)    | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.zustand`                 |
-| Utility npm library (see heuristic below)            | `artifact`                | `artifactType: library`              | `technology.artifact.jszip`                         |
-| JavaScript/CSS framework (`react`, `tailwindcss`)    | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.react`                   |
-| Language runtime (`node.js`, `python`, `bun`)        | `systemsoftware`          | `softwareType: middleware`           | `technology.systemsoftware.nodejs`                  |
-| Container runtime (`docker`)                         | `systemsoftware`          | `softwareType: container-runtime`    | `technology.systemsoftware.docker`                  |
-| Build tool / compiler (`vite`, `tsc`, `eslint`)      | `technologyprocess`       | —                                    | `technology.technologyprocess.vite`                 |
-| CI/CD pipeline or workflow                           | `technologyprocess`       | —                                    | `technology.technologyprocess.github-actions`       |
-| Hosted platform service (GitHub Pages, npm registry) | `technologyservice`       | `serviceType: compute` or `storage`  | `technology.technologyservice.github-pages`         |
-| Browser JavaScript runtime environment               | `node`                    | `nodeType: container`                | `technology.node.browser-runtime`                   |
-| Development server                                   | `node`                    | `nodeType: virtual-machine`          | `technology.node.dev-server`                        |
-| Backend server                                       | `node`                    | `nodeType: virtual-machine`          | `technology.node.dr-cli-server`                     |
-| Build output / distributable / npm package           | `artifact`                | `artifactType: archive` or `library` | `technology.artifact.dist-embedded`                 |
-| Network protocol / communication channel             | `communicationnetwork`    | `networkType: internet` or `lan`     | `technology.communicationnetwork.websocket-channel` |
-| HTTP/WebSocket port or endpoint (access point)       | `technologyinterface`     | `protocol: http/https/websocket`     | `technology.technologyinterface.vite-dev-http`      |
-| Infrastructure function (HMR, caching, bundling)     | `technologyfunction`      | —                                    | `technology.technologyfunction.hot-module-reload`   |
-| Off-thread Web Worker                                | `technologyfunction`      | —                                    | `technology.technologyfunction.off-thread-layout`   |
-| Group of nodes/services working together             | `technologycollaboration` | —                                    | `technology.technologycollaboration.ci-cd-suite`    |
+| What You See in the Codebase                               | Spec Type                 | Required Attribute                   | Example ID                                          |
+| ---------------------------------------------------------- | ------------------------- | ------------------------------------ | --------------------------------------------------- |
+| Framework-grade npm library (see heuristic below)          | `systemsoftware`          | `softwareType: library`              | `technology.systemsoftware.zustand`                 |
+| Utility npm library (see heuristic below)                  | `artifact`                | `artifactType: library`              | `technology.artifact.jszip`                         |
+| JavaScript/CSS framework (`react`, `tailwindcss`)          | `systemsoftware`          | `softwareType: library`              | `technology.systemsoftware.react`                   |
+| Language runtime (`node.js`, `python`, `bun`)              | `systemsoftware`          | `softwareType: language-runtime`     | `technology.systemsoftware.nodejs`                  |
+| Developer tool the system runs (`git`, a coding-agent CLI) | `systemsoftware`          | `softwareType: developer-tool`       | `technology.systemsoftware.git`                     |
+| Container runtime (`docker`)                               | `systemsoftware`          | `softwareType: container-runtime`    | `technology.systemsoftware.docker`                  |
+| Build tool / compiler (`vite`, `tsc`, `eslint`)            | `technologyprocess`       | —                                    | `technology.technologyprocess.vite`                 |
+| CI/CD pipeline or workflow                                 | `technologyprocess`       | —                                    | `technology.technologyprocess.github-actions`       |
+| Hosted platform service (GitHub Pages, npm registry)       | `technologyservice`       | `serviceType: compute` or `storage`  | `technology.technologyservice.github-pages`         |
+| Web browser that runs the client code                      | `systemsoftware`          | `softwareType: web-browser`          | `technology.systemsoftware.web-browser`             |
+| Development server                                         | `node`                    | `nodeType: virtual-machine`          | `technology.node.dev-server`                        |
+| Backend server                                             | `node`                    | `nodeType: virtual-machine`          | `technology.node.dr-cli-server`                     |
+| Build output / distributable / npm package                 | `artifact`                | `artifactType: archive` or `library` | `technology.artifact.dist-embedded`                 |
+| Network protocol / communication channel                   | `communicationnetwork`    | `networkType: internet` or `lan`     | `technology.communicationnetwork.websocket-channel` |
+| HTTP/WebSocket port or endpoint (access point)             | `technologyinterface`     | `protocol: http/https/websocket`     | `technology.technologyinterface.vite-dev-http`      |
+| Infrastructure function (HMR, caching, bundling)           | `technologyfunction`      | —                                    | `technology.technologyfunction.hot-module-reload`   |
+| Off-thread Web Worker                                      | `technologyfunction`      | —                                    | `technology.technologyfunction.off-thread-layout`   |
+| Group of nodes/services working together                   | `technologycollaboration` | —                                    | `technology.technologycollaboration.ci-cd-suite`    |
 
 ### Framework-Grade Library vs. Utility Library
 
 When a package is an npm library, ask: does it fundamentally define the application's runtime capabilities (rendering engine, state management, routing, layout)?
 
-**YES — use `systemsoftware` (softwareType: middleware):**
+**YES — use `systemsoftware` (softwareType: library):**
 `react`, `vue`, `angular`, `@xyflow/react`, `zustand`, `@tanstack/react-router`, `@tanstack/react-query`, `tailwindcss`, `elkjs`, `dagre`, `d3-force`, `@hpcc-js/wasm`, `libavoid-js`
 
 **NO — use `artifact` (artifactType: library):**
@@ -162,18 +163,18 @@ These patterns cover the actual structure of browser-based React/TypeScript SPAs
 }
 ```
 
-→ `react` → `technology.systemsoftware.react` (softwareType: middleware)
-→ `@xyflow/react` → `technology.systemsoftware.react-flow` (softwareType: middleware — graph rendering engine)
-→ `zustand` → `technology.systemsoftware.zustand` (softwareType: middleware — state management)
-→ `@tanstack/react-query` → `technology.systemsoftware.react-query` (softwareType: middleware — server state management)
-→ `libavoid-js` → `technology.systemsoftware.libavoid-js` (softwareType: middleware — WASM edge routing)
-→ `@hpcc-js/wasm` → `technology.systemsoftware.graphviz-wasm` (softwareType: middleware — graph layout WASM)
+→ `react` → `technology.systemsoftware.react` (softwareType: library)
+→ `@xyflow/react` → `technology.systemsoftware.react-flow` (softwareType: library — graph rendering engine)
+→ `zustand` → `technology.systemsoftware.zustand` (softwareType: library — state management)
+→ `@tanstack/react-query` → `technology.systemsoftware.react-query` (softwareType: library — server state management)
+→ `libavoid-js` → `technology.systemsoftware.libavoid-js` (softwareType: library — WASM edge routing)
+→ `@hpcc-js/wasm` → `technology.systemsoftware.graphviz-wasm` (softwareType: library — graph layout WASM)
 → `jszip` → `technology.artifact.jszip` (artifactType: library — ZIP export utility)
 → `html-to-image` → `technology.artifact.html-to-image` (artifactType: library — PNG/SVG export utility)
 → `react-markdown` → `technology.artifact.react-markdown` (artifactType: library — markdown rendering utility)
 → `msw` → `technology.technologyprocess.msw` (Mock Service Worker — test tooling process)
 → `vite` → `technology.technologyprocess.vite` (build tool)
-→ `typescript` → `technology.systemsoftware.typescript` (softwareType: middleware — compiler)
+→ `typescript` → `technology.systemsoftware.typescript` (softwareType: library — compiler)
 → `eslint` → `technology.technologyprocess.eslint` (linting process)
 
 ### Pattern: GitHub Actions CI/CD workflow
@@ -276,6 +277,7 @@ Networks realize paths, and networks and paths `connects` nodes and devices.
 | ----------------------- | ----------- | --------------------- | ------------------------------------------------------- |
 | Node                    | composes    | Device                | "Bare-metal Cluster" composes "Dell R740 Server"        |
 | Node                    | composes    | SystemSoftware        | "Web Server VM" composes "NGINX"                        |
+| Device                  | composes    | SystemSoftware        | "Developer Workstation" composes "Node.js 22"           |
 | Node                    | composes    | TechnologyInterface   | "API Server" composes "HTTPS Endpoint"                  |
 | Node                    | composes    | Artifact              | "EKS Worker" composes "User Service Image" (deployed)   |
 | SystemSoftware          | provides    | TechnologyInterface   | "PostgreSQL" provides "SQL Interface"                   |
@@ -296,24 +298,26 @@ Networks realize paths, and networks and paths `connects` nodes and devices.
 | TechnologyProcess       | realizes    | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"          |
 | TechnologyInterface     | assigned-to | TechnologyService     | "Postgres Wire Endpoint" assigned to "Database Service" |
 | Node                    | assigned-to | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"                 |
+| Node                    | assigned-to | TechnologyProcess     | "CI Runner" assigned to "Release Pipeline"              |
 | SystemSoftware          | assigned-to | TechnologyFunction    | "NGINX" assigned to "Load Balancing"                    |
 | TechnologyCollaboration | assigned-to | TechnologyInteraction | "Postgres HA Pair" assigned to "Streaming Replication"  |
 
 ### Behavioral Relationships
 
-| Source Type           | Predicate | Target Type        | Example                                            |
-| --------------------- | --------- | ------------------ | -------------------------------------------------- |
-| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"         |
-| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold Exceeded" triggers "Auto-scaling"   |
-| TechnologyProcess     | triggers  | TechnologyEvent    | "Deploy to K8s" triggers "Deployment Completed"    |
-| TechnologyProcess     | composes  | TechnologyProcess  | "CI/CD Pipeline" composes "Build Image"            |
-| TechnologyInterface   | serves    | TechnologyProcess  | "Kubernetes API" serves "Deploy to K8s"            |
-| TechnologyFunction    | flows-to  | TechnologyProcess  | "Health Checking" flows to "Node Recovery"         |
-| TechnologyService     | serves    | TechnologyService  | "Storage Service" serves "Database Service"        |
-| TechnologyProcess     | accesses  | Artifact           | "Deploy to K8s" accesses "User Service Image"      |
-| SystemSoftware        | accesses  | Artifact           | "PostgreSQL" accesses "Data Files"                 |
-| TechnologyFunction    | accesses  | Artifact           | "Database Backup" accesses "Backup Files"          |
-| TechnologyInteraction | accesses  | Artifact           | "Streaming Replication" accesses "Write-Ahead Log" |
+| Source Type           | Predicate | Target Type        | Example                                             |
+| --------------------- | --------- | ------------------ | --------------------------------------------------- |
+| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"          |
+| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold Exceeded" triggers "Auto-scaling"    |
+| TechnologyProcess     | triggers  | TechnologyEvent    | "Deploy to K8s" triggers "Deployment Completed"     |
+| TechnologyProcess     | composes  | TechnologyProcess  | "CI/CD Pipeline" composes "Build Image"             |
+| TechnologyProcess     | composes  | TechnologyFunction | "Release Pipeline" composes "Check Package Exports" |
+| TechnologyInterface   | serves    | TechnologyProcess  | "Kubernetes API" serves "Deploy to K8s"             |
+| TechnologyFunction    | flows-to  | TechnologyProcess  | "Health Checking" flows to "Node Recovery"          |
+| TechnologyService     | serves    | TechnologyService  | "Storage Service" serves "Database Service"         |
+| TechnologyProcess     | accesses  | Artifact           | "Deploy to K8s" accesses "User Service Image"       |
+| SystemSoftware        | accesses  | Artifact           | "PostgreSQL" accesses "Data Files"                  |
+| TechnologyFunction    | accesses  | Artifact           | "Database Backup" accesses "Backup Files"           |
+| TechnologyInteraction | accesses  | Artifact           | "Streaming Replication" accesses "Write-Ahead Log"  |
 
 ---
 
@@ -321,24 +325,28 @@ Networks realize paths, and networks and paths `connects` nodes and devices.
 
 ### Outgoing References (Technology → Other Layers)
 
-| Source Type       | Predicate | Target Type                        | Example                                                    |
-| ----------------- | --------- | ---------------------------------- | ---------------------------------------------------------- |
-| Node              | serves    | `application.applicationcomponent` | "EKS Cluster" serves "User Service"                        |
-| SystemSoftware    | serves    | `application.applicationcomponent` | "Node.js 20 Runtime" serves "User Service"                 |
-| TechnologyService | serves    | `application.applicationservice`   | "Database Service" serves "Customer Management Service"    |
-| TechnologyService | serves    | `application.applicationfunction`  | "Object Storage" serves "saveAttachment"                   |
-| Artifact          | realizes  | `application.applicationcomponent` | "user-service:1.4 image" realizes "User Service"           |
-| TechnologyService | serves    | `api.operation`                    | "S3 Object Storage" serves "uploadAvatar"                  |
-| TechnologyService | serves    | `data-store.database`              | "Amazon RDS" serves "orders-db"                            |
-| TechnologyService | serves    | `apm.exporterconfig`               | "OpenTelemetry Collector" serves "OTLP Trace Exporter"     |
-| TechnologyService | realizes  | `product.softwarecapability`       | "Search Cluster Service" realizes "Full-text Search"       |
-| TechnologyService | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"   |
-| TechnologyService | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability" |
-| SystemSoftware    | satisfies | `motivation.principle`             | "PostgreSQL" satisfies "Prefer Open Source"                |
-| SystemSoftware    | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"          |
-| Node              | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"            |
-| Node              | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"   |
-| SystemSoftware    | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"               |
+| Source Type        | Predicate | Target Type                        | Example                                                        |
+| ------------------ | --------- | ---------------------------------- | -------------------------------------------------------------- |
+| Node               | serves    | `application.applicationcomponent` | "EKS Cluster" serves "User Service"                            |
+| SystemSoftware     | serves    | `application.applicationcomponent` | "Node.js 20 Runtime" serves "User Service"                     |
+| TechnologyService  | serves    | `application.applicationservice`   | "Database Service" serves "Customer Management Service"        |
+| TechnologyService  | serves    | `application.applicationfunction`  | "Object Storage" serves "saveAttachment"                       |
+| Artifact           | realizes  | `application.applicationcomponent` | "user-service:1.4 image" realizes "User Service"               |
+| TechnologyService  | serves    | `api.operation`                    | "S3 Object Storage" serves "uploadAvatar"                      |
+| TechnologyService  | serves    | `data-store.database`              | "Amazon RDS" serves "orders-db"                                |
+| TechnologyService  | serves    | `apm.exporterconfig`               | "OpenTelemetry Collector" serves "OTLP Trace Exporter"         |
+| TechnologyService  | realizes  | `product.softwarecapability`       | "Search Cluster Service" realizes "Full-text Search"           |
+| TechnologyService  | realizes  | `motivation.goal`                  | "Kubernetes Orchestration" realizes "Faster Deployments"       |
+| TechnologyService  | satisfies | `motivation.requirement`           | "Multi-AZ Database Service" satisfies "99.9% Availability"     |
+| Artifact           | satisfies | `motivation.requirement`           | "Type declarations" satisfy "Ship typed ESM output"            |
+| TechnologyFunction | satisfies | `motivation.requirement`           | "Check Package Exports" satisfies "Every module is importable" |
+| TechnologyProcess  | satisfies | `motivation.requirement`           | "Release Pipeline" satisfies "Publish with provenance"         |
+| TechnologyProcess  | realizes  | `security.countermeasure`          | "Release Pipeline" realizes "Trusted Publishing"               |
+| SystemSoftware     | satisfies | `motivation.principle`             | "PostgreSQL" satisfies "Prefer Open Source"                    |
+| SystemSoftware     | satisfies | `motivation.constraint`            | "PostgreSQL 16" satisfies "Approved License List"              |
+| Node               | satisfies | `motivation.constraint`            | "EU-West Cluster" satisfies "EU Data Residency"                |
+| Node               | satisfies | `security.securitypolicy`          | "Hardened Bastion Host" satisfies "CIS Benchmark Policy"       |
+| SystemSoftware     | realizes  | `security.countermeasure`          | "AWS WAF" realizes "SQL Injection Filtering"                   |
 
 Security properties such as encryption-at-rest, data classification, and PII flags are recorded as Artifact attributes, not relationships.
 
