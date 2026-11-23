@@ -353,7 +353,7 @@ rediscover in every repository.
 | S7  | An API operation cannot reach a data-model schema directly                                                                                                                                                                                                  | B       |                  | not a gap (ruled)                                                                                                                                                                                                               |
 | S8  | ~~Testing cannot link to the route a suite exercises.~~ Not a gap: `testcasesketch tests route` exists in 0.14.0; step B looked from the wrong type                                                                                                         | B       |                  | not a gap                                                                                                                                                                                                                       |
 | S9  | The technology layer's rule text allows a node `assigned-to` a technology process, but the catalog refuses it. One of the two is wrong                                                                                                                      | A       |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | ruled; spec and skills landed: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311; extraction default open in #1305                                                               |
+| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | ruled; spec and skills landed: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311; test clustering open in #1312                                                                  |
 
 Rulings of 2026-11-21:
 
@@ -364,8 +364,11 @@ Rulings of 2026-11-21:
 - **S7:** not a gap. An operation reaches a schema through its request body or response, as
   OpenAPI does, and an application service already accesses an object schema.
 - **S10:** a UI component is modelled once, in the ux layer, never also as an application
-  component. Test case sketches are made for tests a maintainer would name; coverage targets
-  stand for routine unit tests. A React context follows the 2026-11-18 store ruling.
+  component. A React context follows the 2026-11-18 store ruling. The test half was revised on
+  2026-11-23: every test in the codebase belongs in the model, and no deterministic rule (folder,
+  file pattern, runner) picks which tests matter. Extraction clusters test cases instead (#1312),
+  which replaces the 2026-11-21 wording "sketches for tests a maintainer would name; coverage
+  targets for routine unit tests".
 
 ### DR tools (`dogfood` issues)
 
@@ -437,8 +440,8 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
    the first precision and recall numbers.
 3. **`score.ts`,** written against the pilot's outputs.
    - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
-     S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's extraction
-     default is still open in #1305); D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
+     S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's test
+     clustering is open in #1312); D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
 4. **C: the fleet,** one session per repository, once the rows that block it have landed. Then the
    per-question verdicts (stage 2 above), and bank 0.2.
 5. **The headless step A runner,** for the repeatability measure and for track D.
