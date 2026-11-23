@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`main`, or git's worktree name; `present`, `missing` or `prunable`; cached until the worktree
   metadata changes, raising checkout-removed once) and registers a project under a derived or
   explicit name. Nothing calls it from MCP or the viewer yet.
+- **`dr serve` (issue 1279, slice 2B)** runs the central DR process for the farm in use: detached
+  by default (it prints the link and pid), attached with `--foreground`; `--port` sets where the
+  port search starts (8080, else the next free port). It records itself in
+  `servers/<farm-hash>.json` with a 0600 token file, refuses a second process for the same farm,
+  stops unused per-project viewers that `review_open` started, and exits after
+  `DR_VIEWER_IDLE_HOURS` (24) with no tab, MCP session, DrBot turn or request. `--status` shows
+  the running process and its health; `--stop` stops it and waits. It needs the central server
+  (slice 2A) to serve anything.
 - **`dr farm migrate [--apply]`** moves a `dr-farm-v1` farm to `dr-farm-v2`: a preview by
   default, listing each project, the checkout each old entry becomes and the names dropped.
 - **`GET /api/changesets/:id/verification?against=<as-built id>`** on `dr visualize`: a plan compared

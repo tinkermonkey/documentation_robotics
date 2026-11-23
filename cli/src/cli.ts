@@ -839,6 +839,40 @@ program
   });
 
 program
+  .command("serve")
+  .description("Run the central DR process for the farm in use (one per farm, serving every project)")
+  .option("--port <num>", "Where the port search starts when it starts the process (default: 8080)")
+  .option("--foreground", "Run attached to this terminal instead of detached")
+  .option("--status", "Show the running process's record and health, or that none runs")
+  .option("--stop", "Stop the running process and wait until it is gone")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ dr serve
+  $ dr serve --foreground
+  $ dr serve --port 9000
+  $ dr serve --status
+  $ dr serve --stop
+
+One process serves every project and checkout of the farm (DR_FARM_PATH, a
+farm.yaml above the working directory, or the user farm). It records itself
+in the state directory (servers/<farm-hash>.json, its token in a 0600 file
+beside it) and never opens a browser. It exits after DR_VIEWER_IDLE_HOURS
+(default 24; 0 means never) with no browser tab, MCP session or DrBot turn
+and no request. A second start for the same farm is refused.`
+  )
+  .action(async (options) => {
+    const { serveCommand } = await import("./commands/serve.js");
+    await serveCommand({
+      port: options.port,
+      foreground: options.foreground === true,
+      status: options.status === true,
+      stop: options.stop === true,
+    });
+  });
+
+program
   .command("mcp")
   .description("Start MCP server for AI assistant integration")
   .option(
