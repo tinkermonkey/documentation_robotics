@@ -9,9 +9,8 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { createAdaptorServer, type ServerType } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
-import chokidar from "chokidar";
 import { randomBytes, randomUUID, timingSafeEqual } from "crypto";
-import { existsSync, mkdirSync, readFileSync, realpathSync } from "fs";
+import { existsSync, readFileSync, realpathSync } from "fs";
 import { realpath } from "fs/promises";
 import { homedir } from "os";
 import { createRequire } from "module";
@@ -22,9 +21,7 @@ const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
-import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
-import { activeMarkerPath } from "../core/active-changeset-marker.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
@@ -43,7 +40,9 @@ import {
   type ReviewVerdict,
 } from "../core/changeset-review.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
-import { AnnotationStore, type Annotation as StoredAnnotation } from "../core/annotation-store.js";
+import { type Annotation as StoredAnnotation } from "../core/annotation-store.js";
+import { MAIN_CHECKOUT, type CheckoutRef } from "../core/checkout-types.js";
+import { CheckoutContext, type ChatSession } from "./checkout-context.js";
 import { telemetryMiddleware } from "./telemetry-middleware.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
@@ -164,37 +163,12 @@ type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 type WSMessage = z.infer<typeof WSMessageSchema>;
 
-/** What the server compares to tell an annotation changed, and which replies are new. */
-interface AnnotationFingerprint {
-  elementId: string;
-  /** content, tags, resolved and updatedAt, serialized. */
-  state: string;
-  replyIds: string[];
-}
-
-function annotationFingerprint(annotation: StoredAnnotation): AnnotationFingerprint {
-  return {
-    elementId: annotation.elementId,
-    state: JSON.stringify([annotation.content, annotation.tags, annotation.resolved, annotation.updatedAt ?? null]),
-    replyIds: annotation.replies.map((reply) => reply.id),
-  };
-}
-
 // Type for WebSocket context from Hono's WebSocket helper (hono/ws), shared by all
 // runtime adapters (@hono/node-ws, hono/bun, hono/cloudflare-workers, etc.)
 // Defines the interface for WebSocket operations within the Hono environment
 interface HonoWSContext {
   send(source: string | ArrayBuffer | Uint8Array | ArrayBufferView, options?: { compress?: boolean }): void;
   close(code?: number, reason?: string): void;
-}
-
-/** A viewer conversation's Claude Code session. */
-interface ChatSession {
-  sessionId: string;
-  /** Claude Code has created the session: later sends pass --resume. */
-  started: boolean;
-  /** A send has already launched with --session-id for it. */
-  attempted?: boolean;
 }
 
 /** How a chat turn is launched. */
@@ -470,57 +444,23 @@ async function readCommitRequest(
 }
 export class VisualizationServer {
   private app: OpenAPIHono;
-  private model: Model;
   private _servers: ServerType[] = []; // One per loopback address the viewer listens on
   private upgradeWebSocket?: ReturnType<typeof createNodeWebSocket>["upgradeWebSocket"];
   private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
-  private clients: Set<HonoWSContext> = new Set();
-  private watcher?: any;
   /** When the viewer was last used (see getActivity); the idle exit is measured from it. */
   private lastActivityAt = Date.now();
   private viewerId?: string;
   private launcherPid?: number;
-  /**
-   * Annotations live on disk (documentation-robotics/annotations/), shared with the MCP
-   * annotation_* tools, which run in other processes.
-   */
-  private annotationStore: AnnotationStore;
-  /** What this server last saw of each annotation, to tell which changes to broadcast. */
-  private annotationSnapshot: Map<string, AnnotationFingerprint> = new Map();
-  /** Serializes annotation writes and snapshot syncs, so a sync never sees half of a write. */
-  private annotationQueue: Promise<unknown> = Promise.resolve();
-  /** Pending debounced annotation sync from the file watcher. */
-  private annotationsBroadcastTimer?: ReturnType<typeof setTimeout>;
-  private changesets: Map<string, StagedChangeset> = new Map(); // changesetId -> changeset
-  private changesetStorage?: StagedChangesetStorage;
   private authToken: string;
   private authEnabled: boolean = true;
   private withDanger: boolean = false; // Danger mode disabled by default
   private withChangesets: boolean = false; // Changeset-only write mode disabled by default
   private viewerPath?: string; // Optional custom viewer path
-  private activeChatProcesses: Map<string, ChildProcess> = new Map(); // conversationId -> spawned chat process
   private chatConversationCounter: number = 0;
-  /**
-   * Viewer conversation id -> Claude Code session id. The first send in a conversation starts the
-   * session with --session-id; `started` is set once Claude Code has created it, and later sends
-   * pass --resume. A new conversation id starts a new session.
-   */
-  private chatSessions: Map<string, ChatSession> = new Map();
-  /**
-   * Conversation id -> the running turn's token. A conversation runs one turn at a time: it is
-   * reserved when chat.send arrives and released only after that turn's process has exited.
-   */
-  private busyChatConversations: Map<string, symbol> = new Map();
-  /** Chat processes stopped by chat.cancel: nothing more from them reaches the client. */
-  private cancelledChatProcesses = new WeakSet<ChildProcess>();
   /** Test hook: Claude Code's config directory (default ~/.claude or CLAUDE_CONFIG_DIR). */
   private _testClaudeConfigDir?: string;
-  /** Pending debounced `changesets.updated` broadcast from the file watcher. */
-  private changesetsBroadcastTimer?: ReturnType<typeof setTimeout>;
   /** Debounce for changeset-directory events: one write is several file events. */
   private changesetsDebounceMs = 150;
-  /** Counts model reloads, so one that finishes after a newer one started doesn't put its model back. */
-  private reloadGeneration = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
   private _testClaudeCmdOverride?: string[];
@@ -536,6 +476,41 @@ export class VisualizationServer {
   /** Test hook: how GET /api/tier1 reads Tier 1 (an empty environment, a fake git, a fixed clock). */
   private _testTier1Options?: Pick<Tier1StatusOptions, "env" | "git" | "now">;
   private drBotWarnings = new Set<string>();
+  /**
+   * Everything this server holds for its checkout (checkout-context.ts). In slice 1 of #1279
+   * the server has one checkout and serves today's unscoped routes from it; the scoped routes
+   * acquire contexts from a CheckoutContextPool instead.
+   */
+  private context: CheckoutContext<HonoWSContext>;
+
+  /** The checkout's model: the context's, which the watcher's reload replaces. */
+  private get model(): Model {
+    return this.context.model;
+  }
+  private set model(model: Model) {
+    this.context.model = model;
+  }
+  /** The websockets subscribed to the checkout's feed. */
+  private get clients(): Set<HonoWSContext> {
+    return this.context.subscribers;
+  }
+  /** Test hook: the checkout's file watcher (the context owns it). */
+  get watcher(): any {
+    return this.context.watcher;
+  }
+  set watcher(watcher: any) {
+    this.context.watcher = watcher;
+  }
+  private get annotationStore() {
+    return this.context.annotationStore;
+  }
+  /** conversationId -> the spawned chat process. */
+  private get activeChatProcesses(): Map<string, ChildProcess> {
+    return this.context.chatProcesses;
+  }
+  private get chatSessions() {
+    return this.context.chatSessions;
+  }
 
   /**
    * Valid spec node IDs per layer
@@ -623,8 +598,7 @@ export class VisualizationServer {
 
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
-    this.model = model;
-    this.annotationStore = new AnnotationStore(model.rootPath);
+    this.context = new CheckoutContext<HonoWSContext>(VisualizationServer.checkoutRefFor(model), model);
 
     // Set up the WebSocket adapter for this app instance (works under both
     // Node.js and Bun, since @hono/node-server/@hono/node-ws use Node's
@@ -709,6 +683,14 @@ export class VisualizationServer {
   }
 
   /**
+   * The checkout a single-model server serves: the model folder's project, main checkout. The
+   * project registry names checkouts once the server serves several (#1279, slice 2).
+   */
+  private static checkoutRefFor(model: Model): CheckoutRef {
+    return { project: path.basename(model.rootPath), checkout: MAIN_CHECKOUT };
+  }
+
+  /**
    * Set up the WebSocket adapter for this server instance
    * This is called in the constructor to support WebSocket functionality via @hono/node-ws,
    * which works identically under Node.js and Bun (both implement Node's http module).
@@ -788,50 +770,15 @@ export class VisualizationServer {
 
   /** Runs an annotation write or sync after the ones queued before it. */
   private withAnnotations<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.annotationQueue.then(fn, fn);
-    this.annotationQueue = run.catch(() => {});
-    return run;
+    return this.context.withAnnotations(fn);
   }
 
   /**
    * Records an annotation as seen and returns a broadcast for each difference from what this
-   * server last saw of it: the change a route just made, and any change another process made
-   * that the watcher has not synced yet (so recording it as seen doesn't swallow that change).
-   * Call it inside withAnnotations.
+   * server last saw of it. Call it inside withAnnotations.
    */
   private diffAnnotation(annotation: StoredAnnotation): Array<Record<string, unknown>> {
-    const before = this.annotationSnapshot.get(annotation.id);
-    const after = annotationFingerprint(annotation);
-    this.annotationSnapshot.set(annotation.id, after);
-    if (!before) {
-      return [
-        {
-          type: "annotation.added",
-          annotationId: annotation.id,
-          elementId: annotation.elementId,
-          timestamp: annotation.createdAt,
-        },
-      ];
-    }
-    const out: Array<Record<string, unknown>> = [];
-    if (before.state !== after.state) {
-      out.push({
-        type: "annotation.updated",
-        annotationId: annotation.id,
-        timestamp: annotation.updatedAt ?? new Date().toISOString(),
-      });
-    }
-    for (const reply of annotation.replies) {
-      if (!before.replyIds.includes(reply.id)) {
-        out.push({
-          type: "annotation.reply.added",
-          annotationId: annotation.id,
-          replyId: reply.id,
-          timestamp: reply.createdAt,
-        });
-      }
-    }
-    return out;
+    return this.context.diffAnnotation(annotation);
   }
 
   /**
@@ -841,35 +788,18 @@ export class VisualizationServer {
    * annotation.deleted.
    */
   private async syncAnnotations(options: { broadcast: boolean }): Promise<void> {
-    const messages = await this.withAnnotations(async () => {
-      const current = await this.annotationStore.list();
-      const now = new Date().toISOString();
-      const out: Array<Record<string, unknown>> = [];
-      const seen = new Set<string>();
-      for (const annotation of current) {
-        seen.add(annotation.id);
-        out.push(...this.diffAnnotation(annotation));
-      }
-      for (const id of [...this.annotationSnapshot.keys()]) {
-        if (seen.has(id)) continue;
-        this.annotationSnapshot.delete(id);
-        out.push({ type: "annotation.deleted", annotationId: id, timestamp: now });
-      }
-      return out;
-    });
+    const messages = await this.context.syncAnnotations();
     if (!options.broadcast) return;
     await this.broadcastAll(messages);
   }
 
   /** Syncs the annotations once their files have been quiet for a moment. */
   private scheduleAnnotationsSync(): void {
-    if (this.annotationsBroadcastTimer) clearTimeout(this.annotationsBroadcastTimer);
-    this.annotationsBroadcastTimer = setTimeout(() => {
-      this.annotationsBroadcastTimer = undefined;
+    this.context.debounce("annotations", this.changesetsDebounceMs, () => {
       this.syncAnnotations({ broadcast: true }).catch((error) => {
         console.error(`[Watcher] Failed to broadcast annotations: ${getErrorMessage(error)}`);
       });
-    }, this.changesetsDebounceMs);
+    });
   }
 
   /**
@@ -1463,7 +1393,7 @@ export class VisualizationServer {
         // Removes the annotation and its replies
         const deleted = await this.withAnnotations(async () => {
           const existed = await this.annotationStore.delete(annotationId);
-          this.annotationSnapshot.delete(annotationId);
+          this.context.annotationSnapshot.delete(annotationId);
           return existed;
         });
         if (!deleted) {
@@ -1647,15 +1577,15 @@ export class VisualizationServer {
 
       // One manager for the request: each changeset's base is compared with the model as loaded.
       // A copy of the map's entries: the loop awaits, and a reload meanwhile refills the map.
-      const manager = new StagingAreaManager(this.model.rootPath, this.model);
+      const manager = this.context.stagingArea();
       // One read of the base for the request too: it is indexed and hashed once, however many
       // changesets are compared with it. A failure here is each changeset's "unknown", below.
-      const entries = [...this.changesets];
+      const entries = [...this.context.changesets];
       const base = entries.some(([, changeset]) => changeset.status === "staged")
         ? await manager.readBase().catch(() => undefined)
         : undefined;
       for (const [id, changeset] of entries) {
-        const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
+        const { purpose, verifies } = await purposeOf(this.context.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
           ...(changeset.description ? { description: changeset.description } : {}),
@@ -1725,14 +1655,14 @@ export class VisualizationServer {
       const { changesetId } = c.req.valid("param");
       const { driftLimit, driftOffset } = c.req.valid("query") as { driftLimit?: number; driftOffset?: number };
       await this.loadChangesetsFromDisk();
-      const changeset = this.changesets.get(changesetId);
+      const changeset = this.context.changesets.get(changesetId);
 
       if (!changeset) {
         return c.json({ error: "Changeset not found" }, 404);
       }
 
       const blockers = await this.changesetBlockers(changeset);
-      const { purpose, verifies, scope } = await purposeOf(this.model.rootPath, changeset);
+      const { purpose, verifies, scope } = await purposeOf(this.context.rootPath, changeset);
       return c.json({
         id: changeset.id,
         name: changeset.name,
@@ -1750,7 +1680,7 @@ export class VisualizationServer {
         actions: allowedActions(purpose, changeset.status),
         drift: await driftDetail(
           this.model,
-          new StagingAreaManager(this.model.rootPath, this.model),
+          this.context.stagingArea(),
           this.driftSubject(changeset, purpose, verifies),
           { limit: driftLimit, offset: driftOffset }
         ),
@@ -2545,7 +2475,7 @@ export class VisualizationServer {
     if (await this.findElement(id)) return true;
     // Changesets are written by other processes (the CLI, the MCP tools): read them fresh.
     await this.loadChangesetsFromDisk();
-    for (const changeset of this.changesets.values()) {
+    for (const changeset of this.context.changesets.values()) {
       if (changeset.status !== "staged") continue;
       if (changeset.changes.some((change) => change.type === "add" && change.elementId === id)) return true;
     }
@@ -2708,7 +2638,7 @@ export class VisualizationServer {
 
           // Claude Code can resume a session, but not while it is still answering. The check
           // and the reservation are synchronous, so two quick sends can't both get through.
-          if (this.busyChatConversations.has(conversationId)) {
+          if (this.context.busyChatConversations.has(conversationId)) {
             sendError(
               JSONRPC_ERRORS.INVALID_PARAMS,
               "A reply is still running in this conversation; wait for it or cancel it first"
@@ -2736,7 +2666,7 @@ export class VisualizationServer {
           const cancelConvId = (params as any)?.conversation_id;
           const cancelCandidates = [...this.activeChatProcesses].filter(
             ([convId, proc]) =>
-              !this.cancelledChatProcesses.has(proc) &&
+              !this.context.cancelledChatProcesses.has(proc) &&
               (typeof cancelConvId !== "string" || convId === cancelConvId)
           );
 
@@ -2745,7 +2675,7 @@ export class VisualizationServer {
           // same session.
           for (const [convId, process] of cancelCandidates) {
             try {
-              this.cancelledChatProcesses.add(process);
+              this.context.cancelledChatProcesses.add(process);
               process.kill();
               cancelled = true;
               cancelledConvId = convId;
@@ -2903,14 +2833,14 @@ export class VisualizationServer {
   /** Marks a conversation busy for one turn; the token releases it. */
   private reserveChatConversation(conversationId: string): symbol {
     const turn = Symbol(conversationId);
-    this.busyChatConversations.set(conversationId, turn);
+    this.context.busyChatConversations.set(conversationId, turn);
     return turn;
   }
 
   /** Ends a turn's hold on its conversation. A stale token (an older turn) releases nothing. */
   private releaseChatConversation(conversationId: string, turn: symbol): void {
-    if (this.busyChatConversations.get(conversationId) === turn) {
-      this.busyChatConversations.delete(conversationId);
+    if (this.context.busyChatConversations.get(conversationId) === turn) {
+      this.context.busyChatConversations.delete(conversationId);
     }
   }
 
@@ -2930,9 +2860,9 @@ export class VisualizationServer {
   private claudeSessionExists(sessionId: string): boolean {
     const configDir =
       this._testClaudeConfigDir ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(homedir(), ".claude");
-    const roots = new Set([this.model.rootPath]);
+    const roots = new Set([this.context.rootPath]);
     try {
-      roots.add(realpathSync(this.model.rootPath));
+      roots.add(realpathSync(this.context.rootPath));
     } catch {
       // Keep the path as given.
     }
@@ -2965,7 +2895,7 @@ export class VisualizationServer {
   private async resolveDrBotAgentLaunch(): Promise<DrBotAgentLaunch> {
     const overrides = this._testDrMcpOptions ?? {};
     try {
-      return await prepareDrBotAgent(this.model.rootPath, this.drBotMode(), {
+      return await prepareDrBotAgent(this.context.rootPath, this.drBotMode(), {
         homeDir: overrides.homeDir,
         env: overrides.env,
         bundledPath: overrides.bundledPath,
@@ -3023,7 +2953,7 @@ export class VisualizationServer {
 
     try {
       return await prepareDrMcpLaunch({
-        rootPath: this.model.rootPath,
+        rootPath: this.context.rootPath,
         changesetOnly: mode === "changesets",
         chatMode: mode === "danger" ? undefined : mode,
         drCommand: overrides.drCommand,
@@ -3063,7 +2993,7 @@ export class VisualizationServer {
       delete env[CHAT_PROJECT_ROOT_ENV];
     } else {
       env[CHAT_MODE_ENV] = mode;
-      env[CHAT_PROJECT_ROOT_ENV] = this.model.rootPath;
+      env[CHAT_PROJECT_ROOT_ENV] = this.context.rootPath;
     }
     // This launch's own dr first, so the agent's `dr` commands carry the guards above even
     // where an older dr is installed globally (drbot-mcp.ts writes it).
@@ -3144,7 +3074,7 @@ export class VisualizationServer {
 
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = spawn(cmd[0], cmd.slice(1), {
-        cwd: this.model.rootPath,
+        cwd: this.context.rootPath,
         env: this.buildChatEnv(drMcp?.binDir),
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -3198,7 +3128,7 @@ export class VisualizationServer {
 
       // Store active process
       this.activeChatProcesses.set(conversationId, proc);
-      const isCancelled = () => this.cancelledChatProcesses.has(proc);
+      const isCancelled = () => this.context.cancelledChatProcesses.has(proc);
 
       // Send user message via stdin (like Python prototype)
       proc.stdin?.write(message);
@@ -3499,7 +3429,7 @@ export class VisualizationServer {
         : explainDeniedToolCall(
             this.drBotMode(),
             { toolName: tool?.name, toolInput: tool?.input },
-            this.model.rootPath
+            this.context.rootPath
           );
     this.sendChatNotification(ws, "chat.tool.invoke", {
       conversation_id: conversationId,
@@ -3577,7 +3507,7 @@ export class VisualizationServer {
       // Launch GitHub Copilot. It gets the chat's mode in its environment too, so any `dr` it
       // runs keeps to the read-only rules whatever Copilot's own permission flags do.
       const proc = spawn(cmd[0], cmd.slice(1), {
-        cwd: this.model.rootPath,
+        cwd: this.context.rootPath,
         env: this.buildChatEnv(),
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -3629,7 +3559,7 @@ export class VisualizationServer {
             accumulatedText += chunk;
 
             // Nothing more after a cancel: the client may already be streaming its next turn.
-            if (this.cancelledChatProcesses.has(proc)) continue;
+            if (this.context.cancelledChatProcesses.has(proc)) continue;
 
             // Send text chunk as it arrives
             ws.send(
@@ -3747,90 +3677,24 @@ export class VisualizationServer {
    * MCP annotation_* tools write the same files) broadcasts what changed, debounced.
    */
   private setupFileWatcher(): void {
-    const drRoot = path.join(this.model.rootPath, "documentation-robotics");
-    const modelPath = path.join(drRoot, "model");
-    const changesetsPath = path.join(drRoot, "changesets");
-    const annotationsPath = path.join(drRoot, "annotations");
-    // Which changeset is active is per-checkout state in .dr/ (active-changeset-marker.ts)
-    const markerPath = activeMarkerPath(this.model.rootPath);
-    const markerDir = path.dirname(markerPath);
-    const isWithin = (filePath: string, dir: string) =>
-      filePath === dir || filePath.startsWith(dir + path.sep);
-
-    // Use chokidar for consistent, well-tested cross-platform recursive watching
-    // rather than Node's built-in recursive fs.watch (Linux support for the
-    // `recursive` option only landed in Node 19.1.0, and its maturity/event
-    // semantics still vary more by platform than chokidar's).
-    // chokidar doesn't pick up a watched directory created later, and a model has no
-    // changesets/ until its first changeset: watch documentation-robotics/ and keep to
-    // model/, changesets/ and annotations/ under it.
-    try {
-      // .dr/ is watched for the marker alone: its other contents (the spec reference, analyzer
-      // state, logs) are ignored, so nothing under them is read or watched. chokidar can't watch
-      // a directory that isn't there yet, and a fresh checkout has no .dr/ until something
-      // writes per-checkout state, so make it.
-      try {
-        mkdirSync(markerDir, { recursive: true });
-      } catch (error) {
-        console.warn(`[Watcher] Could not create ${markerDir}: ${getErrorMessage(error)}`);
-      }
-      this.watcher = chokidar.watch([drRoot, markerDir], {
-        persistent: true,
-        ignoreInitial: true,
-        ignored: (filePath: string) =>
-          !(
-            filePath === drRoot ||
-            filePath === markerDir ||
-            filePath === markerPath ||
-            isWithin(filePath, modelPath) ||
-            isWithin(filePath, changesetsPath) ||
-            isWithin(filePath, annotationsPath)
-          ),
-      });
-
-      this.watcher.on("all", async (_event: string, filePath: string) => {
-        if (process.env.VERBOSE) {
-          console.log(`[Watcher] File changed: ${filePath}`);
-        }
-
-        if (isWithin(filePath, annotationsPath)) {
-          this.scheduleAnnotationsSync();
-          return;
-        }
-
-        if (filePath === markerPath || isWithin(filePath, changesetsPath)) {
-          this.scheduleChangesetsBroadcast();
-          return;
-        }
-        if (!isWithin(filePath, modelPath)) return;
-
-        try {
-          await this.reloadAndBroadcast();
-          // A base change moves the staged changesets' drift, which clients read from GET /api/changesets.
-          this.scheduleChangesetsBroadcast();
-        } catch (error) {
-          const message = getErrorMessage(error);
-          console.error(`[Watcher] Failed to reload model: ${message}`);
-        }
-      });
-
-      this.watcher.on("error", (err: unknown) => {
-        console.warn(`[Watcher] Could not watch ${drRoot}: ${getErrorMessage(err)}`);
-      });
-    } catch (err) {
-      console.warn(`[Watcher] Could not watch ${drRoot}: ${err}`);
-    }
+    this.context.watch({
+      onModelChanged: async () => {
+        await this.reloadAndBroadcast();
+        // A base change moves the staged changesets' drift, which clients read from GET /api/changesets.
+        this.scheduleChangesetsBroadcast();
+      },
+      onChangesetsChanged: () => this.scheduleChangesetsBroadcast(),
+      onAnnotationsChanged: () => this.scheduleAnnotationsSync(),
+    });
   }
 
   /** Broadcasts `changesets.updated` once the changeset files have been quiet for a moment. */
   private scheduleChangesetsBroadcast(): void {
-    if (this.changesetsBroadcastTimer) clearTimeout(this.changesetsBroadcastTimer);
-    this.changesetsBroadcastTimer = setTimeout(() => {
-      this.changesetsBroadcastTimer = undefined;
+    this.context.debounce("changesets", this.changesetsDebounceMs, () => {
       this.broadcastChangesetsUpdated().catch((error) => {
         console.error(`[Watcher] Failed to broadcast changesets: ${getErrorMessage(error)}`);
       });
-    }, this.changesetsDebounceMs);
+    });
   }
 
   /**
@@ -3841,13 +3705,13 @@ export class VisualizationServer {
     await this.loadChangesetsFromDisk();
     let active: string | null = null;
     try {
-      active = await new StagingAreaManager(this.model.rootPath).getActiveId();
+      active = await new StagingAreaManager(this.context.rootPath).getActiveId();
     } catch (error) {
       console.warn(`[Changesets] Could not read the active changeset: ${getErrorMessage(error)}`);
     }
     await this.broadcastMessage({
       type: "changesets.updated",
-      ids: [...this.changesets.keys()],
+      ids: [...this.context.changesets.keys()],
       active,
       timestamp: new Date().toISOString(),
     });
@@ -4580,7 +4444,7 @@ export class VisualizationServer {
 
   /** The model as it is on disk now. */
   private loadModelFromDisk(): Promise<Model> {
-    return Model.load(this.model.rootPath, { lazyLoad: false });
+    return this.context.loadModelFromDisk();
   }
 
   /**
@@ -4591,9 +4455,9 @@ export class VisualizationServer {
     // started earlier may have read the disk mid-write, so once a newer one is under way its result
     // is dropped: the newest reload, started after the last write, is the one that sets the model
     // (which the changesets' drift is read against) and broadcasts it.
-    const generation = ++this.reloadGeneration;
+    const generation = ++this.context.reloadGeneration;
     const model = await this.loadModelFromDisk();
-    if (generation !== this.reloadGeneration) return;
+    if (generation !== this.context.reloadGeneration) return;
     this.model = model;
     await this.loadChangesetsFromDisk();
 
@@ -4634,7 +4498,7 @@ export class VisualizationServer {
     action: "commit" | "discard",
     review?: { drop: number[]; deleteBlockedLinks: number[] }
   ) {
-    let model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    let model = await Model.load(this.context.rootPath, { lazyLoad: false });
     let manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(changesetId);
@@ -4680,7 +4544,7 @@ export class VisualizationServer {
     try {
       if (restoreOnFailure) {
         // A fresh model without the dropped changes (inside the try, so a failure puts them back).
-        model = await Model.load(this.model.rootPath, { lazyLoad: false });
+        model = await Model.load(this.context.rootPath, { lazyLoad: false });
         manager = new StagingAreaManager(model.rootPath, model);
       }
       if (action === "commit") {
@@ -4728,7 +4592,7 @@ export class VisualizationServer {
       console.error(`[Changesets] Broadcast after ${action} failed: ${getErrorMessage(error)}`);
     }
 
-    const updated = this.changesets.get(changesetId) ?? (await manager.load(changesetId));
+    const updated = this.context.changesets.get(changesetId) ?? (await manager.load(changesetId));
     return c.json({
       id: changesetId,
       name: changeset.name,
@@ -4825,7 +4689,7 @@ export class VisualizationServer {
     dropped: { sequences: number[]; removedAt: number }
   ): Promise<void> {
     try {
-      const storage = new StagedChangesetStorage(this.model.rootPath);
+      const storage = this.context.changesetStorage;
       if ((await storage.load(changesetId))?.status !== "staged") return;
       await storage.restoreUnstaged(changesetId, dropped.sequences, dropped.removedAt);
     } catch (error) {
@@ -4841,7 +4705,7 @@ export class VisualizationServer {
    * a verification record, the plan it verifies when that changeset is still on disk.
    */
   private driftSubject(changeset: StagedChangeset, purpose: DriftSubject["purpose"], verifies?: string): DriftSubject {
-    const plan = verifies ? this.changesets.get(verifies) : undefined;
+    const plan = verifies ? this.context.changesets.get(verifies) : undefined;
     return { changeset, purpose, ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}) };
   }
 
@@ -4877,8 +4741,7 @@ export class VisualizationServer {
     changesetId: string,
     decisions: Array<{ sequence: number; verdict: ReviewVerdict | null; note?: string }>
   ) {
-    this.changesetStorage ??= new StagedChangesetStorage(this.model.rootPath);
-    const storage = this.changesetStorage;
+    const storage = this.context.changesetStorage;
     if (!(await storage.load(changesetId))) {
       return c.json({ error: "Changeset not found" }, 404);
     }
@@ -4939,7 +4802,7 @@ export class VisualizationServer {
    */
   private async tier1Body(asked?: string): Promise<Record<string, unknown>> {
     const real = async (dir: string) => realpath(dir).catch(() => dir);
-    const projectRoot = await real(this.model.rootPath);
+    const projectRoot = await real(this.context.rootPath);
     const codebaseRoot = await real(this.model.codebaseRoot);
     const analyzer = asked ?? (await readSession(projectRoot).catch(() => null))?.active_analyzer ?? "cbm";
     const status = await tier1Status(projectRoot, analyzer, { codebaseRoot, ...(this._testTier1Options ?? {}) });
@@ -4950,27 +4813,14 @@ export class VisualizationServer {
    * Load all changesets from disk into the in-memory map
    */
   private async loadChangesetsFromDisk(): Promise<void> {
-    this.changesetStorage ??= new StagedChangesetStorage(this.model.rootPath);
-    try {
-      const changesets = await this.changesetStorage.list();
-      this.changesets.clear();
-      for (const cs of changesets) {
-        this.changesets.set(cs.id, cs);
-      }
-      if (process.env.VERBOSE) {
-        console.log(`[Changesets] Loaded ${changesets.length} changeset(s) from disk`);
-      }
-    } catch (err) {
-      console.warn(`[Changesets] Warning: Failed to load changesets from disk: ${err}`);
-    }
+    await this.context.loadChangesets();
   }
 
   /**
    * Start the server
    */
   async start(port: number = 8080): Promise<void> {
-    // Initialize changeset storage and load from disk
-    this.changesetStorage = new StagedChangesetStorage(this.model.rootPath);
+    // Load the changesets from disk
     await this.loadChangesetsFromDisk();
     // What the annotation files hold now, so the watcher broadcasts only later changes.
     await this.syncAnnotations({ broadcast: false }).catch((error) => {
@@ -5162,33 +5012,8 @@ export class VisualizationServer {
    * folder is removed as its viewer is stopped.
    */
   stop(options: { processExiting?: boolean } = {}): void {
-    // Close all WebSocket connections
-    for (const client of this.clients) {
-      try {
-        client.close();
-      } catch (error) {
-        // Log unexpected errors regardless of VERBOSE flag for operational visibility
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (!errorMessage.includes('already closed')) {
-          console.warn(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
-        }
-      }
-    }
-    this.clients.clear();
-
-    // Stop file watcher
-    if (this.watcher && !options.processExiting) {
-      this.watcher.close?.();
-    }
-    if (this.changesetsBroadcastTimer) {
-      clearTimeout(this.changesetsBroadcastTimer);
-      this.changesetsBroadcastTimer = undefined;
-    }
-
-    if (this.annotationsBroadcastTimer) {
-      clearTimeout(this.annotationsBroadcastTimer);
-      this.annotationsBroadcastTimer = undefined;
-    }
+    // Close the checkout's websockets, its file watcher and its pending broadcasts.
+    this.context.close({ processExiting: options.processExiting });
 
     // Stop the servers
     this.closeServers();
