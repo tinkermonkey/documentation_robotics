@@ -46,8 +46,8 @@ export interface ViewerLifetimeWatch {
   stop(): void;
 }
 
-
-function describeDuration(ms: number): string {
+/** A duration in words ("24 hours", "90 seconds"), as the exit reasons say it. */
+export function describeDuration(ms: number): string {
   const hours = ms / 3_600_000;
   if (hours >= 1) return `${Number(hours.toFixed(1))} hour${hours === 1 ? "" : "s"}`;
   const minutes = ms / 60_000;
