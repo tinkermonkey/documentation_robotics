@@ -447,3 +447,37 @@ design touches in those layers, beside the planned elements:
 
 The three accepted gaps that remain are connections that don't apply. The registry, the pool and
 the DrBot launcher work only with declared shapes (object schemas), not domain data objects.
+
+## 14. Build slices
+
+The plan is built in slices. Each slice is a set of the plan's element ids, built from
+`changeset_brief` with those `ids`. The plan stays staged until the last slice ships; no slice
+lands it.
+
+**The shared contract** is `cli/src/core/checkout-types.ts`: `CheckoutRef`, `Repository`,
+`Checkout`, `ResolvedCheckout`, `CheckoutResolver`, `ProjectListEntry`, `ContextPoolSettings`,
+`ServerRecord` and `ViewerLink`, the plan's object schemas of the same names. Every slice builds
+against it.
+
+### Slice 1: foundations, no change to what users see
+
+Three pieces, built in parallel. They touch disjoint files, and none needs another's result:
+they meet only at `checkout-types.ts`. Nothing in slice 1 changes a route, an MCP tool's output,
+or how `dr visualize` and `review_open` start viewers.
+
+| Piece                               | Builds                                                                                                                                                                                                                                                                                                                         | Files                                                                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1A Registry and farm v2**         | `project-registry` (`resolve-farm`, `resolve-checkout`, `discover-checkouts`, `derive-project-name`, `register-project`, `list-projects`, `checkout-removed`), `farm-manifest` v2 and its v1 reader, `migrate-farm-manifest` / `dr farm migrate`, `dr farm add` resolving a worktree to its project, sync on the main checkout | `cli/src/core/project-registry.ts` (new), `cli/src/core/farm-manifest.ts`, `cli/src/core/farm-sync-engine.ts`, `cli/src/commands/farm.ts`, their tests                                                                         |
+| **1B Per-checkout server state**    | `checkout-context`, `checkout-context-pool` (`acquire-`, `evict-`, `close-checkout-context`), `ContextPoolSettings` from the environment. `VisualizationServer` holds its state in one `CheckoutContext` instead of `this.model.rootPath`, still serving today's unscoped routes from it                                       | `cli/src/server/checkout-context.ts`, `cli/src/server/checkout-context-pool.ts` (new), `cli/src/server/server.ts`, their tests                                                                                                 |
+| **1C Server record and deep links** | `ServerRecord` at `servers/<farm-hash>.json` with its 0600 token file, `viewer-url` building a `ViewerLink`, and a liveness check that treats an unreaped zombie as gone (issue 1275), shared by the registry and `parent-watch`                                                                                               | `cli/src/server/server-record.ts`, `cli/src/server/viewer-link.ts` (new), `cli/src/server/viewer-registry.ts` (`isProcessAlive` only), `cli/src/utils/parent-watch.ts`, `cli/src/utils/process-liveness.ts` (new), their tests |
+
+### Later slices (outline)
+
+- **Slice 2, the central process:** wire the registry into the pool, `dr serve`, the scoped
+  routes and OpenAPI, the websocket `FeedSubscription`, and the viewer companion issue once the
+  routes are in `docs/api-spec.yaml`.
+- **Slice 3, MCP and links:** the stdio bridge (`ensure-central-server`), `project_list`, project
+  and checkout on MCP results, `review_open` and `project_status` deep links, `DrBotLauncher`.
+- **Slice 4, migration and retirement:** `sweep-per-project-viewers`, `dr visualize` on the
+  central process, and removing the unscoped routes in the release whose bundled viewer uses the
+  scoped ones.
