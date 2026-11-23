@@ -82,10 +82,23 @@ export const JSONRPCResponseSchema = z.object({
   }
 );
 
+/**
+ * A websocket frame subscribing to, or unsubscribing from, one checkout's feed on the central
+ * server (issue 1279). A socket receives model, changeset and annotation events only for the
+ * checkouts it subscribed to; each event carries its project and checkout.
+ * (`data-model.objectschema.feed-subscription`)
+ */
+export const FeedSubscriptionSchema = z.object({
+  action: z.enum(['subscribe', 'unsubscribe']),
+  project: z.string().min(1),
+  checkout: z.string().min(1),
+});
+
 export const WSMessageSchema = z.union([
   SimpleWSMessageSchema,
   JSONRPCRequestSchema,
   JSONRPCResponseSchema,
+  FeedSubscriptionSchema,
 ]);
 
 // Base schemas for common types
@@ -214,6 +227,52 @@ export const HealthResponseSchema = z.object({
   launcherPid: z.number().int().optional().describe('Process id of the `dr visualize` process that runs the server. Only with the auth token'),
   viewerId: z.string().optional().describe("Id of this viewer, as its record in the user's viewer registry has it. Only with the auth token"),
   clients: z.number().int().optional().describe('Browser tabs connected now (WebSocket clients). Only with the auth token'),
+  serverId: z.string().optional().describe('Id of the central process, as its server record has it. Central process only, with the auth token'),
+  farmRoot: z.string().optional().describe('Real path of the farm root the central process serves. Central process only, with the auth token'),
+  loadedCheckouts: z.number().int().optional().describe('Checkout contexts loaded now. Central process only, with the auth token'),
+});
+
+/** A project name in a scoped route: its name in the farm. */
+export const ProjectNameParamSchema = z.string().min(1).openapi({
+  param: { name: 'project', in: 'path' },
+  description: "The project's name in the farm",
+  example: 'documentation-robotics',
+});
+
+/** A checkout key in a scoped route: `main`, or git's name for a linked worktree. */
+export const CheckoutKeyParamSchema = z.string().min(1).openapi({
+  param: { name: 'checkout', in: 'path' },
+  description: '`main` for the main worktree, else the name git gives the linked worktree',
+  example: 'main',
+});
+
+/** One checkout as a project listing shows it (`ProjectListCheckout` in checkout-types.ts). */
+export const ProjectListCheckoutSchema = z.object({
+  key: z.string().describe('`main`, or the linked worktree\'s name'),
+  path: z.string().describe('Real path of the working tree'),
+  branch: z.string().nullable().describe('Short branch name, or null when detached'),
+  head: z.string().describe('Commit the working tree is at'),
+  state: z.enum(['present', 'missing', 'prunable']).describe('`missing`: git lists it but the folder is gone'),
+  activeChangeset: z.string().nullable().describe("The active changeset's id, when one is active"),
+  stagedChangesets: z.number().int().describe('How many changesets are staged in the checkout'),
+});
+
+/** A project with its checkouts (`ProjectListEntry` in checkout-types.ts). */
+export const ProjectListEntrySchema = z.object({
+  name: z.string().describe("The project's name in the farm"),
+  repository: z.string().describe("The main checkout's path"),
+  model: z.string().describe('The model folder as the farm records it'),
+  remote: z.string().optional().describe("origin's URL, when it has one"),
+  checkouts: z.array(ProjectListCheckoutSchema),
+});
+
+export const ProjectsListSchema = z.object({
+  projects: z.array(ProjectListEntrySchema),
+});
+
+export const ProjectCheckoutsSchema = z.object({
+  project: z.string(),
+  checkouts: z.array(ProjectListCheckoutSchema),
 });
 
 export const AnnotationSchema = z.object({

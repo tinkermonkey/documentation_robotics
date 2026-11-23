@@ -8,6 +8,7 @@ import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
 import { createAdaptorServer, type ServerType } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
+import { AsyncLocalStorage } from "async_hooks";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import { randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { existsSync, readFileSync, realpathSync } from "fs";
@@ -42,9 +43,16 @@ import {
 } from "../core/changeset-review.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { type Annotation as StoredAnnotation } from "../core/annotation-store.js";
-import { MAIN_CHECKOUT, type CheckoutRef } from "../core/checkout-types.js";
-import { CheckoutContext, type ChatSession } from "./checkout-context.js";
-import { telemetryMiddleware } from "./telemetry-middleware.js";
+import {
+  MAIN_CHECKOUT,
+  type CheckoutRef,
+  type ContextPoolSettings,
+  type ResolvedCheckout,
+} from "../core/checkout-types.js";
+import type { ProjectRegistry } from "../core/project-registry.js";
+import { CheckoutContext, checkoutKey, type ChatSession, type CheckoutSubscriber } from "./checkout-context.js";
+import { CheckoutContextPool } from "./checkout-context-pool.js";
+import { CHECKOUT_CONTEXT_KEY, telemetryMiddleware } from "./telemetry-middleware.js";
 import { BaseChatClient } from "../coding-agents/base-chat-client.js";
 import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
 import { CopilotClient } from "../coding-agents/copilot-client.js";
@@ -101,6 +109,12 @@ import {
   ChangesetVerificationSchema,
   ModelResponseSchema,
   LayerResponseSchema,
+  FeedSubscriptionSchema,
+  ProjectNameParamSchema,
+  CheckoutKeyParamSchema,
+  ProjectListEntrySchema,
+  ProjectsListSchema,
+  ProjectCheckoutsSchema,
   SpecResponseSchema,
   AnnotationRepliesSchema,
   WSMessageSchema,
@@ -164,6 +178,7 @@ type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;
 type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 type WSMessage = z.infer<typeof WSMessageSchema>;
+type FeedSubscription = z.infer<typeof FeedSubscriptionSchema>;
 
 // Type for WebSocket context from Hono's WebSocket helper (hono/ws), shared by all
 // runtime adapters (@hono/node-ws, hono/bun, hono/cloudflare-workers, etc.)
@@ -228,6 +243,43 @@ export interface VisualizationServerOptions {
   viewerId?: string;
   /** Pid of the `dr visualize` launcher that runs this server; GET /health reports it. */
   launcherPid?: number;
+  /**
+   * Serve every project and checkout of a farm instead of one model: the central process
+   * (issue 1279, `docs/design/USER_LEVEL_DR.md` sections 7 and 8; `startCentralServer` in
+   * central-server.ts). Without it the server serves its one model, as `dr visualize` does.
+   */
+  central?: CentralModeOptions;
+}
+
+/** What the server needs to serve a whole farm. */
+export interface CentralModeOptions {
+  /** The farm's registry: the only way the server resolves a project or checkout. */
+  registry: ProjectRegistry;
+  /** Context pool limits. Default: `contextPoolSettingsFromEnv()`. */
+  pool?: ContextPoolSettings;
+  /** The checkout the unscoped `/api/...` routes serve until slice 4 removes them; null when the farm has none. */
+  defaultCheckout: CheckoutRef | null;
+  /** This process's id, reported by `/health` with the token. */
+  serverId?: string;
+  /**
+   * How often (ms) the server asks the registry whether its loaded checkouts still exist, so a
+   * removed checkout's subscribers hear `checkout.removed` (default 30 s; 0 turns it off). The
+   * registry has no file watcher: it notices a removal when asked.
+   */
+  removalCheckMs?: number;
+}
+
+/** The first segments of every checkout-scoped route. */
+const SCOPED_PREFIX = "/api/projects/:project/checkouts/:checkout";
+
+/**
+ * A websocket's subscription to one checkout's feed on the central server. The checkout's
+ * context holds it as a subscriber: sends go to the socket, and closing it (the context closing)
+ * ends only this subscription, never the socket, which may be subscribed to other checkouts.
+ */
+interface FeedSubscriber extends CheckoutSubscriber {
+  ref: CheckoutRef;
+  ws: HonoWSContext;
 }
 
 /**
@@ -479,11 +531,40 @@ export class VisualizationServer {
   private _testTier1Options?: Pick<Tier1StatusOptions, "env" | "git" | "now">;
   private drBotWarnings = new Set<string>();
   /**
-   * Everything this server holds for its checkout (checkout-context.ts). In slice 1 of #1279
-   * the server has one checkout and serves today's unscoped routes from it; the scoped routes
-   * acquire contexts from a CheckoutContextPool instead.
+   * The checkout a single-model server serves (checkout-context.ts). The central server has
+   * none: every request and websocket message runs in the context of the checkout it names.
    */
-  private context: CheckoutContext<HonoWSContext>;
+  private homeContext?: CheckoutContext;
+  /** The checkout context of the request or message being handled (central server). */
+  private readonly scope = new AsyncLocalStorage<CheckoutContext>();
+  /** The central server's farm, pool and sockets; undefined for a single-model server. */
+  private central?: {
+    options: CentralModeOptions;
+    pool: CheckoutContextPool;
+    /** Every open socket, with its subscriptions by checkout key. */
+    sockets: Map<HonoWSContext, Map<string, FeedSubscriber>>;
+    stopListening: () => void;
+    removalTimer?: ReturnType<typeof setInterval>;
+    /** Open TCP connections, destroyed on stop: an upgraded websocket would otherwise hold the listener open. */
+    connections: Set<import("net").Socket>;
+  };
+
+  /**
+   * Everything the server holds for the checkout being served (checkout-context.ts): the one
+   * checkout of a single-model server, or on the central server the checkout the current request
+   * or message names. Contexts are never shared between checkouts.
+   */
+  private get context(): CheckoutContext {
+    const scoped = this.scope.getStore();
+    if (scoped) return scoped;
+    if (this.homeContext) return this.homeContext;
+    throw new Error("No checkout for this call: the central server serves a checkout only inside a request or message that names one");
+  }
+
+  /** Runs fn with `context` as the checkout being served. */
+  private inContext<T>(context: CheckoutContext, fn: () => T): T {
+    return this.scope.run(context, fn);
+  }
 
   /** The checkout's model: the context's, which the watcher's reload replaces. */
   private get model(): Model {
@@ -493,7 +574,7 @@ export class VisualizationServer {
     this.context.model = model;
   }
   /** The websockets subscribed to the checkout's feed. */
-  private get clients(): Set<HonoWSContext> {
+  private get clients(): Set<CheckoutSubscriber> {
     return this.context.subscribers;
   }
   /** Test hook: the checkout's file watcher (the context owns it). */
@@ -598,9 +679,29 @@ export class VisualizationServer {
     return ids;
   })();
 
-  constructor(model: Model, options?: VisualizationServerOptions) {
+  /**
+   * A server for one model (`dr visualize`), or with `options.central` and no model, the central
+   * server for every project and checkout of a farm.
+   */
+  constructor(model: Model | null, options?: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
-    this.context = new CheckoutContext<HonoWSContext>(VisualizationServer.checkoutRefFor(model), model);
+    if (options?.central) {
+      if (model) throw new Error("The central server serves its farm's checkouts: pass no model");
+      const central = options.central;
+      const pool = new CheckoutContextPool({
+        resolver: central.registry.resolver(),
+        settings: central.pool,
+        load: (resolved) => this.loadCheckoutContext(resolved),
+      });
+      const stopListening = central.registry.onCheckoutRemoved(({ ref }) => {
+        this.closeRemovedCheckout(ref);
+      });
+      this.central = { options: central, pool, sockets: new Map(), stopListening, connections: new Set() };
+    } else if (model) {
+      this.homeContext = new CheckoutContext(VisualizationServer.checkoutRefFor(model), model);
+    } else {
+      throw new Error("A visualization server needs a model, or the central option");
+    }
 
     // Set up the WebSocket adapter for this app instance (works under both
     // Node.js and Bun, since @hono/node-server/@hono/node-ws use Node's
@@ -669,6 +770,12 @@ export class VisualizationServer {
       this.lastActivityAt = Date.now();
       return next();
     });
+
+    // The central server runs each project-data request in its checkout's context: the one a
+    // scoped route names, or for an unscoped route the checkout the process was started in.
+    if (this.central) {
+      this.app.use("/api/*", (c, next) => this.scopeRequest(c, next));
+    }
 
     this.setupRoutes();
 
@@ -836,6 +943,12 @@ export class VisualizationServer {
           if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
+        if (this.central) {
+          // The central process will serve MCP at /mcp (slice 3), and the viewer's deep links
+          // (/p/<project>/c/<checkout>/...) are its page.
+          if (requestPath === "/mcp" || requestPath.startsWith("/mcp/")) return next();
+          if (requestPath === "/p" || requestPath.startsWith("/p/")) return this.serveCustomViewer("index.html");
+        }
 
         if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
         return this.serveCustomViewer(requestPath.substring(1));
@@ -862,6 +975,7 @@ export class VisualizationServer {
     });
 
     this.app.openapi(healthRoute, (c) => {
+      if (this.central) return c.json(this.centralHealth(this.authEnabled && this.requestHasToken(c)));
       const response: any = {
         status: this.chatInitializationError ? "degraded" : "ok",
         version: "0.1.0",
@@ -918,7 +1032,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getModelRoute, async (c) => {
+    this.dataRoute(getModelRoute, async (c) => {
       if (process.env.VERBOSE) console.log(`[ROUTE] /api/model handler called`);
       try {
         if (process.env.VERBOSE) console.log(`[ROUTE] /api/model serializing model...`);
@@ -975,7 +1089,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getLayerRoute, (async (c: any) => {
+    this.dataRoute(getLayerRoute, (async (c: any) => {
       try {
         const { layerName } = c.req.valid("param");
         const layer = await this.model.getLayer(layerName);
@@ -1043,6 +1157,8 @@ export class VisualizationServer {
       }
     }) as any);
 
+    if (this.central) this.setupProjectRoutes();
+
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
@@ -1069,7 +1185,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationsRoute, (async (c: any) => {
+    this.dataRoute(getAnnotationsRoute, (async (c: any) => {
       try {
         const query = c.req.valid("query");
         // All annotations, or one element's; read from disk, so the MCP tools' show too.
@@ -1133,7 +1249,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(createAnnotationRoute, async (c) => {
+    this.dataRoute(createAnnotationRoute, async (c) => {
       try {
         const body = c.req.valid("json");
 
@@ -1202,7 +1318,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationRoute, (async (c: any) => {
+    this.dataRoute(getAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const annotation = await this.annotationStore.get(annotationId);
@@ -1271,7 +1387,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(putAnnotationRoute, (async (c: any) => {
+    this.dataRoute(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
@@ -1336,7 +1452,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(patchAnnotationRoute, (async (c: any) => {
+    this.dataRoute(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
@@ -1388,7 +1504,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(deleteAnnotationRoute, async (c) => {
+    this.dataRoute(deleteAnnotationRoute, async (c) => {
       try {
         const { annotationId } = c.req.valid("param");
 
@@ -1448,7 +1564,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationRepliesRoute, (async (c: any) => {
+    this.dataRoute(getAnnotationRepliesRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const annotation = await this.annotationStore.get(annotationId);
@@ -1509,7 +1625,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(createAnnotationReplyRoute, async (c) => {
+    this.dataRoute(createAnnotationReplyRoute, async (c) => {
       try {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
@@ -1573,7 +1689,7 @@ export class VisualizationServer {
     // Changesets are re-read from disk on every request: the CLI (or a chat agent in
     // changeset mode) creates and stages them under documentation-robotics/changesets,
     // which the file watcher doesn't cover, so the in-memory map goes stale.
-    this.app.openapi(getChangesetsRoute, async (c) => {
+    this.dataRoute(getChangesetsRoute, async (c) => {
       await this.loadChangesetsFromDisk();
       const changesets: Record<string, any> = {};
 
@@ -1653,7 +1769,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getChangesetRoute, (async (c: any) => {
+    this.dataRoute(getChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const { driftLimit, driftOffset } = c.req.valid("query") as { driftLimit?: number; driftOffset?: number };
       await this.loadChangesetsFromDisk();
@@ -1732,7 +1848,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getChangesetVerificationRoute, (async (c: any) => {
+    this.dataRoute(getChangesetVerificationRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const { against } = c.req.valid("query") as { against: string };
       if (against === changesetId) {
@@ -1784,7 +1900,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(putChangesetReviewRoute, (async (c: any) => {
+    this.dataRoute(putChangesetReviewRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const body = c.req.valid("json") as {
         decisions: Array<{ sequence: number; verdict: ReviewVerdict | null; note?: string }>;
@@ -1854,7 +1970,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(commitChangesetRoute, (async (c: any) => {
+    this.dataRoute(commitChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const parsed = await readCommitRequest(c);
       if ("error" in parsed) {
@@ -1883,7 +1999,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(discardChangesetRoute, (async (c: any) => {
+    this.dataRoute(discardChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       return this.runChangesetAction(c, changesetId, "discard");
     }) as any);
@@ -1936,7 +2052,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getTier1Route, (async (c: any) => {
+    this.dataRoute(getTier1Route, (async (c: any) => {
       const { analyzer: asked } = c.req.valid("query") as { analyzer?: string };
       try {
         return c.json(await this.tier1Body(asked));
@@ -1968,6 +2084,7 @@ export class VisualizationServer {
       ],
       tags: [
         { name: 'Health', description: 'Server health and status' },
+        { name: 'Projects', description: "The farm's projects and their checkouts (central process)" },
         { name: 'Schema', description: 'JSON Schema specifications' },
         { name: 'Model', description: 'Architecture model data' },
         { name: 'Changesets', description: 'Model changesets and history' },
@@ -2048,10 +2165,12 @@ export class VisualizationServer {
         onOpen: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket connection
           await this.recordWebSocketEvent("ws.connection.open", {
-            "ws.client_count": this.clients.size + 1,
+            "ws.client_count": this.socketCount() + 1,
           });
 
-          this.clients.add(ws);
+          // The central server's socket receives nothing until it subscribes to a checkout.
+          if (this.central) this.central.sockets.set(ws, new Map());
+          else this.clients.add(ws);
           this.lastActivityAt = Date.now();
 
           // Send connected message per spec
@@ -2064,20 +2183,21 @@ export class VisualizationServer {
           );
 
           if (process.env.VERBOSE) {
-            console.log(`[WebSocket] Client connected (total: ${this.clients.size})`);
+            console.log(`[WebSocket] Client connected (total: ${this.socketCount()})`);
           }
         },
 
         onClose: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket disconnection
           await this.recordWebSocketEvent("ws.connection.close", {
-            "ws.client_count": this.clients.size - 1,
+            "ws.client_count": this.socketCount() - 1,
           });
 
-          this.clients.delete(ws);
+          if (this.central) this.dropSocket(ws);
+          else this.clients.delete(ws);
           this.lastActivityAt = Date.now();
           if (process.env.VERBOSE) {
-            console.log(`[WebSocket] Client disconnected (total: ${this.clients.size})`);
+            console.log(`[WebSocket] Client disconnected (total: ${this.socketCount()})`);
           }
         },
 
@@ -2123,6 +2243,8 @@ export class VisualizationServer {
               }
             } else if ('type' in data) {
               messageType = (data as SimpleWSMessage).type;
+            } else if ('action' in data) {
+              messageType = `feed.${data.action}`;
             } else {
               messageType = "unknown";
             }
@@ -2133,12 +2255,8 @@ export class VisualizationServer {
               "ws.message.size_bytes": msgStr.length,
             });
 
-            // Check if it's a JSON-RPC message
-            if ('jsonrpc' in data && data.jsonrpc === "2.0") {
-              await this.handleJSONRPCMessage(ws, data);
-            } else {
-              await this.handleWSMessage(ws, data);
-            }
+            // A feed subscription, or a message handled in the checkout it is for.
+            const checkout = await this.dispatchWSMessage(ws, data);
 
             // Telemetry: Track successful message processing
             const durationMs = Date.now() - messageStartTime;
@@ -2146,6 +2264,7 @@ export class VisualizationServer {
               "ws.message.type": messageType,
               "ws.message.duration_ms": durationMs,
               "ws.message.status": "success",
+              ...(checkout ? { "dr.project": checkout.project, "dr.checkout": checkout.checkout } : {}),
             });
           } catch (error) {
             const errorMsg = getErrorMessage(error);
@@ -2428,7 +2547,7 @@ export class VisualizationServer {
    * Broadcast message to all connected WebSocket clients
    */
   private async broadcastMessage(message: any): Promise<void> {
-    const messageStr = JSON.stringify(message);
+    const messageStr = JSON.stringify(this.stamp(message));
     const messageType = message.type || "unknown";
 
     // Telemetry: Track broadcast start
@@ -2439,7 +2558,7 @@ export class VisualizationServer {
     });
 
     let failureCount = 0;
-    const failedClients: HonoWSContext[] = [];
+    const failedClients: CheckoutSubscriber[] = [];
 
     for (const client of this.clients) {
       try {
@@ -3730,14 +3849,17 @@ export class VisualizationServer {
    * MCP annotation_* tools write the same files) broadcasts what changed, debounced.
    */
   private setupFileWatcher(): void {
-    this.context.watch({
-      onModelChanged: async () => {
-        await this.reloadAndBroadcast();
-        // A base change moves the staged changesets' drift, which clients read from GET /api/changesets.
-        this.scheduleChangesetsBroadcast();
-      },
-      onChangesetsChanged: () => this.scheduleChangesetsBroadcast(),
-      onAnnotationsChanged: () => this.scheduleAnnotationsSync(),
+    // The watcher's events run in the context of the checkout it watches.
+    const context = this.context;
+    context.watch({
+      onModelChanged: () =>
+        this.inContext(context, async () => {
+          await this.reloadAndBroadcast();
+          // A base change moves the staged changesets' drift, which clients read from GET /api/changesets.
+          this.scheduleChangesetsBroadcast();
+        }),
+      onChangesetsChanged: () => this.inContext(context, () => this.scheduleChangesetsBroadcast()),
+      onAnnotationsChanged: () => this.inContext(context, () => this.scheduleAnnotationsSync()),
     });
   }
 
@@ -4515,11 +4637,13 @@ export class VisualizationServer {
     await this.loadChangesetsFromDisk();
 
     const modelData = await this.serializeModel();
-    const message = JSON.stringify({
-      type: "model.updated",
-      data: modelData,
-      timestamp: new Date().toISOString(),
-    });
+    const message = JSON.stringify(
+      this.stamp({
+        type: "model.updated",
+        data: modelData,
+        timestamp: new Date().toISOString(),
+      })
+    );
 
     for (const client of this.clients) {
       try {
@@ -4873,6 +4997,7 @@ export class VisualizationServer {
    * Start the server
    */
   async start(port: number = 8080): Promise<void> {
+    if (this.central) return this.startCentral(port);
     // Load the changesets from disk
     await this.loadChangesetsFromDisk();
     // What the annotation files hold now, so the watcher broadcasts only later changes.
@@ -5052,7 +5177,7 @@ export class VisualizationServer {
   }
 
   getActivity(): { clients: number; lastActivityAt: number } {
-    return { clients: this.clients.size, lastActivityAt: this.lastActivityAt };
+    return { clients: this.socketCount(), lastActivityAt: this.lastActivityAt };
   }
 
   /**
@@ -5065,10 +5190,465 @@ export class VisualizationServer {
    * folder is removed as its viewer is stopped.
    */
   stop(options: { processExiting?: boolean } = {}): void {
+    if (this.central) {
+      void this.stopCentral(options);
+      return;
+    }
     // Close the checkout's websockets, its file watcher and its pending broadcasts.
-    this.context.close({ processExiting: options.processExiting });
+    this.homeContext?.close({ processExiting: options.processExiting });
 
     // Stop the servers
     this.closeServers();
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // The central server (issue 1279, slice 2): every project and checkout of a farm
+  // -------------------------------------------------------------------------------------------
+
+  /** Open websockets: the central server's, or the subscribers of a single-model server's checkout. */
+  private socketCount(): number {
+    return this.central ? this.central.sockets.size : this.clients.size;
+  }
+
+  /** On the central server, an event carries the checkout it is about. */
+  private stamp(message: Record<string, unknown>): Record<string, unknown> {
+    if (!this.central) return message;
+    const { project, checkout } = this.context.ref;
+    return { ...message, project, checkout };
+  }
+
+  /** The central server listens on 127.0.0.1 only, and sweeps idle contexts and removed checkouts. */
+  private async startCentral(port: number): Promise<void> {
+    const central = this.central!;
+    try {
+      const server = await this.listenOn(port, "127.0.0.1");
+      server.on("connection", (socket: import("net").Socket) => {
+        central.connections.add(socket);
+        socket.once("close", () => central.connections.delete(socket));
+      });
+      this._servers.push(server);
+    } catch (error) {
+      this.closeServers();
+      if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+        throw new Error(`Port ${port} is already in use.`);
+      }
+      throw error;
+    }
+    for (const server of this._servers) this.injectWebSocket?.(server);
+    central.pool.startSweeping();
+    const interval = central.options.removalCheckMs ?? 30_000;
+    if (interval > 0) {
+      central.removalTimer = setInterval(() => {
+        this.checkRemovedCheckouts().catch((error) => {
+          console.warn(`[Central] Checking for removed checkouts failed: ${getErrorMessage(error)}`);
+        });
+      }, interval);
+      central.removalTimer.unref?.();
+    }
+  }
+
+  /**
+   * Stops the central server: ends every checkout's DrBot turns, tells each subscriber its
+   * checkout is no longer served, closes every context and socket, then the listener.
+   */
+  async stopCentral(options: { processExiting?: boolean } = {}): Promise<void> {
+    const central = this.central;
+    if (!central) return;
+    if (central.removalTimer) clearInterval(central.removalTimer);
+    central.removalTimer = undefined;
+    central.stopListening();
+    const timestamp = new Date().toISOString();
+    for (const ref of central.pool.loaded()) {
+      const context = central.pool.peek(ref);
+      if (!context) continue;
+      for (const [conversationId, proc] of context.chatProcesses) {
+        context.cancelledChatProcesses.add(proc);
+        try {
+          proc.kill("SIGTERM");
+        } catch (error) {
+          console.warn(`[Central] Could not stop DrBot turn ${conversationId}: ${getErrorMessage(error)}`);
+        }
+      }
+      const message = JSON.stringify({ type: "server.stopping", project: ref.project, checkout: ref.checkout, timestamp });
+      for (const subscriber of context.subscribers) {
+        try {
+          subscriber.send(message);
+        } catch {
+          // A socket that is already gone needs no notice.
+        }
+      }
+    }
+    central.pool.stop({ processExiting: options.processExiting });
+    for (const ws of central.sockets.keys()) {
+      try {
+        ws.close(1001, "server stopping");
+      } catch {
+        // Already closed.
+      }
+    }
+    central.sockets.clear();
+    const servers = this._servers;
+    this._servers = [];
+    const closed = Promise.all(
+      servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve())))
+    );
+    for (const connection of central.connections) connection.destroy();
+    central.connections.clear();
+    // The listener stops accepting at close(). Its callback waits for every connection to end,
+    // and under Bun it never comes once a connection was upgraded to a websocket, even after the
+    // connection is destroyed: wait for it a moment, no longer.
+    let grace: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([closed, new Promise<void>((resolve) => (grace = setTimeout(resolve, 1000)))]);
+    clearTimeout(grace);
+  }
+
+  /** The port the server listens on (the one the OS chose when started on port 0). */
+  listeningPort(): number | undefined {
+    const address = this._servers[0]?.address();
+    return address && typeof address === "object" ? address.port : undefined;
+  }
+
+  /** What the central process reports for its idle exit (`CentralActivity` in central-server-contract.ts). */
+  centralActivity(): { clients: number; mcpSessions: number; drBotTurns: number; lastActivityAt: number } {
+    let drBotTurns = 0;
+    if (this.central) {
+      for (const ref of this.central.pool.loaded()) {
+        const context = this.central.pool.peek(ref);
+        if (context) drBotTurns += Math.max(context.busyChatConversations.size, context.chatProcesses.size);
+      }
+    }
+    return { clients: this.socketCount(), mcpSessions: 0, drBotTurns, lastActivityAt: this.lastActivityAt };
+  }
+
+  /** `/health` on the central process (`CentralHealth`): status and version, the rest only with the token. */
+  private centralHealth(withToken: boolean): Record<string, unknown> {
+    const central = this.central!;
+    const response: Record<string, unknown> = { status: "ok", version: "0.1.0", cliVersion: getCliVersion() };
+    if (!withToken) return response;
+    if (central.options.serverId) response.serverId = central.options.serverId;
+    response.pid = process.pid;
+    if (this.launcherPid) response.launcherPid = this.launcherPid;
+    response.farmRoot = this.farmRoot();
+    response.clients = this.socketCount();
+    response.loadedCheckouts = central.pool.size;
+    return response;
+  }
+
+  private farmRoot(): string {
+    const root = this.central!.options.registry.farm.root;
+    try {
+      return realpathSync(root);
+    } catch {
+      return root;
+    }
+  }
+
+  /**
+   * A checkout's context, loaded on first use. A message naming why when the registry doesn't
+   * list the project, or the checkout, or the checkout is not on disk (`missing` or `prunable`).
+   */
+  private async acquireCheckout(ref: CheckoutRef): Promise<{ context: CheckoutContext } | { error: string }> {
+    const central = this.central!;
+    const registry = central.options.registry;
+    // Another process may have registered the project since the registry was read.
+    if (!registry.getProject(ref.project)) await this.reloadRegistry();
+    if (!registry.getProject(ref.project)) return { error: `Unknown project: ${ref.project}` };
+
+    const resolved = await registry.resolveRef(ref);
+    if (!resolved) {
+      // Gone, or never there: a loaded context for it is closed.
+      this.closeRemovedCheckout(ref);
+      const listed = (await registry.checkouts(ref.project)).find((c) => c.key === ref.checkout);
+      return {
+        error: listed
+          ? `Checkout ${ref.checkout} of project ${ref.project} is ${listed.state}: its folder is not on disk`
+          : `Unknown checkout of project ${ref.project}: ${ref.checkout}`,
+      };
+    }
+    const context = await central.pool.acquire(ref);
+    if (!context || context.closed) return { error: `Checkout ${ref.checkout} of project ${ref.project} could not be loaded` };
+    return { context };
+  }
+
+  private async reloadRegistry(): Promise<void> {
+    try {
+      await this.central!.options.registry.reload();
+    } catch (error) {
+      console.warn(`[Central] Could not re-read the farm: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /** Loads a checkout's context for the pool: its model, changesets and annotations, and its file watcher. */
+  private async loadCheckoutContext(resolved: ResolvedCheckout): Promise<CheckoutContext> {
+    const context = await CheckoutContext.load(resolved.ref, resolved.modelPath);
+    await this.inContext(context, async () => {
+      await this.loadChangesetsFromDisk();
+      await this.syncAnnotations({ broadcast: false }).catch((error) => {
+        console.warn(`[Annotations] Could not read the annotations: ${getErrorMessage(error)}`);
+      });
+      this.setupFileWatcher();
+    });
+    return context;
+  }
+
+  /**
+   * A checkout is gone (`checkout-removed`): its context closes, ending its DrBot turns, and its
+   * subscribers hear `checkout.removed`. Their sockets stay open for their other checkouts.
+   */
+  private closeRemovedCheckout(ref: CheckoutRef): void {
+    this.central?.pool.close(ref);
+  }
+
+  /** Asks the registry about each loaded checkout, so a removed one is closed even with no request for it. */
+  private async checkRemovedCheckouts(): Promise<void> {
+    const central = this.central!;
+    for (const ref of central.pool.loaded()) {
+      if (!(await central.options.registry.resolveRef(ref))) this.closeRemovedCheckout(ref);
+    }
+  }
+
+  /**
+   * Runs a central `/api/...` request in its checkout's context: the checkout a scoped route
+   * names, else (an unscoped route) the checkout the process was started in. 404 when the
+   * registry doesn't list it or it is not on disk. The project routes and `/api/spec` need none.
+   */
+  private async scopeRequest(c: any, next: () => Promise<void>): Promise<Response | void> {
+    const central = this.central!;
+    const segments = c.req.path.split("/");
+    let ref: CheckoutRef;
+    if (segments[2] === "projects") {
+      // /api/projects, /api/projects/{project}, /api/projects/{project}/checkouts
+      if (segments.length < 7 || segments[4] !== "checkouts") return next();
+      try {
+        ref = { project: decodeURIComponent(segments[3]), checkout: decodeURIComponent(segments[5]) };
+      } catch {
+        return c.json({ error: "Malformed project or checkout in the path" }, 400);
+      }
+    } else if (segments[2] === "spec") {
+      return next();
+    } else {
+      const fallback = central.options.defaultCheckout;
+      if (!fallback) {
+        return c.json(
+          { error: "This farm has no checkout for the unscoped routes: use /api/projects/{project}/checkouts/{checkout}/..." },
+          404
+        );
+      }
+      ref = fallback;
+    }
+    const found = await this.acquireCheckout(ref);
+    if ("error" in found) return c.json({ error: found.error }, 404);
+    c.set(CHECKOUT_CONTEXT_KEY, ref);
+    return this.inContext(found.context, () => next());
+  }
+
+  /** Handles a websocket message: a feed subscription, or a message in the checkout it is for. */
+  private async dispatchWSMessage(ws: HonoWSContext, data: WSMessage): Promise<CheckoutRef | undefined> {
+    const handle = () =>
+      "jsonrpc" in data && data.jsonrpc === "2.0" ? this.handleJSONRPCMessage(ws, data) : this.handleWSMessage(ws, data);
+    if ("action" in data) {
+      if (!this.central) {
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "Checkout subscriptions are served by the central process (dr serve), not a per-project viewer",
+          })
+        );
+        return undefined;
+      }
+      return this.handleFeedSubscription(ws, data);
+    }
+    if (!this.central) {
+      await handle();
+      return undefined;
+    }
+    const ref = this.messageCheckout(ws, data);
+    if (!ref) {
+      ws.send(JSON.stringify({ type: "error", message: "Subscribe to a checkout first: {action: \"subscribe\", project, checkout}" }));
+      return undefined;
+    }
+    const found = await this.acquireCheckout(ref);
+    if ("error" in found) {
+      ws.send(JSON.stringify({ type: "error", message: found.error, project: ref.project, checkout: ref.checkout }));
+      return ref;
+    }
+    await this.inContext(found.context, handle);
+    return ref;
+  }
+
+  /**
+   * The checkout a central websocket message is for: the project and checkout its params name,
+   * else the socket's one subscription, else the checkout the process was started in.
+   */
+  private messageCheckout(ws: HonoWSContext, data: WSMessage): CheckoutRef | null {
+    const params = "params" in data ? (data.params as Record<string, unknown> | undefined) : undefined;
+    if (params && typeof params === "object" && typeof params.project === "string" && typeof params.checkout === "string") {
+      return { project: params.project, checkout: params.checkout };
+    }
+    const subscriptions = [...(this.central!.sockets.get(ws)?.values() ?? [])];
+    if (subscriptions.length === 1) return subscriptions[0].ref;
+    return this.central!.options.defaultCheckout;
+  }
+
+  /**
+   * `{action: "subscribe" | "unsubscribe", project, checkout}`: adds or removes the socket's
+   * subscription to the checkout's feed, acquiring its context. A subscribed context is never
+   * evicted. (`application.applicationfunction.subscribe-checkout-feed`)
+   */
+  private async handleFeedSubscription(ws: HonoWSContext, frame: FeedSubscription): Promise<CheckoutRef> {
+    const central = this.central!;
+    const ref: CheckoutRef = { project: frame.project, checkout: frame.checkout };
+    const key = checkoutKey(ref);
+    const timestamp = () => new Date().toISOString();
+
+    if (frame.action === "unsubscribe") {
+      const subscription = central.sockets.get(ws)?.get(key);
+      if (subscription) {
+        central.sockets.get(ws)!.delete(key);
+        central.pool.peek(ref)?.subscribers.delete(subscription);
+      }
+      ws.send(JSON.stringify({ type: "unsubscribed", ...ref, timestamp: timestamp() }));
+      return ref;
+    }
+
+    const found = await this.acquireCheckout(ref);
+    if ("error" in found) {
+      ws.send(JSON.stringify({ type: "error", message: found.error, ...ref }));
+      return ref;
+    }
+    // The socket may have closed while the checkout loaded.
+    const subscriptions = central.sockets.get(ws);
+    if (!subscriptions) return ref;
+    if (!subscriptions.has(key)) {
+      const subscription: FeedSubscriber = {
+        ref,
+        ws,
+        send: (source, options) => ws.send(source, options),
+        // The context closing ends this subscription only; the socket stays open.
+        close: () => {
+          if (central.sockets.get(ws)?.get(key) === subscription) central.sockets.get(ws)!.delete(key);
+        },
+      };
+      found.context.subscribers.add(subscription);
+      subscriptions.set(key, subscription);
+    }
+    found.context.touch();
+    ws.send(JSON.stringify({ type: "subscribed", ...ref, timestamp: timestamp() }));
+    return ref;
+  }
+
+  /** A closed socket's subscriptions end. */
+  private dropSocket(ws: HonoWSContext): void {
+    const central = this.central!;
+    for (const subscription of central.sockets.get(ws)?.values() ?? []) {
+      central.pool.peek(subscription.ref)?.subscribers.delete(subscription);
+    }
+    central.sockets.delete(ws);
+  }
+
+  /** The farm's projects, the registry re-read first. */
+  private async farmProjects() {
+    await this.reloadRegistry();
+    return this.central!.options.registry.listProjects();
+  }
+
+  /** `GET /api/projects`, `/api/projects/{project}` and `/api/projects/{project}/checkouts` (central only). */
+  private setupProjectRoutes(): void {
+    const notFound = {
+      description: "The farm lists no project of that name",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    };
+    const projectParams = z.object({ project: ProjectNameParamSchema });
+
+    const listProjectsRoute = createRoute({
+      method: "get",
+      path: "/api/projects",
+      tags: ["Projects"],
+      summary: "List the projects",
+      description: "Every project of the farm with its checkouts (main checkout and linked worktrees)",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "The farm's projects", content: { "application/json": { schema: ProjectsListSchema } } },
+      },
+    });
+    this.app.openapi(listProjectsRoute, (async (c: any) => {
+      try {
+        return c.json({ projects: await this.farmProjects() });
+      } catch (error) {
+        return c.json({ error: getErrorMessage(error) }, 500);
+      }
+    }) as any);
+
+    const getProjectRoute = createRoute({
+      method: "get",
+      path: "/api/projects/:project",
+      tags: ["Projects"],
+      summary: "Get a project",
+      description: "One project of the farm with its checkouts",
+      security: [{ bearerAuth: [] }],
+      request: { params: projectParams },
+      responses: {
+        200: { description: "The project", content: { "application/json": { schema: ProjectListEntrySchema } } },
+        404: notFound,
+      },
+    });
+    this.app.openapi(getProjectRoute, (async (c: any) => {
+      const { project } = c.req.valid("param");
+      const entry = (await this.farmProjects()).find((p) => p.name === project);
+      if (!entry) return c.json({ error: `Unknown project: ${project}` }, 404);
+      return c.json(entry);
+    }) as any);
+
+    const getProjectCheckoutsRoute = createRoute({
+      method: "get",
+      path: "/api/projects/:project/checkouts",
+      tags: ["Projects"],
+      summary: "List a project's checkouts",
+      description: "The project's main checkout and linked worktrees, with their state and staged changesets",
+      security: [{ bearerAuth: [] }],
+      request: { params: projectParams },
+      responses: {
+        200: { description: "The project's checkouts", content: { "application/json": { schema: ProjectCheckoutsSchema } } },
+        404: notFound,
+      },
+    });
+    this.app.openapi(getProjectCheckoutsRoute, (async (c: any) => {
+      const { project } = c.req.valid("param");
+      const entry = (await this.farmProjects()).find((p) => p.name === project);
+      if (!entry) return c.json({ error: `Unknown project: ${project}` }, 404);
+      return c.json({ project: entry.name, checkouts: entry.checkouts });
+    }) as any);
+  }
+
+  /**
+   * Registers a project-data route: at its unscoped path and, on the central server, again under
+   * /api/projects/{project}/checkouts/{checkout}/, with the same handler and body. scopeRequest
+   * runs the handler in the named checkout's context.
+   */
+  private dataRoute(route: any, handler: (c: any) => any): void {
+    this.app.openapi(route, handler);
+    if (this.central) this.app.openapi(VisualizationServer.scopedRoute(route), handler);
+  }
+
+  /** The checkout-scoped twin of an unscoped /api route. */
+  private static scopedRoute(route: any): any {
+    const scope = z.object({ project: ProjectNameParamSchema, checkout: CheckoutKeyParamSchema });
+    const params = route.request?.params ? scope.merge(route.request.params) : scope;
+    const own404 = route.responses?.[404]?.description;
+    return createRoute({
+      ...route,
+      path: SCOPED_PREFIX + route.path.slice("/api".length),
+      description: `${route.description}, in the named project's checkout`,
+      request: { ...(route.request ?? {}), params },
+      responses: {
+        ...route.responses,
+        404: {
+          description: own404
+            ? `${own404}; or the farm lists no such project or checkout, or the checkout is not on disk`
+            : "The farm lists no such project or checkout, or the checkout is not on disk",
+          content: { "application/json": { schema: ErrorResponseSchema } },
+        },
+      },
+    });
   }
 }
