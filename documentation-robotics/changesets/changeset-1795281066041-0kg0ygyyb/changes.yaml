@@ -645,7 +645,12 @@
       created_at: 2026-11-21T17:14:10.888Z
       updated_at: 2026-11-21T17:14:10.888Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: Repository
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 29
 - type: add
   elementId: data-model.objectschema.checkout
@@ -668,7 +673,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: Checkout
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 30
 - type: add
   elementId: data-model.objectschema.checkout-ref
@@ -689,7 +699,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: CheckoutRef
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 31
 - type: add
   elementId: data-model.objectschema.project-list-entry
@@ -710,7 +725,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: ProjectListEntry
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 32
 - type: add
   elementId: data-model.objectschema.server-record
@@ -733,7 +753,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:43:52.060Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: ServerRecord
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 33
 - type: add
   elementId: data-model.objectschema.viewer-link
@@ -755,7 +780,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:43:53.191Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: ViewerLink
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 34
 - type: add
   elementId: data-model.objectschema.dr-bot-session-key
@@ -797,7 +827,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: ContextPoolSettings
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 36
 - type: add
   elementId: data-model.objectschema.feed-subscription
@@ -904,7 +939,12 @@
       created_at: 2026-11-21T17:14:10.902Z
       updated_at: 2026-11-21T17:14:10.902Z
       version: 1
-  timestamp: 2026-11-21T17:43:52.422Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server-record.ts
+          symbol: serverRecordPath
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 41
 - type: add
   elementId: data-store.collection.legacy-viewer-records
@@ -1025,7 +1065,12 @@
         decided_by: agent
         decided_at: 2026-11-21T17:16:37.667Z
         changeset: changeset-1795281066041-0kg0ygyyb
-  timestamp: 2026-11-21T17:43:51.400Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 47
 - type: add
   elementId: application.applicationfunction.resolve-checkout
@@ -1044,7 +1089,12 @@
       created_at: 2026-11-21T17:14:10.903Z
       updated_at: 2026-11-21T17:14:10.903Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.resolveCheckout
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 48
 - type: add
   elementId: application.applicationfunction.discover-checkouts
@@ -1065,7 +1115,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:43:53.750Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: listCheckouts
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 49
 - type: add
   elementId: application.applicationfunction.derive-project-name
@@ -1085,7 +1140,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: deriveProjectName
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 50
 - type: add
   elementId: application.applicationfunction.register-project
@@ -1105,7 +1165,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:43:53.425Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.registerProject
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 51
 - type: add
   elementId: application.applicationfunction.list-projects
@@ -1123,7 +1188,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.listProjects
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 52
 - type: add
   elementId: application.applicationevent.checkout-removed
@@ -1143,7 +1213,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: CheckoutRemovedEvent
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 53
 - type: add
   elementId: application.applicationcomponent.checkout-context
@@ -1165,7 +1240,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/checkout-context.ts
+          symbol: CheckoutContext
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 54
 - type: add
   elementId: application.applicationcomponent.checkout-context-pool
@@ -1196,7 +1276,12 @@
         decided_by: agent
         decided_at: 2026-11-21T17:16:38.299Z
         changeset: changeset-1795281066041-0kg0ygyyb
-  timestamp: 2026-11-21T17:16:38.334Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/checkout-context-pool.ts
+          symbol: CheckoutContextPool
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 55
 - type: add
   elementId: application.applicationfunction.acquire-checkout-context
@@ -1214,7 +1299,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/checkout-context-pool.ts
+          symbol: CheckoutContextPool.acquire
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 56
 - type: add
   elementId: application.applicationfunction.evict-checkout-contexts
@@ -1232,7 +1322,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/checkout-context-pool.ts
+          symbol: CheckoutContextPool.evict
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 57
 - type: add
   elementId: application.applicationfunction.close-checkout-context
@@ -1250,7 +1345,12 @@
       created_at: 2026-11-21T17:14:10.904Z
       updated_at: 2026-11-21T17:14:10.904Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/checkout-context-pool.ts
+          symbol: CheckoutContextPool.close
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 58
 - type: add
   elementId: application.applicationcomponent.dr-bot-launcher
@@ -1502,7 +1602,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:43:54.039Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/farm-migration.ts
+          symbol: migrateFarmManifest
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 70
 - type: add
   elementId: application.applicationservice.farm-migrate-command
@@ -1522,7 +1627,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/commands/farm.ts
+          symbol: migrate
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 71
 - type: add
   elementId: application.applicationinterface.central-server-http-endpoint
@@ -9722,7 +9832,12 @@
       created_at: 2026-11-21T17:43:54.697Z
       updated_at: 2026-11-21T17:43:54.697Z
       version: 1
-  timestamp: 2026-11-21T17:43:54.796Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: resolveFarm
+  timestamp: 2026-11-23T17:59:05.771Z
   sequenceNumber: 639
 - type: add
   elementId: data-store.database.farm-root
