@@ -1,0 +1,31 @@
+{
+  "backend": "context-studio",
+  "record": "cs-73177e1d-6413-4695-b983-1f4b628ef1cc",
+  "select": {
+    "proposal_id": "73177e1d-6413-4695-b983-1f4b628ef1cc",
+    "title": "Allow technology.device composes technology.systemsoftware"
+  },
+  "applied_at": "2026-11-22T14:46:56.006Z",
+  "counts": {
+    "rename": 0,
+    "create": 1,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "technology.device.composes.technology.systemsoftware",
+      "to": "technology.device.composes.technology.systemsoftware",
+      "p": 0.8,
+      "claims": [],
+      "note": "Context Studio proposal 73177e1d-6413-4695-b983-1f4b628ef1cc seq 1 (create)",
+      "file_written": "spec/schemas/relationships/technology/device.composes.systemsoftware.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "a022224fee43f9f12f0663cf6e59be2e2ce98fcf",
+    "spec_version": "0.14.0"
+  }
+}

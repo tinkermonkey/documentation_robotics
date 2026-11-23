@@ -7,6 +7,57 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+Gaps and rulings from the heimdall review pilot (2026-11-21) and from modelling DR's own user-level
+process (issue 1289), decided in Context Studio on 2026-11-22: proposals 3e1e77bf, f8336df1,
+73177e1d, a1bb34f1, 7030f486, 18b4f4ad, bd65fd8d and d7aa33cc. The catalog goes from 1,004
+relationship types to 1,017 and from 194 node types to 195. Nothing is renamed or removed and nothing
+becomes required, so no model migration; thirteen APM attributes stop being required.
+
+### Added
+
+- **`ux.designtoken`**: a named design decision (a colour, spacing step, font size, radius, duration
+  or shadow) that a UX library or application exposes as one value its components read, so the look
+  can be themed without changing component code. Usually one element per token set. W3C Design
+  Tokens Community Group format. A UX library aggregates its design tokens.
+- **`technology.systemsoftware` `softwareType`** gains `language-runtime` (its definition already
+  named one) and `web-browser`.
+- **Requirements met below the service:** an artifact, a technology function, a technology process
+  and an application process may satisfy a requirement.
+- **Technology processes:** a process composes the technology functions that are its steps, and
+  realizes the security countermeasures it carries out. A node is assigned to the technology
+  processes it performs, which the layer's rules text already allowed.
+- **Component libraries:** a UX library aggregates its state patterns, and a library component
+  realizes the product feature it delivers (a library has no views to do it).
+- **`softwareType`** also gains `developer-tool` (git, a coding-agent CLI) and `library` (a framework
+  the system is built on, such as React), and its description defines every new value
+  (18b4f4ad).
+- **`technology.device composes technology.systemsoftware`**: a device hosts the system software
+  installed on it, as a node already can (73177e1d).
+- **`data-model.objectschema references data-model.objectschema`**: a schema-to-schema reference
+  when the properties themselves are not modelled (a1bb34f1).
+- **`data-store.database` `paradigm` gains `FILE_STORE`**: state an application keeps as files in a
+  directory it owns, each kind of file a collection (7030f486).
+- **`application.applicationcomponent satisfies motivation.requirement`**: a component that exists
+  to meet a requirement says so directly (bd65fd8d).
+
+### Changed
+
+- **A library's public API uses existing types** (f8336df1). A package's entry point is an
+  `application.applicationinterface`, and its exported functions and hooks are application services
+  assigned to it. `api.operation` always has an HTTP method and a path.
+- **A UI component is modelled once, in the ux layer** (f8336df1). A React, Vue or Svelte component
+  is a `ux.librarycomponent` (or a view), never also an `application.applicationcomponent`; the
+  application or package that ships it is the application component. The application skill said
+  the opposite and named a type that does not exist (`ux.component`); it now agrees.
+- **Test case sketches on demand** (f8336df1). A sketch is made for a test a maintainer would name;
+  routine unit tests are represented by the coverage target of the unit they cover.
+- **Span and LogRecord no longer require the values of one recorded instance** (d7aa33cc). Span's
+  traceId, spanId, traceState, parentSpanId, start and end times and dropped counts, and LogRecord's
+  time, observed time, flags and dropped count, are optional; spanKind, severityNumber and body stay
+  required. Existing models stay valid.
+
+The layer rules text and skills say the same.
+
 ## [0.14.0] - 2026-11-19
 
 Four maintainer rulings on what a code symbol is, from the Tier 1 held-out cards (2026-11-17),
@@ -31,21 +82,21 @@ upgrade` takes models from 0.13.0 to 0.14.0.
   not decide the type, and an announcement published to whoever subscribes stays an
   `application.applicationevent`. Not an ArchiMate element (its reference is Enterprise Integration
   Patterns and AsyncAPI). Six relationship types come with it: `applicationfunction triggers
-  message` and `applicationprocess triggers message` (the sender), `message triggers
-  applicationfunction` and `message triggers applicationprocess` (the handler),
+message` and `applicationprocess triggers message` (the sender), `message triggers
+applicationfunction` and `message triggers applicationprocess` (the handler),
   `applicationinteraction aggregates message`, and `data-model.objectschema realizes message` (the
   declared shape of its payload).
 - **Code can access a database as a whole** (Context Studio proposal 93d40a94):
   `application.applicationcomponent accesses data-store.database` and
   `application.applicationservice accesses data-store.database`. Spec 0.11.0 made stored data
   passive and removed `database serves applicationcomponent` and `database serves
-  applicationservice` with no replacement, so a model could only say which database a component
+applicationservice` with no replacement, so a model could only say which database a component
   uses by modelling every collection. A component bound to one database (a connection pool, a
   client, an ORM session) or a service backed by a database whose collections are not modelled now
   links to the database; `accesses collection` stays the link when the collections are named.
   `apm.exporterconfig accesses data-store.database` was the precedent.
 - **A service serves the view it backs** (proposal 38fa8fa3): `application.applicationservice
-  serves ux.view`, for the service a view loads its data from when it renders. Models had said this
+serves ux.view`, for the service a view loads its data from when it renders. Models had said this
   as `ux.view serves application.applicationservice`, against the direction of `serves` (provider
   to consumer), and that type was removed in 0.11.0. The view's `realizes applicationinterface`
   stays the link when the interface is modelled, and an action component's `triggers` covers calls
@@ -344,24 +395,19 @@ changesets (0.9.0 → 0.10.0 → 0.11.0), using the generated table in
   - **Layout and motion:** elements `applies` their layout config (the `governs`, `provides`,
     `uses` and `renders` layout links become `applies` or are removed). Transition templates are
     only used; their `flows-to`, `navigates-to` and `triggers` links are removed.
-  - **State machines:**
-    - A state composes its outgoing transitions, and a transition `flows-to` its destination
-      state (was `navigates-to`).
-    - `experiencestate specializes statepattern` and `statepattern governs experiencestate`
-      fold onto `statepattern aggregates experiencestate`, and the inverted `stateactiontemplate
+  - **State machines:** - A state composes its outgoing transitions, and a transition `flows-to` its destination
+    state (was `navigates-to`). - `experiencestate specializes statepattern` and `statepattern governs experiencestate`
+    fold onto `statepattern aggregates experiencestate`, and the inverted `stateactiontemplate
 realizes stateaction` folds onto the action's `realizes`.
   - **Data and errors:**
     - Elements `binds-to` their data config, and the 4 reverse bindings fold onto them or are
       removed.
     - Chart series and table columns bind through their component.
     - Elements `uses` their error config (was `requires`, `aggregates`, `governs`).
-  - **Other layers:**
-    - UX reaches application, API and data only through a view's interface, an action's
-      triggered operation, service or function, and a data config's mapped data. About 20
-      direct `accesses`, `serves`, `uses` and `references` links are removed.
-    - Business is reached through application and product: 5 links are removed, and `view
-maps-to businessobject` becomes `references`.
-    - `view realizes goal` and `view maps-to outcome` become `supports`.
+  - **Other layers:** - UX reaches application, API and data only through a view's interface, an action's
+    triggered operation, service or function, and a data config's mapped data. About 20
+    direct `accesses`, `serves`, `uses` and `references` links are removed. - Business is reached through application and product: 5 links are removed, and `view
+maps-to businessobject` becomes `references`. - `view realizes goal` and `view maps-to outcome` become `supports`.
   - **Predicate retired:** `renders` (to `composes`), 58 → 57 predicates. Context Studio cannot
     carry predicate retirements yet (context-studio#1440), so it is recorded in DR.
   - **Descriptions and docs:**
@@ -431,17 +477,13 @@ accesscondition` and the validation rules' access and policy links are removed.
   rejected, mostly retargets that kept a duplicate link.
   - **One owner per type:** the model composes targets, partitions, context variations,
     environment factors, exclusions and the summary; a target composes its input fields, outcome
-    categories, requirements and test case sketches.
-    - `testcoveragemodel aggregates` contextvariation and inputspacepartition become `composes`,
-      and `environmentfactor serves testcoveragemodel` is reversed into
-      `testcoveragemodel composes environmentfactor`.
-    - `testcoveragetarget flows-to testcasesketch` becomes `composes`, and `testcasesketch
-validates testcoveragetarget` folds onto it.
-    - The summary's `aggregates`, `references` and `serves` links to the model fold onto
-      `testcoveragemodel composes coveragesummary`.
-    - Removed: the second parents (the model composing requirements, outcome categories and
-      selections, the target composing selections and itself) and the inverted
-      `coveragerequirement composes testcoveragetarget`.
+    categories, requirements and test case sketches. - `testcoveragemodel aggregates` contextvariation and inputspacepartition become `composes`,
+    and `environmentfactor serves testcoveragemodel` is reversed into
+    `testcoveragemodel composes environmentfactor`. - `testcoveragetarget flows-to testcasesketch` becomes `composes`, and `testcasesketch
+validates testcoveragetarget` folds onto it. - The summary's `aggregates`, `references` and `serves` links to the model fold onto
+    `testcoveragemodel composes coveragesummary`. - Removed: the second parents (the model composing requirements, outcome categories and
+    selections, the target composing selections and itself) and the inverted
+    `coveragerequirement composes testcoveragetarget`.
   - **Test cases:** a sketch `validates` its one requirement and references its context
     variation and outcome category; its `depends-on` links to them become `references`, and the
     outcome category's `aggregates testcasesketch` folds onto the sketch's reference.
@@ -491,11 +533,9 @@ constraint`.
     - `resource monitors systemsoftware` becomes `references`.
   - **Providers** depend on their resource (`traceconfiguration depends-on resource` is new) and
     aggregate their processors and exporters. `logconfiguration flows-to exporter` folds onto
-    `aggregates`.
-    - Removed: the configuration-to-configuration `serves` types, `traceconfiguration aggregates
+    `aggregates`. - Removed: the configuration-to-configuration `serves` types, `traceconfiguration aggregates
 span` and `metricinstrument`, the inverted `span composes traceconfiguration`, `scope
-aggregates exporter` and `instrumentationconfig references exporter`.
-    - `instrumentationconfig serves scope` becomes `references`.
+aggregates exporter` and `instrumentationconfig references exporter`. - `instrumentationconfig serves scope` becomes `references`.
   - **Pipeline:** each signal flows through its own processors to exporters. The 5 cross-signal
     flows are removed, along with `span composes metricinstrument` and `spanevent triggers
 metricinstrument`.
@@ -523,16 +563,13 @@ pathitem` is removed.
   states the rules (ArchiMate 3.2, mirroring the application layer), and the catalog follows them.
   The changes settle Context Studio's 28 technology proposals: 13 accepted, 4 partly accepted, 1
   deferred to the security pass, 10 rejected.
-  - **Active structure:**
-    - nodes compose their devices, system software, interfaces and deployed artifacts;
-    - nodes and system software are `assigned-to` their behaviour;
-    - collaborations aggregate their nodes, system software and nested collaborations, and are
-      `assigned-to` their interactions (`performs` is retired, 61 → 60 predicates);
-    - system software `provides` its interfaces, and an interface is `assigned-to` the services it
-      offers and `serves` the behaviour that uses it.
+  - **Active structure:** - nodes compose their devices, system software, interfaces and deployed artifacts; - nodes and system software are `assigned-to` their behaviour; - collaborations aggregate their nodes, system software and nested collaborations, and are
+    `assigned-to` their interactions (`performs` is retired, 61 → 60 predicates); - system software `provides` its interfaces, and an interface is `assigned-to` the services it
+    offers and `serves` the behaviour that uses it.
 
-    Inverted twins are reversed onto these types: `device composes node`, `interface assigned-to
-systemsoftware`, `technologyservice provides interface` and the `uses interface` types.
+        Inverted twins are reversed onto these types: `device composes node`, `interface assigned-to
+
+    systemsoftware`, `technologyservice provides interface`and the`uses interface` types.
 
   - **Behaviour:** a hand-off is `flows-to`, so `function triggers process` folds onto it.
     Structure no longer triggers events. Removed: `interaction realizes collaboration`, `event
@@ -560,10 +597,7 @@ technologyservice` is removed; `artifact realizes application.applicationcompone
       function link are removed.
   - **Deferred:** security links.
   - **Descriptions:** every technology relationship type is described.
-  - **Docs and tooling:**
-    - skill rows are fixed in all three copies (technology, api, apm);
-    - `dr-relate`'s tables are regenerated;
-    - the audit's gap templates no longer expect `role performs process`, `service realizes
+  - **Docs and tooling:** - skill rows are fixed in all three copies (technology, api, apm); - `dr-relate`'s tables are regenerated; - the audit's gap templates no longer expect `role performs process`, `service realizes
 process` or a non-existent `hosts` predicate.
   - **Counts:** technology's own types go from 122 to 80, plus 13 reversed inbound types; the
     catalog goes from 1,418 to 1,372.
@@ -576,14 +610,8 @@ process` or a non-existent `hosts` predicate.
   security pass, 10 rejected.
   - **Structure:** `route associated-with routemeta` folds onto `composes`.
   - **Moving between routes:** a transition leaves its source route (`route flows-to
-transition`) and `navigates-to` its destination route.
-    - `route triggers transition` folds onto `flows-to`.
-    - `flowstep realizes route` folds onto `flowstep navigates-to route`.
-    - Removed: `contextvariable triggers transition` and `navigationflow flows-to transition`.
-  - **Guards** `evaluates` their condition, `triggers` their action and `protects` what they guard.
-    - `guard constrains transition` and `guard intercepts flow` become `protects`.
-    - `transition` / `flow` / `flowstep requires guard` are reversed onto `protects`.
-    - Removed: the condition↔action links, `guardcondition constrains route`, `transition
+transition`) and `navigates-to` its destination route. - `route triggers transition` folds onto `flows-to`. - `flowstep realizes route` folds onto `flowstep navigates-to route`. - Removed: `contextvariable triggers transition` and `navigationflow flows-to transition`.
+  - **Guards** `evaluates` their condition, `triggers` their action and `protects` what they guard. - `guard constrains transition` and `guard intercepts flow` become `protects`. - `transition` / `flow` / `flowstep requires guard` are reversed onto `protects`. - Removed: the condition↔action links, `guardcondition constrains route`, `transition
 triggers guardaction` and `routemeta references guard`.
   - **Context variables are passive state.** The `consumes` and `uses` types toward them become
     `accesses` (two fold into one), `contextvariable flows-to flowstep` is reversed onto the
@@ -592,18 +620,12 @@ triggers guardaction` and `routemeta references guard`.
     - `breadcrumbconfig provides routemeta` (it was inverted) and `tracks navigationflow` become
       `references`, and `routemeta references breadcrumbconfig` folds onto it;
     - `routemeta uses transition` is removed, because that was the animation, not a route change.
-  - **Across layers:**
-    - **UX:** `route uses layoutconfig`, `flowstep maps-to view` and `navigationflow accesses
-view` are removed.
-    - **Application:** `route resolves-with applicationservice` folds onto `uses`, and
-      `flowstep accesses applicationservice` becomes `uses`.
-    - **Data model:** `guard uses objectschema` becomes `accesses`.
-    - **API:** `route` / `flowstep` / `guard accesses api.operation` are reversed into
-      `api.operation serves` them.
-    - **Data store:** the 6 links to tables, views and access patterns are removed, because a
-      client router never reaches the physical store.
-    - **Business and motivation:** the 8 direct links are removed. Navigation reaches them
-      through the product user workflows and steps it realizes.
+  - **Across layers:** - **UX:** `route uses layoutconfig`, `flowstep maps-to view` and `navigationflow accesses
+view` are removed. - **Application:** `route resolves-with applicationservice` folds onto `uses`, and
+    `flowstep accesses applicationservice` becomes `uses`. - **Data model:** `guard uses objectschema` becomes `accesses`. - **API:** `route` / `flowstep` / `guard accesses api.operation` are reversed into
+    `api.operation serves` them. - **Data store:** the 6 links to tables, views and access patterns are removed, because a
+    client router never reaches the physical store. - **Business and motivation:** the 8 direct links are removed. Navigation reaches them
+    through the product user workflows and steps it realizes.
   - **Predicates retired:** `consumes`, `intercepts`, `tracks` and `resolves-with` (65 → 61).
   - **Deferred:** security and technology links.
   - **Descriptions and docs:** every navigation relationship type is described. Skill rows are
@@ -621,23 +643,15 @@ view` are removed.
     validation rules, event handlers):
     - `database` and `namespace composes` field, index and validation rule are removed (6 types);
     - `collection composes namespace` is reversed onto `namespace composes collection`.
-  - **Stored data is passive:** collections, views, fields and databases never serve or trigger.
-    - `collection serves applicationcomponent` / `applicationservice` and `view serves
+  - **Stored data is passive:** collections, views, fields and databases never serve or trigger. - `collection serves applicationcomponent` / `applicationservice` and `view serves
 applicationservice` are reversed into the new application `accesses` types. Application
-      functions also get `accesses collection` and `accesses view`. The application rules say
-      code may access collections and views directly.
-    - The other 5 `serves` types are removed.
-    - `field triggers validationrule` and `field triggers eventhandler` become `validationrule` and
-      `eventhandler references field`, and `field triggers storedlogic` is removed.
+    functions also get `accesses collection` and `accesses view`. The application rules say
+    code may access collections and views directly. - The other 5 `serves` types are removed. - `field triggers validationrule` and `field triggers eventhandler` become `validationrule` and
+    `eventhandler references field`, and `field triggers storedlogic` is removed.
   - **Behaviour in the store** is stored logic, event handlers and access patterns. Duplicates
-    fold onto one type:
-    - `storedlogic validates collection` becomes `accesses`;
-    - `eventhandler monitors collection` becomes `collection composes eventhandler`;
-    - `index optimizes accesspattern` and `accesspattern aggregates index` become `accesspattern
-uses index`. The `optimizes` predicate, used only here, is retired (66 → 65 predicates).
-    - `accesspattern aggregates field` and `validationrule aggregates field` become `references`.
-    - Removed: `storedlogic aggregates field`, `storedlogic composes validationrule` and
-      `accesspattern triggers eventhandler`.
+    fold onto one type: - `storedlogic validates collection` becomes `accesses`; - `eventhandler monitors collection` becomes `collection composes eventhandler`; - `index optimizes accesspattern` and `accesspattern aggregates index` become `accesspattern
+uses index`. The `optimizes` predicate, used only here, is retired (66 → 65 predicates). - `accesspattern aggregates field` and `validationrule aggregates field` become `references`. - Removed: `storedlogic aggregates field`, `storedlogic composes validationrule` and
+    `accesspattern triggers eventhandler`.
   - **Across layers:** the store reaches the business through the application layer and the data
     model.
     - Removed: `database realizes businessservice`, `storedlogic realizes businessfunction`,
@@ -669,14 +683,10 @@ uses index`. The `optimizes` predicate, used only here, is retired (66 → 65 pr
   - **Decomposition is same-type only:** `goal realizes goal` becomes `aggregates`, and the
     same-type associations of stakeholders, values and outcomes become `aggregates`.
   - **Influence vs. association:** `influence` is one motivation element shaping another, and
-    association is kept for concerns and interpretation.
-    - These become `influence`: `driver associated-with constraint`, `assessment associated-with
+    association is kept for concerns and interpretation. - These become `influence`: `driver associated-with constraint`, `assessment associated-with
 outcome`, `goal supports principle`, and `goal associated-with constraint` (reversed onto
-      `constraint influence goal`).
-    - These become association: `assessment influence driver` and `stakeholder influence driver`.
-    - Requirement-sourced associations are reversed onto `driver influence requirement`,
-      `constraint constrains requirement` and `stakeholder associated-with requirement`.
-    - `goal influence assessment` is removed.
+    `constraint influence goal`). - These become association: `assessment influence driver` and `stakeholder influence driver`. - Requirement-sourced associations are reversed onto `driver influence requirement`,
+    `constraint constrains requirement` and `stakeholder associated-with requirement`. - `goal influence assessment` is removed.
   - **Meaning and value are always the source** of their associations: five types are reversed,
     `goal realizes value` among them. Meaning gains links to requirements and principles.
   - **Predicates retired spec-wide:**
@@ -784,16 +794,10 @@ data-model.schemadefinition`. The application layer's rules say behaviour may ac
   - components may access data objects (interfaces and collaborations may not);
   - an application function can be an event handler.
     Changes:
-  - **`depends-on` where another predicate says it:**
-    - `applicationinteraction depends-on dataobject` becomes `accesses`;
-    - `applicationcollaboration depends-on applicationinterface` becomes `provides`;
-    - `applicationinteraction depends-on applicationservice` becomes `applicationservice serves
-applicationinteraction` (new);
-    - `applicationfunction depends-on applicationevent` becomes `applicationevent triggers
-applicationfunction` (new);
-    - interaction `depends-on` collaboration and event, and interface `depends-on` component, move
-      onto the existing assigned-to, triggers and provides types (reversed);
-    - `applicationprocess depends-on applicationinterface` is removed.
+  - **`depends-on` where another predicate says it:** - `applicationinteraction depends-on dataobject` becomes `accesses`; - `applicationcollaboration depends-on applicationinterface` becomes `provides`; - `applicationinteraction depends-on applicationservice` becomes `applicationservice serves
+applicationinteraction` (new); - `applicationfunction depends-on applicationevent` becomes `applicationevent triggers
+applicationfunction` (new); - interaction `depends-on` collaboration and event, and interface `depends-on` component, move
+    onto the existing assigned-to, triggers and provides types (reversed); - `applicationprocess depends-on applicationinterface` is removed.
   - **Removed: active structure accessing data.** Collaboration and interface `depends-on
 dataobject`.
   - **Removed: component shortcuts to other layers** (application services carry them). Component

@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-18b4f4ad-8be2-46b2-a1a1-6ba09b8404bd",
+  "select": {
+    "proposal_id": "18b4f4ad-8be2-46b2-a1a1-6ba09b8404bd",
+    "title": "SystemSoftware.softwareType: add developer-tool and library, and define every value (replaces 46ac7831)"
+  },
+  "applied_at": "2026-11-22T14:47:03.018Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "8f7b4a93",
+    "spec_version": "0.14.0"
+  }
+}

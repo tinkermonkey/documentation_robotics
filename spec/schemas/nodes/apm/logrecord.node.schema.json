@@ -54,14 +54,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "timeUnixNano",
-        "observedTimeUnixNano",
-        "severityNumber",
-        "body",
-        "flags",
-        "droppedAttributesCount"
-      ],
+      "required": ["severityNumber", "body"],
       "additionalProperties": false
     }
   },

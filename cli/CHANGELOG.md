@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
+  Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
+  values, optional per-instance APM attributes, and the library-API, UI-component and test-sketch
+  rulings.
+- **Layer skills:** a React component is a `ux.librarycomponent`, not an application component (the
+  application skill pointed at a nonexistent `ux.component`); a library's exports are application
+  services behind an application interface, not API operations; frameworks are `softwareType:
+library` and runtimes `language-runtime`, not `middleware`; one test case sketch per test function
+  is listed as a pitfall.
+
+### Fixed
+
+- **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
+  `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
+  MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`
+  and ran the viewer's WebSocket on an unsupported pairing.
+
+## [0.7.1] - 2026-11-21
+
+**Specification Support:** v0.14.0
+
+This release ships viewer 0.14.0 with the CLI. `dr visualize` and `review_open` now open the
+Architecture view (the model as C4 diagrams, with any changeset laid over them) and show drift the
+way 0.7.0 lands it. The CLI's commands, MCP tools and file formats are unchanged, and the spec is
+unchanged.
+
+### Changed
+
+- **Bundled viewer bumped to v0.14.0**: `documentation_robotics_viewer` moves `0.13.0` → `0.14.0`
+  (`cli/scripts/download-viewer.sh`). In the viewer:
+  - A new Architecture view draws the model as C4 System Context, Container and Component diagrams,
+    with drill-down, a breadcrumb and a details drawer whose model elements open in the Model view.
+  - Any changeset can be laid over those diagrams (a staged one applied, a committed one reverted):
+    boxes and arrows added, removed or changed are marked with a label as well as colour, removed ones
+    are drawn back faded, and each mark traces to its changes in the Changesets review.
+  - Drift follows this CLI's 0.7.0 contract: a drifted plan is flagged and its overlaps' consequences
+    are listed before Apply, instead of the viewer predicting a refusal.
+
 ## [0.7.0] - 2026-11-20
 
 **Specification Support:** v0.14.0

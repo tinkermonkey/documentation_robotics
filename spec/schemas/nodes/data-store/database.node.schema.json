@@ -35,9 +35,10 @@
             "TIME_SERIES",
             "GRAPH",
             "SEARCH_ENGINE",
-            "MULTI_MODEL"
+            "MULTI_MODEL",
+            "FILE_STORE"
           ],
-          "description": "Primary data model paradigm. RELATIONAL: SQL-based tabular data (PostgreSQL, MySQL, Oracle). DOCUMENT: JSON/BSON document storage (MongoDB, CouchDB, Firestore). KEY_VALUE: simple key-to-value mapping (Redis, DynamoDB, etcd). WIDE_COLUMN: column-family storage (Cassandra, HBase, Bigtable). VECTOR: vector embedding storage and similarity search (Pinecone, Weaviate, Qdrant). TIME_SERIES: time-indexed measurements (InfluxDB, TimescaleDB). GRAPH: nodes and edges with traversal (Neo4j, Neptune). SEARCH_ENGINE: full-text search and analytics (Elasticsearch, OpenSearch). MULTI_MODEL: natively supports multiple paradigms (ArangoDB, CosmosDB, FaunaDB)."
+          "description": "Primary data model paradigm. RELATIONAL: SQL-based tabular data (PostgreSQL, MySQL, Oracle). DOCUMENT: JSON/BSON document storage (MongoDB, CouchDB, Firestore). KEY_VALUE: simple key-to-value mapping (Redis, DynamoDB, etcd). WIDE_COLUMN: column-family storage (Cassandra, HBase, Bigtable). VECTOR: vector embedding storage and similarity search (Pinecone, Weaviate, Qdrant). TIME_SERIES: time-indexed measurements (InfluxDB, TimescaleDB). GRAPH: nodes and edges with traversal (Neo4j, Neptune). SEARCH_ENGINE: full-text search and analytics (Elasticsearch, OpenSearch). MULTI_MODEL: natively supports multiple paradigms (ArangoDB, CosmosDB, FaunaDB). FILE_STORE: state the application reads and writes as files in a directory it owns (YAML, JSON or other structured files), with no database engine; each kind of file is a collection."
         },
         "version": {
           "type": "string",

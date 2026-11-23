@@ -45,7 +45,15 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-e7a10b16-d820-4b5e-a0bf-504dbc8cc465.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-38fa8fa3-0d48-429f-a0a3-825e47f259d5.json",
     "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-93d40a94-ce9f-4e40-a641-5d7504ef1490.json",
-    "cli/scripts/spec-enrich/data/applied-routes-for-dropped-relationships.json"
+    "cli/scripts/spec-enrich/data/applied-routes-for-dropped-relationships.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-3e1e77bf-0281-4aa7-9aef-1d980727654a.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-f8336df1-6367-47b7-b024-7e297487a886.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-73177e1d-6413-4695-b983-1f4b628ef1cc.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-a1bb34f1-5d88-4d29-a150-34fd04b4d477.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-7030f486-8e67-454a-8730-a3342bf111cd.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-bd65fd8d-1450-4d99-9bc8-0da2dcd8313e.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-d7aa33cc-58f4-4e26-a861-7e17e1154ec4.json",
+    "cli/scripts/spec-enrich/data/cs-decisions/applied-cs-18b4f4ad-8be2-46b2-a1a1-6ba09b8404bd.json"
   ],
   "predicateRenames": {
     "consumes": "accesses",
@@ -1532,13 +1540,6 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "records": [
         "application-principles",
         "capability-split"
-      ]
-    },
-    "application.applicationcomponent.satisfies.motivation.requirement": {
-      "to": null,
-      "swap": false,
-      "records": [
-        "application-principles"
       ]
     },
     "application.applicationcomponent.serves.business.businessrole": {
@@ -4221,13 +4222,6 @@ export const RELATIONSHIP_REWRITE_TABLE: RelationshipRewriteTable = {
       "swap": true,
       "records": [
         "technology-principles"
-      ]
-    },
-    "technology.device.composes.technology.systemsoftware": {
-      "to": "technology.systemsoftware.depends-on.technology.device",
-      "swap": true,
-      "records": [
-        "tier1"
       ]
     },
     "technology.node.depends-on.technology.technologyservice": {

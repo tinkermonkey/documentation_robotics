@@ -345,6 +345,7 @@ If any type has ZERO elements, explicitly decide:
 
 ## Pitfalls to Avoid
 
+- ❌ One test case sketch per test function: make a sketch for a test a maintainer would name (an end-to-end scenario, a regression case, a case designed against a coverage requirement); routine unit tests are represented by the coverage target of the unit they cover
 - ❌ Ad-hoc testing without systematic partitioning
 - ❌ Missing context variations (only testing happy path)
 - ❌ Not documenting coverage gaps
