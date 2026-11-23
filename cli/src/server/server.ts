@@ -24,6 +24,7 @@ import { Changeset as StagedChangeset } from "../core/changeset.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
+import { verifyChangesetInModel } from "../core/changeset-verify.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
 import type { ChangesetDrift } from "../core/changeset-base-index.js";
@@ -97,6 +98,7 @@ import {
   ChangesetCommitRefusedSchema,
   ChangesetReviewSchema,
   ChangesetReviewUpdateSchema,
+  ChangesetVerificationSchema,
   ModelResponseSchema,
   LayerResponseSchema,
   SpecResponseSchema,
@@ -1692,6 +1694,57 @@ export class VisualizationServer {
           return list ? { ...change, blockers: list } : change;
         }),
       });
+    }) as any);
+
+    // A plan compared with what was built: changeset_verify's report, read-only.
+    const getChangesetVerificationRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets/:changesetId/verification',
+      tags: ['Changesets'],
+      summary: 'Compare a plan changeset with an as-built changeset',
+      description:
+        'The plan changeset (staged or committed) compared with the changeset named by `against` (a verification ' +
+        'record or any as-built changeset): the same report as the changeset_verify MCP tool, in full. Each planned ' +
+        'element and relationship is matched (exact or probable), divergent, missing or unverifiable (extraction ' +
+        'cannot see it), and each as-built one the plan does not name is unplanned. Element ids are dotted ids. ' +
+        'Read-only; nothing is staged or written.',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+        query: z.object({
+          against: IdSchema.describe('The as-built changeset id to compare the plan with'),
+        }),
+      },
+      responses: {
+        200: {
+          description: 'The comparison',
+          content: { 'application/json': { schema: ChangesetVerificationSchema } },
+        },
+        400: {
+          description: 'against is missing, or names the plan itself',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+        404: {
+          description: 'The plan or the as-built changeset was not found',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.app.openapi(getChangesetVerificationRoute, (async (c: any) => {
+      const { changesetId } = c.req.valid("param");
+      const { against } = c.req.valid("query") as { against: string };
+      if (against === changesetId) {
+        return c.json({ error: "against names the plan itself; pass the as-built changeset to compare with" }, 400);
+      }
+      await this.loadChangesetsFromDisk();
+      const planned = this.context.changesets.get(changesetId);
+      if (!planned) return c.json({ error: "Changeset not found" }, 404);
+      const asBuilt = this.context.changesets.get(against);
+      if (!asBuilt) return c.json({ error: `As-built changeset not found: ${against}` }, 404);
+      const report = await verifyChangesetInModel(this.model, { planned, against: { changeset: asBuilt } });
+      return c.json({ ...report, asBuiltChangeset: { id: asBuilt.id, name: asBuilt.name } });
     }) as any);
 
     // Record the reviewer's per-change verdicts (keep / drop / ask) on a staged changeset.

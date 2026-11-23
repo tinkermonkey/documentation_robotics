@@ -2359,6 +2359,635 @@ paths:
                     description: Error message
                 required:
                   - error
+  /api/changesets/:changesetId/verification:
+    get:
+      tags:
+        - Changesets
+      summary: Compare a plan changeset with an as-built changeset
+      description: "The plan changeset (staged or committed) compared with the
+        changeset named by `against` (a verification record or any as-built
+        changeset): the same report as the changeset_verify MCP tool, in full.
+        Each planned element and relationship is matched (exact or probable),
+        divergent, missing or unverifiable (extraction cannot see it), and each
+        as-built one the plan does not name is unplanned. Element ids are dotted
+        ids. Read-only; nothing is staged or written."
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+          required: true
+          name: changesetId
+          in: path
+        - schema:
+            type: string
+            minLength: 1
+            pattern: ^[a-z0-9_-]+$
+            description: The as-built changeset id to compare the plan with
+          required: true
+          description: The as-built changeset id to compare the plan with
+          name: against
+          in: query
+      responses:
+        "200":
+          description: The comparison
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plannedChangeset:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - name
+                    description: The plan
+                  asBuiltChangeset:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - name
+                    description: The changeset it was compared with
+                  planned:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      elements:
+                        type: integer
+                      relationships:
+                        type: integer
+                    required:
+                      - label
+                      - elements
+                      - relationships
+                  against:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      kind:
+                        type: string
+                        enum:
+                          - changeset
+                          - base
+                          - snapshot
+                    required:
+                      - label
+                      - kind
+                  verdict:
+                    type: string
+                    enum:
+                      - match
+                      - probable-match
+                      - diverges
+                      - incomplete
+                      - unverifiable
+                      - empty-plan
+                  verdictText:
+                    type: string
+                    description: The verdict as a sentence for a person
+                  summary:
+                    type: object
+                    properties:
+                      elements:
+                        type: object
+                        properties:
+                          planned:
+                            type: integer
+                          matched:
+                            type: integer
+                          probable:
+                            type: integer
+                          missing:
+                            type: integer
+                          divergent:
+                            type: integer
+                          unplanned:
+                            type: integer
+                          deletionsNotDone:
+                            type: integer
+                          unverifiable:
+                            type: integer
+                        required:
+                          - planned
+                          - matched
+                          - probable
+                          - missing
+                          - divergent
+                          - unplanned
+                          - deletionsNotDone
+                          - unverifiable
+                        additionalProperties: {}
+                      relationships:
+                        type: object
+                        properties:
+                          planned:
+                            type: integer
+                          matched:
+                            type: integer
+                          probable:
+                            type: integer
+                          missing:
+                            type: integer
+                          divergent:
+                            type: integer
+                          unplanned:
+                            type: integer
+                          deletionsNotDone:
+                            type: integer
+                          unverifiable:
+                            type: integer
+                        required:
+                          - planned
+                          - matched
+                          - probable
+                          - missing
+                          - divergent
+                          - unplanned
+                          - deletionsNotDone
+                          - unverifiable
+                        additionalProperties: {}
+                    required:
+                      - elements
+                      - relationships
+                  elements:
+                    type: object
+                    properties:
+                      matched:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                              description: The planned element id
+                            built:
+                              type: string
+                              description: The as-built element id it matched
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            match:
+                              type: string
+                              enum:
+                                - exact
+                                - probable
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - built
+                            - op
+                            - match
+                          additionalProperties: {}
+                        description: Built as planned (match exact) or probably (match probable)
+                      divergent:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                              description: The planned element id
+                            built:
+                              type: string
+                              description: The as-built element id it matched
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            match:
+                              type: string
+                              enum:
+                                - exact
+                                - probable
+                            reason:
+                              type: string
+                            fields:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  field:
+                                    type: string
+                                  planned: {}
+                                  built: {}
+                                required:
+                                  - field
+                          required:
+                            - planned
+                            - built
+                            - op
+                            - match
+                            - fields
+                          additionalProperties: {}
+                      missing:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                            layer:
+                              type: string
+                            type:
+                              type: string
+                            name:
+                              type: string
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - layer
+                            - type
+                            - name
+                            - op
+                            - reason
+                          additionalProperties: {}
+                        description: Planned, not found in the build
+                      unverifiable:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                            layer:
+                              type: string
+                            type:
+                              type: string
+                            name:
+                              type: string
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - update
+                                - delete
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - layer
+                            - type
+                            - name
+                            - op
+                            - reason
+                          additionalProperties: {}
+                        description:
+                          "Planned, but extraction cannot see this kind of element: not
+                          checked"
+                      unplanned:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            layer:
+                              type: string
+                            type:
+                              type: string
+                            name:
+                              type: string
+                            change:
+                              type: string
+                              enum:
+                                - added
+                                - updated
+                                - deleted
+                                - present
+                          required:
+                            - id
+                            - layer
+                            - type
+                            - name
+                            - change
+                          additionalProperties: {}
+                        description: Built, not in the plan
+                      deletionsNotDone:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: string
+                            built:
+                              type: string
+                          required:
+                            - planned
+                            - built
+                          additionalProperties: {}
+                    required:
+                      - matched
+                      - divergent
+                      - missing
+                      - unverifiable
+                      - unplanned
+                      - deletionsNotDone
+                  relationships:
+                    type: object
+                    properties:
+                      matched:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            built:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - delete
+                            match:
+                              type: string
+                              enum:
+                                - exact
+                                - probable
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - built
+                            - op
+                            - match
+                          additionalProperties: {}
+                      divergent:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            built:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            fields:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  field:
+                                    type: string
+                                  planned: {}
+                                  built: {}
+                                required:
+                                  - field
+                          required:
+                            - planned
+                            - built
+                            - fields
+                          additionalProperties: {}
+                      missing:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - reason
+                          additionalProperties: {}
+                      unverifiable:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            op:
+                              type: string
+                              enum:
+                                - add
+                                - delete
+                            reason:
+                              type: string
+                          required:
+                            - planned
+                            - op
+                            - reason
+                          additionalProperties: {}
+                      unplanned:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            source:
+                              type: string
+                              description: Source element id
+                            predicate:
+                              type: string
+                            target:
+                              type: string
+                              description: Target element id
+                            change:
+                              type: string
+                              enum:
+                                - added
+                                - deleted
+                                - present
+                          required:
+                            - source
+                            - predicate
+                            - target
+                            - change
+                          additionalProperties: {}
+                      deletionsNotDone:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            planned:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                            built:
+                              type: object
+                              properties:
+                                source:
+                                  type: string
+                                  description: Source element id
+                                predicate:
+                                  type: string
+                                target:
+                                  type: string
+                                  description: Target element id
+                              required:
+                                - source
+                                - predicate
+                                - target
+                          required:
+                            - planned
+                            - built
+                          additionalProperties: {}
+                    required:
+                      - matched
+                      - divergent
+                      - missing
+                      - unverifiable
+                      - unplanned
+                      - deletionsNotDone
+                  warning:
+                    type: string
+                    description: Set when the comparison says little about the code
+                  notes:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - plannedChangeset
+                  - asBuiltChangeset
+                  - planned
+                  - against
+                  - verdict
+                  - verdictText
+                  - summary
+                  - elements
+                  - relationships
+                  - notes
+                additionalProperties: {}
+        "400":
+          description: against is missing, or names the plan itself
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
+        "404":
+          description: The plan or the as-built changeset was not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                required:
+                  - error
   /api/changesets/:changesetId/review:
     put:
       tags:

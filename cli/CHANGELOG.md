@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   explicit name. Nothing calls it from MCP or the viewer yet.
 - **`dr farm migrate [--apply]`** moves a `dr-farm-v1` farm to `dr-farm-v2`: a preview by
   default, listing each project, the checkout each old entry becomes and the names dropped.
+- **`GET /api/changesets/:id/verification?against=<as-built id>`** on `dr visualize`: a plan compared
+  with an as-built changeset, the same report `changeset_verify` gives (matched, probable, divergent,
+  missing, unverifiable and unplanned elements and relationships, by element id), plus the as-built
+  changeset's id and name. Read-only. The viewer draws it on its C4 diagrams.
 
 ### Changed
 
