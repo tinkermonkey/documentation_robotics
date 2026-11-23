@@ -36,6 +36,7 @@ import { readdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { chmod, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
+import { isProcessAlive as processIsAlive } from "../utils/process-liveness.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { launcherServesPort, looksLikeViewer as processLooksLikeViewer } from "./viewer-processes.js";
 import { viewerSetting } from "./viewer-settings.js";
@@ -366,16 +367,11 @@ export function removeViewerRecordSync(projectRoot: string, options: RemoveViewe
   }
 }
 
-/** Whether a process with this pid exists (EPERM means it exists but belongs to someone else). */
-export function isProcessAlive(pid: number): boolean {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
+/**
+ * Whether a viewer's process is running. An exited process that nobody has reaped (a zombie,
+ * where PID 1 doesn't reap orphans) counts as gone (#1275): see utils/process-liveness.
+ */
+export const isProcessAlive: (pid: number) => boolean = processIsAlive;
 
 /** What a viewer's health check says. */
 export interface ViewerHealth {
