@@ -17,6 +17,7 @@ import { Model } from "./model.js";
 import { StagingAreaManager } from "./staging-area.js";
 import { getErrorMessage } from "../utils/errors.js";
 import type { FarmProject } from "./farm-manifest.js";
+import { resolveMainCheckout } from "./project-registry.js";
 
 /**
  * Options for sync operation
@@ -84,11 +85,11 @@ export class FarmSyncEngine {
 
   /**
    * Pull latest changes from remote for a codebase
-   * @param codebasePath - Relative path to codebase folder
+   * @param codebasePath - Path to the codebase folder: absolute, or relative to the farm root
    * @returns Updated commit SHA
    */
   async pullCodebase(codebasePath: string): Promise<string> {
-    const fullPath = path.join(this.farmRoot, codebasePath);
+    const fullPath = path.resolve(this.farmRoot, codebasePath);
 
     if (!(await fileExists(fullPath))) {
       throw new Error(`Codebase directory not found: ${codebasePath}`);
@@ -135,7 +136,7 @@ export class FarmSyncEngine {
    * Get the current HEAD commit SHA for a codebase
    */
   async getCurrentCommit(codebasePath: string): Promise<string> {
-    const fullPath = path.join(this.farmRoot, codebasePath);
+    const fullPath = path.resolve(this.farmRoot, codebasePath);
 
     if (!(await fileExists(fullPath))) {
       throw new Error(`Codebase directory not found: ${codebasePath}`);
@@ -154,7 +155,7 @@ export class FarmSyncEngine {
    * Commit SHAs are validated before use to prevent command injection
    */
   async computeDiff(codebasePath: string, fromCommit: string, toCommit: string): Promise<FileDiffResult> {
-    const fullPath = path.join(this.farmRoot, codebasePath);
+    const fullPath = path.resolve(this.farmRoot, codebasePath);
 
     if (!(await fileExists(fullPath))) {
       throw new Error(`Codebase directory not found: ${codebasePath}`);
@@ -412,10 +413,21 @@ export class FarmSyncEngine {
   }
 
   /**
-   * Execute a complete sync operation for a project
+   * The folder a project's sync and pull act on: its repository's main checkout. A farm entry
+   * that names a linked worktree (a dr-farm-v1 farm read before migration) is followed to the
+   * main checkout; a folder that is not a git working tree is used as it is.
+   */
+  async mainCheckoutPath(project: FarmProject): Promise<string> {
+    const repositoryPath = path.resolve(this.farmRoot, project.repository);
+    return (await resolveMainCheckout(repositoryPath)) ?? repositoryPath;
+  }
+
+  /**
+   * Execute a complete sync operation for a project, against its main checkout (the project's
+   * repository path); linked worktrees are not synced.
    */
   async syncProject(project: FarmProject, options: SyncOptions = {}): Promise<SyncResult> {
-    const codebasePath = project.source;
+    const codebasePath = await this.mainCheckoutPath(project);
     const notes: string[] = [];
 
     // Step 1: Get current commit (pull only if not dry run)
@@ -430,7 +442,7 @@ export class FarmSyncEngine {
     }
 
     // Step 2: Load sync state
-    const syncStatePath = path.join(this.farmRoot, project.model, ".farm-sync.yaml");
+    const syncStatePath = path.join(path.resolve(this.farmRoot, project.model), ".farm-sync.yaml");
     await ensureDir(path.dirname(syncStatePath));
     const syncState = await FarmSyncState.loadOrCreate(syncStatePath, project.name);
 

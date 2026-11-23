@@ -1154,7 +1154,7 @@ export class Model {
     for (const project of manifest.getAllProjects()) {
       if (path.basename(project.model) === modelName) {
         // Found matching project, resolve codebase path
-        const codebaseFullPath = path.resolve(farmRoot, project.source);
+        const codebaseFullPath = path.resolve(farmRoot, project.repository);
         return codebaseFullPath;
       }
     }

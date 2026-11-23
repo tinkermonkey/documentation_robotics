@@ -241,7 +241,7 @@ describe("FarmSyncEngine", () => {
     farmManifest = FarmManifest.create("Test Farm");
     farmManifest.addProject("test-project", {
       name: "test-project",
-      source: "codebase",
+      repository: "codebase",
       model: "model",
     });
 
@@ -829,7 +829,7 @@ describe("FarmSyncEngine", () => {
     // Update farm manifest with the new codebase
     farmManifest.addProject("test-project-2", {
       name: "test-project-2",
-      source: "codebase2",
+      repository: "codebase2",
       model: "model",
     });
 

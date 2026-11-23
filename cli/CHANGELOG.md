@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Project registry (issue 1279, slice 1A).** `cli/src/core/project-registry.ts` is the one code
+  that resolves the farm in use (`DR_FARM_PATH`, else a farm found upward, else the user farm at
+  `~/.config/dr/farm.yaml`), lists projects with their checkouts, resolves a path, a project
+  name or a `{project, checkout}` to a checkout, discovers checkouts from `git worktree list`
+  (`main`, or git's worktree name; `present`, `missing` or `prunable`; cached until the worktree
+  metadata changes, raising checkout-removed once) and registers a project under a derived or
+  explicit name. Nothing calls it from MCP or the viewer yet.
+- **`dr farm migrate [--apply]`** moves a `dr-farm-v1` farm to `dr-farm-v2`: a preview by
+  default, listing each project, the checkout each old entry becomes and the names dropped.
+
 ### Changed
+
+- **`farm.yaml` is `dr-farm-v2`**: one project per git repository with `name`, `repository` (the
+  main checkout), `model` and `remote`; `source` and `branch` are gone, and checkouts come from
+  git. A `dr-farm-v1` farm is read with a notice naming `dr farm migrate`, and `add`/`remove`
+  refuse to write it until it is migrated. `dr farm status --format json` reports `repository`
+  instead of `source`; `dr farm add --format json` reports `repository`, `created` and `farm`.
+- **`dr farm` uses the user farm when no folder farm is found**, instead of failing with "Not in a
+  farm directory".
+- **`dr farm add [name]`** resolves a worktree path to its repository's project (found, or added
+  under the main checkout) and derives the name from the main checkout's folder when none is
+  given; a name another repository holds is refused, never suffixed.
+- **`dr farm sync` and `dr farm pull` act on the main checkout**, also when a v1 entry names a
+  linked worktree.
 
 - **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
   Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
