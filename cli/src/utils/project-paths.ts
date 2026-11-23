@@ -120,6 +120,7 @@ export async function isInDRProject(startPath?: string): Promise<boolean> {
  * 2. Directory walk upward from startPath (default: process.cwd()) up to MAX_SEARCH_DEPTH levels
  *
  * @param startPath - Optional starting path (defaults to process.cwd())
+ * @param env - Environment to read DR_FARM_PATH from (defaults to process.env)
  * @returns Path to farm root, or null if not found
  *
  * @example
@@ -132,17 +133,20 @@ export async function isInDRProject(startPath?: string): Promise<boolean> {
  * // Returns: /path/specified/in/env (if farm.yaml exists there)
  * const farmRoot = await findFarmRoot();
  */
-export async function findFarmRoot(startPath?: string): Promise<string | null> {
+export async function findFarmRoot(
+  startPath?: string,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<string | null> {
   // Check DR_FARM_PATH environment variable first
-  if (process.env.DR_FARM_PATH) {
-    const envPath = resolve(process.env.DR_FARM_PATH);
+  if (env.DR_FARM_PATH) {
+    const envPath = resolve(env.DR_FARM_PATH);
     const farmFilePath = join(envPath, FARM_FILE_NAME);
     if (await fileExists(farmFilePath)) {
       return envPath;
     }
     // If DR_FARM_PATH is set but invalid, throw a clear error rather than silently returning null
     throw new Error(
-      `Invalid DR_FARM_PATH: ${process.env.DR_FARM_PATH}\n` +
+      `Invalid DR_FARM_PATH: ${env.DR_FARM_PATH}\n` +
       `Expected farm.yaml at: ${farmFilePath}\n` +
       `Ensure DR_FARM_PATH points to a directory containing a farm.yaml file.`
     );

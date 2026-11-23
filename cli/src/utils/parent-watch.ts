@@ -8,12 +8,14 @@
  * because a viewer review_open starts is meant to outlive the session that started it.
  */
 
+import { isProcessAlive } from "./process-liveness.js";
+
 export interface ParentWatchOptions {
   /** How often to look (default 1s). */
   intervalMs?: number;
   /** Injected for tests; defaults to process.ppid. */
   parentPid?: () => number;
-  /** Injected for tests; defaults to a signal-0 check. */
+  /** Injected for tests; defaults to utils/process-liveness, which counts a zombie as gone. */
   isAlive?: (pid: number) => boolean;
 }
 
@@ -21,24 +23,15 @@ export interface ParentWatch {
   stop(): void;
 }
 
-function pidIsAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
-
 /**
  * Calls `onGone` once when the parent this process had at the time of the call is gone: its pid
- * no longer exists, or this process has been handed to another parent. Does nothing for a
- * process that already has no parent of its own (pid 1 or 0). The timer does not keep the
- * process alive.
+ * no longer exists or it has exited and was left unreaped (a zombie, #1275), or this process has
+ * been handed to another parent. Does nothing for a process that already has no parent of its own
+ * (pid 1 or 0). The timer does not keep the process alive.
  */
 export function watchParent(onGone: () => void, options: ParentWatchOptions = {}): ParentWatch {
   const parentPid = options.parentPid ?? (() => process.ppid);
-  const isAlive = options.isAlive ?? pidIsAlive;
+  const isAlive = options.isAlive ?? isProcessAlive;
   const original = parentPid();
   if (original <= 1) return { stop: () => {} };
 
