@@ -91,7 +91,8 @@ describe("SERVER_INSTRUCTIONS", () => {
 
   it("review_open's description never sends the human to the CLI", () => {
     expect(reviewOpenTool.description).not.toContain("dr visualize");
-    expect(reviewOpenTool.description).toContain("free local port");
+    expect(reviewOpenTool.description).not.toContain("dr serve");
+    expect(reviewOpenTool.description).toContain("never send them to the CLI");
   });
 
   it("says which layers codebase_verify checks, and that a layer it could not check is not in step", () => {

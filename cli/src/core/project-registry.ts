@@ -633,28 +633,38 @@ export class ProjectRegistry {
     const projects = this.manifest.getAllProjects().sort((a, b) => a.name.localeCompare(b.name));
     const entries: ProjectListEntry[] = [];
     for (const project of projects) {
-      const checkouts = await this.checkouts(project.name);
-      const main = checkouts.find((c) => c.isMain)?.path ?? this.repositoryPath(project);
-      const listed: ProjectListCheckout[] = [];
-      for (const checkout of checkouts) {
-        listed.push({
-          key: checkout.key,
-          path: checkout.path,
-          branch: checkout.branch,
-          head: checkout.head,
-          state: checkout.state,
-          ...(await changesetSummary(checkout, this.modelPathFor(project, checkout, main))),
-        });
-      }
-      entries.push({
-        name: project.name,
-        repository: this.repositoryPath(project),
-        model: project.model,
-        ...(project.remote ? { remote: project.remote } : {}),
-        checkouts: listed,
-      });
+      entries.push(await this.listEntry(project));
     }
     return entries;
+  }
+
+  /** One project as `listProjects` lists it, or null when the farm has no project of that name. */
+  async listProject(name: string): Promise<ProjectListEntry | null> {
+    const project = this.manifest.getProject(name);
+    return project ? this.listEntry(project) : null;
+  }
+
+  private async listEntry(project: FarmProject): Promise<ProjectListEntry> {
+    const checkouts = await this.checkouts(project.name);
+    const main = checkouts.find((c) => c.isMain)?.path ?? this.repositoryPath(project);
+    const listed: ProjectListCheckout[] = [];
+    for (const checkout of checkouts) {
+      listed.push({
+        key: checkout.key,
+        path: checkout.path,
+        branch: checkout.branch,
+        head: checkout.head,
+        state: checkout.state,
+        ...(await changesetSummary(checkout, this.modelPathFor(project, checkout, main))),
+      });
+    }
+    return {
+      name: project.name,
+      repository: this.repositoryPath(project),
+      model: project.model,
+      ...(project.remote ? { remote: project.remote } : {}),
+      checkouts: listed,
+    };
   }
 
   /**

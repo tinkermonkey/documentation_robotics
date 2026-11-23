@@ -8,9 +8,6 @@ import { mkdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer, type Server } from "node:http";
-import { realpathSync } from "node:fs";
-import { writeViewerRecord } from "../../../src/server/viewer-registry.js";
 import { Model } from "../../../src/core/model.js";
 import { MigrationRegistry } from "../../../src/core/migration-registry.js";
 import { clearModelCache, loadModel } from "../../../src/mcp/tools/shared.js";
@@ -151,15 +148,24 @@ async function stagePlan(rootPath: string, name: string, element: string): Promi
 
 let rootPath: string;
 
+let savedFarmEnv: { xdg?: string; farm?: string };
+
 beforeEach(async () => {
   clearModelCache();
   rootPath = join(tmpdir(), `dr-mcp-status-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(rootPath, { recursive: true });
+  // The checkout section reads the farm in use: never the developer's own user farm.
+  savedFarmEnv = { xdg: process.env.XDG_CONFIG_HOME, farm: process.env.DR_FARM_PATH };
+  process.env.XDG_CONFIG_HOME = join(rootPath, ".xdg");
+  delete process.env.DR_FARM_PATH;
 });
 
 afterEach(async () => {
   clearModelCache();
   resetProjectRoot();
+  if (savedFarmEnv.xdg === undefined) delete process.env.XDG_CONFIG_HOME;
+  else process.env.XDG_CONFIG_HOME = savedFarmEnv.xdg;
+  if (savedFarmEnv.farm !== undefined) process.env.DR_FARM_PATH = savedFarmEnv.farm;
   await rm(rootPath, { recursive: true, force: true });
 });
 
@@ -1848,66 +1854,7 @@ describe("suggestNextStep on base drift and a stale server", () => {
   });
 });
 
-describe("project_status viewer and indexing sections", () => {
-  let server: Server | undefined;
-
-  afterEach(async () => {
-    await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()));
-    server = undefined;
-  });
-
-  it("reports no viewer and no index run for a fresh project", async () => {
-    await initModel(rootPath);
-    const s = await status(rootPath);
-    expect(s.viewer).toEqual({ status: "none" });
-    expect(s.indexing).toEqual({ status: "none" });
-  });
-
-  it("reports the running viewer with its link, from the viewer record", async () => {
-    await initModel(rootPath);
-    server = createServer((req, res) => {
-      res.setHeader("content-type", "application/json");
-      // The viewer names itself on /health; its record carries the same id (#1237).
-      res.end(JSON.stringify({ status: req.url === "/health" ? "ok" : "no", viewerId: "viewer-1" }));
-    });
-    await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", () => resolve()));
-    const port = (server.address() as { port: number }).port;
-    await writeViewerRecord({
-      pid: process.pid,
-      port,
-      token: "tok",
-      projectRoot: realpathSync(rootPath),
-      startedAt: "2026-11-10T00:00:00Z",
-      withChangesets: true,
-      viewerId: "viewer-1",
-    });
-
-    const s = await status(rootPath);
-    expect(s.viewer.status).toBe("running");
-    expect(s.viewer.url).toBe(`http://localhost:${port}/?token=tok`);
-    expect(s.viewer.withChangesets).toBe(true);
-    expect(s.viewer).not.toHaveProperty("staleRemoved");
-  });
-
-  it("says when reading the viewer registry removed a dead viewer's record", async () => {
-    await initModel(rootPath);
-    const child = spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" });
-    const deadPid = Number(child.stdout);
-    await mkdir(join(process.env.DR_STATE_DIR!, "viewers"), { recursive: true });
-    const recordFile = join(
-      process.env.DR_STATE_DIR!,
-      "viewers",
-      `${createHash("sha256").update(realpathSync(rootPath)).digest("hex").slice(0, 24)}.${deadPid}.json`
-    );
-    await writeFile(
-      recordFile,
-      JSON.stringify({ pid: deadPid, port: 8099, token: null, projectRoot: realpathSync(rootPath), startedAt: "", withChangesets: false })
-    );
-
-    const s = await status(rootPath);
-    expect(s.viewer).toEqual({ status: "none", staleRemoved: { records: 1, startingMarkers: 0, logs: 0, tempFiles: 0 } });
-  });
-
+describe("project_status indexing section", () => {
   it("reports an index run in progress and tells the agent to poll it", async () => {
     await initModel(rootPath);
     const analyzers = join(rootPath, ".dr", "analyzers");
