@@ -1,6 +1,6 @@
 # Assessment pass: roadmap
 
-What has been tried, what was learned, and what to try next. Status: draft, 2026-11-21.
+What has been tried, what was learned, and what to try next. Status: draft, 2026-11-23.
 
 This page links the design ([SELF_ASSESSMENT_DESIGN.md](SELF_ASSESSMENT_DESIGN.md)) to the results
 ([SELF_ASSESSMENT_RESULTS.md](SELF_ASSESSMENT_RESULTS.md)). Update it whenever a track starts,
@@ -103,7 +103,7 @@ edge route. Do it because it is cheap and it improves extraction itself, not onl
 **Status (2026-11-21):** bank 0.1 curated with the maintainer. See
 [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md) for the bank and its decisions,
 `cli/scripts/assess-eval/questions.json` for the data, and `RUNBOOK.md` beside it for the protocol.
-Next: the heimdall pilot.
+The heimdall pilot ran steps A and B on 2026-11-21. Step C is on hold (order step 2).
 
 The finders show where the gaps are. Filling them takes inference, and the coding agent is the
 tool for that: it has the model (dr MCP), the code graph (CBM MCP) and the source. The proposal is
@@ -437,7 +437,15 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 
 1. **B: draft and curate the bank.** Done 2026-11-21 (bank 0.1).
 2. **B and C: pilot on heimdall.** All three protocol steps. This gives the cost per repository and
-   the first precision and recall numbers.
+   the first precision and recall numbers. Steps A and B ran on 2026-11-21.
+   - **Step C is on hold** (2026-11-23) until test cases can be clustered after extraction (#1312).
+     Extraction's 1,689 per-test sketches and their links are 3,652 of step A's 5,076
+     changes, too many to review one by one, and the maintainer wants every test kept.
+   - **Already pruned:** the changes the S1 and S10 rulings reject by exact match (the 105
+     application components that duplicate a `ux.librarycomponent`, and step B's 131 library
+     exports staged as `api.operation` with their tags), 1,219 changes in all. Each is logged with
+     its ruling in `data/heimdall/rejected-by-rule.jsonl`, beside the answer logs, so scoring counts
+     them as rejections.
 3. **`score.ts`,** written against the pilot's outputs.
    - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
      S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's test
