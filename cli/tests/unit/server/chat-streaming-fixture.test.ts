@@ -60,7 +60,7 @@ async function createTestServer(
   const server = createServerWithoutChatDetection(model, { authEnabled: false });
 
   // Set the injection override
-  (server as any)[overrideProp] = overrideCmd;
+  (server as any).drBot[overrideProp] = overrideCmd;
 
   return { server, model, testDir };
 }
@@ -90,7 +90,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-happy-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-1");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-1");
 
     // Wait for completion response
     const completion = await waitFor(() =>
@@ -125,7 +125,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     expect(notifications.some((m) => m.method === "chat.tool.result")).toBe(false);
 
     // Cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect((server as any).context.chatProcesses.has(conversationId)).toBe(false);
     await cleanupTestServer(server, testDir);
   });
 
@@ -138,7 +138,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-concat-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-2");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-2");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-2" && m.result)
@@ -164,7 +164,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-split-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-3");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-3");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-3" && m.result)
@@ -199,7 +199,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-no-newline-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-4");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-4");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-4" && m.result)
@@ -226,7 +226,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-non-json-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-5");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-5");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-5" && m.result)
@@ -257,7 +257,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-exit-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-6");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-6");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-6" && m.result)
@@ -278,13 +278,13 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-cleanup-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-7");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", "req-7");
 
     // Wait for completion
     await waitFor(() => ws.sent.find((m) => m.id === "req-7" && m.result));
 
     // Verify cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect((server as any).context.chatProcesses.has(conversationId)).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });
@@ -296,7 +296,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-tools-${randomUUID()}`, "hi", "req-tools");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-tools-${randomUUID()}`, "hi", "req-tools");
     await waitFor(() => ws.sent.find((m) => m.id === "req-tools" && m.result));
 
     const updates = ws.sent
@@ -320,7 +320,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-denied-${randomUUID()}`, "hi", "req-denied");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-denied-${randomUUID()}`, "hi", "req-denied");
     await waitFor(() => ws.sent.find((m) => m.id === "req-denied" && m.result));
 
     const updates = ws.sent
@@ -345,7 +345,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-explained-${randomUUID()}`, "hi", "req-explained");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-explained-${randomUUID()}`, "hi", "req-explained");
     await waitFor(() => ws.sent.find((m) => m.id === "req-explained" && m.result));
 
     const failed = ws.sent
@@ -375,7 +375,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-late-${randomUUID()}`, "hi", "req-late");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-late-${randomUUID()}`, "hi", "req-late");
     await waitFor(() => ws.sent.find((m) => m.id === "req-late" && m.result));
 
     const updates = ws.sent
@@ -403,7 +403,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-hook-${randomUUID()}`, "hi", "req-hook");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-hook-${randomUUID()}`, "hi", "req-hook");
     await waitFor(() => ws.sent.find((m) => m.id === "req-hook" && m.result));
 
     const failed = ws.sent
@@ -427,7 +427,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-own-${randomUUID()}`, "hi", "req-own");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-own-${randomUUID()}`, "hi", "req-own");
     await waitFor(() => ws.sent.find((m) => m.id === "req-own" && m.result));
 
     const failed = ws.sent
@@ -449,7 +449,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-pending-${randomUUID()}`, "hi", "req-pending");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, `conv-pending-${randomUUID()}`, "hi", "req-pending");
     const completion = await waitFor(() => ws.sent.find((m) => m.id === "req-pending" && m.result));
 
     const updates = ws.sent
@@ -475,7 +475,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const ws = createFakeWs();
     const requestId = "req-match-123";
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", requestId);
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, conversationId, "test message", requestId);
 
     const completion = await waitFor(() => ws.sent.find((m) => m.id === requestId && m.result));
 
@@ -499,7 +499,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-happy-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-1");
+    await (server as any).drBot.launchCopilotChat((server as any).context, ws, conversationId, "test message", "req-1");
 
     // Wait for completion response
     const completion = await waitFor(() =>
@@ -524,7 +524,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     ).toBe(true);
 
     // Cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect((server as any).context.chatProcesses.has(conversationId)).toBe(false);
     await cleanupTestServer(server, testDir);
   });
 
@@ -537,7 +537,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-concat-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-2");
+    await (server as any).drBot.launchCopilotChat((server as any).context, ws, conversationId, "test message", "req-2");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-2" && m.result)
@@ -565,7 +565,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-exit-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-3");
+    await (server as any).drBot.launchCopilotChat((server as any).context, ws, conversationId, "test message", "req-3");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-3" && m.result)
@@ -586,13 +586,13 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-cleanup-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-4");
+    await (server as any).drBot.launchCopilotChat((server as any).context, ws, conversationId, "test message", "req-4");
 
     // Wait for completion
     await waitFor(() => ws.sent.find((m) => m.id === "req-4" && m.result));
 
     // Verify cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect((server as any).context.chatProcesses.has(conversationId)).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });
@@ -607,7 +607,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const ws = createFakeWs();
     const requestId = "req-copilot-match-456";
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", requestId);
+    await (server as any).drBot.launchCopilotChat((server as any).context, ws, conversationId, "test message", requestId);
 
     const completion = await waitFor(() => ws.sent.find((m) => m.id === requestId && m.result));
 
@@ -630,8 +630,8 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
 
     // Launch both concurrently
     await Promise.all([
-      (server as any).launchCopilotChat(ws1, conversationId1, "message 1", "req-c1"),
-      (server as any).launchCopilotChat(ws2, conversationId2, "message 2", "req-c2"),
+      (server as any).drBot.launchCopilotChat((server as any).context, ws1, conversationId1, "message 1", "req-c1"),
+      (server as any).drBot.launchCopilotChat((server as any).context, ws2, conversationId2, "message 2", "req-c2"),
     ]);
 
     // Wait for both to complete
@@ -642,8 +642,8 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     expect(completion2.result.status).toBe("complete");
 
     // Both should be cleaned up
-    expect((server as any).activeChatProcesses.has(conversationId1)).toBe(false);
-    expect((server as any).activeChatProcesses.has(conversationId2)).toBe(false);
+    expect((server as any).context.chatProcesses.has(conversationId1)).toBe(false);
+    expect((server as any).context.chatProcesses.has(conversationId2)).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });

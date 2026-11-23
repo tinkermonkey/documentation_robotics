@@ -74,7 +74,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         const claudeFormat = formatForClaudeCode();
 
         const visualizeServer = new VisualizationServer(testModel, { withDanger: false });
-        const serverFormat = (visualizeServer as any).buildClaudeChatArgs();
+        const serverFormat = (visualizeServer as any).drBot.buildClaudeChatArgs();
         const serverAllowedToolsIdx = serverFormat.indexOf("--allowedTools");
         const serverAllowlist = serverFormat[serverAllowedToolsIdx + 1];
 
@@ -110,7 +110,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
       it("should use --allowedTools in visualize path when withDanger is false", () => {
         const server = new VisualizationServer(testModel, { withDanger: false });
-        const args = (server as any).buildClaudeChatArgs();
+        const args = (server as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--allowedTools");
         expect(args).not.toContain("--dangerously-skip-permissions");
@@ -129,7 +129,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
       it("should use --dangerously-skip-permissions in visualize path when withDanger is true", () => {
         const server = new VisualizationServer(testModel, { withDanger: true });
-        const args = (server as any).buildClaudeChatArgs();
+        const args = (server as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");
@@ -141,7 +141,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         const chatAllowlist = chatArgs.includes("--allowedTools");
 
         const server = new VisualizationServer(testModel, { withDanger: true });
-        const visualizeArgs = (server as any).buildClaudeChatArgs();
+        const visualizeArgs = (server as any).drBot.buildClaudeChatArgs();
         const visualizeAllowlist = visualizeArgs.includes("--allowedTools");
 
         expect(chatAllowlist).toBe(false);
@@ -264,7 +264,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
     it("Claude Code visualize path: withDanger=true uses --dangerously-skip-permissions", () => {
       const server = new VisualizationServer(testModel, { withDanger: true });
-      const args = (server as any).buildClaudeChatArgs();
+      const args = (server as any).drBot.buildClaudeChatArgs();
       expect(args).toContain("--dangerously-skip-permissions");
     });
 
@@ -279,7 +279,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
     it("Copilot visualize path: withDanger=true configured correctly", () => {
       const server = new VisualizationServer(testModel, { withDanger: true });
       // Verify danger mode is enabled on the instance
-      expect((server as any).withDanger).toBe(true);
+      expect((server as any).drBot.withDanger).toBe(true);
       // The VisualizationServer.addCopilotPermissionFlags calls the shared applyCopilotPermissions
       // utility which checks withDanger and adds --allow-all-tools for danger mode, or --allowedTools
       // with formatForCopilot() for default mode. The withDanger=true flag on the instance ensures
@@ -297,11 +297,11 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
       // Visualize paths
       const claudeServer = new VisualizationServer(testModel, { withDanger: false });
-      const claudeServerArgs = (claudeServer as any).buildClaudeChatArgs();
+      const claudeServerArgs = (claudeServer as any).drBot.buildClaudeChatArgs();
       expect(claudeServerArgs).toContain("--allowedTools");
 
       const copilotServer = new VisualizationServer(testModel, { withDanger: false });
-      expect((copilotServer as any).withDanger).toBe(false);
+      expect((copilotServer as any).drBot.withDanger).toBe(false);
     });
   });
 
@@ -333,7 +333,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
       const chatAllowlist = chatArgs[chatAllowedToolsIdx + 1];
 
       const claudeServer = new VisualizationServer(testModel, { withDanger: false });
-      const visualizeArgs = (claudeServer as any).buildClaudeChatArgs();
+      const visualizeArgs = (claudeServer as any).drBot.buildClaudeChatArgs();
       const visualizeAllowedToolsIdx = visualizeArgs.indexOf("--allowedTools");
       const visualizeAllowlist = visualizeArgs[visualizeAllowedToolsIdx + 1];
 
@@ -350,7 +350,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
       expect(claudeChat).not.toContain("--allowedTools");
 
       // Visualize paths with danger
-      const claudeViz = (new VisualizationServer(testModel, { withDanger: true }) as any).buildClaudeChatArgs();
+      const claudeViz = (new VisualizationServer(testModel, { withDanger: true }) as any).drBot.buildClaudeChatArgs();
       expect(claudeViz).toContain("--dangerously-skip-permissions");
       expect(claudeViz).not.toContain("--allowedTools");
 

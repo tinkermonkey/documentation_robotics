@@ -164,7 +164,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     describe("Default mode permission handling", () => {
       it("should include --allowedTools in launch args when withDanger is false", () => {
         // Call the actual buildClaudeChatArgs method via type casting for testing
-        const args = (server as any).buildClaudeChatArgs();
+        const args = (server as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--allowedTools");
         const allowedToolsIndex = args.indexOf("--allowedTools");
@@ -174,7 +174,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
 
       it("should NOT include --dangerously-skip-permissions in default mode", () => {
         // Call the actual buildClaudeChatArgs method via type casting for testing
-        const args = (server as any).buildClaudeChatArgs();
+        const args = (server as any).drBot.buildClaudeChatArgs();
 
         expect(args).not.toContain("--dangerously-skip-permissions");
       });
@@ -185,7 +185,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         const dangerServer = new VisualizationServer(testModel, { withDanger: true });
 
         // Call the actual buildClaudeChatArgs method on the danger server
-        const args = (dangerServer as any).buildClaudeChatArgs();
+        const args = (dangerServer as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");
@@ -196,25 +196,25 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
       it("should pass the changeset allowlist and set DR_CHANGESET_ONLY for the agent", () => {
         const changesetServer = new VisualizationServer(testModel, { withChangesets: true });
 
-        const args = (changesetServer as any).buildClaudeChatArgs();
+        const args = (changesetServer as any).drBot.buildClaudeChatArgs();
         const allowlist = args[args.indexOf("--allowedTools") + 1];
         expect(allowlist).toBe(formatForClaudeCodeWithChangesets());
         expect(args).not.toContain("--dangerously-skip-permissions");
 
-        const env = (changesetServer as any).buildChatEnv();
+        const env = (changesetServer as any).drBot.buildChatEnv((changesetServer as any).context);
         expect(env[CHANGESET_ONLY_ENV]).toBe("true");
       });
 
       it("should not set DR_CHANGESET_ONLY in default mode", () => {
-        const env = (server as any).buildChatEnv();
+        const env = (server as any).drBot.buildChatEnv((server as any).context);
         expect(env[CHANGESET_ONLY_ENV]).toBeUndefined();
       });
 
       it("should let danger mode win over changeset mode", () => {
         const both = new VisualizationServer(testModel, { withDanger: true, withChangesets: true });
 
-        expect((both as any).buildClaudeChatArgs()).toContain("--dangerously-skip-permissions");
-        expect((both as any).buildChatEnv()[CHANGESET_ONLY_ENV]).toBeUndefined();
+        expect((both as any).drBot.buildClaudeChatArgs()).toContain("--dangerously-skip-permissions");
+        expect((both as any).drBot.buildChatEnv((both as any).context)[CHANGESET_ONLY_ENV]).toBeUndefined();
       });
     });
   });
@@ -315,7 +315,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         const dangerServer = new VisualizationServer(testModel, { withDanger: true });
 
         // Call the actual buildClaudeChatArgs method on the danger server
-        const args = (dangerServer as any).buildClaudeChatArgs();
+        const args = (dangerServer as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");

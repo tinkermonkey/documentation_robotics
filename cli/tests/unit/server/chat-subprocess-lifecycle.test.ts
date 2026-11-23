@@ -71,7 +71,7 @@ describe("VisualizationServer chat subprocess spawn error handling", () => {
     // throws an uncaught exception process-wide, which is exactly the bug being guarded
     // against. Either way, `await` on the launch call itself succeeds regardless, since
     // the spawn error surfaces asynchronously after the method returns.
-    await (server as any).launchClaudeCodeChat(ws, "conv-claude-spawn-err", "hello", "req-claude-1");
+    await (server as any).drBot.launchClaudeCodeChat((server as any).context, ws, "conv-claude-spawn-err", "hello", "req-claude-1");
 
     const response = await waitFor(() => ws.sent.find((m) => m.id === "req-claude-1"));
     expect(response.jsonrpc).toBe("2.0");
@@ -79,7 +79,7 @@ describe("VisualizationServer chat subprocess spawn error handling", () => {
     expect(response.error.message).toContain("Failed to launch Claude Code");
 
     // Cleanup on failure must still happen
-    expect((server as any).activeChatProcesses.has("conv-claude-spawn-err")).toBe(false);
+    expect((server as any).context.chatProcesses.has("conv-claude-spawn-err")).toBe(false);
 
     // A failed spawn also destroys proc.stdout, which the stream-reading loop observes
     // as its own error - guard against that turning into a second, duplicate JSON-RPC
@@ -91,14 +91,14 @@ describe("VisualizationServer chat subprocess spawn error handling", () => {
   it("launchCopilotChat: a spawn failure sends a JSON-RPC error instead of crashing the process", async () => {
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, "conv-copilot-spawn-err", "hello", "req-copilot-1");
+    await (server as any).drBot.launchCopilotChat((server as any).context, ws, "conv-copilot-spawn-err", "hello", "req-copilot-1");
 
     const response = await waitFor(() => ws.sent.find((m) => m.id === "req-copilot-1"));
     expect(response.jsonrpc).toBe("2.0");
     expect(response.error).toBeDefined();
     expect(response.error.message).toMatch(/Failed to launch GitHub Copilot/);
 
-    expect((server as any).activeChatProcesses.has("conv-copilot-spawn-err")).toBe(false);
+    expect((server as any).context.chatProcesses.has("conv-copilot-spawn-err")).toBe(false);
 
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(ws.sent.filter((m) => m.id === "req-copilot-1")).toHaveLength(1);
@@ -134,7 +134,7 @@ describe("VisualizationServer process exit/kill helpers", () => {
 
   it("waitForExit resolves with the actual exit code once the process exits", async () => {
     const proc: ChildProcess = spawn(process.execPath, ["-e", "process.exit(3)"]);
-    const code = await (server as any).waitForExit(proc);
+    const code = await (server as any).drBot.waitForExit(proc);
     expect(code).toBe(3);
   });
 
@@ -143,7 +143,7 @@ describe("VisualizationServer process exit/kill helpers", () => {
     await new Promise((resolve) => proc.once("exit", resolve));
     expect(proc.exitCode).not.toBeNull();
 
-    const code = await (server as any).waitForExit(proc);
+    const code = await (server as any).drBot.waitForExit(proc);
     expect(code).toBe(0);
   });
 
@@ -185,7 +185,7 @@ describe("VisualizationServer process exit/kill helpers", () => {
         },
       };
 
-      await (server as any).killProcessWithRetry(fakeProc, "conv-kill-retry", "TestLabel");
+      await (server as any).drBot.killProcessWithRetry(fakeProc, "conv-kill-retry", "TestLabel");
 
       expect(killCalls).toContain("SIGTERM");
       expect(killCalls[killCalls.length - 1]).toBe("SIGKILL");
@@ -199,7 +199,7 @@ describe("VisualizationServer process exit/kill helpers", () => {
     await new Promise((resolve) => proc.once("exit", resolve));
 
     const start = Date.now();
-    await (server as any).killProcessWithRetry(proc, "conv-already-exited", "TestLabel");
+    await (server as any).drBot.killProcessWithRetry(proc, "conv-already-exited", "TestLabel");
     // Should return near-instantly (no SIGTERM wait/backoff), not take the ~1.8s of a
     // full retry cycle.
     expect(Date.now() - start).toBeLessThan(200);
