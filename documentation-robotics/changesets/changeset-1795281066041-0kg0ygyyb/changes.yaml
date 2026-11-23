@@ -854,7 +854,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/schemas.ts
+          symbol: FeedSubscriptionSchema
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 37
 - type: add
   elementId: data-store.database.dr-user-state
@@ -1482,7 +1487,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/legacy-viewer-sweep.ts
+          symbol: sweepPerProjectViewers
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 64
 - type: add
   elementId: application.applicationfunction.subscribe-checkout-feed
@@ -1500,7 +1510,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: VisualizationServer.handleFeedSubscription
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 65
 - type: add
   elementId: application.message.subscribe-to-checkout-feed
@@ -1520,7 +1535,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/schemas.ts
+          symbol: FeedSubscriptionSchema
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 66
 - type: add
   elementId: application.applicationservice.viewer-api
@@ -1541,7 +1561,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/central-server.ts
+          symbol: startCentralServer
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 67
 - type: add
   elementId: application.applicationservice.serve-command
@@ -1561,7 +1586,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/commands/serve.ts
+          symbol: serveCommand
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 68
 - type: add
   elementId: application.applicationservice.project-list-handler
@@ -1653,7 +1683,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/central-server.ts
+          symbol: startCentralServerWith
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 72
 - type: add
   elementId: application.applicationinterface.central-server-websocket
@@ -1673,7 +1708,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: /ws
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 73
 - type: add
   elementId: technology.device.developer-workstation
@@ -1790,7 +1830,12 @@
       created_at: 2026-11-21T17:14:10.909Z
       updated_at: 2026-11-21T17:14:10.909Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/central-lifetime.ts
+          symbol: runCentralProcess
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 79
 - type: add
   elementId: technology.technologyinterface.loopback-http
@@ -3656,7 +3701,12 @@
       created_at: 2026-11-21T17:14:54.802Z
       updated_at: 2026-11-21T17:14:54.802Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: listProjectsRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 240
 - type: add
   elementId: api.operation.get-api-projects-project
@@ -3680,7 +3730,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getProjectRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 241
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts
@@ -3705,7 +3760,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getProjectCheckoutsRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 242
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-model
@@ -3729,7 +3789,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getModelRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 243
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-layers-layer-name
@@ -3753,7 +3818,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getLayerRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 244
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-tier1
@@ -3777,7 +3847,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getTier1Route
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 245
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-changesets
@@ -3801,7 +3876,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getChangesetsRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 246
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-changesets-changeset-id
@@ -3825,7 +3905,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getChangesetRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 247
 - type: add
   elementId: api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-id-commit
@@ -3850,7 +3935,12 @@
       created_at: 2026-11-21T17:14:54.805Z
       updated_at: 2026-11-21T17:14:54.805Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: commitChangesetRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 248
 - type: add
   elementId: api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-id-discard
@@ -3875,7 +3965,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: discardChangesetRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 249
 - type: add
   elementId: api.operation.put-api-projects-project-checkouts-checkout-changesets-changeset-id-review
@@ -3900,7 +3995,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: putChangesetReviewRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 250
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-annotations
@@ -3924,7 +4024,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getAnnotationsRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 251
 - type: add
   elementId: api.operation.post-api-projects-project-checkouts-checkout-annotations
@@ -3948,7 +4053,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: createAnnotationRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 252
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation-id
@@ -3972,7 +4082,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getAnnotationRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 253
 - type: add
   elementId: api.operation.put-api-projects-project-checkouts-checkout-annotations-annotation-id
@@ -3996,7 +4111,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: putAnnotationRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 254
 - type: add
   elementId: api.operation.patch-api-projects-project-checkouts-checkout-annotations-annotation-id
@@ -4021,7 +4141,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: patchAnnotationRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 255
 - type: add
   elementId: api.operation.delete-api-projects-project-checkouts-checkout-annotations-annotation-id
@@ -4046,7 +4171,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: deleteAnnotationRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 256
 - type: add
   elementId: api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
@@ -4071,7 +4201,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: getAnnotationRepliesRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 257
 - type: add
   elementId: api.operation.post-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
@@ -4096,7 +4231,12 @@
       created_at: 2026-11-21T17:14:54.806Z
       updated_at: 2026-11-21T17:14:54.806Z
       version: 1
-  timestamp: 2026-11-21T17:14:54.836Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: createAnnotationReplyRoute
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 258
 - type: add
   elementId: testing.testcoveragemodel.user-level-dr-coverage
@@ -7629,7 +7769,12 @@
       created_at: 2026-11-21T17:16:36.425Z
       updated_at: 2026-11-21T17:16:36.425Z
       version: 1
-  timestamp: 2026-11-21T17:16:36.471Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: VisualizationServer.broadcastMessage
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 480
 - type: relationship-add
   elementId: application.applicationcomponent.checkout-context::assigned-to::application.applicationfunction.publish-checkout-event
@@ -8561,11 +8706,12 @@
       provenance: manual
       locations:
         - file: cli/src/server-entry.ts
+        - file: cli/src/serve-entry.ts
     metadata:
       created_at: 2026-11-21T17:21:34.233Z
       updated_at: 2026-11-21T17:21:34.233Z
       version: 1
-  timestamp: 2026-11-21T17:21:34.280Z
+  timestamp: 2026-11-23T23:18:38.814Z
   sequenceNumber: 545
 - type: add
   elementId: technology.artifact.dr-viewer-bundle

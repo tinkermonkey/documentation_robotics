@@ -8,7 +8,7 @@ description: One central DR process per user serves the MCP interface, a
   DrBot launching are planned across layers, and the unscoped /api routes are
   planned out.
 created: 2026-11-21T17:11:06.057Z
-modified: 2026-11-23T17:59:05.820Z
+modified: 2026-11-23T23:18:38.872Z
 status: staged
 baseSnapshot: v2:sha256:98a17a8e4ba0a39a8239e65f0be06af9a0d614125762e7f1dee3ce40df8e7401
 origin:
@@ -18,7 +18,7 @@ stats:
   additions: 565
   modifications: 25
   deletions: 43
-lastSequence: 673
+lastSequence: 703
 unstaged:
   - sequence: 23
     removedAt: 485
@@ -984,4 +984,786 @@ unstaged:
           updated_at: 2026-11-21T17:14:10.902Z
           version: 1
       timestamp: 2026-11-21T17:43:52.422Z
+    rewritten: true
+  - sequence: 68
+    removedAt: 674
+    change:
+      type: add
+      elementId: application.applicationservice.serve-command
+      layerName: application
+      after:
+        id: e1fa4704-8156-4ecc-abe3-2b53f9187cd8
+        path: application.applicationservice.serve-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: serveCommand
+        description: "dr serve: runs the user's central DR process in the foreground (dr
+          mcp and dr visualize start it detached)."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 64
+    removedAt: 675
+    change:
+      type: add
+      elementId: application.applicationfunction.sweep-per-project-viewers
+      layerName: application
+      after:
+        id: d98cfff7-8790-413d-b6c8-1fce1791f184
+        path: application.applicationfunction.sweep-per-project-viewers
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sweepPerProjectViewers
+        description: At start-up, finds per-project viewers from the legacy records and
+          a process scan, stops those review_open started that have no connected
+          tab, and reports the rest with their pids for dr visualize --stop.
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 545
+    removedAt: 676
+    change:
+      type: add
+      elementId: technology.artifact.server-entry-js
+      layerName: technology
+      after:
+        id: 4d7b0adf-ec74-43a8-a5ed-f5a54a78bd4e
+        path: technology.artifact.server-entry-js
+        spec_node_id: technology.artifact
+        type: artifact
+        layer_id: technology
+        name: server-entry.js
+        description: "The server process's entry point (cli/src/server-entry.ts bundled
+          to dist): today spawned per project by dr visualize; becomes the entry
+          of dr serve, the one central process."
+        attributes:
+          artifactType: file
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/server-entry.ts
+        metadata:
+          created_at: 2026-11-21T17:21:34.233Z
+          updated_at: 2026-11-21T17:21:34.233Z
+          version: 1
+      timestamp: 2026-11-21T17:21:34.280Z
+    rewritten: true
+  - sequence: 79
+    removedAt: 677
+    change:
+      type: add
+      elementId: technology.technologyservice.per-user-dr-service
+      layerName: technology
+      after:
+        id: d268a65e-fd60-4959-906d-465a471b07ed
+        path: technology.technologyservice.per-user-dr-service
+        spec_node_id: technology.technologyservice
+        type: technologyservice
+        layer_id: technology
+        name: Per-user DR service
+        description: "The central DR process as a platform service on the workstation:
+          compute for MCP, the viewer and DrBot, one per user."
+        attributes:
+          serviceType: compute
+        metadata:
+          created_at: 2026-11-21T17:14:10.909Z
+          updated_at: 2026-11-21T17:14:10.909Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 67
+    removedAt: 678
+    change:
+      type: add
+      elementId: application.applicationservice.viewer-api
+      layerName: application
+      after:
+        id: 618d1e7e-7a29-46dd-8cfd-1275b4f77ba4
+        path: application.applicationservice.viewer-api
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: Viewer API
+        description: "The viewer's HTTP API on the central process: GET /api/projects
+          and every project data route under
+          /api/projects/:project/checkouts/:checkout/, all requiring the one
+          token."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 72
+    removedAt: 679
+    change:
+      type: add
+      elementId: application.applicationinterface.central-server-http-endpoint
+      layerName: application
+      after:
+        id: 177776a8-703f-4980-ab96-5f7159602166
+        path: application.applicationinterface.central-server-http-endpoint
+        spec_node_id: application.applicationinterface
+        type: applicationinterface
+        layer_id: application
+        name: Central server HTTP endpoint
+        description: "127.0.0.1:<port> of the central process: /mcp (streamable HTTP
+          MCP), /api/... (viewer API), the viewer's pages and /health. Token
+          required on all but /health."
+        attributes:
+          protocol: HTTP
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 73
+    removedAt: 680
+    change:
+      type: add
+      elementId: application.applicationinterface.central-server-websocket
+      layerName: application
+      after:
+        id: a382ef2d-7a68-4d2c-a3e2-058988c1e510
+        path: application.applicationinterface.central-server-websocket
+        spec_node_id: application.applicationinterface
+        type: applicationinterface
+        layer_id: application
+        name: Central server websocket
+        description: "/ws on the central process: one socket per tab, subscribed per
+          checkout; carries change events and DrBot chat."
+        attributes:
+          protocol: WebSocket
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 66
+    removedAt: 681
+    change:
+      type: add
+      elementId: application.message.subscribe-to-checkout-feed
+      layerName: application
+      after:
+        id: d08bd5ee-a844-4dc3-8d90-71d88fa92cbb
+        path: application.message.subscribe-to-checkout-feed
+        spec_node_id: application.message
+        type: message
+        layer_id: application
+        name: Subscribe to checkout feed
+        description: A websocket frame asking the server to send (or stop sending) one
+          checkout's events.
+        attributes:
+          messageType: command
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 37
+    removedAt: 682
+    change:
+      type: add
+      elementId: data-model.objectschema.feed-subscription
+      layerName: data-model
+      after:
+        id: 7288c27b-cdcc-4cfc-9c60-a3f4b2e3e5b7
+        path: data-model.objectschema.feed-subscription
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: FeedSubscription
+        description: "A websocket subscribe or unsubscribe frame: {action, project,
+          checkout}. A socket receives model, changeset, annotation and chat
+          events only for the checkouts it subscribed to; each event carries its
+          CheckoutRef."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 65
+    removedAt: 683
+    change:
+      type: add
+      elementId: application.applicationfunction.subscribe-checkout-feed
+      layerName: application
+      after:
+        id: ef36d7a3-cd17-41bf-9f82-3e41d93a63fe
+        path: application.applicationfunction.subscribe-checkout-feed
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: subscribeCheckoutFeed
+        description: Adds or removes a websocket's subscription to a checkout's events
+          and acquires the checkout's context for it.
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 480
+    removedAt: 684
+    change:
+      type: add
+      elementId: application.applicationfunction.publish-checkout-event
+      layerName: application
+      after:
+        id: e35c24e2-8ff8-4d5d-b44d-007c6fb6ff6a
+        path: application.applicationfunction.publish-checkout-event
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: publishCheckoutEvent
+        description: Sends a model, changeset, annotation or chat event to the
+          websockets subscribed to this checkout only, stamped with its
+          CheckoutRef.
+        metadata:
+          created_at: 2026-11-21T17:16:36.425Z
+          updated_at: 2026-11-21T17:16:36.425Z
+          version: 1
+      timestamp: 2026-11-21T17:16:36.471Z
+    rewritten: true
+  - sequence: 240
+    removedAt: 685
+    change:
+      type: add
+      elementId: api.operation.get-api-projects
+      layerName: api
+      after:
+        id: 72e736ce-4466-4c70-88ad-37354a11ee4b
+        path: api.operation.get-api-projects
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects
+        description: List the user's projects with their checkouts. Token required; 404
+          for a project or checkout the registry does not list.
+        attributes:
+          operationId: listProjects
+          summary: List the user's projects with their checkouts
+          tags: projects
+          http_method: GET
+          http_path: /api/projects
+        metadata:
+          created_at: 2026-11-21T17:14:54.802Z
+          updated_at: 2026-11-21T17:14:54.802Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 241
+    removedAt: 686
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project
+      layerName: api
+      after:
+        id: 63ac1e9a-4575-41ef-8917-bb3dfa80cc45
+        path: api.operation.get-api-projects-project
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}
+        description: One project with its checkouts. Token required; 404 for a project
+          or checkout the registry does not list.
+        attributes:
+          operationId: getProject
+          summary: One project with its checkouts
+          tags: projects
+          http_method: GET
+          http_path: /api/projects/{project}
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 242
+    removedAt: 687
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts
+      layerName: api
+      after:
+        id: 5047cfdb-3622-4a15-8058-71897091f323
+        path: api.operation.get-api-projects-project-checkouts
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts
+        description: A project's checkouts with branch, head, state and changeset
+          counts. Token required; 404 for a project or checkout the registry
+          does not list.
+        attributes:
+          operationId: listCheckouts
+          summary: A project's checkouts with branch, head, state and changeset counts
+          tags: projects
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 243
+    removedAt: 688
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-model
+      layerName: api
+      after:
+        id: 18c9fadd-1e4a-49a3-b205-fbf461205eb1
+        path: api.operation.get-api-projects-project-checkouts-checkout-model
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts/{checkout}/model
+        description: The checkout's model. Token required; 404 for a project or checkout
+          the registry does not list.
+        attributes:
+          operationId: getCheckoutModel
+          summary: The checkout's model
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/model
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 244
+    removedAt: 689
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-layers-layer-name
+      layerName: api
+      after:
+        id: f0c7252c-59f9-46fb-9a90-35e2615b43ac
+        path: api.operation.get-api-projects-project-checkouts-checkout-layers-layer-name
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
+        description: One layer of the checkout's model. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: getCheckoutLayer
+          summary: One layer of the checkout's model
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 245
+    removedAt: 690
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-tier1
+      layerName: api
+      after:
+        id: 9547a53f-1072-42e7-b3c0-f4909b035b6d
+        path: api.operation.get-api-projects-project-checkouts-checkout-tier1
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts/{checkout}/tier1
+        description: The checkout's Tier 1 state. Token required; 404 for a project or
+          checkout the registry does not list.
+        attributes:
+          operationId: getCheckoutTier1
+          summary: The checkout's Tier 1 state
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/tier1
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 246
+    removedAt: 691
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-changesets
+      layerName: api
+      after:
+        id: 3e914ea0-b69a-4ab5-8183-a63a5482860e
+        path: api.operation.get-api-projects-project-checkouts-checkout-changesets
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts/{checkout}/changesets
+        description: The checkout's changesets with drift. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: listCheckoutChangesets
+          summary: The checkout's changesets with drift
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/changesets
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 247
+    removedAt: 692
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-changesets-changeset-id
+      layerName: api
+      after:
+        id: 323dbc9c-2ce0-4b71-acf5-4ea8d6087b74
+        path: api.operation.get-api-projects-project-checkouts-checkout-changesets-changeset-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
+        description: One changeset of the checkout with drift. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: getCheckoutChangeset
+          summary: One changeset of the checkout with drift
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 248
+    removedAt: 693
+    change:
+      type: add
+      elementId: api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-id-commit
+      layerName: api
+      after:
+        id: ff243763-c5af-4637-961f-df9916125067
+        path: api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-id-commit
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: POST
+          /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+        description: Land a checkout's changeset. Token required; 404 for a project or
+          checkout the registry does not list.
+        attributes:
+          operationId: commitCheckoutChangeset
+          summary: Land a checkout's changeset
+          tags: checkout
+          http_method: POST
+          http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+        metadata:
+          created_at: 2026-11-21T17:14:54.805Z
+          updated_at: 2026-11-21T17:14:54.805Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 249
+    removedAt: 694
+    change:
+      type: add
+      elementId: api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-id-discard
+      layerName: api
+      after:
+        id: c91a4d31-8ab8-43b6-b3ac-2c6256b358cb
+        path: api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-id-discard
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: POST
+          /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+        description: Discard a checkout's changeset. Token required; 404 for a project
+          or checkout the registry does not list.
+        attributes:
+          operationId: discardCheckoutChangeset
+          summary: Discard a checkout's changeset
+          tags: checkout
+          http_method: POST
+          http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 250
+    removedAt: 695
+    change:
+      type: add
+      elementId: api.operation.put-api-projects-project-checkouts-checkout-changesets-changeset-id-review
+      layerName: api
+      after:
+        id: 63502ec1-98ba-4ed8-acbd-851e4f87e8bc
+        path: api.operation.put-api-projects-project-checkouts-checkout-changesets-changeset-id-review
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: PUT
+          /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+        description: Record review verdicts on a checkout's changeset. Token required;
+          404 for a project or checkout the registry does not list.
+        attributes:
+          operationId: putCheckoutChangesetReview
+          summary: Record review verdicts on a checkout's changeset
+          tags: checkout
+          http_method: PUT
+          http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 251
+    removedAt: 696
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-annotations
+      layerName: api
+      after:
+        id: d93b8854-7522-44c1-8541-a8fe6efa3235
+        path: api.operation.get-api-projects-project-checkouts-checkout-annotations
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET /api/projects/{project}/checkouts/{checkout}/annotations
+        description: The checkout's annotations. Token required; 404 for a project or
+          checkout the registry does not list.
+        attributes:
+          operationId: listCheckoutAnnotations
+          summary: The checkout's annotations
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 252
+    removedAt: 697
+    change:
+      type: add
+      elementId: api.operation.post-api-projects-project-checkouts-checkout-annotations
+      layerName: api
+      after:
+        id: cad054fd-2a54-4e78-95f5-20f0c6bd175a
+        path: api.operation.post-api-projects-project-checkouts-checkout-annotations
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: POST /api/projects/{project}/checkouts/{checkout}/annotations
+        description: Create an annotation in the checkout. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: createCheckoutAnnotation
+          summary: Create an annotation in the checkout
+          tags: checkout
+          http_method: POST
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 253
+    removedAt: 698
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation-id
+      layerName: api
+      after:
+        id: 1121ce38-c085-4191-9ed3-6c29ef1a1688
+        path: api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET
+          /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        description: One annotation of the checkout. Token required; 404 for a project
+          or checkout the registry does not list.
+        attributes:
+          operationId: getCheckoutAnnotation
+          summary: One annotation of the checkout
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 254
+    removedAt: 699
+    change:
+      type: add
+      elementId: api.operation.put-api-projects-project-checkouts-checkout-annotations-annotation-id
+      layerName: api
+      after:
+        id: f312a155-d888-4f27-b7db-18929553c477
+        path: api.operation.put-api-projects-project-checkouts-checkout-annotations-annotation-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: PUT
+          /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        description: Replace an annotation of the checkout. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: putCheckoutAnnotation
+          summary: Replace an annotation of the checkout
+          tags: checkout
+          http_method: PUT
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 255
+    removedAt: 700
+    change:
+      type: add
+      elementId: api.operation.patch-api-projects-project-checkouts-checkout-annotations-annotation-id
+      layerName: api
+      after:
+        id: f9975503-40b1-4bd4-bb7b-f18dc08e549c
+        path: api.operation.patch-api-projects-project-checkouts-checkout-annotations-annotation-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: PATCH
+          /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        description: Update an annotation of the checkout. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: patchCheckoutAnnotation
+          summary: Update an annotation of the checkout
+          tags: checkout
+          http_method: PATCH
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 256
+    removedAt: 701
+    change:
+      type: add
+      elementId: api.operation.delete-api-projects-project-checkouts-checkout-annotations-annotation-id
+      layerName: api
+      after:
+        id: fa65538d-d1f4-4f6d-bd0a-594ab21583ad
+        path: api.operation.delete-api-projects-project-checkouts-checkout-annotations-annotation-id
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: DELETE
+          /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        description: Delete an annotation of the checkout. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: deleteCheckoutAnnotation
+          summary: Delete an annotation of the checkout
+          tags: checkout
+          http_method: DELETE
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 257
+    removedAt: 702
+    change:
+      type: add
+      elementId: api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+      layerName: api
+      after:
+        id: 1eae8751-a873-4c74-a6da-be03d80d58bf
+        path: api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: GET
+          /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+        description: Replies to an annotation of the checkout. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: listCheckoutAnnotationReplies
+          summary: Replies to an annotation of the checkout
+          tags: checkout
+          http_method: GET
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 258
+    removedAt: 703
+    change:
+      type: add
+      elementId: api.operation.post-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+      layerName: api
+      after:
+        id: a5ae2210-d335-41ba-adc8-d0efe5eabd73
+        path: api.operation.post-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+        spec_node_id: api.operation
+        type: operation
+        layer_id: api
+        name: POST
+          /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+        description: Reply to an annotation of the checkout. Token required; 404 for a
+          project or checkout the registry does not list.
+        attributes:
+          operationId: replyCheckoutAnnotation
+          summary: Reply to an annotation of the checkout
+          tags: checkout
+          http_method: POST
+          http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+        metadata:
+          created_at: 2026-11-21T17:14:54.806Z
+          updated_at: 2026-11-21T17:14:54.806Z
+          version: 1
+      timestamp: 2026-11-21T17:14:54.836Z
     rewritten: true
