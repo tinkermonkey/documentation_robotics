@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 library` and runtimes `language-runtime`, not `middleware`; one test case sketch per test function
   is listed as a pitfall.
 
+### Fixed
+
+- **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
+  `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
+  MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`
+  and ran the viewer's WebSocket on an unsupported pairing.
+
 ## [0.7.1] - 2026-11-21
 
 **Specification Support:** v0.14.0
