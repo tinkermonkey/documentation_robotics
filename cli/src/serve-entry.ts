@@ -5,6 +5,9 @@
  *
  * Environment, set by `dr serve`:
  *   DR_SERVE_PORT          where the port search starts (default 8080)
+ *   DR_SERVE_VIEWER_PATH   a custom viewer build to serve instead of the bundled one
+ *   DR_SERVE_WITH_DANGER   "1": DrBot may also land and delete
+ *   DR_SERVE_READ_ONLY     "1": DrBot reads only (the default is changeset staging)
  *   DR_SERVE_LAUNCHER_PID  the `dr serve` process that started this one
  *   DR_FARM_PATH, ...      the farm, as `resolveFarm` reads it (from this process's cwd)
  *
@@ -22,6 +25,8 @@ import {
   type CentralProcess,
 } from "./server/central-lifetime.js";
 import { resolveFarm } from "./core/project-registry.js";
+import { startOptionsFromEnv } from "./commands/serve.js";
+import { resolveChatMode } from "./commands/visualize.js";
 import { getErrorMessage } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
 
@@ -96,10 +101,15 @@ async function main(): Promise<void> {
 
   try {
     const farm = await resolveFarm();
+    const start = startOptionsFromEnv(process.env);
     running = await runCentralProcess({
       farm,
       startServer: await loadStartCentralServer(),
-      port: positiveInt(process.env.DR_SERVE_PORT),
+      port: start.port,
+      serverOptions: {
+        ...(start.viewerPath ? { viewerPath: start.viewerPath } : {}),
+        ...resolveChatMode(start),
+      },
       launcherPid: positiveInt(process.env.DR_SERVE_LAUNCHER_PID),
       cliVersion: getCliVersion(),
       onIdleExit: () => void shutdown(0),

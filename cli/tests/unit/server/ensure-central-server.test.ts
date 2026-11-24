@@ -138,6 +138,26 @@ describe("ensureCentralServer", () => {
     expect(existsSync(serverStartingPath(farm.root, env))).toBe(false);
   });
 
+  it("starts the process with the caller's start options, and says they were not applied when another start won", async () => {
+    const { env, deps, scratch } = await fixture();
+    const { ensure, spawned } = deps();
+    const start = { port: 9100, viewerPath: "/viewers/custom", readOnly: true };
+    const started = await ensure({ env, cwd: scratch, start });
+    expect(started.started).toBe(true);
+    expect(spawned[0]).toMatchObject(start);
+
+    // A second caller whose own entry loses the race (exit 3) to a process another caller started.
+    const other = await fixture();
+    const lost = other.deps({
+      spawnEntry: () => {
+        void other.running("1.0.0");
+        return { pid: other.pids.next++, exited: Promise.resolve(3) };
+      },
+    });
+    const raced = await lost.ensure({ env: other.env, cwd: other.scratch, start });
+    expect(raced.started).toBe(false);
+  });
+
   it("starts once for concurrent callers: the others wait on the starting marker", async () => {
     const { farm, env, running, deps, pids, scratch } = await fixture();
     const { ensure, spawned } = deps();

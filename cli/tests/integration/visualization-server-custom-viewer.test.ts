@@ -1,89 +1,41 @@
 /**
- * Tests for custom viewer path feature in visualization server
+ * `dr visualize --viewer-path` on the central process (issue 1279, slice 4A).
  *
- * Each test starts a real `dr visualize` on a port from the allocator and stops it in afterEach,
- * waiting for it to exit, whether the test passed, failed or timed out (#1236). The launcher is
- * started with --exit-with-parent, so a run that is killed outright leaves no server behind.
+ * --viewer-path is a start-only option: it is passed to `dr serve` when `dr visualize` starts the
+ * farm's central process, and a notice says it was not applied when the process already runs.
+ * Each test makes its own scratch farm and stops the process it started (afterEach), whether the
+ * test passed, failed or timed out.
  *
- * REQUIRES SERIAL EXECUTION: starts a real server subprocess on a live port.
+ * REQUIRES SERIAL EXECUTION: starts a real process on a live port.
  */
 
-import { describe, test, expect, beforeAll, afterAll, afterEach } from "bun:test";
-import { mkdir, mkdtemp, readFile, writeFile, rm } from "fs/promises";
-import { join } from "path";
-import { spawn, type ChildProcess } from "child_process";
-import { tmpdir } from "os";
-import { isProcessRunning, portAllocator, stopServerProcess } from "../helpers.ts";
-import { viewerRecordPath } from "../../src/server/viewer-registry.js";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { portAllocator } from "../helpers.ts";
+import { CLI_PATH, makeVisualizeFarm, type VisualizeFarm } from "../helpers/visualize-farm.ts";
 
-const CLI_PATH = join(import.meta.dir, "../../dist/cli.js");
-const PROJECT_DIR = join(import.meta.dir, "../../../cli-validation/test-project/baseline");
-const STARTUP_TIMEOUT = 20000;
-
-interface StartedServer {
-  proc: ChildProcess;
-  port: number;
-  output: () => string;
-}
-
-describe.serial("Visualization Server - Custom Viewer", () => {
+describe.skipIf(!existsSync(CLI_PATH)).serial("dr visualize --viewer-path", () => {
   let scratch: string;
   let testViewerPath: string;
-  let stateDir: string;
-  const started: StartedServer[] = [];
+  const farms: VisualizeFarm[] = [];
+  const ports: number[] = [];
 
-  /**
-   * Starts `dr visualize` on a port from the allocator and waits until it is listening there.
-   * The launcher takes another port when the one it was given is taken, so "something answers
-   * on the port" proves nothing: the port is read from the record this launcher wrote.
-   */
-  async function startServer(extraArgs: string[]): Promise<StartedServer> {
+  /** A scratch farm with one project, and a port from the allocator for its process. */
+  async function farmAndPort(): Promise<{ farm: VisualizeFarm; port: number }> {
+    const farm = await makeVisualizeFarm(["alpha"]);
+    farms.push(farm);
     const port = await portAllocator.allocatePort();
-    let output = "";
-    const proc = spawn(
-      "node",
-      [CLI_PATH, "visualize", ...extraArgs, "--no-browser", "--no-auth", "--exit-with-parent", "--port", String(port)],
-      {
-        cwd: PROJECT_DIR,
-        env: { ...process.env, DR_STATE_DIR: stateDir },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
-    proc.stdout?.on("data", (chunk) => (output += chunk.toString()));
-    proc.stderr?.on("data", (chunk) => (output += chunk.toString()));
-    const server: StartedServer = { proc, port, output: () => output };
-    // Registered before anything can throw, so afterEach stops it whatever happens next.
-    started.push(server);
-
-    const recordPath = viewerRecordPath(PROJECT_DIR, proc.pid!, { DR_STATE_DIR: stateDir });
-    const deadline = Date.now() + STARTUP_TIMEOUT;
-    let record: { port: number } | null = null;
-    while (!record && Date.now() < deadline) {
-      if (proc.exitCode !== null || proc.signalCode !== null) {
-        throw new Error(`dr visualize exited before it was listening (code ${proc.exitCode}):\n${output}`);
-      }
-      record = await readFile(recordPath, "utf8").then(JSON.parse, () => null);
-      if (!record) await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    if (!record) throw new Error(`dr visualize was not listening within ${STARTUP_TIMEOUT}ms:\n${output}`);
-    if (record.port !== port) {
-      throw new Error(
-        `dr visualize was asked for port ${port} and is listening on ${record.port}: ` +
-          `port ${port} was taken, so requests to it would reach another server.\n${output}`
-      );
-    }
-    return server;
+    ports.push(port);
+    return { farm, port };
   }
 
   beforeAll(async () => {
     scratch = await mkdtemp(join(tmpdir(), "dr-test-custom-viewer-"));
-    stateDir = join(scratch, "state");
     testViewerPath = join(scratch, "viewer");
-
-    // Create test viewer directory
     await mkdir(join(testViewerPath, "assets"), { recursive: true });
-
-    // Create test index.html
     await writeFile(
       join(testViewerPath, "index.html"),
       `<!DOCTYPE html>
@@ -99,139 +51,74 @@ describe.serial("Visualization Server - Custom Viewer", () => {
 </body>
 </html>`
     );
-
-    // Create test CSS file
     await writeFile(join(testViewerPath, "assets", "style.css"), `body { background: #f0f0f0; }`);
-
-    // Create test JS file
-    await writeFile(
-      join(testViewerPath, "assets", "script.js"),
-      `console.log('Custom viewer loaded');`
-    );
+    await writeFile(join(testViewerPath, "assets", "script.js"), `console.log('Custom viewer loaded');`);
   });
 
   afterEach(async () => {
-    // Stop every server the test started and wait for each to exit
-    for (const server of started.splice(0)) {
-      await stopServerProcess(server.proc);
-      portAllocator.releasePort(server.port);
-    }
+    for (const farm of farms.splice(0)) await farm.cleanup();
+    for (const port of ports.splice(0)) portAllocator.releasePort(port);
   });
 
   afterAll(async () => {
     await rm(scratch, { recursive: true, force: true });
   });
 
-  test("should serve custom viewer when --viewer-path is provided", async () => {
-    const { port } = await startServer(["--viewer-path", testViewerPath]);
+  test("serves the custom viewer when it starts the process with --viewer-path", async () => {
+    const { farm, port } = await farmAndPort();
+    const started = farm.visualize(farm.projects.alpha, ["--port", String(port), "--viewer-path", testViewerPath]);
+    expect(started.started).toBe(true);
 
-    // Fetch index.html
-    const response = await fetch(`http://localhost:${port}/`);
+    const response = await fetch(`http://127.0.0.1:${started.port}/`);
     const html = await response.text();
-
     expect(response.status).toBe(200);
     expect(html).toContain("Custom Viewer Test");
-    expect(html).toContain("This is a test custom viewer");
 
-    // Verify CSS is served with correct content type
-    const cssResponse = await fetch(`http://localhost:${port}/assets/style.css`);
-    expect(cssResponse.status).toBe(200);
-    expect(cssResponse.headers.get("content-type")).toBe("text/css");
-
-    // Verify JS is served with correct content type
-    const jsResponse = await fetch(`http://localhost:${port}/assets/script.js`);
-    expect(jsResponse.status).toBe(200);
-    expect(jsResponse.headers.get("content-type")).toBe("application/javascript");
+    const css = await fetch(`http://127.0.0.1:${started.port}/assets/style.css`);
+    expect(css.status).toBe(200);
+    expect(css.headers.get("content-type")).toBe("text/css");
+    const js = await fetch(`http://127.0.0.1:${started.port}/assets/script.js`);
+    expect(js.status).toBe(200);
+    expect(js.headers.get("content-type")).toBe("application/javascript");
   });
 
-  test("should prevent path traversal attacks", async () => {
-    const { port } = await startServer(["--viewer-path", testViewerPath]);
+  test("resolves a relative --viewer-path from where dr visualize runs", async () => {
+    const { farm, port } = await farmAndPort();
+    const run = farm.dr(
+      ["visualize", farm.projects.alpha, "--no-browser", "--json", "--port", String(port), "--viewer-path", "viewer"],
+      scratch
+    );
+    expect(run.status).toBe(0);
+    const started = JSON.parse(run.stdout) as { port: number };
+    expect(await (await fetch(`http://127.0.0.1:${started.port}/`)).text()).toContain("Custom Viewer Test");
+  });
 
-    // Try path traversal
-    const response = await fetch(`http://localhost:${port}/../../../etc/passwd`);
-
-    // Should return 403 or 404, not the actual file
+  test("prevents path traversal", async () => {
+    const { farm, port } = await farmAndPort();
+    const started = farm.visualize(farm.projects.alpha, ["--port", String(port), "--viewer-path", testViewerPath]);
+    const response = await fetch(`http://127.0.0.1:${started.port}/../../../etc/passwd`);
     expect([403, 404]).toContain(response.status);
   });
 
-  test("should serve default inline viewer when no --viewer-path is provided", async () => {
-    const { port } = await startServer([]);
-
-    // Fetch index.html
-    const response = await fetch(`http://localhost:${port}/`);
-    const html = await response.text();
-
-    expect(response.status).toBe(200);
-    // Should serve the bundled React viewer
+  test("serves the bundled viewer without --viewer-path", async () => {
+    const { farm, port } = await farmAndPort();
+    const started = farm.visualize(farm.projects.alpha, ["--port", String(port)]);
+    const html = await (await fetch(`http://127.0.0.1:${started.port}/`)).text();
     expect(html).toContain("Documentation Robotics Viewer");
     expect(html).toContain('<div id="root">');
-    expect(html).toContain(".js");
   });
 
-  test("fails clearly when the port it asked for is taken, instead of testing another server", async () => {
-    const first = await startServer([]);
-    const holderPort = first.port;
-    // A second launcher asked for the same port moves to the next free one.
-    const original = portAllocator.allocatePort.bind(portAllocator);
-    portAllocator.allocatePort = async () => holderPort;
-    try {
-      await expect(startServer([])).rejects.toThrow(
-        new RegExp(`asked for port ${holderPort} and is listening on \\d+`)
-      );
-    } finally {
-      portAllocator.allocatePort = original;
-    }
+  test("says --viewer-path was not applied when the process already runs, and keeps serving its viewer", async () => {
+    const { farm, port } = await farmAndPort();
+    const first = farm.visualize(farm.projects.alpha, ["--port", String(port)]);
+    const second = farm.visualize(farm.projects.alpha, ["--viewer-path", testViewerPath]);
+    expect(second.started).toBe(false);
+    expect(second.pid).toBe(first.pid);
+    expect(second.notApplied).toEqual(["--viewer-path"]);
+    const html = await (await fetch(`http://127.0.0.1:${first.port}/`)).text();
+    expect(html).not.toContain("Custom Viewer Test");
+
+    const text = farm.dr(["visualize", "--no-browser", "--viewer-path", testViewerPath], farm.projects.alpha);
+    expect(text.stdout).toContain("Not applied (the DR process was already running): --viewer-path.");
   });
-
-  test("the launcher and its server exit when the process that started them is gone", async () => {
-    // A stand-in for an interrupted test run: a parent that starts dr visualize and is then
-    // killed without stopping it.
-    const port = await portAllocator.allocatePort();
-    const parentScript = `
-      const { spawn } = require("node:child_process");
-      const child = spawn("node", ${JSON.stringify([CLI_PATH, "visualize", "--no-browser", "--no-auth", "--exit-with-parent", "--port", String(port)])}, { stdio: "ignore" });
-      console.log(child.pid);
-      setInterval(() => {}, 1000);
-    `;
-    const parent = spawn("node", ["-e", parentScript], {
-      cwd: PROJECT_DIR,
-      env: { ...process.env, DR_STATE_DIR: stateDir },
-      stdio: ["ignore", "pipe", "inherit"],
-    });
-    let launcherPid = 0;
-    // Not a signal-0 check alone: the orphaned launcher is handed to PID 1, and where PID 1 does
-    // not reap (the release gate's container) it stays a zombie once it has exited.
-    const isAlive = isProcessRunning;
-    const healthy = async () => {
-      try {
-        return (await fetch(`http://localhost:${port}/health`)).ok;
-      } catch {
-        return false;
-      }
-    };
-    const waitFor = async (check: () => boolean | Promise<boolean>, timeoutMs: number) => {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        if (await check()) return true;
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      return false;
-    };
-    try {
-      launcherPid = await new Promise<number>((resolve, reject) => {
-        parent.stdout?.once("data", (chunk) => resolve(Number(chunk.toString().trim())));
-        parent.once("exit", () => reject(new Error("the parent exited before it started dr visualize")));
-      });
-      expect(await waitFor(healthy, STARTUP_TIMEOUT)).toBe(true);
-
-      parent.kill("SIGKILL");
-
-      expect(await waitFor(() => !isAlive(launcherPid), 15000)).toBe(true);
-      expect(await waitFor(async () => !(await healthy()), 10000)).toBe(true);
-    } finally {
-      parent.kill("SIGKILL");
-      if (launcherPid && isAlive(launcherPid)) process.kill(launcherPid, "SIGKILL");
-      portAllocator.releasePort(port);
-    }
-  }, 60000);
 });
