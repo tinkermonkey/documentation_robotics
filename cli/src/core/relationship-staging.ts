@@ -258,6 +258,21 @@ export interface RejectedElement {
   type: string;
 }
 
+/**
+ * An id two different names give, of which the batch kept one element and refused the other
+ * (#1297): "galaxyLayout tests" and "galaxy-layout tests" both give `...galaxy-layout-tests`. A
+ * reference by that id, exact or without its hyphens, could mean either, and one by the refused name
+ * means the element that was not added: both are reported, never bound to the element kept.
+ */
+export interface IdCollision {
+  /** The id both names give. */
+  id: string;
+  /** The element that holds the id: its name, and where it is (`elements[0], which this call adds`). */
+  kept: { name?: string; where: string };
+  /** The name the batch refused for the id. */
+  refusedName: string;
+}
+
 /** A slug reduced to its letters and digits, so `graph-layout-snapshot` and `graphlayoutsnapshot` compare equal. */
 function compactSlug(slug: string): string {
   return slug.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -364,6 +379,8 @@ export interface RelationshipBatchPlan {
  * elements the same call refused to add, with why, so the reason says so. An end that is not an
  * exact id is read as the one element it names by its name or its id without hyphens, among
  * `pending` and the projection (the model as the changeset leaves it), with a note saying so.
+ * `collisions` lists the ids two names in the call gave (one element kept, the other refused): an
+ * end naming such an id, or a refused name, is reported instead of bound (#1297).
  */
 export async function planRelationshipBatch(
   graph: ChangesetGraph,
@@ -372,6 +389,7 @@ export async function planRelationshipBatch(
   options: {
     pending?: Map<string, PendingElement>;
     rejected?: Map<string, RejectedElement>;
+    collisions?: IdCollision[];
     /** The status for an add: "staged" into the changeset (default), or "added" to the model. */
     addStatus?: "staged" | "added";
   } = {}
@@ -379,6 +397,16 @@ export async function planRelationshipBatch(
   const addStatus = options.addStatus ?? "staged";
   const pending = options.pending ?? new Map<string, PendingElement>();
   const rejected = options.rejected ?? new Map<string, RejectedElement>();
+  const collisionsById = new Map<string, IdCollision[]>();
+  const collisionsByCompactId = new Map<string, IdCollision[]>();
+  const collisionsByRefusedName = new Map<string, IdCollision[]>();
+  const push = <K>(map: Map<K, IdCollision[]>, key: K, c: IdCollision) => map.set(key, [...(map.get(key) ?? []), c]);
+  for (const c of options.collisions ?? []) {
+    push(collisionsById, c.id, c);
+    const key = compactId(c.id);
+    if (key) push(collisionsByCompactId, key, c);
+    push(collisionsByRefusedName, c.refusedName, c);
+  }
   const catalog = new RelationshipCatalog();
   await catalog.load();
 
@@ -418,7 +446,26 @@ export async function planRelationshipBatch(
   };
 
   type Endpoint = PendingElement & { note?: string; readFrom?: string };
+  /** An end naming an id two names gave, or the name the batch refused for it: never bound (#1297). */
+  const collisionError = (collisions: IdCollision[], role: "Source" | "Target", ref: string, byName: boolean) => {
+    const { id, kept } = collisions[0];
+    const refused = [...new Set(collisions.map((c) => `"${c.refusedName}"`))].join(" and ");
+    const keptName = kept.name !== undefined ? `"${kept.name}"` : "an element";
+    const error = byName
+      ? `${role} ${ref} was not added: the name gives the id ${id}, which ${keptName} holds (${kept.where})`
+      : `${role} ${ref} is the id of more than one name: ${keptName} (${kept.where}) and ${refused} (not added)`;
+    return {
+      error,
+      suggestions: [
+        `Give ${refused} a name that differs in its letters or digits, then send it and its relationships again`,
+        ...(kept.name !== undefined ? [`To link ${keptName}, name it by its name`] : []),
+      ],
+    };
+  };
+
   const endpoint = (id: string, role: "Source" | "Target"): Endpoint | { error: string; suggestions: string[] } => {
+    const contested = collisionsById.get(id);
+    if (contested) return collisionError(contested, role, id, false);
     const added = pending.get(id);
     if (added) return added;
     const element = graph.getElement(id);
@@ -426,6 +473,11 @@ export async function planRelationshipBatch(
     if (element) return { error: `${role} element ${id} not found (this changeset deletes it)`, suggestions: [] };
     const refusal = rejected.get(id);
     if (refusal) return { error: `${role} element ${id} was not added: ${refusal.reason}`, suggestions: [] };
+    const refusedName = collisionsByRefusedName.get(id);
+    if (refusedName) return collisionError(refusedName, role, `"${id}"`, true);
+    const compactKey = compactId(id);
+    const contestedLoosely = compactKey ? collisionsByCompactId.get(compactKey) : undefined;
+    if (contestedLoosely) return collisionError(contestedLoosely, role, id, false);
 
     // Not an exact id: it may name an element by its unhyphenated id or its name. The elements
     // this call adds and the ones the projection already holds (the model, and what the active

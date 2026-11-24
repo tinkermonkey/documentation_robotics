@@ -21,6 +21,7 @@ import type { Model } from "../../core/model.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
 import {
   planRelationshipBatch,
+  type IdCollision,
   type PendingElement,
   type RejectedElement,
 } from "../../core/relationship-staging.js";
@@ -91,7 +92,9 @@ const inputSchema = {
       "Batch form only: relationships to stage in the same write, as relationship_add takes them. They name an " +
         "element by its id (layer.type.kebab-name), by that id without its hyphens, or by its name, whether this " +
         "call adds it, an earlier call staged it, or the model has it. A reference that is not an exact id and " +
-        "matches more than one element is reported, not guessed."
+        "matches more than one element is reported, not guessed. When two names give one id, the second " +
+        "element is refused, and a relationship naming that id or the refused name is reported, not linked " +
+        "to the first."
     ),
   file: z
     .string()
@@ -397,6 +400,11 @@ async function addElementBatch(
   const results: ElementBatchResult[] = [];
   /** Types an element was refused for its attributes in, with what each requires. */
   const requiredAttributes: Record<string, Record<string, string>> = {};
+  /**
+   * Refused elements and the ids their names gave, with the id of the element that holds them: a
+   * name refused because another one gives its id leaves that id contested for relationships (#1297).
+   */
+  const refusedIds: Array<{ name: string; ids: string[]; holder: string }> = [];
 
   // What is already there, for a name whose element exists under an id an earlier rule gave it:
   // the projection's live elements, and the ones this call has accepted so far.
@@ -430,7 +438,14 @@ async function addElementBatch(
       }
       // Kept with the name, layer and type it was sent as, so a reference by its name or its
       // unhyphenated id still finds the refusal instead of linking past it.
-      if (id) rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
+      if (id) {
+        rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
+        refusedIds.push({ name: spec.name, ids: [id], holder: id });
+        // An element of another name may hold the id an earlier rule gave this name: a link by
+        // that id could mean the refused element too.
+        const near = existingUnderEarlierId(spec.layer, id.split(".")[1], spec.name, id, alreadyThere);
+        if (near.existing) refusedIds.push({ name: spec.name, ids: [near.existing, id], holder: near.existing });
+      }
       results.push({
         ...asSent,
         ...(id ? { id } : {}),
@@ -442,6 +457,7 @@ async function addElementBatch(
     }
     const existing = graph.getElement(item.id);
     if (existing && existing.status !== "deleted") {
+      refusedIds.push({ name: spec.name, ids: [item.id], holder: item.id });
       results.push({
         ...asSent,
         id: item.id,
@@ -456,6 +472,7 @@ async function addElementBatch(
       // Two names, one id ("GET /x" and "GET /x*"): say which name it collided with, since the
       // ids alone do not show it.
       const at = `elements[${pendingAt.get(item.id)}]`;
+      refusedIds.push({ name: spec.name, ids: [item.id], holder: item.id });
       results.push({
         ...asSent,
         id: item.id,
@@ -471,6 +488,7 @@ async function addElementBatch(
     const near = existingUnderEarlierId(item.layer, item.type, spec.name, item.id, alreadyThere);
     if (near.existing) {
       const [reason, , suggestions] = alreadyExistsUnderEarlierId(near.existing, item.id, near.existingName);
+      refusedIds.push({ name: spec.name, ids: [near.existing, item.id], holder: near.existing });
       results.push({ ...asSent, id: near.existing, status: "invalid", reason, suggestions });
       continue;
     }
@@ -491,6 +509,7 @@ async function addElementBatch(
   const plan = await planRelationshipBatch(graph, changeset, relationships, {
     pending,
     rejected,
+    collisions: idCollisions(refusedIds, graph, pending, pendingAt),
     addStatus: active ? "staged" : "added",
   });
 
@@ -521,6 +540,37 @@ async function addElementBatch(
     },
     ...(relationships.length > 0 ? { relationships: relationshipBatchReport(plan.results, report) } : {}),
   };
+}
+
+/**
+ * The ids a refused name shares with an element of another name, the one kept: in this call, or in
+ * the projection. A refused name the element itself carries (sent twice, or already in the model)
+ * contests nothing, and a relationship by its id still binds to it.
+ */
+function idCollisions(
+  refusedIds: Array<{ name: string; ids: string[]; holder: string }>,
+  graph: ChangesetGraph,
+  pending: Map<string, PendingElement>,
+  pendingAt: Map<string, number>
+): IdCollision[] {
+  const collisions = new Map<string, IdCollision>();
+  for (const refused of refusedIds) {
+    const inCall = pending.get(refused.holder);
+    const live = graph.getElement(refused.holder);
+    const kept = inCall
+      ? { name: inCall.name, where: `elements[${pendingAt.get(refused.holder)}], which this call adds` }
+      : live && live.status !== "deleted"
+        ? { name: live.name, where: live.status === "added" && !live.alreadyInBase ? "which this changeset adds" : "which the model has" }
+        : undefined;
+    // An element with no name is refused as plain "already exists" (otherNameNote): no clash.
+    if (!kept || kept.name === undefined || kept.name === refused.name) continue;
+    for (const id of refused.ids) {
+      // An id the name gives today, held under the id an earlier rule gave: say which id holds it.
+      const where = refused.holder === id ? kept.where : `as ${refused.holder}, ${kept.where}`;
+      collisions.set(`${id}\u0000${refused.name}`, { id, kept: { name: kept.name, where }, refusedName: refused.name });
+    }
+  }
+  return [...collisions.values()];
 }
 
 /** Writes one element to the base model (no changeset is active). */
