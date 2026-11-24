@@ -103,7 +103,7 @@ edge route. Do it because it is cheap and it improves extraction itself, not onl
 **Status (2026-11-21):** bank 0.1 curated with the maintainer. See
 [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md) for the bank and its decisions,
 `cli/scripts/assess-eval/questions.json` for the data, and `RUNBOOK.md` beside it for the protocol.
-The heimdall pilot ran steps A and B on 2026-11-21. Step C, the maintainer review, is next.
+The heimdall pilot ran steps A and B on 2026-11-21, and step C landed both on 2026-11-24.
 
 The finders show where the gaps are. Filling them takes inference, and the coding agent is the
 tool for that: it has the model (dr MCP), the code graph (CBM MCP) and the source. The proposal is
@@ -440,14 +440,18 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 1. **B: draft and curate the bank.** Done 2026-11-21 (bank 0.1).
 2. **B and C: pilot on heimdall.** All three protocol steps. This gives the cost per repository and
    the first precision and recall numbers. Steps A and B ran on 2026-11-21.
-   - **Step C reviews every test as extraction made it:** 1,689 per-test sketches and their links,
-     3,652 of step A's 5,076 changes. Clustering them (#1312) is order step 5 and does not hold
-     the pilot up.
-   - **Already pruned:** the changes the S1 and S10 rulings reject by exact match (the 105
-     application components that duplicate a `ux.librarycomponent`, and step B's 131 library
-     exports staged as `api.operation` with their tags), 1,219 changes in all. Each is logged with
-     its ruling in `data/heimdall/rejected-by-rule.jsonl`, beside the answer logs, so scoring counts
-     them as rejections.
+   - **Step C landed both changesets on 2026-11-24, with no verdicts recorded.** Every change left
+     after the pruning below landed: 5,073 from step A (1,987 elements, 3,086 relationships,
+     including the 1,689 per-test sketches) and 193 from step B. The model validates with 2,197
+     elements, 3,375 relationships and no errors. Four schema definitions step B added (layout
+     options and trace formats) are orphans, apparently left unlinked when the library exports they
+     belonged to were removed (S1). Clustering the test sketches (#1312) is order step 5.
+   - **Rejected before landing,** each logged in `data/heimdall/rejected-by-rule.jsonl` beside the
+     answer logs, so scoring counts them as rejections: 1,219 changes the S1 and S10 rulings reject
+     by exact match (the 105 application components that duplicate a `ux.librarycomponent`, and
+     step B's 131 library exports staged as `api.operation` with their tags), and 3 step A links
+     to `api.operation.compute-edge-path`, which the maintainer dropped on accepting step B's
+     delete of it.
 3. **`score.ts`,** written against the pilot's outputs.
    - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
      S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's test
