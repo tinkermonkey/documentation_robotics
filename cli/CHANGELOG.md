@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Bundled viewer 0.16.0** (issue 1279). The viewer runs on the central process's project- and
+  checkout-scoped routes. Every page is `/#/p/<project>/c/<checkout>/...`, so the links
+  `review_open`, `project_status` and `dr visualize` give open the checkout they name. A bare `/`
+  shows a project and checkout picker. The websocket and DrBot chat are per checkout. It also
+  adds the C4 diagram export (SVG, PNG, Structurizr DSL, C4-PlantUML).
+
 - **`dr visualize [path]` opens the shared viewer on the central DR process (issue 1279, slice
   4A).** It ensures the farm's process runs (starting `dr serve` detached when none does) and opens
   the browser at `/#/p/<project>/c/<checkout>/` for the checkout the path (default: the working
