@@ -70,7 +70,7 @@ export const VIEWER_SETTINGS = {
     unit: "ms",
     min: 1,
     description:
-      "How often a viewer checks whether it is idle and whether its project folder is still there. A missing folder ends it after two checks.",
+      "How often the DR process checks whether it is idle.",
   },
 } as const satisfies Record<string, ViewerSettingSpec>;
 

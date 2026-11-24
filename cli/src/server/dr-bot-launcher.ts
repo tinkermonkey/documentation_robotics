@@ -875,7 +875,7 @@ export class DrBotLauncher {
       // Node reports spawn failures (e.g. ENOENT if `claude` isn't on PATH) asynchronously
       // via an 'error' event rather than a synchronous throw. Without this handler, an
       // unhandled 'error' event on the ChildProcess EventEmitter throws and crashes the
-      // whole server (server-entry.ts's uncaughtException handler tears the process down)
+      // whole server (serve-entry.ts's uncaughtException handler tears the process down)
       // instead of just failing this one chat request.
       proc.on("error", (err) => {
         const errorMsg = getErrorMessage(err);

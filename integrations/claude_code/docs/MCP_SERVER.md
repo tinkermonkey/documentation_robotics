@@ -19,7 +19,7 @@ Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `ann
 | Changesets               | `changeset_list`, `changeset_show`, `changeset_create`, `changeset_activate`, `changeset_deactivate`, `changeset_update`, `changeset_unstage`, `changeset_discard` |
 | Pressure-test and verify | `changeset_brief`, `changeset_impact`, `changeset_verify`, `changeset_adopt_source_references` (copies verify's source references into the plan)                   |
 | Annotations              | `annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`                                             |
-| Review                   | `review_open` (a link that opens a changeset in the viewer; reuses or starts `dr visualize`)                                                                       |
+| Review                   | `review_open` (a link that opens a changeset in the viewer; starts the DR process (`dr serve`) when none runs)                                                     |
 | Chat                     | `chat_launch`, `chat_status`                                                                                                                                       |
 
 `model_list` fits one result by default. When 150 elements or fewer match, it is a compact listing: one line per element with its id (`layer.type.name`), name and the first sentence of its description, about 20 KB per 100 elements. When more match, it is a summary: counts by layer and type, with a line saying how to list the elements (`layer`, `type`, or `detail: "compact"` for all of them). `detail: "full"` returns every element whole (attributes, source reference, metadata; about 1 KB each); `layer` and `type` narrow every form.
@@ -63,11 +63,11 @@ Other MCP clients follow the same shape: a `command`/`args` pair that launches `
 
 ## Environment
 
-| Variable            | Effect                                                                                                                                                                                                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR_MCP_ROOT_PATH`  | Pin the session to the checkout at this path instead of the client's roots. `dr mcp` sends it to the DR process with the session; a path no project owns has its repository registered in the farm.                                                               |
-| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it with `dr visualize --with-changesets`. `dr mcp` sends it with the session, so it limits that session only. |
-| `DR_MCP_IN_PROCESS` | `1` serves the tools in the `dr mcp` process itself, for one session, without the DR process or the farm's registry.                                                                                                                                              |
+| Variable            | Effect                                                                                                                                                                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR_MCP_ROOT_PATH`  | Pin the session to the checkout at this path instead of the client's roots. `dr mcp` sends it to the DR process with the session; a path no project owns has its repository registered in the farm.                                                                                                   |
+| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it unless the DR process was started with `--read-only` (or `--with-danger`). `dr mcp` sends it with the session, so it limits that session only. |
+| `DR_MCP_IN_PROCESS` | `1` serves the tools in the `dr mcp` process itself, for one session, without the DR process or the farm's registry.                                                                                                                                                                                  |
 
 ## HTTP
 

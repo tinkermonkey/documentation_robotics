@@ -595,7 +595,7 @@ replaced quietly.
 | `DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS` | 500     | How long `project_status` gives a viewer to answer (the retry twice that), to stay fast.  |
 | `DR_VIEWER_STOP_TIMEOUT_MS`          | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
 | `DR_VIEWER_LOG_KEEP_DAYS`            | 7       | How long the log of a viewer that is gone is kept.                                        |
-| `DR_VIEWER_LIFETIME_CHECK_MS`        | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
+| `DR_VIEWER_LIFETIME_CHECK_MS`        | 30000   | How often the DR process checks whether it is idle.                                       |
 
 `DR_VIEWER_PROCESS_SCAN=off` makes `--list` and `--stop` use the registry alone and never read the process
 table; they say so.

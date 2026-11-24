@@ -53,20 +53,6 @@ export interface VisualizeOptions {
 }
 
 /**
- * Parses an --idle-exit value: hours as a number, 0 for never. Throws on anything else.
- * `dr visualize` refuses --idle-exit now; this stays for the per-project viewer's lifetime tests
- * until slice 4B removes that mode.
- */
-export function parseIdleExitHours(value: string | number | undefined): number {
-  if (value === undefined || value === "") return 0;
-  const hours = Number(value);
-  if (!Number.isFinite(hours) || hours < 0) {
-    throw new Error(`Invalid --idle-exit value: ${value}. Give a number of hours (0 means never).`);
-  }
-  return hours;
-}
-
-/**
  * The chat agent's permission mode for these options. It stages changes in a changeset by default
  * (#1240): --read-only turns that off, and danger mode already allows everything, so it wins over
  * both. --with-changesets is the old name for the default and changes nothing.

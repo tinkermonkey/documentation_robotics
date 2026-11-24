@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The per-project viewer's lifetime watch is gone (issue 1279, after slice 4B).** Nothing ran
+  `watchViewerLifetime` once the single-model server was removed, so it is deleted with its tests
+  and `parseIdleExitHours`; the central process's idle exit (`central-lifetime.ts`) is what ends a
+  DR process. `DR_VIEWER_LIFETIME_CHECK_MS` now only sets how often that idle check runs. The docs
+  that still described per-project viewers (`GRACEFUL_SHUTDOWN.md`, `review_open` in
+  `MCP_SERVER.md` and `CHANGE_MODELING.md`, `dr visualize --no-auth`) now describe the DR process.
 - **Bundled viewer 0.16.0** (issue 1279). The viewer runs on the central process's project- and
   checkout-scoped routes. Every page is `/#/p/<project>/c/<checkout>/...`, so the links
   `review_open`, `project_status` and `dr visualize` give open the checkout they name. A bare `/`
