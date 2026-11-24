@@ -1,201 +1,90 @@
 /**
- * Integration tests for the visualization server authenticated token flow.
+ * Integration tests: the token on the central process `dr visualize` starts (issue 1279, slice 4A).
  *
- * Covers the full auth path: CLI spawns server with auth enabled → HTTP/WebSocket
- * requests with the correct token succeed → wrong/missing tokens are rejected.
+ * `dr visualize` starts the farm's central DR process and prints a link with its token in the
+ * fragment. Every route except `/` (the viewer's page) and `/health` requires that token, over
+ * HTTP and on the websocket. Only the scoped routes are used.
  *
- * This is the regression suite for the bug where Bun's pipe buffering batched
- * the "running at http://localhost" and "TOKEN:xxx" stdout lines into one data
- * chunk, causing startsWith("TOKEN:") to fail, the token to be lost, the browser
- * to open without a valid token, and the server to return 403.
- *
- * Tests use the --token flag to pre-specify a known token so they don't depend
- * on stdout stream timing (consistent with the pattern in visualization-server-api.test.ts).
- *
- * REQUIRES SERIAL EXECUTION: starts a real server subprocess on a live port.
+ * REQUIRES SERIAL EXECUTION: starts a real process on a live port.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { mkdir, rm } from "fs/promises";
-import { join } from "path";
-import { spawnSync } from "bun";
-import { portAllocator, stopServerProcess } from "../helpers.ts";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { existsSync } from "node:fs";
+import { portAllocator } from "../helpers.ts";
+import { CLI_PATH, makeVisualizeFarm, type VisualizeFarm, type VisualizeResult } from "../helpers/visualize-farm.ts";
 
-const CLI_ROOT = join(import.meta.dir, "../..");
-const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
-const STARTUP_TIMEOUT = 20000; // ms – generous for CI
-
-// Known token injected via --token flag so tests don't need to read stdout
-const TEST_TOKEN = "test-auth-token-dr-integration";
 const WRONG_TOKEN = "definitely-wrong-token-value";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function initializeTestModel(dir: string): Promise<void> {
-  const result = spawnSync({
-    cmd: ["node", CLI_PATH, "init", "--name", "Auth Flow Test", "--description", "Auth integration test model"],
-    cwd: dir,
-    stdio: ["pipe", "pipe", "pipe"],
-  });
-  if (result.exitCode !== 0) {
-    throw new Error(`Failed to init model: ${result.stderr?.toString()}`);
-  }
-}
-
-/**
- * Poll /health until 200 or timeout.
- */
-async function waitForHealth(port: number, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(`http://localhost:${port}/health`);
-      if (res.ok) return;
-    } catch { /* not ready */ }
-    await new Promise((r) => setTimeout(r, 300));
-  }
-  throw new Error(`Server at port ${port} did not become healthy within ${timeoutMs}ms`);
-}
-
-/**
- * Spawn the visualization server with auth enabled and a pre-specified token.
- * Waits for the health endpoint before returning.
- */
-async function startAuthServer(
-  cwd: string,
-  port: number,
-  token: string
-): Promise<ReturnType<typeof Bun.spawn>> {
-  const proc = Bun.spawn({
-    cmd: ["bun", CLI_PATH, "visualize", "--port", String(port), "--no-browser", "--token", token],
-    cwd,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  await waitForHealth(port, STARTUP_TIMEOUT);
-  return proc;
-}
-
-// ---------------------------------------------------------------------------
-// Suite – shared server
-// ---------------------------------------------------------------------------
-
-describe.serial("Visualization Server — authenticated token flow", () => {
-  let testDir: string;
-  let testPort: number;
-  let serverProc: ReturnType<typeof Bun.spawn> | null = null;
+describe.skipIf(!existsSync(CLI_PATH)).serial("dr visualize — the central process's token", () => {
+  let farm: VisualizeFarm;
+  let port: number;
+  let started: VisualizeResult;
+  let token: string;
+  let base: string;
+  let scoped: string;
 
   beforeAll(async () => {
-    testDir = join("/tmp", `dr-auth-flow-${Date.now()}`);
-    testPort = await portAllocator.allocatePort();
-    await mkdir(testDir, { recursive: true });
-    await initializeTestModel(testDir);
-    serverProc = await startAuthServer(testDir, testPort, TEST_TOKEN);
+    farm = await makeVisualizeFarm(["alpha"]);
+    port = await portAllocator.allocatePort();
+    started = farm.visualize(farm.projects.alpha, ["--port", String(port)]);
+    token = farm.tokenOf(started);
+    base = `http://127.0.0.1:${started.port}`;
+    scoped = `${base}/api/projects/${started.project}/checkouts/${started.checkout}`;
   });
 
   afterAll(async () => {
-    // Wait for the server to exit before its project folder is deleted
-    await stopServerProcess(serverProc);
-    serverProc = null;
-    portAllocator.releasePort(testPort);
-    try { await rm(testDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    await farm?.cleanup();
+    portAllocator.releasePort(port);
   });
 
-  // ── Unauthenticated endpoints ──────────────────────────────────────────────
-
-  it("serves root / with 200 — no auth required for the viewer page", async () => {
-    const res = await fetch(`http://localhost:${testPort}/`);
-    expect(res.status).toBe(200);
-    const body = await res.text();
-    expect(body).toContain("<!DOCTYPE html>");
+  it("starts the process and links to the checkout, with the token in the fragment", () => {
+    expect(started.started).toBe(true);
+    expect(started.port).toBe(port);
+    expect(started.url).toBe(`${base}/#/p/alpha/c/main/?token=${token}`);
+    expect(token.length).toBeGreaterThan(20);
   });
 
-  it("serves /health with 200 — no auth required", async () => {
-    const res = await fetch(`http://localhost:${testPort}/health`);
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body.status).toBe("ok");
+  it("serves / and /health without a token", async () => {
+    const page = await fetch(`${base}/`);
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain("<!DOCTYPE html>");
+    const health = await fetch(`${base}/health`);
+    expect(health.status).toBe(200);
+    expect(((await health.json()) as { status: string }).status).toBe("ok");
   });
 
-  // ── Authenticated endpoints — correct token ────────────────────────────────
-
-  it("accepts /api/model with correct token in Authorization header → 200", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/model`, {
-      headers: { Authorization: `Bearer ${TEST_TOKEN}` },
-    });
-    expect(res.status).toBe(200);
-    const body = await res.json() as any;
-    expect(body).toBeDefined();
+  it("accepts the scoped routes with the token in the Authorization header or ?token=", async () => {
+    const model = await fetch(`${scoped}/model`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(model.status).toBe(200);
+    expect(await model.json()).toBeDefined();
+    expect((await fetch(`${scoped}/model?token=${token}`)).status).toBe(200);
+    expect((await fetch(`${scoped}/annotations`, { headers: { Authorization: `Bearer ${token}` } })).status).toBe(200);
+    expect((await fetch(`${base}/api/projects`, { headers: { Authorization: `Bearer ${token}` } })).status).toBe(200);
   });
 
-  it("accepts /api/model with correct token as ?token= query param → 200", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/model?token=${TEST_TOKEN}`);
-    expect(res.status).toBe(200);
+  it("rejects the scoped routes with no token (401) or a wrong one (403)", async () => {
+    const none = await fetch(`${scoped}/model`);
+    expect(none.status).toBe(401);
+    expect(((await none.json()) as { error: string }).error).toContain("Authentication required");
+    const wrong = await fetch(`${scoped}/model`, { headers: { Authorization: `Bearer ${WRONG_TOKEN}` } });
+    expect(wrong.status).toBe(403);
+    expect(((await wrong.json()) as { error: string }).error).toBe("Invalid authentication token");
+    expect((await fetch(`${scoped}/model?token=${WRONG_TOKEN}`)).status).toBe(403);
+    expect((await fetch(`${scoped}/annotations`)).status).toBe(401);
   });
 
-  it("accepts /api/annotations with correct token → 200", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/annotations`, {
-      headers: { Authorization: `Bearer ${TEST_TOKEN}` },
-    });
-    expect(res.status).toBe(200);
-  });
-
-  // ── Authenticated endpoints — wrong / missing token ────────────────────────
-
-  it("rejects /api/model with no token → 401", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/model`);
-    expect(res.status).toBe(401);
-    const body = await res.json() as any;
-    expect(body.error).toContain("Authentication required");
-  });
-
-  it("rejects /api/model with wrong token → 403", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/model`, {
-      headers: { Authorization: `Bearer ${WRONG_TOKEN}` },
-    });
-    expect(res.status).toBe(403);
-    const body = await res.json() as any;
-    expect(body.error).toBe("Invalid authentication token");
-  });
-
-  it("rejects /api/model with wrong ?token= query param → 403", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/model?token=${WRONG_TOKEN}`);
-    expect(res.status).toBe(403);
-  });
-
-  it("rejects /api/annotations with no token → 401", async () => {
-    const res = await fetch(`http://localhost:${testPort}/api/annotations`);
-    expect(res.status).toBe(401);
-  });
-
-  // ── WebSocket authentication ───────────────────────────────────────────────
-
-  it("accepts WebSocket upgrade with correct token → receives model data", async () => {
-    const wsUrl = `ws://localhost:${testPort}/ws?token=${encodeURIComponent(TEST_TOKEN)}`;
-    const ws = new WebSocket(wsUrl);
-
-    const message = await new Promise<any>((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error("Timed out waiting for WebSocket model message")),
-        10000
-      );
-
-      ws.addEventListener("open", () => {
-        ws.send(JSON.stringify({ type: "subscribe" }));
-      });
+  it("accepts a websocket with the token, which subscribes to the checkout", async () => {
+    const ws = new WebSocket(`ws://127.0.0.1:${started.port}/ws?token=${encodeURIComponent(token)}`);
+    const message = await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Timed out waiting for the subscription")), 10_000);
+      ws.addEventListener("open", () => ws.send(JSON.stringify({ action: "subscribe", project: "alpha", checkout: "main" })));
       ws.addEventListener("message", (event) => {
-        try {
-          const msg = JSON.parse(event.data as string);
-          if (msg.type === "model" || msg.type === "model-update") {
-            clearTimeout(timeout);
-            ws.close();
-            resolve(msg);
-          }
-        } catch { /* wait for valid message */ }
-      });
-      ws.addEventListener("error", () => {
-        // error fires before close; the close handler will reject with the code
+        const msg = JSON.parse(String(event.data));
+        if (msg.type === "subscribed") {
+          clearTimeout(timeout);
+          ws.close();
+          resolve(msg);
+        }
       });
       ws.addEventListener("close", (event) => {
         if (event.code !== 1000 && event.code !== 1005) {
@@ -204,34 +93,27 @@ describe.serial("Visualization Server — authenticated token flow", () => {
         }
       });
     });
-
-    expect(message.type).toMatch(/^model/);
-    expect(message.data).toBeDefined();
+    expect(message).toMatchObject({ type: "subscribed", project: "alpha", checkout: "main" });
   });
 
-  it("rejects WebSocket upgrade with wrong token → connection closes with error", async () => {
-    const wsUrl = `ws://localhost:${testPort}/ws?token=${WRONG_TOKEN}`;
-    const ws = new WebSocket(wsUrl);
-
-    const closed = await new Promise<boolean>((resolve) => {
-      const timeout = setTimeout(() => resolve(false), 5000);
-      ws.addEventListener("close", () => { clearTimeout(timeout); resolve(true); });
-      ws.addEventListener("error", () => { /* close event follows */ });
-    });
-
-    expect(closed).toBe(true);
+  it("closes a websocket with a wrong token or none", async () => {
+    for (const url of [`ws://127.0.0.1:${started.port}/ws?token=${WRONG_TOKEN}`, `ws://127.0.0.1:${started.port}/ws`]) {
+      const ws = new WebSocket(url);
+      const closed = await new Promise<boolean>((resolve) => {
+        const timeout = setTimeout(() => resolve(false), 5000);
+        ws.addEventListener("close", () => {
+          clearTimeout(timeout);
+          resolve(true);
+        });
+      });
+      expect(closed).toBe(true);
+    }
   });
 
-  it("rejects WebSocket upgrade with no token → connection closes with error", async () => {
-    const wsUrl = `ws://localhost:${testPort}/ws`;
-    const ws = new WebSocket(wsUrl);
-
-    const closed = await new Promise<boolean>((resolve) => {
-      const timeout = setTimeout(() => resolve(false), 5000);
-      ws.addEventListener("close", () => { clearTimeout(timeout); resolve(true); });
-      ws.addEventListener("error", () => { /* close event follows */ });
-    });
-
-    expect(closed).toBe(true);
+  it("refuses --no-auth and --token, and starts nothing else", () => {
+    const run = farm.dr(["visualize", "--no-browser", "--no-auth", "--token", "x"], farm.projects.alpha);
+    expect(run.status).toBe(1);
+    expect(run.stderr + run.stdout).toContain("--no-auth: the DR process serves every project, and every route requires its token.");
+    expect(run.stderr + run.stdout).toContain("--token: the DR process makes its own token");
   });
 });

@@ -9,7 +9,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerRecord } from "../../../src/core/checkout-types.js";
 import type { FarmLocation } from "../../../src/core/project-registry.js";
-import { serveCommand, type ServeDeps, type SpawnEntryOptions } from "../../../src/commands/serve.js";
+import {
+  serveCommand,
+  serveEntryEnv,
+  startOptionsFromEnv,
+  type ServeDeps,
+  type SpawnEntryOptions,
+} from "../../../src/commands/serve.js";
 import type { RunningServer } from "../../../src/server/server-record.js";
 import { CLIError } from "../../../src/utils/errors.js";
 
@@ -28,6 +34,11 @@ function record(overrides: Partial<ServerRecord> = {}): ServerRecord {
     tokenPath: "/state/servers/abc.token",
     ...overrides,
   };
+}
+
+/** The environment spawnServeEntry gives serve-entry, without spawning anything. */
+function spawnEnv(options: SpawnEntryOptions): NodeJS.ProcessEnv {
+  return serveEntryEnv(options);
 }
 
 /** A fake world: one optional running process, signals that end it, a clock that sleep moves. */
@@ -215,5 +226,38 @@ describe("dr serve (start)", () => {
     await expect(serveCommand({ port: "80x" }, w.deps)).rejects.toThrow("Invalid port number");
     await expect(serveCommand({ status: true, port: "9000" }, w.deps)).rejects.toThrow("--port is used only");
     await expect(serveCommand({ status: true, stop: true }, w.deps)).rejects.toThrow("don't go together");
+  });
+});
+
+describe("dr serve start options (slice 4A)", () => {
+  it("passes --viewer-path, --with-danger and --read-only to the entry it starts", async () => {
+    const w = world(null);
+    w.deps.spawnEntry = (options) => {
+      w.spawned.push(options);
+      return { pid: 7000, exited: Promise.resolve(0) };
+    };
+    await serveCommand({ foreground: true, viewerPath: "/viewers/custom", readOnly: true, json: false }, w.deps);
+    expect(w.spawned[0]).toMatchObject({ viewerPath: "/viewers/custom", readOnly: true, foreground: true });
+  });
+
+  it("refuses them with --status or --stop", async () => {
+    const w = world(null);
+    await expect(serveCommand({ stop: true, viewerPath: "/v", withDanger: true }, w.deps)).rejects.toThrow(
+      "--viewer-path, --with-danger are used only when dr serve starts the process."
+    );
+  });
+
+  it("hands them to serve-entry in its environment, and nothing inherited from the caller's", () => {
+    const env = spawnEnv({
+      farm,
+      foreground: false,
+      cwd: "/farms/a/project",
+      env: { DR_SERVE_READ_ONLY: "1", DR_SERVE_VIEWER_PATH: "/stale" },
+      viewerPath: "viewer",
+      withDanger: true,
+      port: 9001,
+    });
+    expect(startOptionsFromEnv(env)).toEqual({ port: 9001, viewerPath: "/farms/a/project/viewer", withDanger: true });
+    expect(startOptionsFromEnv({})).toEqual({});
   });
 });

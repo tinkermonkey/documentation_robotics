@@ -1,5 +1,12 @@
 # Graceful Shutdown for Visualization Server
 
+> **Out of date since issue 1279, slice 4A.** `dr visualize` no longer runs a server of its own:
+> it starts the farm's central DR process (`dr serve`, `cli/src/serve-entry.ts`) detached and
+> exits, so the parent process, its signal forwarding and the `visualize.server.startup` span
+> described below are gone. The central process handles SIGINT and SIGTERM in `serve-entry.ts`
+> (stopping the server, then telemetry); `dr visualize --stop` and `dr serve --stop` stop it.
+> The per-project server this page describes is removed in slice 4B.
+
 ## Overview
 
 The visualization server (`dr visualize`) now implements graceful shutdown to ensure:

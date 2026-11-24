@@ -33,6 +33,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`dr visualize [path]` opens the shared viewer on the central DR process (issue 1279, slice
+  4A).** It ensures the farm's process runs (starting `dr serve` detached when none does) and opens
+  the browser at `/#/p/<project>/c/<checkout>/` for the checkout the path (default: the working
+  directory) is in, registering a repository with a model that no project owns yet. It no longer
+  starts a per-project server (nor its `visualize.server.startup` span), and nothing writes a
+  per-project viewer record any more.
+  `--no-browser` prints the link. `--port`, `--viewer-path`, `--with-danger`, `--read-only` and
+  `--with-changesets` apply only when it starts the process; when the process already runs, a
+  notice says which were not applied. `--no-auth` and `--token` are refused: every route requires
+  the process's token. `--idle-exit` and `--exit-with-parent` are refused too (the process has its
+  own idle exit, and is shared). `--list` shows the process (pid, port, CLI version, tabs, MCP
+  sessions, DrBot turns, checkouts loaded) and each per-project viewer older CLIs left running, with
+  the reason the start-up sweep kept it. `--stop` stops the process as `dr serve --stop` does;
+  `--stop --all` also stops every per-project viewer whose pids are confirmed. `--stop <project>`
+  and `--stop --port` are gone: one process serves every project.
+- **`dr serve` takes `--viewer-path`, `--with-danger` and `--read-only`** (and `--with-changesets`,
+  the default), used when it starts the process. Its chat now stages model changes in a changeset by
+  default, as `dr visualize`'s did; it was read-only before.
+- `findRunningViewer` returns the farm's central process, from its server record while its
+  `/health` answers; it no longer looks up per-project viewers.
+
 - **`farm.yaml` is `dr-farm-v2`**: one project per git repository with `name`, `repository` (the
   main checkout), `model` and `remote`; `source` and `branch` are gone, and checkouts come from
   git. A `dr-farm-v1` farm is read with a notice naming `dr farm migrate`, and `add`/`remove`

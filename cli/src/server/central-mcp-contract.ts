@@ -26,6 +26,23 @@ export interface EnsureCentralServerOptions {
   env?: NodeJS.ProcessEnv;
   /** How long to wait for a process it starts to answer `/health`. */
   startTimeoutMs?: number;
+  /**
+   * How to start the process, used only when this call starts it (`dr visualize`'s start-only
+   * options). A running process keeps the options it started with; `started` says which happened.
+   */
+  start?: CentralStartOptions;
+}
+
+/** `dr serve`'s start options: applied only by the call that starts the process. */
+export interface CentralStartOptions {
+  /** Where the port search starts (default 8080). */
+  port?: number;
+  /** A custom viewer build to serve instead of the bundled one (an absolute path). */
+  viewerPath?: string;
+  /** DrBot may also land and delete. */
+  withDanger?: boolean;
+  /** DrBot reads only: no changeset staging. */
+  readOnly?: boolean;
 }
 
 export interface EnsuredCentralServer {
