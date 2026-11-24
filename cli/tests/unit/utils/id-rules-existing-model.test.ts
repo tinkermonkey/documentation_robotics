@@ -27,7 +27,12 @@ const MODEL_DIR = join(import.meta.dir, "..", "..", "..", "..", "documentation-r
  * (a rename keeps the id), or made with `dr add <id-name> --name <shown>`. Adding their name again
  * makes a new element, as it always did. List an id here only for one of those two reasons.
  */
-const NAME_AND_ID_UNRELATED: string[] = [];
+const NAME_AND_ID_UNRELATED: string[] = [
+  // Renamed by plans landed in PR 1366 (an update renames, the id stays):
+  "motivation.requirement.only-an-overlapping-base-change-blocks-a-landing", // drift-warns-landing-always-confirmable
+  "application.applicationfunction.read-viewer-record", // viewer-lifecycle: readViewerRecords
+  "application.applicationfunction.plan-decisions", // extraction-triage-by-rule: compileDecide
+];
 
 interface ModelElement {
   id: string;

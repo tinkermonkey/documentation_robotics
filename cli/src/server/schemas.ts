@@ -221,7 +221,7 @@ export const ErrorResponseSchema = z.object({
 
 export const HealthResponseSchema = z.object({
   status: z.string().describe('`ok`, or `degraded` when a service failed to start (see `warnings`)'),
-  warnings: z.array(z.string()).optional().describe('What failed to start, e.g. the chat service; only when `status` is `degraded`'),
+  warnings: z.array(z.string()).optional().describe('What failed to start, e.g. the chat service; only when `status` is `degraded`, and only with the auth token'),
   version: z.string().describe('API version (the version of this HTTP API, not of the dr CLI or the spec)'),
   cliVersion: z.string().describe('Version of the dr CLI that is serving this API, e.g. "0.5.0"'),
   serverId: z.string().optional().describe('Id of the process, as its server record has it. Only with the auth token'),
