@@ -9,7 +9,7 @@ import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { ChangesetVerificationSchema } from "../../src/server/schemas.js";
 
 const OTHER = "application.applicationcomponent.other-comp";
@@ -20,7 +20,7 @@ const EXTRA = "application.applicationcomponent.extra-comp";
 describe("changeset verification API", () => {
   let dir: string;
   let cleanup: () => Promise<void>;
-  let server: VisualizationServer | undefined;
+  let server: TestFarmServer | undefined;
 
   beforeEach(async () => {
     const workdir = await createTestWorkdir();
@@ -29,7 +29,7 @@ describe("changeset verification API", () => {
   });
 
   afterEach(async () => {
-    server?.stop();
+    await server?.stop();
     server = undefined;
     await cleanup().catch(() => {});
   });
@@ -69,15 +69,16 @@ describe("changeset verification API", () => {
     return { plan, built };
   }
 
-  async function request(path: string): Promise<Response> {
-    const model = await Model.load(dir, { lazyLoad: false });
-    server = new VisualizationServer(model, { authEnabled: false });
-    return (server as any).app.request(path) as Promise<Response>;
+  /** A GET of the checkout's `rest` (`/changesets/<id>/verification`) on a fresh server over the model on disk. */
+  async function request(rest: string): Promise<Response> {
+    await server?.stop();
+    server = await startTestFarmServer(dir);
+    return server.request(rest);
   }
 
   it("returns changeset_verify's report: matched, missing and unplanned, by element id", async () => {
     const { plan, built } = await seed();
-    const response = await request(`/api/changesets/${plan}/verification?against=${built}`);
+    const response = await request(`/changesets/${plan}/verification?against=${built}`);
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(ChangesetVerificationSchema.safeParse(body).success).toBe(true);
@@ -96,9 +97,9 @@ describe("changeset verification API", () => {
 
   it("answers 404 for an unknown plan or as-built changeset, and 400 when against is missing or the plan itself", async () => {
     const { plan, built } = await seed();
-    expect((await request(`/api/changesets/no-such-changeset/verification?against=${built}`)).status).toBe(404);
-    expect((await request(`/api/changesets/${plan}/verification?against=no-such-changeset`)).status).toBe(404);
-    expect((await request(`/api/changesets/${plan}/verification`)).status).toBe(400);
-    expect((await request(`/api/changesets/${plan}/verification?against=${plan}`)).status).toBe(400);
+    expect((await request(`/changesets/no-such-changeset/verification?against=${built}`)).status).toBe(404);
+    expect((await request(`/changesets/${plan}/verification?against=no-such-changeset`)).status).toBe(404);
+    expect((await request(`/changesets/${plan}/verification`)).status).toBe(400);
+    expect((await request(`/changesets/${plan}/verification?against=${plan}`)).status).toBe(400);
   });
 });

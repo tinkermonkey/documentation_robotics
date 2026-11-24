@@ -1,10 +1,16 @@
 /**
  * Unit tests for VisualizationServer
+ *
+ * The server has one mode (issue 1279): it serves a farm's checkouts, and holds no model of its
+ * own. These tests run against the one project of a scratch farm (tests/helpers/test-farm-server.ts);
+ * the private members that belong to a checkout (model, clients, annotationStore, and what reads
+ * them) are called inside that checkout's scope with `inCheckout`.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { Model } from "../../../src/core/model.js";
-import { VisualizationServer } from "../../../src/server/server.js";
+import type { VisualizationServer } from "../../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 import { tmpdir } from "os";
 import { join } from "path";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
@@ -111,39 +117,46 @@ describe("VisualizationServer", () => {
   let testDir: string;
   let model: Model;
   let server: VisualizationServer;
+  let t: TestFarmServer;
+  /** Runs fn in the project's checkout, as a request for it would be. */
+  const inCheckout = <T>(fn: () => T | Promise<T>): Promise<T> => t.inCheckout(fn);
 
   beforeAll(async () => {
     // Use UUID for completely unique directory
     testDir = join(tmpdir(), `dr-test-${randomUUID()}`);
     mkdirSync(testDir, { recursive: true });
-    model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
+    await createTestModel(testDir);
+    t = await startTestFarmServer(testDir);
+    server = t.server;
+    // The server loads the checkout's model from disk itself: that is the model these tests use.
+    model = (await t.context()).model;
   });
 
-  afterAll(() => {
-    server.stop();
+  afterAll(async () => {
+    await t.stop();
     rmSync(testDir, { recursive: true, force: true });
   });
 
   describe("constructor", () => {
-    it("should create a server with a model", () => {
+    it("should create a server with a model", async () => {
       expect(server).toBeDefined();
-      expect(server["model"]).toBe(model);
+      // The checkout's model, loaded from disk on first use.
+      expect(await inCheckout(() => server["model"])).toBe(model);
     });
 
-    it("should initialize with empty client set", () => {
-      expect(server["clients"].size).toBe(0);
+    it("should initialize with empty client set", async () => {
+      expect(await inCheckout(() => server["clients"].size)).toBe(0);
     });
 
     it("should keep annotations in the project's annotation store", async () => {
       // On disk, shared with the MCP annotation tools; a new model has none.
-      expect(await server["annotationStore"].list()).toEqual([]);
+      expect(await inCheckout(() => server["annotationStore"].list())).toEqual([]);
     });
   });
 
   describe("serializeModel", () => {
     it("should serialize model with nodes and links", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       expect(serialized).toHaveProperty("nodes");
       expect(serialized).toHaveProperty("links");
@@ -152,13 +165,13 @@ describe("VisualizationServer", () => {
     });
 
     it("should include all elements as nodes", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       expect(serialized.nodes.length).toBeGreaterThan(0);
     });
 
     it("should include required fields on each node", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       const node = serialized.nodes[0];
       expect(node).toHaveProperty("id");
@@ -169,7 +182,7 @@ describe("VisualizationServer", () => {
     });
 
     it("should not embed annotations directly on serialized nodes", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       // Annotations are stored server-side in the annotations map, not on serialized nodes
       for (const node of serialized.nodes) {
@@ -178,14 +191,14 @@ describe("VisualizationServer", () => {
     });
 
     it("should tag nodes with correct layer_id", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       const motivationNodes = serialized.nodes.filter((n: any) => n.layer_id === "motivation");
       expect(motivationNodes.length).toBeGreaterThan(0);
     });
 
     it("should omit elementId for new-format elements without semantic IDs", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       const newFormatNode = serialized.nodes.find((n: any) => n.name === "Test Goal");
       expect(newFormatNode).toBeDefined();
@@ -193,7 +206,7 @@ describe("VisualizationServer", () => {
     });
 
     it("should omit properties when empty", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       const newFormatNode = serialized.nodes.find((n: any) => n.name === "Test Goal");
       expect(newFormatNode).toBeDefined();
@@ -213,7 +226,7 @@ describe("VisualizationServer", () => {
         layer: "motivation",
       });
 
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       const centralLink = serialized.links.find(
         (l: any) => l.source === node.id && l.type === "depends-on"
@@ -226,7 +239,7 @@ describe("VisualizationServer", () => {
     });
 
     it("should include source_layer_id and target_layer_id on cross-layer reference links", async () => {
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       // Find the cross-layer reference link from application component to technology service.
       // After YAML migration, references use dot-separated path format.
@@ -247,7 +260,7 @@ describe("VisualizationServer", () => {
     it("should gracefully handle relationships with missing layer field", async () => {
       // Add a malformed relationship with missing layer field
       // This simulates a data integrity issue where a relationship lacks layer info
-      server["model"].relationships.add({
+      model.relationships.add({
         source: "motivation-goal-test-goal",
         target: "motivation-goal-another-goal",
         predicate: "depends-on",
@@ -258,7 +271,7 @@ describe("VisualizationServer", () => {
       let error: Error | null = null;
       let serialized: any = null;
       try {
-        serialized = await server["serializeModel"]();
+        serialized = await inCheckout(() => server["serializeModel"]());
       } catch (err) {
         error = err as Error;
       }
@@ -279,14 +292,14 @@ describe("VisualizationServer", () => {
       // Use the dot-separated path format so the source resolves in elementLayerMap.
       // The YAML migration converts "motivation-goal-test-goal" → path "motivation.goal.test-goal".
       const inferredSource = "motivation.goal.test-goal";
-      server["model"].relationships.add({
+      model.relationships.add({
         source: inferredSource,
         target: "motivation-goal-inferred-goal",
         predicate: "contributes-to",
         // Omit layer field
       } as any);
 
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       // Find the link that should have been inferred from the source element
       const link = serialized.links.find(
@@ -303,7 +316,7 @@ describe("VisualizationServer", () => {
     it("should gracefully skip relationship with unresolvable source and missing layer", async () => {
       // Test the skip-path where source element cannot be resolved and layer is missing
       // This exercises the diagnostic logging path at line 1641-1644 in server.ts
-      server["model"].relationships.add({
+      model.relationships.add({
         source: "unknown-unresolvable-source-element",
         target: "motivation-goal-test-goal",
         predicate: "depends-on",
@@ -314,7 +327,7 @@ describe("VisualizationServer", () => {
       let error: Error | null = null;
       let serialized: any = null;
       try {
-        serialized = await server["serializeModel"]();
+        serialized = await inCheckout(() => server["serializeModel"]());
       } catch (err) {
         error = err as Error;
       }
@@ -335,7 +348,7 @@ describe("VisualizationServer", () => {
       // This exercises the 'unknown' fallback for target_layer_id when target element is not found
 
       // Get the application layer and test component
-      const appLayer = server["model"].layers.get("application");
+      const appLayer = model.layers.get("application");
       expect(appLayer).toBeDefined();
       // After YAML migration, e.id is a UUID; look up by name instead.
       const testComponent = appLayer!.listElements().find((e) => e.name === "Test Component");
@@ -348,7 +361,7 @@ describe("VisualizationServer", () => {
         type: "uses",
       });
 
-      const serialized = await server["serializeModel"]();
+      const serialized = await inCheckout(() => server["serializeModel"]());
 
       // Find the reference link to the non-existent element
       const refLink = serialized.links.find(
@@ -367,7 +380,7 @@ describe("VisualizationServer", () => {
   describe("findElement", () => {
     it("should find element by ID", async () => {
       // After path/id separation, elements loaded from YAML use dot-separated path as key
-      const element = await server["findElement"]("motivation.goal.test-goal");
+      const element = await inCheckout(() => server["findElement"]("motivation.goal.test-goal"));
 
       expect(element).toBeDefined();
       // Element ID is a UUID after loading from model
@@ -377,7 +390,7 @@ describe("VisualizationServer", () => {
     });
 
     it("should return null for non-existent element", async () => {
-      const element = await server["findElement"]("non-existent-id");
+      const element = await inCheckout(() => server["findElement"]("non-existent-id"));
 
       expect(element).toBeNull();
     });
@@ -393,16 +406,16 @@ describe("VisualizationServer", () => {
       };
 
       // Should not throw
-      await server["broadcastMessage"](message);
+      await inCheckout(() => server["broadcastMessage"](message));
     });
 
     it("should add an annotation to the store", async () => {
       const elementId = "motivation.goal.test-goal";
-      const before = (await server["annotationStore"].list(elementId)).length;
+      const before = (await inCheckout(() => server["annotationStore"].list(elementId))).length;
 
-      await server["annotationStore"].create({ elementId, author: "Test Author", content: "Test annotation" });
+      await inCheckout(() => server["annotationStore"].create({ elementId, author: "Test Author", content: "Test annotation" }));
 
-      expect((await server["annotationStore"].list(elementId)).length).toBe(before + 1);
+      expect((await inCheckout(() => server["annotationStore"].list(elementId))).length).toBe(before + 1);
     });
   });
 
@@ -416,7 +429,7 @@ describe("VisualizationServer", () => {
 
       const message = { type: "subscribe" as const };
 
-      await server["handleWSMessage"](mockWs, message);
+      await inCheckout(() => server["handleWSMessage"](mockWs, message));
     });
 
     it("should handle annotate message", async () => {
@@ -436,7 +449,7 @@ describe("VisualizationServer", () => {
         },
       };
 
-      await server["handleWSMessage"](mockWs, message);
+      await inCheckout(() => server["handleWSMessage"](mockWs, message));
     });
   });
 
@@ -472,21 +485,33 @@ describe("VisualizationServer", () => {
   });
 
   describe("setupFileWatcher", () => {
-    it("should create watcher", () => {
+    it("should create watcher", async () => {
       // Note: Cannot easily test actual file watching without integration tests
       // This test just verifies the method exists and doesn't throw
-      expect(() => {
-        server["setupFileWatcher"]();
-      }).not.toThrow();
+      const context = await t.context();
+      // The checkout's context opened a watcher when it loaded; this one replaces it.
+      const previous = context.watcher;
+      await inCheckout(() => {
+        expect(() => {
+          server["setupFileWatcher"]();
+        }).not.toThrow();
+      });
+      expect(context.watcher).toBeDefined();
+      if (previous && previous !== context.watcher) await previous.close?.();
     });
   });
 
   describe("stop", () => {
-    it("should handle stop without watcher", () => {
-      const tempServer = new VisualizationServer(model, { authEnabled: false });
-      expect(() => {
-        tempServer.stop();
-      }).not.toThrow();
+    it("should handle stop without watcher", async () => {
+      // A server that has loaded no checkout has no watcher open.
+      const temp = await startTestFarmServer(testDir);
+      try {
+        expect(() => {
+          temp.server.stop();
+        }).not.toThrow();
+      } finally {
+        await temp.stop();
+      }
     });
   });
 

@@ -102,8 +102,15 @@ describe.skipIf(!existsSync(CLI_PATH)).serial("dr visualize under a literal pure
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data as string);
+        // A message runs in the checkout it names, or the socket's one subscription (slice 4B).
         if (message.type === "connected") {
+          ws.send(JSON.stringify({ action: "subscribe", project: "alpha", checkout: "main" }));
+        } else if (message.type === "subscribed") {
           ws.send(JSON.stringify({ type: "ping" }));
+        } else if (message.type === "error") {
+          clearTimeout(timer);
+          ws.close();
+          reject(new Error(`Server error: ${message.message}`));
         } else if (message.type === "pong") {
           clearTimeout(timer);
           ws.close();

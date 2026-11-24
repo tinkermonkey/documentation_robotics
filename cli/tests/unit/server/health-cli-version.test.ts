@@ -9,12 +9,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
 import { HealthResponseSchema } from "../../../src/server/schemas.js";
-import type { VisualizationServer } from "../../../src/server/server.js";
 import { getCliBundledSpecVersion, getCliVersion } from "../../../src/utils/spec-version.js";
-import { createServerWithoutChatDetection } from "./helpers.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 
 let rootPath: string;
-let server: VisualizationServer | undefined;
+let server: TestFarmServer | undefined;
 
 beforeEach(async () => {
   const dir = join(tmpdir(), `dr-server-health-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -24,16 +23,15 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  server?.stop();
+  await server?.stop();
   server = undefined;
   await rm(rootPath, { recursive: true, force: true });
 });
 
 describe("GET /health", () => {
   it.serial("reports the CLI's version beside the API's own", async () => {
-    const model = await Model.load(rootPath, { lazyLoad: false });
-    server = createServerWithoutChatDetection(model, { authEnabled: false });
-    const response = (await (server as any).app.request("/health")) as Response;
+    server = await startTestFarmServer(rootPath);
+    const response = await server.raw("/health", { headers: {} });
     expect(response.status).toBe(200);
 
     const health = HealthResponseSchema.parse(await response.json());

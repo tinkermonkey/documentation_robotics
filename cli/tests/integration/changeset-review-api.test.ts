@@ -14,7 +14,7 @@ import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { createFakeWs } from "../unit/server/helpers.js";
 
 const TEMP = "application.applicationcomponent.temp-comp";
@@ -26,7 +26,7 @@ const LINK = `${TEMP}::uses::${OTHER}`;
 describe("changeset review API", () => {
   let dir: string;
   let cleanup: () => Promise<void>;
-  let server: VisualizationServer | undefined;
+  let server: TestFarmServer | undefined;
 
   beforeEach(async () => {
     const workdir = await createTestWorkdir();
@@ -35,7 +35,7 @@ describe("changeset review API", () => {
   });
 
   afterEach(async () => {
-    server?.stop();
+    await server?.stop();
     server = undefined;
     await cleanup().catch(() => {});
   });
@@ -73,12 +73,16 @@ describe("changeset review API", () => {
     return id;
   }
 
+  /**
+   * A server over the model on disk, with one recording client subscribed to its checkout.
+   * `request("/changesets")` goes to `/api/projects/<p>/checkouts/main/changesets`, with the token.
+   */
   async function app() {
-    const model = await Model.load(dir, { lazyLoad: false });
-    server = new VisualizationServer(model, { authEnabled: false });
+    const t = await startTestFarmServer(dir);
+    server = t;
     const ws = createFakeWs();
-    (server as any).clients.add(ws);
-    const request = (path: string, init?: RequestInit) => (server as any).app.request(path, init) as Promise<Response>;
+    (await t.context()).subscribers.add(ws as any);
+    const request = (rest: string, init?: RequestInit) => t.request(rest, init);
     const json = (method: string, body: unknown): RequestInit => ({
       method,
       headers: { "Content-Type": "application/json" },
@@ -96,7 +100,7 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request } = await app();
 
-    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const detail = await (await request(`/changesets/${id}`)).json();
 
     expect(detail.revision).toBe(3);
     expect(detail.origin).toEqual({ kind: "cli" });
@@ -112,7 +116,7 @@ describe("changeset review API", () => {
       { relationshipId: LINK, direction: "out", otherElementId: OTHER, predicate: "uses" },
     ]);
 
-    const list = (await (await request("/api/changesets")).json()).changesets;
+    const list = (await (await request("/changesets")).json()).changesets;
     expect(list[id]).toMatchObject({
       name: "review-test",
       origin: { kind: "cli" },
@@ -126,7 +130,7 @@ describe("changeset review API", () => {
     const { request, json, ws } = await app();
 
     const res = await request(
-      `/api/changesets/${id}/review`,
+      `/changesets/${id}/review`,
       json("PUT", {
         decisions: [
           { sequence: 0, verdict: "keep" },
@@ -144,12 +148,12 @@ describe("changeset review API", () => {
     expect(ws.sent.some((m) => m.type === "changesets.updated")).toBe(true);
     expect(existsSync(join(dir, "documentation-robotics", "changesets", id, "review.yaml"))).toBe(true);
 
-    const list = (await (await request("/api/changesets")).json()).changesets;
+    const list = (await (await request("/changesets")).json()).changesets;
     expect(list[id].review).toEqual({ decided: 2, total: 3, asked: 1 });
-    expect((await (await request(`/api/changesets/${id}`)).json()).review).toEqual(review);
+    expect((await (await request(`/changesets/${id}`)).json()).review).toEqual(review);
 
     const cleared = await (
-      await request(`/api/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 0, verdict: null }] }))
+      await request(`/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 0, verdict: null }] }))
     ).json();
     expect(Object.keys(cleared.decisions)).toEqual(["2"]);
   });
@@ -162,10 +166,10 @@ describe("changeset review API", () => {
     const model = await Model.load(dir, { lazyLoad: false });
     const id = (await new StagingAreaManager(dir, model).getActiveId())!;
     const { request, json } = await app();
-    expect((await (await request(`/api/changesets/${id}`)).json()).revision).toBe(3);
+    expect((await (await request(`/changesets/${id}`)).json()).revision).toBe(3);
 
     const put = await request(
-      `/api/changesets/${id}/review`,
+      `/changesets/${id}/review`,
       json("PUT", { decisions: [0, 1, 2].map((sequence) => ({ sequence, verdict: "keep" })) })
     );
     const review = await put.json();
@@ -174,12 +178,12 @@ describe("changeset review API", () => {
     // Folds into the add of NEW (sequence 0): a rewrite in place.
     await dr(["update", NEW, "--description", "rewritten"]);
 
-    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const detail = await (await request(`/changesets/${id}`)).json();
     const tombstone = detail.unstaged.find((t: any) => t.sequence === 0);
     expect(tombstone).toMatchObject({ rewritten: true });
     expect(tombstone.removedAt).toBeGreaterThan(detail.review.decisions["0"].atRevision);
     expect(detail.changes.map((c: any) => c.sequenceNumber)).toEqual([0, 1, 2]);
-    const list = (await (await request("/api/changesets")).json()).changesets;
+    const list = (await (await request("/changesets")).json()).changesets;
     expect(list[id].review).toEqual({ decided: 2, total: 3, asked: 0 });
   });
 
@@ -187,16 +191,16 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request, json } = await app();
 
-    const unknown = await request(`/api/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 9, verdict: "drop" }] }));
+    const unknown = await request(`/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 9, verdict: "drop" }] }));
     expect(unknown.status).toBe(422);
     expect((await unknown.json()).error).toContain("9");
     expect(existsSync(join(dir, "documentation-robotics", "changesets", id, "review.yaml"))).toBe(false);
 
-    const missing = await request(`/api/changesets/changeset-missing/review`, json("PUT", { decisions: [] }));
+    const missing = await request(`/changesets/changeset-missing/review`, json("PUT", { decisions: [] }));
     expect(missing.status).toBe(404);
     expect((await missing.json()).error).toBeDefined();
 
-    const bad = await request(`/api/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 0, verdict: "maybe" }] }));
+    const bad = await request(`/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 0, verdict: "maybe" }] }));
     expect(bad.status).toBe(400);
   });
 
@@ -204,7 +208,7 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request, json } = await app();
 
-    const res = await request(`/api/changesets/${id}/commit`, json("POST", { drop: [0] }));
+    const res = await request(`/changesets/${id}/commit`, json("POST", { drop: [0] }));
 
     expect(res.status).toBe(422);
     const body = await res.json();
@@ -212,12 +216,12 @@ describe("changeset review API", () => {
     expect(body.blockers).toEqual({
       "2": [{ relationshipId: LINK, direction: "out", otherElementId: OTHER, predicate: "uses" }],
     });
-    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const detail = await (await request(`/changesets/${id}`)).json();
     expect(detail.status).toBe("staged");
     expect(detail.changes).toHaveLength(3);
     expect(detail.unstaged).toEqual([]);
 
-    const unknown = await request(`/api/changesets/${id}/commit`, json("POST", { drop: [7], deleteBlockedLinks: [2] }));
+    const unknown = await request(`/changesets/${id}/commit`, json("POST", { drop: [7], deleteBlockedLinks: [2] }));
     expect(unknown.status).toBe(422);
     expect((await unknown.json()).error).toContain("7");
   });
@@ -226,7 +230,7 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request, json, ws } = await app();
 
-    const res = await request(`/api/changesets/${id}/commit`, json("POST", { drop: [0], deleteBlockedLinks: [2] }));
+    const res = await request(`/changesets/${id}/commit`, json("POST", { drop: [0], deleteBlockedLinks: [2] }));
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -242,14 +246,14 @@ describe("changeset review API", () => {
     expect(await baseRows()).toEqual([]);
 
     // The record shows what was left out: one unstage revision for both dropped changes.
-    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const detail = await (await request(`/changesets/${id}`)).json();
     expect(detail.changes.map((c: any) => c.sequenceNumber)).toEqual([2]);
     expect(detail.unstaged.map((t: any) => [t.sequence, t.removedAt, t.rewritten])).toEqual([
       [0, 3, undefined],
       [1, 3, undefined],
     ]);
 
-    const review = await request(`/api/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 2, verdict: "keep" }] }));
+    const review = await request(`/changesets/${id}/review`, json("PUT", { decisions: [{ sequence: 2, verdict: "keep" }] }));
     expect(review.status).toBe(409);
   });
 
@@ -264,11 +268,11 @@ describe("changeset review API", () => {
     });
     const { request, json } = await app();
 
-    const res = await request(`/api/changesets/${id}/commit`, json("POST", { drop: [1], deleteBlockedLinks: [2] }));
+    const res = await request(`/changesets/${id}/commit`, json("POST", { drop: [1], deleteBlockedLinks: [2] }));
 
     expect(res.status).toBe(422);
     expect((await res.json()).error).toContain("Validation failed");
-    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const detail = await (await request(`/changesets/${id}`)).json();
     expect(detail.status).toBe("staged");
     expect(detail.changes.map((c: any) => c.sequenceNumber)).toEqual([0, 1, 2, 3]);
     expect(detail.unstaged).toEqual([]);
@@ -279,7 +283,7 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request } = await app();
 
-    const res = await request(`/api/changesets/${id}/commit`, {
+    const res = await request(`/changesets/${id}/commit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
@@ -294,7 +298,7 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request } = await app();
 
-    const res = await request(`/api/changesets/${id}/commit`, { method: "POST" });
+    const res = await request(`/changesets/${id}/commit`, { method: "POST" });
 
     expect(res.status).toBe(200);
     expect((await res.json()).status).toBe("committed");
@@ -304,7 +308,7 @@ describe("changeset review API", () => {
     const id = await seed();
     const { request } = await app();
     const post = (body: string) =>
-      request(`/api/changesets/${id}/commit`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      request(`/changesets/${id}/commit`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
 
     const malformed = await post("{nope");
     expect(malformed.status).toBe(400);
@@ -312,14 +316,14 @@ describe("changeset review API", () => {
     const invalid = await post(JSON.stringify({ drop: ["x"] }));
     expect(invalid.status).toBe(400);
     expect((await invalid.json()).error).toContain("drop");
-    expect((await (await request(`/api/changesets/${id}`)).json()).status).toBe("staged");
+    expect((await (await request(`/changesets/${id}`)).json()).status).toBe("staged");
   });
 
   it("a discard with a JSON content-type and an empty body works", async () => {
     const id = await seed();
     const { request } = await app();
 
-    const res = await request(`/api/changesets/${id}/discard`, {
+    const res = await request(`/changesets/${id}/discard`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
@@ -340,21 +344,21 @@ describe("changeset review API", () => {
     });
     const { request, json } = await app();
 
-    const detail = await (await request(`/api/changesets/${id}`)).json();
+    const detail = await (await request(`/changesets/${id}`)).json();
     // The staged link is not a blocker of the delete
     expect(detail.changes[2].blockers.map((b: any) => b.relationshipId)).toEqual([LINK]);
 
-    const res = await request(`/api/changesets/${id}/commit`, json("POST", { deleteBlockedLinks: [2] }));
+    const res = await request(`/changesets/${id}/commit`, json("POST", { deleteBlockedLinks: [2] }));
     expect(res.status).toBe(422);
     expect((await res.json()).error).toContain("sequence 3");
-    expect((await (await request(`/api/changesets/${id}`)).json()).status).toBe("staged");
+    expect((await (await request(`/changesets/${id}`)).json()).status).toBe("staged");
   });
 
   it("a commit without drop or deleteBlockedLinks is the plain commit", async () => {
     const id = await seed();
     const { request, json } = await app();
 
-    const res = await request(`/api/changesets/${id}/commit`, json("POST", {}));
+    const res = await request(`/changesets/${id}/commit`, json("POST", {}));
 
     expect(res.status).toBe(200);
     const body = await res.json();

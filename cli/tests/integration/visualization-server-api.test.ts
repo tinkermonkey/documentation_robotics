@@ -1,77 +1,45 @@
 /**
  * Visualization Server API Endpoint Tests
- * Tests the actual HTTP API endpoints of the Bun CLI visualization server
+ * Tests the HTTP API endpoints of the visualization server over real HTTP
  *
- * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
- * - Tests start/stop the visualization server requiring exclusive port access
- * - Concurrent execution would cause port conflicts and server startup failures
+ * The model is initialized with the built CLI (`dr init`, `dr add`), then served in process by a
+ * central server over a scratch farm whose one project is the model's folder
+ * (tests/helpers/test-farm-server.ts), listening on a port the OS picks. Every project-data
+ * route is scoped to the checkout (`/api/projects/{project}/checkouts/main/...`) and every
+ * `/api/...` call carries the token.
+ *
+ * REQUIRES SERIAL EXECUTION: Uses describe.serial because each test starts and stops a server.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
-import { mkdir, rm } from "fs/promises";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, rm } from "fs/promises";
+import { tmpdir } from "os";
 import { join } from "path";
 import { spawnSync } from "bun";
-import { portAllocator, stopServerProcess } from "../helpers.ts";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 
-const TEMP_DIR = "/tmp/dr-api-test";
-const STARTUP_TIMEOUT = 10000;
 const CLI_ROOT = join(import.meta.dir, "../..");
 const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
+/** The built viewer, which the server serves at `/` (the source tree has no index.html). */
+const VIEWER_PATH = join(CLI_ROOT, "dist/viewer");
+
+/** How the OpenAPI document names the checkout-scoped routes. */
+const SCOPED = "/api/projects/:project/checkouts/:checkout";
 
 let testDir: string;
-let testPort: number;
-let serverProcess: any = null;
+let t: TestFarmServer | null = null;
 
 /**
- * Helper to wait for server to be ready
+ * Start the visualization server over the test model, listening on a free port
  */
-async function waitForServer(url: string, timeout: number = STARTUP_TIMEOUT): Promise<boolean> {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return true;
-    } catch {
-      // Server not ready yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  return false;
+async function startServer(cwd: string): Promise<TestFarmServer> {
+  t = await startTestFarmServer(cwd, { listen: true, server: { viewerPath: VIEWER_PATH } });
+  return t;
 }
 
-/**
- * Start the visualization server
- */
-async function startServer(cwd: string, port: number): Promise<any> {
-  // `dr visualize` starts the central process since slice 4A (issue 1279); until slice 4B moves
-  // this file onto it, the per-project server is started directly, as the old launcher did.
-  const process = Bun.spawn({
-    cmd: ["bun", join(CLI_ROOT, "dist/server-entry.js")],
-    cwd,
-    env: {
-      ...Bun.env,
-      DR_VISUALIZE_PORT: String(port),
-      DR_PROJECT_PATH: cwd,
-      DR_AUTH_ENABLED: "false",
-      DR_WITH_DANGER: "false",
-      DR_WITH_CHANGESETS: "true",
-      DR_VIEWER_IDLE_EXIT_HOURS: "0",
-    },
-    stdio: ["ignore", "pipe", "pipe"], // Capture output
-  });
-
-  // Give server a moment to start
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  // Wait for health endpoint to confirm server is ready
-  const ready = await waitForServer(`http://localhost:${port}/health`, STARTUP_TIMEOUT);
-  if (!ready) {
-    console.error(`Server failed to start. Port: ${port}, CWD: ${cwd}`);
-    process.kill();
-    throw new Error(`Server failed to start within ${STARTUP_TIMEOUT}ms`);
-  }
-
-  return process;
+/** A GET (or other) request over HTTP to an exact path, with the token. */
+function get(server: TestFarmServer, path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(server.url(path), { ...init, headers: { ...server.auth, ...((init.headers as any) ?? {}) } });
 }
 
 /**
@@ -150,20 +118,15 @@ async function addTestElements(dir: string): Promise<void> {
 
 describe.serial("Visualization Server API Endpoints", () => {
   beforeEach(async () => {
-    testDir = join(TEMP_DIR, `test-${Date.now()}`);
-    testPort = await portAllocator.allocatePort();
-    await mkdir(testDir, { recursive: true });
+    testDir = await mkdtemp(join(tmpdir(), "dr-api-test-"));
     await initializeTestModel(testDir);
     await addTestElements(testDir);
   });
 
   afterEach(async () => {
-    // Stop the server and wait for it to exit, before its project folder is deleted below
-    await stopServerProcess(serverProcess);
-    serverProcess = null;
-
-    // Release the allocated port
-    portAllocator.releasePort(testPort);
+    // Stop the server before its project folder is deleted below
+    await t?.stop();
+    t = null;
 
     // Cleanup test directory
     try {
@@ -175,9 +138,9 @@ describe.serial("Visualization Server API Endpoints", () => {
 
   describe("GET /api/model", () => {
     it("should return graph-format model", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/model`);
+      const response = await get(t, t.api("/model"));
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("application/json");
@@ -193,9 +156,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should include nodes from all layers with layer_id", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/model`);
+      const response = await get(t, t.api("/model"));
       const data = await response.json();
 
       const layerIds = new Set(data.nodes.map((n: any) => n.layer_id));
@@ -205,9 +168,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should include nodes with all required fields", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/model`);
+      const response = await get(t, t.api("/model"));
       const data = await response.json();
 
       const businessNodes = data.nodes.filter((n: any) => n.layer_id === "business");
@@ -224,9 +187,9 @@ describe.serial("Visualization Server API Endpoints", () => {
 
   describe("GET /api/layers/:name", () => {
     it("should return specific layer data", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
+      const response = await get(t, t.api("/layers/business"));
 
       expect(response.status).toBe(200);
 
@@ -238,7 +201,7 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should return all 12 standard layers", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
       const layers = [
         "motivation",
@@ -256,7 +219,7 @@ describe.serial("Visualization Server API Endpoints", () => {
       ];
 
       for (const layerName of layers) {
-        const response = await fetch(`http://localhost:${testPort}/api/layers/${layerName}`);
+        const response = await get(t, t.api(`/layers/${layerName}`));
 
         // Layer may be empty (404) or have data (200)
         expect([200, 404]).toContain(response.status);
@@ -270,9 +233,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should return 400 for invalid layer name format", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/layers/non-existent-layer`);
+      const response = await get(t, t.api("/layers/non-existent-layer"));
 
       expect(response.status).toBe(400);
 
@@ -281,9 +244,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should include elements with all required fields", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
+      const response = await get(t, t.api("/layers/business"));
       const data = await response.json();
 
       if (data.elements.length > 0) {
@@ -297,15 +260,15 @@ describe.serial("Visualization Server API Endpoints", () => {
 
   describe("OpenAPI Specification", () => {
     it("should serve OpenAPI spec at /api-spec.json or /api-spec.yaml", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
       // Try JSON first, then YAML
-      let response = await fetch(`http://localhost:${testPort}/api-spec.json`);
+      let response = await fetch(t.url("/api-spec.json"));
       if (response.status === 404) {
-        response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+        response = await fetch(t.url("/api-spec.yaml"));
       }
       if (response.status === 404) {
-        response = await fetch(`http://localhost:${testPort}/openapi.json`);
+        response = await fetch(t.url("/openapi.json"));
       }
 
       // One of these should exist
@@ -313,15 +276,15 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should have consistent paths between spec and actual routes", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
       // Get OpenAPI spec
-      let specResponse = await fetch(`http://localhost:${testPort}/api-spec.json`);
+      let specResponse = await fetch(t.url("/api-spec.json"));
       let spec: any = null;
       if (specResponse.status === 200) {
         spec = await specResponse.json();
       } else {
-        specResponse = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+        specResponse = await fetch(t.url("/api-spec.yaml"));
         if (specResponse.status === 200) {
           // For YAML, we'd need to parse it, but the important check is that it exists
           expect(specResponse.status).toBe(200);
@@ -331,7 +294,7 @@ describe.serial("Visualization Server API Endpoints", () => {
 
       if (!spec || !spec.paths) {
         // If no spec, just verify routes work
-        const response = await fetch(`http://localhost:${testPort}/api/model`);
+        const response = await get(t, t.api("/model"));
         expect([200, 404]).toContain(response.status);
         return;
       }
@@ -341,10 +304,10 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(specPaths.length).toBeGreaterThan(0);
 
       // Test a few critical paths
-      const criticalPaths = ["/api/model", "/health", "/api/layers/{name}"];
+      const criticalPaths = [t.api("/model"), "/health", t.api("/layers/{name}")];
       for (const path of criticalPaths) {
         const specPath = path.replace(/{name}/, "business");
-        const response = await fetch(`http://localhost:${testPort}${specPath}`);
+        const response = await get(t, specPath);
         // Route should either exist (200) or give proper error (400/404)
         expect([200, 400, 404]).toContain(response.status);
       }
@@ -353,9 +316,9 @@ describe.serial("Visualization Server API Endpoints", () => {
 
   describe("GET /", () => {
     it("should return HTML viewer page", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/`);
+      const response = await fetch(t.url("/"));
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
@@ -368,9 +331,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should serve bundled viewer assets", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/`);
+      const response = await fetch(t.url("/"));
       const html = await response.text();
 
       expect(html).toContain("/assets/");
@@ -378,21 +341,51 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
   });
 
+  describe("Shutdown", () => {
+    // #1235: a stopped viewer left its server running, because the server hung in its own
+    // shutdown (under Bun, closing the file watcher while its folder was being deleted deadlocked
+    // the main thread) and the launcher's SIGKILL fallback never ran. The launcher and its
+    // server process are gone: the server runs in process. Stopping it while its project folder
+    // is being deleted must still finish promptly, and leave nothing listening.
+    it("stops a server whose project folder is being deleted, and frees its port", async () => {
+      const t = await startServer(testDir);
+      // Load the checkout, so its file watcher is running.
+      expect((await get(t, t.api("/model"))).status).toBe(200);
+      expect((await fetch(t.url("/health"))).status).toBe(200);
+
+      const removing = rm(testDir, { recursive: true, force: true });
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const outcome = await Promise.race([
+        t.stop().then(() => "stopped"),
+        new Promise<string>((resolve) => (timer = setTimeout(() => resolve("hung"), 10000))),
+      ]);
+      clearTimeout(timer);
+      await removing;
+
+      expect(outcome).toBe("stopped");
+      let refused = false;
+      try {
+        await fetch(t.url("/health"));
+      } catch {
+        refused = true;
+      }
+      expect(refused).toBe(true);
+    }, 30000);
+  });
+
   describe("Error Handling", () => {
     it("should return 404 for unknown routes", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/unknown-route`);
+      const response = await get(t, t.api("/unknown-route"));
 
       expect(response.status).toBe(404);
     });
 
     it("should reject invalid layer name with Zod validation", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(
-        `http://localhost:${testPort}/api/layers/InvalidLayerName`
-      );
+      const response = await get(t, t.api("/layers/InvalidLayerName"));
 
       expect(response.status).toBe(400);
 
@@ -401,11 +394,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should reject invalid changeset ID format with Zod validation", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(
-        `http://localhost:${testPort}/api/changesets/invalid%20changeset`
-      );
+      const response = await get(t, t.api("/changesets/invalid%20changeset"));
 
       expect(response.status).toBe(400);
 
@@ -414,12 +405,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should reject invalid annotation ID format with Zod validation", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(
-        `http://localhost:${testPort}/api/annotations/invalid%20annotation`,
-        { method: "DELETE" }
-      );
+      const response = await get(t, t.api("/annotations/invalid%20annotation"), { method: "DELETE" });
 
       expect(response.status).toBe(400);
 
@@ -428,10 +416,11 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should reject annotation path parameter on POST replies with Zod validation", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(
-        `http://localhost:${testPort}/api/annotations/invalid%20annotation/replies`,
+      const response = await get(
+        t,
+        t.api("/annotations/invalid%20annotation/replies"),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -451,9 +440,9 @@ describe.serial("Visualization Server API Endpoints", () => {
 
   describe("CORS Headers", () => {
     it("should include CORS headers in API responses", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api/model`);
+      const response = await get(t, t.api("/model"));
 
       expect(response.headers.has("access-control-allow-origin")).toBe(true);
     });
@@ -461,9 +450,9 @@ describe.serial("Visualization Server API Endpoints", () => {
 
   describe("OpenAPI Documentation Endpoints", () => {
     it("should return OpenAPI specification at /api-spec.yaml", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const response = await fetch(t.url("/api-spec.yaml"));
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toMatch(/json/);
@@ -493,24 +482,23 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(spec).toHaveProperty("tags");
       expect(Array.isArray(spec.tags)).toBe(true);
 
-      // Validate components
-      // Note: securitySchemes only present if auth is enabled
-      // This test runs with --no-auth, so we only check components exists
+      // Validate components: every server authenticates, so the bearer scheme is always there
       expect(spec).toHaveProperty("components");
+      expect(spec.components).toHaveProperty("securitySchemes");
     });
 
     it("should include all REST endpoints in OpenAPI spec", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const response = await fetch(t.url("/api-spec.yaml"));
       const spec = await response.json();
 
       const expectedEndpoints = [
         "/health",
-        "/api/model",
+        `${SCOPED}/model`,
         "/api/spec",
-        "/api/annotations",
-        "/api/changesets",
+        `${SCOPED}/annotations`,
+        `${SCOPED}/changesets`,
       ];
 
       for (const endpoint of expectedEndpoints) {
@@ -519,9 +507,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should serve Swagger UI at /api-docs", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api-docs`);
+      const response = await fetch(t.url("/api-docs"));
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
@@ -534,9 +522,9 @@ describe.serial("Visualization Server API Endpoints", () => {
     });
 
     it("should have valid OpenAPI paths with methods", async () => {
-      serverProcess = await startServer(testDir, testPort);
+      const t = await startServer(testDir);
 
-      const response = await fetch(`http://localhost:${testPort}/api-spec.yaml`);
+      const response = await fetch(t.url("/api-spec.yaml"));
       const spec = await response.json();
 
       // Verify /health endpoint has GET method
@@ -544,14 +532,14 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(spec.paths["/health"].get).toHaveProperty("tags");
       expect(spec.paths["/health"].get.tags).toContain("Health");
 
-      // Verify /api/model endpoint has GET method
-      expect(spec.paths["/api/model"]).toHaveProperty("get");
-      expect(spec.paths["/api/model"].get).toHaveProperty("tags");
-      expect(spec.paths["/api/model"].get.tags).toContain("Model");
+      // Verify the checkout's model endpoint has GET method
+      expect(spec.paths[`${SCOPED}/model`]).toHaveProperty("get");
+      expect(spec.paths[`${SCOPED}/model`].get).toHaveProperty("tags");
+      expect(spec.paths[`${SCOPED}/model`].get.tags).toContain("Model");
 
-      // Verify /api/annotations has both GET and POST
-      expect(spec.paths["/api/annotations"]).toHaveProperty("get");
-      expect(spec.paths["/api/annotations"]).toHaveProperty("post");
+      // Verify the checkout's annotations have both GET and POST
+      expect(spec.paths[`${SCOPED}/annotations`]).toHaveProperty("get");
+      expect(spec.paths[`${SCOPED}/annotations`]).toHaveProperty("post");
     });
   });
 });

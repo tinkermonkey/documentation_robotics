@@ -16,17 +16,17 @@
 
 import { describe, it, expect, afterAll } from "bun:test";
 import { Model } from "../../../src/core/model.js";
-import { VisualizationServer } from "../../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 import { portAllocator } from "../../helpers/port-allocator.js";
 import { networkInterfaces, tmpdir } from "os";
 import { join } from "path";
 import { mkdirSync, rmSync } from "fs";
 import { randomUUID } from "crypto";
 
-async function makeServer(label: string): Promise<{ server: VisualizationServer; testDir: string }> {
+async function makeServer(label: string): Promise<{ server: TestFarmServer["server"]; farm: TestFarmServer; testDir: string }> {
   const testDir = join(tmpdir(), `dr-bind-err-${label}-${randomUUID()}`);
   mkdirSync(testDir, { recursive: true });
-  const model = await Model.init(
+  await Model.init(
     testDir,
     {
       name: `Bind Error Test (${label})`,
@@ -37,28 +37,32 @@ async function makeServer(label: string): Promise<{ server: VisualizationServer;
     },
     { lazyLoad: false }
   );
-  return { server: new VisualizationServer(model, { authEnabled: false }), testDir };
+  const farm = await startTestFarmServer(testDir);
+  return { server: farm.server, farm, testDir };
 }
 
 describe("VisualizationServer.start() bind error handling", () => {
-  const cleanup: Array<() => void> = [];
+  const cleanup: Array<() => void | Promise<void>> = [];
 
-  afterAll(() => {
-    for (const fn of cleanup) fn();
+  afterAll(async () => {
+    for (const fn of cleanup) await fn();
   });
 
   it("rejects cleanly with an actionable message when the port is already in use", async () => {
     const port = await portAllocator.allocatePort();
 
-    const { server: server1, testDir: dir1 } = await makeServer("first");
+    const { server: server1, farm: farm1, testDir: dir1 } = await makeServer("first");
     await server1.start(port);
-    cleanup.push(() => {
-      server1.stop();
+    cleanup.push(async () => {
+      await farm1.stop();
       rmSync(dir1, { recursive: true, force: true });
     });
 
-    const { server: server2, testDir: dir2 } = await makeServer("second");
-    cleanup.push(() => rmSync(dir2, { recursive: true, force: true }));
+    const { farm: farm2, server: server2, testDir: dir2 } = await makeServer("second");
+    cleanup.push(async () => {
+      await farm2.stop();
+      rmSync(dir2, { recursive: true, force: true });
+    });
 
     let caught: Error | undefined;
     try {
@@ -73,20 +77,21 @@ describe("VisualizationServer.start() bind error handling", () => {
     expect(caught).toBeDefined();
     expect(caught?.message).toMatch(/already in use/i);
     expect(caught?.message).toContain(String(port));
+    expect(caught?.message).toBe(`Port ${port} is already in use.`);
 
     // The first server must still be alive and unaffected by the second's failed start.
-    const res = await fetch(`http://localhost:${port}/health`);
+    const res = await fetch(`http://127.0.0.1:${port}/health`);
     expect(res.status).toBe(200);
 
     portAllocator.releasePort(port);
   });
 
-  it("listens on the loopback addresses only", async () => {
+  it("listens on 127.0.0.1 only", async () => {
     const port = await portAllocator.allocatePort();
-    const { server, testDir } = await makeServer("loopback");
+    const { server, farm, testDir } = await makeServer("loopback");
     await server.start(port);
-    cleanup.push(() => {
-      server.stop();
+    cleanup.push(async () => {
+      await farm.stop();
       rmSync(testDir, { recursive: true, force: true });
       portAllocator.releasePort(port);
     });
@@ -97,7 +102,11 @@ describe("VisualizationServer.start() bind error handling", () => {
       .flat()
       .some((address) => address?.internal && address.family === "IPv6" && address.address === "::1");
     if (hasIpv6Loopback) {
-      expect((await fetch(`http://[::1]:${port}/health`)).status).toBe(200);
+      // 127.0.0.1 only: the IPv6 loopback is not bound.
+      const reachedIpv6 = await fetch(`http://[::1]:${port}/health`, { signal: AbortSignal.timeout(2000) })
+        .then(() => true)
+        .catch(() => false);
+      expect(reachedIpv6).toBe(false);
     }
 
     // Not reachable on this machine's other addresses.

@@ -20,8 +20,8 @@ import { shippedModeNow } from "../../helpers/tier1-shipped-mode.js";
 import { createTier1StatusHandler } from "../../../src/mcp/tools/tier1-status.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { ChangeOriginSchema, Tier1StatusResponseSchema } from "../../../src/server/schemas.js";
-import type { VisualizationServer } from "../../../src/server/server.js";
-import { createServerWithoutChatDetection } from "./helpers.js";
+import { gitWithTimeout } from "../../../src/analyzers/classifier/config.js";
+import { ensureGitRepository, startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 
 const FAKE_ACCOUNT = "fake-account-0000ab12cd34ef56";
 const FAKE_TOKEN = "fake-token-SECRET-never-returned-0123456789";
@@ -29,7 +29,7 @@ const NOW = Date.parse("2026-11-14T12:00:00.000Z");
 const AUTH_TOKEN = "test-viewer-token";
 
 let rootPath: string;
-let server: VisualizationServer | undefined;
+let server: TestFarmServer | undefined;
 const realFetch = globalThis.fetch;
 let fetchCalls = 0;
 
@@ -52,10 +52,12 @@ beforeEach(async () => {
   await mkdir(dir, { recursive: true });
   rootPath = await realpath(dir);
   await Model.init(rootPath, { name: "Tier1 REST Test", version: "0.1.0" });
+  // A farm project is a git repository: made one here, so the file snapshots below never see git's own files appear.
+  await ensureGitRepository(rootPath);
 });
 
 afterEach(async () => {
-  server?.stop();
+  await server?.stop();
   server = undefined;
   clearModelCache();
   await rm(rootPath, { recursive: true, force: true });
@@ -63,16 +65,38 @@ afterEach(async () => {
 
 const TEST_OPTIONS = (env: Record<string, string> = {}) => ({ env, git: () => null, now: () => NOW });
 
+/** The route's documented path (Hono's path syntax, as the OpenAPI document keeps it). */
+const TIER1_PATH = "/api/projects/:project/checkouts/:checkout/tier1";
+
 type Git = (cwd: string, args: string[]) => { status: number | null; stdout: string } | null;
 
-/** `git` undefined: the real git (local, read-only), for the dotDrIgnored cases. */
+/**
+ * The real git (local, read-only) run in a temporary folder outside any git work tree: a farm
+ * project is always a git repository, so "outside a work tree" is reached by running git elsewhere.
+ */
+async function realGitOutsideWorkTree(): Promise<Git> {
+  const outside = join(tmpdir(), `dr-server-tier1-outside-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  await mkdir(outside, { recursive: true });
+  const git = gitWithTimeout(3_000);
+  return (_cwd, args) => git(outside, args);
+}
+
+/**
+ * A server over the project; requests go to its checkout's `/tier1` (the path given is the rest
+ * after the checkout, so `request("/tier1")` is `/api/projects/<p>/checkouts/main/tier1`). With `auth`,
+ * the caller sets the token itself (`headers`/`?token=`); otherwise every request carries it.
+ * The checkout is loaded before this returns, so the file snapshots below see the project as the
+ * loaded server leaves it.
+ */
 async function app(options: { auth?: boolean; env?: Record<string, string>; git?: Git | "real" } = {}) {
-  const model = await Model.load(rootPath, { lazyLoad: false });
-  server = createServerWithoutChatDetection(model, options.auth ? { authEnabled: true, authToken: AUTH_TOKEN } : { authEnabled: false });
+  server = await startTestFarmServer(rootPath, options.auth ? { token: AUTH_TOKEN } : {});
   const { git: _fake, ...base } = TEST_OPTIONS(options.env);
-  (server as any)._testTier1Options =
-    options.git === "real" ? base : { ...base, git: options.git ?? _fake };
-  return (path: string, init?: RequestInit) => (server as any).app.request(path, init) as Promise<Response>;
+  (server.server as any)._testTier1Options =
+    options.git === "real" ? { ...base, git: await realGitOutsideWorkTree() } : { ...base, git: options.git ?? _fake };
+  await server.context();
+  const t = server;
+  return (rest: string, init: RequestInit = {}) =>
+    options.auth ? t.raw(t.api(rest), { ...init, headers: init.headers ?? {} }) : t.request(rest, init);
 }
 
 /** The body of a 200, checked against the documented schema (strictly: no undocumented field) and scanned for secrets. */
@@ -122,10 +146,10 @@ async function snapshot(dir = rootPath): Promise<string[]> {
 }
 
 describe("GET /api/tier1", () => {
-  it.serial("off when the project hasn't opted in, without creating .dr/ or any file", async () => {
+  it.serial("off when the project hasn't opted in, without creating anything under .dr/ or any file", async () => {
     const request = await app();
     const before = await snapshot();
-    const json = await body(await request("/api/tier1"));
+    const json = await body(await request("/tier1"));
     expect(json).toMatchObject({
       state: "off",
       analyzer: "cbm",
@@ -140,14 +164,17 @@ describe("GET /api/tier1", () => {
     expect(json.summary).toStartWith("Tier 1 is off");
     expect(json.note).toContain("no tool writes tier1.json");
     expect(json.provider).toBeUndefined();
-    expect(existsSync(join(rootPath, ".dr"))).toBe(false);
+    // Loading the checkout makes an empty .dr/ for the file watcher (the active-changeset marker's
+    // folder, as `dr visualize` always did once listening); the GET adds nothing to it.
+    expect(await readdir(join(rootPath, ".dr"))).toEqual([]);
+    expect(existsSync(join(rootPath, ".dr", "analyzers"))).toBe(false);
     expect(await snapshot()).toEqual(before);
     expect(fetchCalls).toBe(0);
   });
 
   it.serial("off names provider variables that are set and unused, never their values", async () => {
     const request = await app({ env: { CLOUDFLARE_ACCOUNT_ID: FAKE_ACCOUNT, CLOUDFLARE_API_TOKEN: FAKE_TOKEN } });
-    const json = await body(await request("/api/tier1"));
+    const json = await body(await request("/tier1"));
     expect(json.state).toBe("off");
     expect(json.reason).toContain("CLOUDFLARE_API_TOKEN");
   });
@@ -156,7 +183,7 @@ describe("GET /api/tier1", () => {
     await optIn({ monthlyCapUsd: 5 });
     const request = await app();
     const before = await snapshot();
-    const json = await body(await request("/api/tier1"));
+    const json = await body(await request("/tier1"));
     expect(json).toMatchObject({
       state: "on",
       provider: "cloudflare-workers-ai",
@@ -178,7 +205,7 @@ describe("GET /api/tier1", () => {
 
   it.serial('"mode": "suggest" in tier1.json shows as suggest mode, with why', async () => {
     await optIn({ mode: "suggest" });
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json).toMatchObject({ state: "on", mode: "suggest" });
     expect(json.modeReason).toContain('"mode": "suggest"');
     expect(json.summary).toContain("Suggest mode");
@@ -187,7 +214,7 @@ describe("GET /api/tier1", () => {
   it.serial("on with keys in the environment: names the variables, never the values", async () => {
     await optIn({}, { keysInFile: false });
     const request = await app({ env: { CLOUDFLARE_ACCOUNT_ID: FAKE_ACCOUNT, CLOUDFLARE_API_TOKEN: FAKE_TOKEN } });
-    const json = await body(await request("/api/tier1"));
+    const json = await body(await request("/tier1"));
     expect(json.state).toBe("on");
     expect(json.credentials).toEqual({
       accountId: { set: true, from: "CLOUDFLARE_ACCOUNT_ID" },
@@ -198,7 +225,7 @@ describe("GET /api/tier1", () => {
   it.serial("no-credentials: says which key is missing and where it may come from", async () => {
     await optIn({}, { keysInFile: false });
     const request = await app({ env: { CLOUDFLARE_ACCOUNT_ID: FAKE_ACCOUNT } });
-    const json = await body(await request("/api/tier1"));
+    const json = await body(await request("/tier1"));
     expect(json.state).toBe("no-credentials");
     expect(json.reason).toContain("CLOUDFLARE_API_TOKEN");
     expect(json.credentials).toEqual({
@@ -212,7 +239,7 @@ describe("GET /api/tier1", () => {
     await optIn();
     await spend(15, "extract", 900);
     await spend(1.5, "classify", 90);
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("on");
     expect(json.nearCap).toBe(true);
     expect(json.month).toMatchObject({ spentUsd: 16.5, capUsd: 20, remainingUsd: 3.5, cards: 990, percentUsed: 82.5 });
@@ -223,7 +250,7 @@ describe("GET /api/tier1", () => {
   it.serial("capped once the month's spend reaches the cap (nearCap is then false)", async () => {
     await optIn({ monthlyCapUsd: 10 });
     await spend(10.25);
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("capped");
     expect(json.nearCap).toBe(false);
     expect(json.month).toMatchObject({ spentUsd: 10.25, capUsd: 10, remainingUsd: 0, percentUsed: 100 });
@@ -236,7 +263,7 @@ describe("GET /api/tier1", () => {
 
   it.serial("a cap of 0: capped from the start, percentUsed null, never nearCap", async () => {
     await optIn({ monthlyCapUsd: 0 });
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("capped");
     expect(json.month).toMatchObject({ capUsd: 0, percentUsed: null });
     expect(json.nearCap).toBe(false);
@@ -245,7 +272,7 @@ describe("GET /api/tier1", () => {
 
   it.serial("misconfigured: a key pasted into another field is not repeated, and the cap still shows", async () => {
     await optIn({ model: FAKE_TOKEN, monthlyCapUsd: 3 });
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("misconfigured");
     expect(json.reason).toContain("not shown in case it is a key");
     expect(json.credentials).toEqual({});
@@ -256,14 +283,14 @@ describe("GET /api/tier1", () => {
     const file = tier1Paths(rootPath, "cbm").config;
     await mkdir(join(file, ".."), { recursive: true });
     await writeFile(file, `{"version":1,"credentials":{"apiToken":"${FAKE_TOKEN}"`, { mode: 0o600 });
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("misconfigured");
     expect(json.reason).toContain("not valid JSON");
   });
 
   it.serial("misconfigured: a key used as a credential's name is not quoted (REST and MCP)", async () => {
     await optIn({ credentials: { [FAKE_TOKEN]: 5 } });
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("misconfigured");
     expect(json.reason).toContain("not shown in case it is a key");
     const mcp = await createTier1StatusHandler({ tier1: TEST_OPTIONS() })({ rootPath });
@@ -284,10 +311,10 @@ describe("GET /api/tier1", () => {
     await writeFile(join(cache, "compaction.json"), JSON.stringify({ at: "2026-11-13T00:00:00.000Z", deletedFiles: [] }));
     const before = await snapshot();
     const request = await app();
-    const json = await body(await request("/api/tier1"));
+    const json = await body(await request("/tier1"));
     expect(json.cache).toEqual({ files: 2, entries: 5, bytes: expect.any(Number), lastCompaction: "2026-11-13T00:00:00.000Z" });
     expect(json.cache.bytes).toBeGreaterThan(0);
-    await body(await request("/api/tier1"));
+    await body(await request("/tier1"));
     expect(await snapshot()).toEqual(before);
     expect(await readFile(newer, "utf-8")).toContain('"v":2');
   });
@@ -302,7 +329,7 @@ describe("GET /api/tier1", () => {
     );
     await mkdir(join(rootPath, ".dr", "analyzers"), { recursive: true });
     await symlink(elsewhere, join(rootPath, ".dr", "analyzers", "cbm"));
-    const json = await body(await (await app())("/api/tier1"));
+    const json = await body(await (await app())("/tier1"));
     expect(json.state).toBe("off");
     expect(json.month).toMatchObject({ spentUsd: 0, cards: 0 });
     expect(json.bySource).toEqual({});
@@ -311,20 +338,20 @@ describe("GET /api/tier1", () => {
 
   it.serial("dotDrIgnored: null outside a git work tree (no warning), true and false from git check-ignore's exit", async () => {
     // The real git, in a temp folder that isn't a work tree: check-ignore exits 128.
-    const outside = await body(await (await app({ git: "real" }))("/api/tier1"));
+    const outside = await body(await (await app({ git: "real" }))("/tier1"));
     expect(outside.dotDrIgnored).toBeNull();
     expect(outside.warnings).toEqual([]);
-    server?.stop();
+    await server?.stop();
 
     const exit = (status: number): Git => (_cwd, args) => (args[0] === "check-ignore" ? { status, stdout: "" } : { status: 1, stdout: "" });
-    const ignored = await body(await (await app({ git: exit(0) }))("/api/tier1"));
+    const ignored = await body(await (await app({ git: exit(0) }))("/tier1"));
     expect(ignored.dotDrIgnored).toBe(true);
-    server?.stop();
-    const notIgnored = await body(await (await app({ git: exit(1) }))("/api/tier1"));
+    await server?.stop();
+    const notIgnored = await body(await (await app({ git: exit(1) }))("/tier1"));
     expect(notIgnored.dotDrIgnored).toBe(false);
     expect(notIgnored.warnings.join(" ")).toContain(".dr/ is not git-ignored");
-    server?.stop();
-    const failed = await body(await (await app({ git: exit(128) }))("/api/tier1"));
+    await server?.stop();
+    const failed = await body(await (await app({ git: exit(128) }))("/tier1"));
     expect(failed.dotDrIgnored).toBeNull();
     expect(failed.warnings).toEqual([]);
   });
@@ -332,7 +359,7 @@ describe("GET /api/tier1", () => {
   it.serial("matches the tier1_status MCP tool's body (without its probe)", async () => {
     await optIn();
     await spend(2);
-    const rest = await body(await (await app())("/api/tier1"));
+    const rest = await body(await (await app())("/tier1"));
     const mcp = await createTier1StatusHandler({ tier1: TEST_OPTIONS() })({ rootPath });
     expect(mcp.isError).toBeFalsy();
     expect(rest).toEqual(JSON.parse((mcp.content[0] as any).text));
@@ -340,34 +367,34 @@ describe("GET /api/tier1", () => {
 
   it.serial("takes an analyzer, and refuses a name that could leave .dr/analyzers/", async () => {
     const request = await app();
-    const json = await body(await request("/api/tier1?analyzer=other"));
+    const json = await body(await request("/tier1?analyzer=other"));
     expect(json).toMatchObject({ state: "off", analyzer: "other", config: ".dr/analyzers/other/tier1.json" });
-    expect((await request("/api/tier1?analyzer=..%2F..%2Fetc")).status).toBe(400);
-    expect((await request("/api/tier1?analyzer=..")).status).toBe(400);
+    expect((await request("/tier1?analyzer=..%2F..%2Fetc")).status).toBe(400);
+    expect((await request("/tier1?analyzer=..")).status).toBe(400);
   });
 
   it.serial("uses the same bearer auth as the other /api/ routes", async () => {
     await optIn();
     const request = await app({ auth: true });
-    const anonymous = await request("/api/tier1");
+    const anonymous = await request("/tier1");
     expect(anonymous.status).toBe(401);
     expectNoSecret(await anonymous.text());
-    expect((await request("/api/tier1", { headers: { Authorization: "Bearer wrong" } })).status).toBe(403);
-    const json = await body(await request("/api/tier1", { headers: { Authorization: `Bearer ${AUTH_TOKEN}` } }));
+    expect((await request("/tier1", { headers: { Authorization: "Bearer wrong" } })).status).toBe(403);
+    const json = await body(await request("/tier1", { headers: { Authorization: `Bearer ${AUTH_TOKEN}` } }));
     expect(json.state).toBe("on");
     // The ?token= form the viewer can use where it can't set a header.
-    expect((await body(await request(`/api/tier1?token=${AUTH_TOKEN}`))).state).toBe("on");
-    expect((await request("/api/tier1?token=wrong")).status).toBe(403);
-    expect((await body(await request(`/api/tier1?analyzer=cbm&token=${AUTH_TOKEN}`))).analyzer).toBe("cbm");
+    expect((await body(await request(`/tier1?token=${AUTH_TOKEN}`))).state).toBe("on");
+    expect((await request("/tier1?token=wrong")).status).toBe(403);
+    expect((await body(await request(`/tier1?analyzer=cbm&token=${AUTH_TOKEN}`))).analyzer).toBe("cbm");
   });
 
   it.serial("is documented in the OpenAPI spec with bearer auth, and its examples match the schema", () => {
     return app().then(() => {
-      const doc = server!.getOpenAPIDocument({ openapi: "3.1.0", info: { title: "t", version: "1" } });
-      const op = doc.paths["/api/tier1"].get;
+      const doc = server!.server.getOpenAPIDocument({ openapi: "3.1.0", info: { title: "t", version: "1" } });
+      const op = doc.paths[TIER1_PATH].get;
       expect(op.tags).toEqual(["Extraction"]);
       expect(op.security).toEqual([{ bearerAuth: [] }]);
-      expect(op.parameters.map((p: any) => p.name)).toEqual(["analyzer"]);
+      expect(op.parameters.map((p: any) => p.name)).toEqual(["project", "checkout", "analyzer"]);
       const content = op.responses["200"].content["application/json"];
       expect(content.schema).toEqual({ $ref: "#/components/schemas/Tier1Status" });
       expect(Object.keys(doc.components.schemas.Tier1Status.properties)).toContain("nearCap");
@@ -389,14 +416,14 @@ describe("docs/api-spec.yaml (generated: npm run generate:openapi)", () => {
     const tier1 = doc.components.schemas.Tier1Status;
     expect(Object.keys(tier1.properties).sort()).toEqual(Object.keys(Tier1StatusResponseSchema.shape).sort());
     expect(Object.keys(doc.components.schemas.ChangeOrigin.properties).sort()).toEqual(Object.keys(ChangeOriginSchema.shape).sort());
-    const op = doc.paths["/api/tier1"].get;
+    const op = doc.paths[TIER1_PATH].get;
     expect(op.security).toEqual([{ bearerAuth: [] }]);
     for (const example of Object.values(op.responses["200"].content["application/json"].examples) as Array<{ value: unknown }>) {
       Tier1StatusResponseSchema.strict().parse(example.value);
     }
     // origin on each change of GET /api/changesets/:changesetId (the spec keeps Hono's path syntax),
     // and on each tombstone's change.
-    const detail = doc.paths["/api/changesets/:changesetId"].get.responses["200"].content["application/json"].schema.properties;
+    const detail = doc.paths["/api/projects/:project/checkouts/:checkout/changesets/:changesetId"].get.responses["200"].content["application/json"].schema.properties;
     expect(detail.changes.items.properties.origin).toEqual({ $ref: "#/components/schemas/ChangeOrigin" });
     expect(detail.unstaged.items.properties.change.properties.origin).toEqual({ $ref: "#/components/schemas/ChangeOrigin" });
   });

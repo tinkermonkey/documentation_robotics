@@ -1,42 +1,96 @@
 # Visualization Server WebSocket Protocol
 
-`dr visualize` serves the viewer, a REST API and a WebSocket at `/ws`. The REST routes are in
-`docs/api-spec.yaml`, generated from the route schemas in `cli/src/server/server.ts`. This page
-covers the WebSocket messages, which that spec doesn't describe.
+The user's central DR process (`dr serve`, which `dr visualize` starts or reuses) serves the viewer,
+a REST API, MCP at `/mcp` and a WebSocket at `/ws`, for every project and checkout of the farm. The
+REST routes are in `docs/api-spec.yaml`, generated from the route schemas in
+`cli/src/server/server.ts`. This page covers the WebSocket messages, which that spec doesn't
+describe.
+
+Every project-data route names its project and checkout:
+`/api/projects/{project}/checkouts/{checkout}/...` (`checkout` is `main` for the main worktree, else
+the name git gives the linked worktree). `GET /api/projects` lists the projects and their checkouts.
+The unscoped paths of earlier releases (`/api/model`, `/api/changesets`, `/api/annotations`, ...)
+answer `410 Gone` for one release, with `{ "error", "replacement" }`, `replacement` being the scoped
+path template. Below, `.../changesets` is short for the scoped path.
+
+The viewer's own links have the form `/#/p/<project>/c/<checkout>/...`, with the token in the
+fragment. A deep link opened without the hash (`/p/<project>/c/<checkout>/...`) loads the viewer's
+page too.
 
 Connect to `/ws` with the server's token: `?token=<token>`, the `Sec-WebSocket-Protocol` pair
 `token, <token>`, or `Authorization: Bearer <token>`. The server sends `{ "type": "connected" }`.
 
-Two kinds of message share the socket:
+Three kinds of message share the socket:
 
+- **Feed frames** have an `action`: they subscribe the socket to a checkout's events.
 - **Plain messages** have a `type`. The server uses them for broadcasts.
 - **JSON-RPC 2.0 messages** have `"jsonrpc": "2.0"`. The chat (DrBot) uses them.
+
+## Checkout feeds
+
+A socket receives no event until it subscribes to a checkout, and one socket can subscribe to
+several. Subscribing sends no model: fetch `GET .../model` for it.
+
+| Frame from the client                                | Reply                                                                         |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `{ "action": "subscribe", "project", "checkout" }`   | `subscribed { project, checkout }`, or `error { message, project, checkout }` |
+| `{ "action": "unsubscribe", "project", "checkout" }` | `unsubscribed { project, checkout }`                                          |
+
+Subscribing to a checkout the farm doesn't list, or whose folder is not on disk, gets the `error`.
+Every event the server sends (the broadcasts below and the chat frames) carries the `project` and
+`checkout` it is about, so a client subscribed to several checkouts can tell them apart.
+
+Two events end a subscription:
+
+| `type`             | Fields                             | Sent when                                                                                                                    |
+| ------------------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `checkout.removed` | `project`, `checkout`, `timestamp` | The checkout's folder is gone (its worktree was removed). Its DrBot turns end; the socket stays open for its other checkouts |
+| `server.stopping`  | `project`, `checkout`, `timestamp` | The server is stopping: one per subscribed checkout, then the socket is closed (code 1001)                                   |
+
+A plain or JSON-RPC message runs in the checkout its `params.project` and `params.checkout` name,
+else in the socket's one subscription. A socket with no subscription, or with several, that sends a
+message naming no checkout gets `error { message: "Subscribe to a checkout first ..." }`: no checkout
+is assumed.
+
+### Errors
+
+The server reports a problem with a message as a plain `{ "type": "error", "message" }` frame,
+with `project` and `checkout` when it is about one. A malformed frame gets
+`{ "error": "Invalid message format", "details" }` instead. The name `error` collides with a
+browser `WebSocket`'s own `error` event (a connection failure): a client that dispatches frames by
+their `type` should keep the two apart, for example by re-emitting the server's frame under another
+name.
 
 ## Plain messages
 
 ### From the client
 
-| `type`      | Fields              | Reply                                            |
-| ----------- | ------------------- | ------------------------------------------------ |
-| `subscribe` | `topics` (optional) | `subscribed { topics }`, then `model { data }`   |
-| `ping`      |                     | `pong`                                           |
-| `annotate`  | `annotation`        | Broadcasts `annotation { data }` to every client |
+| `type`      | Fields              | Reply                                                                                               |
+| ----------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| `subscribe` | `topics` (optional) | `subscribed { topics }`, then `model { data }` (a legacy per-message form: not a feed subscription) |
+| `ping`      |                     | `pong`                                                                                              |
+| `annotate`  | `annotation`        | Broadcasts `annotation { data }` to the checkout's subscribers                                      |
+
+`{ "type": "subscribe" }` is the earlier per-project viewer's form. It runs in the checkout the
+message is for (above), sends that checkout's model once, and subscribes to nothing: use the
+`action` frames for events.
 
 ### Broadcasts
 
-The server sends these to every connected client. Each has a `timestamp`.
+The server sends these to every socket subscribed to the checkout. Each has a `timestamp`, `project`
+and `checkout`.
 
-| `type`                   | Fields                      | Sent when                                                                                                                                                                                                                                                                                                                                   |
-| ------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model.updated`          | `data` (the model)          | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                                                                                                                                                                                                             |
-| `changesets.updated`     | `ids`, `active`             | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), a changeset was committed, discarded or reviewed (`PUT /api/changesets/:id/review`) through the API, or the model was reloaded after a file under `documentation-robotics/model/` changed (a base change moves each staged changeset's `drift`) |
-| `annotation.added`       | `annotationId`, `elementId` | An annotation was created, through the API or by another process (the MCP annotation tools)                                                                                                                                                                                                                                                 |
-| `annotation.updated`     | `annotationId`              | An annotation was changed (content, tags, resolved), through the API or by another process                                                                                                                                                                                                                                                  |
-| `annotation.deleted`     | `annotationId`              | An annotation was deleted, through the API or by another process                                                                                                                                                                                                                                                                            |
-| `annotation.reply.added` | `annotationId`, `replyId`   | A reply was added, through the API or by another process                                                                                                                                                                                                                                                                                    |
+| `type`                   | Fields                      | Sent when                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model.updated`          | `data` (the model)          | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                                                                                                                                                                                                            |
+| `changesets.updated`     | `ids`, `active`             | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), a changeset was committed, discarded or reviewed (`PUT .../changesets/:id/review`) through the API, or the model was reloaded after a file under `documentation-robotics/model/` changed (a base change moves each staged changeset's `drift`) |
+| `annotation.added`       | `annotationId`, `elementId` | An annotation was created, through the API or by another process (the MCP annotation tools)                                                                                                                                                                                                                                                |
+| `annotation.updated`     | `annotationId`              | An annotation was changed (content, tags, resolved), through the API or by another process                                                                                                                                                                                                                                                 |
+| `annotation.deleted`     | `annotationId`              | An annotation was deleted, through the API or by another process                                                                                                                                                                                                                                                                           |
+| `annotation.reply.added` | `annotationId`, `replyId`   | A reply was added, through the API or by another process                                                                                                                                                                                                                                                                                   |
 
 `changesets.updated` carries only what changed: `ids` is every changeset on disk and `active` is
-the active changeset's id, or `null`. Fetch `GET /api/changesets` or `GET /api/changesets/:id` for
+the active changeset's id, or `null`. Fetch `GET .../changesets` or `GET .../changesets/:id` for
 the details. File-watcher broadcasts are debounced, so a command that writes several files sends
 one message. A base model write reloads the model once per file event and then sends one
 `changesets.updated` when the reloads settle: read a changeset's `drift` after that message, not
@@ -45,16 +99,16 @@ anywhere, reaches an open viewer this way.
 
 ### Changeset review
 
-The viewer reviews a staged changeset change by change. `GET /api/changesets/:id` carries
+The viewer reviews a staged changeset change by change. `GET .../changesets/:id` carries
 `revision` (the changeset's `nextSequenceNumber`), `origin` (`chat`, `plan`, `extract` or `cli`;
 absent on older changesets), `unstaged` (the unstage and rewrite tombstones) and `review` (the
 verdicts, keyed by sequence number); each staged `delete` lists its `blockers`, the relationships
-that still name the element. Both `GET /api/changesets` and `GET /api/changesets/:id` carry `drift`,
+that still name the element. Both `GET .../changesets` and `GET .../changesets/:id` carry `drift`,
 checked on the read with no commit attempt: a `state` (`none`, `content-free`, `drifted`,
 `not-applicable`, `unknown`), `blocksCommit` (true exactly when the commit below would answer 409
 for drift) and a `message`; the changeset's own endpoint adds what changed (`overlapping`,
-`baseChanges`) when the base's hash did. `PUT /api/changesets/:id/review` sets or clears verdicts (`keep`,
-`drop`, `ask`, or `null`), stored in the changeset's `review.yaml`. `POST /api/changesets/:id/commit`
+`baseChanges`) when the base's hash did. `PUT .../changesets/:id/review` sets or clears verdicts (`keep`,
+`drop`, `ask`, or `null`), stored in the changeset's `review.yaml`. `POST .../changesets/:id/commit`
 takes an optional `{ drop, deleteBlockedLinks }`: the dropped changes, and the changes that depend on
 an element a dropped add creates, are unstaged and left out; a delete with blockers is refused (422,
 with `blockers`) unless it is in `deleteBlockedLinks`. Without either field the commit is unchanged.
@@ -63,7 +117,7 @@ See `docs/api-spec.yaml` for the shapes.
 Annotations are files under `documentation-robotics/annotations/`, shared with the MCP
 `annotation_*` tools. The server watches them and sends the `annotation.*` broadcast for each
 change another process makes, the same message its own API sends, once. Fetch
-`GET /api/annotations` (or `?elementId=`) and `GET /api/annotations/:id/replies` for the content.
+`GET .../annotations` (or `?elementId=`) and `GET .../annotations/:id/replies` for the content.
 
 ```json
 {
@@ -115,16 +169,15 @@ The `chat.send` result:
 up and returns it.
 
 At most `DR_DRBOT_MAX_TURNS` replies (default 3) run at once in one server process, across every
-checkout it serves. A send over the cap waits: the server sends `chat.turn.queued` and a quoted line
-of reply text saying so, then `chat.turn.started` and another quoted line when the reply starts. A
+checkout it serves. A send over the cap waits: the server sends `chat.turn.queued` (its `message` says so
+in a sentence), then `chat.turn.started` when the reply starts. Neither is repeated as reply text. A
 queued send can be cancelled like a running one; its `chat.send` then gets an error. A send whose
 checkout is removed while it waits gets an error too.
 
 ### Notifications during a reply
 
-All carry `conversation_id` and `timestamp`. On the central server (`dr serve`) they, and the `chat.send`
-result, also carry `project` and `checkout`: conversations are per checkout, and one socket can
-chat in several.
+All carry `conversation_id`, `timestamp`, `project` and `checkout`, and so does the `chat.send`
+result: conversations are per checkout, and one socket can chat in several.
 
 | Method                   | Params                                                                                                                                                               | Meaning                               |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -192,3 +245,12 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
 - CLI 0.8.0 (Unreleased): `chat.turn.queued` and `chat.turn.started` for a send over the running-reply
   cap (`DR_DRBOT_MAX_TURNS`); each reply runs in the checkout it belongs to. On the central server, chat
   frames carry `project` and `checkout`.
+- CLI 0.8.0 (Unreleased, issue 1279 slice 4): one server mode. Every project-data route is under
+  `/api/projects/{project}/checkouts/{checkout}/`; the unscoped ones answer `410 Gone` with their
+  `replacement`. A socket subscribes to checkouts with `subscribe`/`unsubscribe` feed frames and
+  receives nothing before; every event and chat frame carries `project` and `checkout`. A message
+  that names no checkout runs only in the socket's one subscription: no default checkout. `/health`
+  no longer reports `viewerId`; with the token it reports `serverId`, `farmRoot`, `mcpSessions`,
+  `drBotTurns` and `loadedCheckouts`. Subscribing sends no model; `checkout.removed`,
+  `server.stopping` and the `error` frame are documented. A queued DrBot turn is announced by
+  `chat.turn.queued` and `chat.turn.started` only, no longer also as reply text.

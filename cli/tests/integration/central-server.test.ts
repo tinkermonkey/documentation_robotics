@@ -215,13 +215,15 @@ describe("central server", () => {
     }
   });
 
-  it("serves the unscoped routes for the checkout it was started in", async () => {
-    const unscoped = await (await get("/api/model")).json();
-    const alphaMain = await (await get(scoped("alpha", "main", "/model"))).json();
-    expect(unscoped).toEqual(alphaMain);
-    expect((await (await get("/api/annotations")).json()).annotations).toEqual(
-      (await (await get(scoped("alpha", "main", "/annotations"))).json()).annotations
-    );
+  it("serves no project data at the retired unscoped routes, even for the checkout it was started in", async () => {
+    // The process's default checkout is alpha/main; it is only the MCP fallback root now.
+    const unscoped = await get("/api/model");
+    expect(unscoped.status).toBe(410);
+    expect((await unscoped.json()).replacement).toBe("/api/projects/{project}/checkouts/{checkout}/model");
+    const annotations = await get("/api/annotations");
+    expect(annotations.status).toBe(410);
+    expect((await annotations.json()).replacement).toBe("/api/projects/{project}/checkouts/{checkout}/annotations");
+    expect((await get(scoped("alpha", "main", "/model"))).status).toBe(200);
     expect((await get("/api/spec")).status).toBe(200);
   });
 
@@ -313,6 +315,25 @@ describe("central server", () => {
     expect(betaTab.received.filter((m) => m.type === "annotation.added")).toHaveLength(1);
   });
 
+  it("runs a message in the checkout it names or the socket's one subscription, never a default one", async () => {
+    // Not subscribed and naming no checkout: the process's default checkout (alpha/main) does not answer.
+    const tab = await socket();
+    tab.send({ type: "ping" });
+    expect((await tab.next((m) => m.type === "error")).message).toContain("Subscribe to a checkout first");
+    expect(tab.received.some((m) => m.type === "pong")).toBe(false);
+
+    // Subscribed to one checkout: messages run there.
+    await tab.subscribe("beta", "main");
+    tab.send({ type: "ping" });
+    await tab.next((m) => m.type === "pong");
+
+    // Subscribed to two: a message must name its checkout.
+    await tab.subscribe("alpha", "main");
+    const errors = () => tab.received.filter((m) => m.type === "error").length;
+    tab.send({ type: "ping" });
+    await tab.next(() => errors() === 2);
+  });
+
   it("refuses a subscription to an unknown checkout", async () => {
     const tab = await socket();
     tab.send({ action: "subscribe", project: "alpha", checkout: "nope" });
@@ -398,8 +419,8 @@ describe("central server", () => {
       });
       expect(await tab.next((m) => m.type === "annotation.added")).toMatchObject({ project: "alpha", checkout: "main" });
 
-      // With no checkout for the unscoped routes, they answer 404.
-      expect((await req("/api/model")).status).toBe(404);
+      // With no default checkout, the retired unscoped routes still answer 410.
+      expect((await req("/api/model")).status).toBe(410);
     } finally {
       await small.stop();
     }

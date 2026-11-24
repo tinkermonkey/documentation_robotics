@@ -256,7 +256,7 @@ dr visualize
 
 # Make some requests to generate spans
 curl http://localhost:8080/health
-curl http://localhost:8080/api/model?token=YOUR_TOKEN
+curl "http://localhost:8080/api/projects/YOUR_PROJECT/checkouts/main/model?token=YOUR_TOKEN"
 
 # Press Ctrl-C
 ^C
@@ -264,7 +264,7 @@ curl http://localhost:8080/api/model?token=YOUR_TOKEN
 # Check collector for spans:
 # - visualize.server.startup (ended when server started)
 # - http.server.request (for /health)
-# - http.server.request (for /api/model)
+# - http.server.request (for .../checkouts/main/model)
 ```
 
 ## Troubleshooting

@@ -146,8 +146,9 @@ describe("DrBotLauncher", () => {
     expect(queued.params).toMatchObject({ conversation_id: "conv-b", position: 1, running: 1, max_turns: 1 });
     expect(queued.params.message).toContain("Queued");
     expect(queued.params.message).toContain(DRBOT_TURN_CAP_ENV);
-    const text = second.sent.find((m) => m.method === "chat.response.chunk");
-    expect(text.params.content).toContain("1st in line");
+    expect(queued.params.message).toContain("1st in line");
+    // The notice is not repeated as reply text: a client showing it would show it twice.
+    expect(second.sent.filter((m) => m.method === "chat.response.chunk")).toEqual([]);
 
     // A send to the queued conversation is refused, like one to a running conversation.
     expect((await drBot.startTurn(request(main, second, "conv-b", "req-b2"))).status).toBe("refused");
@@ -157,6 +158,7 @@ describe("DrBotLauncher", () => {
     const started = await waitFor(() => second.sent.find((m) => m.method === "chat.turn.started"));
     expect(started.params.conversation_id).toBe("conv-b");
     expect(typeof started.params.waited_ms).toBe("number");
+    expect(second.sent.some((m) => m.method === "chat.response.chunk" && String(m.params.content).includes("Starting now"))).toBe(false);
     expect((await answerTo(second, "req-b")).result.status).toBe("complete");
     await waitFor(() => drBot.runningTurns === 0);
     expect(drBot.queuedTurns).toBe(0);

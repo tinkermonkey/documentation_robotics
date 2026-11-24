@@ -2,20 +2,19 @@
  * The viewer server and the MCP annotation tools share one annotation store, the files under
  * documentation-robotics/annotations/:
  * - a comment left in the viewer is seen by annotation_list, and survives a restart;
- * - an annotation or reply the agent makes through MCP is served by GET /api/annotations and
+ * - an annotation or reply the agent makes through MCP is served by GET .../annotations and
  *   broadcast to connected viewers;
  * - the viewer accepts a comment on an element the open changeset adds.
  *
- * Runs the server in-process against a copy of the golden model; the changeset is staged
- * through the real CLI. Starts the server on a free port so its file watcher runs.
+ * Runs the central server in-process over a scratch farm whose one project is a copy of the
+ * golden model; the changeset is staged through the real CLI. Starts the server on a free port
+ * so its file watcher runs.
  */
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
-import { portAllocator } from "../helpers/port-allocator.js";
-import { Model } from "../../src/core/model.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { clearModelCache } from "../../src/mcp/tools/shared.js";
 import { annotationCreateHandler } from "../../src/mcp/tools/annotation-create.js";
 import { annotationDeleteHandler } from "../../src/mcp/tools/annotation-delete.js";
@@ -50,39 +49,39 @@ describe("viewer and MCP share annotations", () => {
 
   let dir: string;
   let cleanup: () => Promise<void>;
-  let port: number;
-  const servers: VisualizationServer[] = [];
+  const servers: TestFarmServer[] = [];
 
   beforeEach(async () => {
     clearModelCache();
     const workdir = await createTestWorkdir();
     dir = workdir.path;
     cleanup = workdir.cleanup;
-    port = await portAllocator.allocatePort();
   });
 
   afterEach(async () => {
-    for (const server of servers.splice(0)) server.stop();
-    portAllocator.releasePort(port);
+    for (const server of servers.splice(0)) await server.stop();
     clearModelCache();
     await cleanup().catch(() => {});
   });
 
-  async function startServer(): Promise<{ server: VisualizationServer; ws: ReturnType<typeof createFakeWs> }> {
-    const model = await Model.load(dir, { lazyLoad: false });
-    const server = new VisualizationServer(model, { authEnabled: false });
+  /**
+   * A central server whose one project is the workdir, listening so the checkout's file watcher
+   * runs, with a fake viewer socket subscribed to the checkout.
+   */
+  async function startServer(): Promise<{ server: TestFarmServer; ws: ReturnType<typeof createFakeWs> }> {
+    const server = await startTestFarmServer(dir, { listen: true });
     servers.push(server);
-    await server.start(port);
     const ws = createFakeWs();
-    (server as any).clients.add(ws);
+    (await server.context()).subscribers.add(ws);
     return { server, ws };
   }
 
-  function request(server: VisualizationServer, path: string, init?: RequestInit): Promise<Response> {
-    return (server as any).app.request(path, init);
+  /** An in-process request to the checkout's scoped path for `path` (e.g. "/annotations"), with the token. */
+  function request(server: TestFarmServer, path: string, init?: RequestInit): Promise<Response> {
+    return server.request(path, init);
   }
 
-  function post(server: VisualizationServer, path: string, body: unknown): Promise<Response> {
+  function post(server: TestFarmServer, path: string, body: unknown): Promise<Response> {
     return request(server, path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -93,7 +92,7 @@ describe("viewer and MCP share annotations", () => {
   it("a comment and reply left in the viewer reach annotation_list, and survive a restart", async () => {
     const { server, ws } = await startServer();
 
-    const created = await post(server, "/api/annotations", {
+    const created = await post(server, "/annotations", {
       elementId: BASE_ELEMENT,
       author: "Reviewer",
       content: "Is this goal still in scope?",
@@ -103,7 +102,7 @@ describe("viewer and MCP share annotations", () => {
     const annotation = await created.json();
     expect(annotation).toMatchObject({ elementId: BASE_ELEMENT, author: "Reviewer", resolved: false, replies: [] });
 
-    const replied = await post(server, `/api/annotations/${annotation.id}/replies`, {
+    const replied = await post(server, `/annotations/${annotation.id}/replies`, {
       author: "Reviewer",
       content: "Asking because of the rescope.",
     });
@@ -125,12 +124,12 @@ describe("viewer and MCP share annotations", () => {
     expect(ws.sent.filter((m) => m.type === "annotation.reply.added")).toHaveLength(1);
 
     // A new server (a restart) serves the same annotation and its reply.
-    server.stop();
+    await server.stop();
     servers.length = 0;
     const restarted = await startServer();
-    const all = await (await request(restarted.server, "/api/annotations")).json();
+    const all = await (await request(restarted.server, "/annotations")).json();
     expect(all.annotations.map((a: any) => a.id)).toEqual([annotation.id]);
-    const replies = await (await request(restarted.server, `/api/annotations/${annotation.id}/replies`)).json();
+    const replies = await (await request(restarted.server, `/annotations/${annotation.id}/replies`)).json();
     expect(replies.replies.map((r: any) => r.id)).toEqual([reply.id]);
   }, 30000);
 
@@ -150,7 +149,7 @@ describe("viewer and MCP share annotations", () => {
     const added = await waitFor(() => ws.sent.find((m) => m.type === "annotation.added"));
     expect(added).toMatchObject({ annotationId: created.id, elementId: BASE_ELEMENT });
 
-    const served = await (await request(server, `/api/annotations?elementId=${BASE_ELEMENT}`)).json();
+    const served = await (await request(server, `/annotations?elementId=${BASE_ELEMENT}`)).json();
     expect(served.annotations).toHaveLength(1);
     expect(served.annotations[0]).toMatchObject({ id: created.id, author: "agent", tags: ["open-gap"] });
 
@@ -159,18 +158,18 @@ describe("viewer and MCP share annotations", () => {
     );
     const replyAdded = await waitFor(() => ws.sent.find((m) => m.type === "annotation.reply.added"));
     expect(replyAdded).toMatchObject({ annotationId: created.id, replyId: reply.id });
-    const replies = await (await request(server, `/api/annotations/${created.id}/replies`)).json();
+    const replies = await (await request(server, `/annotations/${created.id}/replies`)).json();
     expect(replies.replies.map((r: any) => r.id)).toEqual([reply.id]);
 
     await annotationUpdateHandler({ annotationId: created.id, resolved: true, rootPath: dir });
     const updated = await waitFor(() => ws.sent.find((m) => m.type === "annotation.updated"));
     expect(updated.annotationId).toBe(created.id);
-    expect((await (await request(server, `/api/annotations/${created.id}`)).json()).resolved).toBe(true);
+    expect((await (await request(server, `/annotations/${created.id}`)).json()).resolved).toBe(true);
 
     await annotationDeleteHandler({ annotationId: created.id, rootPath: dir });
     const deleted = await waitFor(() => ws.sent.find((m) => m.type === "annotation.deleted"));
     expect(deleted.annotationId).toBe(created.id);
-    expect((await request(server, `/api/annotations/${created.id}`)).status).toBe(404);
+    expect((await request(server, `/annotations/${created.id}`)).status).toBe(404);
 
     // Each change was broadcast once.
     for (const type of ["annotation.added", "annotation.reply.added", "annotation.updated", "annotation.deleted"]) {
@@ -181,14 +180,14 @@ describe("viewer and MCP share annotations", () => {
   it("a viewer write inside the watcher's debounce doesn't swallow an MCP change made just before", async () => {
     const { server, ws } = await startServer();
     const created = await (
-      await post(server, "/api/annotations", { elementId: BASE_ELEMENT, author: "Reviewer", content: "Why this goal?" })
+      await post(server, "/annotations", { elementId: BASE_ELEMENT, author: "Reviewer", content: "Why this goal?" })
     ).json();
 
     // The agent replies (another process), and the reviewer edits before the watcher syncs.
     const agentReply = parse(
       await annotationReplyHandler({ annotationId: created.id, author: "agent", content: "Because of X.", rootPath: dir })
     );
-    const patched = await request(server, `/api/annotations/${created.id}`, {
+    const patched = await request(server, `/annotations/${created.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: "Why this goal, given the rescope?" }),
@@ -200,7 +199,7 @@ describe("viewer and MCP share annotations", () => {
       await annotationReplyHandler({ annotationId: created.id, author: "agent", content: "And Y.", rootPath: dir })
     );
     const reviewerReply = await (
-      await post(server, `/api/annotations/${created.id}/replies`, { author: "Reviewer", content: "OK." })
+      await post(server, `/annotations/${created.id}/replies`, { author: "Reviewer", content: "OK." })
     ).json();
 
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -216,7 +215,7 @@ describe("viewer and MCP share annotations", () => {
       await annotationCreateHandler({ elementId: BASE_ELEMENT, content: "Agent note", author: "agent", rootPath: dir })
     );
 
-    const patched = await request(server, `/api/annotations/${created.id}`, {
+    const patched = await request(server, `/annotations/${created.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ resolved: true }),
@@ -224,7 +223,7 @@ describe("viewer and MCP share annotations", () => {
     expect(patched.status).toBe(200);
     expect(parse(await annotationGetHandler({ annotationId: created.id, rootPath: dir })).resolved).toBe(true);
 
-    expect((await request(server, `/api/annotations/${created.id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await request(server, `/annotations/${created.id}`, { method: "DELETE" })).status).toBe(204);
     const gone = await annotationGetHandler({ annotationId: created.id, rootPath: dir });
     expect(gone.isError).toBe(true);
   }, 30000);
@@ -245,7 +244,7 @@ describe("viewer and MCP share annotations", () => {
     expect(add.exitCode).toBe(0);
 
     const { server } = await startServer();
-    const planned = await post(server, "/api/annotations", {
+    const planned = await post(server, "/annotations", {
       elementId: PLANNED_ELEMENT,
       author: "Reviewer",
       content: "Should this be a batch operation?",
@@ -255,7 +254,7 @@ describe("viewer and MCP share annotations", () => {
     const listed = parse(await annotationListHandler({ elementId: PLANNED_ELEMENT, rootPath: dir }));
     expect(listed.annotations).toHaveLength(1);
 
-    const unknown = await post(server, "/api/annotations", {
+    const unknown = await post(server, "/annotations", {
       elementId: "api.operation.not-in-any-plan",
       author: "Reviewer",
       content: "?",
