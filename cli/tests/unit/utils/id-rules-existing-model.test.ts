@@ -92,6 +92,16 @@ describe("id rules against this repository's model", () => {
     expect(sameId.length + underEarlierId.length + NAME_AND_ID_UNRELATED.length).toBe(elements.length);
   });
 
+  it("covers the acronym break of 0.8.0: elements whose name has an acronym before a word keep their id", () => {
+    const elements = readModel();
+    const acronym = elements.filter((e) => /[A-Z][A-Z][a-z]/.test(e.name) && deriveElementId(e.layer, e.type, e.name).id !== e.id);
+    expect(acronym.length).toBeGreaterThan(0);
+    for (const e of acronym.filter((e) => !NAME_AND_ID_UNRELATED.includes(e.id))) {
+      const found = earlierElementIds(e.layer, e.type, e.name).includes(e.id);
+      expect({ id: e.id, found }).toEqual({ id: e.id, found: true });
+    }
+  });
+
   it("covers each class of id the 0.7.0 rules changed", () => {
     const elements = readModel();
     const changed = elements.filter((e) => deriveElementId(e.layer, e.type, e.name).id !== e.id);
@@ -119,6 +129,9 @@ describe("id rules against this repository's model", () => {
     // dr add / model_add 0.4.0 to 0.6.0: a camelCase dot as a break, a slash dropped, uncut.
     { rule: "add-0.4", layer: "application", type: "applicationfunction", name: `Repo.findAll ${"step ".repeat(20)}a/b` },
     { rule: "extract-0.5", layer: "testing", type: "testcasesketch", name: `reads Tier1Status ${"and keeps going ".repeat(8)}to the end` },
+    // All three 0.7.x: a digit break and a cut, but an acronym joined to the next word, so the
+    // cut and its hash differ from today's.
+    { rule: "derive-0.7", layer: "testing", type: "testcasesketch", name: `reads Tier1Status from HTTPServer ${"and keeps going ".repeat(8)}to the end` },
   ];
 
   it("finds an element made under each earlier rule when its name is added again", () => {

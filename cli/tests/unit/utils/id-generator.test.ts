@@ -91,9 +91,55 @@ describe("toKebabCase and digits (#1184)", () => {
   it("keeps a digit joined to a lone capital or an acronym", () => {
     expect(toKebabCase("Vector3D")).toBe("vector3d");
     expect(toKebabCase("3D Object Effect")).toBe("3d-object-effect");
-    expect(toKebabCase("P2PNetwork")).toBe("p2pnetwork");
+    expect(toKebabCase("P2P")).toBe("p2p");
     expect(toKebabCase("sha256")).toBe("sha256");
     expect(toKebabCase("i18n")).toBe("i18n");
+  });
+});
+
+describe("toKebabCase and acronyms (#1184)", () => {
+  it("ends an acronym before a capitalised word, as a space would", () => {
+    const pairs: Array<[string, string]> = [
+      ["HTTPServer", "HTTP Server"],
+      ["getHTTPResponse", "get HTTP Response"],
+      ["AIEvaluator", "AI Evaluator"],
+      ["JSONRPCRequest", "JSONRPC Request"],
+      ["Vector3DPoint", "Vector3D Point"],
+      ["use3DModel", "use3D Model"],
+      ["P2PNetwork", "P2P Network"],
+      ["HTTP2Server", "HTTP2 Server"],
+    ];
+    for (const [joined, spaced] of pairs) expect({ joined, id: toKebabCase(joined) }).toEqual({ joined, id: toKebabCase(spaced) });
+    expect(toKebabCase("HTTPServer")).toBe("http-server");
+    expect(toKebabCase("Vector3DPoint")).toBe("vector3d-point");
+    expect(toKebabCase("IOStream")).toBe("io-stream");
+  });
+
+  it("keeps a plural acronym whole", () => {
+    expect(toKebabCase("URLs")).toBe("urls");
+    expect(toKebabCase("APIs")).toBe("apis");
+    expect(toKebabCase("getIDsForUser")).toBe("get-ids-for-user");
+    expect(toKebabCase("URLsList")).toBe("urls-list");
+  });
+
+  it("reads an acronym before Is or As and a capital as a plural (known ambiguity, as in 0.7.x)", () => {
+    // Known ambiguity: "APIIsReady" reads like "APIsFor", so the acronym is not split off the word after it.
+    expect(toKebabCase("URLIsValid")).toBe("urlis-valid");
+    expect(toKebabCase("URL Is Valid")).toBe("url-is-valid");
+    expect(toKebabCase("APIIsReady")).toBe("apiis-ready");
+    expect(toKebabCase("APIsFor")).toBe("apis-for");
+  });
+
+  it("splits a mixed-case word as camelCase does (accepted: OAuth is o-auth, as GitHub is git-hub)", () => {
+    expect(toKebabCase("OAuth2Client")).toBe("o-auth2-client");
+    expect(toKebabCase("GitHub")).toBe("git-hub");
+  });
+
+  it("leaves all-capital and capitalised words as they were", () => {
+    expect(toKebabCase("HTTP")).toBe("http");
+    expect(toKebabCase("API Gateway")).toBe("api-gateway");
+    expect(toKebabCase("TIER1Status")).toBe("tier1-status");
+    expect(toKebabCase("CustomerManagement")).toBe("customer-management");
   });
 });
 
@@ -225,8 +271,8 @@ describe("ids that differ only by hyphens", () => {
     expect(today.slice(-8)).not.toBe(extracted.slice(-8));
   });
 
-  it("EARLIER_ID_RULES holds every rule a released CLI used (0.1.4 to 0.6.0)", () => {
-    expect(EARLIER_ID_RULES.map((r) => r.rule)).toEqual(["add-0.1", "add-0.4", "extract-0.4", "extract-0.5"]);
+  it("EARLIER_ID_RULES holds every rule a released CLI used (0.1.4 to 0.7.x)", () => {
+    expect(EARLIER_ID_RULES.map((r) => r.rule)).toEqual(["add-0.1", "add-0.4", "extract-0.4", "extract-0.5", "derive-0.7"]);
     const slug = (rule: string, name: string) => EARLIER_ID_RULES.find((r) => r.rule === rule)!.slug(name);
     // dr add through 0.3.x dropped every dot; 0.4.0 broke the word between camelCase parts.
     expect(slug("add-0.1", "Order.processPayment")).toBe("orderprocess-payment");
@@ -235,8 +281,17 @@ describe("ids that differ only by hyphens", () => {
     const suite = `Suite/${"Case ".repeat(25)}.spec.ts`;
     expect(slug("extract-0.4", suite).length).toBeGreaterThan(100);
     expect(slug("extract-0.5", suite)).toMatch(/^suite-case-.*-[0-9a-f]{8}$/);
-    // None broke a word after a digit or prefixed one.
-    for (const { slug: rule } of EARLIER_ID_RULES) expect(rule("Tier1Status")).toBe("tier1status");
+    // None before 0.7.0 broke a word after a digit or prefixed one.
+    for (const { rule, slug: derive } of EARLIER_ID_RULES) {
+      if (rule !== "derive-0.7") expect(derive("Tier1Status")).toBe("tier1status");
+    }
+    // 0.7.x did, and prefixed a leading digit, but kept an acronym joined to the word after it.
+    expect(slug("derive-0.7", "Tier1Status")).toBe("tier1-status");
+    expect(slug("derive-0.7", "3D Effect")).toBe("n-3d-effect");
+    for (const { slug: derive } of EARLIER_ID_RULES) expect(derive("HTTPServer")).toBe("httpserver");
+    expect(earlierElementIds("application", "applicationcomponent", "AIEvaluator")).toEqual([
+      "application.applicationcomponent.aievaluator",
+    ]);
     expect(earlierElementIds("api", "operation", "Order.processPayment Step")).toEqual(
       expect.arrayContaining(["api.operation.orderprocess-payment-step"])
     );
