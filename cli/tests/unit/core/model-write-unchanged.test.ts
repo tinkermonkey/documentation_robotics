@@ -113,7 +113,7 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
     });
   });
 
-  it("writes a changed file, the manifest and a changeset's files in a layout prettier leaves alone", async () => {
+  it("writes a changed file, the manifest, relationships.yaml and a changeset's files in a layout prettier leaves alone", async () => {
     await withModel(async (root) => {
       const model = await Model.load(root, { lazyLoad: false });
       const layer = model.layers.get("motivation")!;
@@ -121,6 +121,14 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
       goal.description = `It fails with "The change was not saved" when the build's input moved: ${LONG}`;
       layer.updateElement(goal);
       await model.save();
+      model.relationships.add({
+        source: "motivation.requirement.drift-on-overlap",
+        predicate: "realizes",
+        target: "motivation.goal.fewer-refusals",
+        layer: "motivation",
+        properties: { rationale: `Written by dr, it's "checked" against prettier: ${LONG}` },
+      });
+      await model.saveRelationships();
 
       const manager = new StagingAreaManager(root, model);
       const changeset = await manager.create("quoted-plan", `A plan whose "description" is long: ${LONG}`);
@@ -137,6 +145,7 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
       const written = [
         layerFile(root, "goal.yaml"),
         join(root, "documentation-robotics", "model", "manifest.yaml"),
+        join(root, "documentation-robotics", "model", "relationships.yaml"),
         join(changesetDir, "metadata.yaml"),
         join(changesetDir, "changes.yaml"),
       ];
@@ -146,6 +155,9 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
       }
       // The long string is on its key's line
       expect(await readFile(layerFile(root, "goal.yaml"), "utf-8")).toContain(`  description: 'It fails with "The change`);
+      expect(await readFile(join(root, "documentation-robotics", "model", "relationships.yaml"), "utf-8")).toContain(
+        `rationale: 'Written by dr, it''s "checked" against prettier: ${LONG}'`
+      );
     });
   });
 

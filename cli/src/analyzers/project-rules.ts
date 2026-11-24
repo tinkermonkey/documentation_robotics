@@ -24,7 +24,8 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Minimatch } from "minimatch";
-import { parse as parseYAML, stringify as stringifyYAML } from "yaml";
+import { parse as parseYAML } from "yaml";
+import { stringifyDrYaml } from "../core/dr-yaml.js";
 import { isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType } from "../generated/node-types.js";
 import { RELATIONSHIPS_BY_PREDICATE } from "../generated/relationship-index.js";
@@ -359,7 +360,7 @@ export async function saveProjectRule(projectRoot: string, rule: ProjectRule): P
   const file = projectRulesPath(projectRoot);
   await mkdir(path.dirname(file), { recursive: true });
   const body: ProjectRulesFile = { version: 1, rules };
-  await writeFile(file, `${FILE_HEADER}${stringifyYAML(body, { lineWidth: 0 })}`, "utf-8");
+  await writeFile(file, `${FILE_HEADER}${stringifyDrYaml(body)}`, "utf-8");
   return { replaced: at >= 0, file };
 }
 

@@ -1,12 +1,13 @@
 /**
  * Lay a model's element files out as dr writes them, data unchanged.
  *
- * dr and prettier lay long YAML strings out differently (#1246). Once a project lists
- * `documentation-robotics/` in `.prettierignore` (dr init and dr upgrade add it), each
- * element file settles into dr's layout the first time dr writes a real change to it, and that
- * one commit mixes the change with a re-layout of the whole file. Running this once, in a commit
- * of its own, takes that noise out of every later diff. dr itself can't do it: its writer leaves a
- * file alone when the data would not change.
+ * dr's layout (`stringifyDrYaml`, src/core/dr-yaml.ts) keeps each long string on its key's line
+ * and quotes as prettier does, so prettier leaves it alone (#1246). A file written by an earlier
+ * dr (long strings folded at 80 columns) or by prettier (a folded string on the line after its key)
+ * settles into it the first time dr writes a real change to it, and that one commit mixes the
+ * change with a re-layout of the whole file. Running this once, in a commit of its own, takes that
+ * noise out of every later diff. dr itself can't do it: its writer leaves a file alone when the
+ * data would not change.
  *
  * Only the element files (`documentation-robotics/model/NN_layer/*.yaml`) are rewritten. The
  * manifest and relationships.yaml are written whole by dr on every change and are left alone.
@@ -22,6 +23,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import yaml from "yaml";
+import { stringifyDrYaml } from "../src/core/dr-yaml.js";
 
 const args = process.argv.slice(2);
 const check = args.includes("--check");
@@ -38,7 +40,7 @@ for (const layer of await readdir(modelDir, { withFileTypes: true })) {
     const text = await readFile(file, "utf-8");
     const data = yaml.parse(text);
     // The same call the model writer makes (Model.writeLayer)
-    const laidOut = yaml.stringify(data);
+    const laidOut = stringifyDrYaml(data);
     total++;
     if (laidOut === text) continue;
     if (!isDeepStrictEqual(yaml.parse(laidOut), data)) {
