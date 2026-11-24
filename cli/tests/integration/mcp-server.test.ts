@@ -105,6 +105,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_commit_preview",
   "review_open",
   "project_status",
+  "project_list",
   "codebase_extract",
   "gap_accept",
   "gap_reopen",

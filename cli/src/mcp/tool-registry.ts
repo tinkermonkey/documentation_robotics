@@ -82,6 +82,7 @@ import { codebaseIndexTool, codebaseVerifyTool } from "./tools/index.js";
 import { changesetCommitTool, changesetCommitPreviewTool } from "./tools/index.js";
 import { reviewOpenTool } from "./tools/index.js";
 import { projectStatusTool } from "./tools/index.js";
+import { projectListTool } from "./tools/index.js";
 import { codebaseExtractTool, tier1StatusTool } from "./tools/index.js";
 import { gapAcceptTool, gapReopenTool } from "./tools/index.js";
 import { errorResult, loadModel, rootPathSchema } from "./tools/shared.js";
@@ -138,6 +139,7 @@ const MODEL_TOOLS: McpToolDefinition[] = [
   changesetCommitPreviewTool,
   reviewOpenTool,
   projectStatusTool,
+  projectListTool,
   codebaseExtractTool,
   gapAcceptTool,
   gapReopenTool,

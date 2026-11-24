@@ -37,3 +37,4 @@ export { projectStatusTool } from "./project-status.js";
 export { codebaseExtractTool } from "./codebase-extract.js";
 export { tier1StatusTool } from "./tier1-status.js";
 export { gapAcceptTool, gapReopenTool } from "./gap-tools.js";
+export { projectListTool } from "./project-list.js";
