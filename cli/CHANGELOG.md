@@ -119,6 +119,17 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 
 ### Fixed
 
+- **model_add no longer attaches a refused element's relationships to another element (issue
+  1297).** When two names in a batch give one id ("galaxyLayout tests" and "galaxy-layout tests"
+  both give `testing.testcoveragetarget.galaxy-layout-tests`), the batch keeps the first and refuses
+  the second, as before. A relationship in the same batch that names that id, exactly or without its
+  hyphens, or names the refused element by its name, is now reported as invalid: the reason names
+  both names, the id and the element that holds it, and says to give the refused one a distinct
+  name. Before, it was staged on the element kept. A relationship that names the kept element by its
+  own name still binds. The same holds when the new name collides with an element already in the
+  model or the changeset under another name. Sending an existing element's own name again still
+  links by its id. `relationship_add` and `dr add` add no elements beside relationships and are
+  unchanged.
 - **dr writes model and changeset YAML in a layout prettier leaves alone (issue 1246).** Long
   strings are no longer folded at 80 columns: each stays on its key's line, and a string that has
   to be quoted gets the quote prettier gives it (single when it holds a double quote, else double).
