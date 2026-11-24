@@ -37,6 +37,7 @@ import { specTypeHandler } from "../../../src/mcp/tools/spec-type.js";
 import { addModelWarnings } from "../../../src/validators/model-warnings.js";
 import { ValidationResult } from "../../../src/validators/types.js";
 import { Validator } from "../../../src/validators/validator.js";
+import { installSpecReference } from "../../../src/utils/spec-installer.js";
 
 function parse(result: any): any {
   expect(result.isError).toBeFalsy();
@@ -629,6 +630,16 @@ describe("model_validate: summary by default (#1215)", () => {
   it("returns counts by kind, layer and type, and no warning list", async () => {
     await withProject(async (rootPath) => {
       await mixedModel(rootPath);
+
+      // A fresh clone or worktree has no .dr/: the summary adds one specReference line and stays small (#1168)
+      const fresh = await modelValidateHandler({ rootPath });
+      const freshData = parse(fresh);
+      expect(freshData.specReference).toContain("Spec reference not installed");
+      expect(text(fresh).length).toBeLessThan(1_200 + freshData.specReference.length + 30);
+      expect(text(fresh).length).toBeLessThan(1_800);
+
+      // The rest is of a set-up checkout, without that line
+      await installSpecReference(rootPath, false);
       const result = await modelValidateHandler({ rootPath });
       const data = parse(result);
       expect(data.valid).toBe(true);
@@ -665,7 +676,8 @@ describe("model_validate: summary by default (#1215)", () => {
         })
       );
 
-      // The default: two kinds counted, nothing listed.
+      // The default: two kinds counted, nothing listed (in a set-up checkout: see above).
+      await installSpecReference(rootPath, false);
       const summary = await modelValidateHandler({ rootPath });
       expect(parse(summary).summary.warningCount).toBe(count * 2);
       expect(text(summary).length).toBeLessThan(1_200);

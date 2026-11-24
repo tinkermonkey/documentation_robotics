@@ -22,6 +22,7 @@ import { warningKind, type WarningKind } from "../../validators/model-warnings.j
 import { ValidationFormatter } from "../../validators/validation-formatter.js";
 import type { ValidationIssue } from "../../validators/types.js";
 import { getCliBundledSpecVersion, modelSpecStanding } from "../../utils/spec-version.js";
+import { specReferenceNotice, specReferenceStanding } from "../../utils/spec-installer.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { countByLayerAndType, modelView, orphanIds, validateView } from "./model-view.js";
 import { nextPageHint, pageOf, pagingFields, wholePage } from "../../core/paging.js";
@@ -143,6 +144,11 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
 
     const paging = { limit: args.limit, offset: args.offset };
 
+    // A checkout without .dr/spec (a fresh clone or worktree) validates the same: say so in one
+    // line, with the step that installs it, so its absence isn't read as a cause of errors (#1168).
+    const referenceNotice = specReferenceNotice(await specReferenceStanding(model.rootPath), "mcp");
+    const specReference = referenceNotice ? { specReference: referenceNotice } : {};
+
     if (args.orphans) {
       const orphans = orphanIds(modelToValidate);
       const { items, page } = full ? wholePage(orphans) : pageOf(orphans, paging, VALIDATE_LIST_LIMIT);
@@ -151,6 +157,7 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
         {
           view,
           ...scope,
+          ...specReference,
           orphanCount: orphans.length,
           byLayer: countByLayerAndType(orphans),
           orphanedElements: items,
@@ -174,7 +181,7 @@ export async function modelValidateHandler(args: ModelValidateArgs): Promise<Cal
     const formatted = ValidationFormatter.toJSON(result, modelToValidate);
     const valid = result.isValid() && !(args.strict && result.warnings.length > 0);
     const specVersion = specVersionNotice(model.manifest.specVersion);
-    const header = { ...(specVersion ? { specVersion } : {}), valid, view, ...scope };
+    const header = { ...(specVersion ? { specVersion } : {}), ...specReference, valid, view, ...scope };
 
     // The whole report, as the tool returned it before the summary default.
     if (full && listed.length === 0) return jsonResult({ ...header, ...formatted, valid });
@@ -377,7 +384,10 @@ export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {
     `paged, never cut off: limit and offset (default ${VALIDATE_ERROR_LIMIT} errors, ${VALIDATE_LIST_LIMIT} warnings or orphans), ` +
     "with page.total the true count and page.nextOffset the next page; valid and every count are of the whole " +
     "model. Motivation, business and product elements are not asked for a source reference: they have no " +
-    "implementation to point at.",
+    "implementation to point at. specReference, when present, says the checkout's .dr/spec is missing or for " +
+    "another spec version: validation is unaffected. project_upgrade installs it: preview first, then, once the " +
+    "user approves, apply: true with modelOnly: true, which writes nothing else outside the model (a model behind " +
+    "the spec is migrated too).",
   inputSchema,
   handler: modelValidateHandler,
 };

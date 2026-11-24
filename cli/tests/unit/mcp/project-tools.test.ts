@@ -613,6 +613,31 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     expect(await fileExists(join(dir, ".dr/spec/manifest.json"))).toBe(true);
   });
 
+  it("installs only the spec reference for a current model in a checkout without .dr/, with modelOnly (#1168)", async () => {
+    await Model.init(dir, { name: "Fresh worktree", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
+    await writeFile(join(dir, ".prettierrc.json"), "{}", "utf8");
+    await rm(join(dir, "documentation-robotics/reports"), { recursive: true, force: true });
+    await rm(join(dir, ".gitignore"), { force: true });
+    await rm(join(dir, ".dr"), { recursive: true, force: true });
+    const manifestBefore = await readFile(join(dir, "documentation-robotics/model/manifest.yaml"), "utf8");
+
+    // model_validate's specReference line sends the agent here: the preview first
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.status).toBe("preview");
+    expect(preview.outsideModel.specReference).toContain(".dr/spec/");
+    expect(await fileExists(join(dir, ".dr"))).toBe(false);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, modelOnly: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.applied.map((action: any) => action.type)).toEqual(["spec"]);
+    expect(await fileExists(join(dir, ".dr/spec/manifest.json"))).toBe(true);
+    expect(applied.files).toEqual({ modified: [], added: [], removed: [] });
+    expect(await readFile(join(dir, "documentation-robotics/model/manifest.yaml"), "utf8")).toBe(manifestBefore);
+    expect(await fileExists(join(dir, ".prettierignore"))).toBe(false);
+    expect(await fileExists(join(dir, ".gitignore"))).toBe(false);
+    expect(await fileExists(join(dir, "documentation-robotics/reports"))).toBe(false);
+  });
+
   it("returns files git tracks under .dr/ as a decision and changes nothing there until the caller passes the choice", async () => {
     await behindModel(dir);
     // A project from before .dr/ was ignored: the spec reference is committed
