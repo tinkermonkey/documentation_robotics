@@ -10,12 +10,12 @@
 
 import path from "node:path";
 import type { CheckoutRef, ResolvedCheckout, ServerRecord, ViewerLink } from "../../core/checkout-types.js";
-import { ProjectRegistry, resolveFarm } from "../../core/project-registry.js";
+import { ProjectRegistry } from "../../core/project-registry.js";
 import { findRunningServer, type RunningServer } from "../../server/server-record.js";
 import { viewerUrl, type ViewerLinkTarget } from "../../server/viewer-link.js";
 import type { EnsureCentralServer } from "../../server/central-mcp-contract.js";
+import { ensureCentralServer } from "../../server/ensure-central-server.js";
 import { isOlderViewer } from "../../server/viewer-control.js";
-import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 
@@ -123,31 +123,5 @@ export async function changesetLinkIfRunning(
   }
 }
 
-/** Where 3A's `ensureCentralServer` lives. A variable, so this builds before that file exists. */
-const ENSURE_CENTRAL_SERVER_MODULE = "../../server/ensure-central-server.js";
-
-/**
- * The real `EnsureCentralServer` (slice 3A of issue 1279), loaded on first use. A build without it
- * finds a central process that already runs and starts none: it says so when none runs.
- */
-export const loadedEnsureCentralServer: EnsureCentralServer = async (options = {}) => {
-  let ensure: EnsureCentralServer | undefined;
-  let missing: string | undefined;
-  try {
-    const loaded = (await import(ENSURE_CENTRAL_SERVER_MODULE)) as { ensureCentralServer?: EnsureCentralServer };
-    ensure = typeof loaded.ensureCentralServer === "function" ? loaded.ensureCentralServer : undefined;
-    if (!ensure) missing = "its ensure-central-server exports no ensureCentralServer";
-  } catch (error) {
-    missing = getErrorMessage(error);
-  }
-  if (ensure) return ensure(options);
-
-  const farm = await resolveFarm({ cwd: options.cwd ?? process.cwd(), ...(options.env ? { env: options.env } : {}) });
-  const running = await findRunningServer(farm.root, options.env ? { env: options.env } : {});
-  if (running) return { record: running.record, token: running.token ?? "", started: false };
-  throw new CLIError(
-    `No central DR process serves the farm at ${farm.root}, and this dr build can't start one (${missing}).`,
-    ErrorCategory.SYSTEM,
-    ["Update the dr CLI and call review_open again"]
-  );
-};
+/** The real `EnsureCentralServer` (slice 3A of issue 1279): finds the farm's central process or starts one. */
+export const loadedEnsureCentralServer: EnsureCentralServer = ensureCentralServer;

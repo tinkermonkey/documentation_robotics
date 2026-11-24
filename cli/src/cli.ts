@@ -874,72 +874,49 @@ and no request. A second start for the same farm is refused.`
 
 program
   .command("mcp")
-  .description("Start MCP server for AI assistant integration")
+  .description("MCP for AI assistants: a stdio bridge to the DR process (default), or its HTTP endpoint (--http)")
   .option(
     "--regenerate-key",
-    "Generate a new MCP API key, overwrite it at the configured storage path, and print it (does not start the server)"
+    "Rotate the old standalone MCP API key (no longer used by dr mcp --http) and print it"
   )
+  .option("--http", "Find or start the DR process and print its MCP endpoint and token file, then exit")
   .option(
     "--transport <type>",
-    "Transport type: stdio or http (default: stdio)",
+    "stdio (default) or http (the same as --http)",
     "stdio"
   )
-  .option(
-    "--port <number>",
-    "Port for HTTP transport (default: 3100, only meaningful with --transport http)",
-    "3100"
-  )
-  .option(
-    "--host <address>",
-    "Host address for HTTP transport (default: 127.0.0.1, only meaningful with --transport http)",
-    "127.0.0.1"
-  )
+  .option("--port <number>", "No longer applies: the DR process picks its port (dr serve --port)", "3100")
+  .option("--host <address>", "No longer applies: the DR process listens on 127.0.0.1 only", "127.0.0.1")
   .addHelpText(
     "after",
     `
 Examples:
+  $ dr mcp           # stdio: bridge an MCP client to the DR process
+  $ dr mcp --http    # print the DR process's MCP endpoint and token file
 
-Stdio transport (default):
-  $ dr mcp
-
-HTTP transport:
-  $ dr mcp --transport http                    # HTTP on localhost:3100
-  $ dr mcp --transport http --port 8200        # HTTP on custom port
-  $ dr mcp --transport http --host 0.0.0.0 --port 3100  # Listen on all interfaces
-
-Key management:
-  $ dr mcp --regenerate-key                    # Generate new API key
-
-Stdio Configuration:
-No API key: the client starts the server as your own user. In Claude Code, install the
-dr plugin (claude plugin install dr@documentation-robotics); other clients use:
+Stdio (the default):
+MCP is served by the DR process for your farm (dr serve), one process for every project
+and checkout. dr mcp finds it, or starts it detached, and forwards the client's messages
+to it with its token. In Claude Code, install the dr plugin
+(claude plugin install dr@documentation-robotics); other clients use:
 
   {
     "command": "dr",
     "args": ["mcp"]
   }
 
-The server serves the project the client has open (its MCP roots); DR_MCP_ROOT_PATH
-pins it to one model instead.
+Each session serves the checkout the client has open (its MCP roots), registering its
+repository in the farm when it isn't there yet; DR_MCP_ROOT_PATH pins it to one checkout.
 
-HTTP Configuration:
-HTTP clients authenticate with an API key, generated on first launch (stored at
-~/.dr-mcp-key unless you choose a path interactively) and printed to stderr on every
-launch. Include it as a Bearer token in the Authorization header:
-
-  {
-    "url": "http://localhost:3100/mcp",
-    "headers": {
-      "Authorization": "Bearer <your-api-key>"
-    }
-  }
-
-Use --regenerate-key to rotate the key (e.g. after a suspected leak) without
-manually deleting the stored key file or config.`
+HTTP (--http):
+Clients that speak streamable HTTP can use the DR process directly. dr mcp --http finds
+or starts it and prints its endpoint, http://127.0.0.1:<port>/mcp, and the 0600 file
+holding its token. Send the token as "Authorization: Bearer <token>". The port and token
+change when the process restarts, which is why the stdio bridge is the default.`
   )
   .action(async (options) => {
     const { mcpCommand } = await import("./commands/mcp.js");
-    const transport = (options.transport as string).toLowerCase();
+    const transport = options.http ? "http" : (options.transport as string).toLowerCase();
     if (transport !== "stdio" && transport !== "http") {
       throw new CLIError(`Invalid transport: ${transport}. Allowed values: stdio, http`, 1);
     }

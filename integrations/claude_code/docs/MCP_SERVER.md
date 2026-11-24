@@ -5,7 +5,7 @@ description: Configure an MCP client to connect to the Documentation Robotics MC
 
 # Documentation Robotics MCP Server
 
-`dr mcp` runs the CLI as a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio, exposing model tools (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat, annotations) to any MCP-aware AI client — Claude Code included.
+`dr mcp` connects a client over stdio to the [Model Context Protocol](https://modelcontextprotocol.io/) interface of your DR process (`dr serve`, one process for every project and checkout; `dr mcp` starts it when none runs), exposing model tools (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat, annotations) to any MCP-aware AI client — Claude Code included.
 
 Annotation tools (`annotation_list`, `annotation_get`, `annotation_create`, `annotation_update`, `annotation_delete`, `annotation_reply`) mirror the capabilities of the REST server's `/api/annotations/*` endpoints. Unlike the REST server's in-memory, per-process annotation store, the MCP tools persist annotations to `documentation-robotics/annotations/` on disk, so they survive across MCP sessions.
 
@@ -59,20 +59,18 @@ Without the plugin, add the server to a project's `.mcp.json` (or your user-scop
 }
 ```
 
-Other MCP clients follow the same shape: a `command`/`args` pair that launches `dr mcp`. Over stdio there is no API key: the client starts the server as your own user, and that user can already read the model files. An older config that still sets `DR_MCP_API_KEY` keeps working; the server ignores it.
+Other MCP clients follow the same shape: a `command`/`args` pair that launches `dr mcp`. No token goes into the client's configuration: `dr mcp` reads the DR process's token from its `0600` file. An older config that still sets `DR_MCP_API_KEY` keeps working; it is ignored. Each session serves the checkout the client has open (its MCP roots), and every tool result names its `project` and `checkout`.
 
 ## Environment
 
-| Variable            | Effect                                                                                                                                                                                        |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR_MCP_ROOT_PATH`  | Serve the model at this path instead of the client's roots or the working directory. An unusable path is reported on stderr and the server keeps its own directory.                           |
-| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it with `dr visualize --with-changesets`. |
-| `DR_MCP_QUIET_KEY`  | HTTP transport only: don't print the API key to stderr on start.                                                                                                                              |
+| Variable            | Effect                                                                                                                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR_MCP_ROOT_PATH`  | Pin the session to the checkout at this path instead of the client's roots. `dr mcp` sends it to the DR process with the session; a path no project owns has its repository registered in the farm.                                                               |
+| `DR_CHANGESET_ONLY` | `true`/`1`/`yes`/`on` refuses model writes unless a staged changeset is active (an unrecognised value also turns it on, with a warning). DrBot sets it with `dr visualize --with-changesets`. `dr mcp` sends it with the session, so it limits that session only. |
+| `DR_MCP_IN_PROCESS` | `1` serves the tools in the `dr mcp` process itself, for one session, without the DR process or the farm's registry.                                                                                                                                              |
 
-## HTTP transport and the API key
+## HTTP
 
-`dr mcp --transport http` serves MCP at `http://127.0.0.1:3100/mcp` for clients that connect over the network. HTTP clients authenticate with the API key as a bearer token (`Authorization: Bearer <key>`). The server generates the key on first launch (prompting for a storage path interactively, defaulting to `~/.dr-mcp-key` otherwise) and prints it to stderr on every launch.
-
-To rotate the key, run `dr mcp --regenerate-key`. It overwrites the key at its existing storage path, updates `~/.dr-config.yaml` and prints the new key. Update every HTTP client afterwards.
+`dr mcp --http` finds or starts the DR process and prints its MCP endpoint, `http://127.0.0.1:<port>/mcp`, and the `0600` file holding its token, then exits. HTTP clients send the token as a bearer token (`Authorization: Bearer <token>`). The port and token change when the process restarts; the stdio bridge follows them, which is why it is the default.
 
 See [cli/README.md](../../../cli/README.md#mcp-server) for the full command reference.

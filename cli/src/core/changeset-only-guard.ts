@@ -10,6 +10,7 @@
  * changeset store, not through the model, so they are unaffected.
  */
 import { CLIError, ErrorCategory } from "../utils/errors.js";
+import { sessionEnv } from "./session-env.js";
 
 export const CHANGESET_ONLY_ENV = "DR_CHANGESET_ONLY";
 
@@ -24,7 +25,7 @@ const warnedValues = new Set<string>();
  * other value fails safe: the guard is on, and a warning naming the value goes to stderr once,
  * so a typo never silently lets an agent write the base model.
  */
-export function isChangesetOnly(env: NodeJS.ProcessEnv = process.env): boolean {
+export function isChangesetOnly(env: NodeJS.ProcessEnv = sessionEnv()): boolean {
   // A process the viewer's chat started (DR_CHAT_MODE, coding-agents/chat-guard.ts) never writes
   // the base model, whatever DR_CHANGESET_ONLY says: its mode alone implies changeset-only. The
   // name is spelled out here, not imported, to keep core free of the chat module.
@@ -58,7 +59,7 @@ export class ChangesetOnlyError extends CLIError {
 }
 
 /** Throws when this process may only change the model through a changeset. */
-export function assertBaseModelWritable(env: NodeJS.ProcessEnv = process.env): void {
+export function assertBaseModelWritable(env: NodeJS.ProcessEnv = sessionEnv()): void {
   if (!isChangesetOnly(env)) return;
   throw new ChangesetOnlyError(
     "This session can only change the model through a changeset, and no changeset is active.",

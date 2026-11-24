@@ -125,7 +125,9 @@ function spawnMcp(
   cwd?: string,
   pathOverride?: string
 ): McpProcess {
-  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath };
+  // In process: these suites drive the tools over a real stdio MCP connection without starting
+  // the central process (the bridge has its own test, mcp-stdio-bridge.test.ts).
+  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath, DR_MCP_IN_PROCESS: "1" };
   delete env.DR_MCP_API_KEY;
   if (apiKey !== undefined) {
     env.DR_MCP_API_KEY = apiKey;
