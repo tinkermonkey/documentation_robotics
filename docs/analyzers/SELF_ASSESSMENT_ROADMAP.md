@@ -1,6 +1,6 @@
 # Assessment pass: roadmap
 
-What has been tried, what was learned, and what to try next. Status: draft, 2026-11-23.
+What has been tried, what was learned, and what to try next. Status: draft, 2026-11-24.
 
 This page links the design ([SELF_ASSESSMENT_DESIGN.md](SELF_ASSESSMENT_DESIGN.md)) to the results
 ([SELF_ASSESSMENT_RESULTS.md](SELF_ASSESSMENT_RESULTS.md)). Update it whenever a track starts,
@@ -104,6 +104,7 @@ edge route. Do it because it is cheap and it improves extraction itself, not onl
 [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md) for the bank and its decisions,
 `cli/scripts/assess-eval/questions.json` for the data, and `RUNBOOK.md` beside it for the protocol.
 The heimdall pilot ran steps A and B on 2026-11-21, and step C landed both on 2026-11-24.
+`score.ts` scored it the same day (order step 3).
 
 The finders show where the gaps are. Filling them takes inference, and the coding agent is the
 tool for that: it has the model (dr MCP), the code graph (CBM MCP) and the source. The proposal is
@@ -259,9 +260,11 @@ The better model is track C's purpose, and it becomes reference data for tracks 
 
 ### 2. Evaluate: what "adds value" means
 
-A scoring script, `score.ts` (not written yet), reads those outputs. Verdicts are not recorded by
-hand: an item is accepted if it is in the model at the `assess/after` tag, and rejected otherwise.
-The reasons come from the maintainer's viewer annotations.
+A scoring script, `score.ts` (PR 1365), reads those outputs. Verdicts are not recorded by hand: an
+item is accepted if it is in the model at the `assess/after` tag, and rejected otherwise. The
+reasons come from `rejected-by-rule.jsonl`, where step C logs each change it rejects with its
+ruling; the maintainer's viewer annotations are not read yet. Each change is attributed to a
+question by its staging time against the log's `begin` and `end` lines.
 
 Per question, pooled over the fleet:
 
@@ -422,8 +425,9 @@ storage and authentication.
 
 - Each pilot or fleet run ends by comparing its friction and spec-gap lists against this table:
   a new problem becomes a row, and a known one gets the run added to "Seen in".
-- `score.ts` (order step 3) counts `spec-gap` verdicts per row, so the spec rows can be ranked by how
-  much they cost.
+- `score.ts` counts `spec-gap` verdicts per row, so the spec rows can be ranked by how much they
+  cost. A verdict names its row with a `register` key in the log; for logs written before the
+  register, `data/<model>/spec-gaps.json` maps them.
 - A row is closed only when its fix lands upstream. A bank 0.2 that works around a spec row leaves
   that row open.
 
@@ -452,7 +456,19 @@ D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
      step B's 131 library exports staged as `api.operation` with their tags), and 3 step A links
      to `api.operation.compute-edge-path`, which the maintainer dropped on accepting step B's
      delete of it.
-3. **`score.ts`,** written against the pilot's outputs.
+3. **`score.ts`,** written against the pilot's outputs. Done 2026-11-24 (PR 1365).
+   - **The pilot's first numbers.** Step A proposed 6,021 changes and 5,073 were accepted
+     (precision 0.84, or 0.95 over elements). Step B proposed 467 and 193 were accepted (0.41, or
+     0.39 over elements). Step A holds 96% of everything accepted.
+   - All 1,222 rejections come from the three rulings above, and every rejected relationship has
+     a rejected end. Apart from them, each question's own items were accepted (0.95 to 1.00),
+     except Q9 (0.17): it linked the package and the browser to the components S10 removed. By
+     staging time, S10's 945 rejections fall under Q4 (465), Q9 (210) and Q13 (270), not all under
+     Q4 as the rejected log's attribution by family has it.
+   - Spec-gap verdicts per row: S1 31, S6 3, S4 2, S5 2, and S2, S7, S8 and S9 one each.
+   - Tokens: 36.6M for step A and 18.4M for step B, 98% of them cache reads (131k and 69k output).
+   - The split between P0 cards and a question's own work is by family only, because the log
+     lists staged items as summaries, not ids.
    - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
      S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's test
      clustering, #1312, is step 5 and does not block); D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
