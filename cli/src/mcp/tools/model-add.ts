@@ -61,7 +61,8 @@ const NAME_DESCRIPTION =
   "Human-readable element name; used to derive the element ID layer.type.kebab-name, split at camelCase, spaces, " +
   "underscores, dots and slashes, and after a digit that a capitalised word follows ('GraphLayoutSnapshot' → " +
   "graph-layout-snapshot, 'Tier1Status' → tier1-status, 'Node.js' → node-js, 'GET /' → get-root). A name that " +
-  "starts with a digit gets the prefix n- ('3D Effect' → n-3d-effect).";
+  "starts with a digit gets the prefix n- ('3D Effect' → n-3d-effect). A run of capitals ends before its last capital " +
+  "when a lowercase letter follows ('HTTPServer' → http-server), and a plural acronym stays whole ('URLs' → urls).";
 
 const elementItemSchema = strictItem("An elements[] item", {
   layer: z.string().describe("Canonical layer name."),
@@ -199,10 +200,9 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
     if (inAttributes) {
       throw new AttributeRefusal(
         `Element ${elementPath} has invalid attributes:\n${errorMessages}`,
-        // What the type requires and what each takes, so one retry fixes it (#1153).
-        [requiredAttributesLine(`${spec.layer}.${resolvedType}`), schemaLookupHint("mcp", spec.layer, resolvedType)].filter(
-          (s): s is string => s !== undefined
-        ),
+        // The single form adds what the type requires (addSingleElement); a batch lists it once
+        // per type in requiredAttributes, not on every refused item.
+        [schemaLookupHint("mcp", spec.layer, resolvedType)],
         `${spec.layer}.${resolvedType}`
       );
     }
@@ -267,7 +267,15 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
 }
 
 async function addSingleElement(spec: ElementSpec, rootPath: string | undefined): Promise<CallToolResult> {
-  const prepared = await prepareElement(spec);
+  let prepared: PreparedElement;
+  try {
+    prepared = await prepareElement(spec);
+  } catch (error) {
+    // What the type requires and what each takes, so one retry fixes it (#1153).
+    const required = error instanceof AttributeRefusal ? requiredAttributesLine(error.specNodeId) : undefined;
+    if (required && error instanceof CLIError) throw new CLIError(error.message, ErrorCategory.USER, [required, ...(error.suggestions ?? [])]);
+    throw error;
+  }
   const { element, id: elementPath, layer } = prepared;
 
   const model = await loadModel(rootPath);
@@ -544,7 +552,8 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
     "(layer/type/name) or many (elements: [...], with optional relationships: [...]); a list is staged in one " +
     "write, so use it when adding several, and put a large one in a JSON file (file) instead of the call. An " +
     "element's id is layer.type.kebab-name, with the name split at camelCase and after a digit that a capitalised " +
-    "word follows ('GraphLayoutSnapshot' → graph-layout-snapshot, 'Tier1Status' → tier1-status); the same name " +
+    "word follows ('GraphLayoutSnapshot' → graph-layout-snapshot, 'Tier1Status' → tier1-status), and before the last " +
+    "capital of a run that a lowercase letter follows ('HTTPServer' → http-server; a plural acronym such as 'URLs' stays whole); the same name " +
     "gives the same id in codebase_extract. A relationship may name an element by its id, by that id without " +
     "hyphens or by its name, when exactly one element matches; relationships.readByName says how each such " +
     "reference was read. A list returns, for elements and for relationships, counts by status (staged, or " +

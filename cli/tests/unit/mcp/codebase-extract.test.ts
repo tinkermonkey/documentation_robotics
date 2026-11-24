@@ -402,7 +402,9 @@ describe("codebase_extract", () => {
     expect(first.undecided).toMatchObject({ total: 3, pageSize: 1, pages: 3, groups: { total: 2, returned: 2 } });
     expect(first.undecided.items).toBeUndefined();
     expect(first.next.join(" ")).toContain("view: {} lists the cards a page at a time (3 pages)");
-    expect(first.next.join(" ")).toContain("the attributes undecided.requiredAttributes lists for that type");
+    // A grouped run lists no cards, so it points at the card pages for what each type requires.
+    expect(first.undecided.requiredAttributes).toBeUndefined();
+    expect(first.next.join(" ")).toContain("each page of cards, from view: {}, lists them under undecided.requiredAttributes");
     const listed = ok(await handler({ view: {}, pageSize: 1, rootPath }));
     expect(listed.undecided).toMatchObject({ total: 3, page: 1, pageSize: 1, pages: 3 });
     const [narrowed] = listed.undecided.items;

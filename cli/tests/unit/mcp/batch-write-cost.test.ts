@@ -722,6 +722,10 @@ describe("required attributes of a refused type (#1153)", () => {
       "api.operation": { operationId: "string", summary: "string", tags: "string" },
     });
     expect(result.elements.attention[0].reason).toContain("has invalid attributes");
+    // Each refused type once, in requiredAttributes: never repeated on every refused item.
+    for (const item of result.elements.attention) {
+      expect((item.suggestions ?? []).some((s: string) => s.includes(" requires: "))).toBe(false);
+    }
   });
 
   it("names what the type requires, with allowed values, when a single add is refused", async () => {

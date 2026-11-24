@@ -1325,6 +1325,13 @@ function helpersStep(h: SharedHelpers): string {
 }
 
 /** How to read the cards after this page: the cut's paging call when the page was cut. */
+/** Where a card's type's required attributes are: on this page, or on the card pages a grouped run points to. */
+function requiredWhere(grouped: boolean): string {
+  return grouped
+    ? "each page of cards, from view: {}, lists them under undecided.requiredAttributes"
+    : "undecided.requiredAttributes lists them; spec_type for a type it does not list";
+}
+
 function readFurther(undecidedPages: number, readOn?: string, grouped = false): string {
   if (grouped) return `view: {} lists the cards a page at a time (${undecidedPages} pages).`;
   return readOn
@@ -1359,7 +1366,7 @@ function nextSteps(
       verify
         ? verifyCardStep(undecidedPages, readOn, grouped)
         : "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
-            "(or its hint), the attributes undecided.requiredAttributes lists for that type (spec_type for a type it does not list), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
+            `(or its hint), the attributes that type requires (${requiredWhere(grouped)}), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ` +
             readFurther(undecidedPages, readOn, grouped),
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
       verify
@@ -1426,7 +1433,7 @@ function pendingSteps(
     steps.push(
       verify
         ? verifyCardStep(undecidedPages, readOn, grouped)
-        : "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), the attributes undecided.requiredAttributes lists for that type, " +
+        : `For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), the attributes that type requires (${requiredWhere(grouped)}), ` +
             `a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn, grouped)}`,
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out; that needs no changeset.",
       verify
