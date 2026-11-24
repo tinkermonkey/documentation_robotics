@@ -122,7 +122,9 @@ checkout is removed while it waits gets an error too.
 
 ### Notifications during a reply
 
-All carry `conversation_id` and `timestamp`.
+All carry `conversation_id` and `timestamp`. On the central server (`dr serve`) they, and the `chat.send`
+result, also carry `project` and `checkout`: conversations are per checkout, and one socket can
+chat in several.
 
 | Method                   | Params                                                                                                                                                               | Meaning                               |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -188,4 +190,5 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
 - CLI 0.7.0: `permission_mode` on `chat.status`; `permission_denied` and `permission_explanation`
   on a refused `chat.tool.invoke`, whose `error` now ends with the explanation.
 - CLI 0.8.0 (Unreleased): `chat.turn.queued` and `chat.turn.started` for a send over the running-reply
-  cap (`DR_DRBOT_MAX_TURNS`); each reply runs in the checkout it belongs to.
+  cap (`DR_DRBOT_MAX_TURNS`); each reply runs in the checkout it belongs to. On the central server, chat
+  frames carry `project` and `checkout`.

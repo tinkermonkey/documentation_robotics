@@ -48,8 +48,12 @@ async function checkout(name: string): Promise<CheckoutContext> {
   return context;
 }
 
-function launcher(options: { maxTurns?: number; hold?: string } = {}): DrBotLauncher {
-  const drBot = new DrBotLauncher({ withChangesets: true, maxTurns: options.maxTurns });
+function launcher(options: { maxTurns?: number; hold?: string; stampCheckout?: boolean } = {}): DrBotLauncher {
+  const drBot = new DrBotLauncher({
+    withChangesets: true,
+    maxTurns: options.maxTurns,
+    stampCheckout: options.stampCheckout,
+  });
   drBot.chatClient = new ClaudeCodeClient();
   drBot._testClaudeCmdOverride = ["node", fakeAgent, ...(options.hold ? ["--hold", options.hold] : [])];
   return drBot;
@@ -201,6 +205,55 @@ describe("DrBotLauncher", () => {
     writeFileSync(hold, "");
     expect((await answerTo(ws, "req-kept")).result.status).toBe("complete");
     await waitFor(() => drBot.runningTurns === 0);
+  });
+
+  it("names the checkout on every chat frame when asked (the central server)", async () => {
+    const main = await checkout("main");
+    const worktree = await checkout("feature-z");
+    const hold = join(scratch, `hold-${randomUUID()}`);
+    const drBot = launcher({ maxTurns: 1, hold, stampCheckout: true });
+    const ws = createFakeWs();
+
+    // One socket, the same conversation id in two checkouts: the second waits for the first.
+    await drBot.startTurn(request(main, ws, "conv-same", "req-main"));
+    await drBot.startTurn(request(worktree, ws, "conv-same", "req-worktree"));
+    writeFileSync(hold, "");
+    await answerTo(ws, "req-main");
+    await answerTo(ws, "req-worktree");
+
+    const frames = ws.sent.filter((m) => (m.params ?? m.result)?.conversation_id === "conv-same");
+    const methods = new Set(frames.map((m) => m.method ?? "result"));
+    for (const method of [
+      "chat.response.chunk",
+      "chat.response.complete",
+      "chat.turn.queued",
+      "chat.turn.started",
+      "result",
+    ]) {
+      expect(methods.has(method)).toBe(true);
+    }
+    for (const frame of frames) {
+      const part = frame.params ?? frame.result;
+      expect(part.project).toBe("demo");
+      expect(["main", "feature-z"]).toContain(part.checkout);
+    }
+    const resultFor = (id: string) => ws.sent.find((m) => m.id === id && m.result).result;
+    expect(resultFor("req-main").checkout).toBe("main");
+    expect(resultFor("req-worktree").checkout).toBe("feature-z");
+    expect(JSON.parse(resultFor("req-worktree").full_response).mcpRoot).toBe(worktree.rootPath);
+    const queued = ws.sent.find((m) => m.method === "chat.turn.queued");
+    expect(queued.params.checkout).toBe("feature-z");
+  });
+
+  it("leaves chat frames as they were without it (a per-project server)", async () => {
+    const main = await checkout("main");
+    const drBot = launcher();
+    const ws = createFakeWs();
+    await drBot.startTurn(request(main, ws, "conv-plain", "req-plain"));
+    await answerTo(ws, "req-plain");
+    for (const frame of ws.sent) {
+      expect((frame.params ?? frame.result)?.project).toBeUndefined();
+    }
   });
 
   it("reads the cap from DR_DRBOT_MAX_TURNS, default 3", () => {

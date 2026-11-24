@@ -607,6 +607,8 @@ export class VisualizationServer {
     this.drBot = new DrBotLauncher({
       withDanger: options?.withDanger || false,
       withChangesets: options?.withChangesets || false,
+      // One socket on the central server can chat in several checkouts: replies name theirs.
+      stampCheckout: this.central !== undefined,
     });
     this.viewerId = options?.viewerId;
     this.launcherPid = options?.launcherPid;

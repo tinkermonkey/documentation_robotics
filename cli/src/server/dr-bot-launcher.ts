@@ -196,6 +196,36 @@ export interface DrBotLauncherOptions {
   withChangesets?: boolean;
   /** Running turns allowed at once. Default: `DR_DRBOT_MAX_TURNS`, else 3. */
   maxTurns?: number;
+  /**
+   * Every chat frame about a conversation also names its checkout (`project`, `checkout`): the
+   * central server's, where one socket can chat in several checkouts with the same conversation id.
+   */
+  stampCheckout?: boolean;
+}
+
+/**
+ * A channel that adds the checkout to every chat frame naming a conversation: a notification's
+ * `params` and the `chat.send` result.
+ */
+export function stampedChannel(channel: DrBotChannel, ref: { project: string; checkout: string }): DrBotChannel {
+  return {
+    send(source, options) {
+      if (typeof source !== "string") return channel.send(source, options);
+      let frame: any;
+      try {
+        frame = JSON.parse(source);
+      } catch {
+        return channel.send(source, options);
+      }
+      for (const part of [frame?.params, frame?.result]) {
+        if (part && typeof part === "object" && "conversation_id" in part) {
+          part.project = ref.project;
+          part.checkout = ref.checkout;
+        }
+      }
+      channel.send(JSON.stringify(frame), options);
+    },
+  };
 }
 
 /** The `drbot.turn` span (`apm.span.drbot-turn`), when telemetry is built in; returns its end. */
@@ -235,6 +265,8 @@ export class DrBotLauncher {
   readonly withChangesets: boolean;
   /** Running turns allowed at once in this process. */
   readonly maxTurns: number;
+  /** Chat frames name their checkout (the central server). */
+  readonly stampCheckout: boolean;
   /** Logged DrBot setup warnings, so each is logged once per process. */
   readonly drBotWarnings = new Set<string>();
 
@@ -266,6 +298,7 @@ export class DrBotLauncher {
     this.withDanger = options.withDanger ?? false;
     this.withChangesets = options.withChangesets ?? false;
     this.maxTurns = options.maxTurns ?? drBotTurnCap();
+    this.stampCheckout = options.stampCheckout ?? false;
   }
 
   /** Turns running now (holding a slot). `CentralActivity.drBotTurns`. */
@@ -285,6 +318,7 @@ export class DrBotLauncher {
    * and a line of reply text), and again when it starts (`chat.turn.started`).
    */
   async startTurn(request: DrBotTurnRequest): Promise<DrBotTurnStart> {
+    if (this.stampCheckout) request = { ...request, channel: stampedChannel(request.channel, request.context.ref) };
     const { context, conversationId } = request;
     if (!this.chatClient) {
       return {
