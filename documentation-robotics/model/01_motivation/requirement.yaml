@@ -5,8 +5,7 @@ motivation.requirement.developer-stays-in-the-conversation:
   type: requirement
   layer_id: motivation
   name: Developer stays in the conversation
-  description:
-    Every step of the DR use cases can be done by the developer's agent
+  description: Every step of the DR use cases can be done by the developer's agent
     through dr mcp; the developer types no dr command. Verified by walking each
     use case in Claude Code with only the dr MCP tools and no Bash access to dr.
   attributes:
@@ -36,8 +35,7 @@ motivation.requirement.landing-a-change-needs-a-humans-confirmation:
   attributes:
     requirementType: functional
     priority: critical
-    documentation:
-      "A changeset reaches the base model only after a person confirms
+    documentation: "A changeset reaches the base model only after a person confirms
       it: in an MCP confirmation dialog (elicitation), in the permission prompt
       a client forces for changeset_commit (Claude Code, carrying a confirmation
       token from a preview of the same changeset state), or with the viewer's
@@ -62,8 +60,7 @@ motivation.requirement.extraction-writes-the-as-built-side:
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      Extraction stages what it finds into a changeset, never into the
+    documentation: Extraction stages what it finds into a changeset, never into the
       base model, so the same output can bootstrap a model, keep it as-built, or
       be compared with a plan.
   metadata:
@@ -77,8 +74,7 @@ motivation.requirement.one-install-per-machine:
   type: requirement
   layer_id: motivation
   name: One install per machine
-  description:
-    After installing the dr CLI and the DR plugin once, any repository
+  description: After installing the dr CLI and the DR plugin once, any repository
     can use DR with no per-project configuration, copied files or API keys.
   attributes:
     requirementType: quality
@@ -97,15 +93,13 @@ motivation.requirement.accepted-gaps-are-recorded-with-a-reason:
   type: requirement
   layer_id: motivation
   name: Accepted gaps are recorded with a reason
-  description:
-    A connection the spec models but the change deliberately leaves out
+  description: A connection the spec models but the change deliberately leaves out
     is recorded with its reason, so the brief stops reporting it and
     verification can tell intent from omission (#1026).
   attributes:
     requirementType: functional
     priority: medium
-    documentation:
-      A connection the spec models but the change deliberately leaves
+    documentation: A connection the spec models but the change deliberately leaves
       out is recorded with its reason, so the brief stops reporting it and
       verification can tell intent from omission (#1026).
   metadata:
@@ -119,16 +113,14 @@ motivation.requirement.a-refused-landing-says-why:
   type: requirement
   layer_id: motivation
   name: A refused landing says why
-  description:
-    "When changeset_commit does not land a changeset, it says which of
+  description: "When changeset_commit does not land a changeset, it says which of
     these happened: the person declined, the dialog could not be shown, or the
     model drifted. It names the way forward for each: the viewer's Apply, an
     interactive session, or force."
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "A decline that arrives within about a second of the request is
+    documentation: "A decline that arrives within about a second of the request is
       reported as 'the confirmation dialog could not be shown', not as the
       person declining. Acceptance: in the desktop Code tab an elicitation-only
       commit reports that the dialog could not be shown and points to the
@@ -152,8 +144,7 @@ motivation.requirement.extraction-offers-only-reported-declarations-as-candidate
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      Extraction builds a candidate only from a declaration the code
+    documentation: Extraction builds a candidate only from a declaration the code
       graph reports (a class, interface, function, method, route or type). It
       never offers a file. Relationships that were joined through a file's
       element (imports and test-file links) are joined to declarations or
@@ -180,8 +171,7 @@ motivation.requirement.the-agent-models-what-the-code-graph-does-not-report:
   attributes:
     requirementType: functional
     priority: medium
-    documentation:
-      "Content the code graph reports no declaration for is modelled by
+    documentation: "Content the code graph reports no declaration for is modelled by
       the calling agent, guided by the skills: entry points made of top-level
       statements (Program.cs, main.tsx), file-based routes (a Next.js page),
       top-level constants such as stores and schemas, and buildable projects
@@ -208,8 +198,7 @@ motivation.requirement.drift-is-known-before-landing:
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "Acceptance: with no commit attempt, the viewer API reports for
+    documentation: "Acceptance: with no commit attempt, the viewer API reports for
       each changeset one of: nothing changed; the base changed but nothing the
       changeset was staged against did (content-free, #1169; not blocking); the
       base changed under it (blocking a commit without force, with the
@@ -268,8 +257,7 @@ motivation.requirement.a-migration-records-what-it-drops:
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "Issue #1164, maintainer decision 2026-11-18. Verified when an
+    documentation: "Issue #1164, maintainer decision 2026-11-18. Verified when an
       upgrade that drops relationships leaves one staged upgrade-record
       changeset listing them, the dry run names it, and a run that drops nothing
       writes none."
@@ -291,12 +279,168 @@ motivation.requirement.a-migration-takes-the-route-the-catalog-offers:
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "Issue #1164. The rewrite table is generated from change records;
+    documentation: "Issue #1164. The rewrite table is generated from change records;
       a replace-dropped action names the replacement for a triple an earlier
       record dropped, and the generator fails when the replacement is not in the
       catalog."
   metadata:
     created_at: 2026-11-19T13:36:34.344Z
     updated_at: 2026-11-19T13:36:34.344Z
+    version: 1
+motivation.requirement.one-central-process-per-user:
+  id: 1301f97a-e3f1-4924-846c-1b8d3a12088f
+  path: motivation.requirement.one-central-process-per-user
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: One central process per user
+  description: One back-end process per user serves the MCP interface and the
+    multi-project viewer on one port with one token, and launches every DrBot
+    sub-process (maintainer ruling 4).
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.879Z
+    updated_at: 2026-11-21T17:14:10.879Z
+    version: 1
+motivation.requirement.every-api-call-names-its-project-and-checkout:
+  id: cb1efd63-80a8-4c4b-938f-899c0dca1568
+  path: motivation.requirement.every-api-call-names-its-project-and-checkout
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Every API call names its project and checkout
+  description: Every viewer API route that reads or writes project data is scoped
+    by project and checkout (/api/projects/:project/checkouts/:checkout/...).
+    The unscoped /api routes are removed in the release whose bundled viewer
+    uses the scoped ones, with no compatibility window (maintainer ruling 5).
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.per-checkout-state-never-leaks:
+  id: c61cbf29-75e4-4554-b5c2-aca360b977c6
+  path: motivation.requirement.per-checkout-state-never-leaks
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Per-checkout state never leaks
+  description: Annotations, changesets, staging, drift, the active changeset, the
+    websocket feed and DrBot conversations are held per checkout; nothing read
+    or written for one checkout is visible through another's routes, links or
+    feed.
+  attributes:
+    requirementType: non-functional
+    priority: critical
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.a-checkout-is-addressed-below-its-project:
+  id: 5b20734d-4b3b-4d68-8800-d0ba47810be0
+  path: motivation.requirement.a-checkout-is-addressed-below-its-project
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A checkout is addressed below its project
+  description: A checkout (the main checkout or a linked worktree) is named by a
+    key that is unique within its project and derived from git, and is addressed
+    as project plus checkout in MCP arguments, viewer URLs, API routes and CLI
+    arguments.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.links-into-the-shared-viewer-start-no-process:
+  id: 5f709fc2-6cb0-4b04-b875-5d1dea085491
+  path: motivation.requirement.links-into-the-shared-viewer-start-no-process
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Links into the shared viewer start no process
+  description: review_open, project_status and every MCP tool that returns a
+    viewer link return a deep link (project, checkout, changeset or element)
+    into the one shared viewer and never start a per-project viewer.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.dr-bot-runs-in-its-project-and-checkout:
+  id: 6880e9b4-f7ba-4179-9cba-3000e983cb58
+  path: motivation.requirement.dr-bot-runs-in-its-project-and-checkout
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: DrBot runs in its project and checkout
+  description: The central process launches each DrBot sub-process (Claude Code
+    CLI, GitHub Copilot CLI) with the checkout as its working directory and its
+    dr MCP connection pinned to that project and checkout.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.models-load-lazily-and-are-evicted:
+  id: b526c79c-8ed6-422f-b573-1e616505664e
+  path: motivation.requirement.models-load-lazily-and-are-evicted
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Models load lazily and are evicted
+  description: A checkout's model is loaded on first use, watched while loaded,
+    and evicted when idle or when the pool is full, so a long farm does not load
+    every model at start-up.
+  attributes:
+    requirementType: non-functional
+    priority: medium
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.projects-resolve-through-one-registry:
+  id: 276e9bf8-523c-4a0a-bf4e-b6bba196378e
+  path: motivation.requirement.projects-resolve-through-one-registry
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Projects resolve through one registry
+  description: Every interface turns a path, a project name or a project and
+    checkout into a project and checkout through the one project registry; a
+    path outside every registered project is registered through the same code
+    before it is served.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.telemetry-names-its-project-and-checkout:
+  id: bb4d59a0-104c-42c2-9d43-2c05c82a89e6
+  path: motivation.requirement.telemetry-names-its-project-and-checkout
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Telemetry names its project and checkout
+  description: When the CLI is built with telemetry, every span the central
+    process emits for project data carries dr.project and dr.checkout, so traces
+    from one per-user process can be told apart per checkout in the collector.
+  attributes:
+    requirementType: non-functional
+    priority: low
+  metadata:
+    created_at: 2026-11-21T17:22:16.827Z
+    updated_at: 2026-11-21T17:22:16.827Z
     version: 1

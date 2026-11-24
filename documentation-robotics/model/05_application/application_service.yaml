@@ -572,7 +572,9 @@ application.applicationservice.farm-add-command:
   type: applicationservice
   layer_id: application
   name: farmAddCommand
-  description: Add a project to the farm
+  description: "Add a project to the user farm through the project registry: the
+    codebase path is resolved to its repository's main checkout, so adding a
+    worktree path adds (or finds) its project, never a project per worktree."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -758,6 +760,9 @@ application.applicationservice.mcp-command:
   type: applicationservice
   layer_id: application
   name: mcpCommand
+  description: "dr mcp: over stdio, the McpStdioBridge to the user's central
+    process (started when absent); --http serves the MCP interface in the
+    central process itself."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1072,6 +1077,10 @@ application.applicationservice.visualize-command:
   type: applicationservice
   layer_id: application
   name: visualizeCommand
+  description: "dr visualize [path]: ensures the central process runs and opens
+    the shared viewer at the project and checkout the path resolves to. --list
+    shows the central process with its loaded checkouts and any old per-project
+    viewers; --stop stops them."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1774,6 +1783,10 @@ application.applicationservice.project-status-handler:
   type: applicationservice
   layer_id: application
   name: projectStatusHandler
+  description: "project_status: names the project and checkout the session
+    resolves to, lists the project's other checkouts (branch, head, state,
+    active changeset, staged count; paged), and gives the viewer link for this
+    checkout."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1864,7 +1877,9 @@ application.applicationservice.create-review-open-handler:
   type: applicationservice
   layer_id: application
   name: createReviewOpenHandler
-  description: Builds the review_open handler
+  description: "review_open: resolves the session's project and checkout through
+    the registry and returns a ViewerLink to the changeset in the central
+    process, which serves the session; it never starts a viewer."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1919,8 +1934,7 @@ application.applicationservice.changeset-commit-preview-handler:
   type: applicationservice
   layer_id: application
   name: changesetCommitPreviewHandler
-  description:
-    Checks a staged changeset for landing without writing anything and
+  description: Checks a staged changeset for landing without writing anything and
     returns the landing summary with a confirmation token
   attributes:
     serviceType: synchronous
@@ -1932,4 +1946,105 @@ application.applicationservice.changeset-commit-preview-handler:
   metadata:
     created_at: 2026-11-20T15:08:59.540Z
     updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+application.applicationservice.dr-bot-conversation:
+  id: cd17f44a-c212-4965-956f-0aadd85088b7
+  path: application.applicationservice.dr-bot-conversation
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: DrBot conversation
+  description: "DrBot over the viewer websocket: a message to a checkout's
+    conversation, answered by a sub-process running in that checkout."
+  attributes:
+    serviceType: asynchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: chat.send
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationservice.viewer-api:
+  id: 618d1e7e-7a29-46dd-8cfd-1275b4f77ba4
+  path: application.applicationservice.viewer-api
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: Viewer API
+  description: "The viewer's HTTP API on the central process: GET /api/projects
+    and every project data route under
+    /api/projects/:project/checkouts/:checkout/, all requiring the one token."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/central-server.ts
+        symbol: startCentralServer
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.serve-command:
+  id: e1fa4704-8156-4ecc-abe3-2b53f9187cd8
+  path: application.applicationservice.serve-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: serveCommand
+  description: "dr serve: runs the user's central DR process in the foreground (dr
+    mcp and dr visualize start it detached)."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/serve.ts
+        symbol: serveCommand
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.project-list-handler:
+  id: 3c02e03e-1902-4b69-9f81-75dd24da6a33
+  path: application.applicationservice.project-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: projectListHandler
+  description: "MCP project_list: every registered project with its checkouts
+    (ProjectListEntry), paged."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/project-list.ts
+        symbol: projectListHandler
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.farm-migrate-command:
+  id: eb0daade-a3db-462a-94d0-f85ac14a2f7f
+  path: application.applicationservice.farm-migrate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmMigrateCommand
+  description: "dr farm migrate [--apply]: previews the dr-farm-v2 migration of
+    the user farm, and writes it with --apply."
+  attributes:
+    serviceType: batch
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: migrate
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
     version: 1

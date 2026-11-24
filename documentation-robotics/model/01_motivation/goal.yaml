@@ -31,3 +31,18 @@ motivation.goal.model-stays-as-built:
     created_at: 2026-11-09T21:54:56.346Z
     updated_at: 2026-11-09T21:54:56.346Z
     version: 1
+motivation.goal.one-dr-per-user:
+  id: c0591b05-3147-4155-90ab-a87ffecc28c8
+  path: motivation.goal.one-dr-per-user
+  spec_node_id: motivation.goal
+  type: goal
+  layer_id: motivation
+  name: One DR per user
+  description: A user has one DR that serves every codebase they map, and every
+    interface (MCP, viewer, CLI) sees the same projects under the same names.
+  attributes:
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.859Z
+    updated_at: 2026-11-21T17:14:10.859Z
+    version: 1

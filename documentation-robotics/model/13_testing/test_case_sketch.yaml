@@ -1,0 +1,287 @@
+testing.testcasesketch.project-naming-sketch:
+  id: ebe77ec1-b1df-43bb-917c-046baf5a03c0
+  path: testing.testcasesketch.project-naming-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Project naming sketch
+  description: "Two repositories with the same folder name: the second
+    registration is refused with the explicit-name call; the same repository
+    through a worktree path resolves to the existing project, never a new one"
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.811Z
+    updated_at: 2026-11-21T17:14:54.811Z
+    version: 1
+testing.testcasesketch.checkout-discovery-sketch:
+  id: c719dac7-1ff2-4cca-a0aa-bd69a737c641
+  path: testing.testcasesketch.checkout-discovery-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Checkout discovery sketch
+  description: "A repository with a main checkout, two worktrees and one removed
+    worktree folder: keys main and the two worktree names, the removed one
+    reported prunable, and Checkout removed raised once"
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.per-checkout-isolation-sketch:
+  id: 531e1aee-a39a-4e27-8ad4-d2fd6219eb24
+  path: testing.testcasesketch.per-checkout-isolation-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Per-checkout isolation sketch
+  description: "Two checkouts of one project and a second project: an annotation,
+    an active changeset and a websocket event written for one are absent from
+    the other two's routes and feeds"
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.scoped-routes-sketch:
+  id: adf4cf1c-a0ee-402d-a4cf-b676d47d6165
+  path: testing.testcasesketch.scoped-routes-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Scoped routes sketch
+  description: Every project data route answers only under
+    /api/projects/:project/checkouts/:checkout; the old unscoped paths answer
+    404, an unknown project or checkout answers 404, and a call without the
+    token answers 401
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.context-eviction-sketch:
+  id: 25bb2f46-df4c-4688-ae8f-e6485b8bab87
+  path: testing.testcasesketch.context-eviction-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Context eviction sketch
+  description: "maxLoaded 2 and three checkouts used in turn: the least recently
+    used is evicted, unless it has a subscriber or a running DrBot turn"
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.dr-bot-scoping-sketch:
+  id: 2e9e6114-ff84-48bc-af8e-63c891ca8173
+  path: testing.testcasesketch.dr-bot-scoping-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: DrBot scoping sketch
+  description: A DrBot turn in a worktree runs with cwd the worktree and its dr
+    MCP resolves to that checkout; a conversation id reused in another checkout
+    starts a new session
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.deep-links-sketch:
+  id: f800a33c-1b4c-45f9-8afb-616c2f96eac0
+  path: testing.testcasesketch.deep-links-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Deep links sketch
+  description: review_open from a worktree session returns
+    /p/<project>/c/<worktree>/changesets/<id> on the running central process,
+    and no new process appears in the process table
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.farm-v2-migration-sketch:
+  id: 4f1d74a8-97db-47d3-b34d-debd278d7648
+  path: testing.testcasesketch.farm-v2-migration-sketch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Farm v2 migration sketch
+  description: "A dr-farm-v1 farm with three entries, two of them checkouts of one
+    repository: preview lists one project with two checkouts and one dropped
+    name; apply writes dr-farm-v2 and a second run changes nothing"
+  attributes:
+    status: draft
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcasesketch.review-open-reuses-the-running-viewer:
+  id: 7a1ad9f8-0388-403f-8d66-9f784ef0d4ff
+  path: testing.testcasesketch.review-open-reuses-the-running-viewer
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: review_open reuses the running viewer
+  description: "Today: review_open starts or reuses a per-project viewer.
+    Rewritten for the design: it returns a deep link on the central process and
+    spawns nothing."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/integration/review-open-viewer.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.project-status-reports-the-viewer:
+  id: 918db5e4-4548-4289-8039-6d35dbc0273f
+  path: testing.testcasesketch.project-status-reports-the-viewer
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: project_status reports the viewer
+  description: "Today: the viewer section from the per-project record. Rewritten:
+    project, checkout, sibling checkouts and the deep link."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/project-status-tool.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.mcp-root-resolution:
+  id: 27c18e45-c4a6-4b12-aed5-fd3b84a2c024
+  path: testing.testcasesketch.mcp-root-resolution
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: MCP root resolution
+  description: "Today: rootPath, client roots and cwd pick a root. Extended: every
+    route resolves through the registry to a project and checkout."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/mcp/project-root.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.farm-commands:
+  id: 778d3cdb-116b-4594-bce9-4aa8a36a2fe5
+  path: testing.testcasesketch.farm-commands
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Farm commands
+  description: "Today: dr-farm-v1 add/remove/status. Extended: v2 entries, a
+    worktree path adding its project, v1 read with a notice."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/integration/farm.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.viewer-api-routes:
+  id: e40495e9-4450-41b0-b009-162646a4cd99
+  path: testing.testcasesketch.viewer-api-routes
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Viewer API routes
+  description: "Today: the unscoped /api routes. Rewritten against
+    /api/projects/:project/checkouts/:checkout/..., plus 404 for the old paths."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/integration/visualization-server-api.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.dr-bot-mcp-launch:
+  id: 0863034e-ef37-4568-89ba-b77329ae6d74
+  path: testing.testcasesketch.dr-bot-mcp-launch
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: DrBot MCP launch
+  description: "Today: DrBot's agent and MCP launch for the one project. Extended:
+    cwd and DR_MCP_ROOT_PATH per checkout."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/server/drbot-mcp-launch.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.viewer-lifetime:
+  id: 58f17032-7ea0-4044-a0e4-d9a2f3a18e20
+  path: testing.testcasesketch.viewer-lifetime
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Viewer lifetime
+  description: "Today: idle exit, folder-gone exit and parent watch of a
+    per-project viewer. Rewritten: idle exit of the central process; checkout
+    removal closes a context instead of exiting."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/unit/server/checkout-context-pool.test.ts
+        symbol: "closes a removed checkout: tells its subscribers, ends its DrBot turns,
+          drops it even when busy"
+      - file: cli/tests/integration/serve-central-process.test.ts
+        symbol: ends on its own when idle, and removes its record
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+testing.testcasesketch.viewer-list-and-stop:
+  id: 6768fe53-81f6-4e48-b2d0-f31b801824ab
+  path: testing.testcasesketch.viewer-list-and-stop
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: Viewer list and stop
+  description: "Today: --list and --stop over per-project records and a ps scan.
+    Extended: the central process plus legacy viewers found by the sweep."
+  attributes:
+    status: automated
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/tests/integration/visualize-central-process.test.ts
+      - file: cli/tests/unit/server/viewer-control.test.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.234Z
+    updated_at: 2026-11-21T17:21:34.234Z
+    version: 1

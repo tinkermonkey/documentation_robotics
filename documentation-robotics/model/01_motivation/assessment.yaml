@@ -10,8 +10,7 @@ motivation.assessment.print-mode-declines-elicitation:
     the form capability, so changeset_commit's dialog never reaches the person.
   attributes:
     assessmentType: gap
-    documentation:
-      "Found 2026-11-17 landing context-studio's restore-upgrade-drops:
+    documentation: "Found 2026-11-17 landing context-studio's restore-upgrade-drops:
       changeset_commit was declined twice although the person approved the
       permission card. The MCP log
       (~/Library/Caches/claude-cli-nodejs/<project>/mcp-logs-plugin-dr-dr/)
@@ -54,8 +53,7 @@ motivation.assessment.one-base-edit-blocks-every-staged-plan:
   type: assessment
   layer_id: motivation
   name: One base edit blocks every staged plan
-  description:
-    A commit refuses a changeset for drift whenever any element in the
+  description: A commit refuses a changeset for drift whenever any element in the
     base changed or was removed since the changeset was created, also one the
     changeset neither edits nor links to. So one landing that edits an element
     blocks every other staged plan until each is forced.
@@ -72,4 +70,36 @@ motivation.assessment.one-base-edit-blocks-every-staged-plan:
   metadata:
     created_at: 2026-11-18T20:52:36.710Z
     updated_at: 2026-11-18T20:52:36.710Z
+    version: 1
+motivation.assessment.viewers-pile-up-per-checkout:
+  id: 03d466e8-6524-4ef8-8c27-dba291ee6e36
+  path: motivation.assessment.viewers-pile-up-per-checkout
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: Viewers pile up per checkout
+  description: After the 0.7.0 release one machine had six viewers, five on
+    worktrees, each with its own port, token and process pair; switching project
+    means switching viewer (issue 1279).
+  attributes:
+    assessmentType: gap
+  metadata:
+    created_at: 2026-11-21T17:14:10.881Z
+    updated_at: 2026-11-21T17:14:10.881Z
+    version: 1
+motivation.assessment.dr-cannot-tell-a-worktree-from-a-project:
+  id: f5d624a2-c32a-4288-9048-34f314ef7393
+  path: motivation.assessment.dr-cannot-tell-a-worktree-from-a-project
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: DR cannot tell a worktree from a project
+  description: "Nothing in DR knows a worktree is a worktree: the farm, MCP root
+    resolution, the viewer registry and .dr/ state each treat every checkout as
+    a separate project (issue 1285)."
+  attributes:
+    assessmentType: gap
+  metadata:
+    created_at: 2026-11-21T17:14:10.881Z
+    updated_at: 2026-11-21T17:14:10.881Z
     version: 1

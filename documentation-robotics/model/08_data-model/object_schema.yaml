@@ -43,8 +43,7 @@ data-model.objectschema.unstaged-change:
   type: objectschema
   layer_id: data-model
   name: UnstagedChange
-  description:
-    A change that was unstaged, kept so the plan as it stood before the
+  description: A change that was unstaged, kept so the plan as it stood before the
     unstage can be rebuilt (see `changesAtRevision` in changeset-graph.ts).
   attributes:
     type: object
@@ -230,7 +229,11 @@ data-model.objectschema.farm-project:
   type: objectschema
   layer_id: data-model
   name: FarmProject
-  description: Represents a project registered in a farm
+  description: "A project in the user farm (dr-farm-v2): name (the one project
+    name every interface uses, also its @name federation name), repository (the
+    main checkout's path), model (the model folder, relative to each checkout's
+    root when the repository carries it, else a detached path), remote. branch
+    is dropped: checkouts come from git, not the farm."
   attributes:
     type: object
   source_reference:
@@ -249,7 +252,9 @@ data-model.objectschema.farm-manifest-data:
   type: objectschema
   layer_id: data-model
   name: FarmManifestData
-  description: Farm manifest data structure
+  description: Farm manifest data structure, version dr-farm-v2 (projects keyed by
+    name). A dr-farm-v1 manifest is read with a notice that dr farm migrate
+    moves it.
   attributes:
     type: object
   source_reference:
@@ -439,8 +444,7 @@ data-model.objectschema.graph-model-graph-node:
   type: objectschema
   layer_id: data-model
   name: graph-model GraphNode
-  description:
-    Graph node representing a model element Replaces Element class for
+  description: Graph node representing a model element Replaces Element class for
     graph-based storage
   attributes:
     type: object
@@ -1012,8 +1016,7 @@ data-model.objectschema.committed-relationships:
   type: objectschema
   layer_id: data-model
   name: CommittedRelationships
-  description:
-    The committed relationships as recorded before the migration and as
+  description: The committed relationships as recorded before the migration and as
     rewritten by it
   attributes:
     type: object
@@ -1051,8 +1054,7 @@ data-model.objectschema.staged-relationship-rewrite-change:
   type: objectschema
   layer_id: data-model
   name: StagedRelationshipRewriteChange
-  description:
-    A staged relationship change the migration rewrote or removed from
+  description: A staged relationship change the migration rewrote or removed from
     its changeset
   attributes:
     type: object
@@ -1836,8 +1838,7 @@ data-model.objectschema.cross-edge:
   type: objectschema
   layer_id: data-model
   name: CrossEdge
-  description:
-    A `CROSS_ ` edge as CBM 0.12.1 writes it in this project (observed
+  description: A `CROSS_ ` edge as CBM 0.12.1 writes it in this project (observed
     shape, see docs/analyzers/CBM_MAPPING_INVENTORY.md, "Cross-repository
     edges")
   attributes:
@@ -2974,8 +2975,7 @@ data-model.objectschema.dropped-relationship-count:
   type: objectschema
   layer_id: data-model
   name: DroppedRelationshipCount
-  description:
-    Relationships the migration drops, counted by predicate and source
+  description: Relationships the migration drops, counted by predicate and source
     and target element type
   attributes:
     type: object
@@ -4653,8 +4653,7 @@ data-model.objectschema.version-data:
   type: objectschema
   layer_id: data-model
   name: VersionData
-  description:
-    Version file YAML schema (.dr-version, .dr-copilot-version) Tracks
+  description: Version file YAML schema (.dr-version, .dr-copilot-version) Tracks
     installation metadata and file hashes for change detection
   attributes:
     type: object
@@ -4674,8 +4673,7 @@ data-model.objectschema.file-change:
   type: objectschema
   layer_id: data-model
   name: FileChange
-  description:
-    File change detected during update operation Used to categorize and
+  description: File change detected during update operation Used to categorize and
     report changes between installed and source versions
   attributes:
     type: object
@@ -5496,8 +5494,7 @@ data-model.objectschema.qset-variant:
   type: objectschema
   layer_id: data-model
   name: QsetVariant
-  description:
-    Harness experiments that change what is sent, each a suffix of the
+  description: Harness experiments that change what is sent, each a suffix of the
     question set id.
   attributes:
     type: object
@@ -5590,8 +5587,7 @@ data-model.objectschema.answered-stage:
   type: objectschema
   layer_id: data-model
   name: AnsweredStage
-  description:
-    A stage's normalised answers (from `AskResult.answers`, or a cache
+  description: A stage's normalised answers (from `AskResult.answers`, or a cache
     entry through `normaliseEntry`).
   attributes:
     type: object
@@ -5965,8 +5961,7 @@ data-model.objectschema.tier1fill:
   type: objectschema
   layer_id: data-model
   name: Tier1Fill
-  description:
-    The `codebase_index` job's Tier-1 cache fill (section 4.4), as its
+  description: The `codebase_index` job's Tier-1 cache fill (section 4.4), as its
     job record and the warming views show it.
   attributes:
     type: object
@@ -8286,8 +8281,7 @@ data-model.objectschema.endpoint-candidate:
   type: objectschema
   layer_id: data-model
   name: EndpointCandidate
-  description:
-    An API endpoint candidate discovered from code analysis Maps to `dr
+  description: An API endpoint candidate discovered from code analysis Maps to `dr
     add api operation` command arguments
   attributes:
     type: object
@@ -8346,8 +8340,7 @@ data-model.objectschema.impacted-symbol:
   type: objectschema
   layer_id: data-model
   name: ImpactedSymbol
-  description:
-    A symbol that calls changed code, though its own code didn't change
+  description: A symbol that calls changed code, though its own code didn't change
     (CBM `detect_changes` impacted).
   attributes:
     type: object
@@ -8443,8 +8436,7 @@ data-model.objectschema.analyzer-node-mapping:
   type: objectschema
   layer_id: data-model
   name: AnalyzerNodeMapping
-  description:
-    Mapping for a single CBM node label to DR element type Matches the
+  description: Mapping for a single CBM node label to DR element type Matches the
     structure in cbm.json nodes_by_label
   attributes:
     type: object
@@ -8685,25 +8677,6 @@ data-model.objectschema.exit-info:
     created_at: 2026-11-20T15:06:23.131Z
     updated_at: 2026-11-20T15:06:23.131Z
     version: 1
-data-model.objectschema.started-viewer:
-  id: 11598687-d4f4-4ed7-a597-2f5ece17e3f6
-  path: data-model.objectschema.started-viewer
-  spec_node_id: data-model.objectschema
-  type: objectschema
-  layer_id: data-model
-  name: StartedViewer
-  description: A viewer process review_open started.
-  attributes:
-    type: object
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: StartedViewer
-  metadata:
-    created_at: 2026-11-20T15:06:23.131Z
-    updated_at: 2026-11-20T15:06:23.131Z
-    version: 1
 data-model.objectschema.review-open-deps:
   id: 407eb9a0-da59-42b3-bd88-fb57f03be799
   path: data-model.objectschema.review-open-deps
@@ -8718,25 +8691,6 @@ data-model.objectschema.review-open-deps:
     locations:
       - file: cli/src/mcp/tools/review-open.ts
         symbol: ReviewOpenDeps
-  metadata:
-    created_at: 2026-11-20T15:06:23.131Z
-    updated_at: 2026-11-20T15:06:23.131Z
-    version: 1
-data-model.objectschema.pending-start:
-  id: 88334b3a-c7a0-4e8b-b9c7-41977bda120f
-  path: data-model.objectschema.pending-start
-  spec_node_id: data-model.objectschema
-  type: objectschema
-  layer_id: data-model
-  name: PendingStart
-  description: A viewer that is starting
-  attributes:
-    type: object
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: PendingStart
   metadata:
     created_at: 2026-11-20T15:06:23.131Z
     updated_at: 2026-11-20T15:06:23.131Z
@@ -9160,7 +9114,9 @@ data-model.objectschema.viewer-record:
   type: objectschema
   layer_id: data-model
   name: ViewerRecord
-  description: A running `dr visualize` for one project.
+  description: A per-project `dr visualize` record from CLI 0.7.0 and earlier.
+    Read only by the start-up sweep that stops old viewers; the central process
+    writes a ServerRecord instead.
   attributes:
     type: object
   source_reference:
@@ -9521,8 +9477,7 @@ data-model.objectschema.tool-input-schema:
   type: objectschema
   layer_id: data-model
   name: ToolInputSchema
-  description:
-    Tool input schema definition Defines the structure of inputs for a
+  description: Tool input schema definition Defines the structure of inputs for a
     Claude AI tool
   attributes:
     type: object
@@ -9542,8 +9497,7 @@ data-model.objectschema.tool-definition:
   type: objectschema
   layer_id: data-model
   name: ToolDefinition
-  description:
-    Tool definition for Claude AI integration Represents a single tool
+  description: Tool definition for Claude AI integration Represents a single tool
     that Claude can call
   attributes:
     type: object
@@ -9583,8 +9537,7 @@ data-model.objectschema.backup-manifest-file:
   type: objectschema
   layer_id: data-model
   name: BackupManifestFile
-  description:
-    Backup manifest entry for a single file All properties are readonly
+  description: Backup manifest entry for a single file All properties are readonly
     to enforce immutability of backup records
   attributes:
     type: object
@@ -11036,8 +10989,7 @@ data-model.objectschema.agent-process:
   type: objectschema
   layer_id: data-model
   name: AgentProcess
-  description:
-    Agent process wrapper Provides access to the spawned subprocess and
+  description: Agent process wrapper Provides access to the spawned subprocess and
     its streams
   attributes:
     type: object
@@ -12401,8 +12353,7 @@ data-model.objectschema.contradicted-by-code:
   type: objectschema
   layer_id: data-model
   name: ContradictedByCode
-  description:
-    A relationship extraction would stage that an accepted gap says is
+  description: A relationship extraction would stage that an accepted gap says is
     deliberately absent.
   attributes:
     type: object
@@ -12496,8 +12447,7 @@ data-model.objectschema.accepted-gap:
   type: objectschema
   layer_id: data-model
   name: AcceptedGap
-  description:
-    One accepted gap, as stored on the element (snake_case, as the spec
+  description: One accepted gap, as stored on the element (snake_case, as the spec
     names the fields).
   attributes:
     type: object
@@ -14482,4 +14432,200 @@ data-model.objectschema.change-origin:
   metadata:
     created_at: 2026-11-20T15:08:11.171Z
     updated_at: 2026-11-20T15:08:11.171Z
+    version: 1
+data-model.objectschema.repository:
+  id: 39d18cbf-eca9-4da2-b107-45783a7b2458
+  path: data-model.objectschema.repository
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: Repository
+  description: "A git repository a project lives in, identified by the real path
+    of its common git directory (git rev-parse --git-common-dir): commonDir,
+    mainCheckout (the main worktree's path), remote (origin's URL when it has
+    one). Derived from git, not stored."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: Repository
+  metadata:
+    created_at: 2026-11-21T17:14:10.888Z
+    updated_at: 2026-11-21T17:14:10.888Z
+    version: 1
+data-model.objectschema.checkout:
+  id: 6a30e209-439a-4516-a5ff-5c487a19da87
+  path: data-model.objectschema.checkout
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: Checkout
+  description: "One working tree of a project's repository: key (\"main\" for the
+    main checkout, else the name git gives the linked worktree under
+    <commonDir>/worktrees/<name>), path (real path), branch (or null when
+    detached), head, isMain, state (present, missing, prunable), locked.
+    Discovered from git worktree list --porcelain, never stored."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: Checkout
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.checkout-ref:
+  id: d76626b1-f519-4255-bc92-fa469b0667a7
+  path: data-model.objectschema.checkout-ref
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CheckoutRef
+  description: 'The address of a checkout: {project, checkout}. Every scoped API
+    route, deep link, websocket subscription, DrBot session and MCP result
+    carries it; checkout defaults to "main".'
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: CheckoutRef
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.project-list-entry:
+  id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+  path: data-model.objectschema.project-list-entry
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ProjectListEntry
+  description: "What project_list, GET /api/projects and dr farm list return for a
+    project: name, repository, model path, and its checkouts with branch, head,
+    state, active changeset and staged changeset count."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ProjectListEntry
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.server-record:
+  id: 1e218e2c-98b9-4608-aef6-c08d7a6bef0b
+  path: data-model.objectschema.server-record
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ServerRecord
+  description: "The record of the central DR process serving one farm: farm root,
+    pid, port, cliVersion, startedAt and launcher pid, with the path of the
+    token file (the token is in a 0600 file beside it). Kept at
+    servers/<farm-hash>.json in the user state directory: one record for the
+    user farm, and one for each folder farm a process was started in."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ServerRecord
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.viewer-link:
+  id: 4e412e4c-4339-487f-b011-d2aac9abfe3d
+  path: data-model.objectschema.viewer-link
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ViewerLink
+  description: "A deep link into the shared viewer: url, project, checkout, and
+    optionally changeset and element. The token travels in the URL fragment,
+    never in the query string. Built from the server record, never by starting a
+    process."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ViewerLink
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.dr-bot-session-key:
+  id: 981225cf-4497-42f2-9150-488897a81205
+  path: data-model.objectschema.dr-bot-session-key
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DrBotSessionKey
+  description: "Identifies a DrBot conversation in the central process: {project,
+    checkout, conversationId}; maps to the coding agent's own session id for
+    --resume."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/central-mcp-contract.ts
+        symbol: DrBotSessionKey
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.context-pool-settings:
+  id: 83013eb1-7486-4e08-a64c-20dd9fd43e42
+  path: data-model.objectschema.context-pool-settings
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ContextPoolSettings
+  description: "Limits of the checkout context pool: maxLoaded (default 4),
+    idleMinutes (default 30); DR_SERVER_MAX_LOADED and DR_SERVER_IDLE_MINUTES
+    override them."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ContextPoolSettings
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.feed-subscription:
+  id: 7288c27b-cdcc-4cfc-9c60-a3f4b2e3e5b7
+  path: data-model.objectschema.feed-subscription
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: FeedSubscription
+  description: "A websocket subscribe or unsubscribe frame: {action, project,
+    checkout}. A socket receives model, changeset, annotation and chat events
+    only for the checkouts it subscribed to; each event carries its
+    CheckoutRef."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/schemas.ts
+        symbol: FeedSubscriptionSchema
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
     version: 1

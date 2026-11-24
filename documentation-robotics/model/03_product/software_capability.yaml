@@ -40,8 +40,7 @@ product.softwarecapability.change-review:
     their feedback.
   attributes:
     status: delivered
-    documentation:
-      Show a planned change to a human on the model graph and collect
+    documentation: Show a planned change to a human on the model graph and collect
       their feedback.
   metadata:
     created_at: 2026-11-09T21:54:56.759Z
@@ -97,8 +96,7 @@ product.softwarecapability.project-setup:
     conversation (project_init, the DR plugin) or the CLI.
   attributes:
     status: delivered
-    documentation:
-      Create a model for a project and connect agents to it, from the
+    documentation: Create a model for a project and connect agents to it, from the
       conversation (project_init, the DR plugin) or the CLI (dr init).
   metadata:
     created_at: 2026-11-09T21:54:56.909Z
@@ -115,11 +113,25 @@ product.softwarecapability.spec-migration:
     from the conversation (project_upgrade) or the CLI (dr upgrade).
   attributes:
     status: delivered
-    documentation:
-      Move a model to a new spec version with the migration registry,
+    documentation: Move a model to a new spec version with the migration registry,
       from the conversation (project_upgrade) or the CLI (dr upgrade). The
       registry's chain runs to the spec version the installed CLI bundles.
   metadata:
     created_at: 2026-11-09T21:54:56.959Z
     updated_at: 2026-11-09T21:54:56.959Z
+    version: 1
+product.softwarecapability.multi-project-dr:
+  id: fd133f11-3df7-4084-9344-6314e46a86d1
+  path: product.softwarecapability.multi-project-dr
+  spec_node_id: product.softwarecapability
+  type: softwarecapability
+  layer_id: product
+  name: Multi-project DR
+  description: "Serve every codebase a user maps, and each of its checkouts, from
+    one per-user DR: one project list, one viewer, one MCP interface."
+  attributes:
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.882Z
+    updated_at: 2026-11-21T17:14:10.882Z
     version: 1

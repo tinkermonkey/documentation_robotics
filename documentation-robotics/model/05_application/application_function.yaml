@@ -293,8 +293,7 @@ application.applicationfunction.placement-of:
   type: applicationfunction
   layer_id: application
   name: placementOf
-  description:
-    Where a file sits by framework convention, when that says something
+  description: Where a file sits by framework convention, when that says something
     about its role.
   source_reference:
     provenance: extracted
@@ -329,8 +328,7 @@ application.applicationfunction.percent-used:
   type: applicationfunction
   layer_id: application
   name: percentUsed
-  description:
-    The share of the cap spent, 0 to 100 to one decimal, or null for a
+  description: The share of the cap spent, 0 to 100 to one decimal, or null for a
     cap of 0 (nothing may be spent).
   source_reference:
     provenance: extracted
@@ -502,8 +500,7 @@ application.applicationfunction.run-probe:
   type: applicationfunction
   layer_id: application
   name: runProbe
-  description:
-    Send one probe through a ready configuration, pinned to `upstream`
+  description: Send one probe through a ready configuration, pinned to `upstream`
     when given, and record its cost as `probe`.
   source_reference:
     provenance: extracted
@@ -678,8 +675,7 @@ application.applicationfunction.read-cross-repo-config:
   type: applicationfunction
   layer_id: application
   name: readCrossRepoConfig
-  description:
-    The project's cross-repo configuration, or null when it has none (a
+  description: The project's cross-repo configuration, or null when it has none (a
     single-repository project).
   source_reference:
     provenance: extracted
@@ -750,8 +746,7 @@ application.applicationfunction.read-declared-models:
   type: applicationfunction
   layer_id: application
   name: readDeclaredModels
-  description:
-    The models a project's manifest declares under `models:` (undefined
+  description: The models a project's manifest declares under `models:` (undefined
     when it declares none).
   source_reference:
     provenance: extracted
@@ -963,8 +958,7 @@ application.applicationfunction.stale-cross-repo-targets:
   type: applicationfunction
   layer_id: application
   name: staleCrossRepoTargets
-  description:
-    The run's targets whose code changed after CBM indexed them, judged
+  description: The run's targets whose code changed after CBM indexed them, judged
     by the last commit that touched each target's directory (so in a monorepo a
     commit elsewhere doesn't count)
   source_reference:
@@ -1037,8 +1031,7 @@ application.applicationfunction.attach-target-routes:
   type: applicationfunction
   layer_id: application
   name: attachTargetRoutes
-  description:
-    Sets {@link CrossEdge.targetRoute} where the target handler serves
+  description: Sets {@link CrossEdge.targetRoute} where the target handler serves
     one route (or one of the edge's method).
   source_reference:
     provenance: extracted
@@ -1247,8 +1240,7 @@ application.applicationfunction.dedupe-relationships:
   type: applicationfunction
   layer_id: application
   name: dedupeRelationships
-  description:
-    One relationship per (source element, relationship id, destination
+  description: One relationship per (source element, relationship id, destination
     element), keeping the first.
   source_reference:
     provenance: extracted
@@ -2200,8 +2192,7 @@ application.applicationfunction.migrate-staged-changesets:
   type: applicationfunction
   layer_id: application
   name: migrateStagedChangesets
-  description:
-    Apply the rewrite table to the relationship changes of every staged
+  description: Apply the rewrite table to the relationship changes of every staged
     changeset under documentation-robotics/changesets.
   source_reference:
     provenance: extracted
@@ -2270,8 +2261,7 @@ application.applicationfunction.extract-relationships-header:
   type: applicationfunction
   layer_id: application
   name: extractRelationshipsHeader
-  description:
-    Split a relationships.yaml document into its leading comment block
+  description: Split a relationships.yaml document into its leading comment block
     and the rest.
   source_reference:
     provenance: extracted
@@ -2429,8 +2419,7 @@ application.applicationfunction.plan-relationship-batch:
   type: applicationfunction
   layer_id: application
   name: planRelationshipBatch
-  description:
-    Checks a list of relationship adds against the projected graph and
+  description: Checks a list of relationship adds against the projected graph and
     the catalog, without writing.
   source_reference:
     provenance: extracted
@@ -3264,8 +3253,7 @@ application.applicationfunction.staged-changeset-storage-update-review:
   type: applicationfunction
   layer_id: application
   name: StagedChangesetStorage updateReview
-  description:
-    Change the reviewer's verdicts under the changeset's file lock, so
+  description: Change the reviewer's verdicts under the changeset's file lock, so
     a concurrent stage or review cannot be lost.
   source_reference:
     provenance: extracted
@@ -3283,8 +3271,7 @@ application.applicationfunction.staged-changeset-storage-remove-side-files:
   type: applicationfunction
   layer_id: application
   name: StagedChangesetStorage removeSideFiles
-  description:
-    Remove every file in the changeset's directory except metadata.yaml
+  description: Remove every file in the changeset's directory except metadata.yaml
     and changes.yaml (and dotfiles such as a lock)
   source_reference:
     provenance: extracted
@@ -3624,8 +3611,7 @@ application.applicationfunction.with-tier1decided:
   type: applicationfunction
   layer_id: application
   name: withTier1Decided
-  description:
-    The extraction with accepted Tier-1 decisions (by card id) in place
+  description: The extraction with accepted Tier-1 decisions (by card id) in place
     of the symbols' Tier-0 outcome, for the second planning pass
   source_reference:
     provenance: extracted
@@ -3678,8 +3664,7 @@ application.applicationfunction.route-key:
   type: applicationfunction
   layer_id: application
   name: routeKey
-  description:
-    "`GET /owners/{}`, `__route__GET__/owners/{}` or `GET /owners/{id}`
+  description: "`GET /owners/{}`, `__route__GET__/owners/{}` or `GET /owners/{id}`
     -> `GET /owners/{}`"
   source_reference:
     provenance: extracted
@@ -3904,8 +3889,7 @@ application.applicationfunction.is-index-job-process:
   type: applicationfunction
   layer_id: application
   name: isIndexJobProcess
-  description:
-    Whether `pid` is still this job's `dr analyzer index --job <jobId>`
+  description: Whether `pid` is still this job's `dr analyzer index --job <jobId>`
     process, from its command line.
   source_reference:
     provenance: extracted
@@ -4476,8 +4460,7 @@ application.applicationfunction.staging-area-manager-delete:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager delete
-  description:
-    Delete a changeset If the changeset being deleted is the currently
+  description: Delete a changeset If the changeset being deleted is the currently
     active changeset, this method will also clear the active changeset marker.
   source_reference:
     provenance: extracted
@@ -4548,8 +4531,7 @@ application.applicationfunction.staging-area-manager-landing-refusal:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager landingRefusal
-  description:
-    The refusal to land this changeset for what it is, or null when its
+  description: The refusal to land this changeset for what it is, or null when its
     purpose lets it land.
   source_reference:
     provenance: extracted
@@ -4671,8 +4653,7 @@ application.applicationfunction.staging-area-manager-discard:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager discard
-  description:
-    "Discard a changeset: deletes it, its staged changes and its folder
+  description: "Discard a changeset: deletes it, its staged changes and its folder
     under documentation-robotics/changesets/, and clears the active marker if it
     named it."
   source_reference:
@@ -4913,8 +4894,7 @@ application.applicationfunction.summarize-drops-by-type:
   type: applicationfunction
   layer_id: application
   name: summarizeDropsByType
-  description:
-    The drops counted by retired type, most first, each with the routes
+  description: The drops counted by retired type, most first, each with the routes
     the catalog still has
   source_reference:
     provenance: extracted
@@ -5122,8 +5102,7 @@ application.applicationfunction.validate-base-model:
   type: applicationfunction
   layer_id: application
   name: validateBaseModel
-  description:
-    Validate the committed model only, with the warnings `dr validate`
+  description: Validate the committed model only, with the warnings `dr validate`
     adds (orphaned elements, no source reference), so the counts match it.
   source_reference:
     provenance: extracted
@@ -5159,8 +5138,7 @@ application.applicationfunction.unfilled-required:
   type: applicationfunction
   layer_id: application
   name: unfilledRequired
-  description:
-    The required attributes each element leaves out, for elements that
+  description: The required attributes each element leaves out, for elements that
     leave any out
   source_reference:
     provenance: extracted
@@ -7197,8 +7175,7 @@ application.applicationfunction.outside-changeset-error:
   type: applicationfunction
   layer_id: application
   name: outsideChangesetError
-  description:
-    The error an agent gets for a tool that writes outside a changeset
+  description: The error an agent gets for a tool that writes outside a changeset
     in changeset-only mode.
   source_reference:
     provenance: extracted
@@ -7403,9 +7380,9 @@ application.applicationfunction.pick-project-root:
   type: applicationfunction
   layer_id: application
   name: pickProjectRoot
-  description: "The root to serve: the first one inside a DR project (a
-    documentation-robotics/ folder at or above it), else the first root, so a
-    project without a model yet is still the one in front of the developer."
+  description: "The checkout to serve, from the client's roots: the first root
+    inside a registered project's checkout (resolved through the project
+    registry), else the first root, which the registry then registers."
   source_reference:
     provenance: extracted
     locations:
@@ -7422,7 +7399,8 @@ application.applicationfunction.follow-client-roots:
   type: applicationfunction
   layer_id: application
   name: followClientRoots
-  description: Asks the client for its roots and moves the server to the chosen one.
+  description: Follows the MCP client's roots and resolves the session's checkout
+    through the project registry whenever they change.
   source_reference:
     provenance: extracted
     locations:
@@ -7439,8 +7417,7 @@ application.applicationfunction.read-bundled-schema:
   type: applicationfunction
   layer_id: application
   name: readBundledSchema
-  description:
-    Exported for direct unit testing of the ENOENT-to-actionable-error
+  description: Exported for direct unit testing of the ENOENT-to-actionable-error
     translation.
   source_reference:
     provenance: extracted
@@ -7986,8 +7963,7 @@ application.applicationfunction.create-percentage:
   type: applicationfunction
   layer_id: application
   name: createPercentage
-  description:
-    Create a validated percentage value (0-100) @throws Error if value
+  description: Create a validated percentage value (0-100) @throws Error if value
     is not in valid range
   source_reference:
     provenance: extracted
@@ -8512,8 +8488,7 @@ application.applicationfunction.bundled-agent-file:
   type: applicationfunction
   layer_id: application
   name: bundledAgentFile
-  description:
-    The dr-architect source shipped with this CLI (the file `dr claude
+  description: The dr-architect source shipped with this CLI (the file `dr claude
     install` copies), with its mcp__dr__ tool names.
   source_reference:
     provenance: extracted
@@ -8957,8 +8932,7 @@ application.applicationfunction.as-built-first-warning:
   type: applicationfunction
   layer_id: application
   name: asBuiltFirstWarning
-  description:
-    The warning shown when an extraction (as-built) changeset is about
+  description: The warning shown when an extraction (as-built) changeset is about
     to land while a plan is staged.
   source_reference:
     provenance: extracted
@@ -9708,8 +9682,7 @@ application.applicationfunction.collect-code-index:
   type: applicationfunction
   layer_id: application
   name: collectCodeIndex
-  description:
-    Reads what `dr analyzer status` reads (.dr/analyzers/), and judges
+  description: Reads what `dr analyzer status` reads (.dr/analyzers/), and judges
     freshness by the rule the codebase tools use
   source_reference:
     provenance: extracted
@@ -9760,8 +9733,7 @@ application.applicationfunction.last-non-migration-commit:
   type: applicationfunction
   layer_id: application
   name: lastNonMigrationCommit
-  description:
-    The fallback baseline for a model with no as-built landing recorded
+  description: The fallback baseline for a model with no as-built landing recorded
     (no `reconciled` stamp in its manifest
   source_reference:
     provenance: extracted
@@ -9796,8 +9768,8 @@ application.applicationfunction.collect-viewer:
   type: applicationfunction
   layer_id: application
   name: collectViewer
-  description: The viewer `dr visualize` (or review_open) runs for this project,
-    from its record in the user's state directory.
+  description: The central process's state (running, version, outdated) and this
+    checkout's deep link, from the server record.
   source_reference:
     provenance: extracted
     locations:
@@ -9967,8 +9939,9 @@ application.applicationfunction.prepare-dr-bot-agent:
   type: applicationfunction
   layer_id: application
   name: prepareDrBotAgent
-  description: Resolves DrBot's dr-architect once and derives both the launch
-    arguments and the tool check from it.
+  description: Resolves DrBot's dr-architect once for a checkout and derives both
+    the launch arguments and the tool check from it; called by the DrBotLauncher
+    per CheckoutRef.
   source_reference:
     provenance: extracted
     locations:
@@ -10051,8 +10024,7 @@ application.applicationfunction.format-adoption-report:
   type: applicationfunction
   layer_id: application
   name: formatAdoptionReport
-  description:
-    Human-readable rendering of what `--adopt-source-references` copied
+  description: Human-readable rendering of what `--adopt-source-references` copied
     onto the plan.
   source_reference:
     provenance: extracted
@@ -10155,8 +10127,7 @@ application.applicationfunction.perform-discover:
   type: applicationfunction
   layer_id: application
   name: performDiscover
-  description:
-    Core discover logic - discovers installed analyzers and determines
+  description: Core discover logic - discovers installed analyzers and determines
     what action to take
   source_reference:
     provenance: extracted
@@ -10224,8 +10195,7 @@ application.applicationfunction.serve-from-root-path-env:
   type: applicationfunction
   layer_id: application
   name: serveFromRootPathEnv
-  description:
-    DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point
+  description: DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point
     the server at a model without relying on the cwd its MCP client spawns it in
   source_reference:
     provenance: extracted
@@ -10518,8 +10488,7 @@ application.applicationfunction.save-drconfig:
   type: applicationfunction
   layer_id: application
   name: saveDRConfig
-  description:
-    Persist the given config object to the DR config file, creating the
+  description: Persist the given config object to the DR config file, creating the
     parent directory if necessary.
   source_reference:
     provenance: extracted
@@ -10537,8 +10506,7 @@ application.applicationfunction.split-by-accepted-gaps:
   type: applicationfunction
   layer_id: application
   name: splitByAcceptedGaps
-  description:
-    Splits the relationships extraction would stage into those to stage
+  description: Splits the relationships extraction would stage into those to stage
     and those an accepted gap on either end contradicts.
   source_reference:
     provenance: extracted
@@ -10623,8 +10591,7 @@ application.applicationfunction.reset-accepted-gap-validator-for-tests:
   type: applicationfunction
   layer_id: application
   name: resetAcceptedGapValidatorForTests
-  description:
-    "Test hook: forget the compiled validator, so the next check reads
+  description: "Test hook: forget the compiled validator, so the next check reads
     the schema again, from `basePath` when given (the bundled base.json
     otherwise)."
   source_reference:
@@ -10814,8 +10781,7 @@ application.applicationfunction.accepted-gaps-with-evidence:
   type: applicationfunction
   layer_id: application
   name: acceptedGapsWithEvidence
-  description:
-    An element's accepted gaps as tools show them, each marked with the
+  description: An element's accepted gaps as tools show them, each marked with the
     live relationship that contradicts it.
   source_reference:
     provenance: extracted
@@ -10917,8 +10883,7 @@ application.applicationfunction.write-active-marker:
   type: applicationfunction
   layer_id: application
   name: writeActiveMarker
-  description:
-    Name `changesetId` as the active changeset, in `.dr/`, and remove a
+  description: Name `changesetId` as the active changeset, in `.dr/`, and remove a
     marker left in the old place.
   source_reference:
     provenance: extracted
@@ -10970,8 +10935,7 @@ application.applicationfunction.split-verify-layers:
   type: applicationfunction
   layer_id: application
   name: splitVerifyLayers
-  description:
-    Splits requested layers into the ones verify checks and the ones it
+  description: Splits requested layers into the ones verify checks and the ones it
     has no check for.
   source_reference:
     provenance: extracted
@@ -11042,8 +11006,7 @@ application.applicationfunction.call-gate-from:
   type: applicationfunction
   layer_id: application
   name: callGateFrom
-  description:
-    The gate an analyzer's heuristics configure, or null when it has no
+  description: The gate an analyzer's heuristics configure, or null when it has no
     `call_edge_evidence` heuristic.
   source_reference:
     provenance: extracted
@@ -11163,8 +11126,7 @@ application.applicationfunction.card-id:
   type: applicationfunction
   layer_id: application
   name: cardId
-  description:
-    Stable card id for a symbol (full, project-prefixed qualified name)
+  description: Stable card id for a symbol (full, project-prefixed qualified name)
     within a scope.
   source_reference:
     provenance: extracted
@@ -11711,8 +11673,7 @@ application.applicationfunction.routes-called-in:
   type: applicationfunction
   layer_id: application
   name: routesCalledIn
-  description:
-    The served routes (`__route__METHOD__/path` names) a test's source
+  description: The served routes (`__route__METHOD__/path` names) a test's source
     calls by URL
   source_reference:
     provenance: extracted
@@ -11730,8 +11691,7 @@ application.applicationfunction.url-matches-route:
   type: applicationfunction
   layer_id: application
   name: urlMatchesRoute
-  description:
-    Whether a URL path as code writes it (no scheme or host) reaches a
+  description: Whether a URL path as code writes it (no scheme or host) reaches a
     route's path
   source_reference:
     provenance: extracted
@@ -12050,41 +12010,6 @@ application.applicationfunction.preview-changeset:
     created_at: 2026-11-20T15:07:06.100Z
     updated_at: 2026-11-20T15:07:06.100Z
     version: 1
-application.applicationfunction.spawn-detached-viewer:
-  id: 5a6a49e3-de75-4060-964f-aca4679cbd59
-  path: application.applicationfunction.spawn-detached-viewer
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: spawnDetachedViewer
-  description: Starts `dr visualize --with-changesets --no-browser` for the
-    project, detached and unref'd.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: spawnDetachedViewer
-  metadata:
-    created_at: 2026-11-20T15:07:06.100Z
-    updated_at: 2026-11-20T15:07:06.100Z
-    version: 1
-application.applicationfunction.port-in-use:
-  id: e546e13c-ccdd-4681-b0b1-ffef6b25c157
-  path: application.applicationfunction.port-in-use
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: portInUse
-  description: The port a viewer's output says was taken, if that is why it exited.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: portInUse
-  metadata:
-    created_at: 2026-11-20T15:07:06.100Z
-    updated_at: 2026-11-20T15:07:06.100Z
-    version: 1
 application.applicationfunction.clear-model-cache:
   id: ffcc2806-788a-428e-9714-7896a6b818cc
   path: application.applicationfunction.clear-model-cache
@@ -12109,8 +12034,7 @@ application.applicationfunction.load-model:
   type: applicationfunction
   layer_id: application
   name: loadModel
-  description:
-    Returns the cached model for this rootPath, reading it from disk on
+  description: Returns the cached model for this rootPath, reading it from disk on
     first use and again whenever the model's files changed since it was read
     (see {@link modelFingerprint}).
   source_reference:
@@ -12129,8 +12053,7 @@ application.applicationfunction.with-project-write-lock:
   type: applicationfunction
   layer_id: application
   name: withProjectWriteLock
-  description:
-    Runs a tool's read-modify-write of the model at `rootPath` holding
+  description: Runs a tool's read-modify-write of the model at `rootPath` holding
     that project's write lock (core/model-write-tracker.ts), from its
     `loadModel` through its last save.
   source_reference:
@@ -12237,8 +12160,7 @@ application.applicationfunction.run-tool:
   type: applicationfunction
   layer_id: application
   name: runTool
-  description:
-    Runs a tool handler body, catching any error into a structured tool
+  description: Runs a tool handler body, catching any error into a structured tool
     result instead of throwing.
   source_reference:
     provenance: extracted
@@ -12409,8 +12331,7 @@ application.applicationfunction.parse-element-id:
   type: applicationfunction
   layer_id: application
   name: parseElementId
-  description:
-    Parse and validate a string as an ElementId Returns a branded type
+  description: Parse and validate a string as an ElementId Returns a branded type
     for compile-time type safety
   source_reference:
     provenance: extracted
@@ -12428,8 +12349,7 @@ application.applicationfunction.is-element-id:
   type: applicationfunction
   layer_id: application
   name: isElementId
-  description:
-    Type guard for ElementId Use with function parameters for optional
+  description: Type guard for ElementId Use with function parameters for optional
     compile-time checking
   source_reference:
     provenance: extracted
@@ -12447,8 +12367,7 @@ application.applicationfunction.visualization-server-get-open-apidocument:
   type: applicationfunction
   layer_id: application
   name: VisualizationServer getOpenAPIDocument
-  description:
-    Get OpenAPI specification document Provides a stable public API for
+  description: Get OpenAPI specification document Provides a stable public API for
     OpenAPI spec generation.
   source_reference:
     provenance: extracted
@@ -12500,8 +12419,7 @@ application.applicationfunction.telemetry-middleware:
   type: applicationfunction
   layer_id: application
   name: telemetryMiddleware
-  description:
-    Hono middleware that creates a span for each HTTP request Captures
+  description: Hono middleware that creates a span for each HTTP request Captures
     HTTP semantic attributes according to OpenTelemetry conventions
   source_reference:
     provenance: extracted
@@ -12604,8 +12522,7 @@ application.applicationfunction.viewer-starting-path:
   type: applicationfunction
   layer_id: application
   name: viewerStartingPath
-  description:
-    Path of the "a viewer is starting" marker review_open writes while
+  description: Path of the "a viewer is starting" marker review_open writes while
     a viewer it spawned loads.
   source_reference:
     provenance: extracted
@@ -12778,7 +12695,8 @@ application.applicationfunction.find-running-viewer:
   type: applicationfunction
   layer_id: application
   name: findRunningViewer
-  description: The viewer serving this project, or null.
+  description: The running central process from the server record (pid alive and
+    /health answering), or null; per-project viewers are no longer looked up.
   source_reference:
     provenance: extracted
     locations:
@@ -12881,11 +12799,15 @@ application.applicationfunction.viewer-url:
   type: applicationfunction
   layer_id: application
   name: viewerUrl
-  description: Link into a running viewer.
+  description: A deep link into the shared viewer for a CheckoutRef, optionally to
+    a changeset or element. Built from the server record as
+    http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+    the whole route and the token in the URL fragment, so the token stays out of
+    server logs and Referer headers.
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/server/viewer-registry.ts
+      - file: cli/src/server/viewer-link.ts
         symbol: viewerUrl
   metadata:
     created_at: 2026-11-20T15:07:06.101Z
@@ -12949,8 +12871,7 @@ application.applicationfunction.is-telemetry-built-in:
   type: applicationfunction
   layer_id: application
   name: isTelemetryBuiltIn
-  description:
-    Check if the CLI was built with telemetry enabled @returns true if
+  description: Check if the CLI was built with telemetry enabled @returns true if
     telemetry is enabled, false otherwise
   source_reference:
     provenance: extracted
@@ -13170,8 +13091,7 @@ application.applicationfunction.apply-recovery:
   type: applicationfunction
   layer_id: application
   name: applyRecovery
-  description:
-    Apply recovered values back onto the live model (in memory — caller
+  description: Apply recovered values back onto the live model (in memory — caller
     is responsible for saving the affected layers).
   source_reference:
     provenance: extracted
@@ -13408,8 +13328,7 @@ application.applicationfunction.format-index:
   type: applicationfunction
   layer_id: application
   name: formatIndex
-  description:
-    The index as prettier and end-of-file-fixer leave JSON (#1155), so
+  description: The index as prettier and end-of-file-fixer leave JSON (#1155), so
     committing a changeset in a repo with those hooks doesn't fail once
   source_reference:
     provenance: extracted
@@ -13444,8 +13363,7 @@ application.applicationfunction.try-read-base-index:
   type: applicationfunction
   layer_id: application
   name: tryReadBaseIndex
-  description:
-    Like `readBaseIndex`, but reports an unreadable index as a warning
+  description: Like `readBaseIndex`, but reports an unreadable index as a warning
     instead of throwing.
   source_reference:
     provenance: extracted
@@ -13480,8 +13398,7 @@ application.applicationfunction.content-free-drift:
   type: applicationfunction
   layer_id: application
   name: contentFreeDrift
-  description:
-    Whether a changeset whose base hash no longer matches drifted only
+  description: Whether a changeset whose base hash no longer matches drifted only
     in content it wasn't staged against.
   source_reference:
     provenance: extracted
@@ -13534,8 +13451,7 @@ application.applicationfunction.unwired-counts:
   type: applicationfunction
   layer_id: application
   name: unwiredCounts
-  description:
-    Unwired connections counted per other-end layer, across every added
+  description: Unwired connections counted per other-end layer, across every added
     or updated element.
   source_reference:
     provenance: extracted
@@ -13792,8 +13708,7 @@ application.applicationfunction.unstaged-since:
   type: applicationfunction
   layer_id: application
   name: unstagedSince
-  description:
-    Tombstones of changes that were staged at `revision` and have been
+  description: Tombstones of changes that were staged at `revision` and have been
     unstaged (not merely rewritten) since
   source_reference:
     provenance: extracted
@@ -14136,8 +14051,7 @@ application.applicationfunction.cbm-analyzer-classify:
   type: applicationfunction
   layer_id: application
   name: CbmAnalyzer classify
-  description:
-    Tier-0 classification of the indexed project (`dr analyzer classify
+  description: Tier-0 classification of the indexed project (`dr analyzer classify
     --tier0-only`).
   source_reference:
     provenance: extracted
@@ -14326,8 +14240,7 @@ application.applicationfunction.query-records:
   type: applicationfunction
   layer_id: application
   name: queryRecords
-  description:
-    query_graph rows as objects keyed by column name (use `AS` aliases
+  description: query_graph rows as objects keyed by column name (use `AS` aliases
     for clean keys).
   source_reference:
     provenance: extracted
@@ -14379,8 +14292,7 @@ application.applicationfunction.cell-label:
   type: applicationfunction
   layer_id: application
   name: cellLabel
-  description:
-    First label from a `labels(n)` cell (CBM 0.12 returns it as a JSON
+  description: First label from a `labels(n)` cell (CBM 0.12 returns it as a JSON
     string `["Route"]`).
   source_reference:
     provenance: extracted
@@ -15086,8 +14998,7 @@ application.applicationfunction.tier1cache-clear:
   type: applicationfunction
   layer_id: application
   name: Tier1Cache clear
-  description:
-    Delete the cache, or the files of one question set or model (`cache
+  description: Delete the cache, or the files of one question set or model (`cache
     clear --qset/--model`).
   source_reference:
     provenance: extracted
@@ -15439,8 +15350,7 @@ application.applicationfunction.create-sha256hash:
   type: applicationfunction
   layer_id: application
   name: createSha256Hash
-  description:
-    Create a Sha256Hash from a hex string This is the only valid way to
+  description: Create a Sha256Hash from a hex string This is the only valid way to
     construct a Sha256Hash value
   source_reference:
     provenance: extracted
@@ -15669,8 +15579,7 @@ application.applicationfunction.chat-logger-log-error:
   type: applicationfunction
   layer_id: application
   name: ChatLogger logError
-  description:
-    Log an error @param errorMessage The error message @param metadata
+  description: Log an error @param errorMessage The error message @param metadata
     Optional metadata including error details
   source_reference:
     provenance: extracted
@@ -15688,8 +15597,7 @@ application.applicationfunction.chat-logger-log-event:
   type: applicationfunction
   layer_id: application
   name: ChatLogger logEvent
-  description:
-    Log an event (initialization, session start, etc.) @param eventName
+  description: Log an event (initialization, session start, etc.) @param eventName
     Event name @param metadata Optional metadata
   source_reference:
     provenance: extracted
@@ -15759,8 +15667,7 @@ application.applicationfunction.get-chat-logger:
   type: applicationfunction
   layer_id: application
   name: getChatLogger
-  description:
-    Get the global chat logger instance @returns The global ChatLogger
+  description: Get the global chat logger instance @returns The global ChatLogger
     instance or undefined if not initialized
   source_reference:
     provenance: extracted
@@ -15795,8 +15702,7 @@ application.applicationfunction.list-chat-sessions:
   type: applicationfunction
   layer_id: application
   name: listChatSessions
-  description:
-    List all chat session logs @param projectRoot Optional project root
+  description: List all chat session logs @param projectRoot Optional project root
     for relative path resolution
   source_reference:
     provenance: extracted
@@ -15814,8 +15720,7 @@ application.applicationfunction.read-chat-session:
   type: applicationfunction
   layer_id: application
   name: readChatSession
-  description:
-    Read a specific chat session @param logFile The log filename @param
+  description: Read a specific chat session @param logFile The log filename @param
     projectRoot Optional project root
   source_reference:
     provenance: extracted
@@ -15833,8 +15738,7 @@ application.applicationfunction.invoke-claude-streaming:
   type: applicationfunction
   layer_id: application
   name: invokeClaudeStreaming
-  description:
-    Invoke Claude Code CLI in non-interactive print mode, relaying text
+  description: Invoke Claude Code CLI in non-interactive print mode, relaying text
     and tool-use events to stdout in real-time, and returning the complete
     response text for parsing.
   source_reference:
@@ -16071,8 +15975,7 @@ application.applicationfunction.categorize-error:
   type: applicationfunction
   layer_id: application
   name: categorizeError
-  description:
-    Categorize errors based on type, using stable error.code for system
+  description: Categorize errors based on type, using stable error.code for system
     errors Returns the appropriate ErrorCategory for a given error
   source_reference:
     provenance: extracted
@@ -16090,8 +15993,7 @@ application.applicationfunction.get-error-message:
   type: applicationfunction
   layer_id: application
   name: getErrorMessage
-  description:
-    Extract error message from any error type Handles Error instances,
+  description: Extract error message from any error type Handles Error instances,
     strings, and unknown types consistently
   source_reference:
     provenance: extracted
@@ -16177,8 +16079,7 @@ application.applicationfunction.read-purpose:
   type: applicationfunction
   layer_id: application
   name: readPurpose
-  description:
-    Reads a declaration from metadata.yaml's fields, or undefined when
+  description: Reads a declaration from metadata.yaml's fields, or undefined when
     absent or malformed.
   source_reference:
     provenance: extracted
@@ -16196,8 +16097,7 @@ application.applicationfunction.purpose-fields:
   type: applicationfunction
   layer_id: application
   name: purposeFields
-  description:
-    The declaration's fields as metadata.yaml stores them (spread into
+  description: The declaration's fields as metadata.yaml stores them (spread into
     the metadata object).
   source_reference:
     provenance: extracted
@@ -16232,8 +16132,7 @@ application.applicationfunction.extraction-origin:
   type: applicationfunction
   layer_id: application
   name: extractionOrigin
-  description:
-    Whether codebase_extract staged this changeset, and what its record
+  description: Whether codebase_extract staged this changeset, and what its record
     says about the run
   source_reference:
     provenance: extracted
@@ -16302,8 +16201,7 @@ application.applicationfunction.creation-purpose:
   type: applicationfunction
   layer_id: application
   name: creationPurpose
-  description:
-    The purpose to declare for a changeset made now by `origin`'s kind
+  description: The purpose to declare for a changeset made now by `origin`'s kind
     of caller, unless the caller declares one
   source_reference:
     provenance: extracted
@@ -16441,8 +16339,7 @@ application.applicationfunction.cancel-pair-members:
   type: applicationfunction
   layer_id: application
   name: cancelPairMembers
-  description:
-    "Cancel pairs: an add (or relationship-add) and a later delete (or
+  description: "Cancel pairs: an add (or relationship-add) and a later delete (or
     relationship-delete) of the same change key, both staged, where the delete
     has no blockers (`blockedDeletes`"
   source_reference:
@@ -16496,8 +16393,7 @@ application.applicationfunction.delete-blockers:
   type: applicationfunction
   layer_id: application
   name: deleteBlockers
-  description:
-    For each staged `delete`, the relationships in the projected model
+  description: For each staged `delete`, the relationships in the projected model
     (base + changeset) that still name the deleted element and that the
     changeset does not delete.
   source_reference:
@@ -16599,8 +16495,7 @@ application.applicationfunction.changeset-validator-validate-changeset:
   type: applicationfunction
   layer_id: application
   name: ChangesetValidator validateChangeset
-  description:
-    Validate a changeset by running the full validation pipeline on its
+  description: Validate a changeset by running the full validation pipeline on its
     projected model.
   source_reference:
     provenance: extracted
@@ -16635,8 +16530,7 @@ application.applicationfunction.is-lifecycle-move:
   type: applicationfunction
   layer_id: application
   name: isLifecycleMove
-  description:
-    Whether a field difference is the build moving a lifecycle field to
+  description: Whether a field difference is the build moving a lifecycle field to
     a later stage.
   source_reference:
     provenance: extracted
@@ -16825,8 +16719,7 @@ application.applicationfunction.source-reference-gaps:
   type: applicationfunction
   layer_id: application
   name: sourceReferenceGaps
-  description:
-    Matched plan elements (adds and updates, divergent ones too) whose
+  description: Matched plan elements (adds and updates, divergent ones too) whose
     as-built match has source locations the plan's element lacks
   source_reference:
     provenance: extracted
@@ -16862,8 +16755,7 @@ application.applicationfunction.as-built-share:
   type: applicationfunction
   layer_id: application
   name: asBuiltShare
-  description:
-    Where an as-built changeset's elements and relationships came from
+  description: Where an as-built changeset's elements and relationships came from
     (see AsBuiltShare).
   source_reference:
     provenance: extracted
@@ -17431,8 +17323,7 @@ application.applicationfunction.read-tier1file:
   type: applicationfunction
   layer_id: application
   name: readTier1File
-  description:
-    The file's JSON as written (credentials included), for `enable` and
+  description: The file's JSON as written (credentials included), for `enable` and
     `set` to update.
   source_reference:
     provenance: extracted
@@ -18933,8 +18824,7 @@ application.applicationfunction.precheck-update-source-reference-options:
   type: applicationfunction
   layer_id: application
   name: precheckUpdateSourceReferenceOptions
-  description:
-    Refuse, before the element is loaded, the source options no element
+  description: Refuse, before the element is loaded, the source options no element
     could settle.
   source_reference:
     provenance: extracted
@@ -19212,8 +19102,7 @@ application.applicationfunction.composed-reference-validator-from-farm:
   type: applicationfunction
   layer_id: application
   name: ComposedReferenceValidator fromFarm
-  description:
-    Create a ComposedReferenceValidator from a farm root Automatically
+  description: Create a ComposedReferenceValidator from a farm root Automatically
     builds model-path overrides from the farm's project entries @param farmRoot
     - Path to the farm root directory @returns ComposedReferenceValidator
     instance configured for the
@@ -19332,8 +19221,7 @@ application.applicationfunction.credential-env:
   type: applicationfunction
   layer_id: application
   name: credentialEnv
-  description:
-    Environment variable names per credential for a provider (empty for
+  description: Environment variable names per credential for a provider (empty for
     an unknown provider).
   source_reference:
     provenance: extracted
@@ -19418,8 +19306,7 @@ application.applicationfunction.with-billed:
   type: applicationfunction
   layer_id: application
   name: withBilled
-  description:
-    Add usage already billed to an error (kept on a DecisionModelError,
+  description: Add usage already billed to an error (kept on a DecisionModelError,
     wrapping anything else as `unavailable`).
   source_reference:
     provenance: extracted
@@ -19454,8 +19341,7 @@ application.applicationfunction.qset-by-id:
   type: applicationfunction
   layer_id: application
   name: qsetById
-  description:
-    The question set module for an id (`dr-qset-2`), or an error naming
+  description: The question set module for an id (`dr-qset-2`), or an error naming
     the known ids.
   source_reference:
     provenance: extracted
@@ -19743,8 +19629,7 @@ application.applicationfunction.decision-of:
   type: applicationfunction
   layer_id: application
   name: decisionOf
-  description:
-    A card's decision from its normalised stage answers (section 1.3's
+  description: A card's decision from its normalised stage answers (section 1.3's
     hint, plus status).
   source_reference:
     provenance: extracted
@@ -19830,8 +19715,7 @@ application.applicationfunction.routing-of:
   type: applicationfunction
   layer_id: application
   name: routingOf
-  description:
-    OpenRouter's routing for a configuration, as every request sends it
+  description: OpenRouter's routing for a configuration, as every request sends it
     (section 3.2)
   source_reference:
     provenance: extracted
@@ -19883,8 +19767,7 @@ application.applicationfunction.tier1mode-for:
   type: applicationfunction
   layer_id: application
   name: tier1ModeFor
-  description:
-    Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and
+  description: Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and
     6), and why.
   source_reference:
     provenance: extracted
@@ -20192,8 +20075,7 @@ application.applicationfunction.near-cap:
   type: applicationfunction
   layer_id: application
   name: nearCap
-  description:
-    True at 80% of the cap or more (and not for a cap of 0, which sends
+  description: True at 80% of the cap or more (and not for a cap of 0, which sends
     nothing by choice).
   source_reference:
     provenance: extracted
@@ -20401,8 +20283,7 @@ application.applicationfunction.migrate-element-types:
   type: applicationfunction
   layer_id: application
   name: migrateElementTypes
-  description:
-    Rename the elements of every renamed type in the loaded model, and
+  description: Rename the elements of every renamed type in the loaded model, and
     rewrite what names them.
   source_reference:
     provenance: extracted
@@ -20491,8 +20372,7 @@ application.applicationfunction.farm-manifest-create:
   type: applicationfunction
   layer_id: application
   name: FarmManifest create
-  description:
-    Create a new farm manifest @param name - Farm name @param options -
+  description: Create a new farm manifest @param name - Farm name @param options -
     Optional additional properties @returns FarmManifest instance
   source_reference:
     provenance: extracted
@@ -20527,7 +20407,9 @@ application.applicationfunction.farm-manifest-add-project:
   type: applicationfunction
   layer_id: application
   name: FarmManifest addProject
-  description: Add a project to the farm
+  description: "Add a project to the farm (dr-farm-v2 entry: name, repository,
+    model, remote); refuses a second entry for a repository the farm already
+    holds, naming that project."
   source_reference:
     provenance: extracted
     locations:
@@ -20544,8 +20426,7 @@ application.applicationfunction.farm-manifest-remove-project:
   type: applicationfunction
   layer_id: application
   name: FarmManifest removeProject
-  description:
-    Remove a project from the farm @param name - Project name to remove
+  description: Remove a project from the farm @param name - Project name to remove
     @returns true if project was removed, false if not found
   source_reference:
     provenance: extracted
@@ -20580,8 +20461,7 @@ application.applicationfunction.farm-sync-engine-pull-codebase:
   type: applicationfunction
   layer_id: application
   name: FarmSyncEngine pullCodebase
-  description:
-    Pull latest changes from remote for a codebase @param codebasePath
+  description: Pull latest changes from remote for a codebase @param codebasePath
     - Relative path to codebase folder @returns Updated commit SHA
   source_reference:
     provenance: extracted
@@ -20672,7 +20552,8 @@ application.applicationfunction.farm-sync-engine-sync-project:
   type: applicationfunction
   layer_id: application
   name: FarmSyncEngine syncProject
-  description: Execute a complete sync operation for a project
+  description: Execute a complete sync operation for a project, against its main
+    checkout (the project's repository path); linked worktrees are not synced.
   source_reference:
     provenance: extracted
     locations:
@@ -21001,8 +20882,7 @@ application.applicationfunction.merge-changeset-history:
   type: applicationfunction
   layer_id: application
   name: mergeChangesetHistory
-  description:
-    Merge the changeset history on disk with the history in memory, so
+  description: Merge the changeset history on disk with the history in memory, so
     a manifest save never drops an entry
   source_reference:
     provenance: extracted
@@ -21123,8 +21003,7 @@ application.applicationfunction.dropped-by-migration:
   type: applicationfunction
   layer_id: application
   name: droppedByMigration
-  description:
-    The relationships the applied migration steps dropped for want of a
+  description: The relationships the applied migration steps dropped for want of a
     replacement
   source_reference:
     provenance: extracted
@@ -21142,8 +21021,7 @@ application.applicationfunction.capture-changeset-baselines:
   type: applicationfunction
   layer_id: application
   name: captureChangesetBaselines
-  description:
-    Hash the model and sort its staged changesets into those whose base
+  description: Hash the model and sort its staged changesets into those whose base
     snapshot matches it and those that had drifted from it.
   source_reference:
     provenance: extracted
@@ -21232,8 +21110,7 @@ application.applicationfunction.when-model-writes-settled:
   type: applicationfunction
   layer_id: application
   name: whenModelWritesSettled
-  description:
-    Resolves once no write to the model at `root` is in flight (at once
+  description: Resolves once no write to the model at `root` is in flight (at once
     when none is).
   source_reference:
     provenance: extracted
@@ -21348,4 +21225,289 @@ application.applicationfunction.drift-status:
   metadata:
     created_at: 2026-11-20T15:08:59.540Z
     updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+application.applicationfunction.resolve-checkout:
+  id: 86bbc820-d0a0-4d97-916c-701bddc793b5
+  path: application.applicationfunction.resolve-checkout
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveCheckout
+  description: "A path (rootPath, an MCP root, a working directory), a project
+    name or a CheckoutRef, to {project, checkout}: the checkout whose real path
+    contains the path, the project whose repository owns it."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: ProjectRegistry.resolveCheckout
+  metadata:
+    created_at: 2026-11-21T17:14:10.903Z
+    updated_at: 2026-11-21T17:14:10.903Z
+    version: 1
+application.applicationfunction.discover-checkouts:
+  id: c52d27cd-c754-476b-96a4-c85602e4620e
+  path: application.applicationfunction.discover-checkouts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: discoverCheckouts
+  description: A project's checkouts, from git worktree list --porcelain run in
+    its repository and cached until <commonDir>/worktrees changes. A linked
+    checkout's key is the name git gives the worktree (maintainer answer,
+    2026-11-21). A worktree whose folder is gone is reported missing or
+    prunable.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: listCheckouts
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.derive-project-name:
+  id: 7f10aa83-19b2-490f-b2dc-48b8a536be56
+  path: application.applicationfunction.derive-project-name
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deriveProjectName
+  description: "The name a new project gets: the farm entry's name when it has
+    one, else the main checkout's folder name in kebab case; a name another
+    repository already holds is refused with the call that names it explicitly,
+    never suffixed."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: deriveProjectName
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.register-project:
+  id: 8a62af3f-5bbe-4a0e-b62c-5d9c513961f0
+  path: application.applicationfunction.register-project
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: registerProject
+  description: Adds a project to the farm in use through the one code path every
+    interface uses. A path an MCP call or dr visualize names that no registered
+    project owns is registered automatically (maintainer answer, 2026-11-21).
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: ProjectRegistry.registerProject
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.list-projects:
+  id: a51a424a-35e9-4253-9292-26ebecb4d450
+  path: application.applicationfunction.list-projects
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: listProjects
+  description: The ProjectListEntry for every registered project, in name order,
+    with its checkouts.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: ProjectRegistry.listProjects
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.acquire-checkout-context:
+  id: f7ca5d48-c82f-41d5-b3c2-ee03d2431dda
+  path: application.applicationfunction.acquire-checkout-context
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: acquireCheckoutContext
+  description: The CheckoutContext for a CheckoutRef, loading its model lazily;
+    refuses a checkout the registry does not list.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: CheckoutContextPool.acquire
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.evict-checkout-contexts:
+  id: 014dba1d-2ee7-4b06-bb99-143330c40ca7
+  path: application.applicationfunction.evict-checkout-contexts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: evictCheckoutContexts
+  description: "Closes idle contexts and the least recently used one past
+    maxLoaded: stops the watcher, drops the model, keeps nothing on disk."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: CheckoutContextPool.evict
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.close-checkout-context:
+  id: 7c3e9b0a-a416-42a0-8dbe-41d3fba1fbba
+  path: application.applicationfunction.close-checkout-context
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: closeCheckoutContext
+  description: "Closes a removed checkout's context: ends its DrBot turns, tells
+    its subscribers the checkout is gone, drops it from the pool."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: CheckoutContextPool.close
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.launch-dr-bot-turn:
+  id: 8dd82476-0aa5-4c4b-bbe9-31c940edb251
+  path: application.applicationfunction.launch-dr-bot-turn
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: launchDrBotTurn
+  description: Starts or resumes one DrBot turn for a DrBotSessionKey in its checkout.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/dr-bot-launcher.ts
+        symbol: DrBotLauncher.startTurn
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.ensure-central-server:
+  id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+  path: application.applicationfunction.ensure-central-server
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: ensureCentralServer
+  description: Finds the running central process for the farm in use from its
+    server record, or starts one detached (dr serve) under the starting marker.
+    It replaces an older process only when no browser tab, MCP session or DrBot
+    turn is connected; otherwise it returns the older one with a notice.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/ensure-central-server.ts
+        symbol: ensureCentralServer
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.sweep-per-project-viewers:
+  id: d98cfff7-8790-413d-b6c8-1fce1791f184
+  path: application.applicationfunction.sweep-per-project-viewers
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sweepPerProjectViewers
+  description: At start-up, finds per-project viewers from the legacy records and
+    a process scan, stops those review_open started that have no connected tab,
+    and reports the rest with their pids for dr visualize --stop.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/legacy-viewer-sweep.ts
+        symbol: sweepPerProjectViewers
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.subscribe-checkout-feed:
+  id: ef36d7a3-cd17-41bf-9f82-3e41d93a63fe
+  path: application.applicationfunction.subscribe-checkout-feed
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: subscribeCheckoutFeed
+  description: Adds or removes a websocket's subscription to a checkout's events
+    and acquires the checkout's context for it.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.handleFeedSubscription
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.migrate-farm-manifest:
+  id: a015c690-5c98-4c3c-a65c-6e0ad4849857
+  path: application.applicationfunction.migrate-farm-manifest
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: migrateFarmManifest
+  description: dr-farm-v1 to dr-farm-v2. It groups entries by repository (git
+    common dir); the entry whose source is the main checkout names the project,
+    else the main checkout's folder name does. The other entries' paths become
+    checkouts, and their names are dropped, never kept as aliases (maintainer
+    answer, 2026-11-21). branch is dropped.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/farm-migration.ts
+        symbol: migrateFarmManifest
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationfunction.publish-checkout-event:
+  id: e35c24e2-8ff8-4d5d-b44d-007c6fb6ff6a
+  path: application.applicationfunction.publish-checkout-event
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: publishCheckoutEvent
+  description: Sends a model, changeset, annotation or chat event to the
+    websockets subscribed to this checkout only, stamped with its CheckoutRef.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.broadcastMessage
+  metadata:
+    created_at: 2026-11-21T17:16:36.425Z
+    updated_at: 2026-11-21T17:16:36.425Z
+    version: 1
+application.applicationfunction.resolve-farm:
+  id: 33eff7f6-1b23-46eb-bbee-dcef3159b449
+  path: application.applicationfunction.resolve-farm
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveFarm
+  description: "The farm in use, in this order: DR_FARM_PATH, else a farm root
+    found upward from the working directory (findFarmRoot), else the user farm
+    (~/.config/dr/farm.yaml, created empty on first use). The CLI launched in a
+    folder farm uses that farm's definition, and so does any central process it
+    starts."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: resolveFarm
+  metadata:
+    created_at: 2026-11-21T17:43:54.697Z
+    updated_at: 2026-11-21T17:43:54.697Z
     version: 1

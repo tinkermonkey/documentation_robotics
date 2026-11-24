@@ -13,8 +13,7 @@ product.feature.changeset-lifecycle:
   attributes:
     priority: critical
     status: delivered
-    documentation:
-      "The active changeset is named by one file, .dr/active-changeset
+    documentation: "The active changeset is named by one file, .dr/active-changeset
       (the changeset's id), read and written by
       cli/src/core/active-changeset-marker.ts. It is per-checkout state, so it
       sits in .dr/ with the spec reference and the analyzer state, out of git
@@ -41,8 +40,7 @@ product.feature.stage-element-changes:
   type: feature
   layer_id: product
   name: Stage element changes
-  description:
-    "MCP: model_add, model_update (attributePatch), model_delete; stage
+  description: "MCP: model_add, model_update (attributePatch), model_delete; stage
     into the active changeset. CLI: dr add/update/delete."
   attributes:
     priority: critical
@@ -69,14 +67,12 @@ product.feature.stage-relationship-changes:
   type: feature
   layer_id: product
   name: Stage relationship changes
-  description:
-    "MCP: relationship_add, relationship_delete, validated against the
+  description: "MCP: relationship_add, relationship_delete, validated against the
     catalog. CLI: dr relationship add/delete (same staging code)."
   attributes:
     priority: critical
     status: delivered
-    documentation:
-      "MCP: relationship_add, relationship_delete, validated against
+    documentation: "MCP: relationship_add, relationship_delete, validated against
       the catalog. CLI: dr relationship add/delete (same staging code)."
   source_reference:
     provenance: manual
@@ -122,8 +118,7 @@ product.feature.spec-type-lookup:
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: spec_type (definition, attributes, allowed relationships).
+    documentation: "MCP: spec_type (definition, attributes, allowed relationships).
       CLI: dr schema, dr catalog."
   source_reference:
     provenance: manual
@@ -145,8 +140,7 @@ product.feature.changeset-impact:
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: changeset_impact (projected graph walk, focused 'from', hub
+    documentation: "MCP: changeset_impact (projected graph walk, focused 'from', hub
       collapsing)."
   source_reference:
     provenance: manual
@@ -192,8 +186,7 @@ product.feature.model-validation:
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: model_validate (base + active changeset). CLI: dr validate,
+    documentation: "MCP: model_validate (base + active changeset). CLI: dr validate,
       dr conformance."
   source_reference:
     provenance: manual
@@ -269,16 +262,15 @@ product.feature.changeset-overlay-in-the-viewer:
   type: feature
   layer_id: product
   name: Changeset overlay in the viewer
-  description:
-    "MCP: review_open starts or reuses the viewer and returns a link to
-    the changeset. Viewer: changeset overlay with Apply and Discard, offered
-    only where the server's actions allow them, with base drift shown before
-    review and before Apply. CLI: dr visualize."
+  description: "MCP: review_open returns a deep link to the changeset in the
+    shared viewer (project and checkout in the URL); it starts nothing. Viewer:
+    changeset overlay with Apply and Discard, offered only where the server's
+    actions allow them, with base drift shown before review and before Apply.
+    CLI: dr visualize."
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: review_open (cli/src/mcp/tools/review-open.ts) reuses the
+    documentation: "MCP: review_open (cli/src/mcp/tools/review-open.ts) reuses the
       dr visualize already serving the project or starts one, and returns a link
       that opens the changeset on the graph. CLI: dr visualize. The CLI bundles
       viewer 0.12.0, which follows what the changeset API reports: it treats a
@@ -330,13 +322,13 @@ product.feature.dr-bot:
   type: feature
   layer_id: product
   name: DrBot
-  description: "Viewer chat agent running on dr mcp; --with-changesets enables
-    staging in changeset-only mode. Known gaps #988-#991."
+  description: "Viewer chat agent, launched by the user's central DR process in
+    the checkout the conversation belongs to; --with-changesets enables staging
+    in changeset-only mode. Known gaps #988-#991."
   attributes:
     priority: medium
     status: delivered
-    documentation:
-      "Viewer chat agent running on dr mcp; --with-changesets enables
+    documentation: "Viewer chat agent running on dr mcp; --with-changesets enables
       staging in changeset-only mode. Known gaps #988-#991."
   source_reference:
     provenance: manual
@@ -358,8 +350,7 @@ product.feature.changeset-verify:
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: changeset_verify against an as-built changeset or the base.
+    documentation: "MCP: changeset_verify against an as-built changeset or the base.
       CLI: dr changeset verify."
   source_reference:
     provenance: manual
@@ -376,8 +367,7 @@ product.feature.changeset-commit:
   type: feature
   layer_id: product
   name: Changeset commit
-  description:
-    "MCP: changeset_commit, which asks the person to confirm through an
+  description: "MCP: changeset_commit, which asks the person to confirm through an
     MCP elicitation dialog, or takes a confirmation token from Claude Code (see
     Commit confirmation token). It is refused when no person can answer, and a
     refusal says why: declined, the dialog could not be shown, or drift. Viewer:
@@ -385,8 +375,7 @@ product.feature.changeset-commit:
   attributes:
     priority: critical
     status: delivered
-    documentation:
-      "MCP: changeset_commit, which asks the person to confirm through
+    documentation: "MCP: changeset_commit, which asks the person to confirm through
       an MCP elicitation dialog, or takes a confirmation token from Claude Code
       (see Commit confirmation token). It is refused when no person can answer,
       and a refusal says why: declined, the dialog could not be shown, or drift.
@@ -409,15 +398,13 @@ product.feature.code-indexing:
   type: feature
   layer_id: product
   name: Code indexing
-  description:
-    "MCP: codebase_index, runs in the background and reports progress.
+  description: "MCP: codebase_index, runs in the background and reports progress.
     CLI: dr analyzer discover/status/index (drives codebase-memory-mcp as a
     client)."
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: codebase_index (cli/src/mcp/tools/codebase-index.ts), runs
+    documentation: "MCP: codebase_index (cli/src/mcp/tools/codebase-index.ts), runs
       in the background and reports the job and the index's freshness; a call
       can wait up to 50 seconds for it. CLI: dr analyzer discover/status/index
       (drives codebase-memory-mcp as a client)."
@@ -443,8 +430,7 @@ product.feature.rule-based-classification:
   attributes:
     priority: medium
     status: delivered
-    documentation:
-      "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
+    documentation: "CLI: dr analyzer classify --tier0-only (card builder + Tier-0
       rules); reports decided, narrowed and undecided symbols. Does not write a
       changeset. The card builder makes no card for a file, and the analyzer
       mapping has no entry for the code graph's Module node; the node is still
@@ -474,8 +460,7 @@ product.feature.code-to-model-verification:
   attributes:
     priority: medium
     status: delivered
-    documentation:
-      "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
+    documentation: "MCP: codebase_verify. CLI: dr analyzer verify (graph-discovered
       routes vs model endpoints). An element an existing model sourced at a
       whole file (no symbol, or the file's module name as its symbol) is checked
       by its file alone: it counts as present while the file exists, and is not
@@ -501,8 +486,7 @@ product.feature.agent-driven-extraction:
   attributes:
     priority: medium
     status: deprecated
-    documentation:
-      Deprecated by extraction to a changeset, which stages its output
+    documentation: Deprecated by extraction to a changeset, which stages its output
       for review instead of writing the model.
   source_reference:
     provenance: manual
@@ -519,8 +503,7 @@ product.feature.model-init:
   type: feature
   layer_id: product
   name: Model init
-  description:
-    "MCP: project_init, no prompts; name and description are arguments.
+  description: "MCP: project_init, no prompts; name and description are arguments.
     CLI: dr init."
   attributes:
     priority: high
@@ -565,9 +548,9 @@ product.feature.mcp-server:
   type: feature
   layer_id: product
   name: MCP server
-  description: dr mcp (stdio or HTTP). Finds the project through MCP roots
-    (rootPath still accepted), needs no API key over stdio (kept for HTTP), and
-    sends server instructions that map the workflows.
+  description: "dr mcp: one MCP interface per user, served by the central DR
+    process (stdio bridge or HTTP); tools resolve their project and checkout
+    through the project registry."
   attributes:
     priority: critical
     status: delivered
@@ -592,8 +575,7 @@ product.feature.model-upgrade:
   type: feature
   layer_id: product
   name: Model upgrade
-  description:
-    "MCP: project_upgrade, previews the migration unless apply is set;
+  description: "MCP: project_upgrade, previews the migration unless apply is set;
     leaves installed integrations alone. CLI: dr upgrade."
   attributes:
     priority: high
@@ -617,11 +599,9 @@ product.feature.project-status:
   type: feature
   layer_id: product
   name: Project status
-  description: "MCP: project_status. Where this repo stands with DR: model
-    present, spec version against the CLI, active and staged changesets, code
-    index present and fresh, code changed since the model was last reconciled
-    with it, viewer running, Tier 1 state, and the suggested next step. The
-    server instructions tell the agent to call it first."
+  description: "MCP: project_status, naming the project and checkout the session
+    resolves to, with the project's other checkouts and this checkout's viewer
+    link."
   attributes:
     priority: critical
     status: delivered
@@ -649,8 +629,7 @@ product.feature.extraction-to-a-changeset:
   type: feature
   layer_id: product
   name: Extraction to a changeset
-  description:
-    "MCP: codebase_extract. Builds cards from the declarations the code
+  description: "MCP: codebase_extract. Builds cards from the declarations the code
     index reports (classes, interfaces, functions, methods, routes, types),
     never from a file, stages what the Tier-0 rules decide into a changeset, and
     returns the narrowed and undecided symbols to the calling agent, which
@@ -661,8 +640,7 @@ product.feature.extraction-to-a-changeset:
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "MCP: codebase_extract. Builds cards from the declarations the
+    documentation: "MCP: codebase_extract. Builds cards from the declarations the
       code index reports (classes, interfaces, functions, methods, routes,
       types), never from a file, stages what the Tier-0 rules decide into a
       changeset, and returns the narrowed and undecided symbols to the calling
@@ -695,8 +673,7 @@ product.feature.dr-plugin-for-claude-code:
   attributes:
     priority: high
     status: delivered
-    documentation:
-      "A Claude Code plugin bundling the dr MCP server, the layer and
+    documentation: "A Claude Code plugin bundling the dr MCP server, the layer and
       planning skills and the agents, installed once at user scope. Replaces
       per-project dr claude install and .mcp.json edits. The dr binary still
       comes from npm. Its skills tell the agent what extraction by rule cannot
@@ -719,15 +696,13 @@ product.feature.accepted-gaps:
   type: feature
   layer_id: product
   name: Accepted gaps
-  description:
-    "MCP: gap_accept records a gap with its reason and gap_reopen takes
+  description: "MCP: gap_accept records a gap with its reason and gap_reopen takes
     it back, both staged in the active changeset. changeset_brief lists accepted
     gaps as accepted, not open; verification reports one the code contradicts."
   attributes:
     priority: medium
     status: delivered
-    documentation:
-      "MCP: gap_accept and gap_reopen (cli/src/mcp/tools/gap-tools.ts).
+    documentation: "MCP: gap_accept and gap_reopen (cli/src/mcp/tools/gap-tools.ts).
       An accepted gap records that a connection the catalog allows for an
       element's type is deliberately absent, with the reason; it lives on the
       element (accepted_gaps in the spec's base node schema, #1026). Both tools
@@ -764,8 +739,7 @@ product.feature.commit-confirmation-token:
     priority: high
     status: developing
     size: s
-    documentation:
-      "Token: an HMAC, keyed per server process, over the changeset id,
+    documentation: "Token: an HMAC, keyed per server process, over the changeset id,
       force, a 10-minute expiry and the confirmedState fingerprint (staged
       changes and base model); good once. The preview tool is not flagged, so
       landing takes one approval. Permission modes (checked 2026-11-17 against
@@ -790,8 +764,7 @@ product.feature.base-drift-on-the-changeset-api:
   type: feature
   layer_id: product
   name: Base drift on the changeset API
-  description:
-    "Viewer API: GET /api/changesets and GET /api/changesets/:id carry
+  description: "Viewer API: GET /api/changesets and GET /api/changesets/:id carry
     a drift field, with no commit attempt. The list gives each changeset's drift
     state (none, content-free, drifted, not-applicable, unknown), whether it
     blocks a commit, and a sentence saying why. The detail adds what changed:
@@ -803,8 +776,7 @@ product.feature.base-drift-on-the-changeset-api:
     priority: high
     status: developing
     size: s
-    documentation:
-      "Purpose-aware (changeset-purpose.ts): blocksCommit is true only
+    documentation: "Purpose-aware (changeset-purpose.ts): blocksCommit is true only
       for a staged changeset whose actions include commit and whose base drifted
       in content. A verification record reads not-applicable, since it never
       lands, and names its plan's state. A committed or discarded changeset
@@ -854,4 +826,109 @@ product.feature.upgrade-drop-record:
   metadata:
     created_at: 2026-11-19T13:36:34.344Z
     updated_at: 2026-11-19T13:36:34.344Z
+    version: 1
+product.feature.project-registry:
+  id: f0604c33-ee6c-410f-ab55-2606286f4a8a
+  path: product.feature.project-registry
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Project registry
+  description: "MCP: project_list, and every tool's rootPath resolved through the
+    registry; results name project and checkout. CLI: dr farm list/add/remove on
+    the user farm. Viewer: GET /api/projects behind the project picker. One
+    list, one name per project."
+  attributes:
+    priority: high
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.883Z
+    updated_at: 2026-11-21T17:14:10.883Z
+    version: 1
+product.feature.project-checkouts:
+  id: a29cdda1-6707-46be-bbec-1e0c62a8e327
+  path: product.feature.project-checkouts
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Project checkouts
+  description: A project's main checkout and linked worktrees, discovered from git
+    and listed beneath it with branch, head, active changeset and staged
+    changesets, in project_status, project_list, review_open, the viewer and dr
+    visualize --list.
+  attributes:
+    priority: high
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.884Z
+    updated_at: 2026-11-21T17:14:10.884Z
+    version: 1
+product.feature.shared-viewer:
+  id: a47482ee-54cf-45ce-9416-b30287ddb84e
+  path: product.feature.shared-viewer
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Shared viewer
+  description: One viewer per user serving every project and checkout, with
+    project-and-checkout-scoped API routes, deep links
+    (/p/<project>/c/<checkout>/...) and a websocket feed subscribed per
+    checkout.
+  attributes:
+    priority: high
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.884Z
+    updated_at: 2026-11-21T17:14:10.884Z
+    version: 1
+product.feature.central-dr-process:
+  id: cbfb3eaa-9232-44bf-aa3d-5ef1f1465d51
+  path: product.feature.central-dr-process
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Central DR process
+  description: "dr serve: one per-user process on one port with one token. dr mcp
+    (stdio) bridges to it and starts it when absent; dr visualize opens it.
+    --list/--stop and idle exit cover the one process."
+  attributes:
+    priority: high
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.884Z
+    updated_at: 2026-11-21T17:14:10.884Z
+    version: 1
+product.feature.dr-bot-per-checkout:
+  id: e5c3aecb-7674-4164-b370-70b5e8ff8d90
+  path: product.feature.dr-bot-per-checkout
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: DrBot per checkout
+  description: The central process launches DrBot sub-processes in a checkout's
+    directory, pinned to that project and checkout, with conversations keyed by
+    project, checkout and conversation id.
+  attributes:
+    priority: medium
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.884Z
+    updated_at: 2026-11-21T17:14:10.884Z
+    version: 1
+product.feature.farm-v2-migration:
+  id: 0ac95c40-adab-4457-b7c3-a4f633f65ffd
+  path: product.feature.farm-v2-migration
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Farm v2 migration
+  description: "dr farm migrate (preview, then apply) moves a dr-farm-v1 farm.yaml
+    to dr-farm-v2: entries that share a git repository become one project; the
+    others' paths become checkouts, and their names are listed as dropped."
+  attributes:
+    priority: medium
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.885Z
+    updated_at: 2026-11-21T17:14:10.885Z
     version: 1

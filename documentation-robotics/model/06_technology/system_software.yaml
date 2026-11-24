@@ -1,0 +1,88 @@
+technology.systemsoftware.node-js-runtime:
+  id: 667be04f-9d0f-4e46-b90c-9701794c5f8c
+  path: technology.systemsoftware.node-js-runtime
+  spec_node_id: technology.systemsoftware
+  type: systemsoftware
+  layer_id: technology
+  name: Node.js runtime
+  description: The JavaScript runtime the dr CLI, dr serve and dr mcp run on.
+  attributes:
+    softwareType: middleware
+  metadata:
+    created_at: 2026-11-21T17:14:10.908Z
+    updated_at: 2026-11-21T17:14:10.908Z
+    version: 1
+technology.systemsoftware.git:
+  id: 744f67e2-0cfb-44cf-a895-9bb79d6112a4
+  path: technology.systemsoftware.git
+  spec_node_id: technology.systemsoftware
+  type: systemsoftware
+  layer_id: technology
+  name: Git
+  description: git, which the project registry runs (worktree list, rev-parse
+    --git-common-dir) to discover a project's repository and checkouts.
+  attributes:
+    softwareType: middleware
+  metadata:
+    created_at: 2026-11-21T17:14:10.908Z
+    updated_at: 2026-11-21T17:14:10.908Z
+    version: 1
+technology.systemsoftware.claude-code-cli:
+  id: ba948387-4668-43ea-a85a-f43b608e6fac
+  path: technology.systemsoftware.claude-code-cli
+  spec_node_id: technology.systemsoftware
+  type: systemsoftware
+  layer_id: technology
+  name: Claude Code CLI
+  description: claude, run by the central process as a DrBot sub-process in --print mode.
+  attributes:
+    softwareType: middleware
+  metadata:
+    created_at: 2026-11-21T17:14:10.908Z
+    updated_at: 2026-11-21T17:14:10.908Z
+    version: 1
+technology.systemsoftware.git-hub-copilot-cli:
+  id: 695ba1f0-e1fa-4cff-9f78-74b83d96ae79
+  path: technology.systemsoftware.git-hub-copilot-cli
+  spec_node_id: technology.systemsoftware
+  type: systemsoftware
+  layer_id: technology
+  name: GitHub Copilot CLI
+  description: copilot, run by the central process as a DrBot sub-process.
+  attributes:
+    softwareType: middleware
+  metadata:
+    created_at: 2026-11-21T17:14:10.908Z
+    updated_at: 2026-11-21T17:14:10.908Z
+    version: 1
+technology.systemsoftware.workstation-operating-system:
+  id: 0e13d7eb-0889-4d87-9b64-9cbec3c9ec40
+  path: technology.systemsoftware.workstation-operating-system
+  spec_node_id: technology.systemsoftware
+  type: systemsoftware
+  layer_id: technology
+  name: Workstation operating system
+  description: The workstation's operating system (macOS, Linux, Windows) and its
+    file system, which hold the user state directory, the user farm and every
+    checkout's files.
+  attributes:
+    softwareType: operating-system
+  metadata:
+    created_at: 2026-11-21T17:14:25.868Z
+    updated_at: 2026-11-21T17:14:25.868Z
+    version: 1
+technology.systemsoftware.bun-runtime:
+  id: 32529f32-d9fa-422b-978d-9b3a218b8a32
+  path: technology.systemsoftware.bun-runtime
+  spec_node_id: technology.systemsoftware
+  type: systemsoftware
+  layer_id: technology
+  name: Bun runtime
+  description: Bun, which runs the dr CLI and the server process when the CLI
+    itself runs under Bun (server-entry uses whichever runtime started the CLI).
+  attributes:
+    softwareType: middleware
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1

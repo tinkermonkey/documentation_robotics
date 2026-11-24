@@ -1,0 +1,120 @@
+apm.span.http-server-request:
+  id: 811e153c-8056-4a89-9468-66bc61f71f2a
+  path: apm.span.http-server-request
+  spec_node_id: apm.span
+  type: span
+  layer_id: apm
+  name: http.server.request
+  description: One span per HTTP request to the server (http.method, http.route,
+    http.status_code, http.duration_ms). In the central process it also carries
+    dr.project and dr.checkout for scoped routes, so traces separate per
+    checkout.
+  attributes:
+    traceId: runtime
+    spanId: runtime
+    traceState: ""
+    parentSpanId: runtime
+    startTimeUnixNano: runtime
+    endTimeUnixNano: runtime
+    droppedAttributesCount: 0
+    droppedEventsCount: "0"
+    droppedLinksCount: "0"
+    spanKind: SERVER
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/telemetry-middleware.ts
+        symbol: telemetryMiddleware
+  metadata:
+    created_at: 2026-11-21T17:21:40.996Z
+    updated_at: 2026-11-21T17:21:40.996Z
+    version: 1
+apm.span.ws-message-processed:
+  id: 6c34b3c2-04b9-4982-870c-e5433d26b25a
+  path: apm.span.ws-message-processed
+  spec_node_id: apm.span
+  type: span
+  layer_id: apm
+  name: ws.message.processed
+  description: A websocket message handled (ws.message.type,
+    ws.message.duration_ms, ws.message.status); with ws.connection.open/close
+    and ws.message.received/error. In the central process it also carries
+    dr.project and dr.checkout of the subscription the message is for.
+  attributes:
+    traceId: runtime
+    spanId: runtime
+    traceState: ""
+    parentSpanId: runtime
+    startTimeUnixNano: runtime
+    endTimeUnixNano: runtime
+    droppedAttributesCount: 0
+    droppedEventsCount: "0"
+    droppedLinksCount: "0"
+    spanKind: INTERNAL
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.recordWebSocketEvent
+  metadata:
+    created_at: 2026-11-21T17:21:40.996Z
+    updated_at: 2026-11-21T17:21:40.996Z
+    version: 1
+apm.span.drbot-turn:
+  id: 16247b7d-88e9-44bb-8310-9718b5233571
+  path: apm.span.drbot-turn
+  spec_node_id: apm.span
+  type: span
+  layer_id: apm
+  name: drbot.turn
+  description: "One DrBot turn launched by the central process: dr.project,
+    dr.checkout, the coding agent, exit status and duration (planned)."
+  attributes:
+    traceId: runtime
+    spanId: runtime
+    traceState: ""
+    parentSpanId: runtime
+    startTimeUnixNano: runtime
+    endTimeUnixNano: runtime
+    droppedAttributesCount: 0
+    droppedEventsCount: "0"
+    droppedLinksCount: "0"
+    spanKind: INTERNAL
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/dr-bot-launcher.ts
+        symbol: drbot.turn
+  metadata:
+    created_at: 2026-11-21T17:21:40.996Z
+    updated_at: 2026-11-21T17:21:40.996Z
+    version: 1
+apm.span.checkout-context-evict:
+  id: 49369a0c-1729-4598-b35d-a5116a2925c2
+  path: apm.span.checkout-context-evict
+  spec_node_id: apm.span
+  type: span
+  layer_id: apm
+  name: checkout_context.evict
+  description: "A checkout context evicted from the pool: dr.project, dr.checkout,
+    reason (idle or capacity), loaded count (planned)."
+  attributes:
+    traceId: runtime
+    spanId: runtime
+    traceState: ""
+    parentSpanId: runtime
+    startTimeUnixNano: runtime
+    endTimeUnixNano: runtime
+    droppedAttributesCount: 0
+    droppedEventsCount: "0"
+    droppedLinksCount: "0"
+    spanKind: INTERNAL
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: checkout_context.evict
+  metadata:
+    created_at: 2026-11-21T17:21:40.996Z
+    updated_at: 2026-11-21T17:21:40.996Z
+    version: 1

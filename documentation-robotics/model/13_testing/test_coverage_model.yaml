@@ -1,0 +1,17 @@
+testing.testcoveragemodel.user-level-dr-coverage:
+  id: becd8316-4f63-4920-9a08-2a70a2594bb5
+  path: testing.testcoveragemodel.user-level-dr-coverage
+  spec_node_id: testing.testcoveragemodel
+  type: testcoveragemodel
+  layer_id: testing
+  name: User-level DR coverage
+  description: "Coverage of the central DR process: registry naming, checkout
+    discovery, per-checkout isolation, scoped routes, eviction, DrBot scoping,
+    deep links and the farm migration."
+  attributes:
+    version: 0.1.0
+    application: dr central process (cli/src/server)
+  metadata:
+    created_at: 2026-11-21T17:14:54.806Z
+    updated_at: 2026-11-21T17:14:54.806Z
+    version: 1
