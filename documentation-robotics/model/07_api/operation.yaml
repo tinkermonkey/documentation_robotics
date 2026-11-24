@@ -95,10 +95,7 @@ api.operation.get-ws:
   type: operation
   layer_id: api
   name: GET /ws
-  description: Upgrade to the central process's WebSocket (token required). The
-    socket subscribes per checkout (FeedSubscription frames) and receives model,
-    changeset, annotation and chat events only for those checkouts, each stamped
-    with its project and checkout.
+  description: Upgrade to the central process's WebSocket (token required). The socket subscribes per checkout (FeedSubscription frames) and receives model, changeset, annotation and chat events only for those checkouts, each stamped with its project and checkout.
   attributes:
     operationId: getWebSocket
     summary: Open the viewer's WebSocket
@@ -121,9 +118,7 @@ api.operation.get-viewer-asset:
   type: operation
   layer_id: api
   name: GET viewer asset
-  description: Serve a file of the viewer build (GET /*), and the viewer's HTML
-    for its deep-link paths (/p/<project>/c/<checkout>/...); API, WebSocket, MCP
-    and health paths pass through.
+  description: Serve a file of the viewer build (GET /*), and the viewer's HTML for its deep-link paths (/p/<project>/c/<checkout>/...); API, WebSocket, MCP and health paths pass through.
   attributes:
     operationId: getViewerAsset
     summary: Serve a file of a custom viewer build
@@ -215,8 +210,7 @@ api.operation.get-api-projects:
   type: operation
   layer_id: api
   name: GET /api/projects
-  description: List the user's projects with their checkouts. Token required; 404
-    for a project or checkout the registry does not list.
+  description: List the user's projects with their checkouts. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: listProjects
     summary: List the user's projects with their checkouts
@@ -239,8 +233,7 @@ api.operation.get-api-projects-project:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}
-  description: One project with its checkouts. Token required; 404 for a project
-    or checkout the registry does not list.
+  description: One project with its checkouts. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: getProject
     summary: One project with its checkouts
@@ -263,9 +256,7 @@ api.operation.get-api-projects-project-checkouts:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts
-  description: A project's checkouts with branch, head, state and changeset
-    counts. Token required; 404 for a project or checkout the registry does not
-    list.
+  description: A project's checkouts with branch, head, state and changeset counts. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: listCheckouts
     summary: A project's checkouts with branch, head, state and changeset counts
@@ -288,8 +279,7 @@ api.operation.get-api-projects-project-checkouts-checkout-model:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/model
-  description: The checkout's model. Token required; 404 for a project or checkout
-    the registry does not list.
+  description: The checkout's model. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: getCheckoutModel
     summary: The checkout's model
@@ -312,8 +302,7 @@ api.operation.get-api-projects-project-checkouts-checkout-layers-layer-name:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
-  description: One layer of the checkout's model. Token required; 404 for a
-    project or checkout the registry does not list.
+  description: One layer of the checkout's model. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: getCheckoutLayer
     summary: One layer of the checkout's model
@@ -336,8 +325,7 @@ api.operation.get-api-projects-project-checkouts-checkout-tier1:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/tier1
-  description: The checkout's Tier 1 state. Token required; 404 for a project or
-    checkout the registry does not list.
+  description: The checkout's Tier 1 state. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: getCheckoutTier1
     summary: The checkout's Tier 1 state
@@ -360,8 +348,7 @@ api.operation.get-api-projects-project-checkouts-checkout-changesets:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/changesets
-  description: The checkout's changesets with drift. Token required; 404 for a
-    project or checkout the registry does not list.
+  description: The checkout's changesets with drift. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: listCheckoutChangesets
     summary: The checkout's changesets with drift
@@ -384,8 +371,7 @@ api.operation.get-api-projects-project-checkouts-checkout-changesets-changeset-i
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
-  description: One changeset of the checkout with drift. Token required; 404 for a
-    project or checkout the registry does not list.
+  description: One changeset of the checkout with drift. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: getCheckoutChangeset
     summary: One changeset of the checkout with drift
@@ -407,10 +393,8 @@ api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-
   spec_node_id: api.operation
   type: operation
   layer_id: api
-  name: POST
-    /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
-  description: Land a checkout's changeset. Token required; 404 for a project or
-    checkout the registry does not list.
+  name: POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+  description: Land a checkout's changeset. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: commitCheckoutChangeset
     summary: Land a checkout's changeset
@@ -432,10 +416,8 @@ api.operation.post-api-projects-project-checkouts-checkout-changesets-changeset-
   spec_node_id: api.operation
   type: operation
   layer_id: api
-  name: POST
-    /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
-  description: Discard a checkout's changeset. Token required; 404 for a project
-    or checkout the registry does not list.
+  name: POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+  description: Discard a checkout's changeset. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: discardCheckoutChangeset
     summary: Discard a checkout's changeset
@@ -457,10 +439,8 @@ api.operation.put-api-projects-project-checkouts-checkout-changesets-changeset-i
   spec_node_id: api.operation
   type: operation
   layer_id: api
-  name: PUT
-    /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
-  description: Record review verdicts on a checkout's changeset. Token required;
-    404 for a project or checkout the registry does not list.
+  name: PUT /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+  description: Record review verdicts on a checkout's changeset. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: putCheckoutChangesetReview
     summary: Record review verdicts on a checkout's changeset
@@ -483,8 +463,7 @@ api.operation.get-api-projects-project-checkouts-checkout-annotations:
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/annotations
-  description: The checkout's annotations. Token required; 404 for a project or
-    checkout the registry does not list.
+  description: The checkout's annotations. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: listCheckoutAnnotations
     summary: The checkout's annotations
@@ -507,8 +486,7 @@ api.operation.post-api-projects-project-checkouts-checkout-annotations:
   type: operation
   layer_id: api
   name: POST /api/projects/{project}/checkouts/{checkout}/annotations
-  description: Create an annotation in the checkout. Token required; 404 for a
-    project or checkout the registry does not list.
+  description: Create an annotation in the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: createCheckoutAnnotation
     summary: Create an annotation in the checkout
@@ -531,8 +509,7 @@ api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation
   type: operation
   layer_id: api
   name: GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
-  description: One annotation of the checkout. Token required; 404 for a project
-    or checkout the registry does not list.
+  description: One annotation of the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: getCheckoutAnnotation
     summary: One annotation of the checkout
@@ -555,8 +532,7 @@ api.operation.put-api-projects-project-checkouts-checkout-annotations-annotation
   type: operation
   layer_id: api
   name: PUT /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
-  description: Replace an annotation of the checkout. Token required; 404 for a
-    project or checkout the registry does not list.
+  description: Replace an annotation of the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: putCheckoutAnnotation
     summary: Replace an annotation of the checkout
@@ -579,8 +555,7 @@ api.operation.patch-api-projects-project-checkouts-checkout-annotations-annotati
   type: operation
   layer_id: api
   name: PATCH /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
-  description: Update an annotation of the checkout. Token required; 404 for a
-    project or checkout the registry does not list.
+  description: Update an annotation of the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: patchCheckoutAnnotation
     summary: Update an annotation of the checkout
@@ -602,10 +577,8 @@ api.operation.delete-api-projects-project-checkouts-checkout-annotations-annotat
   spec_node_id: api.operation
   type: operation
   layer_id: api
-  name: DELETE
-    /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
-  description: Delete an annotation of the checkout. Token required; 404 for a
-    project or checkout the registry does not list.
+  name: DELETE /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  description: Delete an annotation of the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: deleteCheckoutAnnotation
     summary: Delete an annotation of the checkout
@@ -627,10 +600,8 @@ api.operation.get-api-projects-project-checkouts-checkout-annotations-annotation
   spec_node_id: api.operation
   type: operation
   layer_id: api
-  name: GET
-    /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
-  description: Replies to an annotation of the checkout. Token required; 404 for a
-    project or checkout the registry does not list.
+  name: GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  description: Replies to an annotation of the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: listCheckoutAnnotationReplies
     summary: Replies to an annotation of the checkout
@@ -652,10 +623,8 @@ api.operation.post-api-projects-project-checkouts-checkout-annotations-annotatio
   spec_node_id: api.operation
   type: operation
   layer_id: api
-  name: POST
-    /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
-  description: Reply to an annotation of the checkout. Token required; 404 for a
-    project or checkout the registry does not list.
+  name: POST /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  description: Reply to an annotation of the checkout. Token required; 404 for a project or checkout the registry does not list.
   attributes:
     operationId: replyCheckoutAnnotation
     summary: Reply to an annotation of the checkout

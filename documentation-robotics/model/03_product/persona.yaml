@@ -5,8 +5,7 @@ product.persona.developer:
   type: persona
   layer_id: product
   name: Developer
-  description: Plans and builds changes with a coding agent (Claude Code) and
-    wants to stay in the conversation, not switch to a terminal.
+  description: Plans and builds changes with a coding agent (Claude Code) and wants to stay in the conversation, not switch to a terminal.
   attributes:
     category: primary
     proficiency: advanced
@@ -21,9 +20,7 @@ product.persona.reviewer:
   type: persona
   layer_id: product
   name: Reviewer
-  description:
-    Reviews a planned change on the model graph in the viewer or in the
-    pull request, comments on elements, and approves landing it.
+  description: Reviews a planned change on the model graph in the viewer or in the pull request, comments on elements, and approves landing it.
   attributes:
     category: secondary
     proficiency: intermediate
@@ -38,9 +35,7 @@ product.persona.project-maintainer:
   type: persona
   layer_id: product
   name: Project maintainer
-  description:
-    Onboards a project to DR, keeps its model as-built, and upgrades it
-    when the spec changes.
+  description: Onboards a project to DR, keeps its model as-built, and upgrades it when the spec changes.
   attributes:
     category: secondary
     proficiency: advanced

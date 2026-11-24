@@ -23,8 +23,7 @@ product.softwarecapability.model-exploration:
   description: Find, read and trace elements, in the base model or as a changeset leaves it.
   attributes:
     status: delivered
-    documentation: Find, read and trace elements, in the base model or as a
-      changeset leaves it.
+    documentation: Find, read and trace elements, in the base model or as a changeset leaves it.
   metadata:
     created_at: 2026-11-09T21:54:56.727Z
     updated_at: 2026-11-09T21:54:56.727Z
@@ -36,12 +35,10 @@ product.softwarecapability.change-review:
   type: softwarecapability
   layer_id: product
   name: Change review
-  description: Show a planned change to a human on the model graph and collect
-    their feedback.
+  description: Show a planned change to a human on the model graph and collect their feedback.
   attributes:
     status: delivered
-    documentation: Show a planned change to a human on the model graph and collect
-      their feedback.
+    documentation: Show a planned change to a human on the model graph and collect their feedback.
   metadata:
     created_at: 2026-11-09T21:54:56.759Z
     updated_at: 2026-11-09T21:54:56.759Z
@@ -53,14 +50,10 @@ product.softwarecapability.change-verification:
   type: softwarecapability
   layer_id: product
   name: Change verification
-  description: Compare a plan with what was built and land the change. The
-    as-built side is staged by extraction from the code, not written by hand.
+  description: Compare a plan with what was built and land the change. The as-built side is staged by extraction from the code, not written by hand.
   attributes:
     status: developing
-    documentation: Compare a plan with what was built and land the change. The
-      as-built side is staged by extraction from the code (codebase_extract with
-      since, while the plan is active), not written by hand; it is the plan's
-      verification record and never lands.
+    documentation: Compare a plan with what was built and land the change. The as-built side is staged by extraction from the code (codebase_extract with since, while the plan is active), not written by hand; it is the plan's verification record and never lands.
   metadata:
     created_at: 2026-11-09T21:54:56.784Z
     updated_at: 2026-11-09T21:54:56.784Z
@@ -72,15 +65,10 @@ product.softwarecapability.model-extraction:
   type: softwarecapability
   layer_id: product
   name: Model extraction
-  description: "Read a codebase and record what it is, as a changeset: CBM
-    indexing, Tier-0 rules, an opt-in Tier 1 decision model, and the calling
-    agent as the last tier."
+  description: "Read a codebase and record what it is, as a changeset: CBM indexing, Tier-0 rules, an opt-in Tier 1 decision model, and the calling agent as the last tier."
   attributes:
     status: developing
-    documentation: "Read a codebase and record what it is, as a changeset: CBM
-      indexing, Tier-0 rules that stage what they can decide, an opt-in Tier 1
-      decision model that suggests or stages the cards the rules leave open, and
-      the calling agent as the last tier for the rest."
+    documentation: "Read a codebase and record what it is, as a changeset: CBM indexing, Tier-0 rules that stage what they can decide, an opt-in Tier 1 decision model that suggests or stages the cards the rules leave open, and the calling agent as the last tier for the rest."
   metadata:
     created_at: 2026-11-09T21:54:56.841Z
     updated_at: 2026-11-09T21:54:56.841Z
@@ -92,12 +80,10 @@ product.softwarecapability.project-setup:
   type: softwarecapability
   layer_id: product
   name: Project setup
-  description: Create a model for a project and connect agents to it, from the
-    conversation (project_init, the DR plugin) or the CLI.
+  description: Create a model for a project and connect agents to it, from the conversation (project_init, the DR plugin) or the CLI.
   attributes:
     status: delivered
-    documentation: Create a model for a project and connect agents to it, from the
-      conversation (project_init, the DR plugin) or the CLI (dr init).
+    documentation: Create a model for a project and connect agents to it, from the conversation (project_init, the DR plugin) or the CLI (dr init).
   metadata:
     created_at: 2026-11-09T21:54:56.909Z
     updated_at: 2026-11-09T21:54:56.909Z
@@ -109,13 +95,10 @@ product.softwarecapability.spec-migration:
   type: softwarecapability
   layer_id: product
   name: Spec migration
-  description: Move a model to a new spec version with the migration registry,
-    from the conversation (project_upgrade) or the CLI (dr upgrade).
+  description: Move a model to a new spec version with the migration registry, from the conversation (project_upgrade) or the CLI (dr upgrade).
   attributes:
     status: delivered
-    documentation: Move a model to a new spec version with the migration registry,
-      from the conversation (project_upgrade) or the CLI (dr upgrade). The
-      registry's chain runs to the spec version the installed CLI bundles.
+    documentation: Move a model to a new spec version with the migration registry, from the conversation (project_upgrade) or the CLI (dr upgrade). The registry's chain runs to the spec version the installed CLI bundles.
   metadata:
     created_at: 2026-11-09T21:54:56.959Z
     updated_at: 2026-11-09T21:54:56.959Z
@@ -127,8 +110,7 @@ product.softwarecapability.multi-project-dr:
   type: softwarecapability
   layer_id: product
   name: Multi-project DR
-  description: "Serve every codebase a user maps, and each of its checkouts, from
-    one per-user DR: one project list, one viewer, one MCP interface."
+  description: "Serve every codebase a user maps, and each of its checkouts, from one per-user DR: one project list, one viewer, one MCP interface."
   attributes:
     status: planned
   metadata:

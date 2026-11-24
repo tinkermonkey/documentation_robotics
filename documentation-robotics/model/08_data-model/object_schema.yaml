@@ -43,8 +43,7 @@ data-model.objectschema.unstaged-change:
   type: objectschema
   layer_id: data-model
   name: UnstagedChange
-  description: A change that was unstaged, kept so the plan as it stood before the
-    unstage can be rebuilt (see `changesAtRevision` in changeset-graph.ts).
+  description: A change that was unstaged, kept so the plan as it stood before the unstage can be rebuilt (see `changesAtRevision` in changeset-graph.ts).
   attributes:
     type: object
   source_reference:
@@ -229,11 +228,7 @@ data-model.objectschema.farm-project:
   type: objectschema
   layer_id: data-model
   name: FarmProject
-  description: "A project in the user farm (dr-farm-v2): name (the one project
-    name every interface uses, also its @name federation name), repository (the
-    main checkout's path), model (the model folder, relative to each checkout's
-    root when the repository carries it, else a detached path), remote. branch
-    is dropped: checkouts come from git, not the farm."
+  description: "A project in the user farm (dr-farm-v2): name (the one project name every interface uses, also its @name federation name), repository (the main checkout's path), model (the model folder, relative to each checkout's root when the repository carries it, else a detached path), remote. branch is dropped: checkouts come from git, not the farm."
   attributes:
     type: object
   source_reference:
@@ -252,9 +247,7 @@ data-model.objectschema.farm-manifest-data:
   type: objectschema
   layer_id: data-model
   name: FarmManifestData
-  description: Farm manifest data structure, version dr-farm-v2 (projects keyed by
-    name). A dr-farm-v1 manifest is read with a notice that dr farm migrate
-    moves it.
+  description: Farm manifest data structure, version dr-farm-v2 (projects keyed by name). A dr-farm-v1 manifest is read with a notice that dr farm migrate moves it.
   attributes:
     type: object
   source_reference:
@@ -444,8 +437,7 @@ data-model.objectschema.graph-model-graph-node:
   type: objectschema
   layer_id: data-model
   name: graph-model GraphNode
-  description: Graph node representing a model element Replaces Element class for
-    graph-based storage
+  description: Graph node representing a model element Replaces Element class for graph-based storage
   attributes:
     type: object
   source_reference:
@@ -941,8 +933,7 @@ data-model.objectschema.dropped-relationship-detail:
   type: objectschema
   layer_id: data-model
   name: DroppedRelationshipDetail
-  description: What the migration knows about a relationship it dropped for want
-    of a replacement
+  description: What the migration knows about a relationship it dropped for want of a replacement
   attributes:
     type: object
   source_reference:
@@ -1016,8 +1007,7 @@ data-model.objectschema.committed-relationships:
   type: objectschema
   layer_id: data-model
   name: CommittedRelationships
-  description: The committed relationships as recorded before the migration and as
-    rewritten by it
+  description: The committed relationships as recorded before the migration and as rewritten by it
   attributes:
     type: object
   source_reference:
@@ -1054,8 +1044,7 @@ data-model.objectschema.staged-relationship-rewrite-change:
   type: objectschema
   layer_id: data-model
   name: StagedRelationshipRewriteChange
-  description: A staged relationship change the migration rewrote or removed from
-    its changeset
+  description: A staged relationship change the migration rewrote or removed from its changeset
   attributes:
     type: object
   source_reference:
@@ -1593,8 +1582,7 @@ data-model.objectschema.component-proposal:
   type: objectschema
   layer_id: data-model
   name: ComponentProposal
-  description: A cluster offered to the agent as a possible
-    `application.applicationcomponent`.
+  description: A cluster offered to the agent as a possible `application.applicationcomponent`.
   attributes:
     type: object
   source_reference:
@@ -1782,8 +1770,7 @@ data-model.objectschema.label-decision:
   type: objectschema
   layer_id: data-model
   name: LabelDecision
-  description: A layer and type a label maps to outright (the node mapping's
-    high-confidence entries).
+  description: A layer and type a label maps to outright (the node mapping's high-confidence entries).
   attributes:
     type: object
   source_reference:
@@ -1838,9 +1825,7 @@ data-model.objectschema.cross-edge:
   type: objectschema
   layer_id: data-model
   name: CrossEdge
-  description: A `CROSS_ ` edge as CBM 0.12.1 writes it in this project (observed
-    shape, see docs/analyzers/CBM_MAPPING_INVENTORY.md, "Cross-repository
-    edges")
+  description: A `CROSS_ ` edge as CBM 0.12.1 writes it in this project (observed shape, see docs/analyzers/CBM_MAPPING_INVENTORY.md, "Cross-repository edges")
   attributes:
     type: object
   source_reference:
@@ -2058,8 +2043,7 @@ data-model.objectschema.pending-element:
   type: objectschema
   layer_id: data-model
   name: PendingElement
-  description: An element the batch itself adds, so relationships in the same
-    batch can name it.
+  description: An element the batch itself adds, so relationships in the same batch can name it.
   attributes:
     type: object
   source_reference:
@@ -2266,8 +2250,7 @@ data-model.objectschema.report-data:
   type: objectschema
   layer_id: data-model
   name: ReportData
-  description: Complete report containing statistics, relationships, data model
-    insights, and quality metrics
+  description: Complete report containing statistics, relationships, data model insights, and quality metrics
   attributes:
     type: object
   source_reference:
@@ -2844,8 +2827,7 @@ data-model.objectschema.catalog-route:
   type: objectschema
   layer_id: data-model
   name: CatalogRoute
-  description: A relationship type the catalog has between the two element types
-    of a retired one
+  description: A relationship type the catalog has between the two element types of a retired one
   attributes:
     type: object
   source_reference:
@@ -2975,8 +2957,7 @@ data-model.objectschema.dropped-relationship-count:
   type: objectschema
   layer_id: data-model
   name: DroppedRelationshipCount
-  description: Relationships the migration drops, counted by predicate and source
-    and target element type
+  description: Relationships the migration drops, counted by predicate and source and target element type
   attributes:
     type: object
   source_reference:
@@ -3162,8 +3143,7 @@ data-model.objectschema.tier0card:
   type: objectschema
   layer_id: data-model
   name: Tier0Card
-  description: The card fields Tier 0 reads (a harness card, with its corpus
-    field, also fits).
+  description: The card fields Tier 0 reads (a harness card, with its corpus field, also fits).
   attributes:
     type: object
   source_reference:
@@ -3257,8 +3237,7 @@ data-model.objectschema.cbm-graph-node:
   type: objectschema
   layer_id: data-model
   name: CbmGraphNode
-  description: Graph node in the shape the analyzer consumes (same as CBM 0.10's
-    flat search results).
+  description: Graph node in the shape the analyzer consumes (same as CBM 0.10's flat search results).
   attributes:
     type: object
   source_reference:
@@ -4125,8 +4104,7 @@ data-model.objectschema.probe-expectation:
   type: objectschema
   layer_id: data-model
   name: ProbeExpectation
-  description: What a model is expected to answer for the probe, measured live,
-    and how far it may stray.
+  description: What a model is expected to answer for the probe, measured live, and how far it may stray.
   attributes:
     type: object
   source_reference:
@@ -4293,8 +4271,7 @@ data-model.objectschema.open-apiserver:
   type: objectschema
   layer_id: data-model
   name: OpenAPIServer
-  description: OpenAPI server definition Specifies base URL and optional
-    description for API access
+  description: OpenAPI server definition Specifies base URL and optional description for API access
   attributes:
     type: object
   source_reference:
@@ -4445,8 +4422,7 @@ data-model.objectschema.plant-umlelement-entry:
   type: objectschema
   layer_id: data-model
   name: PlantUMLElementEntry
-  description: PlantUML element entry for diagram generation Contains element
-    metadata for rendering from graph nodes
+  description: PlantUML element entry for diagram generation Contains element metadata for rendering from graph nodes
   attributes:
     type: object
   source_reference:
@@ -4633,8 +4609,7 @@ data-model.objectschema.component-config:
   type: objectschema
   layer_id: data-model
   name: ComponentConfig
-  description: Component configuration matching Python COMPONENTS dict structure
-    Describes how a component should be copied from source to target
+  description: Component configuration matching Python COMPONENTS dict structure Describes how a component should be copied from source to target
   attributes:
     type: object
   source_reference:
@@ -4653,8 +4628,7 @@ data-model.objectschema.version-data:
   type: objectschema
   layer_id: data-model
   name: VersionData
-  description: Version file YAML schema (.dr-version, .dr-copilot-version) Tracks
-    installation metadata and file hashes for change detection
+  description: Version file YAML schema (.dr-version, .dr-copilot-version) Tracks installation metadata and file hashes for change detection
   attributes:
     type: object
   source_reference:
@@ -4673,8 +4647,7 @@ data-model.objectschema.file-change:
   type: objectschema
   layer_id: data-model
   name: FileChange
-  description: File change detected during update operation Used to categorize and
-    report changes between installed and source versions
+  description: File change detected during update operation Used to categorize and report changes between installed and source versions
   attributes:
     type: object
   source_reference:
@@ -4693,8 +4666,7 @@ data-model.objectschema.obsolete-file:
   type: objectschema
   layer_id: data-model
   name: ObsoleteFile
-  description: Obsolete file detected during cleanup Represents a file in the
-    installed integration that no longer exists in source
+  description: Obsolete file detected during cleanup Represents a file in the installed integration that no longer exists in source
   attributes:
     type: object
   source_reference:
@@ -5364,8 +5336,7 @@ data-model.objectschema.raw-answer:
   type: objectschema
   layer_id: data-model
   name: RawAnswer
-  description: An answer as the provider sent it, before normalisation (what the
-    cache stores).
+  description: An answer as the provider sent it, before normalisation (what the cache stores).
   attributes:
     type: object
   source_reference:
@@ -5456,8 +5427,7 @@ data-model.objectschema.billed-usage:
   type: objectschema
   layer_id: data-model
   name: BilledUsage
-  description: Usage a failed call was billed for anyway (a stage that answered
-    before another failed, or a 200 that couldn't be read).
+  description: Usage a failed call was billed for anyway (a stage that answered before another failed, or a 200 that couldn't be read).
   attributes:
     type: object
   source_reference:
@@ -5494,8 +5464,7 @@ data-model.objectschema.qset-variant:
   type: objectschema
   layer_id: data-model
   name: QsetVariant
-  description: Harness experiments that change what is sent, each a suffix of the
-    question set id.
+  description: Harness experiments that change what is sent, each a suffix of the question set id.
   attributes:
     type: object
   source_reference:
@@ -5587,8 +5556,7 @@ data-model.objectschema.answered-stage:
   type: objectschema
   layer_id: data-model
   name: AnsweredStage
-  description: A stage's normalised answers (from `AskResult.answers`, or a cache
-    entry through `normaliseEntry`).
+  description: A stage's normalised answers (from `AskResult.answers`, or a cache entry through `normaliseEntry`).
   attributes:
     type: object
   source_reference:
@@ -5790,8 +5758,7 @@ data-model.objectschema.state-card:
   type: objectschema
   layer_id: data-model
   name: StateCard
-  description: The card fields the state reads (a harness card, with its corpus
-    field, also fits).
+  description: The card fields the state reads (a harness card, with its corpus field, also fits).
   attributes:
     type: object
   source_reference:
@@ -5867,8 +5834,7 @@ data-model.objectschema.spend-by-source:
   type: objectschema
   layer_id: data-model
   name: SpendBySource
-  description: This month's spend per source (`extract`, `index`, `classify`,
-    `probe`), with the last time each spent.
+  description: This month's spend per source (`extract`, `index`, `classify`, `probe`), with the last time each spent.
   attributes:
     type: object
   source_reference:
@@ -5961,8 +5927,7 @@ data-model.objectschema.tier1fill:
   type: objectschema
   layer_id: data-model
   name: Tier1Fill
-  description: The `codebase_index` job's Tier-1 cache fill (section 4.4), as its
-    job record and the warming views show it.
+  description: The `codebase_index` job's Tier-1 cache fill (section 4.4), as its job record and the warming views show it.
   attributes:
     type: object
   source_reference:
@@ -6132,8 +6097,7 @@ data-model.objectschema.cross-repo-target:
   type: objectschema
   layer_id: data-model
   name: CrossRepoTarget
-  description: Another repository this code talks to, and the model (declared in
-    the manifest) that documents it.
+  description: Another repository this code talks to, and the model (declared in the manifest) that documents it.
   attributes:
     type: object
   source_reference:
@@ -6829,9 +6793,7 @@ data-model.objectschema.worktree-snapshot:
   type: objectschema
   layer_id: data-model
   name: WorktreeSnapshot
-  description: The uncommitted source files as an index run starts, so a later
-    check can tell any change to them, including a revert (`git stash`, `git
-    checkout -- file`) that no mtime shows.
+  description: The uncommitted source files as an index run starts, so a later check can tell any change to them, including a revert (`git stash`, `git checkout -- file`) that no mtime shows.
   attributes:
     type: object
   source_reference:
@@ -7774,8 +7736,7 @@ data-model.objectschema.impact-hint:
   type: objectschema
   layer_id: data-model
   name: ImpactHint
-  description: An existing element whose code calls code a range changed, though
-    its own code didn't change (CBM `detect_changes` impacted callers).
+  description: An existing element whose code calls code a range changed, though its own code didn't change (CBM `detect_changes` impacted callers).
   attributes:
     type: object
   source_reference:
@@ -8222,8 +8183,7 @@ data-model.objectschema.available-analyzer:
   type: objectschema
   layer_id: data-model
   name: AvailableAnalyzer
-  description: Information about an available analyzer Used in discovery results
-    to report analyzer availability and installation status
+  description: Information about an available analyzer Used in discovery results to report analyzer availability and installation status
   attributes:
     type: object
   source_reference:
@@ -8242,8 +8202,7 @@ data-model.objectschema.discovery-result:
   type: objectschema
   layer_id: data-model
   name: DiscoveryResult
-  description: Result of analyzer discovery Lists all available analyzers and
-    their installation status
+  description: Result of analyzer discovery Lists all available analyzers and their installation status
   attributes:
     type: object
   source_reference:
@@ -8281,8 +8240,7 @@ data-model.objectschema.endpoint-candidate:
   type: objectschema
   layer_id: data-model
   name: EndpointCandidate
-  description: An API endpoint candidate discovered from code analysis Maps to `dr
-    add api operation` command arguments
+  description: An API endpoint candidate discovered from code analysis Maps to `dr add api operation` command arguments
   attributes:
     type: object
   source_reference:
@@ -8320,8 +8278,7 @@ data-model.objectschema.changed-symbol:
   type: objectschema
   layer_id: data-model
   name: ChangedSymbol
-  description: A symbol a git range changed, as the analyzer's index places it
-    (CBM `detect_changes` seeds).
+  description: A symbol a git range changed, as the analyzer's index places it (CBM `detect_changes` seeds).
   attributes:
     type: object
   source_reference:
@@ -8340,8 +8297,7 @@ data-model.objectschema.impacted-symbol:
   type: objectschema
   layer_id: data-model
   name: ImpactedSymbol
-  description: A symbol that calls changed code, though its own code didn't change
-    (CBM `detect_changes` impacted).
+  description: A symbol that calls changed code, though its own code didn't change (CBM `detect_changes` impacted).
   attributes:
     type: object
   source_reference:
@@ -8436,8 +8392,7 @@ data-model.objectschema.analyzer-node-mapping:
   type: objectschema
   layer_id: data-model
   name: AnalyzerNodeMapping
-  description: Mapping for a single CBM node label to DR element type Matches the
-    structure in cbm.json nodes_by_label
+  description: Mapping for a single CBM node label to DR element type Matches the structure in cbm.json nodes_by_label
   attributes:
     type: object
   source_reference:
@@ -8456,8 +8411,7 @@ data-model.objectschema.analyzer-edge-mapping:
   type: objectschema
   layer_id: data-model
   name: AnalyzerEdgeMapping
-  description: Mapping for a single CBM edge type to DR relationship Matches the
-    structure in cbm.json edges_by_type
+  description: Mapping for a single CBM edge type to DR relationship Matches the structure in cbm.json edges_by_type
   attributes:
     type: object
   source_reference:
@@ -8533,8 +8487,7 @@ data-model.objectschema.service-candidate:
   type: objectschema
   layer_id: data-model
   name: ServiceCandidate
-  description: A service candidate discovered from code analysis Maps to `dr add
-    application service` or similar command arguments
+  description: A service candidate discovered from code analysis Maps to `dr add application service` or similar command arguments
   attributes:
     type: object
   source_reference:
@@ -8739,8 +8692,7 @@ data-model.objectschema.cached-model:
   type: objectschema
   layer_id: data-model
   name: CachedModel
-  description: Per-rootPath cache of the loaded architecture model, held for the
-    lifetime of the MCP server process
+  description: Per-rootPath cache of the loaded architecture model, held for the lifetime of the MCP server process
   attributes:
     type: object
   source_reference:
@@ -8832,8 +8784,7 @@ data-model.objectschema.model-layer-report-data:
   type: objectschema
   layer_id: data-model
   name: ModelLayerReportData
-  description: Report-friendly data structure for a single layer Analogous to
-    ReportDataModel in scripts/generate-layer-reports.ts
+  description: Report-friendly data structure for a single layer Analogous to ReportDataModel in scripts/generate-layer-reports.ts
   attributes:
     type: object
   source_reference:
@@ -8945,8 +8896,7 @@ data-model.objectschema.simple-wsmessage:
   type: objectschema
   layer_id: data-model
   name: SimpleWSMessage
-  description: WebSocket message types derived from Zod schemas for type safety
-    and runtime validation
+  description: WebSocket message types derived from Zod schemas for type safety and runtime validation
   attributes:
     type: object
   source_reference:
@@ -9019,8 +8969,7 @@ data-model.objectschema.annotation-fingerprint:
   type: objectschema
   layer_id: data-model
   name: AnnotationFingerprint
-  description: What the server compares to tell an annotation changed, and which
-    replies are new.
+  description: What the server compares to tell an annotation changed, and which replies are new.
   attributes:
     type: object
   source_reference:
@@ -9114,9 +9063,7 @@ data-model.objectschema.viewer-record:
   type: objectschema
   layer_id: data-model
   name: ViewerRecord
-  description: A per-project `dr visualize` record from CLI 0.7.0 and earlier.
-    Read only by the start-up sweep that stops old viewers; the central process
-    writes a ServerRecord instead.
+  description: A per-project `dr visualize` record from CLI 0.7.0 and earlier. Read only by the start-up sweep that stops old viewers; the central process writes a ServerRecord instead.
   attributes:
     type: object
   source_reference:
@@ -9340,8 +9287,7 @@ data-model.objectschema.changeset-history-entry:
   type: objectschema
   layer_id: data-model
   name: ChangesetHistoryEntry
-  description: Changeset application history entry Records when changesets were
-    committed or discarded in the model
+  description: Changeset application history entry Records when changesets were committed or discarded in the model
   attributes:
     type: object
   source_reference:
@@ -9379,8 +9325,7 @@ data-model.objectschema.external-model-declaration:
   type: objectschema
   layer_id: data-model
   name: ExternalModelDeclaration
-  description: External model declaration in manifest Declares a model that this
-    model may reference via qualified paths (e.g., @model-name/...)
+  description: External model declaration in manifest Declares a model that this model may reference via qualified paths (e.g., @model-name/...)
   attributes:
     type: object
   source_reference:
@@ -9437,8 +9382,7 @@ data-model.objectschema.json-schema-property:
   type: objectschema
   layer_id: data-model
   name: JsonSchemaProperty
-  description: JSON Schema property definition Represents a single property in a
-    JSON Schema object
+  description: JSON Schema property definition Represents a single property in a JSON Schema object
   attributes:
     type: object
   source_reference:
@@ -9457,8 +9401,7 @@ data-model.objectschema.tool-parameter:
   type: objectschema
   layer_id: data-model
   name: ToolParameter
-  description: Tool parameter definition for Claude AI tools Describes a single
-    input parameter for a tool
+  description: Tool parameter definition for Claude AI tools Describes a single input parameter for a tool
   attributes:
     type: object
   source_reference:
@@ -9477,8 +9420,7 @@ data-model.objectschema.tool-input-schema:
   type: objectschema
   layer_id: data-model
   name: ToolInputSchema
-  description: Tool input schema definition Defines the structure of inputs for a
-    Claude AI tool
+  description: Tool input schema definition Defines the structure of inputs for a Claude AI tool
   attributes:
     type: object
   source_reference:
@@ -9497,8 +9439,7 @@ data-model.objectschema.tool-definition:
   type: objectschema
   layer_id: data-model
   name: ToolDefinition
-  description: Tool definition for Claude AI integration Represents a single tool
-    that Claude can call
+  description: Tool definition for Claude AI integration Represents a single tool that Claude can call
   attributes:
     type: object
   source_reference:
@@ -9517,8 +9458,7 @@ data-model.objectschema.tool-execution-result:
   type: objectschema
   layer_id: data-model
   name: ToolExecutionResult
-  description: Result of executing a tool All tool results are returned as
-    JSON-serializable objects
+  description: Result of executing a tool All tool results are returned as JSON-serializable objects
   attributes:
     type: object
   source_reference:
@@ -9537,8 +9477,7 @@ data-model.objectschema.backup-manifest-file:
   type: objectschema
   layer_id: data-model
   name: BackupManifestFile
-  description: Backup manifest entry for a single file All properties are readonly
-    to enforce immutability of backup records
+  description: Backup manifest entry for a single file All properties are readonly to enforce immutability of backup records
   attributes:
     type: object
   source_reference:
@@ -9557,9 +9496,7 @@ data-model.objectschema.backup-manifest:
   type: objectschema
   layer_id: data-model
   name: BackupManifest
-  description: Backup manifest tracking files and creation timestamp Used for
-    backup integrity validation and recovery All properties are readonly to
-    enforce immutability of backup records
+  description: Backup manifest tracking files and creation timestamp Used for backup integrity validation and recovery All properties are readonly to enforce immutability of backup records
   attributes:
     type: object
   source_reference:
@@ -9782,8 +9719,7 @@ data-model.objectschema.not-indexed-entry:
   type: objectschema
   layer_id: data-model
   name: NotIndexedEntry
-  description: An API operation the model sources to a file the analyzer didn't
-    index or parsed only in part
+  description: An API operation the model sources to a file the analyzer didn't index or parsed only in part
   attributes:
     type: object
   source_reference:
@@ -9934,8 +9870,7 @@ data-model.objectschema.model-element-ref:
   type: objectschema
   layer_id: data-model
   name: ModelElementRef
-  description: Model element reference extracted from the API layer Contains the
-    minimal set of fields needed for dual-index matching
+  description: Model element reference extracted from the API layer Contains the minimal set of fields needed for dual-index matching
   attributes:
     type: object
   source_reference:
@@ -9954,8 +9889,7 @@ data-model.objectschema.index-entry:
   type: objectschema
   layer_id: data-model
   name: IndexEntry
-  description: Primary or secondary index entry (holds model element data, not
-    discovered route data)
+  description: Primary or secondary index entry (holds model element data, not discovered route data)
   attributes:
     type: object
   source_reference:
@@ -10408,8 +10342,7 @@ data-model.objectschema.pipeline-result-with-ai:
   type: objectschema
   layer_id: data-model
   name: PipelineResultWithAI
-  description: Pipeline result when AI is enabled Contains before and after
-    snapshots, all reports, and summary metrics
+  description: Pipeline result when AI is enabled Contains before and after snapshots, all reports, and summary metrics
   attributes:
     type: object
   source_reference:
@@ -10536,9 +10469,7 @@ data-model.objectschema.inter-layer-context:
   type: objectschema
   layer_id: data-model
   name: InterLayerContext
-  description: Optional spec context passed to interLayerValidation() to ground
-    the prompt in real node types and existing schemas rather than relying on
-    static hints.
+  description: Optional spec context passed to interLayerValidation() to ground the prompt in real node types and existing schemas rather than relying on static hints.
   attributes:
     type: object
   source_reference:
@@ -10989,8 +10920,7 @@ data-model.objectschema.agent-process:
   type: objectschema
   layer_id: data-model
   name: AgentProcess
-  description: Agent process wrapper Provides access to the spawned subprocess and
-    its streams
+  description: Agent process wrapper Provides access to the spawned subprocess and its streams
   attributes:
     type: object
   source_reference:
@@ -11198,8 +11128,7 @@ data-model.objectschema.dr-mcp-launch:
   type: objectschema
   layer_id: data-model
   name: DrMcpLaunch
-  description: A written MCP config and the function that removes it again (safe
-    to call more than once).
+  description: A written MCP config and the function that removes it again (safe to call more than once).
   attributes:
     type: object
   source_reference:
@@ -11255,8 +11184,7 @@ data-model.objectschema.agent-directory:
   type: objectschema
   layer_id: data-model
   name: AgentDirectory
-  description: An agents folder Claude Code reads, and whether it counts as the
-    project's or the user's.
+  description: An agents folder Claude Code reads, and whether it counts as the project's or the user's.
   attributes:
     type: object
   source_reference:
@@ -11313,8 +11241,7 @@ data-model.objectschema.agent-mcp-tool-check:
   type: objectschema
   layer_id: data-model
   name: AgentMcpToolCheck
-  description: The dr MCP tools a mode uses that the dr-architect DrBot runs
-    doesn't list, and whether the launch adds them (added).
+  description: The dr MCP tools a mode uses that the dr-architect DrBot runs doesn't list, and whether the launch adds them (added).
   attributes:
     type: object
   source_reference:
@@ -11842,9 +11769,7 @@ data-model.objectschema.delete-pre-resolved:
   type: objectschema
   layer_id: data-model
   name: DeletePreResolved
-  description: Handler function for deleting relationships Encapsulates the core
-    logic of the delete-relationship command @internal Exported for testing
-    purposes
+  description: Handler function for deleting relationships Encapsulates the core logic of the delete-relationship command @internal Exported for testing purposes
   attributes:
     type: object
   source_reference:
@@ -12281,9 +12206,7 @@ data-model.objectschema.visualize-options:
   type: objectschema
   layer_id: data-model
   name: VisualizeOptions
-  description: Options of dr visualize. readOnly turns off the chat agent's
-    default changeset staging; withChangesets is kept as the old name for that
-    default.
+  description: Options of dr visualize. readOnly turns off the chat agent's default changeset staging; withChangesets is kept as the old name for that default.
   attributes:
     type: object
   source_reference:
@@ -12357,8 +12280,7 @@ data-model.objectschema.contradicted-by-code:
   type: objectschema
   layer_id: data-model
   name: ContradictedByCode
-  description: A relationship extraction would stage that an accepted gap says is
-    deliberately absent.
+  description: A relationship extraction would stage that an accepted gap says is deliberately absent.
   attributes:
     type: object
   source_reference:
@@ -12451,8 +12373,7 @@ data-model.objectschema.accepted-gap:
   type: objectschema
   layer_id: data-model
   name: AcceptedGap
-  description: One accepted gap, as stored on the element (snake_case, as the spec
-    names the fields).
+  description: One accepted gap, as stored on the element (snake_case, as the spec names the fields).
   attributes:
     type: object
   source_reference:
@@ -12617,8 +12538,7 @@ data-model.objectschema.retired-attribute-table:
   type: objectschema
   layer_id: data-model
   name: RetiredAttributeTable
-  description: Spec node id ("{layer}.{type}") -> attributes the spec no longer
-    defines for that type
+  description: Spec node id ("{layer}.{type}") -> attributes the spec no longer defines for that type
   attributes:
     type: object
   source_reference:
@@ -12854,8 +12774,7 @@ data-model.objectschema.unwired-entry:
   type: objectschema
   layer_id: data-model
   name: UnwiredEntry
-  description: A connection the catalog defines for an element's type that the
-    element does not have.
+  description: A connection the catalog defines for an element's type that the element does not have.
   attributes:
     type: object
   source_reference:
@@ -12874,8 +12793,7 @@ data-model.objectschema.element-unwired:
   type: objectschema
   layer_id: data-model
   name: ElementUnwired
-  description: One added or updated element's unwired connections, as computed
-    (every layer).
+  description: One added or updated element's unwired connections, as computed (every layer).
   attributes:
     type: object
   source_reference:
@@ -12968,9 +12886,7 @@ data-model.objectschema.intent-trace:
   type: objectschema
   layer_id: data-model
   name: IntentTrace
-  description: "A changed element that reaches intent, and how: by its own walk,
-    or carried by the whole that composes or aggregates it, or by what it
-    realizes, hub or not."
+  description: "A changed element that reaches intent, and how: by its own walk, or carried by the whole that composes or aggregates it, or by what it realizes, hub or not."
   attributes:
     type: object
   source_reference:
@@ -12989,8 +12905,7 @@ data-model.objectschema.unanchored-trace:
   type: objectschema
   layer_id: data-model
   name: UnanchoredTrace
-  description: A changed element whose only intent is an intent element the
-    changeset adds, which traces to nothing.
+  description: A changed element whose only intent is an intent element the changeset adds, which traces to nothing.
   attributes:
     type: object
   source_reference:
@@ -13210,9 +13125,7 @@ data-model.objectschema.sections-brief:
   type: objectschema
   layer_id: data-model
   name: SectionsBrief
-  description: "A brief of named sections only: a small header, then each section
-    in its compact form (or in full, when asked), with a page giving each list's
-    total, how many items were returned and the next offset."
+  description: "A brief of named sections only: a small header, then each section in its compact form (or in full, when asked), with a page giving each list's total, how many items were returned and the next offset."
   attributes:
     type: object
   source_reference:
@@ -14072,8 +13985,7 @@ data-model.objectschema.as-built-share:
   type: objectschema
   layer_id: data-model
   name: AsBuiltShare
-  description: How much of the as-built side came from extraction, and how much
-    was added by hand.
+  description: How much of the as-built side came from extraction, and how much was added by hand.
   attributes:
     type: object
   source_reference:
@@ -14130,9 +14042,7 @@ data-model.objectschema.extraction-record:
   type: objectschema
   layer_id: data-model
   name: ExtractionRecord
-  description: What `codebase_extract` recorded about an as-built changeset
-    (`.dr/analyzers/extract/<id>.json`, or `pending.json` for a run that staged
-    nothing)
+  description: What `codebase_extract` recorded about an as-built changeset (`.dr/analyzers/extract/<id>.json`, or `pending.json` for a run that staged nothing)
   attributes:
     type: object
   source_reference:
@@ -14187,8 +14097,7 @@ data-model.objectschema.source-reference-gap:
   type: objectschema
   layer_id: data-model
   name: SourceReferenceGap
-  description: A matched plan element whose as-built match has source locations
-    the plan lacks.
+  description: A matched plan element whose as-built match has source locations the plan lacks.
   attributes:
     type: object
   source_reference:
@@ -14207,8 +14116,7 @@ data-model.objectschema.unreferenced-planned-add:
   type: objectschema
   layer_id: data-model
   name: UnreferencedPlannedAdd
-  description: A planned add with no source reference and no as-built match to
-    copy one from.
+  description: A planned add with no source reference and no as-built match to copy one from.
   attributes:
     type: object
   source_reference:
@@ -14448,8 +14356,7 @@ data-model.objectschema.model-warning-options:
   type: objectschema
   layer_id: data-model
   name: ModelWarningOptions
-  description: "Options for the warnings added after the validation pipeline:
-    exempt the intent layers from the source-reference check, and strict."
+  description: "Options for the warnings added after the validation pipeline: exempt the intent layers from the source-reference check, and strict."
   attributes:
     type: object
   source_reference:
@@ -14468,8 +14375,7 @@ data-model.objectschema.model-view:
   type: objectschema
   layer_id: data-model
   name: ModelView
-  description: "A model as a read tool sees it (layers and relationships) with the
-    name of the view: base, or a changeset's projection."
+  description: "A model as a read tool sees it (layers and relationships) with the name of the view: base, or a changeset's projection."
   attributes:
     type: object
   source_reference:
@@ -14507,8 +14413,7 @@ data-model.objectschema.model-trace-trace-edge:
   type: objectschema
   layer_id: data-model
   name: model-trace TraceEdge
-  description: A relationship or cross-layer reference as a trace meets it, with
-    its standing in the changeset and whether the trace follows it.
+  description: A relationship or cross-layer reference as a trace meets it, with its standing in the changeset and whether the trace follows it.
   attributes:
     type: object
   source_reference:
@@ -14527,8 +14432,7 @@ data-model.objectschema.page:
   type: objectschema
   layer_id: data-model
   name: Page
-  description: "Where a page sits in its list: total, returned, offset, and
-    nextOffset when more is left."
+  description: "Where a page sits in its list: total, returned, offset, and nextOffset when more is left."
   attributes:
     type: object
   source_reference:
@@ -14566,8 +14470,7 @@ data-model.objectschema.lists-page:
   type: objectschema
   layer_id: data-model
   name: ListsPage
-  description: "Where a page sits in several lists paged together: the offset,
-    each list's true length by name, and nextOffset while any has more."
+  description: "Where a page sits in several lists paged together: the offset, each list's true length by name, and nextOffset while any has more."
   attributes:
     type: object
   source_reference:
@@ -14586,9 +14489,7 @@ data-model.objectschema.compact-intent:
   type: objectschema
   layer_id: data-model
   name: CompactIntent
-  description: "The intent section as the compact brief and sections return it:
-    counts, untraced ids or untraced by type, unanchored lines, traced lines
-    when few, noCatalogRoute by type, and a note."
+  description: "The intent section as the compact brief and sections return it: counts, untraced ids or untraced by type, unanchored lines, traced lines when few, noCatalogRoute by type, and a note."
   attributes:
     type: object
   source_reference:
@@ -14607,10 +14508,7 @@ data-model.objectschema.compact-layer-change:
   type: objectschema
   layer_id: data-model
   name: CompactLayerChange
-  description: "A changed element in the compact layers section: its type, name,
-    description, attributes and changed fields, with changed connections as
-    lines and every other connection counted per direction, predicate and other
-    layer."
+  description: "A changed element in the compact layers section: its type, name, description, attributes and changed fields, with changed connections as lines and every other connection counted per direction, predicate and other layer."
   attributes:
     type: object
   source_reference:
@@ -14648,8 +14546,7 @@ data-model.objectschema.compact-code-file:
   type: objectschema
   layer_id: data-model
   name: CompactCodeFile
-  description: "A touched file in the compact codeTouched section: its changed
-    elements and a count of the existing elements next to the change."
+  description: "A touched file in the compact codeTouched section: its changed elements and a count of the existing elements next to the change."
   attributes:
     type: object
   source_reference:
@@ -14668,8 +14565,7 @@ data-model.objectschema.unwired-by-type:
   type: objectschema
   layer_id: data-model
   name: UnwiredByType
-  description: "Unwired connections per element type, for more elements than are
-    worth listing one by one: each connection with how many elements lack it."
+  description: "Unwired connections per element type, for more elements than are worth listing one by one: each connection with how many elements lack it."
   attributes:
     type: object
   source_reference:
@@ -14688,9 +14584,7 @@ data-model.objectschema.sections-options:
   type: objectschema
   layer_id: data-model
   name: SectionsOptions
-  description: "How briefSections renders: the delta, the filter, full or compact,
-    the offset into changes and layers, the size budget and how bytes are
-    measured."
+  description: "How briefSections renders: the delta, the filter, full or compact, the offset into changes and layers, the size budget and how bytes are measured."
   attributes:
     type: object
   source_reference:
@@ -14709,10 +14603,7 @@ data-model.objectschema.sections-page:
   type: objectschema
   layer_id: data-model
   name: SectionsPage
-  description: "Where a sections answer sits in its lists: one offset for every
-    list, each list's true total and how many items the answer holds, the next
-    offset while any list has more, and a summary of each section the answer
-    holds only part of."
+  description: "Where a sections answer sits in its lists: one offset for every list, each list's true total and how many items the answer holds, the next offset while any list has more, and a summary of each section the answer holds only part of."
   attributes:
     type: object
   source_reference:
@@ -14731,9 +14622,7 @@ data-model.objectschema.running-viewer:
   type: objectschema
   layer_id: data-model
   name: RunningViewer
-  description: "One running viewer as dr visualize --list reports it: project
-    root, port, launcher and server pids, CLI version, start time, who started
-    it and whether the registry has a record of it."
+  description: "One running viewer as dr visualize --list reports it: project root, port, launcher and server pids, CLI version, start time, who started it and whether the registry has a record of it."
   attributes:
     type: object
   source_reference:
@@ -14752,11 +14641,7 @@ data-model.objectschema.viewer-health:
   type: objectschema
   layer_id: data-model
   name: ViewerHealth
-  description: "What a viewer's health check says: status, the cliVersion of the
-    CLI serving it (absent before 0.6.0), and since 0.7.0 its viewerId, its pid,
-    its launcher's pid and the browser tabs connected. The id and pids let a
-    caller confirm the viewer answering is the one a record names; the tab count
-    decides whether review_open may replace an older viewer."
+  description: "What a viewer's health check says: status, the cliVersion of the CLI serving it (absent before 0.6.0), and since 0.7.0 its viewerId, its pid, its launcher's pid and the browser tabs connected. The id and pids let a caller confirm the viewer answering is the one a record names; the tab count decides whether review_open may replace an older viewer."
   attributes:
     type: object
   source_reference:
@@ -14775,8 +14660,7 @@ data-model.objectschema.viewer-survey:
   type: objectschema
   layer_id: data-model
   name: ViewerSurvey
-  description: The running viewers that could be found, whether the process table
-    could be read, and what the registry sweep removed.
+  description: The running viewers that could be found, whether the process table could be read, and what the registry sweep removed.
   attributes:
     type: object
   source_reference:
@@ -14795,9 +14679,7 @@ data-model.objectschema.sweep-result:
   type: objectschema
   layer_id: data-model
   name: SweepResult
-  description: "What a sweep of the viewers directory removed: every path, and a
-    count of stale records, markers of dead starts, old logs and leftover temp
-    files."
+  description: "What a sweep of the viewers directory removed: every path, and a count of stale records, markers of dead starts, old logs and leftover temp files."
   attributes:
     type: object
   source_reference:
@@ -14873,8 +14755,7 @@ data-model.objectschema.derived-element-id:
   type: objectschema
   layer_id: data-model
   name: DerivedElementId
-  description: An id derived from a name, its last segment, and notes on what the
-    derivation did that the name does not make obvious
+  description: An id derived from a name, its last segment, and notes on what the derivation did that the name does not make obvious
   attributes:
     type: object
   source_reference:
@@ -14950,8 +14831,7 @@ data-model.objectschema.batch-attention-group:
   type: objectschema
   layer_id: data-model
   name: BatchAttentionGroup
-  description: Attention items past the limit that share a status and a reason,
-    with their positions
+  description: Attention items past the limit that share a status and a reason, with their positions
   attributes:
     type: object
   source_reference:
@@ -14989,8 +14869,7 @@ data-model.objectschema.batch-attention-group-item:
   type: objectschema
   layer_id: data-model
   name: BatchAttentionGroupItem
-  description: "One item of an attention group: its position, its id when written,
-    and its own values"
+  description: "One item of an attention group: its position, its id when written, and its own values"
   attributes:
     type: object
   source_reference:
@@ -15009,8 +14888,7 @@ data-model.objectschema.relationship-batch-report:
   type: objectschema
   layer_id: data-model
   name: RelationshipBatchReport
-  description: A batch report with readByName, each by-name reference and the id
-    it was read as
+  description: A batch report with readByName, each by-name reference and the id it was read as
   attributes:
     type: object
   source_reference:
@@ -15029,8 +14907,7 @@ data-model.objectschema.installed-cli:
   type: objectschema
   layer_id: data-model
   name: InstalledCli
-  description: "The CLI found on disk: its version, the spec version it bundles
-    and when its files last changed."
+  description: "The CLI found on disk: its version, the spec version it bundles and when its files last changed."
   attributes:
     type: object
   source_reference:
@@ -15049,9 +14926,7 @@ data-model.objectschema.changeset-drift-entry:
   type: objectschema
   layer_id: data-model
   name: ChangesetDriftEntry
-  description: "How the base model moved under a staged changeset, and what that
-    does to landing it: state, landing, base change counts, overlapping staged
-    changes and the call that lists them."
+  description: "How the base model moved under a staged changeset, and what that does to landing it: state, landing, base change counts, overlapping staged changes and the call that lists them."
   attributes:
     type: object
   source_reference:
@@ -15070,8 +14945,7 @@ data-model.objectschema.unreferenced-changes:
   type: objectschema
   layer_id: data-model
   name: UnreferencedChanges
-  description: "Changed files the code drift check cannot judge because no element
-    references them: all of them, the source files and the new source files."
+  description: "Changed files the code drift check cannot judge because no element references them: all of them, the source files and the new source files."
   attributes:
     type: object
   source_reference:
@@ -15090,8 +14964,7 @@ data-model.objectschema.status-list-page:
   type: objectschema
   layer_id: data-model
   name: StatusListPage
-  description: "One page of a list the status shortens: list, total, offset,
-    returned, items, and nextOffset and more when entries are left."
+  description: "One page of a list the status shortens: list, total, offset, returned, items, and nextOffset and more when entries are left."
   attributes:
     type: object
   source_reference:
@@ -15110,8 +14983,7 @@ data-model.objectschema.list-sections:
   type: objectschema
   layer_id: data-model
   name: ListSections
-  description: "The project_status sections that hold lists the default answer
-    shortens: changesets, codeIndex and codeDrift."
+  description: "The project_status sections that hold lists the default answer shortens: changesets, codeIndex and codeDrift."
   attributes:
     type: object
   source_reference:
@@ -15130,8 +15002,7 @@ data-model.objectschema.unreferenced-file:
   type: objectschema
   layer_id: data-model
   name: UnreferencedFile
-  description: "A changed file no element references: its path, whether it is a
-    source file and whether it was added since the baseline."
+  description: "A changed file no element references: its path, whether it is a source file and whether it was added since the baseline."
   attributes:
     type: object
   source_reference:
@@ -15150,9 +15021,7 @@ data-model.objectschema.project-rule:
   type: objectschema
   layer_id: data-model
   name: ProjectRule
-  description: "One extraction rule a project keeps: a name, which cards or
-    relationships it covers (where), what they are (as: a layer.type or none),
-    the reason, and when and in which changeset it was decided."
+  description: "One extraction rule a project keeps: a name, which cards or relationships it covers (where), what they are (as: a layer.type or none), the reason, and when and in which changeset it was decided."
   attributes:
     type: object
   source_reference:
@@ -15171,8 +15040,7 @@ data-model.objectschema.project-rules-file:
   type: objectschema
   layer_id: data-model
   name: ProjectRulesFile
-  description: "documentation-robotics/extraction-rules.yaml: a version and the
-    project's extraction rules, in the order they apply."
+  description: "documentation-robotics/extraction-rules.yaml: a version and the project's extraction rules, in the order they apply."
   attributes:
     type: object
   source_reference:
@@ -15191,8 +15059,7 @@ data-model.objectschema.triage-group:
   type: objectschema
   layer_id: data-model
   name: TriageGroup
-  description: A group of undecided cards (a folder or file, with counts by kind
-    and visibility), what the model has there, and a suggested decision.
+  description: A group of undecided cards (a folder or file, with counts by kind and visibility), what the model has there, and a suggested decision.
   attributes:
     type: object
   source_reference:
@@ -15211,8 +15078,7 @@ data-model.objectschema.decide-item:
   type: objectschema
   layer_id: data-model
   name: DecideItem
-  description: "One decision sent to codebase_extract: where or card, as, reason,
-    and keep to record it as a project rule."
+  description: "One decision sent to codebase_extract: where or card, as, reason, and keep to record it as a project rule."
   attributes:
     type: object
   source_reference:
@@ -15231,8 +15097,7 @@ data-model.objectschema.shared-helper-group:
   type: objectschema
   layer_id: data-model
   name: SharedHelperGroup
-  description: "A function many services call: how many, the links it makes, and
-    the rule that would remove them."
+  description: "A function many services call: how many, the links it makes, and the rule that would remove them."
   attributes:
     type: object
   source_reference:
@@ -15251,8 +15116,7 @@ data-model.objectschema.plan-coverage-item:
   type: objectschema
   layer_id: data-model
   name: PlanCoverageItem
-  description: A planned element with no as-built candidate staged, and the cards
-    found in its source file.
+  description: A planned element with no as-built candidate staged, and the cards found in its source file.
   attributes:
     type: object
   source_reference:
@@ -15271,9 +15135,7 @@ data-model.objectschema.triage-facts:
   type: objectschema
   layer_id: data-model
   name: TriageFacts
-  description: "What is read from a card's declaration for project rules and
-    triage groups: its visibility (exported, local, public, private, protected)
-    and whether it is nested in another function."
+  description: "What is read from a card's declaration for project rules and triage groups: its visibility (exported, local, public, private, protected) and whether it is nested in another function."
   attributes:
     type: object
   source_reference:
@@ -15292,8 +15154,7 @@ data-model.objectschema.layer-verify-coverage:
   type: objectschema
   layer_id: data-model
   name: LayerVerifyCoverage
-  description: "How much of a layer a check covered: model elements, checked, not
-    checked, code entries."
+  description: "How much of a layer a check covered: model elements, checked, not checked, code entries."
   attributes:
     type: object
   source_reference:
@@ -15312,8 +15173,7 @@ data-model.objectschema.not-checked-group:
   type: objectschema
   layer_id: data-model
   name: NotCheckedGroup
-  description: Model elements a check could not compare, for one reason, with what
-    would make them checkable.
+  description: Model elements a check could not compare, for one reason, with what would make them checkable.
   attributes:
     type: object
   source_reference:
@@ -15332,8 +15192,7 @@ data-model.objectschema.verify-rejections:
   type: objectschema
   layer_id: data-model
   name: VerifyRejections
-  description: "The recorded rejections a verification used: file, found, recorded
-    counts, applied per layer, error, note."
+  description: "The recorded rejections a verification used: file, found, recorded counts, applied per layer, error, note."
   attributes:
     type: object
   source_reference:
@@ -15352,9 +15211,7 @@ data-model.objectschema.recorded-decisions:
   type: objectschema
   layer_id: data-model
   name: RecordedDecisions
-  description: The not-an-element and not-a-relationship decisions read from
-    codebase_extract's decisions file, with whether it was found and any read
-    error.
+  description: The not-an-element and not-a-relationship decisions read from codebase_extract's decisions file, with whether it was found and any read error.
   attributes:
     type: object
   source_reference:
@@ -15373,8 +15230,7 @@ data-model.objectschema.registered-by-name:
   type: objectschema
   layer_id: data-model
   name: RegisteredByName
-  description: "Where the code may register an element by a name string: file,
-    string, line, and whether it is a call argument or a name property."
+  description: "Where the code may register an element by a name string: file, string, line, and whether it is a call argument or a name property."
   attributes:
     type: object
   source_reference:
@@ -15393,8 +15249,7 @@ data-model.objectschema.source-candidate:
   type: objectschema
   layer_id: data-model
   name: SourceCandidate
-  description: A file of the build that may hold a planned element's code, with
-    the symbol and the evidence.
+  description: A file of the build that may hold a planned element's code, with the symbol and the evidence.
   attributes:
     type: object
   source_reference:
@@ -15413,8 +15268,7 @@ data-model.objectschema.confirmed-reference:
   type: objectschema
   layer_id: data-model
   name: ConfirmedReference
-  description: "A source reference the agent confirmed in the code: id,
-    sourceFile, sourceSymbol."
+  description: "A source reference the agent confirmed in the code: id, sourceFile, sourceSymbol."
   attributes:
     type: object
   source_reference:
@@ -15433,8 +15287,7 @@ data-model.objectschema.multi-list-page:
   type: objectschema
   layer_id: data-model
   name: MultiListPage
-  description: "Where a result with several lists sits in them: limit, offset,
-    each list's true length, next offset."
+  description: "Where a result with several lists sits in them: limit, offset, each list's true length, next offset."
   attributes:
     type: object
   source_reference:
@@ -15472,8 +15325,7 @@ data-model.objectschema.derived-fill:
   type: objectschema
   layer_id: data-model
   name: DerivedFill
-  description: A value derived for one required attribute an element leaves empty,
-    with its rule
+  description: A value derived for one required attribute an element leaves empty, with its rule
   attributes:
     type: object
   source_reference:
@@ -15549,8 +15401,7 @@ data-model.objectschema.dot-dr-decision:
   type: objectschema
   layer_id: data-model
   name: DotDrDecision
-  description: "A choice for the user: git tracks files under .dr/; each option
-    with what it writes, removes and untracks"
+  description: "A choice for the user: git tracks files under .dr/; each option with what it writes, removes and untracks"
   attributes:
     type: object
   source_reference:
@@ -15569,9 +15420,7 @@ data-model.objectschema.layer-file-record:
   type: objectschema
   layer_id: data-model
   name: LayerFileRecord
-  description: What loading made of one YAML file in a layer folder (loaded,
-    failed, partial) and its text then; decides what a later save may replace or
-    remove
+  description: What loading made of one YAML file in a layer folder (loaded, failed, partial) and its text then; decides what a later save may replace or remove
   attributes:
     type: object
   source_reference:
@@ -15590,8 +15439,7 @@ data-model.objectschema.shipped-versions:
   type: objectschema
   layer_id: data-model
   name: ShippedVersions
-  description: Content hashes of every version dr shipped of one integration
-    entry, by path inside it
+  description: Content hashes of every version dr shipped of one integration entry, by path inside it
   attributes:
     type: object
   source_reference:
@@ -15610,10 +15458,7 @@ data-model.objectschema.repository:
   type: objectschema
   layer_id: data-model
   name: Repository
-  description: "A git repository a project lives in, identified by the real path
-    of its common git directory (git rev-parse --git-common-dir): commonDir,
-    mainCheckout (the main worktree's path), remote (origin's URL when it has
-    one). Derived from git, not stored."
+  description: "A git repository a project lives in, identified by the real path of its common git directory (git rev-parse --git-common-dir): commonDir, mainCheckout (the main worktree's path), remote (origin's URL when it has one). Derived from git, not stored."
   attributes:
     type: object
   source_reference:
@@ -15632,11 +15477,7 @@ data-model.objectschema.checkout:
   type: objectschema
   layer_id: data-model
   name: Checkout
-  description: "One working tree of a project's repository: key (\"main\" for the
-    main checkout, else the name git gives the linked worktree under
-    <commonDir>/worktrees/<name>), path (real path), branch (or null when
-    detached), head, isMain, state (present, missing, prunable), locked.
-    Discovered from git worktree list --porcelain, never stored."
+  description: 'One working tree of a project''s repository: key ("main" for the main checkout, else the name git gives the linked worktree under <commonDir>/worktrees/<name>), path (real path), branch (or null when detached), head, isMain, state (present, missing, prunable), locked. Discovered from git worktree list --porcelain, never stored.'
   attributes:
     type: object
   source_reference:
@@ -15655,9 +15496,7 @@ data-model.objectschema.checkout-ref:
   type: objectschema
   layer_id: data-model
   name: CheckoutRef
-  description: 'The address of a checkout: {project, checkout}. Every scoped API
-    route, deep link, websocket subscription, DrBot session and MCP result
-    carries it; checkout defaults to "main".'
+  description: 'The address of a checkout: {project, checkout}. Every scoped API route, deep link, websocket subscription, DrBot session and MCP result carries it; checkout defaults to "main".'
   attributes:
     type: object
   source_reference:
@@ -15676,9 +15515,7 @@ data-model.objectschema.project-list-entry:
   type: objectschema
   layer_id: data-model
   name: ProjectListEntry
-  description: "What project_list, GET /api/projects and dr farm list return for a
-    project: name, repository, model path, and its checkouts with branch, head,
-    state, active changeset and staged changeset count."
+  description: "What project_list, GET /api/projects and dr farm list return for a project: name, repository, model path, and its checkouts with branch, head, state, active changeset and staged changeset count."
   attributes:
     type: object
   source_reference:
@@ -15697,11 +15534,7 @@ data-model.objectschema.server-record:
   type: objectschema
   layer_id: data-model
   name: ServerRecord
-  description: "The record of the central DR process serving one farm: farm root,
-    pid, port, cliVersion, startedAt and launcher pid, with the path of the
-    token file (the token is in a 0600 file beside it). Kept at
-    servers/<farm-hash>.json in the user state directory: one record for the
-    user farm, and one for each folder farm a process was started in."
+  description: "The record of the central DR process serving one farm: farm root, pid, port, cliVersion, startedAt and launcher pid, with the path of the token file (the token is in a 0600 file beside it). Kept at servers/<farm-hash>.json in the user state directory: one record for the user farm, and one for each folder farm a process was started in."
   attributes:
     type: object
   source_reference:
@@ -15720,10 +15553,7 @@ data-model.objectschema.viewer-link:
   type: objectschema
   layer_id: data-model
   name: ViewerLink
-  description: "A deep link into the shared viewer: url, project, checkout, and
-    optionally changeset and element. The token travels in the URL fragment,
-    never in the query string. Built from the server record, never by starting a
-    process."
+  description: "A deep link into the shared viewer: url, project, checkout, and optionally changeset and element. The token travels in the URL fragment, never in the query string. Built from the server record, never by starting a process."
   attributes:
     type: object
   source_reference:
@@ -15742,9 +15572,7 @@ data-model.objectschema.dr-bot-session-key:
   type: objectschema
   layer_id: data-model
   name: DrBotSessionKey
-  description: "Identifies a DrBot conversation in the central process: {project,
-    checkout, conversationId}; maps to the coding agent's own session id for
-    --resume."
+  description: "Identifies a DrBot conversation in the central process: {project, checkout, conversationId}; maps to the coding agent's own session id for --resume."
   attributes:
     type: object
   source_reference:
@@ -15763,9 +15591,7 @@ data-model.objectschema.context-pool-settings:
   type: objectschema
   layer_id: data-model
   name: ContextPoolSettings
-  description: "Limits of the checkout context pool: maxLoaded (default 4),
-    idleMinutes (default 30); DR_SERVER_MAX_LOADED and DR_SERVER_IDLE_MINUTES
-    override them."
+  description: "Limits of the checkout context pool: maxLoaded (default 4), idleMinutes (default 30); DR_SERVER_MAX_LOADED and DR_SERVER_IDLE_MINUTES override them."
   attributes:
     type: object
   source_reference:
@@ -15784,10 +15610,7 @@ data-model.objectschema.feed-subscription:
   type: objectschema
   layer_id: data-model
   name: FeedSubscription
-  description: "A websocket subscribe or unsubscribe frame: {action, project,
-    checkout}. A socket receives model, changeset, annotation and chat events
-    only for the checkouts it subscribed to; each event carries its
-    CheckoutRef."
+  description: "A websocket subscribe or unsubscribe frame: {action, project, checkout}. A socket receives model, changeset, annotation and chat events only for the checkouts it subscribed to; each event carries its CheckoutRef."
   attributes:
     type: object
   source_reference:

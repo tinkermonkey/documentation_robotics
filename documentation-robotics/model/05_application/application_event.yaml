@@ -5,8 +5,7 @@ application.applicationevent.checkout-removed:
   type: applicationevent
   layer_id: application
   name: Checkout removed
-  description: A checkout the registry listed is gone (git worktree remove, or its
-    folder deleted).
+  description: A checkout the registry listed is gone (git worktree remove, or its folder deleted).
   attributes:
     eventType: system
   source_reference:

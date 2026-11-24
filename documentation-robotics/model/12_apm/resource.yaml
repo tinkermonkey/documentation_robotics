@@ -5,10 +5,7 @@ apm.resource.dr-cli-resource:
   type: resource
   layer_id: apm
   name: dr-cli resource
-  description: "The OpenTelemetry resource the dr CLI builds once per process:
-    service.name dr-cli (DR_OTLP_SERVICE_NAME or OTEL_SERVICE_NAME override it)
-    and service.version. In the central process it describes the one per-user
-    server."
+  description: "The OpenTelemetry resource the dr CLI builds once per process: service.name dr-cli (DR_OTLP_SERVICE_NAME or OTEL_SERVICE_NAME override it) and service.version. In the central process it describes the one per-user server."
   attributes:
     droppedAttributesCount: 0
   source_reference:

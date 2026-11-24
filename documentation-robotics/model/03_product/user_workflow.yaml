@@ -5,12 +5,10 @@ product.userworkflow.onboard-a-project:
   type: userworkflow
   layer_id: product
   name: Onboard a project
-  description: Get a repository ready to use DR, from nothing to a model the agent
-    can work with.
+  description: Get a repository ready to use DR, from nothing to a model the agent can work with.
   attributes:
     complexity: simple
-    documentation: Get a repository ready to use DR, from nothing to a model the
-      agent can work with.
+    documentation: Get a repository ready to use DR, from nothing to a model the agent can work with.
   metadata:
     created_at: 2026-11-09T22:04:39.807Z
     updated_at: 2026-11-09T22:04:39.807Z
@@ -22,12 +20,10 @@ product.userworkflow.bootstrap-a-model-from-the-code:
   type: userworkflow
   layer_id: product
   name: Bootstrap a model from the code
-  description: Model an existing codebase as it is, as a changeset the maintainer
-    reviews before it lands.
+  description: Model an existing codebase as it is, as a changeset the maintainer reviews before it lands.
   attributes:
     complexity: complex
-    documentation: Model an existing codebase as it is, as a changeset the
-      maintainer reviews before it lands.
+    documentation: Model an existing codebase as it is, as a changeset the maintainer reviews before it lands.
   metadata:
     created_at: 2026-11-09T22:04:40.841Z
     updated_at: 2026-11-09T22:04:40.841Z
@@ -54,12 +50,10 @@ product.userworkflow.pressure-test-a-plan:
   type: userworkflow
   layer_id: product
   name: Pressure-test a plan
-  description: Use the graph to find what the plan misses, pass after pass, until
-    it settles.
+  description: Use the graph to find what the plan misses, pass after pass, until it settles.
   attributes:
     complexity: complex
-    documentation: Use the graph to find what the plan misses, pass after pass,
-      until it settles.
+    documentation: Use the graph to find what the plan misses, pass after pass, until it settles.
   metadata:
     created_at: 2026-11-09T22:04:44.052Z
     updated_at: 2026-11-09T22:04:44.052Z
@@ -101,12 +95,10 @@ product.userworkflow.verify-a-build-against-its-plan:
   type: userworkflow
   layer_id: product
   name: Verify a build against its plan
-  description: Check what was built against what was planned, with an as-built
-    side the agent didn't write by hand.
+  description: Check what was built against what was planned, with an as-built side the agent didn't write by hand.
   attributes:
     complexity: moderate
-    documentation: Check what was built against what was planned, with an as-built
-      side the agent didn't write by hand.
+    documentation: Check what was built against what was planned, with an as-built side the agent didn't write by hand.
   metadata:
     created_at: 2026-11-09T22:04:48.934Z
     updated_at: 2026-11-09T22:04:48.934Z
@@ -163,12 +155,10 @@ product.userworkflow.explore-the-model:
   type: userworkflow
   layer_id: product
   name: Explore the model
-  description: Answer questions about the system, and try an idea, without
-    committing to a change.
+  description: Answer questions about the system, and try an idea, without committing to a change.
   attributes:
     complexity: simple
-    documentation: Answer questions about the system, and try an idea, without
-      committing to a change.
+    documentation: Answer questions about the system, and try an idea, without committing to a change.
   metadata:
     created_at: 2026-11-09T22:04:55.015Z
     updated_at: 2026-11-09T22:04:55.015Z
@@ -180,12 +170,10 @@ product.userworkflow.keep-the-model-as-built:
   type: userworkflow
   layer_id: product
   name: Keep the model as-built
-  description: Catch changes that reached the code without a plan and bring the
-    model back in step.
+  description: Catch changes that reached the code without a plan and bring the model back in step.
   attributes:
     complexity: moderate
-    documentation: Catch changes that reached the code without a plan and bring the
-      model back in step.
+    documentation: Catch changes that reached the code without a plan and bring the model back in step.
   metadata:
     created_at: 2026-11-09T22:04:57.031Z
     updated_at: 2026-11-09T22:04:57.031Z
@@ -212,8 +200,7 @@ product.userworkflow.work-across-projects-and-worktrees:
   type: userworkflow
   layer_id: product
   name: Work across projects and worktrees
-  description: Move between projects and their worktrees in one viewer and one
-    agent setup, without starting or finding a viewer per checkout.
+  description: Move between projects and their worktrees in one viewer and one agent setup, without starting or finding a viewer per checkout.
   attributes:
     complexity: moderate
   metadata:
@@ -227,8 +214,7 @@ product.userworkflow.move-to-user-level-dr:
   type: userworkflow
   layer_id: product
   name: Move to user-level DR
-  description: Move a machine from per-project viewers and a dr-farm-v1 farm to
-    one central DR process and a dr-farm-v2 user farm.
+  description: Move a machine from per-project viewers and a dr-farm-v1 farm to one central DR process and a dr-farm-v2 user farm.
   attributes:
     complexity: simple
   metadata:

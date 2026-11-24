@@ -5,8 +5,7 @@ technology.device.developer-workstation:
   type: device
   layer_id: technology
   name: Developer workstation
-  description: "The user's own machine: runs one central DR process per user, the
-    coding agents, and the checkouts it serves."
+  description: "The user's own machine: runs one central DR process per user, the coding agents, and the checkouts it serves."
   attributes:
     deviceType: workstation
   metadata:

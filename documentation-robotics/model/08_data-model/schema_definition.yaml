@@ -168,8 +168,7 @@ data-model.schemadefinition.held-out-rule:
   type: schemadefinition
   layer_id: data-model
   name: HeldOutRule
-  description: "How \"meets the targets within its interval\" (section 6) is read
-    (maintainer's decision on #1137)"
+  description: 'How "meets the targets within its interval" (section 6) is read (maintainer''s decision on #1137)'
   attributes:
     title: HeldOutRule
     type: string
@@ -192,8 +191,7 @@ data-model.schemadefinition.held-out-pooling:
   type: schemadefinition
   layer_id: data-model
   name: HeldOutPooling
-  description: How a verdict reads several held-out corpora (maintainer's
-    decision, TIER1_CALIBRATION.md section 9)
+  description: How a verdict reads several held-out corpora (maintainer's decision, TIER1_CALIBRATION.md section 9)
   attributes:
     title: HeldOutPooling
     type: string
@@ -446,8 +444,7 @@ data-model.schemadefinition.undecided-kind:
   type: schemadefinition
   layer_id: data-model
   name: UndecidedKind
-  description: "`unhandled-route`: a route nothing in the code handles (a URL
-    tests or clients call)"
+  description: "`unhandled-route`: a route nothing in the code handles (a URL tests or clients call)"
   attributes:
     title: UndecidedKind
     type: string
@@ -589,8 +586,7 @@ data-model.schemadefinition.percentage:
   type: schemadefinition
   layer_id: data-model
   name: Percentage
-  description: Percentage value constrained to 0-100 range Use createPercentage()
-    to construct safely
+  description: Percentage value constrained to 0-100 range Use createPercentage() to construct safely
   attributes:
     title: Percentage
     type: number
@@ -881,8 +877,7 @@ data-model.schemadefinition.changeset-action:
   type: schemadefinition
   layer_id: data-model
   name: ChangesetAction
-  description: A move from a changeset's current state, as the viewer and the
-    tools offer it.
+  description: A move from a changeset's current state, as the viewer and the tools offer it.
   attributes:
     title: ChangesetAction
     type: string
@@ -1206,8 +1201,7 @@ data-model.schemadefinition.relationship-batch-status:
   type: schemadefinition
   layer_id: data-model
   name: RelationshipBatchStatus
-  description: '"added" is "staged" when no changeset is active and the add is
-    written to the model.'
+  description: '"added" is "staged" when no changeset is active and the add is written to the model.'
   attributes:
     title: RelationshipBatchStatus
     type: string
@@ -1471,9 +1465,7 @@ data-model.schemadefinition.element-id:
   type: schemadefinition
   layer_id: data-model
   name: ElementId
-  description: Branded type for ElementId Provides compile-time safety by
-    distinguishing ElementId from plain strings Use with parseElementId() to
-    validate and brand a string at runtime
+  description: Branded type for ElementId Provides compile-time safety by distinguishing ElementId from plain strings Use with parseElementId() to validate and brand a string at runtime
   attributes:
     title: ElementId
     type: string
@@ -1493,8 +1485,7 @@ data-model.schemadefinition.sha256hash:
   type: schemadefinition
   layer_id: data-model
   name: Sha256Hash
-  description: SHA256 hash branded type for compile-time safety Prevents
-    accidental misuse of arbitrary strings as cryptographic checksums
+  description: SHA256 hash branded type for compile-time safety Prevents accidental misuse of arbitrary strings as cryptographic checksums
   attributes:
     title: Sha256Hash
     type: string
@@ -1681,9 +1672,7 @@ data-model.schemadefinition.warning-kind:
   type: schemadefinition
   layer_id: data-model
   name: WarningKind
-  description: "The kinds of validation warning: orphan, no-source-reference,
-    no-document-reference, no-description, the validator's categories, and
-    other."
+  description: "The kinds of validation warning: orphan, no-source-reference, no-document-reference, no-description, the validator's categories, and other."
   attributes:
     title: WarningKind
     type: string
