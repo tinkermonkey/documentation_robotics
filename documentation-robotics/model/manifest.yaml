@@ -1,9 +1,9 @@
 version: 0.1.0
 schema: documentation-robotics-v1
-cli_version: 0.7.1
-spec_version: 0.14.0
+cli_version: 0.8.0
+spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-24T13:51:12.067Z
+updated: 2026-11-24T20:32:59.811Z
 project:
   name: dr-codebase
   description: ""
@@ -34,11 +34,11 @@ layers:
     enabled: true
     elements:
       feature: 43
+      milestone: 1
       persona: 3
       softwarecapability: 8
       userworkflow: 15
       workflowstep: 52
-      milestone: 1
   security:
     order: 4
     name: Security
@@ -51,23 +51,23 @@ layers:
     enabled: true
     elements:
       applicationcomponent: 107
+      applicationevent: 1
       applicationfunction: 1346
+      applicationinterface: 2
       applicationservice: 112
       dataobject: 13
-      applicationevent: 1
       message: 1
-      applicationinterface: 2
   technology:
     order: 6
     name: Technology
     path: documentation-robotics/model/06_technology/
     enabled: true
     elements:
+      artifact: 3
       device: 1
       systemsoftware: 6
-      technologyservice: 2
       technologyinterface: 2
-      artifact: 3
+      technologyservice: 2
   api:
     order: 7
     name: Api
@@ -90,8 +90,8 @@ layers:
     path: documentation-robotics/model/09_data-store/
     enabled: true
     elements:
-      database: 3
       collection: 9
+      database: 3
   ux:
     order: 10
     name: Ux
@@ -108,20 +108,20 @@ layers:
     path: documentation-robotics/model/12_apm/
     enabled: true
     elements:
-      resource: 1
-      instrumentationscope: 1
-      traceconfiguration: 1
       exporterconfig: 1
+      instrumentationscope: 1
+      resource: 1
       span: 4
+      traceconfiguration: 1
   testing:
     order: 13
     name: Testing
     path: documentation-robotics/model/13_testing/
     enabled: true
     elements:
+      testcasesketch: 16
       testcoveragemodel: 1
       testcoveragetarget: 9
-      testcasesketch: 16
 changeset_history:
   - name: bootstrap-as-built
     committed_at: 2026-11-09T22:00:53.800Z

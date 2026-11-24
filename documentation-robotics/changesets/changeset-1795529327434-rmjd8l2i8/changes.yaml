@@ -8,9 +8,7 @@
     type: applicationevent
     layer_id: application
     name: changeset.commit.progress
-    description: "Broadcast on /ws to the committing checkout's subscribers while a
-      commit runs (#1361): { type, changesetId, applied, total, phase, layer?,
-      failed?, project, checkout, timestamp }."
+    description: "Broadcast on /ws to the committing checkout's subscribers while a commit runs (#1361): { type, changesetId, applied, total, phase, layer?, failed?, project, checkout, timestamp }."
     attributes:
       eventType: system
     source_reference:
@@ -34,11 +32,7 @@
     type: applicationfunction
     layer_id: application
     name: createCommitProgressReporter
-    description: "Throttles one commit's progress reports (the first, each phase
-      change and the final one always; otherwise at most one per interval,
-      default 200 ms) and publishes them on the process-wide commit progress
-      channel keyed by the checkout's root path; finish() sends the final
-      applied == total report, fail() the last one with failed: true."
+    description: "Throttles one commit's progress reports (the first, each phase change and the final one always; otherwise at most one per interval, default 200 ms) and publishes them on the process-wide commit progress channel keyed by the checkout's root path; finish() sends the final applied == total report, fail() the last one with failed: true."
     source_reference:
       provenance: manual
       locations:
@@ -60,9 +54,7 @@
     type: applicationfunction
     layer_id: application
     name: broadcastCommitProgress
-    description: "The central server's listener on the commit progress channel:
-      finds the checkout context whose root path the report names and broadcasts
-      changeset.commit.progress to that checkout's subscribers only."
+    description: "The central server's listener on the commit progress channel: finds the checkout context whose root path the report names and broadcasts changeset.commit.progress to that checkout's subscribers only."
     source_reference:
       provenance: manual
       locations:
@@ -108,15 +100,7 @@
     type: feature
     layer_id: product
     name: Commit progress
-    description: "While a changeset commit runs, the central server tells the
-      viewers open on that checkout how far it has got: a
-      changeset.commit.progress broadcast with the changes applied so far, the
-      total and the phase (validating, applying, saving, reloading, done).
-      Throttled; a success always ends with applied == total and phase done, a
-      failure with failed: true and the phase it stopped in. Sent for the
-      viewer's Apply and for changeset_commit (MCP, DrBot) run in the central
-      process; a separate dr changeset commit process sends none. Advisory: the
-      commit's own response is unchanged."
+    description: "While a changeset commit runs, the central server tells the viewers open on that checkout how far it has got: a changeset.commit.progress broadcast with the changes applied so far, the total and the phase (validating, applying, saving, reloading, done). Throttled; a success always ends with applied == total and phase done, a failure with failed: true and the phase it stopped in. Sent for the viewer's Apply and for changeset_commit (MCP, DrBot) run in the central process; a separate dr changeset commit process sends none. Advisory: the commit's own response is unchanged."
     attributes:
       priority: medium
       status: developing
@@ -140,9 +124,7 @@
     type: objectschema
     layer_id: data-model
     name: CommitProgress
-    description: "One progress report of a commit in flight: changesetId, applied,
-      total, phase (validating | applying | saving | reloading | done), layer
-      while applying, failed on the last report of a failed commit."
+    description: "One progress report of a commit in flight: changesetId, applied, total, phase (validating | applying | saving | reloading | done), layer while applying, failed on the last report of a failed commit."
     attributes:
       type: object
     source_reference:
@@ -266,10 +248,7 @@
     type: objectschema
     layer_id: data-model
     name: CommitOptions
-    description: "StagingAreaManager.commit's options: validate, dryRun, the
-      deprecated force, and onProgress (#1361), called with each CommitProgress
-      report (validating, applying with the layer of each change, saving) while
-      a real commit runs."
+    description: "StagingAreaManager.commit's options: validate, dryRun, the deprecated force, and onProgress (#1361), called with each CommitProgress report (validating, applying with the layer of each change, saving) while a real commit runs."
     attributes: *a1
     source_reference: *a2
     metadata: *a3
