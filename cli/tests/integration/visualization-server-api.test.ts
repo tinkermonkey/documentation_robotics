@@ -43,9 +43,20 @@ async function waitForServer(url: string, timeout: number = STARTUP_TIMEOUT): Pr
  * Start the visualization server
  */
 async function startServer(cwd: string, port: number): Promise<any> {
+  // `dr visualize` starts the central process since slice 4A (issue 1279); until slice 4B moves
+  // this file onto it, the per-project server is started directly, as the old launcher did.
   const process = Bun.spawn({
-    cmd: ["bun", CLI_PATH, "visualize", "--port", String(port), "--no-browser", "--no-auth"],
+    cmd: ["bun", join(CLI_ROOT, "dist/server-entry.js")],
     cwd,
+    env: {
+      ...Bun.env,
+      DR_VISUALIZE_PORT: String(port),
+      DR_PROJECT_PATH: cwd,
+      DR_AUTH_ENABLED: "false",
+      DR_WITH_DANGER: "false",
+      DR_WITH_CHANGESETS: "true",
+      DR_VIEWER_IDLE_EXIT_HOURS: "0",
+    },
     stdio: ["ignore", "pipe", "pipe"], // Capture output
   });
 
@@ -365,45 +376,6 @@ describe.serial("Visualization Server API Endpoints", () => {
       expect(html).toContain("/assets/");
       expect(html).toContain('type="module"');
     });
-  });
-
-  describe("Shutdown", () => {
-    /** Pids of the launcher's children: the server process it spawned. */
-    function childPidsOf(pid: number): number[] {
-      const result = spawnSync({ cmd: ["pgrep", "-P", String(pid)], stdio: ["ignore", "pipe", "ignore"] });
-      return result.stdout
-        .toString()
-        .split("\n")
-        .map((line) => Number(line.trim()))
-        .filter((childPid) => Number.isInteger(childPid) && childPid > 0);
-    }
-
-    function isRunning(pid: number): boolean {
-      try {
-        process.kill(pid, 0);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    // #1235: a server that hung in its own shutdown was left running, because the launcher's
-    // SIGKILL fallback was guarded by `killed`, which is true as soon as a signal was sent.
-    // A suspended server cannot act on SIGTERM, which stands in for the hang (under Bun, closing
-    // the file watcher while its folder was being deleted deadlocked the main thread).
-    it("force-kills a server that does not exit when the viewer is stopped", async () => {
-      const launcher = await startServer(testDir, testPort);
-      const serverPids = childPidsOf(launcher.pid);
-      expect(serverPids.length).toBeGreaterThan(0);
-      try {
-        for (const pid of serverPids) process.kill(pid, "SIGSTOP");
-
-        expect(await stopServerProcess(launcher)).toBe(true);
-        expect(serverPids.filter(isRunning)).toEqual([]);
-      } finally {
-        for (const pid of serverPids.filter(isRunning)) process.kill(pid, "SIGKILL");
-      }
-    }, 30000);
   });
 
   describe("Error Handling", () => {

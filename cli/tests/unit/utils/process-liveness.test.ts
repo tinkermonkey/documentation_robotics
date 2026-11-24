@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "bun:test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isProcessAlive, procShowsExited } from "../../../src/utils/process-liveness.js";
@@ -18,7 +18,7 @@ import {
   listViewerRecords,
   sweepViewerRegistry,
   viewerRecordPath,
-  writeViewerRecord,
+  ensureViewerRecordDir,
 } from "../../../src/server/viewer-registry.js";
 import { readServerRecord, sweepServerRecords, writeServerRecord } from "../../../src/server/server-record.js";
 import { isProcessRunning } from "../../helpers/process-liveness.ts";
@@ -121,10 +121,11 @@ describe.skipIf(!onLinux)("an unreaped zombie (Linux)", () => {
       try {
         const projectRoot = join(dir, "project");
         await mkdir(projectRoot);
-        // Written while the sweep inside writeViewerRecord can't remove it: the zombie is its pid.
-        await writeViewerRecord(
-          { pid: process.pid, port: 1, token: null, projectRoot, startedAt: new Date().toISOString(), withChangesets: false },
-          env
+        // A live viewer's record (this process), as CLI 0.7.x wrote them, beside the zombie's.
+        await ensureViewerRecordDir(env);
+        await writeFile(
+          viewerRecordPath(projectRoot, process.pid, env),
+          JSON.stringify({ pid: process.pid, port: 1, token: null, projectRoot: await realpath(projectRoot), startedAt: new Date().toISOString(), withChangesets: false })
         );
         const zombieRecord = viewerRecordPath(projectRoot, pid, env);
         await writeFile(

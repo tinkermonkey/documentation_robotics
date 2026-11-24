@@ -5,6 +5,9 @@
  *   dr serve               start it detached; print its link and pid
  *   dr serve --foreground  run it attached to this terminal (Ctrl-C stops it)
  *   dr serve --port <n>    where the port search starts, used only when it starts the process
+ *   dr serve --viewer-path <dir>, --with-danger, --read-only
+ *                          also used only when it starts the process (`dr visualize` passes its
+ *                          start-only options here through ensureCentralServer)
  *   dr serve --status      the running process's record and health, or "not running"
  *   dr serve --stop        stop it, and wait until it is gone
  *
@@ -16,11 +19,12 @@
 import ansis from "ansis";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { openSync, closeSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerRecord } from "../core/checkout-types.js";
 import { ProjectRegistry, resolveFarm, type FarmLocation } from "../core/project-registry.js";
 import type { CentralHealth } from "../server/central-server-contract.js";
+import type { CentralStartOptions } from "../server/central-mcp-contract.js";
 import { EXIT_ALREADY_RUNNING } from "../server/central-lifetime.js";
 import {
   ensureServerRecordDir,
@@ -37,6 +41,14 @@ import { isProcessAlive } from "../utils/process-liveness.js";
 
 export interface ServeOptions {
   port?: string;
+  /** A custom viewer build to serve (start only). */
+  viewerPath?: string;
+  /** DrBot may also land and delete (start only). */
+  withDanger?: boolean;
+  /** DrBot reads only (start only). */
+  readOnly?: boolean;
+  /** The old name for the default (changeset staging); accepted and ignored. */
+  withChangesets?: boolean;
   foreground?: boolean;
   status?: boolean;
   stop?: boolean;
@@ -68,7 +80,7 @@ export interface ServeDeps {
   out: (line: string) => void;
 }
 
-export interface SpawnEntryOptions {
+export interface SpawnEntryOptions extends Omit<CentralStartOptions, "port"> {
   farm: FarmLocation;
   port?: number;
   foreground: boolean;
@@ -96,12 +108,41 @@ export async function serveLogPath(farmRoot: string, env: NodeJS.ProcessEnv): Pr
   return join(await ensureServerRecordDir(env), `${farmHash(farmRoot)}.log`);
 }
 
-/** Starts serve-entry: attached to this terminal, or detached with its output in `logPath`. */
-export function spawnServeEntry(options: SpawnEntryOptions): SpawnedEntry {
+/** How `dr serve` hands its start options to serve-entry. */
+export const SERVE_START_ENV = {
+  port: "DR_SERVE_PORT",
+  viewerPath: "DR_SERVE_VIEWER_PATH",
+  withDanger: "DR_SERVE_WITH_DANGER",
+  readOnly: "DR_SERVE_READ_ONLY",
+} as const;
+
+/** The start options serve-entry reads from its environment (what spawnServeEntry set). */
+export function startOptionsFromEnv(env: NodeJS.ProcessEnv): CentralStartOptions {
+  const port = Number(env[SERVE_START_ENV.port]);
+  return {
+    ...(Number.isInteger(port) && port > 0 && port <= 65535 ? { port } : {}),
+    ...(env[SERVE_START_ENV.viewerPath] ? { viewerPath: env[SERVE_START_ENV.viewerPath] } : {}),
+    ...(env[SERVE_START_ENV.withDanger] === "1" ? { withDanger: true } : {}),
+    ...(env[SERVE_START_ENV.readOnly] === "1" ? { readOnly: true } : {}),
+  };
+}
+
+/** The environment serve-entry starts with: the caller's, with this call's start options and no stale ones. */
+export function serveEntryEnv(options: SpawnEntryOptions): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...options.env, DR_SERVE_LAUNCHER_PID: String(process.pid) };
   // The entry resolves the farm again from the same cwd and environment, so it finds this one.
-  if (options.port !== undefined) env.DR_SERVE_PORT = String(options.port);
-  else delete env.DR_SERVE_PORT;
+  // Only this call's options reach it, never ones inherited from the caller's environment.
+  for (const name of Object.values(SERVE_START_ENV)) delete env[name];
+  if (options.port !== undefined) env[SERVE_START_ENV.port] = String(options.port);
+  if (options.viewerPath) env[SERVE_START_ENV.viewerPath] = resolve(options.cwd, options.viewerPath);
+  if (options.withDanger) env[SERVE_START_ENV.withDanger] = "1";
+  if (options.readOnly) env[SERVE_START_ENV.readOnly] = "1";
+  return env;
+}
+
+/** Starts serve-entry: attached to this terminal, or detached with its output in `logPath`. */
+export function spawnServeEntry(options: SpawnEntryOptions): SpawnedEntry {
+  const env = serveEntryEnv(options);
 
   let child: ChildProcess;
   if (options.foreground) {
@@ -229,10 +270,17 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
 
   const modes = [options.status && "--status", options.stop && "--stop", options.foreground && "--foreground"].filter(Boolean);
   if (modes.length > 1) throw new CLIError(`${modes.join(" and ")} don't go together.`);
-  if ((options.status || options.stop) && options.port !== undefined) {
-    throw new CLIError("--port is used only when dr serve starts the process.");
+  const startOnly = [
+    options.port !== undefined && "--port",
+    options.viewerPath !== undefined && "--viewer-path",
+    options.withDanger && "--with-danger",
+    options.readOnly && "--read-only",
+  ].filter(Boolean);
+  if ((options.status || options.stop) && startOnly.length > 0) {
+    throw new CLIError(`${startOnly.join(", ")} ${startOnly.length === 1 ? "is" : "are"} used only when dr serve starts the process.`);
   }
   const port = parsePort(options.port);
+  const start = { viewerPath: options.viewerPath, withDanger: options.withDanger, readOnly: options.readOnly };
   const farm = await deps.resolveFarm({ cwd: deps.cwd, env: deps.env });
   const running = await deps.findRunningServer(farm.root, { env: deps.env });
 
@@ -307,7 +355,7 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
   }
 
   if (options.foreground) {
-    const entry = deps.spawnEntry({ farm, port, foreground: true, env: deps.env, cwd: deps.cwd });
+    const entry = deps.spawnEntry({ farm, port, ...start, foreground: true, env: deps.env, cwd: deps.cwd });
     // Ctrl-C reaches the entry through the terminal's process group; this process waits for it.
     const ignore = () => {};
     const forward = () => entry.pid && deps.kill(entry.pid, "SIGTERM");
@@ -326,7 +374,7 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
 
   // Detached: wait until the entry has recorded itself, then print where it is.
   const logPath = await serveLogPath(farm.root, deps.env);
-  const entry = deps.spawnEntry({ farm, port, foreground: false, env: deps.env, cwd: deps.cwd, logPath });
+  const entry = deps.spawnEntry({ farm, port, ...start, foreground: false, env: deps.env, cwd: deps.cwd, logPath });
   let exitCode: number | null | undefined;
   void entry.exited.then((code) => (exitCode = code));
   let started: RunningServer | null = null;

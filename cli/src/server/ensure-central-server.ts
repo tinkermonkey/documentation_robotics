@@ -21,7 +21,12 @@ import { fetchCentralHealth, serveLogPath, spawnServeEntry, type SpawnEntryOptio
 import { getCliVersion } from "../utils/spec-version.js";
 import { isProcessAlive } from "../utils/process-liveness.js";
 import { EXIT_ALREADY_RUNNING } from "./central-lifetime.js";
-import type { EnsureCentralServer, EnsureCentralServerOptions, EnsuredCentralServer } from "./central-mcp-contract.js";
+import type {
+  CentralStartOptions,
+  EnsureCentralServer,
+  EnsureCentralServerOptions,
+  EnsuredCentralServer,
+} from "./central-mcp-contract.js";
 import { MCP_ROOT_PATH_ENV } from "./central-mcp-contract.js";
 import type { CentralHealth } from "./central-server-contract.js";
 import {
@@ -185,8 +190,9 @@ async function ensureWith(options: EnsureCentralServerOptions, deps: EnsureCentr
       // A process may have recorded itself between the lookup and the claim.
       const raced = await deps.findRunningServer(farm.root, { env });
       if (raced) continue;
-      const started = await startProcess(farm, cwd, env, startTimeoutMs, deps);
-      return { record: started.record, token: started.token!, started: true };
+      const started = await startProcess(farm, cwd, env, startTimeoutMs, deps, options.start ?? {});
+      // Another start can win the race (its process answered): then this call's options were not applied.
+      return { record: started.found.record, token: started.found.token!, started: started.ours };
     } finally {
       await marker.release();
     }
@@ -245,16 +251,19 @@ async function startProcess(
   cwd: string,
   env: NodeJS.ProcessEnv,
   startTimeoutMs: number,
-  deps: EnsureCentralServerDeps
-): Promise<RunningServer> {
+  deps: EnsureCentralServerDeps,
+  start: CentralStartOptions
+): Promise<{ found: RunningServer; ours: boolean }> {
   const logPath = await deps.logPath(farm.root, env);
-  const entry = deps.spawnEntry({ farm, foreground: false, env: centralProcessEnv(env), cwd, logPath });
+  const entry = deps.spawnEntry({ farm, ...start, foreground: false, env: centralProcessEnv(env), cwd, logPath });
   let exitCode: number | null | undefined;
   void entry.exited.then((code) => (exitCode = code));
   const deadline = deps.now() + startTimeoutMs;
   for (;;) {
     const found = await deps.findRunningServer(farm.root, { env });
-    if (found && found.token && (found.record.pid === entry.pid || exitCode === EXIT_ALREADY_RUNNING)) return found;
+    if (found && found.token && (found.record.pid === entry.pid || exitCode === EXIT_ALREADY_RUNNING)) {
+      return { found, ours: found.record.pid === entry.pid };
+    }
     if (exitCode !== undefined && exitCode !== EXIT_ALREADY_RUNNING) {
       throw new Error(`The DR process did not start: it exited with code ${exitCode}. Its log: ${logPath}`);
     }

@@ -1,6 +1,7 @@
 /**
  * End-to-end regression test for #800: `dr visualize` must work on a machine with
- * only Node.js installed, no Bun.
+ * only Node.js installed, no Bun. Since issue 1279 (slice 4A) it starts the farm's central DR
+ * process detached (`dr serve`), which is what this checks runs under node.
  *
  * PR #803 removed every Bun-specific runtime API (Bun.serve, hono/bun, Bun.spawn/
  * Bun.spawnSync, Bun.watch) from the visualization server, and changed the CLI to
@@ -13,21 +14,19 @@
  *
  * This test spawns the CLI via a literal `node` binary AND strips any directory
  * containing a `bun` executable from the child's PATH, so there is no way for `bun`
- * to be reached anywhere in the process tree (CLI -> server subprocess -> ...).
+ * to be reached anywhere in the process tree (CLI -> central process -> ...). It runs on a
+ * scratch farm and state directory (tests/helpers/visualize-farm.ts).
  *
  * REQUIRES SERIAL EXECUTION: starts a real server subprocess on a live port.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { spawn, spawnSync } from "child_process";
 import { existsSync } from "fs";
-import { mkdir, rm } from "fs/promises";
 import { delimiter, join } from "path";
-import { portAllocator, stopServerProcess } from "../helpers.ts";
+import { portAllocator } from "../helpers.ts";
+import { CLI_PATH, makeVisualizeFarm, type VisualizeFarm } from "../helpers/visualize-farm.ts";
 
-const CLI_ROOT = join(import.meta.dir, "../..");
-const CLI_PATH = join(CLI_ROOT, "dist/cli.js");
-const STARTUP_TIMEOUT = 20000; // ms – generous for CI
+const STARTUP_TIMEOUT = 30000; // ms – generous for CI
 
 /**
  * Build a PATH string with every directory that contains a `bun` executable removed,
@@ -40,41 +39,13 @@ function pathWithoutBun(): string {
   return dirs.filter((dir) => !dir || !existsSync(join(dir, bunExecutableName))).join(delimiter);
 }
 
-function initializeTestModel(dir: string): void {
-  const result = spawnSync("node", [CLI_PATH, "init", "--name", "Node Runtime Test", "--description", "Pure-Node dr visualize e2e test"], {
-    cwd: dir,
-    stdio: ["pipe", "pipe", "pipe"],
-  });
-  if (result.status !== 0) {
-    throw new Error(`Failed to init test model: ${result.stderr?.toString()}`);
-  }
-}
-
-async function waitForHealth(port: number, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(`http://localhost:${port}/health`);
-      if (res.ok) return;
-    } catch {
-      // not ready yet
-    }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-  throw new Error(`Server at port ${port} did not become healthy within ${timeoutMs}ms`);
-}
-
-describe.serial("dr visualize under a literal pure-Node runtime with Bun entirely unreachable", () => {
-  let testDir: string;
+describe.skipIf(!existsSync(CLI_PATH)).serial("dr visualize under a literal pure-Node runtime with Bun entirely unreachable", () => {
+  let farm: VisualizeFarm;
   let port: number;
-  let serverProc: ReturnType<typeof spawn> | null = null;
-  let serverOutput = "";
+  let token: string;
 
   beforeAll(async () => {
-    testDir = join("/tmp", `dr-node-runtime-e2e-${Date.now()}`);
-    await mkdir(testDir, { recursive: true });
-    initializeTestModel(testDir);
-
+    farm = await makeVisualizeFarm(["alpha"]);
     port = await portAllocator.allocatePort();
 
     const noBunPath = pathWithoutBun();
@@ -87,34 +58,24 @@ describe.serial("dr visualize under a literal pure-Node runtime with Bun entirel
       expect(noBunPath).not.toBe(process.env.PATH);
     }
 
-    // Spawn the CLI itself via a literal "node" binary (not Bun.spawn/"bun", unlike
-    // every other visualization-server integration test) with Bun stripped from PATH,
-    // so process.execPath inside visualize.ts - and therefore the server subprocess
-    // it spawns - can only ever resolve to node.
-    serverProc = spawn(
+    // Run the CLI itself via a literal "node" binary with Bun stripped from PATH, so the central
+    // process it starts detached (`dr serve`'s serve-entry, run with process.execPath) can only
+    // ever be node.
+    const run = farm.dr(
+      ["visualize", "--no-browser", "--json", "--port", String(port)],
+      farm.projects.alpha,
       "node",
-      [CLI_PATH, "visualize", "--port", String(port), "--no-browser", "--no-auth"],
-      {
-        cwd: testDir,
-        env: { ...process.env, PATH: noBunPath },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
+      { ...farm.env, PATH: noBunPath }
     );
-    serverProc.stdout?.on("data", (d) => (serverOutput += d.toString()));
-    serverProc.stderr?.on("data", (d) => (serverOutput += d.toString()));
-
-    try {
-      await waitForHealth(port, STARTUP_TIMEOUT);
-    } catch (err) {
-      throw new Error(`${(err as Error).message}\nServer output:\n${serverOutput}`);
-    }
+    if (run.status !== 0) throw new Error(`dr visualize failed:\n${run.stdout}\n${run.stderr}`);
+    const started = JSON.parse(run.stdout) as { port: number; url: string };
+    expect(started.port).toBe(port);
+    token = new URLSearchParams(started.url.split("?")[1]).get("token") ?? "";
   }, STARTUP_TIMEOUT + 5000);
 
   afterAll(async () => {
-    // Wait for the server to exit before its project folder is deleted
-    await stopServerProcess(serverProc);
+    await farm?.cleanup();
     portAllocator.releasePort(port);
-    await rm(testDir, { recursive: true, force: true });
   });
 
   it("serves /health over HTTP with Bun completely unreachable", async () => {
@@ -133,7 +94,7 @@ describe.serial("dr visualize under a literal pure-Node runtime with Bun entirel
 
   it("supports a WebSocket round-trip (ping/pong) with Bun completely unreachable", async () => {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(`ws://localhost:${port}/ws`);
+      const ws = new WebSocket(`ws://localhost:${port}/ws?token=${encodeURIComponent(token)}`);
       const timer = setTimeout(() => {
         ws.close();
         reject(new Error("WebSocket ping/pong round-trip timed out"));

@@ -1,5 +1,6 @@
 /**
- * `dr visualize --list` and `--stop` (#1237): what is listed, and which viewers a stop names.
+ * `dr visualize --list` and `--stop` (#1237; issue 1279 slice 4A): the central process and the
+ * legacy per-project viewers that are listed, and what a stop stops.
  *
  * The process table and the kill are injected: nothing here reads or signals real viewers.
  * tests/unit/server runs with --concurrent, so each test makes its own scratch dir and captures
@@ -11,11 +12,15 @@ import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  formatCentralProcess,
   formatViewerTable,
+  legacyViewerReason,
   listViewersCommand,
   selectViewersToStop,
+  stopCommand,
   stopViewersCommand,
   viewerNotes,
+  type CentralProcessState,
 } from "../../../src/commands/visualize-viewers.js";
 import type { RunningViewer } from "../../../src/server/viewer-control.js";
 import { DR_STATE_DIR_ENV, viewerRecordDir, viewerRecordPath } from "../../../src/server/viewer-registry.js";
@@ -160,6 +165,7 @@ describe("the commands", () => {
     health: async () => ({ status: "ok" as const, cliVersion: "0.5.0" }),
     // The fixture's dist/server-entry.js is the dr CLI's (the real check reads its package.json).
     isDrServer: (command: string) => command.includes(CLI),
+    readCentral: async (): Promise<CentralProcessState> => ({ farmRoot: join(scratch, "farm"), record: null, health: null }),
     log,
     json,
   });
@@ -184,7 +190,10 @@ describe("the commands", () => {
       expect(text).toContain("not in the registry; older than this CLI (0.7.0)");
       expect(text).toContain("dr visualize --stop");
       // How many, and where they were found: over all of them, not a page of them.
-      expect(text).toContain("2 viewers running: 0 in the registry, 2 found only in the process table.");
+      expect(text).toContain("2 per-project viewers running: 0 in the registry, 2 found only in the process table.");
+      // Each with the reason the central process's start-up sweep keeps it.
+      expect(text).toContain("kept: started from a terminal");
+      expect(text).toContain("No DR process is running for");
       expect(text).not.toContain("process scan was not possible");
     }));
 
@@ -197,7 +206,7 @@ describe("the commands", () => {
         viewerRecordPath(fx.projectA, 100, env),
         JSON.stringify({ pid: 100, port: 8082, token: null, projectRoot: fx.projectA, startedAt: "", withChangesets: true })
       );
-      const survey = await listViewersCommand({ ...deps(fx), processes: () => null });
+      const { survey } = await listViewersCommand({ ...deps(fx), processes: () => null });
       expect(survey.processScan).toBe(false);
       const text = fx.output.join("\n");
       expect(text).toContain("8082");
@@ -215,12 +224,12 @@ describe("the commands", () => {
       expect(parsed.caveats).toHaveLength(1);
       expect(parsed.caveats[0]).toContain("viewers the registry has lost are not shown");
       // Without ps, a viewer that does not name itself on /health has no pids to signal.
-      expect(parsed.viewers[0]).toMatchObject({ pid: 100, confirmed: null });
-      expect(parsed.viewers[0].unconfirmed).toContain("no process table");
+      expect(parsed.legacyViewers[0]).toMatchObject({ pid: 100, confirmed: null, keptReason: "not-started-by-review-open" });
+      expect(parsed.legacyViewers[0].unconfirmed).toContain("no process table");
       fx.output.length = 0;
       await listViewersCommand({ ...deps(fx), env: { [DR_STATE_DIR_ENV]: join(fx.scratch, "empty") }, processes: () => null });
       expect(fx.output.join("\n")).toContain("The registry lists no viewers. A process scan was not possible");
-      expect(fx.output.join("\n")).not.toContain("No viewers are running.");
+      expect(fx.output.join("\n")).not.toContain("No per-project viewers are running.");
     }));
 
   it("--list says what reading the registry removed, with counts", () =>
@@ -234,7 +243,7 @@ describe("the commands", () => {
           JSON.stringify({ pid, port: 8099, token: null, projectRoot: fx.projectA, startedAt: "", withChangesets: false })
         );
       }
-      const survey = await listViewersCommand({ ...deps(fx), isAlive: (pid) => pid !== 901 && pid !== 902 });
+      const { survey } = await listViewersCommand({ ...deps(fx), isAlive: (pid) => pid !== 901 && pid !== 902 });
       expect(survey.swept.records).toBe(2);
       expect(fx.output.join("\n")).toContain("Removed 2 stale records from the registry.");
 
@@ -270,8 +279,9 @@ describe("the commands", () => {
       expect(parsed.processScan).toEqual({ available: true });
       expect(parsed.counts).toEqual({ total: 2, inRegistry: 0, processOnly: 2, unconfirmedCandidates: 0, otherUsers: 0 });
       expect(parsed.swept).toEqual({ records: 0, startingMarkers: 0, logs: 0, tempFiles: 0, removed: [], unreadable: [] });
-      expect(parsed.viewers.map((v: { port: number }) => v.port)).toEqual([8082, 8083]);
-      expect(parsed.viewers[0]).toMatchObject({
+      expect(parsed.central).toMatchObject({ running: false, answering: false, record: null });
+      expect(parsed.legacyViewers.map((v: { port: number }) => v.port)).toEqual([8082, 8083]);
+      expect(parsed.legacyViewers[0]).toMatchObject({
         projectRoot: fx.projectA,
         pid: 100,
         serverPid: 101,
@@ -279,13 +289,100 @@ describe("the commands", () => {
         outdated: true,
         inRegistry: false,
       });
-      expect(parsed.viewers[0]).not.toHaveProperty("token");
+      expect(parsed.legacyViewers[0]).not.toHaveProperty("token");
     }));
 
   it("--list says so when nothing runs", () =>
     withFixture(async (fx) => {
       await listViewersCommand({ ...deps(fx), processes: () => [] });
-      expect(fx.output).toEqual(["No viewers are running."]);
+      expect(fx.output[0]).toStartWith("No DR process is running for");
+      expect(fx.output).toContain("No per-project viewers are running.");
+    }));
+
+  it("--list shows the central process with its tabs, MCP sessions and DrBot turns, and leaves it out of the legacy list", () =>
+    withFixture(async (fx) => {
+      const central: CentralProcessState = {
+        farmRoot: join(fx.scratch, "farm"),
+        record: {
+          farmRoot: join(fx.scratch, "farm"),
+          pid: 4242,
+          port: 8090,
+          cliVersion: "0.7.1",
+          startedAt: "2026-11-24T09:00:00.000Z",
+          tokenPath: join(fx.scratch, "state", "servers", "x.token"),
+        },
+        health: { status: "ok", cliVersion: "0.7.1", pid: 4242, clients: 2, mcpSessions: 1, drBotTurns: 0, loadedCheckouts: 3 },
+      };
+      await listViewersCommand({ ...deps(fx), processes: () => [], readCentral: async () => central });
+      const text = fx.output.join("\n");
+      expect(text).toContain("pid 4242, port 8090, CLI 0.7.1");
+      expect(text).toContain("2 browser tabs, 1 MCP session, 0 DrBot turns, 3 checkouts loaded");
+
+      fx.output.length = 0;
+      await listViewersCommand({ ...deps(fx, true), processes: () => [], readCentral: async () => central });
+      const parsed = JSON.parse(fx.output.join("\n"));
+      expect(parsed.central).toMatchObject({ running: true, answering: true, record: { pid: 4242, port: 8090 } });
+      expect(parsed.central.record).not.toHaveProperty("tokenPath");
+      expect(parsed.central.health).toMatchObject({ clients: 2, mcpSessions: 1, drBotTurns: 0 });
+    }));
+
+  it("--stop stops the central process with dr serve's confirmed stop, and leaves legacy viewers alone", () =>
+    withFixture(async (fx) => {
+      const live = new Set([100, 101, 300, 301]);
+      const signalled: number[] = [];
+      const calls: unknown[] = [];
+      const result = await stopCommand(
+        { cwd: fx.projectA },
+        {
+          ...deps(fx),
+          stop: fakeStop(live, signalled),
+          serve: async (options, overrides) => {
+            calls.push({ options, cwd: overrides.cwd });
+            overrides.out(JSON.stringify({ stopped: true, pid: 4242, forced: false }));
+          },
+        }
+      );
+      expect(calls).toEqual([{ options: { stop: true, json: true }, cwd: fx.projectA }]);
+      expect(result).toEqual({ central: { stopped: true, pid: 4242, forced: false }, legacy: null });
+      expect(signalled).toEqual([]);
+      expect(fx.output.join("\n")).toContain("Stopped the DR process (pid 4242)");
+    }));
+
+  it("--stop --all also stops every legacy viewer whose pids are confirmed, even when no DR process runs", () =>
+    withFixture(async (fx) => {
+      const live = new Set([100, 101, 300, 301]);
+      const signalled: number[] = [];
+      const result = await stopCommand(
+        { all: true, includeUnrecorded: true, cwd: fx.projectA },
+        {
+          ...deps(fx),
+          stop: fakeStop(live, signalled),
+          serve: async (_options, overrides) => overrides.out(JSON.stringify({ stopped: false, running: false })),
+        }
+      );
+      expect(result.central).toEqual({ stopped: false, running: false });
+      expect(result.legacy).toMatchObject({ found: 2, matched: 2, stopped: 2, notStopped: [] });
+      expect(signalled.sort()).toEqual([100, 300]);
+      expect(fx.output.join("\n")).toContain("No DR process is running for this farm.");
+    }));
+
+  it("--stop --all still stops legacy viewers when the central stop fails, then fails", () =>
+    withFixture(async (fx) => {
+      const live = new Set([100, 101, 300, 301]);
+      const signalled: number[] = [];
+      await expect(
+        stopCommand(
+          { all: true, includeUnrecorded: true, cwd: fx.projectA },
+          {
+            ...deps(fx),
+            stop: fakeStop(live, signalled),
+            serve: async () => {
+              throw new Error("pid 4242 in the server record could not be confirmed");
+            },
+          }
+        )
+      ).rejects.toThrow("could not be confirmed");
+      expect(signalled.sort()).toEqual([100, 300]);
     }));
 
   it("--stop stops only the named project's viewer", () =>
@@ -395,4 +492,30 @@ describe("the commands", () => {
       expect(summary.results).toEqual([]);
       expect(fx.output.join("\n")).toContain("2 viewers were running; 0 matched; 0 stopped.");
     }));
+});
+
+describe("legacyViewerReason", () => {
+  it("gives the start-up sweep's reason for keeping a viewer, or unused when the next sweep stops it", () => {
+    expect(legacyViewerReason(viewer({ startedBy: "cli" }))).toBe("not-started-by-review-open");
+    expect(legacyViewerReason(viewer({ clients: 1 }))).toBe("tabs-connected");
+    expect(legacyViewerReason(viewer({ clients: undefined }))).toBe("unknown-tabs");
+    expect(legacyViewerReason(viewer({ clients: 0, confirmed: null }))).toBe("unconfirmed");
+    expect(legacyViewerReason(viewer({ clients: 0 }))).toBe("unused");
+    // The central process itself is never listed as a legacy viewer.
+    expect(legacyViewerReason(viewer({ clients: 0 }), [100])).toBeNull();
+  });
+});
+
+describe("formatCentralProcess", () => {
+  it("says when no process runs, and when one does not answer", () => {
+    expect(formatCentralProcess({ farmRoot: "/farm", record: null, health: null })).toEqual([
+      "No DR process is running for /farm.",
+    ]);
+    const lines = formatCentralProcess({
+      farmRoot: "/farm",
+      record: { farmRoot: "/farm", pid: 7, port: 8080, cliVersion: "0.7.1", startedAt: "", tokenPath: "/x.token" },
+      health: null,
+    });
+    expect(lines[2]).toBe("  not answering on http://127.0.0.1:8080/health");
+  });
 });
