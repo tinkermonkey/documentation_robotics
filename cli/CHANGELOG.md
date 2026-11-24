@@ -87,6 +87,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `mcpSessions`, `drBotTurns` and `loadedCheckouts`. The viewer's deep-link paths
   (`/p/<project>/c/<checkout>/...`) load its page. `docs/api-spec.yaml` now also lists `/ws`, `/mcp`,
   `/api-docs` and `/api-spec.yaml`.
+- **`dr serve` leaves its file watchers to the exit** when it stops to exit (a signal, `--stop`, the
+  idle exit), as the per-project viewer did (#1235): closing a watcher while a worktree is being
+  deleted could hang the process. A call to a retired unscoped route no longer counts as use of the
+  server, and `/health` says `degraded`, with `warnings`, when the chat service failed to start.
 - **A queued DrBot turn is announced once.** `chat.turn.queued` and `chat.turn.started` are no longer
   also streamed as a quoted line of reply text, which a viewer showing the notifications showed twice.
 

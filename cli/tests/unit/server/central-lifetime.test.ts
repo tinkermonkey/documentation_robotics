@@ -128,12 +128,20 @@ describe("runCentralProcess", () => {
   function fakeStarter() {
     const calls: CentralServerOptions[] = [];
     let stopped = 0;
+    const stopOptions: Array<{ processExiting?: boolean } | undefined> = [];
     const current = activity();
     const startServer = async (options: CentralServerOptions) => {
       calls.push(options);
-      return { port: options.port, activity: () => current, stop: async () => void stopped++ };
+      return {
+        port: options.port,
+        activity: () => current,
+        stop: async (o?: { processExiting?: boolean }) => {
+          stopped++;
+          stopOptions.push(o);
+        },
+      };
     };
-    return { calls, startServer, stopped: () => stopped, current };
+    return { calls, startServer, stopped: () => stopped, stopOptions, current };
   }
 
   function emptySweep(record: SweepPerProjectViewersOptions[] = []) {
@@ -199,6 +207,16 @@ describe("runCentralProcess", () => {
     expect(starter.stopped()).toBe(1);
     expect(existsSync(serverRecordPath(farm.root, env))).toBe(false);
     expect(existsSync(serverTokenPath(farm.root, env))).toBe(false);
+  });
+
+  it("passes processExiting to the server, also from a stop that comes while another is under way (#1235)", async () => {
+    const ctx = await setup();
+    const starter = fakeStarter();
+    const proc = await runCentralProcess(options(ctx, { startServer: starter.startServer }));
+    const first = proc.stop();
+    await proc.stop({ processExiting: true });
+    await first;
+    expect(starter.stopOptions.some((o) => o?.processExiting === true)).toBe(true);
   });
 
   it("refuses to start while another live process serves the farm, and starts no server", async () => {

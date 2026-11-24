@@ -434,6 +434,8 @@ export class VisualizationServer {
   private readonly scope = new AsyncLocalStorage<CheckoutContext>();
   /** Set once stop() is called: stopping again waits for the same stop. */
   private stopping?: Promise<void>;
+  /** Whether any stop() call said the process is about to exit (the watchers are left open). */
+  private stopForExit = false;
   /** The farm, the checkout context pool and the open sockets. */
   private central: {
     options: CentralModeOptions;
@@ -633,12 +635,13 @@ export class VisualizationServer {
       return next();
     });
 
-    // An API request that got past the authentication above counts as use of the viewer (see
-    // getActivity). A refused request, a health check and a page or asset load do not: anything
-    // can make those, and they would keep an unused viewer alive.
-    this.app.use("/api/*", async (_c, next) => {
-      this.lastActivityAt = Date.now();
-      return next();
+    // An API request that got past the authentication above counts as use of the server (see
+    // centralActivity). A refused request, a health check, a page or asset load, and a call to a
+    // retired unscoped route (410) do not: those would keep an unused process alive, and a stale
+    // custom viewer polling a retired route gets nothing from it.
+    this.app.use("/api/*", async (c, next) => {
+      await next();
+      if (c.res.status !== 410) this.lastActivityAt = Date.now();
     });
 
     // Each project-data request runs in the context of the checkout its path names.
@@ -3990,11 +3993,13 @@ export class VisualizationServer {
    * checkout is no longer served, closes every context and socket, then the listener.
    */
   stopCentral(options: { processExiting?: boolean } = {}): Promise<void> {
-    this.stopping ??= this.stopFarm(options);
+    // A later call that says the process is exiting still counts, if the contexts are not closed yet.
+    if (options.processExiting) this.stopForExit = true;
+    this.stopping ??= this.stopFarm();
     return this.stopping;
   }
 
-  private async stopFarm(options: { processExiting?: boolean }): Promise<void> {
+  private async stopFarm(): Promise<void> {
     const central = this.central;
     if (central.removalTimer) clearInterval(central.removalTimer);
     central.removalTimer = undefined;
@@ -4022,7 +4027,7 @@ export class VisualizationServer {
         }
       }
     }
-    central.pool.stop({ processExiting: options.processExiting });
+    central.pool.stop({ processExiting: this.stopForExit });
     for (const ws of central.sockets.keys()) {
       try {
         ws.close(1001, "server stopping");
@@ -4099,6 +4104,11 @@ export class VisualizationServer {
   private centralHealth(withToken: boolean): z.infer<typeof HealthResponseSchema> {
     const central = this.central;
     const response: z.infer<typeof HealthResponseSchema> = { status: "ok", version: "0.1.0", cliVersion: getCliVersion() };
+    // Chat detection failed at start-up: the server runs, without DrBot. Anyone may learn that.
+    if (this.chatInitializationError) {
+      response.status = "degraded";
+      response.warnings = [`Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`];
+    }
     if (!withToken) return response;
     if (central.options.serverId) response.serverId = central.options.serverId;
     response.pid = process.pid;

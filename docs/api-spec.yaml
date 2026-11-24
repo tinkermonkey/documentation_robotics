@@ -798,7 +798,16 @@ paths:
                 properties:
                   status:
                     type: string
-                    description: Server health status
+                    description:
+                      "`ok`, or `degraded` when a service failed to start (see
+                      `warnings`)"
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                    description:
+                      What failed to start, e.g. the chat service; only when `status` is
+                      `degraded`
                   version:
                     type: string
                     description:

@@ -60,7 +60,8 @@ async function shutdown(exitCode: number): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   try {
-    if (running) await running.stop();
+    // process.exit follows: the file watchers are left to it (#1235).
+    if (running) await running.stop({ processExiting: true });
     if (isTelemetryEnabled) {
       const { shutdownTelemetry } = await import("./telemetry/index.js");
       await shutdownTelemetry();

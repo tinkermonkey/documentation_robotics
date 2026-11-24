@@ -39,5 +39,14 @@ describe("GET /health", () => {
     expect(health.version).toBe("0.1.0");
     expect(health.cliVersion).toBe(getCliVersion());
     expect(health.cliVersion).toMatch(/^\d+\.\d+\.\d+/);
+    expect(health.warnings).toBeUndefined();
+  });
+
+  it.serial("says degraded, with a warning, when the chat service failed to start", async () => {
+    server = await startTestFarmServer(rootPath);
+    (server.server as any).chatInitializationError = new Error("no chat CLI");
+    const health = HealthResponseSchema.parse(await (await server.raw("/health", { headers: {} })).json());
+    expect(health.status).toBe("degraded");
+    expect(health.warnings).toEqual(["Chat service unavailable: no chat CLI"]);
   });
 });
