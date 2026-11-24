@@ -5,8 +5,7 @@ product.userworkflow.onboard-a-project:
   type: userworkflow
   layer_id: product
   name: Onboard a project
-  description:
-    Get a repository ready to use DR, from nothing to a model the agent
+  description: Get a repository ready to use DR, from nothing to a model the agent
     can work with.
   attributes:
     complexity: simple
@@ -23,8 +22,7 @@ product.userworkflow.bootstrap-a-model-from-the-code:
   type: userworkflow
   layer_id: product
   name: Bootstrap a model from the code
-  description:
-    Model an existing codebase as it is, as a changeset the maintainer
+  description: Model an existing codebase as it is, as a changeset the maintainer
     reviews before it lands.
   attributes:
     complexity: complex
@@ -56,8 +54,7 @@ product.userworkflow.pressure-test-a-plan:
   type: userworkflow
   layer_id: product
   name: Pressure-test a plan
-  description:
-    Use the graph to find what the plan misses, pass after pass, until
+  description: Use the graph to find what the plan misses, pass after pass, until
     it settles.
   attributes:
     complexity: complex
@@ -108,8 +105,7 @@ product.userworkflow.verify-a-build-against-its-plan:
     side the agent didn't write by hand.
   attributes:
     complexity: moderate
-    documentation:
-      Check what was built against what was planned, with an as-built
+    documentation: Check what was built against what was planned, with an as-built
       side the agent didn't write by hand.
   metadata:
     created_at: 2026-11-09T22:04:48.934Z
@@ -188,8 +184,7 @@ product.userworkflow.keep-the-model-as-built:
     model back in step.
   attributes:
     complexity: moderate
-    documentation:
-      Catch changes that reached the code without a plan and bring the
+    documentation: Catch changes that reached the code without a plan and bring the
       model back in step.
   metadata:
     created_at: 2026-11-09T22:04:57.031Z
@@ -209,4 +204,34 @@ product.userworkflow.upgrade-a-model-to-a-new-spec:
   metadata:
     created_at: 2026-11-09T22:04:59.180Z
     updated_at: 2026-11-09T22:04:59.180Z
+    version: 1
+product.userworkflow.work-across-projects-and-worktrees:
+  id: bb090994-301b-4f38-8ca0-c3f858e8997a
+  path: product.userworkflow.work-across-projects-and-worktrees
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Work across projects and worktrees
+  description: Move between projects and their worktrees in one viewer and one
+    agent setup, without starting or finding a viewer per checkout.
+  attributes:
+    complexity: moderate
+  metadata:
+    created_at: 2026-11-21T17:14:10.885Z
+    updated_at: 2026-11-21T17:14:10.885Z
+    version: 1
+product.userworkflow.move-to-user-level-dr:
+  id: 1fbf913c-8c09-419a-8cc1-8755c416ea88
+  path: product.userworkflow.move-to-user-level-dr
+  spec_node_id: product.userworkflow
+  type: userworkflow
+  layer_id: product
+  name: Move to user-level DR
+  description: Move a machine from per-project viewers and a dr-farm-v1 farm to
+    one central DR process and a dr-farm-v2 user farm.
+  attributes:
+    complexity: simple
+  metadata:
+    created_at: 2026-11-21T17:21:59.655Z
+    updated_at: 2026-11-21T17:21:59.655Z
     version: 1

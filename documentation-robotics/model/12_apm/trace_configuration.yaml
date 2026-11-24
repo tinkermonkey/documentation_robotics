@@ -1,0 +1,18 @@
+apm.traceconfiguration.dr-cli-trace-configuration:
+  id: f80dc214-a1e8-4f69-b85a-1d23ebd5dd9c
+  path: apm.traceconfiguration.dr-cli-trace-configuration
+  spec_node_id: apm.traceconfiguration
+  type: traceconfiguration
+  layer_id: apm
+  name: dr-cli trace configuration
+  description: "The tracer provider the CLI sets up when built with telemetry
+    (DR_TELEMETRY=true at build time): resilient OTLP span exporter, no
+    sampling."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/telemetry/index.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.229Z
+    updated_at: 2026-11-21T17:21:34.229Z
+    version: 1

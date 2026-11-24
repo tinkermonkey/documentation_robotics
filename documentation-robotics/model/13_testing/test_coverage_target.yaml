@@ -1,0 +1,127 @@
+testing.testcoveragetarget.project-naming:
+  id: a0095df5-935f-4c01-ad9b-58a94026a08f
+  path: testing.testcoveragetarget.project-naming
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Project naming
+  description: Covers application.applicationcomponent.project-registry.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:14:54.810Z
+    updated_at: 2026-11-21T17:14:54.810Z
+    version: 1
+testing.testcoveragetarget.checkout-discovery:
+  id: 7736ffdc-4565-4a3a-94a5-4e26ec9707df
+  path: testing.testcoveragetarget.checkout-discovery
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Checkout discovery
+  description: Covers application.applicationfunction.discover-checkouts.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.per-checkout-isolation:
+  id: 4f5645e2-d609-4cef-9d7d-f2e4d7c3f9b2
+  path: testing.testcoveragetarget.per-checkout-isolation
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Per-checkout isolation
+  description: Covers application.applicationcomponent.checkout-context.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.scoped-routes:
+  id: 3a7fe82b-070d-492b-923e-7a7a38f51039
+  path: testing.testcoveragetarget.scoped-routes
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Scoped routes
+  description: Covers api.operation.get-api-projects-project-checkouts-checkout-changesets.
+  attributes:
+    targetType: api-endpoint
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.context-eviction:
+  id: c7eaf88d-f129-41b9-b488-98ae9fea0c67
+  path: testing.testcoveragetarget.context-eviction
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Context eviction
+  description: Covers application.applicationcomponent.checkout-context-pool.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.dr-bot-scoping:
+  id: 7c86301c-0103-4139-9da8-b3cf7f83cbd6
+  path: testing.testcoveragetarget.dr-bot-scoping
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: DrBot scoping
+  description: Covers application.applicationcomponent.dr-bot-launcher.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.deep-links:
+  id: a32ff9e7-f2cc-4210-8ed6-2893f307df10
+  path: testing.testcoveragetarget.deep-links
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Deep links
+  description: Covers application.applicationcomponent.mcp-stdio-bridge.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.farm-v2-migration:
+  id: 262322a2-ad7c-4f61-8f48-822cab30ac05
+  path: testing.testcoveragetarget.farm-v2-migration
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Farm v2 migration
+  description: Covers application.applicationfunction.migrate-farm-manifest.
+  attributes:
+    targetType: data-migration
+  metadata:
+    created_at: 2026-11-21T17:14:54.812Z
+    updated_at: 2026-11-21T17:14:54.812Z
+    version: 1
+testing.testcoveragetarget.central-process-lifecycle:
+  id: a3766d0e-f3f4-49c3-8262-9fdf6bd7b11a
+  path: testing.testcoveragetarget.central-process-lifecycle
+  spec_node_id: testing.testcoveragetarget
+  type: testcoveragetarget
+  layer_id: testing
+  name: Central process lifecycle
+  description: Covers the central process's start, reuse, version replacement,
+    idle exit and --list/--stop.
+  attributes:
+    targetType: application-component
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1

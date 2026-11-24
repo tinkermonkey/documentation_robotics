@@ -168,8 +168,8 @@ data-model.schemadefinition.held-out-rule:
   type: schemadefinition
   layer_id: data-model
   name: HeldOutRule
-  description: 'How "meets the targets within its interval" (section 6) is read
-    (maintainer''s decision on #1137)'
+  description: "How \"meets the targets within its interval\" (section 6) is read
+    (maintainer's decision on #1137)"
   attributes:
     title: HeldOutRule
     type: string
@@ -589,8 +589,7 @@ data-model.schemadefinition.percentage:
   type: schemadefinition
   layer_id: data-model
   name: Percentage
-  description:
-    Percentage value constrained to 0-100 range Use createPercentage()
+  description: Percentage value constrained to 0-100 range Use createPercentage()
     to construct safely
   attributes:
     title: Percentage
@@ -1674,4 +1673,104 @@ data-model.schemadefinition.stop-outcome:
   metadata:
     created_at: 2026-11-20T15:07:42.636Z
     updated_at: 2026-11-20T15:07:42.636Z
+    version: 1
+data-model.schemadefinition.warning-kind:
+  id: fecb119c-1adc-4490-b4dd-a245c2b38c27
+  path: data-model.schemadefinition.warning-kind
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: WarningKind
+  description: "The kinds of validation warning: orphan, no-source-reference,
+    no-document-reference, no-description, the validator's categories, and
+    other."
+  attributes:
+    title: WarningKind
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/model-warnings.ts
+        symbol: WarningKind
+  metadata:
+    created_at: 2026-11-20T16:35:55.331Z
+    updated_at: 2026-11-20T16:35:55.331Z
+    version: 1
+data-model.schemadefinition.base-change-count:
+  id: b6e139a1-8c77-4a98-87e2-bab629c16cc2
+  path: data-model.schemadefinition.base-change-count
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: BaseChangeCount
+  description: The kinds of base change a changeset's drift counts.
+  attributes:
+    title: BaseChangeCount
+    type: string
+    enum:
+      - elementsAdded
+      - elementsRemoved
+      - elementsChanged
+      - relationshipsAdded
+      - relationshipsRemoved
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: BaseChangeCount
+  metadata:
+    created_at: 2026-11-20T16:39:29.301Z
+    updated_at: 2026-11-20T16:39:29.301Z
+    version: 1
+data-model.schemadefinition.status-list:
+  id: 8ace5744-be05-4bd6-8f25-7695a65e7c31
+  path: data-model.schemadefinition.status-list
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: StatusList
+  description: The lists project_status pages with list, limit and offset.
+  attributes:
+    title: StatusList
+    type: string
+    enum:
+      - stagedChangesets
+      - changedSourceFiles
+      - uncommittedSourceFiles
+      - unreferencedFiles
+      - landedSince
+      - changedSinceIndex
+      - uncommittedEdits
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: StatusList
+  metadata:
+    created_at: 2026-11-20T16:49:54.902Z
+    updated_at: 2026-11-20T16:49:54.902Z
+    version: 1
+data-model.schemadefinition.layer-verify-status:
+  id: f57955c2-afe1-4dcf-bbbc-83029788bb56
+  path: data-model.schemadefinition.layer-verify-status
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: LayerVerifyStatus
+  description: in_step, drifted or not_checked.
+  attributes:
+    title: LayerVerifyStatus
+    type: string
+    enum:
+      - in_step
+      - drifted
+      - not_checked
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: LayerVerifyStatus
+  metadata:
+    created_at: 2026-11-20T18:09:54.576Z
+    updated_at: 2026-11-20T18:09:54.576Z
     version: 1

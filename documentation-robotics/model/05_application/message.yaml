@@ -1,0 +1,20 @@
+application.message.subscribe-to-checkout-feed:
+  id: d08bd5ee-a844-4dc3-8d90-71d88fa92cbb
+  path: application.message.subscribe-to-checkout-feed
+  spec_node_id: application.message
+  type: message
+  layer_id: application
+  name: Subscribe to checkout feed
+  description: A websocket frame asking the server to send (or stop sending) one
+    checkout's events.
+  attributes:
+    messageType: command
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/schemas.ts
+        symbol: FeedSubscriptionSchema
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1

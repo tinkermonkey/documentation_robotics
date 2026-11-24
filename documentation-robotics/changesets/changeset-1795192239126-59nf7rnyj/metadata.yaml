@@ -17,8 +17,8 @@ description: "changeset_brief's sections return compact forms in which every
   equal the whole set; and the acceptance criteria of #1183, #1221, #1231 and
   #1232 are met."
 created: 2026-11-20T16:30:39.144Z
-modified: 2026-11-20T18:21:22.071Z
-status: staged
+modified: 2026-11-24T13:42:09.522Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

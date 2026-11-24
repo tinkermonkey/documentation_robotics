@@ -23,8 +23,7 @@ motivation.outcome.pressure-testing-catches-what-prose-plans-miss:
   type: outcome
   layer_id: motivation
   name: Pressure-testing catches what prose plans miss
-  description:
-    "MVP criterion 2: pressure-testing finds things a prose plan would
+  description: "MVP criterion 2: pressure-testing finds things a prose plan would
     have missed, and we can name them."
   attributes:
     status: planned
@@ -46,8 +45,7 @@ motivation.outcome.changesets-land-with-the-code:
     that ships the code."
   attributes:
     status: planned
-    documentation:
-      "MVP criterion 3: the changeset is committed in the pull request
+    documentation: "MVP criterion 3: the changeset is committed in the pull request
       that ships the code. Record each change's outcome so the tools are judged
       on use."
   metadata:
@@ -89,4 +87,20 @@ motivation.outcome.every-mvp-project-has-an-as-built-model:
   metadata:
     created_at: 2026-11-09T22:04:37.931Z
     updated_at: 2026-11-09T22:04:37.931Z
+    version: 1
+motivation.outcome.one-viewer-process-serves-every-mapped-project:
+  id: 20914373-c910-4886-b439-2bc9ca4f7861
+  path: motivation.outcome.one-viewer-process-serves-every-mapped-project
+  spec_node_id: motivation.outcome
+  type: outcome
+  layer_id: motivation
+  name: One viewer process serves every mapped project
+  description: One server process per user serves every project in the user's
+    farm; review_open from any project's session returns a link into it without
+    starting a process (issue 1279, done when).
+  attributes:
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.876Z
+    updated_at: 2026-11-21T17:14:10.876Z
     version: 1

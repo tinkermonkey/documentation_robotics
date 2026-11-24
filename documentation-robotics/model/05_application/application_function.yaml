@@ -293,8 +293,7 @@ application.applicationfunction.placement-of:
   type: applicationfunction
   layer_id: application
   name: placementOf
-  description:
-    Where a file sits by framework convention, when that says something
+  description: Where a file sits by framework convention, when that says something
     about its role.
   source_reference:
     provenance: extracted
@@ -329,8 +328,7 @@ application.applicationfunction.percent-used:
   type: applicationfunction
   layer_id: application
   name: percentUsed
-  description:
-    The share of the cap spent, 0 to 100 to one decimal, or null for a
+  description: The share of the cap spent, 0 to 100 to one decimal, or null for a
     cap of 0 (nothing may be spent).
   source_reference:
     provenance: extracted
@@ -502,8 +500,7 @@ application.applicationfunction.run-probe:
   type: applicationfunction
   layer_id: application
   name: runProbe
-  description:
-    Send one probe through a ready configuration, pinned to `upstream`
+  description: Send one probe through a ready configuration, pinned to `upstream`
     when given, and record its cost as `probe`.
   source_reference:
     provenance: extracted
@@ -678,8 +675,7 @@ application.applicationfunction.read-cross-repo-config:
   type: applicationfunction
   layer_id: application
   name: readCrossRepoConfig
-  description:
-    The project's cross-repo configuration, or null when it has none (a
+  description: The project's cross-repo configuration, or null when it has none (a
     single-repository project).
   source_reference:
     provenance: extracted
@@ -750,8 +746,7 @@ application.applicationfunction.read-declared-models:
   type: applicationfunction
   layer_id: application
   name: readDeclaredModels
-  description:
-    The models a project's manifest declares under `models:` (undefined
+  description: The models a project's manifest declares under `models:` (undefined
     when it declares none).
   source_reference:
     provenance: extracted
@@ -963,8 +958,7 @@ application.applicationfunction.stale-cross-repo-targets:
   type: applicationfunction
   layer_id: application
   name: staleCrossRepoTargets
-  description:
-    The run's targets whose code changed after CBM indexed them, judged
+  description: The run's targets whose code changed after CBM indexed them, judged
     by the last commit that touched each target's directory (so in a monorepo a
     commit elsewhere doesn't count)
   source_reference:
@@ -1037,8 +1031,7 @@ application.applicationfunction.attach-target-routes:
   type: applicationfunction
   layer_id: application
   name: attachTargetRoutes
-  description:
-    Sets {@link CrossEdge.targetRoute} where the target handler serves
+  description: Sets {@link CrossEdge.targetRoute} where the target handler serves
     one route (or one of the edge's method).
   source_reference:
     provenance: extracted
@@ -1247,8 +1240,7 @@ application.applicationfunction.dedupe-relationships:
   type: applicationfunction
   layer_id: application
   name: dedupeRelationships
-  description:
-    One relationship per (source element, relationship id, destination
+  description: One relationship per (source element, relationship id, destination
     element), keeping the first.
   source_reference:
     provenance: extracted
@@ -1370,7 +1362,9 @@ application.applicationfunction.model-load-layer:
   type: applicationfunction
   layer_id: application
   name: Model loadLayer
-  description: Load a layer from disk (model/XX_layername/ .yaml files)
+  description: Load a layer from disk (model/XX_layername/ .yaml files, any letter
+    case of the extension), recording for each file whether it was fully loaded,
+    failed to parse, or holds content that is not an element.
   source_reference:
     provenance: extracted
     locations:
@@ -1458,7 +1452,11 @@ application.applicationfunction.model-save-layer:
   type: applicationfunction
   layer_id: application
   name: Model saveLayer
-  description: Save a layer to disk (model/XX_layername/ .yaml)
+  description: "Save a layer to disk (model/XX_layername/ .yaml): writes only the
+    type files whose data changed, and replaces or removes only files whose
+    every entry the model loaded; a file that failed to parse, holds other
+    content or was added since the load is kept, and writing over one is
+    refused."
   source_reference:
     provenance: extracted
     locations:
@@ -1846,24 +1844,6 @@ application.applicationfunction.prettier-signals:
     created_at: 2026-11-20T15:04:10.839Z
     updated_at: 2026-11-20T15:04:10.839Z
     version: 1
-application.applicationfunction.ensure-prettier-ignores-changesets:
-  id: bcd54183-b6ef-4a45-a228-a94f3fefea26
-  path: application.applicationfunction.ensure-prettier-ignores-changesets
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: ensurePrettierIgnoresChangesets
-  description: List the project's changeset folder in `.prettierignore` when the
-    project uses prettier.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/core/prettier-ignore.ts
-        symbol: ensurePrettierIgnoresChangesets
-  metadata:
-    created_at: 2026-11-20T15:04:10.839Z
-    updated_at: 2026-11-20T15:04:10.839Z
-    version: 1
 application.applicationfunction.prettier-ignore-note:
   id: eec78c1a-634b-4a1c-a051-6798ca8d4207
   path: application.applicationfunction.prettier-ignore-note
@@ -2200,8 +2180,7 @@ application.applicationfunction.migrate-staged-changesets:
   type: applicationfunction
   layer_id: application
   name: migrateStagedChangesets
-  description:
-    Apply the rewrite table to the relationship changes of every staged
+  description: Apply the rewrite table to the relationship changes of every staged
     changeset under documentation-robotics/changesets.
   source_reference:
     provenance: extracted
@@ -2270,8 +2249,7 @@ application.applicationfunction.extract-relationships-header:
   type: applicationfunction
   layer_id: application
   name: extractRelationshipsHeader
-  description:
-    Split a relationships.yaml document into its leading comment block
+  description: Split a relationships.yaml document into its leading comment block
     and the rest.
   source_reference:
     provenance: extracted
@@ -2429,9 +2407,10 @@ application.applicationfunction.plan-relationship-batch:
   type: applicationfunction
   layer_id: application
   name: planRelationshipBatch
-  description:
-    Checks a list of relationship adds against the projected graph and
-    the catalog, without writing.
+  description: Checks a list of relationship adds against the projected graph and
+    the catalog, without writing. An end that is not an exact id is read as the
+    one element it names by name or by id without hyphens, among the call's own
+    elements and the projection.
   source_reference:
     provenance: extracted
     locations:
@@ -3264,8 +3243,7 @@ application.applicationfunction.staged-changeset-storage-update-review:
   type: applicationfunction
   layer_id: application
   name: StagedChangesetStorage updateReview
-  description:
-    Change the reviewer's verdicts under the changeset's file lock, so
+  description: Change the reviewer's verdicts under the changeset's file lock, so
     a concurrent stage or review cannot be lost.
   source_reference:
     provenance: extracted
@@ -3283,8 +3261,7 @@ application.applicationfunction.staged-changeset-storage-remove-side-files:
   type: applicationfunction
   layer_id: application
   name: StagedChangesetStorage removeSideFiles
-  description:
-    Remove every file in the changeset's directory except metadata.yaml
+  description: Remove every file in the changeset's directory except metadata.yaml
     and changes.yaml (and dotfiles such as a lock)
   source_reference:
     provenance: extracted
@@ -3404,7 +3381,8 @@ application.applicationfunction.extracted-element-id:
   type: applicationfunction
   layer_id: application
   name: extractedElementId
-  description: An element id for a name
+  description: An element id for a name, by the rules model_add and dr add use too
+    (deriveElementId)
   source_reference:
     provenance: extracted
     locations:
@@ -3624,8 +3602,7 @@ application.applicationfunction.with-tier1decided:
   type: applicationfunction
   layer_id: application
   name: withTier1Decided
-  description:
-    The extraction with accepted Tier-1 decisions (by card id) in place
+  description: The extraction with accepted Tier-1 decisions (by card id) in place
     of the symbols' Tier-0 outcome, for the second planning pass
   source_reference:
     provenance: extracted
@@ -3678,8 +3655,7 @@ application.applicationfunction.route-key:
   type: applicationfunction
   layer_id: application
   name: routeKey
-  description:
-    "`GET /owners/{}`, `__route__GET__/owners/{}` or `GET /owners/{id}`
+  description: "`GET /owners/{}`, `__route__GET__/owners/{}` or `GET /owners/{id}`
     -> `GET /owners/{}`"
   source_reference:
     provenance: extracted
@@ -3904,8 +3880,7 @@ application.applicationfunction.is-index-job-process:
   type: applicationfunction
   layer_id: application
   name: isIndexJobProcess
-  description:
-    Whether `pid` is still this job's `dr analyzer index --job <jobId>`
+  description: Whether `pid` is still this job's `dr analyzer index --job <jobId>`
     process, from its command line.
   source_reference:
     provenance: extracted
@@ -4476,8 +4451,7 @@ application.applicationfunction.staging-area-manager-delete:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager delete
-  description:
-    Delete a changeset If the changeset being deleted is the currently
+  description: Delete a changeset If the changeset being deleted is the currently
     active changeset, this method will also clear the active changeset marker.
   source_reference:
     provenance: extracted
@@ -4548,8 +4522,7 @@ application.applicationfunction.staging-area-manager-landing-refusal:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager landingRefusal
-  description:
-    The refusal to land this changeset for what it is, or null when its
+  description: The refusal to land this changeset for what it is, or null when its
     purpose lets it land.
   source_reference:
     provenance: extracted
@@ -4671,8 +4644,7 @@ application.applicationfunction.staging-area-manager-discard:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager discard
-  description:
-    "Discard a changeset: deletes it, its staged changes and its folder
+  description: "Discard a changeset: deletes it, its staged changes and its folder
     under documentation-robotics/changesets/, and clears the active marker if it
     named it."
   source_reference:
@@ -4708,7 +4680,10 @@ application.applicationfunction.staging-area-manager-detect-drift:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager detectDrift
-  description: Detect drift by comparing base snapshot hash to current model state.
+  description: "Whether the base model overlaps what a changeset stages: compares
+    the base hash recorded for the changeset with the current one, in the
+    recorded hash's format, and when they differ reads the overlaps from the
+    base index. The answer is a warning for the landing, never a refusal."
   source_reference:
     provenance: extracted
     locations:
@@ -4861,7 +4836,9 @@ application.applicationfunction.stats-collector-collect:
   type: applicationfunction
   layer_id: application
   name: StatsCollector collect
-  description: Collect all statistics from the model
+  description: Collect all statistics from the model. Validates the model as the
+    active changeset leaves it, or takes the caller's validation result so the
+    pipeline runs once.
   source_reference:
     provenance: extracted
     locations:
@@ -4913,8 +4890,7 @@ application.applicationfunction.summarize-drops-by-type:
   type: applicationfunction
   layer_id: application
   name: summarizeDropsByType
-  description:
-    The drops counted by retired type, most first, each with the routes
+  description: The drops counted by retired type, most first, each with the routes
     the catalog still has
   source_reference:
     provenance: extracted
@@ -5122,8 +5098,7 @@ application.applicationfunction.validate-base-model:
   type: applicationfunction
   layer_id: application
   name: validateBaseModel
-  description:
-    Validate the committed model only, with the warnings `dr validate`
+  description: Validate the committed model only, with the warnings `dr validate`
     adds (orphaned elements, no source reference), so the counts match it.
   source_reference:
     provenance: extracted
@@ -5159,8 +5134,7 @@ application.applicationfunction.unfilled-required:
   type: applicationfunction
   layer_id: application
   name: unfilledRequired
-  description:
-    The required attributes each element leaves out, for elements that
+  description: The required attributes each element leaves out, for elements that
     leave any out
   source_reference:
     provenance: extracted
@@ -7197,8 +7171,7 @@ application.applicationfunction.outside-changeset-error:
   type: applicationfunction
   layer_id: application
   name: outsideChangesetError
-  description:
-    The error an agent gets for a tool that writes outside a changeset
+  description: The error an agent gets for a tool that writes outside a changeset
     in changeset-only mode.
   source_reference:
     provenance: extracted
@@ -7403,9 +7376,9 @@ application.applicationfunction.pick-project-root:
   type: applicationfunction
   layer_id: application
   name: pickProjectRoot
-  description: "The root to serve: the first one inside a DR project (a
-    documentation-robotics/ folder at or above it), else the first root, so a
-    project without a model yet is still the one in front of the developer."
+  description: "The checkout to serve, from the client's roots: the first root
+    inside a registered project's checkout (resolved through the project
+    registry), else the first root, which the registry then registers."
   source_reference:
     provenance: extracted
     locations:
@@ -7422,7 +7395,8 @@ application.applicationfunction.follow-client-roots:
   type: applicationfunction
   layer_id: application
   name: followClientRoots
-  description: Asks the client for its roots and moves the server to the chosen one.
+  description: Follows the MCP client's roots and resolves the session's checkout
+    through the project registry whenever they change.
   source_reference:
     provenance: extracted
     locations:
@@ -7439,8 +7413,7 @@ application.applicationfunction.read-bundled-schema:
   type: applicationfunction
   layer_id: application
   name: readBundledSchema
-  description:
-    Exported for direct unit testing of the ENOENT-to-actionable-error
+  description: Exported for direct unit testing of the ENOENT-to-actionable-error
     translation.
   source_reference:
     provenance: extracted
@@ -7986,8 +7959,7 @@ application.applicationfunction.create-percentage:
   type: applicationfunction
   layer_id: application
   name: createPercentage
-  description:
-    Create a validated percentage value (0-100) @throws Error if value
+  description: Create a validated percentage value (0-100) @throws Error if value
     is not in valid range
   source_reference:
     provenance: extracted
@@ -8234,7 +8206,9 @@ application.applicationfunction.format-for-claude-code:
   type: applicationfunction
   layer_id: application
   name: formatForClaudeCode
-  description: Convert read-safe permissions to Claude Code CLI format
+  description: Convert read-safe permissions to Claude Code CLI format. The Bash
+    rules cover every read-only dr command (trace, the changeset reads, schema,
+    catalog, relationship list and show, help).
   source_reference:
     provenance: extracted
     locations:
@@ -8512,8 +8486,7 @@ application.applicationfunction.bundled-agent-file:
   type: applicationfunction
   layer_id: application
   name: bundledAgentFile
-  description:
-    The dr-architect source shipped with this CLI (the file `dr claude
+  description: The dr-architect source shipped with this CLI (the file `dr claude
     install` copies), with its mcp__dr__ tool names.
   source_reference:
     provenance: extracted
@@ -8957,8 +8930,7 @@ application.applicationfunction.as-built-first-warning:
   type: applicationfunction
   layer_id: application
   name: asBuiltFirstWarning
-  description:
-    The warning shown when an extraction (as-built) changeset is about
+  description: The warning shown when an extraction (as-built) changeset is about
     to land while a plan is staged.
   source_reference:
     provenance: extracted
@@ -9708,8 +9680,7 @@ application.applicationfunction.collect-code-index:
   type: applicationfunction
   layer_id: application
   name: collectCodeIndex
-  description:
-    Reads what `dr analyzer status` reads (.dr/analyzers/), and judges
+  description: Reads what `dr analyzer status` reads (.dr/analyzers/), and judges
     freshness by the rule the codebase tools use
   source_reference:
     provenance: extracted
@@ -9760,8 +9731,7 @@ application.applicationfunction.last-non-migration-commit:
   type: applicationfunction
   layer_id: application
   name: lastNonMigrationCommit
-  description:
-    The fallback baseline for a model with no as-built landing recorded
+  description: The fallback baseline for a model with no as-built landing recorded
     (no `reconciled` stamp in its manifest
   source_reference:
     provenance: extracted
@@ -9796,8 +9766,8 @@ application.applicationfunction.collect-viewer:
   type: applicationfunction
   layer_id: application
   name: collectViewer
-  description: The viewer `dr visualize` (or review_open) runs for this project,
-    from its record in the user's state directory.
+  description: The central process's state (running, version, outdated) and this
+    checkout's deep link, from the server record.
   source_reference:
     provenance: extracted
     locations:
@@ -9916,7 +9886,9 @@ application.applicationfunction.dr-bot-agent-args:
   type: applicationfunction
   layer_id: application
   name: drBotAgentArgs
-  description: Extra `claude` arguments that make `--agent dr-architect` run `agent`.
+  description: "Extra `claude` arguments that make `--agent dr-architect` run
+    `agent`: the bundled copy as it is, or an installed copy with the mode's
+    missing dr MCP tools added."
   source_reference:
     provenance: extracted
     locations:
@@ -9967,8 +9939,9 @@ application.applicationfunction.prepare-dr-bot-agent:
   type: applicationfunction
   layer_id: application
   name: prepareDrBotAgent
-  description: Resolves DrBot's dr-architect once and derives both the launch
-    arguments and the tool check from it.
+  description: Resolves DrBot's dr-architect once for a checkout and derives both
+    the launch arguments and the tool check from it; called by the DrBotLauncher
+    per CheckoutRef.
   source_reference:
     provenance: extracted
     locations:
@@ -10051,8 +10024,7 @@ application.applicationfunction.format-adoption-report:
   type: applicationfunction
   layer_id: application
   name: formatAdoptionReport
-  description:
-    Human-readable rendering of what `--adopt-source-references` copied
+  description: Human-readable rendering of what `--adopt-source-references` copied
     onto the plan.
   source_reference:
     provenance: extracted
@@ -10155,8 +10127,7 @@ application.applicationfunction.perform-discover:
   type: applicationfunction
   layer_id: application
   name: performDiscover
-  description:
-    Core discover logic - discovers installed analyzers and determines
+  description: Core discover logic - discovers installed analyzers and determines
     what action to take
   source_reference:
     provenance: extracted
@@ -10224,8 +10195,7 @@ application.applicationfunction.serve-from-root-path-env:
   type: applicationfunction
   layer_id: application
   name: serveFromRootPathEnv
-  description:
-    DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point
+  description: DR_MCP_ROOT_PATH lets a launcher (DrBot under `dr visualize`) point
     the server at a model without relying on the cwd its MCP client spawns it in
   source_reference:
     provenance: extracted
@@ -10518,8 +10488,7 @@ application.applicationfunction.save-drconfig:
   type: applicationfunction
   layer_id: application
   name: saveDRConfig
-  description:
-    Persist the given config object to the DR config file, creating the
+  description: Persist the given config object to the DR config file, creating the
     parent directory if necessary.
   source_reference:
     provenance: extracted
@@ -10537,8 +10506,7 @@ application.applicationfunction.split-by-accepted-gaps:
   type: applicationfunction
   layer_id: application
   name: splitByAcceptedGaps
-  description:
-    Splits the relationships extraction would stage into those to stage
+  description: Splits the relationships extraction would stage into those to stage
     and those an accepted gap on either end contradicts.
   source_reference:
     provenance: extracted
@@ -10623,8 +10591,7 @@ application.applicationfunction.reset-accepted-gap-validator-for-tests:
   type: applicationfunction
   layer_id: application
   name: resetAcceptedGapValidatorForTests
-  description:
-    "Test hook: forget the compiled validator, so the next check reads
+  description: "Test hook: forget the compiled validator, so the next check reads
     the schema again, from `basePath` when given (the bundled base.json
     otherwise)."
   source_reference:
@@ -10814,8 +10781,7 @@ application.applicationfunction.accepted-gaps-with-evidence:
   type: applicationfunction
   layer_id: application
   name: acceptedGapsWithEvidence
-  description:
-    An element's accepted gaps as tools show them, each marked with the
+  description: An element's accepted gaps as tools show them, each marked with the
     live relationship that contradicts it.
   source_reference:
     provenance: extracted
@@ -10917,8 +10883,7 @@ application.applicationfunction.write-active-marker:
   type: applicationfunction
   layer_id: application
   name: writeActiveMarker
-  description:
-    Name `changesetId` as the active changeset, in `.dr/`, and remove a
+  description: Name `changesetId` as the active changeset, in `.dr/`, and remove a
     marker left in the old place.
   source_reference:
     provenance: extracted
@@ -10970,8 +10935,7 @@ application.applicationfunction.split-verify-layers:
   type: applicationfunction
   layer_id: application
   name: splitVerifyLayers
-  description:
-    Splits requested layers into the ones verify checks and the ones it
+  description: Splits requested layers into the ones verify checks and the ones it
     has no check for.
   source_reference:
     provenance: extracted
@@ -11042,8 +11006,7 @@ application.applicationfunction.call-gate-from:
   type: applicationfunction
   layer_id: application
   name: callGateFrom
-  description:
-    The gate an analyzer's heuristics configure, or null when it has no
+  description: The gate an analyzer's heuristics configure, or null when it has no
     `call_edge_evidence` heuristic.
   source_reference:
     provenance: extracted
@@ -11163,8 +11126,7 @@ application.applicationfunction.card-id:
   type: applicationfunction
   layer_id: application
   name: cardId
-  description:
-    Stable card id for a symbol (full, project-prefixed qualified name)
+  description: Stable card id for a symbol (full, project-prefixed qualified name)
     within a scope.
   source_reference:
     provenance: extracted
@@ -11711,8 +11673,7 @@ application.applicationfunction.routes-called-in:
   type: applicationfunction
   layer_id: application
   name: routesCalledIn
-  description:
-    The served routes (`__route__METHOD__/path` names) a test's source
+  description: The served routes (`__route__METHOD__/path` names) a test's source
     calls by URL
   source_reference:
     provenance: extracted
@@ -11730,8 +11691,7 @@ application.applicationfunction.url-matches-route:
   type: applicationfunction
   layer_id: application
   name: urlMatchesRoute
-  description:
-    Whether a URL path as code writes it (no scheme or host) reaches a
+  description: Whether a URL path as code writes it (no scheme or host) reaches a
     route's path
   source_reference:
     provenance: extracted
@@ -12050,41 +12010,6 @@ application.applicationfunction.preview-changeset:
     created_at: 2026-11-20T15:07:06.100Z
     updated_at: 2026-11-20T15:07:06.100Z
     version: 1
-application.applicationfunction.spawn-detached-viewer:
-  id: 5a6a49e3-de75-4060-964f-aca4679cbd59
-  path: application.applicationfunction.spawn-detached-viewer
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: spawnDetachedViewer
-  description: Starts `dr visualize --with-changesets --no-browser` for the
-    project, detached and unref'd.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: spawnDetachedViewer
-  metadata:
-    created_at: 2026-11-20T15:07:06.100Z
-    updated_at: 2026-11-20T15:07:06.100Z
-    version: 1
-application.applicationfunction.port-in-use:
-  id: e546e13c-ccdd-4681-b0b1-ffef6b25c157
-  path: application.applicationfunction.port-in-use
-  spec_node_id: application.applicationfunction
-  type: applicationfunction
-  layer_id: application
-  name: portInUse
-  description: The port a viewer's output says was taken, if that is why it exited.
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: portInUse
-  metadata:
-    created_at: 2026-11-20T15:07:06.100Z
-    updated_at: 2026-11-20T15:07:06.100Z
-    version: 1
 application.applicationfunction.clear-model-cache:
   id: ffcc2806-788a-428e-9714-7896a6b818cc
   path: application.applicationfunction.clear-model-cache
@@ -12109,8 +12034,7 @@ application.applicationfunction.load-model:
   type: applicationfunction
   layer_id: application
   name: loadModel
-  description:
-    Returns the cached model for this rootPath, reading it from disk on
+  description: Returns the cached model for this rootPath, reading it from disk on
     first use and again whenever the model's files changed since it was read
     (see {@link modelFingerprint}).
   source_reference:
@@ -12129,8 +12053,7 @@ application.applicationfunction.with-project-write-lock:
   type: applicationfunction
   layer_id: application
   name: withProjectWriteLock
-  description:
-    Runs a tool's read-modify-write of the model at `rootPath` holding
+  description: Runs a tool's read-modify-write of the model at `rootPath` holding
     that project's write lock (core/model-write-tracker.ts), from its
     `loadModel` through its last save.
   source_reference:
@@ -12237,8 +12160,7 @@ application.applicationfunction.run-tool:
   type: applicationfunction
   layer_id: application
   name: runTool
-  description:
-    Runs a tool handler body, catching any error into a structured tool
+  description: Runs a tool handler body, catching any error into a structured tool
     result instead of throwing.
   source_reference:
     provenance: extracted
@@ -12409,8 +12331,7 @@ application.applicationfunction.parse-element-id:
   type: applicationfunction
   layer_id: application
   name: parseElementId
-  description:
-    Parse and validate a string as an ElementId Returns a branded type
+  description: Parse and validate a string as an ElementId Returns a branded type
     for compile-time type safety
   source_reference:
     provenance: extracted
@@ -12428,8 +12349,7 @@ application.applicationfunction.is-element-id:
   type: applicationfunction
   layer_id: application
   name: isElementId
-  description:
-    Type guard for ElementId Use with function parameters for optional
+  description: Type guard for ElementId Use with function parameters for optional
     compile-time checking
   source_reference:
     provenance: extracted
@@ -12447,8 +12367,7 @@ application.applicationfunction.visualization-server-get-open-apidocument:
   type: applicationfunction
   layer_id: application
   name: VisualizationServer getOpenAPIDocument
-  description:
-    Get OpenAPI specification document Provides a stable public API for
+  description: Get OpenAPI specification document Provides a stable public API for
     OpenAPI spec generation.
   source_reference:
     provenance: extracted
@@ -12500,8 +12419,7 @@ application.applicationfunction.telemetry-middleware:
   type: applicationfunction
   layer_id: application
   name: telemetryMiddleware
-  description:
-    Hono middleware that creates a span for each HTTP request Captures
+  description: Hono middleware that creates a span for each HTTP request Captures
     HTTP semantic attributes according to OpenTelemetry conventions
   source_reference:
     provenance: extracted
@@ -12604,8 +12522,7 @@ application.applicationfunction.viewer-starting-path:
   type: applicationfunction
   layer_id: application
   name: viewerStartingPath
-  description:
-    Path of the "a viewer is starting" marker review_open writes while
+  description: Path of the "a viewer is starting" marker review_open writes while
     a viewer it spawned loads.
   source_reference:
     provenance: extracted
@@ -12657,7 +12574,8 @@ application.applicationfunction.write-viewer-record:
   type: applicationfunction
   layer_id: application
   name: writeViewerRecord
-  description: Writes a project's viewer record (0600), replacing any earlier one.
+  description: Writes this viewer's own record (0600), keyed by project and pid;
+    it never replaces another viewer's record.
   source_reference:
     provenance: extracted
     locations:
@@ -12673,14 +12591,17 @@ application.applicationfunction.read-viewer-record:
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: readViewerRecord
-  description: A project's viewer record as written, without checking that the
-    viewer still runs.
+  name: readViewerRecords
+  description: A project's viewer records as written (one per viewer, plus the
+    single record an older CLI wrote), without checking that the viewers still
+    run.
   source_reference:
     provenance: extracted
     locations:
       - file: cli/src/server/viewer-registry.ts
         symbol: readViewerRecord
+      - file: cli/src/server/viewer-registry.ts
+        symbol: readViewerRecords
   metadata:
     created_at: 2026-11-20T15:07:06.101Z
     updated_at: 2026-11-20T15:07:06.101Z
@@ -12761,7 +12682,10 @@ application.applicationfunction.probe-viewer:
   type: applicationfunction
   layer_id: application
   name: probeViewer
-  description: Checks a project's viewer record against its process and its health check.
+  description: "Checks a project's viewer records against their processes and
+    health checks, and picks the viewer to reuse when several run: one on the
+    caller's CLI version first, then one with changeset mode, then the oldest.
+    Reports the viewer's cliVersion."
   source_reference:
     provenance: extracted
     locations:
@@ -12778,7 +12702,8 @@ application.applicationfunction.find-running-viewer:
   type: applicationfunction
   layer_id: application
   name: findRunningViewer
-  description: The viewer serving this project, or null.
+  description: The running central process from the server record (pid alive and
+    /health answering), or null; per-project viewers are no longer looked up.
   source_reference:
     provenance: extracted
     locations:
@@ -12881,11 +12806,15 @@ application.applicationfunction.viewer-url:
   type: applicationfunction
   layer_id: application
   name: viewerUrl
-  description: Link into a running viewer.
+  description: A deep link into the shared viewer for a CheckoutRef, optionally to
+    a changeset or element. Built from the server record as
+    http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+    the whole route and the token in the URL fragment, so the token stays out of
+    server logs and Referer headers.
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/server/viewer-registry.ts
+      - file: cli/src/server/viewer-link.ts
         symbol: viewerUrl
   metadata:
     created_at: 2026-11-20T15:07:06.101Z
@@ -12949,8 +12878,7 @@ application.applicationfunction.is-telemetry-built-in:
   type: applicationfunction
   layer_id: application
   name: isTelemetryBuiltIn
-  description:
-    Check if the CLI was built with telemetry enabled @returns true if
+  description: Check if the CLI was built with telemetry enabled @returns true if
     telemetry is enabled, false otherwise
   source_reference:
     provenance: extracted
@@ -13170,8 +13098,7 @@ application.applicationfunction.apply-recovery:
   type: applicationfunction
   layer_id: application
   name: applyRecovery
-  description:
-    Apply recovered values back onto the live model (in memory — caller
+  description: Apply recovered values back onto the live model (in memory — caller
     is responsible for saving the affected layers).
   source_reference:
     provenance: extracted
@@ -13224,7 +13151,10 @@ application.applicationfunction.base-snapshot-manager-capture-snapshot:
   type: applicationfunction
   layer_id: application
   name: BaseSnapshotManager captureSnapshot
-  description: Capture current model state as a SHA-256 hash
+  description: "The base model's hash, with a version prefix: the content of every
+    element (type, name, description, attributes, source reference) and every
+    relationship, and nothing else. The manifest and element metadata are not in
+    it, so a landing or an upgrade that changes no content leaves it as it was."
   source_reference:
     provenance: extracted
     locations:
@@ -13408,8 +13338,7 @@ application.applicationfunction.format-index:
   type: applicationfunction
   layer_id: application
   name: formatIndex
-  description:
-    The index as prettier and end-of-file-fixer leave JSON (#1155), so
+  description: The index as prettier and end-of-file-fixer leave JSON (#1155), so
     committing a changeset in a repo with those hooks doesn't fail once
   source_reference:
     provenance: extracted
@@ -13444,8 +13373,7 @@ application.applicationfunction.try-read-base-index:
   type: applicationfunction
   layer_id: application
   name: tryReadBaseIndex
-  description:
-    Like `readBaseIndex`, but reports an unreadable index as a warning
+  description: Like `readBaseIndex`, but reports an unreadable index as a warning
     instead of throwing.
   source_reference:
     provenance: extracted
@@ -13480,8 +13408,7 @@ application.applicationfunction.content-free-drift:
   type: applicationfunction
   layer_id: application
   name: contentFreeDrift
-  description:
-    Whether a changeset whose base hash no longer matches drifted only
+  description: Whether a changeset whose base hash no longer matches drifted only
     in content it wasn't staged against.
   source_reference:
     provenance: extracted
@@ -13534,8 +13461,7 @@ application.applicationfunction.unwired-counts:
   type: applicationfunction
   layer_id: application
   name: unwiredCounts
-  description:
-    Unwired connections counted per other-end layer, across every added
+  description: Unwired connections counted per other-end layer, across every added
     or updated element.
   source_reference:
     provenance: extracted
@@ -13604,7 +13530,12 @@ application.applicationfunction.brief-sections:
   type: applicationfunction
   layer_id: application
   name: briefSections
-  description: Only the named sections, each in full, under a small header.
+  description: "Only the named sections under a small header, each in its compact
+    form. Every list in the answer is the same page (limit items from offset):
+    the answer's page has each list's true total and how many items it holds,
+    and the next offset while any list has more. Without a limit the page is as
+    long as keeps the answer near the size target. With full, each section as
+    the full brief has it, whatever its size."
   source_reference:
     provenance: extracted
     locations:
@@ -13792,8 +13723,7 @@ application.applicationfunction.unstaged-since:
   type: applicationfunction
   layer_id: application
   name: unstagedSince
-  description:
-    Tombstones of changes that were staged at `revision` and have been
+  description: Tombstones of changes that were staged at `revision` and have been
     unstaged (not merely rewritten) since
   source_reference:
     provenance: extracted
@@ -14136,8 +14066,7 @@ application.applicationfunction.cbm-analyzer-classify:
   type: applicationfunction
   layer_id: application
   name: CbmAnalyzer classify
-  description:
-    Tier-0 classification of the indexed project (`dr analyzer classify
+  description: Tier-0 classification of the indexed project (`dr analyzer classify
     --tier0-only`).
   source_reference:
     provenance: extracted
@@ -14326,8 +14255,7 @@ application.applicationfunction.query-records:
   type: applicationfunction
   layer_id: application
   name: queryRecords
-  description:
-    query_graph rows as objects keyed by column name (use `AS` aliases
+  description: query_graph rows as objects keyed by column name (use `AS` aliases
     for clean keys).
   source_reference:
     provenance: extracted
@@ -14379,8 +14307,7 @@ application.applicationfunction.cell-label:
   type: applicationfunction
   layer_id: application
   name: cellLabel
-  description:
-    First label from a `labels(n)` cell (CBM 0.12 returns it as a JSON
+  description: First label from a `labels(n)` cell (CBM 0.12 returns it as a JSON
     string `["Route"]`).
   source_reference:
     provenance: extracted
@@ -15086,8 +15013,7 @@ application.applicationfunction.tier1cache-clear:
   type: applicationfunction
   layer_id: application
   name: Tier1Cache clear
-  description:
-    Delete the cache, or the files of one question set or model (`cache
+  description: Delete the cache, or the files of one question set or model (`cache
     clear --qset/--model`).
   source_reference:
     provenance: extracted
@@ -15439,8 +15365,7 @@ application.applicationfunction.create-sha256hash:
   type: applicationfunction
   layer_id: application
   name: createSha256Hash
-  description:
-    Create a Sha256Hash from a hex string This is the only valid way to
+  description: Create a Sha256Hash from a hex string This is the only valid way to
     construct a Sha256Hash value
   source_reference:
     provenance: extracted
@@ -15669,8 +15594,7 @@ application.applicationfunction.chat-logger-log-error:
   type: applicationfunction
   layer_id: application
   name: ChatLogger logError
-  description:
-    Log an error @param errorMessage The error message @param metadata
+  description: Log an error @param errorMessage The error message @param metadata
     Optional metadata including error details
   source_reference:
     provenance: extracted
@@ -15688,8 +15612,7 @@ application.applicationfunction.chat-logger-log-event:
   type: applicationfunction
   layer_id: application
   name: ChatLogger logEvent
-  description:
-    Log an event (initialization, session start, etc.) @param eventName
+  description: Log an event (initialization, session start, etc.) @param eventName
     Event name @param metadata Optional metadata
   source_reference:
     provenance: extracted
@@ -15759,8 +15682,7 @@ application.applicationfunction.get-chat-logger:
   type: applicationfunction
   layer_id: application
   name: getChatLogger
-  description:
-    Get the global chat logger instance @returns The global ChatLogger
+  description: Get the global chat logger instance @returns The global ChatLogger
     instance or undefined if not initialized
   source_reference:
     provenance: extracted
@@ -15795,8 +15717,7 @@ application.applicationfunction.list-chat-sessions:
   type: applicationfunction
   layer_id: application
   name: listChatSessions
-  description:
-    List all chat session logs @param projectRoot Optional project root
+  description: List all chat session logs @param projectRoot Optional project root
     for relative path resolution
   source_reference:
     provenance: extracted
@@ -15814,8 +15735,7 @@ application.applicationfunction.read-chat-session:
   type: applicationfunction
   layer_id: application
   name: readChatSession
-  description:
-    Read a specific chat session @param logFile The log filename @param
+  description: Read a specific chat session @param logFile The log filename @param
     projectRoot Optional project root
   source_reference:
     provenance: extracted
@@ -15833,8 +15753,7 @@ application.applicationfunction.invoke-claude-streaming:
   type: applicationfunction
   layer_id: application
   name: invokeClaudeStreaming
-  description:
-    Invoke Claude Code CLI in non-interactive print mode, relaying text
+  description: Invoke Claude Code CLI in non-interactive print mode, relaying text
     and tool-use events to stdout in real-time, and returning the complete
     response text for parsing.
   source_reference:
@@ -16071,8 +15990,7 @@ application.applicationfunction.categorize-error:
   type: applicationfunction
   layer_id: application
   name: categorizeError
-  description:
-    Categorize errors based on type, using stable error.code for system
+  description: Categorize errors based on type, using stable error.code for system
     errors Returns the appropriate ErrorCategory for a given error
   source_reference:
     provenance: extracted
@@ -16090,8 +16008,7 @@ application.applicationfunction.get-error-message:
   type: applicationfunction
   layer_id: application
   name: getErrorMessage
-  description:
-    Extract error message from any error type Handles Error instances,
+  description: Extract error message from any error type Handles Error instances,
     strings, and unknown types consistently
   source_reference:
     provenance: extracted
@@ -16177,8 +16094,7 @@ application.applicationfunction.read-purpose:
   type: applicationfunction
   layer_id: application
   name: readPurpose
-  description:
-    Reads a declaration from metadata.yaml's fields, or undefined when
+  description: Reads a declaration from metadata.yaml's fields, or undefined when
     absent or malformed.
   source_reference:
     provenance: extracted
@@ -16196,8 +16112,7 @@ application.applicationfunction.purpose-fields:
   type: applicationfunction
   layer_id: application
   name: purposeFields
-  description:
-    The declaration's fields as metadata.yaml stores them (spread into
+  description: The declaration's fields as metadata.yaml stores them (spread into
     the metadata object).
   source_reference:
     provenance: extracted
@@ -16232,8 +16147,7 @@ application.applicationfunction.extraction-origin:
   type: applicationfunction
   layer_id: application
   name: extractionOrigin
-  description:
-    Whether codebase_extract staged this changeset, and what its record
+  description: Whether codebase_extract staged this changeset, and what its record
     says about the run
   source_reference:
     provenance: extracted
@@ -16302,8 +16216,7 @@ application.applicationfunction.creation-purpose:
   type: applicationfunction
   layer_id: application
   name: creationPurpose
-  description:
-    The purpose to declare for a changeset made now by `origin`'s kind
+  description: The purpose to declare for a changeset made now by `origin`'s kind
     of caller, unless the caller declares one
   source_reference:
     provenance: extracted
@@ -16441,8 +16354,7 @@ application.applicationfunction.cancel-pair-members:
   type: applicationfunction
   layer_id: application
   name: cancelPairMembers
-  description:
-    "Cancel pairs: an add (or relationship-add) and a later delete (or
+  description: "Cancel pairs: an add (or relationship-add) and a later delete (or
     relationship-delete) of the same change key, both staged, where the delete
     has no blockers (`blockedDeletes`"
   source_reference:
@@ -16496,8 +16408,7 @@ application.applicationfunction.delete-blockers:
   type: applicationfunction
   layer_id: application
   name: deleteBlockers
-  description:
-    For each staged `delete`, the relationships in the projected model
+  description: For each staged `delete`, the relationships in the projected model
     (base + changeset) that still name the deleted element and that the
     changeset does not delete.
   source_reference:
@@ -16599,8 +16510,7 @@ application.applicationfunction.changeset-validator-validate-changeset:
   type: applicationfunction
   layer_id: application
   name: ChangesetValidator validateChangeset
-  description:
-    Validate a changeset by running the full validation pipeline on its
+  description: Validate a changeset by running the full validation pipeline on its
     projected model.
   source_reference:
     provenance: extracted
@@ -16635,8 +16545,7 @@ application.applicationfunction.is-lifecycle-move:
   type: applicationfunction
   layer_id: application
   name: isLifecycleMove
-  description:
-    Whether a field difference is the build moving a lifecycle field to
+  description: Whether a field difference is the build moving a lifecycle field to
     a later stage.
   source_reference:
     provenance: extracted
@@ -16825,8 +16734,7 @@ application.applicationfunction.source-reference-gaps:
   type: applicationfunction
   layer_id: application
   name: sourceReferenceGaps
-  description:
-    Matched plan elements (adds and updates, divergent ones too) whose
+  description: Matched plan elements (adds and updates, divergent ones too) whose
     as-built match has source locations the plan's element lacks
   source_reference:
     provenance: extracted
@@ -16862,8 +16770,7 @@ application.applicationfunction.as-built-share:
   type: applicationfunction
   layer_id: application
   name: asBuiltShare
-  description:
-    Where an as-built changeset's elements and relationships came from
+  description: Where an as-built changeset's elements and relationships came from
     (see AsBuiltShare).
   source_reference:
     provenance: extracted
@@ -17431,8 +17338,7 @@ application.applicationfunction.read-tier1file:
   type: applicationfunction
   layer_id: application
   name: readTier1File
-  description:
-    The file's JSON as written (credentials included), for `enable` and
+  description: The file's JSON as written (credentials included), for `enable` and
     `set` to update.
   source_reference:
     provenance: extracted
@@ -18615,7 +18521,8 @@ application.applicationfunction.generate-element-id:
   type: applicationfunction
   layer_id: application
   name: generateElementId
-  description: Generate element ID following Python CLI convention
+  description: Generate an element ID, {layer}.{type}.{kebab-name}, by the shared
+    rules of deriveElementId
   source_reference:
     provenance: extracted
     locations:
@@ -18933,8 +18840,7 @@ application.applicationfunction.precheck-update-source-reference-options:
   type: applicationfunction
   layer_id: application
   name: precheckUpdateSourceReferenceOptions
-  description:
-    Refuse, before the element is loaded, the source options no element
+  description: Refuse, before the element is loaded, the source options no element
     could settle.
   source_reference:
     provenance: extracted
@@ -19212,8 +19118,7 @@ application.applicationfunction.composed-reference-validator-from-farm:
   type: applicationfunction
   layer_id: application
   name: ComposedReferenceValidator fromFarm
-  description:
-    Create a ComposedReferenceValidator from a farm root Automatically
+  description: Create a ComposedReferenceValidator from a farm root Automatically
     builds model-path overrides from the farm's project entries @param farmRoot
     - Path to the farm root directory @returns ComposedReferenceValidator
     instance configured for the
@@ -19332,8 +19237,7 @@ application.applicationfunction.credential-env:
   type: applicationfunction
   layer_id: application
   name: credentialEnv
-  description:
-    Environment variable names per credential for a provider (empty for
+  description: Environment variable names per credential for a provider (empty for
     an unknown provider).
   source_reference:
     provenance: extracted
@@ -19418,8 +19322,7 @@ application.applicationfunction.with-billed:
   type: applicationfunction
   layer_id: application
   name: withBilled
-  description:
-    Add usage already billed to an error (kept on a DecisionModelError,
+  description: Add usage already billed to an error (kept on a DecisionModelError,
     wrapping anything else as `unavailable`).
   source_reference:
     provenance: extracted
@@ -19454,8 +19357,7 @@ application.applicationfunction.qset-by-id:
   type: applicationfunction
   layer_id: application
   name: qsetById
-  description:
-    The question set module for an id (`dr-qset-2`), or an error naming
+  description: The question set module for an id (`dr-qset-2`), or an error naming
     the known ids.
   source_reference:
     provenance: extracted
@@ -19743,8 +19645,7 @@ application.applicationfunction.decision-of:
   type: applicationfunction
   layer_id: application
   name: decisionOf
-  description:
-    A card's decision from its normalised stage answers (section 1.3's
+  description: A card's decision from its normalised stage answers (section 1.3's
     hint, plus status).
   source_reference:
     provenance: extracted
@@ -19830,8 +19731,7 @@ application.applicationfunction.routing-of:
   type: applicationfunction
   layer_id: application
   name: routingOf
-  description:
-    OpenRouter's routing for a configuration, as every request sends it
+  description: OpenRouter's routing for a configuration, as every request sends it
     (section 3.2)
   source_reference:
     provenance: extracted
@@ -19883,8 +19783,7 @@ application.applicationfunction.tier1mode-for:
   type: applicationfunction
   layer_id: application
   name: tier1ModeFor
-  description:
-    Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and
+  description: Tier 1's mode for a configuration (TIER1_DESIGN.md sections 1.3 and
     6), and why.
   source_reference:
     provenance: extracted
@@ -20192,8 +20091,7 @@ application.applicationfunction.near-cap:
   type: applicationfunction
   layer_id: application
   name: nearCap
-  description:
-    True at 80% of the cap or more (and not for a cap of 0, which sends
+  description: True at 80% of the cap or more (and not for a cap of 0, which sends
     nothing by choice).
   source_reference:
     provenance: extracted
@@ -20366,7 +20264,9 @@ application.applicationfunction.ensure-dot-dr-ignored:
   type: applicationfunction
   layer_id: application
   name: ensureDotDrIgnored
-  description: Make sure the project's `.dr/` is git-ignored.
+  description: Make sure the project's `.dr/` is git-ignored; when git tracks
+    files there, change nothing until the caller passes the user's choice
+    (untrack, keep-tracked, skip).
   source_reference:
     provenance: extracted
     locations:
@@ -20401,8 +20301,7 @@ application.applicationfunction.migrate-element-types:
   type: applicationfunction
   layer_id: application
   name: migrateElementTypes
-  description:
-    Rename the elements of every renamed type in the loaded model, and
+  description: Rename the elements of every renamed type in the loaded model, and
     rewrite what names them.
   source_reference:
     provenance: extracted
@@ -20491,8 +20390,7 @@ application.applicationfunction.farm-manifest-create:
   type: applicationfunction
   layer_id: application
   name: FarmManifest create
-  description:
-    Create a new farm manifest @param name - Farm name @param options -
+  description: Create a new farm manifest @param name - Farm name @param options -
     Optional additional properties @returns FarmManifest instance
   source_reference:
     provenance: extracted
@@ -20527,7 +20425,9 @@ application.applicationfunction.farm-manifest-add-project:
   type: applicationfunction
   layer_id: application
   name: FarmManifest addProject
-  description: Add a project to the farm
+  description: "Add a project to the farm (dr-farm-v2 entry: name, repository,
+    model, remote); refuses a second entry for a repository the farm already
+    holds, naming that project."
   source_reference:
     provenance: extracted
     locations:
@@ -20544,8 +20444,7 @@ application.applicationfunction.farm-manifest-remove-project:
   type: applicationfunction
   layer_id: application
   name: FarmManifest removeProject
-  description:
-    Remove a project from the farm @param name - Project name to remove
+  description: Remove a project from the farm @param name - Project name to remove
     @returns true if project was removed, false if not found
   source_reference:
     provenance: extracted
@@ -20580,8 +20479,7 @@ application.applicationfunction.farm-sync-engine-pull-codebase:
   type: applicationfunction
   layer_id: application
   name: FarmSyncEngine pullCodebase
-  description:
-    Pull latest changes from remote for a codebase @param codebasePath
+  description: Pull latest changes from remote for a codebase @param codebasePath
     - Relative path to codebase folder @returns Updated commit SHA
   source_reference:
     provenance: extracted
@@ -20672,7 +20570,8 @@ application.applicationfunction.farm-sync-engine-sync-project:
   type: applicationfunction
   layer_id: application
   name: FarmSyncEngine syncProject
-  description: Execute a complete sync operation for a project
+  description: Execute a complete sync operation for a project, against its main
+    checkout (the project's repository path); linked worktrees are not synced.
   source_reference:
     provenance: extracted
     locations:
@@ -21001,8 +20900,7 @@ application.applicationfunction.merge-changeset-history:
   type: applicationfunction
   layer_id: application
   name: mergeChangesetHistory
-  description:
-    Merge the changeset history on disk with the history in memory, so
+  description: Merge the changeset history on disk with the history in memory, so
     a manifest save never drops an entry
   source_reference:
     provenance: extracted
@@ -21123,8 +21021,7 @@ application.applicationfunction.dropped-by-migration:
   type: applicationfunction
   layer_id: application
   name: droppedByMigration
-  description:
-    The relationships the applied migration steps dropped for want of a
+  description: The relationships the applied migration steps dropped for want of a
     replacement
   source_reference:
     provenance: extracted
@@ -21142,8 +21039,7 @@ application.applicationfunction.capture-changeset-baselines:
   type: applicationfunction
   layer_id: application
   name: captureChangesetBaselines
-  description:
-    Hash the model and sort its staged changesets into those whose base
+  description: Hash the model and sort its staged changesets into those whose base
     snapshot matches it and those that had drifted from it.
   source_reference:
     provenance: extracted
@@ -21232,8 +21128,7 @@ application.applicationfunction.when-model-writes-settled:
   type: applicationfunction
   layer_id: application
   name: whenModelWritesSettled
-  description:
-    Resolves once no write to the model at `root` is in flight (at once
+  description: Resolves once no write to the model at `root` is in flight (at once
     when none is).
   source_reference:
     provenance: extracted
@@ -21338,8 +21233,9 @@ application.applicationfunction.drift-status:
   type: applicationfunction
   layer_id: application
   name: driftStatus
-  description: A changeset's base-drift state, whether it blocks a commit, and a
-    sentence saying why
+  description: A changeset's base-drift state and a sentence saying what it means
+    for a landing; blocksCommit is always false, since drift warns and never
+    refuses
   source_reference:
     provenance: extracted
     locations:
@@ -21348,4 +21244,2166 @@ application.applicationfunction.drift-status:
   metadata:
     created_at: 2026-11-20T15:08:59.540Z
     updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+application.applicationfunction.model-view:
+  id: a7770dcd-34c6-470c-bde4-cc068172501a
+  path: application.applicationfunction.model-view
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: modelView
+  description: "The view of the model a read tool validates and measures: the base
+    model, or the base with the active changeset projected onto it, with the
+    view's name."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: modelView
+  metadata:
+    created_at: 2026-11-20T16:31:17.295Z
+    updated_at: 2026-11-20T16:31:17.295Z
+    version: 1
+application.applicationfunction.validate-view:
+  id: fb5b7e6e-8dc0-4e26-b968-6c756354f7a3
+  path: application.applicationfunction.validate-view
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: validateView
+  description: "The validation pipeline over a view, plus the warnings the
+    pipeline does not raise: orphaned elements and, outside the intent layers,
+    elements with no source reference."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: validateView
+  metadata:
+    created_at: 2026-11-20T16:31:17.296Z
+    updated_at: 2026-11-20T16:31:17.296Z
+    version: 1
+application.applicationfunction.orphan-ids:
+  id: 3ee8cd8a-7a18-4a2d-8a73-00efada9b271
+  path: application.applicationfunction.orphan-ids
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: orphanIds
+  description: Elements with no relationship and no cross-layer reference, in
+    either direction.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: orphanIds
+  accepted_gaps:
+    - direction: outgoing
+      predicate: accesses
+      other_spec_node_id: application.dataobject
+      reason: orphanIds reads a model view and returns element ids; it reads or writes
+        no data object the model has.
+      decided_by: agent
+      decided_at: 2026-11-20T16:32:23.056Z
+      changeset: changeset-1795192215127-vtv3es8td
+    - direction: incoming
+      predicate: assigned-to
+      other_spec_node_id: application.applicationcomponent
+      reason: orphanIds is a module-level function in model-view.ts, not a method of a
+        class the model has as a component.
+      decided_by: agent
+      decided_at: 2026-11-20T16:32:23.518Z
+      changeset: changeset-1795192215127-vtv3es8td
+  metadata:
+    created_at: 2026-11-20T16:31:17.296Z
+    updated_at: 2026-11-20T16:31:17.296Z
+    version: 1
+application.applicationfunction.count-by-layer-and-type:
+  id: 87bbb560-6bac-488a-8544-0464effb245c
+  path: application.applicationfunction.count-by-layer-and-type
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: countByLayerAndType
+  description: Ids counted by layer and then type.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: countByLayerAndType
+  metadata:
+    created_at: 2026-11-20T16:31:17.296Z
+    updated_at: 2026-11-20T16:31:17.296Z
+    version: 1
+application.applicationfunction.dependency-ends:
+  id: cedd5dca-e496-424d-ab00-62042b7f049f
+  path: application.applicationfunction.dependency-ends
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: dependencyEnds
+  description: "Which end of a relationship depends on the other, by its
+    predicate: serves, realizes, satisfies, delivers and supports run from what
+    is depended on to what depends on it, every other predicate from the
+    dependent to what it depends on. One rule for model_trace and dr trace."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/dependency-direction.ts
+        symbol: dependencyEnds
+  metadata:
+    created_at: 2026-11-20T16:31:17.296Z
+    updated_at: 2026-11-20T16:31:17.296Z
+    version: 1
+application.applicationfunction.warning-kind:
+  id: 32de4acc-4a64-43a3-9cc4-2a2c835e0807
+  path: application.applicationfunction.warning-kind
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: warningKind
+  description: What a validation warning is about, for counting and listing
+    warnings by kind.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/model-warnings.ts
+        symbol: warningKind
+  metadata:
+    created_at: 2026-11-20T16:31:17.296Z
+    updated_at: 2026-11-20T16:31:17.296Z
+    version: 1
+application.applicationfunction.build-dependency-graph:
+  id: 56e6ff27-c986-4b2c-bbf8-fab3cfe95daa
+  path: application.applicationfunction.build-dependency-graph
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: buildDependencyGraph
+  description: A directed graph with an edge from each dependent to what it
+    depends on, by each relationship's predicate, for the dependency tracker
+    that dr trace walks.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/dependency-direction.ts
+        symbol: buildDependencyGraph
+  metadata:
+    created_at: 2026-11-20T16:41:32.314Z
+    updated_at: 2026-11-20T16:41:32.314Z
+    version: 1
+application.applicationfunction.page-of:
+  id: ed57750d-58df-45e5-9ae4-794f3e1238a0
+  path: application.applicationfunction.page-of
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: pageOf
+  description: The page of a list the limit and offset arguments ask for, with the
+    list's true total, how many came back, and the offset of the next page. A
+    limit is a page size, never a cut-off.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: pageOf
+  metadata:
+    created_at: 2026-11-20T17:02:56.267Z
+    updated_at: 2026-11-20T17:02:56.267Z
+    version: 1
+application.applicationfunction.paging-fields:
+  id: 9ee71201-3e6c-4d1e-8228-993ead2fb01d
+  path: application.applicationfunction.paging-fields
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: pagingFields
+  description: The limit and offset arguments of a tool that pages a list, with
+    the default stated in their descriptions.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: pagingFields
+  metadata:
+    created_at: 2026-11-20T17:02:56.267Z
+    updated_at: 2026-11-20T17:02:56.267Z
+    version: 1
+application.applicationfunction.next-page-hint:
+  id: f7a7ead7-d673-45d8-9871-087d50187e91
+  path: application.applicationfunction.next-page-hint
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: nextPageHint
+  description: One line naming the call that returns the next page of a list, or
+    nothing when the page is the last.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: nextPageHint
+  metadata:
+    created_at: 2026-11-20T17:02:56.267Z
+    updated_at: 2026-11-20T17:02:56.267Z
+    version: 1
+application.applicationfunction.whole-page:
+  id: 02b0bcb4-8e48-400b-af64-f80f658b6d26
+  path: application.applicationfunction.whole-page
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: wholePage
+  description: A whole list as one page, for a caller that asked for everything.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: wholePage
+  metadata:
+    created_at: 2026-11-20T17:02:56.267Z
+    updated_at: 2026-11-20T17:02:56.267Z
+    version: 1
+application.applicationfunction.lists-pager:
+  id: 385554f8-44cb-4d2c-a66c-90a96e5f98e5
+  path: application.applicationfunction.lists-pager
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: listsPager
+  description: Pages several lists of one result with the same limit and offset,
+    keeping each list's true total, so repeating the call pages them all.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: listsPager
+  metadata:
+    created_at: 2026-11-20T17:22:12.339Z
+    updated_at: 2026-11-20T17:22:12.339Z
+    version: 1
+application.applicationfunction.checked-page-args:
+  id: f3f4679e-7d42-47eb-a799-ef8800f8c25f
+  path: application.applicationfunction.checked-page-args
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: checkedPageArgs
+  description: "The limit and offset a caller asks for, checked: a limit is an
+    integer of at least 1 and an offset an integer of at least 0, else a
+    RangeError naming the argument, so no caller can loop or skip."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: checkedPageArgs
+  metadata:
+    created_at: 2026-11-20T18:42:44.744Z
+    updated_at: 2026-11-20T18:42:44.744Z
+    version: 1
+application.applicationfunction.compact-intent:
+  id: a303a922-e040-43b6-8602-c9b8c8f82df3
+  path: application.applicationfunction.compact-intent
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: compactIntent
+  description: "The intent section's compact form: counts always, the untraced and
+    unanchored elements listed (per type with the first ids when the list is
+    long), traced elements as lines only when there are few, elements whose type
+    has no catalog route to intent counted apart, and a note when nothing was
+    traced because every change is an intent element."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: compactIntent
+  metadata:
+    created_at: 2026-11-20T16:31:14.121Z
+    updated_at: 2026-11-20T16:31:14.121Z
+    version: 1
+application.applicationfunction.has-catalog-route-to-intent:
+  id: 4785a996-f184-4f4a-91f6-1869364011d4
+  path: application.applicationfunction.has-catalog-route-to-intent
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: hasCatalogRouteToIntent
+  description: Whether the relationship catalog defines any relationship between a
+    node type and a motivation, business or product type. A type without one can
+    trace to intent only through a neighbour.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: hasCatalogRouteToIntent
+  metadata:
+    created_at: 2026-11-20T16:31:14.130Z
+    updated_at: 2026-11-20T16:31:14.130Z
+    version: 1
+application.applicationfunction.delta-lists:
+  id: 94c2a331-5d92-405a-bd99-2926e9b55d00
+  path: application.applicationfunction.delta-lists
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deltaLists
+  description: The delta's lists that page (elements, relationships, accepted
+    gaps, intent), by the name the page totals and the delta's counts give them.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: deltaLists
+  metadata:
+    created_at: 2026-11-20T17:44:47.569Z
+    updated_at: 2026-11-20T17:44:47.569Z
+    version: 1
+application.applicationfunction.sweep-viewer-registry:
+  id: af897dd2-426b-4d6e-a6c9-48f96f7552d8
+  path: application.applicationfunction.sweep-viewer-registry
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sweepViewerRegistry
+  description: "Removes what dead viewers left in the viewers directory: records
+    whose pid is dead or unreadable, starting markers of dead pids, logs older
+    than a week with no live viewer, and stale temp files. Run whenever the
+    registry is read."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: sweepViewerRegistry
+  metadata:
+    created_at: 2026-11-20T16:31:40.310Z
+    updated_at: 2026-11-20T16:31:40.310Z
+    version: 1
+application.applicationfunction.list-viewer-records:
+  id: 21ba392f-83ae-470c-a32d-7ccaff088da3
+  path: application.applicationfunction.list-viewer-records
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: listViewerRecords
+  description: Every live viewer record in the registry, across projects, after a sweep.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: listViewerRecords
+  metadata:
+    created_at: 2026-11-20T16:31:40.310Z
+    updated_at: 2026-11-20T16:31:40.310Z
+    version: 1
+application.applicationfunction.viewer-health:
+  id: ace2b18c-1ced-4f47-83f0-7cbaaf75711b
+  path: application.applicationfunction.viewer-health
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: viewerHealth
+  description: A dr viewer's answer to GET /health on a port (status and
+    cliVersion), or null when nothing answers as a viewer.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: viewerHealth
+  metadata:
+    created_at: 2026-11-20T16:31:40.310Z
+    updated_at: 2026-11-20T16:31:40.310Z
+    version: 1
+application.applicationfunction.list-running-viewers:
+  id: a37f3adb-dd09-476b-ab69-9be610018db2
+  path: application.applicationfunction.list-running-viewers
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: listRunningViewers
+  description: "Every running viewer on this machine: registry records joined with
+    the process scan, each with its CLI version from its health check."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: listRunningViewers
+  metadata:
+    created_at: 2026-11-20T16:31:40.311Z
+    updated_at: 2026-11-20T16:31:40.311Z
+    version: 1
+application.applicationfunction.stop-viewer:
+  id: d55a3f40-9f69-4486-bff9-e3beedab4a94
+  path: application.applicationfunction.stop-viewer
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: stopViewer
+  description: "Stops one viewer: SIGTERM to its launcher (or its server when the
+    launcher is gone), SIGKILL if it has not exited in time, then removes its
+    record."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: stopViewer
+  metadata:
+    created_at: 2026-11-20T16:31:40.311Z
+    updated_at: 2026-11-20T16:31:40.311Z
+    version: 1
+application.applicationfunction.watch-parent:
+  id: 19dcb35f-adcf-43e0-a7d0-9a6c20b8ae9e
+  path: application.applicationfunction.watch-parent
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: watchParent
+  description: Calls back once when the process that started this one is gone (its
+    parent pid changed or died). The viewer's server always watches its
+    launcher; the launcher watches its parent with --exit-with-parent.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/parent-watch.ts
+        symbol: watchParent
+  metadata:
+    created_at: 2026-11-20T16:31:40.311Z
+    updated_at: 2026-11-20T16:31:40.311Z
+    version: 1
+application.applicationfunction.watch-viewer-lifetime:
+  id: 968c4d76-952b-464a-95a7-c41ede05ee63
+  path: application.applicationfunction.watch-viewer-lifetime
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: watchViewerLifetime
+  description: Ends a viewer's server when its project's documentation-robotics/
+    folder is gone, or, with an idle limit, after that long with no WebSocket
+    client and no request other than /health.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-lifetime.ts
+        symbol: watchViewerLifetime
+  metadata:
+    created_at: 2026-11-20T16:31:40.311Z
+    updated_at: 2026-11-20T16:31:40.311Z
+    version: 1
+application.applicationfunction.find-viewer-processes:
+  id: 4097d959-16a7-4358-b9e2-c3f1d35d2a55
+  path: application.applicationfunction.find-viewer-processes
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: findViewerProcesses
+  description: "The viewers in the process table (read with ps by listProcesses):
+    each `dr visualize` launcher with its server, and each server whose launcher
+    is gone, so viewers the registry has no record of are still found. Each
+    one's working directory and listening port come from processCwd and
+    listeningPort."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-processes.ts
+        symbol: findViewerProcesses
+  metadata:
+    created_at: 2026-11-20T17:01:09.694Z
+    updated_at: 2026-11-20T17:01:09.694Z
+    version: 1
+application.applicationfunction.survey-viewers:
+  id: 4999dfb8-5f02-4336-acb8-c958243628a6
+  path: application.applicationfunction.survey-viewers
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: surveyViewers
+  description: "Every running viewer on this machine with how complete the answer
+    is: whether the process table could be read (when not, viewers the registry
+    lost are not listed, and callers must say so) and what reading the registry
+    removed."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: surveyViewers
+  metadata:
+    created_at: 2026-11-20T17:12:03.027Z
+    updated_at: 2026-11-20T17:12:03.027Z
+    version: 1
+application.applicationfunction.viewer-setting:
+  id: 96663706-691b-4d15-a3e9-e07334797de6
+  path: application.applicationfunction.viewer-setting
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: viewerSetting
+  description: "A viewer time limit by name, from its environment variable or its
+    default: idle hours (DR_VIEWER_IDLE_HOURS, 24), health check timeout and
+    retry (DR_VIEWER_HEALTH_TIMEOUT_MS 1500, DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS
+    5000), stop timeout (DR_VIEWER_STOP_TIMEOUT_MS, 8000), log keep period
+    (DR_VIEWER_LOG_KEEP_DAYS, 7) and lifetime check interval
+    (DR_VIEWER_LIFETIME_CHECK_MS, 30000). A value that cannot be used is
+    reported by ignoredViewerSettings, not silently replaced."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-settings.ts
+        symbol: viewerSetting
+  metadata:
+    created_at: 2026-11-20T17:12:03.027Z
+    updated_at: 2026-11-20T17:12:03.027Z
+    version: 1
+application.applicationfunction.confirm-recorded-viewer:
+  id: f6e27bad-3294-4af9-a328-0b6713edf935
+  path: application.applicationfunction.confirm-recorded-viewer
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: confirmRecordedViewer
+  description: "Decides whether a recorded viewer's pid may be signalled:
+    confirmed by the viewer itself (its /health names the record's viewerId, its
+    pid and its launcher's, which must be the recorded pid) or by the process
+    table (the pid started no later than the record was written, runs
+    `visualize`, and has a server child whose script is the dr CLI's). Otherwise
+    the record is stale (the pid is gone or reused) or unconfirmed, with the
+    reason; nothing unconfirmed is ever signalled."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: confirmRecordedViewer
+  metadata:
+    created_at: 2026-11-20T18:16:33.742Z
+    updated_at: 2026-11-20T18:16:33.742Z
+    version: 1
+application.applicationfunction.is-dr-server-script:
+  id: e15d0302-727e-4364-923c-6f29e1f58ad9
+  path: application.applicationfunction.is-dr-server-script
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isDrServerScript
+  description: "Whether a process's dist/server-entry.js is the dr CLI's: the
+    package.json beside its dist/ names @documentation-robotics/cli. Another
+    package's server is never taken for a viewer; one whose package cannot be
+    read is a candidate, reported and never signalled."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-processes.ts
+        symbol: isDrServerScript
+  metadata:
+    created_at: 2026-11-20T18:16:33.742Z
+    updated_at: 2026-11-20T18:16:33.742Z
+    version: 1
+application.applicationfunction.survey-caveats:
+  id: db697f2e-05b8-48f1-9c66-6f26a1715747
+  path: application.applicationfunction.survey-caveats
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: surveyCaveats
+  description: "What a viewer survey leaves out, as sentences --list and --stop
+    always show: no process scan (unavailable or turned off by
+    DR_VIEWER_PROCESS_SCAN), unconfirmed server candidates, other users'
+    viewers, registry records this CLI could not read."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: surveyCaveats
+  metadata:
+    created_at: 2026-11-20T18:16:33.742Z
+    updated_at: 2026-11-20T18:16:33.742Z
+    version: 1
+application.applicationfunction.dr-bot-session-prompt:
+  id: 40c50ce4-f2c1-40c4-b521-10372422b6e1
+  path: application.applicationfunction.dr-bot-session-prompt
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: drBotSessionPrompt
+  description: "What DrBot is told at the start of every launch, with or without
+    the dr MCP server: its permission mode, what it may run, that a refused call
+    was shown to nobody and no prompt is coming, that the allowlist comes from
+    how the viewer was started and not from a settings file, and how the person
+    allows more."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: drBotSessionPrompt
+  metadata:
+    created_at: 2026-11-20T16:33:48.277Z
+    updated_at: 2026-11-20T16:33:48.277Z
+    version: 1
+application.applicationfunction.explain-denied-tool-call:
+  id: fe20bfdc-1514-4809-b770-166191614425
+  path: application.applicationfunction.explain-denied-tool-call
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: explainDeniedToolCall
+  description: Turns a tool call the permission allowlist refused into the rule
+    that blocked it and the way the person allows it, for the viewer's failed
+    tool result.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: explainDeniedToolCall
+  metadata:
+    created_at: 2026-11-20T16:33:48.296Z
+    updated_at: 2026-11-20T16:33:48.296Z
+    version: 1
+application.applicationfunction.is-permission-denial:
+  id: 9ae43f84-f780-410d-aa59-bafd3480d759
+  path: application.applicationfunction.is-permission-denial
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isPermissionDenial
+  description: Whether a failed tool result reads as a permission refusal rather
+    than the tool's own error.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: isPermissionDenial
+  metadata:
+    created_at: 2026-11-20T16:51:24.207Z
+    updated_at: 2026-11-20T16:51:24.207Z
+    version: 1
+application.applicationfunction.resolve-chat-mode:
+  id: 4b039cb1-7a2f-49f7-b957-9acc72406537
+  path: application.applicationfunction.resolve-chat-mode
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveChatMode
+  description: "The chat agent's permission mode for dr visualize's options:
+    changeset staging by default, read-only with --read-only, and danger mode
+    wins over both."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/visualize.ts
+        symbol: resolveChatMode
+  metadata:
+    created_at: 2026-11-20T16:51:24.208Z
+    updated_at: 2026-11-20T16:51:24.208Z
+    version: 1
+application.applicationfunction.assert-chat-command-allowed:
+  id: f883cdc4-eefd-45a7-888d-3f771436042b
+  path: application.applicationfunction.assert-chat-command-allowed
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: assertChatCommandAllowed
+  description: "dr's own check in a process the viewer's chat started
+    (DR_CHAT_MODE): refuses, before the command runs, a command outside the
+    chat's mode, a file-writing flag, or a model path outside the served
+    project."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/chat-guard.ts
+        symbol: assertChatCommandAllowed
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+application.applicationfunction.chat-bash-refusal:
+  id: b1b121f3-9943-4932-9068-a83abada38a5
+  path: application.applicationfunction.chat-bash-refusal
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: chatBashRefusal
+  description: Why a chat mode refuses a Bash command line, or null when it is one
+    plain dr command the mode allows. Used by the permission hook and by the
+    viewer's explanation.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/chat-guard.ts
+        symbol: chatBashRefusal
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+application.applicationfunction.chat-tool-refusal:
+  id: 4e6b9b3f-1860-4a28-823e-fbeb6199c8c5
+  path: application.applicationfunction.chat-tool-refusal
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: chatToolRefusal
+  description: "The dr MCP server's own refusal in a chat process: a tool outside
+    the chat's mode, or a rootPath other than the served project."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/chat-guard.ts
+        symbol: chatToolRefusal
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+application.applicationfunction.chat-permission-hook-decision:
+  id: 75e04c9d-a747-49eb-ab29-63c2d6439439
+  path: application.applicationfunction.chat-permission-hook-decision
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: chatPermissionHookDecision
+  description: "The answer of Claude Code's PreToolUse hook (dr
+    chat-permission-hook) for one tool call: the reason to deny a Bash call
+    with, which the agent reads, or nothing."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/chat-guard.ts
+        symbol: chatPermissionHookDecision
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+application.applicationfunction.dr-bot-disallowed-tools:
+  id: 0758d87d-668e-4027-9ecd-adacd5857547
+  path: application.applicationfunction.dr-bot-disallowed-tools
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: drBotDisallowedTools
+  description: "Claude Code deny rules for a chat mode: editing and network tools,
+    the person's steps (commit, apply, revert, discard, delete), file-writing
+    flags, and in a read-only viewer every staging command and tool."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: drBotDisallowedTools
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+application.applicationfunction.dr-bot-launch-settings:
+  id: 0572d3ea-6b80-4da7-ab66-4ce94579e8c5
+  path: application.applicationfunction.dr-bot-launch-settings
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: drBotLaunchSettings
+  description: "The one settings source a launch under an allowlist reads: the
+    permission hook on Bash and the user's sign-in settings, never permissions."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: drBotLaunchSettings
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+application.applicationfunction.derive-element-id:
+  id: b24e0e61-a222-4e15-acf6-9f3184010fa5
+  path: application.applicationfunction.derive-element-id
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deriveElementId
+  description: "Derives an element id from a name: the one rule dr add, model_add
+    and extraction share"
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: deriveElementId
+  metadata:
+    created_at: 2026-11-20T16:36:37.952Z
+    updated_at: 2026-11-20T16:36:37.952Z
+    version: 1
+application.applicationfunction.compact-id:
+  id: ec68fcde-85fc-453a-8f5d-5074ea209c06
+  path: application.applicationfunction.compact-id
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: compactId
+  description: An id reduced to its layer and the letters and digits of its type
+    and name, so ids that differ only by hyphens compare equal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: compactId
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+application.applicationfunction.element-under-earlier-id:
+  id: 893f4c2b-7914-428b-8c88-32c267f24ae4
+  path: application.applicationfunction.element-under-earlier-id
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: elementUnderEarlierId
+  description: The element that has a name and an id differing only by hyphens
+    from the id the name derives today
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: elementUnderEarlierId
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+application.applicationfunction.read-batch-file:
+  id: c1411349-dbbd-49ef-9489-582073e05e81
+  path: application.applicationfunction.read-batch-file
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readBatchFile
+  description: Reads a batch file and returns its lists, validated with the tool's
+    own item schemas
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/batch-file.ts
+        symbol: readBatchFile
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+application.applicationfunction.locate-json-error:
+  id: f5d1f1b4-4867-4dde-8ac3-b8bb4a86465a
+  path: application.applicationfunction.locate-json-error
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: locateJsonError
+  description: Finds the first syntax error in a text read as JSON, with its line and column
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/batch-file.ts
+        symbol: locateJsonError
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+application.applicationfunction.batch-report:
+  id: f12ba987-ebf6-4d4e-881b-9e18ba0560d2
+  path: application.applicationfunction.batch-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: batchReport
+  description: "Builds a batch's report: counts by status and the items that need
+    attention, or every item with verbose"
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: batchReport
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+application.applicationfunction.longest-shared-start:
+  id: 6aa3d6bd-42d5-401c-9974-18dafec59949
+  path: application.applicationfunction.longest-shared-start
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: longestSharedStart
+  description: The candidate id of the same layer and type that starts most like
+    an id that was not found
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: longestSharedStart
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+application.applicationfunction.reason-pattern:
+  id: 7c3cf12c-efcd-45e8-b786-09491e4344d6
+  path: application.applicationfunction.reason-pattern
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: reasonPattern
+  description: A reason with what differs from item to item taken out, so items
+    refused for the same cause group together
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: reasonPattern
+  metadata:
+    created_at: 2026-11-20T16:55:07.340Z
+    updated_at: 2026-11-20T16:55:07.340Z
+    version: 1
+application.applicationfunction.earlier-element-ids:
+  id: 94afb18d-12e7-4f2b-83a1-02ae053bc179
+  path: application.applicationfunction.earlier-element-ids
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: earlierElementIds
+  description: The ids earlier releases derived from a name, where they differ from today's
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: earlierElementIds
+  metadata:
+    created_at: 2026-11-20T17:38:25.473Z
+    updated_at: 2026-11-20T17:38:25.473Z
+    version: 1
+application.applicationfunction.existing-under-earlier-id:
+  id: 4750d745-e2a6-41bc-82c8-54d0475d2c16
+  path: application.applicationfunction.existing-under-earlier-id
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: existingUnderEarlierId
+  description: Whether the element a new add describes already exists under an id
+    an earlier rule gave it
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: existingUnderEarlierId
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+application.applicationfunction.existing-elements-in:
+  id: 08caa462-d107-4640-8666-87d8d5ac5f68
+  path: application.applicationfunction.existing-elements-in
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: existingElementsIn
+  description: A lookup of existing elements over a list, by id and by id without hyphens
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: existingElementsIn
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+application.applicationfunction.reason-parts:
+  id: 6c8971ff-9d5b-4a21-876d-fffe11cc3d64
+  path: application.applicationfunction.reason-parts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: reasonParts
+  description: A text split into its pattern and the ids, names and positions that
+    vary between items
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: reasonParts
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+application.applicationfunction.resolve-loose-reference:
+  id: 01461b23-b863-4d75-a932-051063514605
+  path: application.applicationfunction.resolve-loose-reference
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveLooseReference
+  description: What a reference that is not an exact id names in the projection,
+    by name or by id without hyphens
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: resolveLooseReference
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+application.applicationfunction.relationship-batch-report:
+  id: c015b87c-df37-478c-a05f-c674b1b2e09b
+  path: application.applicationfunction.relationship-batch-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: relationshipBatchReport
+  description: A relationship batch's report, with the by-name readings of written
+    items as one map
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/relationship-tools.ts
+        symbol: relationshipBatchReport
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+application.applicationfunction.staging-area-manager-rebaseline:
+  id: ed374416-e491-4a7b-bdcb-b846d27b080e
+  path: application.applicationfunction.staging-area-manager-rebaseline
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: StagingAreaManager rebaseline
+  description: "Makes the base model as it is now a staged changeset's base:
+    records the current base hash and base index, and returns the drift as it
+    was before and as it is after."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staging-area.ts
+        symbol: StagingAreaManager.rebaseline
+  metadata:
+    created_at: 2026-11-20T16:38:29.311Z
+    updated_at: 2026-11-20T16:38:29.311Z
+    version: 1
+application.applicationfunction.overlap-consequence:
+  id: 28079826-c154-4c54-b280-fc7dba1c60f0
+  path: application.applicationfunction.overlap-consequence
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: overlapConsequence
+  description: What landing does about a staged change the base overlaps, as a
+    sentence for the person confirming, by the overlap's reason.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-base-index.ts
+        symbol: overlapConsequence
+  metadata:
+    created_at: 2026-11-20T16:38:29.313Z
+    updated_at: 2026-11-20T16:38:29.313Z
+    version: 1
+application.applicationfunction.collect-server:
+  id: a91b0437-8010-4377-b87a-76b6c99b5a43
+  path: application.applicationfunction.collect-server
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: collectServer
+  description: "Whether this dr server process is the CLI that is installed: stale
+    when the version on disk differs from the one it was built with, or the
+    installed files were written after it started."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: collectServer
+  metadata:
+    created_at: 2026-11-20T16:39:29.293Z
+    updated_at: 2026-11-20T16:39:29.293Z
+    version: 1
+application.applicationfunction.read-installed-cli:
+  id: 2bc80867-6a6a-493f-a6f7-195fbb39c7b6
+  path: application.applicationfunction.read-installed-cli
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readInstalledCli
+  description: "The CLI installed where this process was loaded from, read from
+    disk now: its version, the spec version it bundles and when its files last
+    changed."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: readInstalledCli
+  metadata:
+    created_at: 2026-11-20T16:39:29.295Z
+    updated_at: 2026-11-20T16:39:29.295Z
+    version: 1
+application.applicationfunction.stale-server:
+  id: 979f550d-89e4-4187-a146-ce44f5ee3ee8
+  path: application.applicationfunction.stale-server
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: staleServer
+  description: The server section when it says the server is stale, else undefined.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: staleServer
+  metadata:
+    created_at: 2026-11-20T16:39:29.296Z
+    updated_at: 2026-11-20T16:39:29.296Z
+    version: 1
+application.applicationfunction.project-status-list:
+  id: 500e4412-5243-4339-a5a4-ff8bcfed8e7e
+  path: application.applicationfunction.project-status-list
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: projectStatusList
+  description: "One of the status's lists in full, paged: what project_status
+    returns with list. Only the collector that holds the list runs, and limit
+    has no upper bound."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status.ts
+        symbol: projectStatusList
+  metadata:
+    created_at: 2026-11-20T16:49:54.901Z
+    updated_at: 2026-11-20T16:49:54.901Z
+    version: 1
+application.applicationfunction.shorten-sections:
+  id: c925c8d9-3f95-41b8-a643-ca16b19c2ab7
+  path: application.applicationfunction.shorten-sections
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: shortenSections
+  description: "The sections as the default answer shows them: each list cut to
+    its default size, with its true count beside it and a more line naming the
+    call that returns the rest. Nothing but the lists changes."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: shortenSections
+  metadata:
+    created_at: 2026-11-20T16:49:54.901Z
+    updated_at: 2026-11-20T16:49:54.901Z
+    version: 1
+application.applicationfunction.status-list-items:
+  id: c1e40d9d-ea84-4ea9-9f53-295dcd60d0c9
+  path: application.applicationfunction.status-list-items
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: statusListItems
+  description: The items of one of the status's lists, whole, from sections as the
+    collectors return them, or why the list can't be read.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: statusListItems
+  metadata:
+    created_at: 2026-11-20T16:49:54.901Z
+    updated_at: 2026-11-20T16:49:54.901Z
+    version: 1
+application.applicationfunction.card-facts:
+  id: f9fb261e-18f5-4ffd-94fb-2210f98a1c2f
+  path: application.applicationfunction.card-facts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: cardFacts
+  description: "Reads what a rule or a group needs to know about a card from its
+    declaration: visibility (exported, local, public, private, protected),
+    whether it is nested in another function, and the element its class or file
+    already has."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/visibility.ts
+        symbol: cardFacts
+  metadata:
+    created_at: 2026-11-20T16:56:25.763Z
+    updated_at: 2026-11-20T16:56:25.763Z
+    version: 1
+application.applicationfunction.group-cards:
+  id: 169af3d8-d250-4951-bc2f-1f877f20aac0
+  path: application.applicationfunction.group-cards
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: groupCards
+  description: Groups a run's undecided cards by folder and file, kind and
+    visibility, flags folders no model element names, and counts the decisions
+    left for the caller.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/triage.ts
+        symbol: groupCards
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.load-project-rules:
+  id: 09383dc2-097f-45a2-8ba4-22f1c63d10f9
+  path: application.applicationfunction.load-project-rules
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: loadProjectRules
+  description: "Reads and validates documentation-robotics/extraction-rules.yaml:
+    the extraction rules a project keeps with its model."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/project-rules.ts
+        symbol: loadProjectRules
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.save-project-rule:
+  id: c96ef77a-0170-4df6-92ac-af5e8b3d7a08
+  path: application.applicationfunction.save-project-rule
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: saveProjectRule
+  description: Writes a kept rule to documentation-robotics/extraction-rules.yaml
+    with its reason, when it was decided and in which changeset.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/project-rules.ts
+        symbol: saveProjectRule
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.apply-project-rules:
+  id: 5304abce-c958-4dc6-8fa9-76b66f6e5a24
+  path: application.applicationfunction.apply-project-rules
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: applyProjectRules
+  description: "Applies a project's rules to the extracted symbols before cards
+    are made: a rule that says none first, then Tier 0, then a rule that names a
+    type for what Tier 0 left open. Reports what each rule decided."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/project-rules.ts
+        symbol: applyProjectRules
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.plan-decisions:
+  id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+  path: application.applicationfunction.plan-decisions
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: compileDecide
+  description: Resolves decide items to the cards they cover and to what staging
+    or rejecting them would do, with a count and a sample per item for a
+    preview.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract-decide.ts
+        symbol: compileDecide
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.shared-helper-groups:
+  id: e04edb55-242e-4a06-8c12-6f339eb6e2f5
+  path: application.applicationfunction.shared-helper-groups
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sharedHelperGroups
+  description: Finds the functions that more services call than a stated number,
+    with the links each makes and a suggested rule that removes them.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/triage.ts
+        symbol: sharedHelperGroups
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.plan-coverage:
+  id: 7ea4edc6-b093-4f7a-a6aa-75757904b952
+  path: application.applicationfunction.plan-coverage
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: planCoverage
+  description: In a verify run, lists each element the plan adds or changes that
+    has no as-built candidate staged, with the cards in its source file.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/triage.ts
+        symbol: planCoverage
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+application.applicationfunction.layer-status:
+  id: 985e9b0c-2a8c-42f1-a474-87386a681948
+  path: application.applicationfunction.layer-status
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: layerStatus
+  description: The status (in step, drifted, not checked), its sentence and the
+    coverage of one layer's check; not checked is never folded into in step.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/verify-status.ts
+        symbol: layerStatus
+  metadata:
+    created_at: 2026-11-20T18:09:28.170Z
+    updated_at: 2026-11-20T18:09:28.170Z
+    version: 1
+application.applicationfunction.group-not-checked:
+  id: 127fccfa-6be0-4b7f-a123-9aa5bea6403b
+  path: application.applicationfunction.group-not-checked
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: groupNotChecked
+  description: Elements a check could not compare, grouped by reason with what
+    would make each group checkable; every id kept.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/verify-status.ts
+        symbol: groupNotChecked
+  accepted_gaps:
+    - direction: incoming
+      predicate: assigned-to
+      other_spec_node_id: application.applicationcomponent
+      reason: A module-level function in verify-status.ts; no class owns it.
+      decided_by: agent
+      decided_at: 2026-11-20T18:10:48.601Z
+      changeset: changeset-1795198126148-0yezre21m
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.manifest-lists:
+  id: ae3d2c4e-b55b-4fad-a4c1-1f3fdb15b21d
+  path: application.applicationfunction.manifest-lists
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: manifestLists
+  description: Whether a dependency manifest (package.json, requirements.txt,
+    go.mod, ...) lists the dependency a system software element's symbol names.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/layer-verify.ts
+        symbol: manifestLists
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.rejections-applied:
+  id: 50e99874-3424-4e27-9eaf-38944fc302d3
+  path: application.applicationfunction.rejections-applied
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: rejectionsApplied
+  description: "What a verification says about the recorded rejections it used:
+    the file, how many were read, how many each layer applied, and the read
+    error when there was one."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/layer-verify.ts
+        symbol: rejectionsApplied
+  accepted_gaps:
+    - direction: incoming
+      predicate: assigned-to
+      other_spec_node_id: application.applicationcomponent
+      reason: A module-level function in layer-verify.ts; no class owns it.
+      decided_by: agent
+      decided_at: 2026-11-20T18:10:49.291Z
+      changeset: changeset-1795198126148-0yezre21m
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.registered-by-name:
+  id: eeb7d931-b27b-43ac-9062-250c726cc520
+  path: application.applicationfunction.registered-by-name
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: registeredByName
+  description: The code file that may register a planned service or operation by a
+    name string (a call argument or a name property), with no declaration of
+    that name for extraction to stage.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/build-evidence.ts
+        symbol: registeredByName
+  accepted_gaps:
+    - direction: outgoing
+      predicate: accesses
+      other_spec_node_id: application.dataobject
+      reason: "Reads file text, not model elements or layers: it takes a planned
+        element's name and source reference only."
+      decided_by: agent
+      decided_at: 2026-11-20T18:10:50.195Z
+      changeset: changeset-1795198126148-0yezre21m
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.source-candidates:
+  id: 09c1c5e4-f00c-4ec5-ab91-d5e3b04a4c27
+  path: application.applicationfunction.source-candidates
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sourceCandidates
+  description: "The build's files that may hold a planned add's code, best first:
+    a file that names it, a file named after it, files carrying the words of its
+    name."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/build-evidence.ts
+        symbol: sourceCandidates
+  accepted_gaps:
+    - direction: outgoing
+      predicate: accesses
+      other_spec_node_id: application.dataobject
+      reason: "Reads file text, not model elements or layers: it takes a planned
+        element's name only."
+      decided_by: agent
+      decided_at: 2026-11-20T18:10:50.998Z
+      changeset: changeset-1795198126148-0yezre21m
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.read-build-files:
+  id: 345bf8c4-25db-4587-8a0e-ad6cb014bb1c
+  path: application.applicationfunction.read-build-files
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readBuildFiles
+  description: The text of the files the build changed since a ref and of the
+    planned elements' own files, with a note naming any file that was not
+    searched.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/build-evidence.ts
+        symbol: readBuildFiles
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.adopt-confirmed-references:
+  id: 44b36155-ca14-4dc8-a4dd-6355d1114372
+  path: application.applicationfunction.adopt-confirmed-references
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: adoptConfirmedReferences
+  description: Stage onto the plan the source references the agent confirmed in
+    the code for planned elements with no as-built match, as root-relative file
+    paths with provenance manual.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/source-reference-adoption.ts
+        symbol: adoptConfirmedReferences
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.page-layer-report:
+  id: 8b486b3a-a156-432b-a9ff-cfdc8f67e6d3
+  path: application.applicationfunction.page-layer-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: pageLayerReport
+  description: A layer's report with every list a page of it; status, coverage and
+    summary stay over the whole layer.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-verify.ts
+        symbol: pageLayerReport
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.adoption-result:
+  id: c089a063-612d-4f6e-a6a1-b9d3b699b601
+  path: application.applicationfunction.adoption-result
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: adoptionResult
+  description: "changeset_adopt_source_references' result: counts over everything,
+    lists in full up to limit, every item past it still named by id or grouped
+    by reason."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-adopt-source-references.ts
+        symbol: adoptionResult
+  metadata:
+    created_at: 2026-11-20T18:09:28.172Z
+    updated_at: 2026-11-20T18:09:28.172Z
+    version: 1
+application.applicationfunction.paged-lists-list:
+  id: 3185a501-9032-445c-9058-2d2081adbc4c
+  path: application.applicationfunction.paged-lists-list
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: PagedLists list
+  description: The page of one list, recording its true length in the result's page totals.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/list-page.ts
+        symbol: PagedLists.list
+  metadata:
+    created_at: 2026-11-20T18:09:54.574Z
+    updated_at: 2026-11-20T18:09:54.574Z
+    version: 1
+application.applicationfunction.derive-fills:
+  id: 7d1894f0-2b55-41b9-8101-9e12d69eff80
+  path: application.applicationfunction.derive-fills
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deriveFills
+  description: Derive values for the required attributes the model's elements
+    leave empty, only where the element itself gives them; returns the fills and
+    what is still empty.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-fills.ts
+        symbol: deriveFills
+  metadata:
+    created_at: 2026-11-20T18:10:42.341Z
+    updated_at: 2026-11-20T18:10:42.341Z
+    version: 1
+application.applicationfunction.stage-fills:
+  id: 96347f4c-f8fb-49f6-aeed-30a5d89b3136
+  path: application.applicationfunction.stage-fills
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: stageFills
+  description: Stage the derived values in a new plan changeset,
+    upgrade-fills-<spec version>, one update per element; never writes the base
+    model.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-fills.ts
+        symbol: stageFills
+  metadata:
+    created_at: 2026-11-20T18:10:42.350Z
+    updated_at: 2026-11-20T18:10:42.350Z
+    version: 1
+application.applicationfunction.fills-staged-earlier:
+  id: 08976ae0-829e-4a1e-abd2-a6180c4b5d00
+  path: application.applicationfunction.fills-staged-earlier
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: fillsStagedEarlier
+  description: The values unlanded upgrade-fills changesets already stage, so a
+    later run does not stage them again.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-fills.ts
+        symbol: fillsStagedEarlier
+  metadata:
+    created_at: 2026-11-20T18:10:42.350Z
+    updated_at: 2026-11-20T18:10:42.350Z
+    version: 1
+application.applicationfunction.rehearse-model-upgrade:
+  id: 16c83269-60c0-4e1d-b03c-a03a029e689b
+  path: application.applicationfunction.rehearse-model-upgrade
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: rehearseModelUpgrade
+  description: Run the model upgrade on a temporary copy of
+    documentation-robotics/ and report the files it wrote and what it returned;
+    the project is not written.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-rehearsal.ts
+        symbol: rehearseModelUpgrade
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.scan-outside-model:
+  id: 2a869482-da08-4bf0-a2cd-d836df940434
+  path: application.applicationfunction.scan-outside-model
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: scanOutsideModel
+  description: "What an upgrade would touch outside the model, apart from
+    integrations: spec reference, reports, .gitignore and git's index,
+    .prettierignore, commit hook notes. Reads only."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-outside-model.ts
+        symbol: scanOutsideModel
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.outside-model-lines:
+  id: ff48b877-fb60-48e9-8418-4ba91a07684b
+  path: application.applicationfunction.outside-model-lines
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: outsideModelLines
+  description: The outside-the-model plan as terminal lines, one group per kind of
+    file, shortened lists with their totals.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-outside-model.ts
+        symbol: outsideModelLines
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.commit-hook-notes:
+  id: 83c2c7e6-40a9-4cbc-af98-fcf7d72c1bba
+  path: application.applicationfunction.commit-hook-notes
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: commitHookNotes
+  description: "Notes about pre-commit hooks that would get in the way of
+    committing dr's files: a prettier hook that still receives the DR folder, a
+    large-file hook that would refuse a file."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/commit-hooks.ts
+        symbol: commitHookNotes
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.plan-layer-files:
+  id: 4442990b-70b7-4b78-b572-966c4e7e532f
+  path: application.applicationfunction.plan-layer-files
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: planLayerFiles
+  description: "What a layer save does to the YAML files already in its folder:
+    case variants of wanted names to rename first, stale files to remove after."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model.ts
+        symbol: planLayerFiles
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.same-yaml-data:
+  id: 09877381-a9df-4dc4-b607-aea04e360478
+  path: application.applicationfunction.same-yaml-data
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sameYamlData
+  description: Whether two YAML texts hold the same data whatever their layout;
+    key order is not data, list order is.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model.ts
+        symbol: sameYamlData
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.base-integration-manager-plan-upgrade:
+  id: 58793e8a-af9c-47fd-bccc-0fc6b4258f44
+  path: application.applicationfunction.base-integration-manager-plan-upgrade
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: BaseIntegrationManager planUpgrade
+  description: What an integration upgrade would add, update, overwrite or remove,
+    the edited files it would keep, and the leftovers of older layouts. Changes
+    nothing.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/base-manager.ts
+        symbol: BaseIntegrationManager.planUpgrade
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.base-integration-manager-find-stale-entries:
+  id: 3dba90cc-e740-4de1-bea5-33ac30d56c37
+  path: application.applicationfunction.base-integration-manager-find-stale-entries
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: BaseIntegrationManager findStaleEntries
+  description: "Leftovers of older integration layouts: entries a released dr
+    installed whose contents are a version it shipped (stale), and entries with
+    such a name but other contents (changed, removed only when named)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/base-manager.ts
+        symbol: BaseIntegrationManager.findStaleEntries
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.base-integration-manager-remove-stale-entries:
+  id: b8db47c7-dd57-4678-8555-194bf5100acb
+  path: application.applicationfunction.base-integration-manager-remove-stale-entries
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: BaseIntegrationManager removeStaleEntries
+  description: Remove the leftovers the caller names, one path each; a path that
+    is not a leftover now is skipped.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/base-manager.ts
+        symbol: BaseIntegrationManager.removeStaleEntries
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.spec-reference-standing:
+  id: ff543a3c-6151-4ac0-a6d5-349e612e2616
+  path: application.applicationfunction.spec-reference-standing
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: specReferenceStanding
+  description: "How the spec reference (.dr/spec) stands in a checkout: installed,
+    missing or stale."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/spec-installer.ts
+        symbol: specReferenceStanding
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.spec-reference-notice:
+  id: 2617e684-f8c2-4ee6-8993-6026ac14f7ec
+  path: application.applicationfunction.spec-reference-notice
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: specReferenceNotice
+  description: One line when the spec reference isn't the one this dr carries,
+    saying validation is unaffected and how to install it.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/spec-installer.ts
+        symbol: specReferenceNotice
+  metadata:
+    created_at: 2026-11-20T18:10:42.351Z
+    updated_at: 2026-11-20T18:10:42.351Z
+    version: 1
+application.applicationfunction.ensure-prettier-ignores-dr-files:
+  id: d0fafb71-a31a-4df2-9d26-103a4a3e0183
+  path: application.applicationfunction.ensure-prettier-ignores-dr-files
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: ensurePrettierIgnoresDrFiles
+  description: List the folder dr writes (documentation-robotics/) in
+    `.prettierignore` when the project uses prettier, in place of the changesets
+    line dr 0.6.0 wrote.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/prettier-ignore.ts
+        symbol: ensurePrettierIgnoresDrFiles
+  metadata:
+    created_at: 2026-11-20T18:13:28.348Z
+    updated_at: 2026-11-20T18:13:28.348Z
+    version: 1
+application.applicationfunction.shipped-versions:
+  id: 59f72a71-e34c-4888-a4d4-c14685b5db23
+  path: application.applicationfunction.shipped-versions
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: shippedVersions
+  description: The versions dr shipped of one entry of an integration folder, from
+    the table generated from git history; undefined when dr never installed that
+    name there.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/shipped-entries.ts
+        symbol: shippedVersions
+  metadata:
+    created_at: 2026-11-20T18:39:26.256Z
+    updated_at: 2026-11-20T18:39:26.256Z
+    version: 1
+application.applicationfunction.prettier-hook:
+  id: d8164515-6e35-4a7b-8588-88ecf601bb90
+  path: application.applicationfunction.prettier-hook
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: prettierHook
+  description: The project's prettier pre-commit hook and whether pre-commit keeps
+    the files dr writes away from it.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/commit-hooks.ts
+        symbol: prettierHook
+  metadata:
+    created_at: 2026-11-20T18:39:26.256Z
+    updated_at: 2026-11-20T18:39:26.256Z
+    version: 1
+application.applicationfunction.large-file-hook:
+  id: f7bc5467-8ffe-413e-b2e0-0a3b8c25c1fe
+  path: application.applicationfunction.large-file-hook
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: largeFileHook
+  description: The project's check-added-large-files hook and the files dr wrote
+    that a commit could add and the hook would refuse.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/commit-hooks.ts
+        symbol: largeFileHook
+  metadata:
+    created_at: 2026-11-20T18:39:26.256Z
+    updated_at: 2026-11-20T18:39:26.256Z
+    version: 1
+application.applicationfunction.resolve-checkout:
+  id: 86bbc820-d0a0-4d97-916c-701bddc793b5
+  path: application.applicationfunction.resolve-checkout
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveCheckout
+  description: "A path (rootPath, an MCP root, a working directory), a project
+    name or a CheckoutRef, to {project, checkout}: the checkout whose real path
+    contains the path, the project whose repository owns it."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: ProjectRegistry.resolveCheckout
+  metadata:
+    created_at: 2026-11-21T17:14:10.903Z
+    updated_at: 2026-11-21T17:14:10.903Z
+    version: 1
+application.applicationfunction.discover-checkouts:
+  id: c52d27cd-c754-476b-96a4-c85602e4620e
+  path: application.applicationfunction.discover-checkouts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: discoverCheckouts
+  description: A project's checkouts, from git worktree list --porcelain run in
+    its repository and cached until <commonDir>/worktrees changes. A linked
+    checkout's key is the name git gives the worktree (maintainer answer,
+    2026-11-21). A worktree whose folder is gone is reported missing or
+    prunable.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: listCheckouts
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.derive-project-name:
+  id: 7f10aa83-19b2-490f-b2dc-48b8a536be56
+  path: application.applicationfunction.derive-project-name
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deriveProjectName
+  description: "The name a new project gets: the farm entry's name when it has
+    one, else the main checkout's folder name in kebab case; a name another
+    repository already holds is refused with the call that names it explicitly,
+    never suffixed."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: deriveProjectName
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.register-project:
+  id: 8a62af3f-5bbe-4a0e-b62c-5d9c513961f0
+  path: application.applicationfunction.register-project
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: registerProject
+  description: Adds a project to the farm in use through the one code path every
+    interface uses. A path an MCP call or dr visualize names that no registered
+    project owns is registered automatically (maintainer answer, 2026-11-21).
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: ProjectRegistry.registerProject
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.list-projects:
+  id: a51a424a-35e9-4253-9292-26ebecb4d450
+  path: application.applicationfunction.list-projects
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: listProjects
+  description: The ProjectListEntry for every registered project, in name order,
+    with its checkouts.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: ProjectRegistry.listProjects
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.acquire-checkout-context:
+  id: f7ca5d48-c82f-41d5-b3c2-ee03d2431dda
+  path: application.applicationfunction.acquire-checkout-context
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: acquireCheckoutContext
+  description: The CheckoutContext for a CheckoutRef, loading its model lazily;
+    refuses a checkout the registry does not list.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: CheckoutContextPool.acquire
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.evict-checkout-contexts:
+  id: 014dba1d-2ee7-4b06-bb99-143330c40ca7
+  path: application.applicationfunction.evict-checkout-contexts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: evictCheckoutContexts
+  description: "Closes idle contexts and the least recently used one past
+    maxLoaded: stops the watcher, drops the model, keeps nothing on disk."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: CheckoutContextPool.evict
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.close-checkout-context:
+  id: 7c3e9b0a-a416-42a0-8dbe-41d3fba1fbba
+  path: application.applicationfunction.close-checkout-context
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: closeCheckoutContext
+  description: "Closes a removed checkout's context: ends its DrBot turns, tells
+    its subscribers the checkout is gone, drops it from the pool."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/checkout-context-pool.ts
+        symbol: CheckoutContextPool.close
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationfunction.launch-dr-bot-turn:
+  id: 8dd82476-0aa5-4c4b-bbe9-31c940edb251
+  path: application.applicationfunction.launch-dr-bot-turn
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: launchDrBotTurn
+  description: Starts or resumes one DrBot turn for a DrBotSessionKey in its checkout.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/dr-bot-launcher.ts
+        symbol: DrBotLauncher.startTurn
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.ensure-central-server:
+  id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+  path: application.applicationfunction.ensure-central-server
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: ensureCentralServer
+  description: Finds the running central process for the farm in use from its
+    server record, or starts one detached (dr serve) under the starting marker.
+    It replaces an older process only when no browser tab, MCP session or DrBot
+    turn is connected; otherwise it returns the older one with a notice.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/ensure-central-server.ts
+        symbol: ensureCentralServer
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.sweep-per-project-viewers:
+  id: d98cfff7-8790-413d-b6c8-1fce1791f184
+  path: application.applicationfunction.sweep-per-project-viewers
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sweepPerProjectViewers
+  description: At start-up, finds per-project viewers from the legacy records and
+    a process scan, stops those review_open started that have no connected tab,
+    and reports the rest with their pids for dr visualize --stop.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/legacy-viewer-sweep.ts
+        symbol: sweepPerProjectViewers
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.subscribe-checkout-feed:
+  id: ef36d7a3-cd17-41bf-9f82-3e41d93a63fe
+  path: application.applicationfunction.subscribe-checkout-feed
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: subscribeCheckoutFeed
+  description: Adds or removes a websocket's subscription to a checkout's events
+    and acquires the checkout's context for it.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.handleFeedSubscription
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationfunction.migrate-farm-manifest:
+  id: a015c690-5c98-4c3c-a65c-6e0ad4849857
+  path: application.applicationfunction.migrate-farm-manifest
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: migrateFarmManifest
+  description: dr-farm-v1 to dr-farm-v2. It groups entries by repository (git
+    common dir); the entry whose source is the main checkout names the project,
+    else the main checkout's folder name does. The other entries' paths become
+    checkouts, and their names are dropped, never kept as aliases (maintainer
+    answer, 2026-11-21). branch is dropped.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/farm-migration.ts
+        symbol: migrateFarmManifest
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationfunction.publish-checkout-event:
+  id: e35c24e2-8ff8-4d5d-b44d-007c6fb6ff6a
+  path: application.applicationfunction.publish-checkout-event
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: publishCheckoutEvent
+  description: Sends a model, changeset, annotation or chat event to the
+    websockets subscribed to this checkout only, stamped with its CheckoutRef.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.broadcastMessage
+  metadata:
+    created_at: 2026-11-21T17:16:36.425Z
+    updated_at: 2026-11-21T17:16:36.425Z
+    version: 1
+application.applicationfunction.resolve-farm:
+  id: 33eff7f6-1b23-46eb-bbee-dcef3159b449
+  path: application.applicationfunction.resolve-farm
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveFarm
+  description: "The farm in use, in this order: DR_FARM_PATH, else a farm root
+    found upward from the working directory (findFarmRoot), else the user farm
+    (~/.config/dr/farm.yaml, created empty on first use). The CLI launched in a
+    folder farm uses that farm's definition, and so does any central process it
+    starts."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: resolveFarm
+  metadata:
+    created_at: 2026-11-21T17:43:54.697Z
+    updated_at: 2026-11-21T17:43:54.697Z
     version: 1

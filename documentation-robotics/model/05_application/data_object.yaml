@@ -205,3 +205,22 @@ application.dataobject.validation-result:
     created_at: 2026-11-20T15:04:48.805Z
     updated_at: 2026-11-20T15:04:48.805Z
     version: 1
+application.dataobject.dependency-graph:
+  id: 7055418d-f375-4612-b8d0-a0c121671239
+  path: application.dataobject.dependency-graph
+  spec_node_id: application.dataobject
+  type: dataobject
+  layer_id: application
+  name: DependencyGraph
+  description: "The model's relationships as dependencies: each edge filed under
+    the element that depends and under the element depended on, by its
+    predicate."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-trace.ts
+        symbol: DependencyGraph
+  metadata:
+    created_at: 2026-11-20T16:35:55.332Z
+    updated_at: 2026-11-20T16:35:55.332Z
+    version: 1

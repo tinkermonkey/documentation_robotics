@@ -1,9 +1,9 @@
 version: 0.1.0
 schema: documentation-robotics-v1
-cli_version: 0.6.0
+cli_version: 0.7.1
 spec_version: 0.14.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-20T15:38:19.286Z
+updated: 2026-11-24T13:51:12.067Z
 project:
   name: dr-codebase
   description: ""
@@ -16,12 +16,12 @@ layers:
     path: documentation-robotics/model/01_motivation/
     enabled: true
     elements:
-      assessment: 3
-      constraint: 1
-      goal: 2
-      outcome: 5
-      principle: 5
-      requirement: 12
+      assessment: 6
+      constraint: 2
+      goal: 3
+      outcome: 6
+      principle: 10
+      requirement: 31
   business:
     order: 2
     name: Business
@@ -33,11 +33,12 @@ layers:
     path: documentation-robotics/model/03_product/
     enabled: true
     elements:
-      feature: 30
+      feature: 43
       persona: 3
-      softwarecapability: 7
-      userworkflow: 13
-      workflowstep: 46
+      softwarecapability: 8
+      userworkflow: 15
+      workflowstep: 52
+      milestone: 1
   security:
     order: 4
     name: Security
@@ -49,36 +50,48 @@ layers:
     path: documentation-robotics/model/05_application/
     enabled: true
     elements:
-      dataobject: 12
-      applicationservice: 105
-      applicationfunction: 1236
-      applicationcomponent: 101
+      applicationcomponent: 107
+      applicationfunction: 1346
+      applicationservice: 112
+      dataobject: 13
+      applicationevent: 1
+      message: 1
+      applicationinterface: 2
   technology:
     order: 6
     name: Technology
     path: documentation-robotics/model/06_technology/
     enabled: true
+    elements:
+      device: 1
+      systemsoftware: 6
+      technologyservice: 2
+      technologyinterface: 2
+      artifact: 3
   api:
     order: 7
     name: Api
     path: documentation-robotics/model/07_api/
     enabled: true
     elements:
-      operation: 25
+      operation: 28
   data-model:
     order: 8
     name: Data model
     path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
-      schemadefinition: 73
-      schemacomposition: 34
-      objectschema: 778
+      objectschema: 843
+      schemacomposition: 36
+      schemadefinition: 77
   data-store:
     order: 9
     name: Data store
     path: documentation-robotics/model/09_data-store/
     enabled: true
+    elements:
+      database: 3
+      collection: 9
   ux:
     order: 10
     name: Ux
@@ -94,11 +107,21 @@ layers:
     name: Apm
     path: documentation-robotics/model/12_apm/
     enabled: true
+    elements:
+      resource: 1
+      instrumentationscope: 1
+      traceconfiguration: 1
+      exporterconfig: 1
+      span: 4
   testing:
     order: 13
     name: Testing
     path: documentation-robotics/model/13_testing/
     enabled: true
+    elements:
+      testcoveragemodel: 1
+      testcoveragetarget: 9
+      testcasesketch: 16
 changeset_history:
   - name: bootstrap-as-built
     committed_at: 2026-11-09T22:00:53.800Z
@@ -126,6 +149,39 @@ changeset_history:
     action: committed
   - name: bootstrap-code-layers
     committed_at: 2026-11-20T15:38:19.277Z
+    action: committed
+  - name: dependable-model-reads
+    committed_at: 2026-11-24T13:41:51.694Z
+    action: committed
+  - name: brief-sections-fit-one-response
+    committed_at: 2026-11-24T13:42:09.530Z
+    action: committed
+  - name: viewer-lifecycle
+    committed_at: 2026-11-24T13:42:17.639Z
+    action: committed
+  - name: drbot-dependable-permissions
+    committed_at: 2026-11-24T13:42:39.201Z
+    action: committed
+  - name: batch-writes-and-id-derivation
+    committed_at: 2026-11-24T13:42:49.205Z
+    action: committed
+  - name: drift-warns-landing-always-confirmable
+    committed_at: 2026-11-24T13:42:55.912Z
+    action: committed
+  - name: project-status-names-drift
+    committed_at: 2026-11-24T13:45:03.473Z
+    action: committed
+  - name: extraction-triage-by-rule
+    committed_at: 2026-11-24T13:46:40.923Z
+    action: committed
+  - name: honest-verification
+    committed_at: 2026-11-24T13:47:33.122Z
+    action: committed
+  - name: upgrade-says-what-it-touches
+    committed_at: 2026-11-24T13:49:05.062Z
+    action: committed
+  - name: user-level-dr
+    committed_at: 2026-11-24T13:51:12.067Z
     action: committed
 reconciled:
   changeset: bootstrap-code-layers
