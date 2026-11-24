@@ -1,0 +1,21 @@
+apm.resource.dr-cli-resource:
+  id: 7dbc306a-a534-4c72-a22f-ee15cdc77c17
+  path: apm.resource.dr-cli-resource
+  spec_node_id: apm.resource
+  type: resource
+  layer_id: apm
+  name: dr-cli resource
+  description: "The OpenTelemetry resource the dr CLI builds once per process:
+    service.name dr-cli (DR_OTLP_SERVICE_NAME or OTEL_SERVICE_NAME override it)
+    and service.version. In the central process it describes the one per-user
+    server."
+  attributes:
+    droppedAttributesCount: 0
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/telemetry/index.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.223Z
+    updated_at: 2026-11-21T17:21:34.223Z
+    version: 1

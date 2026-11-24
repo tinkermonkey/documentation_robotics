@@ -9,8 +9,8 @@ description: "Make the MCP write tools cheap for large batches and make ids
   1153, 1212, 1184, 1225 with tests, and the response size of a 300-element
   model_add and a 500-relationship relationship_add measured before and after."
 created: 2026-11-20T16:35:54.613Z
-modified: 2026-11-20T17:38:38.570Z
-status: staged
+modified: 2026-11-24T13:42:49.200Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

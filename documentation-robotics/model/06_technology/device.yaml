@@ -1,0 +1,15 @@
+technology.device.developer-workstation:
+  id: 43d89e17-da3d-41e6-84ca-5b8d8ceaa081
+  path: technology.device.developer-workstation
+  spec_node_id: technology.device
+  type: device
+  layer_id: technology
+  name: Developer workstation
+  description: "The user's own machine: runs one central DR process per user, the
+    coding agents, and the checkouts it serves."
+  attributes:
+    deviceType: workstation
+  metadata:
+    created_at: 2026-11-21T17:14:10.907Z
+    updated_at: 2026-11-21T17:14:10.907Z
+    version: 1

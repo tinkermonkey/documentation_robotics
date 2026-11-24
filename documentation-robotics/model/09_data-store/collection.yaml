@@ -1,0 +1,135 @@
+data-store.collection.user-farm-manifest:
+  id: 37a01071-2ff0-4f9e-9185-7ddffd525529
+  path: data-store.collection.user-farm-manifest
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: User farm manifest
+  description: "farm.yaml (dr-farm-v2), the project registry of the farm in use:
+    the folder at DR_FARM_PATH, else a farm root found upward from the working
+    directory, else the user farm at $XDG_CONFIG_HOME/dr/farm.yaml
+    (~/.config/dr/farm.yaml)."
+  metadata:
+    created_at: 2026-11-21T17:14:10.901Z
+    updated_at: 2026-11-21T17:14:10.901Z
+    version: 1
+data-store.collection.server-record:
+  id: 59ed0dfb-e609-475e-8679-201bd3346c41
+  path: data-store.collection.server-record
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Server record
+  description: "servers/<farm-hash>.json and <farm-hash>.token (0600) in the user
+    state directory: one central process per farm, so normally just the user
+    farm's."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server-record.ts
+        symbol: serverRecordPath
+  metadata:
+    created_at: 2026-11-21T17:14:10.902Z
+    updated_at: 2026-11-21T17:14:10.902Z
+    version: 1
+data-store.collection.legacy-viewer-records:
+  id: 5c1ac8d3-8618-47f5-8850-2605f20a8253
+  path: data-store.collection.legacy-viewer-records
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Legacy viewer records
+  description: viewers/<hash>.<pid>.json from per-project viewers (CLI 0.7.0 and
+    earlier); read only to find and stop old viewers, then swept.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: viewerRecordDir
+  metadata:
+    created_at: 2026-11-21T17:14:10.902Z
+    updated_at: 2026-11-21T17:14:10.902Z
+    version: 1
+data-store.collection.active-changeset-marker:
+  id: bdf3766d-d377-4a9c-9f66-5044584fe78b
+  path: data-store.collection.active-changeset-marker
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Active changeset marker
+  description: ".dr/active-changeset in a checkout: per checkout."
+  metadata:
+    created_at: 2026-11-21T17:14:10.902Z
+    updated_at: 2026-11-21T17:14:10.902Z
+    version: 1
+data-store.collection.analyzer-index:
+  id: 6e445a85-3a82-4b35-8cb0-8240a4dc6e3e
+  path: data-store.collection.analyzer-index
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Analyzer index
+  description: ".dr/analyzers/<analyzer>/ in a checkout (index,
+    index-worktree.json snapshot, tier1.json): per checkout."
+  metadata:
+    created_at: 2026-11-21T17:14:10.902Z
+    updated_at: 2026-11-21T17:14:10.902Z
+    version: 1
+data-store.collection.changesets:
+  id: 1ec26453-f04e-4489-8443-79000f2c4178
+  path: data-store.collection.changesets
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Changesets
+  description: "documentation-robotics/changesets/ in a checkout: travels with the
+    branch, per checkout."
+  metadata:
+    created_at: 2026-11-21T17:14:10.902Z
+    updated_at: 2026-11-21T17:14:10.902Z
+    version: 1
+data-store.collection.annotations:
+  id: 24caa641-d7d7-422b-bdbf-3721d21c1581
+  path: data-store.collection.annotations
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Annotations
+  description: "documentation-robotics/annotations/ in a checkout: travels with
+    the branch, per checkout."
+  metadata:
+    created_at: 2026-11-21T17:14:10.902Z
+    updated_at: 2026-11-21T17:14:10.902Z
+    version: 1
+data-store.collection.farm-sync-state:
+  id: c97f9e40-f7ed-4445-a782-42f605a6a7cd
+  path: data-store.collection.farm-sync-state
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Farm sync state
+  description: ".farm-sync.yaml per farm project: last synced commit and
+    ambiguities (FarmSyncState). Per project, kept for the main checkout."
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1
+data-store.collection.server-starting-marker:
+  id: f1519dc5-2331-4b7b-a26e-6f95c4155b56
+  path: data-store.collection.server-starting-marker
+  spec_node_id: data-store.collection
+  type: collection
+  layer_id: data-store
+  name: Server starting marker
+  description: The 'a viewer is starting' marker (viewers/<hash>.starting today);
+    the central process uses one marker so concurrent bridges wait for one
+    start.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/ensure-central-server.ts
+        symbol: serverStartingPath
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1

@@ -12,8 +12,8 @@ description: "Viewers that review_open starts no longer pile up or get lost
   gone. Done: with two viewers for one project and a third that died uncleanly,
   --list shows both live ones and review_open reuses one."
 created: 2026-11-20T16:31:02.777Z
-modified: 2026-11-20T18:16:35.651Z
-status: staged
+modified: 2026-11-24T13:42:17.634Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

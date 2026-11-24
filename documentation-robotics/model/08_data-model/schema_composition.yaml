@@ -239,8 +239,7 @@ data-model.schemacomposition.analyzer-status:
   type: schemacomposition
   layer_id: data-model
   name: AnalyzerStatus
-  description:
-    Current status of an analyzer for a project Discriminated union on
+  description: Current status of an analyzer for a project Discriminated union on
     `indexed` field to enforce index_meta presence when indexed
   source_reference:
     provenance: extracted
@@ -258,8 +257,7 @@ data-model.schemacomposition.verify-changeset-context:
   type: schemacomposition
   layer_id: data-model
   name: VerifyChangesetContext
-  description:
-    Changeset context information in verify report Discriminated union
+  description: Changeset context information in verify report Discriminated union
     to prevent impossible states like active_changeset
   source_reference:
     provenance: extracted
@@ -395,8 +393,7 @@ data-model.schemacomposition.earlier-card:
   type: schemacomposition
   layer_id: data-model
   name: EarlierCard
-  description:
-    A card of an earlier run, as the card was (older records kept only
+  description: A card of an earlier run, as the card was (older records kept only
     the identifying fields).
   source_reference:
     provenance: extracted
@@ -568,4 +565,40 @@ data-model.schemacomposition.viewer-probe:
   metadata:
     created_at: 2026-11-20T15:07:42.637Z
     updated_at: 2026-11-20T15:07:42.637Z
+    version: 1
+data-model.schemacomposition.model-view-name:
+  id: 0c4b909f-d053-4a0e-b129-75995042ed6d
+  path: data-model.schemacomposition.model-view-name
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ModelViewName
+  description: "Which model a result describes: the base model, or a changeset's
+    projection with the changeset's id and name."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: ModelViewName
+  metadata:
+    created_at: 2026-11-20T16:35:55.332Z
+    updated_at: 2026-11-20T16:35:55.332Z
+    version: 1
+data-model.schemacomposition.server-section:
+  id: a41d79ca-0f5e-47d7-a2c8-b52673af112b
+  path: data-model.schemacomposition.server-section
+  spec_node_id: data-model.schemacomposition
+  type: schemacomposition
+  layer_id: data-model
+  name: ServerSection
+  description: "project_status's server section: current, stale (with the
+    installed CLI and a note) or unknown."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: ServerSection
+  metadata:
+    created_at: 2026-11-20T16:39:29.299Z
+    updated_at: 2026-11-20T16:39:29.299Z
     version: 1

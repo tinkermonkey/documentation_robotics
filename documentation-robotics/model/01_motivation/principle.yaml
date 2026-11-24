@@ -5,13 +5,11 @@ motivation.principle.commit-stays-with-the-human:
   type: principle
   layer_id: motivation
   name: Commit stays with the human
-  description:
-    The MCP surface stages, projects and explains; landing a change in
+  description: The MCP surface stages, projects and explains; landing a change in
     the base model is a human decision.
   attributes:
     category: development
-    documentation:
-      The MCP surface stages, projects and explains; landing a change
+    documentation: The MCP surface stages, projects and explains; landing a change
       in the base model is a human decision.
   metadata:
     created_at: 2026-11-09T21:54:56.503Z
@@ -24,8 +22,7 @@ motivation.principle.base-model-is-as-built:
   type: principle
   layer_id: motivation
   name: Base model is as-built
-  description:
-    A change-modeling changeset stays staged while its code is written
+  description: A change-modeling changeset stays staged while its code is written
     and is committed in the same pull request; main's model never claims what
     isn't built.
   attributes:
@@ -48,8 +45,7 @@ motivation.principle.every-model-change-is-a-changeset:
     model and meet at verification; neither writes the base model directly.
   attributes:
     category: architecture
-    documentation:
-      Extraction and change modeling both write changesets against the
+    documentation: Extraction and change modeling both write changesets against the
       model and meet at verification; neither writes the base model directly.
   metadata:
     created_at: 2026-11-09T21:54:56.560Z
@@ -67,8 +63,7 @@ motivation.principle.the-mcp-server-is-the-gateway-to-the-model:
     CLI is for scripts, CI and people who prefer it.
   attributes:
     category: development
-    documentation:
-      A developer working with a coding agent shouldn't have to switch
+    documentation: A developer working with a coding agent shouldn't have to switch
       to a terminal to keep the model in step with their work. Each CLI workflow
       has an MCP route built on the same core operation, so the two never
       disagree.
@@ -83,14 +78,12 @@ motivation.principle.a-file-is-a-source-link-not-an-element:
   type: principle
   layer_id: motivation
   name: A file is a source link, not an element
-  description:
-    A source file is where an element was found and nothing more. Only
+  description: A source file is where an element was found and nothing more. Only
     what a file contains can be an element; the file itself never is, and the
     model records it only in an element's source reference.
   attributes:
     category: architecture
-    documentation:
-      "A source file is where an element was found and nothing more.
+    documentation: "A source file is where an element was found and nothing more.
       Only what a file contains can be an element; the file itself never is, and
       the model records it only in an element's source reference. Maintainer
       ruling, 2026-11-18: a file does not map to the DR schema in any way, and a
@@ -100,4 +93,87 @@ motivation.principle.a-file-is-a-source-link-not-an-element:
   metadata:
     created_at: 2026-11-18T18:04:53.544Z
     updated_at: 2026-11-18T18:04:53.544Z
+    version: 1
+motivation.principle.no-unseen-limits:
+  id: df551c78-4eb1-4572-a227-7d50779ddd76
+  path: motivation.principle.no-unseen-limits
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: No unseen limits
+  description: "A tool's answer never portrays completeness it does not have. A
+    count or size limit is a default and a target, not a hard cut-off: the
+    caller can change it and can ask for everything; anything shortened is
+    pageable or otherwise reachable and the answer says so, with the true total;
+    counts, summaries and verdicts are computed over the whole set, never over
+    the part returned. (The maintainer's rule, 2026-11-20.)"
+  attributes:
+    category: operational
+  metadata:
+    created_at: 2026-11-20T16:57:54.080Z
+    updated_at: 2026-11-20T16:57:54.080Z
+    version: 1
+motivation.principle.one-project-list-for-every-interface:
+  id: e8b53610-cbd0-4a2a-bae8-9e63cb4be812
+  path: motivation.principle.one-project-list-for-every-interface
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: One project list for every interface
+  description: User-level DR has one cohesive, deterministic list of projects. The
+    MCP server, the viewer and the CLI read the same list through the same code;
+    no interface has its own discovery or behaviour (maintainer ruling 1,
+    2026-11-21).
+  attributes:
+    category: architecture
+  metadata:
+    created_at: 2026-11-21T17:14:10.878Z
+    updated_at: 2026-11-21T17:14:10.878Z
+    version: 1
+motivation.principle.one-name-per-project-across-interfaces:
+  id: ad808a8c-3da7-4ac6-8f76-4a8d52da05b5
+  path: motivation.principle.one-name-per-project-across-interfaces
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: One name per project across interfaces
+  description: Every interface uses one deterministic set of project names
+    (maintainer ruling 2, 2026-11-21).
+  attributes:
+    category: architecture
+  metadata:
+    created_at: 2026-11-21T17:14:10.879Z
+    updated_at: 2026-11-21T17:14:10.879Z
+    version: 1
+motivation.principle.worktrees-are-a-structure-not-a-name:
+  id: 1adcf157-331c-485b-81f6-4dd16f1b0cd8
+  path: motivation.principle.worktrees-are-a-structure-not-a-name
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: Worktrees are a structure not a name
+  description: "A worktree is an organizational layer, never folded into a
+    project's name: checkouts are a first-class structure below the project in
+    DR's project data model (maintainer ruling 2, issue 1285)."
+  attributes:
+    category: architecture
+  metadata:
+    created_at: 2026-11-21T17:14:10.879Z
+    updated_at: 2026-11-21T17:14:10.879Z
+    version: 1
+motivation.principle.authenticate-every-call-then-trust:
+  id: 2e2e40ae-d843-42ce-ac2c-d6f57191504e
+  path: motivation.principle.authenticate-every-call-then-trust
+  spec_node_id: motivation.principle
+  type: principle
+  layer_id: motivation
+  name: Authenticate every call then trust
+  description: One token covers every project. Every viewer API call and every
+    MCP-over-HTTP call carries it; whatever it permits is allowed. No click
+    proofs or cookies (maintainer ruling 3).
+  attributes:
+    category: security
+  metadata:
+    created_at: 2026-11-21T17:14:10.879Z
+    updated_at: 2026-11-21T17:14:10.879Z
     version: 1

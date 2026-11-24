@@ -15,8 +15,8 @@ description: "codebase_verify and changeset_verify never report \"in step\" or
   return is a page with true totals. Done: PR 1268 merged with this plan landed
   after it."
 created: 2026-11-20T18:08:46.186Z
-modified: 2026-11-20T18:13:59.118Z
-status: staged
+modified: 2026-11-24T13:47:33.117Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

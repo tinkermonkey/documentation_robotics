@@ -43,8 +43,7 @@ data-model.objectschema.unstaged-change:
   type: objectschema
   layer_id: data-model
   name: UnstagedChange
-  description:
-    A change that was unstaged, kept so the plan as it stood before the
+  description: A change that was unstaged, kept so the plan as it stood before the
     unstage can be rebuilt (see `changesAtRevision` in changeset-graph.ts).
   attributes:
     type: object
@@ -230,7 +229,11 @@ data-model.objectschema.farm-project:
   type: objectschema
   layer_id: data-model
   name: FarmProject
-  description: Represents a project registered in a farm
+  description: "A project in the user farm (dr-farm-v2): name (the one project
+    name every interface uses, also its @name federation name), repository (the
+    main checkout's path), model (the model folder, relative to each checkout's
+    root when the repository carries it, else a detached path), remote. branch
+    is dropped: checkouts come from git, not the farm."
   attributes:
     type: object
   source_reference:
@@ -249,7 +252,9 @@ data-model.objectschema.farm-manifest-data:
   type: objectschema
   layer_id: data-model
   name: FarmManifestData
-  description: Farm manifest data structure
+  description: Farm manifest data structure, version dr-farm-v2 (projects keyed by
+    name). A dr-farm-v1 manifest is read with a notice that dr farm migrate
+    moves it.
   attributes:
     type: object
   source_reference:
@@ -439,8 +444,7 @@ data-model.objectschema.graph-model-graph-node:
   type: objectschema
   layer_id: data-model
   name: graph-model GraphNode
-  description:
-    Graph node representing a model element Replaces Element class for
+  description: Graph node representing a model element Replaces Element class for
     graph-based storage
   attributes:
     type: object
@@ -1012,8 +1016,7 @@ data-model.objectschema.committed-relationships:
   type: objectschema
   layer_id: data-model
   name: CommittedRelationships
-  description:
-    The committed relationships as recorded before the migration and as
+  description: The committed relationships as recorded before the migration and as
     rewritten by it
   attributes:
     type: object
@@ -1051,8 +1054,7 @@ data-model.objectschema.staged-relationship-rewrite-change:
   type: objectschema
   layer_id: data-model
   name: StagedRelationshipRewriteChange
-  description:
-    A staged relationship change the migration rewrote or removed from
+  description: A staged relationship change the migration rewrote or removed from
     its changeset
   attributes:
     type: object
@@ -1836,8 +1838,7 @@ data-model.objectschema.cross-edge:
   type: objectschema
   layer_id: data-model
   name: CrossEdge
-  description:
-    A `CROSS_ ` edge as CBM 0.12.1 writes it in this project (observed
+  description: A `CROSS_ ` edge as CBM 0.12.1 writes it in this project (observed
     shape, see docs/analyzers/CBM_MAPPING_INVENTORY.md, "Cross-repository
     edges")
   attributes:
@@ -2974,8 +2975,7 @@ data-model.objectschema.dropped-relationship-count:
   type: objectschema
   layer_id: data-model
   name: DroppedRelationshipCount
-  description:
-    Relationships the migration drops, counted by predicate and source
+  description: Relationships the migration drops, counted by predicate and source
     and target element type
   attributes:
     type: object
@@ -4653,8 +4653,7 @@ data-model.objectschema.version-data:
   type: objectschema
   layer_id: data-model
   name: VersionData
-  description:
-    Version file YAML schema (.dr-version, .dr-copilot-version) Tracks
+  description: Version file YAML schema (.dr-version, .dr-copilot-version) Tracks
     installation metadata and file hashes for change detection
   attributes:
     type: object
@@ -4674,8 +4673,7 @@ data-model.objectschema.file-change:
   type: objectschema
   layer_id: data-model
   name: FileChange
-  description:
-    File change detected during update operation Used to categorize and
+  description: File change detected during update operation Used to categorize and
     report changes between installed and source versions
   attributes:
     type: object
@@ -5496,8 +5494,7 @@ data-model.objectschema.qset-variant:
   type: objectschema
   layer_id: data-model
   name: QsetVariant
-  description:
-    Harness experiments that change what is sent, each a suffix of the
+  description: Harness experiments that change what is sent, each a suffix of the
     question set id.
   attributes:
     type: object
@@ -5590,8 +5587,7 @@ data-model.objectschema.answered-stage:
   type: objectschema
   layer_id: data-model
   name: AnsweredStage
-  description:
-    A stage's normalised answers (from `AskResult.answers`, or a cache
+  description: A stage's normalised answers (from `AskResult.answers`, or a cache
     entry through `normaliseEntry`).
   attributes:
     type: object
@@ -5965,8 +5961,7 @@ data-model.objectschema.tier1fill:
   type: objectschema
   layer_id: data-model
   name: Tier1Fill
-  description:
-    The `codebase_index` job's Tier-1 cache fill (section 4.4), as its
+  description: The `codebase_index` job's Tier-1 cache fill (section 4.4), as its
     job record and the warming views show it.
   attributes:
     type: object
@@ -8286,8 +8281,7 @@ data-model.objectschema.endpoint-candidate:
   type: objectschema
   layer_id: data-model
   name: EndpointCandidate
-  description:
-    An API endpoint candidate discovered from code analysis Maps to `dr
+  description: An API endpoint candidate discovered from code analysis Maps to `dr
     add api operation` command arguments
   attributes:
     type: object
@@ -8346,8 +8340,7 @@ data-model.objectschema.impacted-symbol:
   type: objectschema
   layer_id: data-model
   name: ImpactedSymbol
-  description:
-    A symbol that calls changed code, though its own code didn't change
+  description: A symbol that calls changed code, though its own code didn't change
     (CBM `detect_changes` impacted).
   attributes:
     type: object
@@ -8443,8 +8436,7 @@ data-model.objectschema.analyzer-node-mapping:
   type: objectschema
   layer_id: data-model
   name: AnalyzerNodeMapping
-  description:
-    Mapping for a single CBM node label to DR element type Matches the
+  description: Mapping for a single CBM node label to DR element type Matches the
     structure in cbm.json nodes_by_label
   attributes:
     type: object
@@ -8685,25 +8677,6 @@ data-model.objectschema.exit-info:
     created_at: 2026-11-20T15:06:23.131Z
     updated_at: 2026-11-20T15:06:23.131Z
     version: 1
-data-model.objectschema.started-viewer:
-  id: 11598687-d4f4-4ed7-a597-2f5ece17e3f6
-  path: data-model.objectschema.started-viewer
-  spec_node_id: data-model.objectschema
-  type: objectschema
-  layer_id: data-model
-  name: StartedViewer
-  description: A viewer process review_open started.
-  attributes:
-    type: object
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: StartedViewer
-  metadata:
-    created_at: 2026-11-20T15:06:23.131Z
-    updated_at: 2026-11-20T15:06:23.131Z
-    version: 1
 data-model.objectschema.review-open-deps:
   id: 407eb9a0-da59-42b3-bd88-fb57f03be799
   path: data-model.objectschema.review-open-deps
@@ -8718,25 +8691,6 @@ data-model.objectschema.review-open-deps:
     locations:
       - file: cli/src/mcp/tools/review-open.ts
         symbol: ReviewOpenDeps
-  metadata:
-    created_at: 2026-11-20T15:06:23.131Z
-    updated_at: 2026-11-20T15:06:23.131Z
-    version: 1
-data-model.objectschema.pending-start:
-  id: 88334b3a-c7a0-4e8b-b9c7-41977bda120f
-  path: data-model.objectschema.pending-start
-  spec_node_id: data-model.objectschema
-  type: objectschema
-  layer_id: data-model
-  name: PendingStart
-  description: A viewer that is starting
-  attributes:
-    type: object
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/mcp/tools/review-open.ts
-        symbol: PendingStart
   metadata:
     created_at: 2026-11-20T15:06:23.131Z
     updated_at: 2026-11-20T15:06:23.131Z
@@ -9160,7 +9114,9 @@ data-model.objectschema.viewer-record:
   type: objectschema
   layer_id: data-model
   name: ViewerRecord
-  description: A running `dr visualize` for one project.
+  description: A per-project `dr visualize` record from CLI 0.7.0 and earlier.
+    Read only by the start-up sweep that stops old viewers; the central process
+    writes a ServerRecord instead.
   attributes:
     type: object
   source_reference:
@@ -9521,8 +9477,7 @@ data-model.objectschema.tool-input-schema:
   type: objectschema
   layer_id: data-model
   name: ToolInputSchema
-  description:
-    Tool input schema definition Defines the structure of inputs for a
+  description: Tool input schema definition Defines the structure of inputs for a
     Claude AI tool
   attributes:
     type: object
@@ -9542,8 +9497,7 @@ data-model.objectschema.tool-definition:
   type: objectschema
   layer_id: data-model
   name: ToolDefinition
-  description:
-    Tool definition for Claude AI integration Represents a single tool
+  description: Tool definition for Claude AI integration Represents a single tool
     that Claude can call
   attributes:
     type: object
@@ -9583,8 +9537,7 @@ data-model.objectschema.backup-manifest-file:
   type: objectschema
   layer_id: data-model
   name: BackupManifestFile
-  description:
-    Backup manifest entry for a single file All properties are readonly
+  description: Backup manifest entry for a single file All properties are readonly
     to enforce immutability of backup records
   attributes:
     type: object
@@ -11036,8 +10989,7 @@ data-model.objectschema.agent-process:
   type: objectschema
   layer_id: data-model
   name: AgentProcess
-  description:
-    Agent process wrapper Provides access to the spawned subprocess and
+  description: Agent process wrapper Provides access to the spawned subprocess and
     its streams
   attributes:
     type: object
@@ -11361,7 +11313,8 @@ data-model.objectschema.agent-mcp-tool-check:
   type: objectschema
   layer_id: data-model
   name: AgentMcpToolCheck
-  description: The dr MCP tools a mode uses that the dr-architect DrBot runs can't see.
+  description: The dr MCP tools a mode uses that the dr-architect DrBot runs
+    doesn't list, and whether the launch adds them (added).
   attributes:
     type: object
   source_reference:
@@ -12328,6 +12281,9 @@ data-model.objectschema.visualize-options:
   type: objectschema
   layer_id: data-model
   name: VisualizeOptions
+  description: Options of dr visualize. readOnly turns off the chat agent's
+    default changeset staging; withChangesets is kept as the old name for that
+    default.
   attributes:
     type: object
   source_reference:
@@ -12401,8 +12357,7 @@ data-model.objectschema.contradicted-by-code:
   type: objectschema
   layer_id: data-model
   name: ContradictedByCode
-  description:
-    A relationship extraction would stage that an accepted gap says is
+  description: A relationship extraction would stage that an accepted gap says is
     deliberately absent.
   attributes:
     type: object
@@ -12496,8 +12451,7 @@ data-model.objectschema.accepted-gap:
   type: objectschema
   layer_id: data-model
   name: AcceptedGap
-  description:
-    One accepted gap, as stored on the element (snake_case, as the spec
+  description: One accepted gap, as stored on the element (snake_case, as the spec
     names the fields).
   attributes:
     type: object
@@ -13014,7 +12968,9 @@ data-model.objectschema.intent-trace:
   type: objectschema
   layer_id: data-model
   name: IntentTrace
-  description: A changed element that reaches intent, and how.
+  description: "A changed element that reaches intent, and how: by its own walk,
+    or carried by the whole that composes or aggregates it, or by what it
+    realizes, hub or not."
   attributes:
     type: object
   source_reference:
@@ -13254,7 +13210,9 @@ data-model.objectschema.sections-brief:
   type: objectschema
   layer_id: data-model
   name: SectionsBrief
-  description: A brief of named sections only
+  description: "A brief of named sections only: a small header, then each section
+    in its compact form (or in full, when asked), with a page giving each list's
+    total, how many items were returned and the next offset."
   attributes:
     type: object
   source_reference:
@@ -14482,4 +14440,1362 @@ data-model.objectschema.change-origin:
   metadata:
     created_at: 2026-11-20T15:08:11.171Z
     updated_at: 2026-11-20T15:08:11.171Z
+    version: 1
+data-model.objectschema.model-warning-options:
+  id: ba505f17-8ffc-4ee6-bf17-3415e969747f
+  path: data-model.objectschema.model-warning-options
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ModelWarningOptions
+  description: "Options for the warnings added after the validation pipeline:
+    exempt the intent layers from the source-reference check, and strict."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/validators/model-warnings.ts
+        symbol: ModelWarningOptions
+  metadata:
+    created_at: 2026-11-20T16:31:56.608Z
+    updated_at: 2026-11-20T16:31:56.608Z
+    version: 1
+data-model.objectschema.model-view:
+  id: 9528e177-cbe4-4103-b1c1-6a19a54c446b
+  path: data-model.objectschema.model-view
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ModelView
+  description: "A model as a read tool sees it (layers and relationships) with the
+    name of the view: base, or a changeset's projection."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: ModelView
+  metadata:
+    created_at: 2026-11-20T16:31:56.609Z
+    updated_at: 2026-11-20T16:31:56.609Z
+    version: 1
+data-model.objectschema.layer-type-counts:
+  id: 77c440df-b376-452d-ae54-23c683a253f9
+  path: data-model.objectschema.layer-type-counts
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: LayerTypeCounts
+  description: Counts of element ids by layer and type.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-view.ts
+        symbol: LayerTypeCounts
+  metadata:
+    created_at: 2026-11-20T16:31:56.609Z
+    updated_at: 2026-11-20T16:31:56.609Z
+    version: 1
+data-model.objectschema.model-trace-trace-edge:
+  id: 153c8bcb-ebab-4799-a8b1-97c37c0004b6
+  path: data-model.objectschema.model-trace-trace-edge
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: model-trace TraceEdge
+  description: A relationship or cross-layer reference as a trace meets it, with
+    its standing in the changeset and whether the trace follows it.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-trace.ts
+        symbol: TraceEdge
+  metadata:
+    created_at: 2026-11-20T16:35:55.332Z
+    updated_at: 2026-11-20T16:35:55.332Z
+    version: 1
+data-model.objectschema.page:
+  id: 9568c395-0e01-4017-9e24-84535a804284
+  path: data-model.objectschema.page
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: Page
+  description: "Where a page sits in its list: total, returned, offset, and
+    nextOffset when more is left."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: Page
+  metadata:
+    created_at: 2026-11-20T17:02:56.267Z
+    updated_at: 2026-11-20T17:02:56.267Z
+    version: 1
+data-model.objectschema.page-args:
+  id: c8196836-16fc-4c69-961d-974d854f7eb0
+  path: data-model.objectschema.page-args
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: PageArgs
+  description: The limit and offset a caller passes to page a list.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: PageArgs
+  metadata:
+    created_at: 2026-11-20T17:02:56.267Z
+    updated_at: 2026-11-20T17:02:56.267Z
+    version: 1
+data-model.objectschema.lists-page:
+  id: dd4f5946-acc8-4462-9d4b-0113d80eaebc
+  path: data-model.objectschema.lists-page
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ListsPage
+  description: "Where a page sits in several lists paged together: the offset,
+    each list's true length by name, and nextOffset while any has more."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: ListsPage
+  metadata:
+    created_at: 2026-11-20T17:22:12.339Z
+    updated_at: 2026-11-20T17:22:12.339Z
+    version: 1
+data-model.objectschema.compact-intent:
+  id: e1f3021e-590b-4eb6-a790-12d543a43103
+  path: data-model.objectschema.compact-intent
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CompactIntent
+  description: "The intent section as the compact brief and sections return it:
+    counts, untraced ids or untraced by type, unanchored lines, traced lines
+    when few, noCatalogRoute by type, and a note."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: CompactIntent
+  metadata:
+    created_at: 2026-11-20T16:31:14.130Z
+    updated_at: 2026-11-20T16:31:14.130Z
+    version: 1
+data-model.objectschema.compact-layer-change:
+  id: 7a6b69e3-6ee1-4152-8570-49f4b9a01bf0
+  path: data-model.objectschema.compact-layer-change
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CompactLayerChange
+  description: "A changed element in the compact layers section: its type, name,
+    description, attributes and changed fields, with changed connections as
+    lines and every other connection counted per direction, predicate and other
+    layer."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: CompactLayerChange
+  metadata:
+    created_at: 2026-11-20T16:31:14.138Z
+    updated_at: 2026-11-20T16:31:14.138Z
+    version: 1
+data-model.objectschema.ids-by-type:
+  id: 4c25d332-4f60-42bb-9353-f2b0aff26320
+  path: data-model.objectschema.ids-by-type
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: IdsByType
+  description: "Ids of one layer.type: how many, and the first of them."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: IdsByType
+  metadata:
+    created_at: 2026-11-20T16:47:09.779Z
+    updated_at: 2026-11-20T16:47:09.779Z
+    version: 1
+data-model.objectschema.compact-code-file:
+  id: 12ec4a2e-532b-45d1-9f2f-7c1d5827f1d2
+  path: data-model.objectschema.compact-code-file
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CompactCodeFile
+  description: "A touched file in the compact codeTouched section: its changed
+    elements and a count of the existing elements next to the change."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: CompactCodeFile
+  metadata:
+    created_at: 2026-11-20T16:47:09.780Z
+    updated_at: 2026-11-20T16:47:09.780Z
+    version: 1
+data-model.objectschema.unwired-by-type:
+  id: 406dbbcc-231e-4f29-83aa-7c08af3422b2
+  path: data-model.objectschema.unwired-by-type
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UnwiredByType
+  description: "Unwired connections per element type, for more elements than are
+    worth listing one by one: each connection with how many elements lack it."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: UnwiredByType
+  metadata:
+    created_at: 2026-11-20T16:47:09.780Z
+    updated_at: 2026-11-20T16:47:09.780Z
+    version: 1
+data-model.objectschema.sections-options:
+  id: 48c2d87c-7262-4b11-ad33-cdbc0e88131a
+  path: data-model.objectschema.sections-options
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SectionsOptions
+  description: "How briefSections renders: the delta, the filter, full or compact,
+    the offset into changes and layers, the size budget and how bytes are
+    measured."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: SectionsOptions
+  metadata:
+    created_at: 2026-11-20T16:47:09.780Z
+    updated_at: 2026-11-20T16:47:09.780Z
+    version: 1
+data-model.objectschema.sections-page:
+  id: e3104aa9-d990-4d4d-960f-27ca8fd7cd0e
+  path: data-model.objectschema.sections-page
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SectionsPage
+  description: "Where a sections answer sits in its lists: one offset for every
+    list, each list's true total and how many items the answer holds, the next
+    offset while any list has more, and a summary of each section the answer
+    holds only part of."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-brief-compact.ts
+        symbol: SectionsPage
+  metadata:
+    created_at: 2026-11-20T17:44:47.569Z
+    updated_at: 2026-11-20T17:44:47.569Z
+    version: 1
+data-model.objectschema.running-viewer:
+  id: bf7fe840-9535-4ae7-b01c-1fbaedcbd396
+  path: data-model.objectschema.running-viewer
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: RunningViewer
+  description: "One running viewer as dr visualize --list reports it: project
+    root, port, launcher and server pids, CLI version, start time, who started
+    it and whether the registry has a record of it."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: RunningViewer
+  metadata:
+    created_at: 2026-11-20T16:31:57.509Z
+    updated_at: 2026-11-20T16:31:57.509Z
+    version: 1
+data-model.objectschema.viewer-health:
+  id: 6cfe8ba8-0cf2-4882-9a70-7b4fbfe10a21
+  path: data-model.objectschema.viewer-health
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ViewerHealth
+  description: "What a viewer's health check says: status, the cliVersion of the
+    CLI serving it (absent before 0.6.0), and since 0.7.0 its viewerId, its pid,
+    its launcher's pid and the browser tabs connected. The id and pids let a
+    caller confirm the viewer answering is the one a record names; the tab count
+    decides whether review_open may replace an older viewer."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: ViewerHealth
+  metadata:
+    created_at: 2026-11-20T16:31:57.510Z
+    updated_at: 2026-11-20T16:31:57.510Z
+    version: 1
+data-model.objectschema.viewer-survey:
+  id: a47cf827-01d2-43fb-b122-1ed7642beafc
+  path: data-model.objectschema.viewer-survey
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ViewerSurvey
+  description: The running viewers that could be found, whether the process table
+    could be read, and what the registry sweep removed.
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-control.ts
+        symbol: ViewerSurvey
+  metadata:
+    created_at: 2026-11-20T17:12:03.027Z
+    updated_at: 2026-11-20T17:12:03.027Z
+    version: 1
+data-model.objectschema.sweep-result:
+  id: 04d9f381-76e4-49be-a782-9daec171139a
+  path: data-model.objectschema.sweep-result
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SweepResult
+  description: "What a sweep of the viewers directory removed: every path, and a
+    count of stale records, markers of dead starts, old logs and leftover temp
+    files."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/viewer-registry.ts
+        symbol: SweepResult
+  metadata:
+    created_at: 2026-11-20T17:12:03.027Z
+    updated_at: 2026-11-20T17:12:03.027Z
+    version: 1
+data-model.objectschema.denied-tool-call:
+  id: 3d2df4d8-bf95-47e3-8148-bfd56e447d71
+  path: data-model.objectschema.denied-tool-call
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DeniedToolCall
+  description: A tool call as Claude Code's stream reports it.
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: DeniedToolCall
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+data-model.objectschema.dr-bot-session-options:
+  id: cdf9d2df-9853-4907-89fd-8fa29bfd5d48
+  path: data-model.objectschema.dr-bot-session-options
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DrBotSessionOptions
+  description: Whether the dr MCP server is connected for a launch.
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/drbot-permissions.ts
+        symbol: DrBotSessionOptions
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+data-model.objectschema.chat-refusal:
+  id: 213aac2f-7a2e-4c91-b20e-cca783bca886
+  path: data-model.objectschema.chat-refusal
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ChatRefusal
+  description: Why a chat process may not do something, and what to do about it.
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/coding-agents/chat-guard.ts
+        symbol: ChatRefusal
+  metadata:
+    created_at: 2026-11-20T17:46:46.351Z
+    updated_at: 2026-11-20T17:46:46.351Z
+    version: 1
+data-model.objectschema.derived-element-id:
+  id: 8aa4c72b-eecb-4798-ac1d-37f4cc7d1b45
+  path: data-model.objectschema.derived-element-id
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DerivedElementId
+  description: An id derived from a name, its last segment, and notes on what the
+    derivation did that the name does not make obvious
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: DerivedElementId
+  metadata:
+    created_at: 2026-11-20T16:36:37.954Z
+    updated_at: 2026-11-20T16:36:37.954Z
+    version: 1
+data-model.objectschema.json-error-position:
+  id: ce104415-a2c6-46dd-bc8c-a66674f69c9e
+  path: data-model.objectschema.json-error-position
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: JsonErrorPosition
+  description: Where the first JSON syntax error is
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/batch-file.ts
+        symbol: JsonErrorPosition
+  metadata:
+    created_at: 2026-11-20T16:36:37.956Z
+    updated_at: 2026-11-20T16:36:37.956Z
+    version: 1
+data-model.objectschema.batch-item-result:
+  id: 4f622021-269f-42c0-aebe-d127717f4186
+  path: data-model.objectschema.batch-item-result
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: BatchItemResult
+  description: One item's result in a batch write
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: BatchItemResult
+  metadata:
+    created_at: 2026-11-20T16:36:37.956Z
+    updated_at: 2026-11-20T16:36:37.956Z
+    version: 1
+data-model.objectschema.batch-report:
+  id: 4175291a-75bd-4c47-a6bd-7bf3837629ec
+  path: data-model.objectschema.batch-report
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: BatchReport
+  description: "What a batch write tool returns: total, counts, and attention or results"
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: BatchReport
+  metadata:
+    created_at: 2026-11-20T16:36:37.956Z
+    updated_at: 2026-11-20T16:36:37.956Z
+    version: 1
+data-model.objectschema.batch-attention-group:
+  id: aa34231a-985d-4474-81ba-f4f76314a960
+  path: data-model.objectschema.batch-attention-group
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: BatchAttentionGroup
+  description: Attention items past the limit that share a status and a reason,
+    with their positions
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: BatchAttentionGroup
+  metadata:
+    created_at: 2026-11-20T16:55:07.341Z
+    updated_at: 2026-11-20T16:55:07.341Z
+    version: 1
+data-model.objectschema.existing-elements:
+  id: b0701b49-ab80-4658-b879-f82cd42d3936
+  path: data-model.objectschema.existing-elements
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ExistingElements
+  description: How a caller looks up the elements that are already there
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: ExistingElements
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+data-model.objectschema.batch-attention-group-item:
+  id: 0d48b1b4-bd96-4e84-a49b-1c48c21bd6ef
+  path: data-model.objectschema.batch-attention-group-item
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: BatchAttentionGroupItem
+  description: "One item of an attention group: its position, its id when written,
+    and its own values"
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: BatchAttentionGroupItem
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+data-model.objectschema.relationship-batch-report:
+  id: c572c37b-d05e-40b9-a972-f23bbcd5aa81
+  path: data-model.objectschema.relationship-batch-report
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: RelationshipBatchReport
+  description: A batch report with readByName, each by-name reference and the id
+    it was read as
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/relationship-tools.ts
+        symbol: RelationshipBatchReport
+  metadata:
+    created_at: 2026-11-20T17:38:25.474Z
+    updated_at: 2026-11-20T17:38:25.474Z
+    version: 1
+data-model.objectschema.installed-cli:
+  id: 2d63be51-f1fa-4e39-afa1-1de3f23cb374
+  path: data-model.objectschema.installed-cli
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: InstalledCli
+  description: "The CLI found on disk: its version, the spec version it bundles
+    and when its files last changed."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: InstalledCli
+  metadata:
+    created_at: 2026-11-20T16:39:29.296Z
+    updated_at: 2026-11-20T16:39:29.296Z
+    version: 1
+data-model.objectschema.changeset-drift-entry:
+  id: 8e908f18-56ec-43a4-bd74-f18f8b1f138c
+  path: data-model.objectschema.changeset-drift-entry
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ChangesetDriftEntry
+  description: "How the base model moved under a staged changeset, and what that
+    does to landing it: state, landing, base change counts, overlapping staged
+    changes and the call that lists them."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: ChangesetDriftEntry
+  metadata:
+    created_at: 2026-11-20T16:39:29.299Z
+    updated_at: 2026-11-20T16:39:29.299Z
+    version: 1
+data-model.objectschema.unreferenced-changes:
+  id: 85e9019e-ed1e-4eea-ab82-b8ebafb03121
+  path: data-model.objectschema.unreferenced-changes
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UnreferencedChanges
+  description: "Changed files the code drift check cannot judge because no element
+    references them: all of them, the source files and the new source files."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: UnreferencedChanges
+  metadata:
+    created_at: 2026-11-20T16:39:29.299Z
+    updated_at: 2026-11-20T16:39:29.299Z
+    version: 1
+data-model.objectschema.status-list-page:
+  id: 10e051d3-21db-446b-a094-61ddf00dbdc4
+  path: data-model.objectschema.status-list-page
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: StatusListPage
+  description: "One page of a list the status shortens: list, total, offset,
+    returned, items, and nextOffset and more when entries are left."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status.ts
+        symbol: StatusListPage
+  metadata:
+    created_at: 2026-11-20T16:49:54.901Z
+    updated_at: 2026-11-20T16:49:54.901Z
+    version: 1
+data-model.objectschema.list-sections:
+  id: f7e4fced-b3dc-4af3-ba1c-d9725a7c37fd
+  path: data-model.objectschema.list-sections
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ListSections
+  description: "The project_status sections that hold lists the default answer
+    shortens: changesets, codeIndex and codeDrift."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: ListSections
+  metadata:
+    created_at: 2026-11-20T16:49:54.901Z
+    updated_at: 2026-11-20T16:49:54.901Z
+    version: 1
+data-model.objectschema.unreferenced-file:
+  id: ff5a6b90-913f-40ff-9fbb-34b9b026bfc8
+  path: data-model.objectschema.unreferenced-file
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UnreferencedFile
+  description: "A changed file no element references: its path, whether it is a
+    source file and whether it was added since the baseline."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: UnreferencedFile
+  metadata:
+    created_at: 2026-11-20T16:49:54.902Z
+    updated_at: 2026-11-20T16:49:54.902Z
+    version: 1
+data-model.objectschema.project-rule:
+  id: 6f564ff2-8866-463e-af00-921fc1b51bbe
+  path: data-model.objectschema.project-rule
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ProjectRule
+  description: "One extraction rule a project keeps: a name, which cards or
+    relationships it covers (where), what they are (as: a layer.type or none),
+    the reason, and when and in which changeset it was decided."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/project-rules.ts
+        symbol: ProjectRule
+  metadata:
+    created_at: 2026-11-20T16:56:25.765Z
+    updated_at: 2026-11-20T16:56:25.765Z
+    version: 1
+data-model.objectschema.project-rules-file:
+  id: 11c55d0f-2844-4c24-9b6b-71e1b64a79e9
+  path: data-model.objectschema.project-rules-file
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ProjectRulesFile
+  description: "documentation-robotics/extraction-rules.yaml: a version and the
+    project's extraction rules, in the order they apply."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/project-rules.ts
+        symbol: ProjectRulesFile
+  metadata:
+    created_at: 2026-11-20T16:56:25.767Z
+    updated_at: 2026-11-20T16:56:25.767Z
+    version: 1
+data-model.objectschema.triage-group:
+  id: 6c061ce1-c95a-4834-8cf1-7e5da40f8ee0
+  path: data-model.objectschema.triage-group
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: TriageGroup
+  description: A group of undecided cards (a folder or file, with counts by kind
+    and visibility), what the model has there, and a suggested decision.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/triage.ts
+        symbol: TriageGroup
+  metadata:
+    created_at: 2026-11-20T16:56:25.767Z
+    updated_at: 2026-11-20T16:56:25.767Z
+    version: 1
+data-model.objectschema.decide-item:
+  id: eea76ce0-6c96-41d7-9717-e58247531e66
+  path: data-model.objectschema.decide-item
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DecideItem
+  description: "One decision sent to codebase_extract: where or card, as, reason,
+    and keep to record it as a project rule."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract-decide.ts
+        symbol: DecideItem
+  metadata:
+    created_at: 2026-11-20T16:56:25.767Z
+    updated_at: 2026-11-20T16:56:25.767Z
+    version: 1
+data-model.objectschema.shared-helper-group:
+  id: a676cc28-0ac6-4d36-a4f6-963208c0010f
+  path: data-model.objectschema.shared-helper-group
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SharedHelperGroup
+  description: "A function many services call: how many, the links it makes, and
+    the rule that would remove them."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/triage.ts
+        symbol: SharedHelperGroup
+  metadata:
+    created_at: 2026-11-20T16:56:25.767Z
+    updated_at: 2026-11-20T16:56:25.767Z
+    version: 1
+data-model.objectschema.plan-coverage-item:
+  id: cde36e3f-a2d3-43f9-adcb-ba07ea4a83f9
+  path: data-model.objectschema.plan-coverage-item
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: PlanCoverageItem
+  description: A planned element with no as-built candidate staged, and the cards
+    found in its source file.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/triage.ts
+        symbol: PlanCoverageItem
+  metadata:
+    created_at: 2026-11-20T16:56:25.767Z
+    updated_at: 2026-11-20T16:56:25.767Z
+    version: 1
+data-model.objectschema.triage-facts:
+  id: e8f6b679-1064-4144-adc4-21c844b92e41
+  path: data-model.objectschema.triage-facts
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: TriageFacts
+  description: "What is read from a card's declaration for project rules and
+    triage groups: its visibility (exported, local, public, private, protected)
+    and whether it is nested in another function."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/cards/visibility.ts
+        symbol: TriageFacts
+  metadata:
+    created_at: 2026-11-20T18:20:29.385Z
+    updated_at: 2026-11-20T18:20:29.385Z
+    version: 1
+data-model.objectschema.layer-verify-coverage:
+  id: 1dd566b0-41ad-47f3-81b2-0c2151361dd3
+  path: data-model.objectschema.layer-verify-coverage
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: LayerVerifyCoverage
+  description: "How much of a layer a check covered: model elements, checked, not
+    checked, code entries."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: LayerVerifyCoverage
+  metadata:
+    created_at: 2026-11-20T18:09:54.576Z
+    updated_at: 2026-11-20T18:09:54.576Z
+    version: 1
+data-model.objectschema.not-checked-group:
+  id: 4671349e-92c7-4b7f-8548-36e497ebd7e9
+  path: data-model.objectschema.not-checked-group
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: NotCheckedGroup
+  description: Model elements a check could not compare, for one reason, with what
+    would make them checkable.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: NotCheckedGroup
+  metadata:
+    created_at: 2026-11-20T18:09:54.576Z
+    updated_at: 2026-11-20T18:09:54.576Z
+    version: 1
+data-model.objectschema.verify-rejections:
+  id: 747899c9-26c2-4735-b583-0fd9d0d35a46
+  path: data-model.objectschema.verify-rejections
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: VerifyRejections
+  description: "The recorded rejections a verification used: file, found, recorded
+    counts, applied per layer, error, note."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/types.ts
+        symbol: VerifyRejections
+  metadata:
+    created_at: 2026-11-20T18:09:54.576Z
+    updated_at: 2026-11-20T18:09:54.576Z
+    version: 1
+data-model.objectschema.recorded-decisions:
+  id: fcfb5f88-964f-414d-9ed1-2ab7dcf200d4
+  path: data-model.objectschema.recorded-decisions
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: RecordedDecisions
+  description: The not-an-element and not-a-relationship decisions read from
+    codebase_extract's decisions file, with whether it was found and any read
+    error.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/layer-verify.ts
+        symbol: RecordedDecisions
+  metadata:
+    created_at: 2026-11-20T18:09:54.576Z
+    updated_at: 2026-11-20T18:09:54.576Z
+    version: 1
+data-model.objectschema.registered-by-name:
+  id: 4ee09df5-a4ea-4e4e-bcbd-587b44e2d321
+  path: data-model.objectschema.registered-by-name
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: RegisteredByName
+  description: "Where the code may register an element by a name string: file,
+    string, line, and whether it is a call argument or a name property."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/build-evidence.ts
+        symbol: RegisteredByName
+  metadata:
+    created_at: 2026-11-20T18:09:54.577Z
+    updated_at: 2026-11-20T18:09:54.577Z
+    version: 1
+data-model.objectschema.source-candidate:
+  id: adaad023-2a96-4431-9d30-13412c14a815
+  path: data-model.objectschema.source-candidate
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SourceCandidate
+  description: A file of the build that may hold a planned element's code, with
+    the symbol and the evidence.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/build-evidence.ts
+        symbol: SourceCandidate
+  metadata:
+    created_at: 2026-11-20T18:09:54.577Z
+    updated_at: 2026-11-20T18:09:54.577Z
+    version: 1
+data-model.objectschema.confirmed-reference:
+  id: f10624e0-b75f-46b7-a703-8387d1a30b21
+  path: data-model.objectschema.confirmed-reference
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ConfirmedReference
+  description: "A source reference the agent confirmed in the code: id,
+    sourceFile, sourceSymbol."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/source-reference-adoption.ts
+        symbol: ConfirmedReference
+  metadata:
+    created_at: 2026-11-20T18:09:54.577Z
+    updated_at: 2026-11-20T18:09:54.577Z
+    version: 1
+data-model.objectschema.multi-list-page:
+  id: 8b7925ea-5e3d-4fed-8e33-aac8f6e6aaf3
+  path: data-model.objectschema.multi-list-page
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: MultiListPage
+  description: "Where a result with several lists sits in them: limit, offset,
+    each list's true length, next offset."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/list-page.ts
+        symbol: MultiListPage
+  metadata:
+    created_at: 2026-11-20T18:09:54.577Z
+    updated_at: 2026-11-20T18:09:54.577Z
+    version: 1
+data-model.objectschema.upgrade-fills:
+  id: dabedeef-43ff-44d7-9482-9c128c9a0036
+  path: data-model.objectschema.upgrade-fills
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UpgradeFills
+  description: The values an upgrade derived and the changeset it staged them in
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-fills.ts
+        symbol: UpgradeFills
+  metadata:
+    created_at: 2026-11-20T18:10:52.413Z
+    updated_at: 2026-11-20T18:10:52.413Z
+    version: 1
+data-model.objectschema.derived-fill:
+  id: 7f4e28f8-b7c4-46c8-b720-700b0aa92479
+  path: data-model.objectschema.derived-fill
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DerivedFill
+  description: A value derived for one required attribute an element leaves empty,
+    with its rule
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-fills.ts
+        symbol: DerivedFill
+  metadata:
+    created_at: 2026-11-20T18:10:52.413Z
+    updated_at: 2026-11-20T18:10:52.413Z
+    version: 1
+data-model.objectschema.upgrade-rehearsal:
+  id: 6163e955-16cc-483a-bfe4-68b0db63c0d8
+  path: data-model.objectschema.upgrade-rehearsal
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: UpgradeRehearsal
+  description: "What the model upgrade did on a copy: its result and the files it wrote"
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-rehearsal.ts
+        symbol: UpgradeRehearsal
+  metadata:
+    created_at: 2026-11-20T18:10:52.413Z
+    updated_at: 2026-11-20T18:10:52.413Z
+    version: 1
+data-model.objectschema.outside-model:
+  id: be33b879-1bc7-4a8e-8f8b-75898b809405
+  path: data-model.objectschema.outside-model
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: OutsideModel
+  description: What an upgrade touches outside the model, by group
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/upgrade-outside-model.ts
+        symbol: OutsideModel
+  metadata:
+    created_at: 2026-11-20T18:10:52.413Z
+    updated_at: 2026-11-20T18:10:52.413Z
+    version: 1
+data-model.objectschema.integration-upgrade-plan:
+  id: 5560031e-fe0f-4eef-bc1c-31f66a7ad309
+  path: data-model.objectschema.integration-upgrade-plan
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: IntegrationUpgradePlan
+  description: What an integration upgrade would change, without changing it
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/base-manager.ts
+        symbol: IntegrationUpgradePlan
+  metadata:
+    created_at: 2026-11-20T18:10:52.414Z
+    updated_at: 2026-11-20T18:10:52.414Z
+    version: 1
+data-model.objectschema.dot-dr-decision:
+  id: bcee3ad5-a198-49ef-b653-20f7dace170d
+  path: data-model.objectschema.dot-dr-decision
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DotDrDecision
+  description: "A choice for the user: git tracks files under .dr/; each option
+    with what it writes, removes and untracks"
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/dot-dr-ignore.ts
+        symbol: DotDrDecision
+  metadata:
+    created_at: 2026-11-20T18:10:52.414Z
+    updated_at: 2026-11-20T18:10:52.414Z
+    version: 1
+data-model.objectschema.layer-file-record:
+  id: b82cdf07-e026-4c56-9195-cb64f177d7c2
+  path: data-model.objectschema.layer-file-record
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: LayerFileRecord
+  description: What loading made of one YAML file in a layer folder (loaded,
+    failed, partial) and its text then; decides what a later save may replace or
+    remove
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model.ts
+        symbol: LayerFileRecord
+  metadata:
+    created_at: 2026-11-20T18:39:26.255Z
+    updated_at: 2026-11-20T18:39:26.255Z
+    version: 1
+data-model.objectschema.shipped-versions:
+  id: b04264fd-7ae8-418e-a3c6-27a9625476f2
+  path: data-model.objectschema.shipped-versions
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ShippedVersions
+  description: Content hashes of every version dr shipped of one integration
+    entry, by path inside it
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/shipped-entries.ts
+        symbol: ShippedVersions
+  metadata:
+    created_at: 2026-11-20T18:39:26.256Z
+    updated_at: 2026-11-20T18:39:26.256Z
+    version: 1
+data-model.objectschema.repository:
+  id: 39d18cbf-eca9-4da2-b107-45783a7b2458
+  path: data-model.objectschema.repository
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: Repository
+  description: "A git repository a project lives in, identified by the real path
+    of its common git directory (git rev-parse --git-common-dir): commonDir,
+    mainCheckout (the main worktree's path), remote (origin's URL when it has
+    one). Derived from git, not stored."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: Repository
+  metadata:
+    created_at: 2026-11-21T17:14:10.888Z
+    updated_at: 2026-11-21T17:14:10.888Z
+    version: 1
+data-model.objectschema.checkout:
+  id: 6a30e209-439a-4516-a5ff-5c487a19da87
+  path: data-model.objectschema.checkout
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: Checkout
+  description: "One working tree of a project's repository: key (\"main\" for the
+    main checkout, else the name git gives the linked worktree under
+    <commonDir>/worktrees/<name>), path (real path), branch (or null when
+    detached), head, isMain, state (present, missing, prunable), locked.
+    Discovered from git worktree list --porcelain, never stored."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: Checkout
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.checkout-ref:
+  id: d76626b1-f519-4255-bc92-fa469b0667a7
+  path: data-model.objectschema.checkout-ref
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CheckoutRef
+  description: 'The address of a checkout: {project, checkout}. Every scoped API
+    route, deep link, websocket subscription, DrBot session and MCP result
+    carries it; checkout defaults to "main".'
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: CheckoutRef
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.project-list-entry:
+  id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+  path: data-model.objectschema.project-list-entry
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ProjectListEntry
+  description: "What project_list, GET /api/projects and dr farm list return for a
+    project: name, repository, model path, and its checkouts with branch, head,
+    state, active changeset and staged changeset count."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ProjectListEntry
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.server-record:
+  id: 1e218e2c-98b9-4608-aef6-c08d7a6bef0b
+  path: data-model.objectschema.server-record
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ServerRecord
+  description: "The record of the central DR process serving one farm: farm root,
+    pid, port, cliVersion, startedAt and launcher pid, with the path of the
+    token file (the token is in a 0600 file beside it). Kept at
+    servers/<farm-hash>.json in the user state directory: one record for the
+    user farm, and one for each folder farm a process was started in."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ServerRecord
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.viewer-link:
+  id: 4e412e4c-4339-487f-b011-d2aac9abfe3d
+  path: data-model.objectschema.viewer-link
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ViewerLink
+  description: "A deep link into the shared viewer: url, project, checkout, and
+    optionally changeset and element. The token travels in the URL fragment,
+    never in the query string. Built from the server record, never by starting a
+    process."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ViewerLink
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.dr-bot-session-key:
+  id: 981225cf-4497-42f2-9150-488897a81205
+  path: data-model.objectschema.dr-bot-session-key
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DrBotSessionKey
+  description: "Identifies a DrBot conversation in the central process: {project,
+    checkout, conversationId}; maps to the coding agent's own session id for
+    --resume."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/central-mcp-contract.ts
+        symbol: DrBotSessionKey
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.context-pool-settings:
+  id: 83013eb1-7486-4e08-a64c-20dd9fd43e42
+  path: data-model.objectschema.context-pool-settings
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: ContextPoolSettings
+  description: "Limits of the checkout context pool: maxLoaded (default 4),
+    idleMinutes (default 30); DR_SERVER_MAX_LOADED and DR_SERVER_IDLE_MINUTES
+    override them."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/checkout-types.ts
+        symbol: ContextPoolSettings
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.feed-subscription:
+  id: 7288c27b-cdcc-4cfc-9c60-a3f4b2e3e5b7
+  path: data-model.objectschema.feed-subscription
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: FeedSubscription
+  description: "A websocket subscribe or unsubscribe frame: {action, project,
+    checkout}. A socket receives model, changeset, annotation and chat events
+    only for the checkouts it subscribed to; each event carries its
+    CheckoutRef."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/schemas.ts
+        symbol: FeedSubscriptionSchema
+  metadata:
+    created_at: 2026-11-21T17:14:10.890Z
+    updated_at: 2026-11-21T17:14:10.890Z
     version: 1

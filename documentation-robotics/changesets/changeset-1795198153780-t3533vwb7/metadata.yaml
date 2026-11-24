@@ -15,8 +15,8 @@ description: "dr upgrade and project_upgrade change only what they say. A model
   lists give their totals and a way to see all. Done when an upgrade that only
   stamps the version changes only the manifest."
 created: 2026-11-20T18:09:13.834Z
-modified: 2026-11-20T18:41:39.485Z
-status: staged
+modified: 2026-11-24T13:49:05.051Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

@@ -9,8 +9,8 @@ description: "project_status says what drifted and what to do next:
   drift state, what changed, whether a landing will be refused and which tool to
   call next."
 created: 2026-11-20T16:38:46.457Z
-modified: 2026-11-20T17:09:52.442Z
-status: staged
+modified: 2026-11-24T13:45:03.468Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

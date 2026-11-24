@@ -14,8 +14,8 @@ description: "DrBot always reaches the dr MCP tools: an installed dr-architect
   staged into a changeset and a rightly blocked command each behave that way in
   a real dr visualize chat, including with settings that try to allow more."
 created: 2026-11-20T16:32:54.115Z
-modified: 2026-11-20T17:46:46.780Z
-status: staged
+modified: 2026-11-24T13:42:39.198Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan
