@@ -119,6 +119,17 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 
 ### Fixed
 
+- **dr writes model and changeset YAML in a layout prettier leaves alone (issue 1246).** Long
+  strings are no longer folded at 80 columns: each stays on its key's line, and a string that has
+  to be quoted gets the quote prettier gives it (single when it holds a double quote, else double).
+  Prettier at its default settings, and with this repository's `.prettierrc`, now leaves what dr
+  writes as it is, so a project that runs prettier on `documentation-robotics/` without a
+  `.prettierignore` entry no longer has the two rewriting each other, and a one-word edit is a
+  one-line diff. The layout covers the element files, `relationships.yaml`, the manifest, the files
+  `dr upgrade`'s migrations rewrite, changesets (`metadata.yaml`, `changes.yaml`, `review.yaml`)
+  and annotations (`cli/src/core/dr-yaml.ts`). A file whose data is unchanged is still never
+  rewritten; the first data change to an existing file puts its long strings on one line, once.
+
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
   MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`

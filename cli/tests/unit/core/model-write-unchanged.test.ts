@@ -3,6 +3,8 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import YAML from "yaml";
+import * as prettier from "prettier";
+import { stringifyDrYaml } from "../../../src/core/dr-yaml.js";
 import { LayerFileConflictError, Model, planLayerFiles, sameYamlData } from "../../../src/core/model.js";
 import { Element } from "../../../src/core/element.js";
 import { upgradeModel } from "../../../src/core/model-upgrade.js";
@@ -81,7 +83,7 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
 
   it("the fixture really is in a layout dr would not write", async () => {
     await withModel(async (_root, files) => {
-      expect(YAML.stringify(YAML.parse(files.goal))).not.toBe(files.goal);
+      expect(stringifyDrYaml(YAML.parse(files.goal))).not.toBe(files.goal);
     });
   });
 
@@ -108,6 +110,42 @@ describe("model writes keep files whose data is unchanged (#1246)", () => {
       const written = YAML.parse(await readFile(layerFile(root, "goal.yaml"), "utf-8"));
       expect(written["motivation.goal.fewer-refusals"].description).toBe("Shorter now");
       expect(await readFile(layerFile(root, "requirement.yaml"), "utf-8")).toBe(files.requirement);
+    });
+  });
+
+  it("writes a changed file, the manifest and a changeset's files in a layout prettier leaves alone", async () => {
+    await withModel(async (root) => {
+      const model = await Model.load(root, { lazyLoad: false });
+      const layer = model.layers.get("motivation")!;
+      const goal = layer.listElements().find((element) => element.path === "motivation.goal.fewer-refusals")!;
+      goal.description = `It fails with "The change was not saved" when the build's input moved: ${LONG}`;
+      layer.updateElement(goal);
+      await model.save();
+
+      const manager = new StagingAreaManager(root, model);
+      const changeset = await manager.create("quoted-plan", `A plan whose "description" is long: ${LONG}`);
+      const before = goal.toJSON() as unknown as Record<string, unknown>;
+      await manager.stage(changeset.id!, {
+        type: "update",
+        elementId: "motivation.goal.fewer-refusals",
+        layerName: "motivation",
+        before,
+        after: { ...before, description: `${LONG} (it's "staged")` },
+      });
+
+      const changesetDir = join(root, "documentation-robotics", "changesets", changeset.id!);
+      const written = [
+        layerFile(root, "goal.yaml"),
+        join(root, "documentation-robotics", "model", "manifest.yaml"),
+        join(changesetDir, "metadata.yaml"),
+        join(changesetDir, "changes.yaml"),
+      ];
+      for (const file of written) {
+        const text = await readFile(file, "utf-8");
+        expect({ file, text: await prettier.format(text, { parser: "yaml" }) }).toEqual({ file, text });
+      }
+      // The long string is on its key's line
+      expect(await readFile(layerFile(root, "goal.yaml"), "utf-8")).toContain(`  description: 'It fails with "The change`);
     });
   });
 

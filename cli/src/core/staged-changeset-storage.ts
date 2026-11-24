@@ -20,6 +20,7 @@ import { getErrorMessage } from "../utils/errors.js";
 import type { ChangesetOrigin, ChangesetReview, ReviewDecision } from "./changeset-review.js";
 import { REVIEW_FILE, readOrigin, readReview, withLastReviewed } from "./changeset-review.js";
 import { trackModelWrite } from "./model-write-tracker.js";
+import { stringifyDrYaml } from "./dr-yaml.js";
 import type { PurposeDeclaration } from "./changeset-purpose.js";
 import { purposeFields, readPurpose } from "./changeset-purpose.js";
 
@@ -30,24 +31,14 @@ import { purposeFields, readPurpose } from "./changeset-purpose.js";
  */
 export const MAX_UNSTAGED_TOMBSTONES = 200;
 
-/** Plain scalars a YAML 1.1 reader takes for booleans (PyYAML, Ruby, older tooling). */
-const YAML_1_1_BOOLEAN = /^(y|n|yes|no|on|off)$/i;
-
 /**
- * A changeset file's YAML, with the string values a YAML 1.1 reader would take for booleans
- * written quoted: an enum value such as `off` or `on` stays a string for every reader, not only
- * for this one (YAML 1.2, where they are strings unquoted). Keys are left as they are.
+ * A changeset file's YAML, in dr's layout (see dr-yaml.ts), with the string values a YAML 1.1
+ * reader would take for booleans written quoted: an enum value such as `off` or `on` stays a string
+ * for every reader, not only for this one (YAML 1.2, where they are strings unquoted). Keys are
+ * left as they are.
  */
 export function stringifyStaged(value: unknown): string {
-  const document = new yaml.Document(value);
-  yaml.visit(document, {
-    Scalar(key, node) {
-      if (key !== "key" && typeof node.value === "string" && YAML_1_1_BOOLEAN.test(node.value)) {
-        node.type = "QUOTE_DOUBLE";
-      }
-    },
-  });
-  return document.toString();
+  return stringifyDrYaml(value, { quoteYaml11Booleans: true });
 }
 
 /**
@@ -157,10 +148,10 @@ export class StagedChangesetStorage {
     };
 
     // Write metadata.yaml
-    await writeFile(path.join(changesetPath, "metadata.yaml"), yaml.stringify(metadata), "utf-8");
+    await writeFile(path.join(changesetPath, "metadata.yaml"), stringifyStaged(metadata), "utf-8");
 
     // Write empty changes.yaml
-    await writeFile(path.join(changesetPath, "changes.yaml"), yaml.stringify([]), "utf-8");
+    await writeFile(path.join(changesetPath, "changes.yaml"), stringifyStaged([]), "utf-8");
 
     // Return constructed changeset object
     return new Changeset({
@@ -800,7 +791,7 @@ export class StagedChangesetStorage {
           await rm(reviewPath, { force: true });
         } else {
           const sorted = Object.fromEntries(Object.entries(decisions).sort(([a], [b]) => Number(a) - Number(b)));
-          await writeFile(reviewPath, yaml.stringify({ decisions: sorted }), "utf-8");
+          await writeFile(reviewPath, stringifyStaged({ decisions: sorted }), "utf-8");
         }
       });
       return withLastReviewed(decisions);
