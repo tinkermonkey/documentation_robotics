@@ -14,6 +14,7 @@ import type { Change, Changeset, StagedChange } from "./changeset.js";
 import { nextSequenceNumber, sequenceOf } from "./changeset.js";
 import type { ChangesetGraph } from "./changeset-graph.js";
 import { relationshipKey } from "./changeset-graph.js";
+import { sessionEnv } from "./session-env.js";
 
 /** The file the review is stored in, inside the changeset's directory. */
 export const REVIEW_FILE = "review.yaml";
@@ -70,7 +71,7 @@ export function reviewRevision(changeset: Changeset): number {
  * The origin to record for a changeset created by `kind` of caller: `chat` when the process runs
  * for DrBot (CHANGESET_ORIGIN_ENV), else `kind`.
  */
-export function resolveOrigin(kind: ChangesetOriginKind, env: NodeJS.ProcessEnv = process.env): ChangesetOrigin {
+export function resolveOrigin(kind: ChangesetOriginKind, env: NodeJS.ProcessEnv = sessionEnv()): ChangesetOrigin {
   const fromEnv = env[CHANGESET_ORIGIN_ENV];
   if (fromEnv === "chat") return { kind: "chat" };
   return { kind };

@@ -85,6 +85,8 @@ describe.skipIf(!ready).serial("review_open with a real dr visualize", () => {
         DR_STATE_DIR: stateDir,
         DR_CONFIG_PATH: join(scratch, ".dr-config.yaml"),
         DR_VIEWER_PROCESS_SCAN: "off",
+        // In process: review_open still starts per-project viewers until slice 3B.
+        DR_MCP_IN_PROCESS: "1",
       },
       stdio: ["pipe", "pipe", "pipe"],
     });

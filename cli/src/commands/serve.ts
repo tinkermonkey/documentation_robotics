@@ -96,7 +96,8 @@ export async function serveLogPath(farmRoot: string, env: NodeJS.ProcessEnv): Pr
   return join(await ensureServerRecordDir(env), `${farmHash(farmRoot)}.log`);
 }
 
-function defaultSpawnEntry(options: SpawnEntryOptions): SpawnedEntry {
+/** Starts serve-entry: attached to this terminal, or detached with its output in `logPath`. */
+export function spawnServeEntry(options: SpawnEntryOptions): SpawnedEntry {
   const env: NodeJS.ProcessEnv = { ...options.env, DR_SERVE_LAUNCHER_PID: String(process.pid) };
   // The entry resolves the farm again from the same cwd and environment, so it finds this one.
   if (options.port !== undefined) env.DR_SERVE_PORT = String(options.port);
@@ -127,7 +128,8 @@ function defaultSpawnEntry(options: SpawnEntryOptions): SpawnedEntry {
   return { pid: child.pid, exited, logPath: options.logPath };
 }
 
-async function defaultFetchHealth(record: ServerRecord, token: string | null): Promise<CentralHealth | null> {
+/** `/health` of a central process, with its token when given; null when it doesn't answer. */
+export async function fetchCentralHealth(record: ServerRecord, token: string | null): Promise<CentralHealth | null> {
   try {
     const response = await fetch(`http://127.0.0.1:${record.port}/health`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -171,11 +173,11 @@ function defaultDeps(): ServeDeps {
     resolveFarm: (options) => resolveFarm(options),
     findRunningServer: (farmRoot, options) => findRunningServer(farmRoot, options),
     removeServerRecord: (farmRoot, options) => removeServerRecord(farmRoot, options),
-    fetchHealth: defaultFetchHealth,
+    fetchHealth: fetchCentralHealth,
     commandLine: defaultCommandLine,
     isAlive: isProcessAlive,
     kill: (pid, signal) => process.kill(pid, signal),
-    spawnEntry: defaultSpawnEntry,
+    spawnEntry: spawnServeEntry,
     linkFor: defaultLinkFor,
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     now: Date.now,
