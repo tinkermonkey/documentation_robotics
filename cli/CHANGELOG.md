@@ -119,6 +119,22 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 
 ### Fixed
 
+- **An acronym ends before the word after it, in ids (issue 1184).** `deriveElementId` (`dr add`,
+  `model_add`, extraction) now splits a run of capitals before its last capital when a lowercase
+  letter follows, as it already split camelCase and a digit before a capitalised word:
+  `HTTPServer` → `http-server` (was `httpserver`), `OpenAPIExporter` → `open-api-exporter` (was
+  `open-apiexporter`), `Vector3DPoint` → `vector3d-point` (was `vector3dpoint`), so a name gives
+  the same id with or without a space at that break. A plural acronym stays whole (`URLs` → `urls`,
+  `getIDsForUser` → `get-ids-for-user`). A mixed-case word splits as camelCase does: `OAuth` →
+  `o-auth`, as `GitHub` → `git-hub`; likewise `IPv4Address` → `i-pv4-address` and `SaaSApp` →
+  `saa-s-app`. An acronym before `Is` or `As` and a capital is read as a plural, as before:
+  `URLIsValid` → `urlis-valid`. `toKebabCase` also gives extraction's default `operationId` and
+  the analyzer's suggested names, so re-extracting a route whose path joins an acronym to a word
+  can propose a different `operationId` for an existing operation. Existing ids are never
+  rewritten: the 0.7.x rule is in `EARLIER_ID_RULES` as `derive-0.7`, so adding an existing
+  element's name again (50 in DR's own model, such as `AIEvaluator` at `aievaluator`) still finds
+  that element.
+
 - **Required attributes are shown before a refusal, and a refusal gives their values (issue 1153).**
   A page of `codebase_extract` cards carries `undecided.requiredAttributes`: once per type that its
   cards name (candidates, hint, Tier 1's type), the attributes it requires and the values each
@@ -126,6 +142,7 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
   refused `dr add` now name the type's required attributes and their allowed values, as a refused
   `model_add` batch already did (0.7.0). One helper, `cli/src/utils/required-attributes.ts`, serves
   all three.
+
 - **MCP `model_validate` says when the spec reference is not installed (issue 1168).** In a fresh
   clone or git worktree, where `.dr/` is gitignored and absent, the result carries `specReference`:
   one line saying the reference is missing (or for another spec version), that validation is
@@ -134,6 +151,7 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
   else outside the model (a model behind the spec is migrated too). `dr validate` already said this
   in 0.7.0; it is now tested end to end with `.dr/` removed (same report, one line more, no schema
   errors).
+
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
   MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`
