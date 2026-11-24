@@ -8,7 +8,7 @@ description: One central DR process per user serves the MCP interface, a
   DrBot launching are planned across layers, and the unscoped /api routes are
   planned out.
 created: 2026-11-21T17:11:06.057Z
-modified: 2026-11-23T23:18:38.872Z
+modified: 2026-11-24T10:43:36.883Z
 status: staged
 baseSnapshot: v2:sha256:98a17a8e4ba0a39a8239e65f0be06af9a0d614125762e7f1dee3ce40df8e7401
 origin:
@@ -18,7 +18,7 @@ stats:
   additions: 565
   modifications: 25
   deletions: 43
-lastSequence: 703
+lastSequence: 713
 unstaged:
   - sequence: 23
     removedAt: 485
@@ -1766,4 +1766,266 @@ unstaged:
           updated_at: 2026-11-21T17:14:54.806Z
           version: 1
       timestamp: 2026-11-21T17:14:54.836Z
+    rewritten: true
+  - sequence: 35
+    removedAt: 704
+    change:
+      type: add
+      elementId: data-model.objectschema.dr-bot-session-key
+      layerName: data-model
+      after:
+        id: 981225cf-4497-42f2-9150-488897a81205
+        path: data-model.objectschema.dr-bot-session-key
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DrBotSessionKey
+        description: "Identifies a DrBot conversation in the central process: {project,
+          checkout, conversationId}; maps to the coding agent's own session id
+          for --resume."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-21T17:14:10.890Z
+          updated_at: 2026-11-21T17:14:10.890Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 59
+    removedAt: 705
+    change:
+      type: add
+      elementId: application.applicationcomponent.dr-bot-launcher
+      layerName: application
+      after:
+        id: 12857632-8725-4783-81dc-2398a6b297ca
+        path: application.applicationcomponent.dr-bot-launcher
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: DrBotLauncher
+        description: "Launches DrBot sub-processes (Claude Code CLI, GitHub Copilot CLI)
+          for the central process: cwd is the checkout's path, DR_MCP_ROOT_PATH
+          and the MCP config pin the agent's dr MCP to that project and
+          checkout, conversations are keyed by DrBotSessionKey, and the number
+          of running turns per user is capped."
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.904Z
+          updated_at: 2026-11-21T17:14:10.904Z
+          version: 1
+        accepted_gaps:
+          - direction: outgoing
+            predicate: accesses
+            other_spec_node_id: application.dataobject
+            reason: The launcher works with declared shapes only (DrBotSessionKey,
+              DrBotAgentLaunch); the model and changesets DrBot touches are
+              reached by the sub-process through the dr MCP, not by the
+              launcher.
+            decided_by: agent
+            decided_at: 2026-11-21T17:16:38.937Z
+            changeset: changeset-1795281066041-0kg0ygyyb
+      timestamp: 2026-11-21T17:16:38.972Z
+    rewritten: true
+  - sequence: 60
+    removedAt: 706
+    change:
+      type: add
+      elementId: application.applicationfunction.launch-dr-bot-turn
+      layerName: application
+      after:
+        id: 8dd82476-0aa5-4c4b-bbe9-31c940edb251
+        path: application.applicationfunction.launch-dr-bot-turn
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: launchDrBotTurn
+        description: Starts or resumes one DrBot turn for a DrBotSessionKey in its checkout.
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 61
+    removedAt: 707
+    change:
+      type: add
+      elementId: application.applicationservice.dr-bot-conversation
+      layerName: application
+      after:
+        id: cd17f44a-c212-4965-956f-0aadd85088b7
+        path: application.applicationservice.dr-bot-conversation
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: DrBot conversation
+        description: "DrBot over the viewer websocket: a message to a checkout's
+          conversation, answered by a sub-process running in that checkout."
+        attributes:
+          serviceType: asynchronous
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 62
+    removedAt: 708
+    change:
+      type: add
+      elementId: application.applicationcomponent.mcp-stdio-bridge
+      layerName: application
+      after:
+        id: 52f4d23b-c35e-4534-af59-0d45fbb6f173
+        path: application.applicationcomponent.mcp-stdio-bridge
+        spec_node_id: application.applicationcomponent
+        type: applicationcomponent
+        layer_id: application
+        name: McpStdioBridge
+        description: "dr mcp over stdio becomes a bridge: it finds the central process
+          (starting it when absent or older than this CLI and idle), forwards
+          MCP messages to its /mcp endpoint with the token, and passes the
+          client's roots so tools resolve the session's checkout."
+        attributes:
+          type: internal
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 63
+    removedAt: 709
+    change:
+      type: add
+      elementId: application.applicationfunction.ensure-central-server
+      layerName: application
+      after:
+        id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+        path: application.applicationfunction.ensure-central-server
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: ensureCentralServer
+        description: Finds the running central process for the farm in use from its
+          server record, or starts one detached (dr serve) under the starting
+          marker. It replaces an older process only when no browser tab, MCP
+          session or DrBot turn is connected; otherwise it returns the older one
+          with a notice.
+        metadata:
+          created_at: 2026-11-21T17:14:10.905Z
+          updated_at: 2026-11-21T17:14:10.905Z
+          version: 1
+      timestamp: 2026-11-21T17:43:52.642Z
+    rewritten: true
+  - sequence: 69
+    removedAt: 710
+    change:
+      type: add
+      elementId: application.applicationservice.project-list-handler
+      layerName: application
+      after:
+        id: 3c02e03e-1902-4b69-9f81-75dd24da6a33
+        path: application.applicationservice.project-list-handler
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: projectListHandler
+        description: "MCP project_list: every registered project with its checkouts
+          (ProjectListEntry), paged."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-21T17:14:10.906Z
+          updated_at: 2026-11-21T17:14:10.906Z
+          version: 1
+      timestamp: 2026-11-21T17:14:10.921Z
+    rewritten: true
+  - sequence: 600
+    removedAt: 711
+    change:
+      type: add
+      elementId: apm.span.drbot-turn
+      layerName: apm
+      after:
+        id: 16247b7d-88e9-44bb-8310-9718b5233571
+        path: apm.span.drbot-turn
+        spec_node_id: apm.span
+        type: span
+        layer_id: apm
+        name: drbot.turn
+        description: "One DrBot turn launched by the central process: dr.project,
+          dr.checkout, the coding agent, exit status and duration (planned)."
+        attributes:
+          traceId: runtime
+          spanId: runtime
+          traceState: ""
+          parentSpanId: runtime
+          startTimeUnixNano: runtime
+          endTimeUnixNano: runtime
+          droppedAttributesCount: 0
+          droppedEventsCount: "0"
+          droppedLinksCount: "0"
+          spanKind: INTERNAL
+        metadata:
+          created_at: 2026-11-21T17:21:40.996Z
+          updated_at: 2026-11-21T17:21:40.996Z
+          version: 1
+      timestamp: 2026-11-21T17:21:41.043Z
+    rewritten: true
+  - sequence: 549
+    removedAt: 712
+    change:
+      type: add
+      elementId: data-store.collection.server-starting-marker
+      layerName: data-store
+      after:
+        id: f1519dc5-2331-4b7b-a26e-6f95c4155b56
+        path: data-store.collection.server-starting-marker
+        spec_node_id: data-store.collection
+        type: collection
+        layer_id: data-store
+        name: Server starting marker
+        description: The 'a viewer is starting' marker (viewers/<hash>.starting today);
+          the central process uses one marker so concurrent bridges wait for one
+          start.
+        metadata:
+          created_at: 2026-11-21T17:21:34.233Z
+          updated_at: 2026-11-21T17:21:34.233Z
+          version: 1
+      timestamp: 2026-11-21T17:21:34.280Z
+    rewritten: true
+  - sequence: 601
+    removedAt: 713
+    change:
+      type: add
+      elementId: apm.span.checkout-context-evict
+      layerName: apm
+      after:
+        id: 49369a0c-1729-4598-b35d-a5116a2925c2
+        path: apm.span.checkout-context-evict
+        spec_node_id: apm.span
+        type: span
+        layer_id: apm
+        name: checkout_context.evict
+        description: "A checkout context evicted from the pool: dr.project, dr.checkout,
+          reason (idle or capacity), loaded count (planned)."
+        attributes:
+          traceId: runtime
+          spanId: runtime
+          traceState: ""
+          parentSpanId: runtime
+          startTimeUnixNano: runtime
+          endTimeUnixNano: runtime
+          droppedAttributesCount: 0
+          droppedEventsCount: "0"
+          droppedLinksCount: "0"
+          spanKind: INTERNAL
+        metadata:
+          created_at: 2026-11-21T17:21:40.996Z
+          updated_at: 2026-11-21T17:21:40.996Z
+          version: 1
+      timestamp: 2026-11-21T17:21:41.043Z
     rewritten: true

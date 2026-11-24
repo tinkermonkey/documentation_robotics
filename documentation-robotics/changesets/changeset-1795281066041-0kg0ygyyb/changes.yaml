@@ -806,7 +806,12 @@
       created_at: 2026-11-21T17:14:10.890Z
       updated_at: 2026-11-21T17:14:10.890Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/central-mcp-contract.ts
+          symbol: DrBotSessionKey
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 35
 - type: add
   elementId: data-model.objectschema.context-pool-settings
@@ -1388,7 +1393,12 @@
         decided_by: agent
         decided_at: 2026-11-21T17:16:38.937Z
         changeset: changeset-1795281066041-0kg0ygyyb
-  timestamp: 2026-11-21T17:16:38.972Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/dr-bot-launcher.ts
+          symbol: DrBotLauncher
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 59
 - type: add
   elementId: application.applicationfunction.launch-dr-bot-turn
@@ -1405,7 +1415,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/dr-bot-launcher.ts
+          symbol: DrBotLauncher.startTurn
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 60
 - type: add
   elementId: application.applicationservice.dr-bot-conversation
@@ -1425,7 +1440,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: chat.send
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 61
 - type: add
   elementId: application.applicationcomponent.mcp-stdio-bridge
@@ -1447,7 +1467,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/stdio-bridge.ts
+          symbol: runMcpStdioBridge
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 62
 - type: add
   elementId: application.applicationfunction.ensure-central-server
@@ -1468,7 +1493,12 @@
       created_at: 2026-11-21T17:14:10.905Z
       updated_at: 2026-11-21T17:14:10.905Z
       version: 1
-  timestamp: 2026-11-21T17:43:52.642Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/ensure-central-server.ts
+          symbol: ensureCentralServer
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 63
 - type: add
   elementId: application.applicationfunction.sweep-per-project-viewers
@@ -1611,7 +1641,12 @@
       created_at: 2026-11-21T17:14:10.906Z
       updated_at: 2026-11-21T17:14:10.906Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/project-list.ts
+          symbol: projectListHandler
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 69
 - type: add
   elementId: application.applicationfunction.migrate-farm-manifest
@@ -8794,7 +8829,12 @@
       created_at: 2026-11-21T17:21:34.233Z
       updated_at: 2026-11-21T17:21:34.233Z
       version: 1
-  timestamp: 2026-11-21T17:21:34.280Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/ensure-central-server.ts
+          symbol: serverStartingPath
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 549
 - type: add
   elementId: testing.testcoveragetarget.central-process-lifecycle
@@ -9547,7 +9587,12 @@
       created_at: 2026-11-21T17:21:40.996Z
       updated_at: 2026-11-21T17:21:40.996Z
       version: 1
-  timestamp: 2026-11-21T17:21:41.043Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/dr-bot-launcher.ts
+          symbol: drbot.turn
+  timestamp: 2026-11-24T10:43:18.932Z
   sequenceNumber: 600
 - type: add
   elementId: apm.span.checkout-context-evict
@@ -9576,7 +9621,12 @@
       created_at: 2026-11-21T17:21:40.996Z
       updated_at: 2026-11-21T17:21:40.996Z
       version: 1
-  timestamp: 2026-11-21T17:21:41.043Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/checkout-context-pool.ts
+          symbol: checkout_context.evict
+  timestamp: 2026-11-24T10:43:36.825Z
   sequenceNumber: 601
 - type: relationship-add
   elementId: apm.instrumentationscope.dr-cli-tracer::aggregates::apm.span.http-server-request
