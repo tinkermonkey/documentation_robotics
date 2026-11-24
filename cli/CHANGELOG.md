@@ -119,6 +119,17 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 
 ### Fixed
 
+- **An acronym ends before the word after it, in ids (issue 1184).** `deriveElementId` (`dr add`,
+  `model_add`, extraction) now splits a run of capitals before its last capital when a lowercase
+  letter follows, as it already split camelCase and a digit before a capitalised word:
+  `HTTPServer` → `http-server` (was `httpserver`), `OpenAPIExporter` → `open-api-exporter` (was
+  `open-apiexporter`), `Vector3DPoint` → `vector3d-point` (was `vector3dpoint`), so a name gives
+  the same id with or without a space at that break. A plural acronym stays whole (`URLs` → `urls`,
+  `getIDsForUser` → `get-ids-for-user`). A mixed-case word splits as camelCase does: `OAuth` →
+  `o-auth`, as `GitHub` → `git-hub`. Existing ids are never rewritten: the 0.7.x rule is in
+  `EARLIER_ID_RULES` as `derive-0.7`, so adding an existing element's name again (50 in DR's own
+  model, such as `AIEvaluator` at `aievaluator`) still finds that element.
+
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
   MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`

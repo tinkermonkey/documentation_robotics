@@ -22,16 +22,32 @@ import crypto from "node:crypto";
  * toKebabCase("Tier1Status")         // "tier1-status"
  * toKebabCase("Tier1 Panel")         // "tier1-panel"
  * toKebabCase("Vector3D")            // "vector3d"
+ * toKebabCase("HTTPServer")          // "http-server"
+ * toKebabCase("Vector3DPoint")       // "vector3d-point"
+ * toKebabCase("APIs")                // "apis"
  */
 export function toKebabCase(text: string): string {
-  return kebabCase(text, { digitBreak: true, camelDotBreak: true });
+  return kebabCase(text, TODAY);
+}
+
+/** The kebab-case rules {@link toKebabCase} applies today. */
+const TODAY: KebabRules = { digitBreak: true, camelDotBreak: true, acronymBreak: true };
+
+/** The kebab-case rules that came later, switchable so an earlier release's ids can be derived. */
+interface KebabRules {
+  /** A digit ends a word before a capitalised word (CLI 0.7.0). */
+  digitBreak: boolean;
+  /** A dot between camelCase parts is a word break (CLI 0.4.0). */
+  camelDotBreak?: boolean;
+  /** A run of capitals ends before its last capital when a lowercase letter follows (CLI 0.8.0). */
+  acronymBreak?: boolean;
 }
 
 /**
  * {@link toKebabCase}, with the rules that came later switchable, so the ids of an earlier release
  * can still be derived ({@link earlierElementIds}).
  */
-function kebabCase(text: string, rules: { digitBreak: boolean; camelDotBreak?: boolean }): string {
+function kebabCase(text: string, rules: KebabRules): string {
   // A dot between code-symbol parts is a word break: "Repo.findAll" → "Repo-findAll". A part is a
   // code symbol when it is camelCase (a lowercase letter followed by an uppercase one). Other dots
   // are dropped below, so "Node.js", "ASP.NET" and "1.2.3" join as before. (Through CLI 0.3.x
@@ -55,6 +71,13 @@ function kebabCase(text: string, rules: { digitBreak: boolean; camelDotBreak?: b
   // "Tier1Status" is tier1-status, like "Tier1 Panel" is tier1-panel (#1184). A digit followed by
   // a lone capital or an acronym stays joined ("3D", "Vector3D", "P2P").
   if (rules.digitBreak) result = result.replace(/([0-9])([A-Z][a-z])/g, "$1-$2");
+
+  // A run of capitals is an acronym, and it ends before its last capital when a lowercase letter
+  // follows, so the capital starts the next word: "HTTPServer" is http-server, like "HTTP Server";
+  // "Vector3DPoint" is vector3d-point, like "Vector3D Point" (#1184). A plural acronym stays whole
+  // ("URLs", "APIs", "getIDsFor"). Mixed-case brand words split as camelCase does: "OAuth" is
+  // o-auth, as "GitHub" is git-hub.
+  if (rules.acronymBreak) result = result.replace(/([A-Z])(?=[A-Z][a-z])(?![A-Z]s(?![a-z]))/g, "$1-");
 
   // Convert to lowercase
   result = result.toLowerCase();
@@ -99,8 +122,9 @@ export interface DerivedElementId {
  * 1. A route on the root path is `<method> root`: "GET /" → `get-root`.
  * 2. Dots, slashes and braces are word breaks: "Node.js" → `node-js`,
  *    "GET /owners/{ownerId}" → `get-owners-owner-id`.
- * 3. The name is kebab-cased ({@link toKebabCase}): split at spaces, underscores, camelCase, and a
- *    digit followed by a capitalised word ("Tier1Status" → `tier1-status`).
+ * 3. The name is kebab-cased ({@link toKebabCase}): split at spaces, underscores, camelCase, a
+ *    digit followed by a capitalised word ("Tier1Status" → `tier1-status`), and the end of an
+ *    acronym followed by a capitalised word ("HTTPServer" → `http-server`).
  * 4. An id must start with a letter, so a slug that starts with a digit is prefixed with `n-`:
  *    "3D Object Effect" → `n-3d-object-effect`.
  * 5. A slug longer than {@link MAX_ID_SLUG} characters (a test case's title path) is cut at a word
@@ -109,13 +133,19 @@ export interface DerivedElementId {
  * The element keeps its full name; only the id is shaped.
  */
 export function deriveElementId(layer: string, elementType: string, name: string): DerivedElementId {
+  const { slug, notes } = deriveSlug(name, TODAY);
+  return { id: `${layer}.${elementType}.${slug}`, slug, notes };
+}
+
+/** {@link deriveElementId}'s slug and notes under the given kebab-case rules. */
+function deriveSlug(name: string, rules: KebabRules): { slug: string; notes: string[] } {
   const notes: string[] = [];
   const root = /^\s*([A-Z]+)\s+\/\s*$/.exec(name);
-  let slug = toKebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " "));
+  let slug = kebabCase(root ? `${root[1]} root` : name.replace(/[./{}]+/g, " "), rules);
 
   // The id a reader of the name would expect is its plain kebab case. Where rules 1 and 2 give
   // another, say so: a caller that is not shown every id (a batch) then knows to read this one.
-  if (slug && slug !== toKebabCase(name)) {
+  if (slug && slug !== kebabCase(name, rules)) {
     notes.push(
       root
         ? "A route on the root path gets an id that ends in -root."
@@ -137,7 +167,7 @@ export function deriveElementId(layer: string, elementType: string, name: string
     );
   }
 
-  return { id: `${layer}.${elementType}.${slug}`, slug, notes };
+  return { slug, notes };
 }
 
 /**
@@ -162,7 +192,7 @@ function cutSlug(slug: string): string {
 
 /**
  * Every rule a released CLI used to derive an id from a name, read from the code at each `cli-v*`
- * tag (0.1.4 to 0.6.0). An element keeps the id of the release that made it, so these are the ids
+ * tag (0.1.4 to 0.7.x). An element keeps the id of the release that made it, so these are the ids
  * under which the element a name describes may already exist.
  *
  * | Rule | Releases | Used by | How |
@@ -171,8 +201,10 @@ function cutSlug(slug: string): string {
  * | `add-0.4` | 0.4.0–0.6.0 | `dr add`, model_add | as above, but a dot between camelCase parts is a word break |
  * | `extract-0.4` | 0.4.0 | codebase_extract | dots, slashes and braces as word breaks, the root route; no cut |
  * | `extract-0.5` | 0.5.0–0.6.0 | codebase_extract | as 0.4.0, cut past 100 characters with a hash of the uncut slug |
+ * | `derive-0.7` | 0.7.x | all three ({@link deriveElementId}) | as `extract-0.5`, a word break after a digit before a capitalised word, the `n-` prefix; no acronym break |
  *
- * None of them breaks a word after a digit or prefixes a leading digit; those are 0.7.0's. The
+ * None before 0.7.0 breaks a word after a digit or prefixes a leading digit; none before 0.8.0
+ * ends an acronym before a capitalised word ("HTTPServer" was `httpserver`). The
  * analyzer's suggested names (cbm-analyzer) were names, turned into ids by `dr add`.
  *
  * Not listed: the Python CLI and the TypeScript CLI before 0.1.4 kept dots and other characters
@@ -194,6 +226,7 @@ export const EARLIER_ID_RULES: ReadonlyArray<{ rule: string; slug: (name: string
       return slug.length > MAX_ID_SLUG ? cutSlug(slug) : slug;
     },
   },
+  { rule: "derive-0.7", slug: (name) => deriveSlug(name, { digitBreak: true, camelDotBreak: true }).slug },
 ];
 
 /** What extraction kebab-cases for a name: a root route as `<method> root`, and dots, slashes and braces as spaces. */
