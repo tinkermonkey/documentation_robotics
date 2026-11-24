@@ -46,11 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   DR process. `DR_VIEWER_LIFETIME_CHECK_MS` now only sets how often that idle check runs. The docs
   that still described per-project viewers (`GRACEFUL_SHUTDOWN.md`, `review_open` in
   `MCP_SERVER.md` and `CHANGE_MODELING.md`, `dr visualize --no-auth`) now describe the DR process.
-- **Bundled viewer 0.16.0** (issue 1279). The viewer runs on the central process's project- and
+- **Bundled viewer 0.17.0** (issue 1279). The viewer runs on the central process's project- and
   checkout-scoped routes. Every page is `/#/p/<project>/c/<checkout>/...`, so the links
   `review_open`, `project_status` and `dr visualize` give open the checkout they name. A bare `/`
   shows a project and checkout picker. The websocket and DrBot chat are per checkout. It also
-  adds the C4 diagram export (SVG, PNG, Structurizr DSL, C4-PlantUML).
+  adds the C4 diagram export (SVG, PNG, Structurizr DSL, C4-PlantUML), Back and Forward through
+  graph moves, a progress bar while Apply commits (from `changeset.commit.progress`, #1361),
+  change counts on the C4 changeset overlay, and Open/Closed changeset groups in the nav rail.
 
 - **`dr visualize [path]` opens the shared viewer on the central DR process (issue 1279, slice
   4A).** It ensures the farm's process runs (starting `dr serve` detached when none does) and opens
