@@ -130,14 +130,30 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
   `saa-s-app`. An acronym before `Is` or `As` and a capital is read as a plural, as before:
   `URLIsValid` → `urlis-valid`. `toKebabCase` also gives extraction's default `operationId` and
   the analyzer's suggested names, so re-extracting a route whose path joins an acronym to a word
-  can propose a different `operationId` for an existing operation. Existing ids are never rewritten: the 0.7.x rule is in
-  `EARLIER_ID_RULES` as `derive-0.7`, so adding an existing element's name again (50 in DR's own
-  model, such as `AIEvaluator` at `aievaluator`) still finds that element.
+  can propose a different `operationId` for an existing operation. Existing ids are never
+  rewritten: the 0.7.x rule is in `EARLIER_ID_RULES` as `derive-0.7`, so adding an existing
+  element's name again (50 in DR's own model, such as `AIEvaluator` at `aievaluator`) still finds
+  that element.
+
+- **Required attributes are shown before a refusal, and a refusal gives their values (issue 1153).**
+  A page of `codebase_extract` cards carries `undecided.requiredAttributes`: once per type that its
+  cards name (candidates, hint, Tier 1's type), the attributes it requires and the values each
+  takes, so the first `model_add` from the cards can be valid. A refused single `model_add` and a
+  refused `dr add` now name the type's required attributes and their allowed values, as a refused
+  `model_add` batch already did (0.7.0). One helper, `cli/src/utils/required-attributes.ts`, serves
+  all three.
 
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
   MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`
   and ran the viewer's WebSocket on an unsupported pairing.
+- **`changeset_brief` with `since` lists each element once (issue 1291).** The delta's
+  `elements.added` and `elements.removed` now go by whether the element exists in the plan, as
+  `relationships.added` and `removed` do: `added` holds elements that exist now and did not then (a
+  planned add, or a planned delete unstaged), `removed` the reverse (a planned delete, or a planned
+  add unstaged). A base element a pass only updates, or whose update is unstaged, is listed under
+  `updated` alone; it was also listed under `added` (or `removed`). An element added since and
+  edited again stays under `added` only.
 
 ## [0.7.1] - 2026-11-21
 
