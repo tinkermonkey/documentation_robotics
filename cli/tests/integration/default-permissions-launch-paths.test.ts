@@ -7,20 +7,30 @@ import {
   formatForClaudeCode,
   formatForClaudeCodeWithChangesets,
 } from "../../src/coding-agents/default-permissions.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer, type TestFarmServerOptions } from "../helpers/test-farm-server.js";
 import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
 describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
   let workdir: any;
   let testModel: Model;
+  const farms: TestFarmServer[] = [];
+
+  /** A central server whose one project is the test workdir (the model is already on disk). */
+  async function startServer(server: TestFarmServerOptions["server"]): Promise<TestFarmServer> {
+    const t = await startTestFarmServer(workdir.path, { server });
+    farms.push(t);
+    return t;
+  }
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
     testModel = await Model.load(workdir.path);
+    expect(testModel).toBeDefined();
   });
 
   afterEach(async () => {
+    for (const t of farms.splice(0)) await t.stop();
     await workdir.cleanup();
   });
 
@@ -32,7 +42,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("Default mode permission handling", () => {
-      it("should include --allowedTools in process args when withDanger is false", () => {
+      it("should include --allowedTools in process args when withDanger is false", async () => {
         const options: ChatOptions = {
           withDanger: false,
           workingDirectory: workdir.path,
@@ -51,7 +61,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(allowedTools).toEqual(formatForClaudeCode());
       });
 
-      it("should include read-safe permissions in allowlist", () => {
+      it("should include read-safe permissions in allowlist", async () => {
         const options: ChatOptions = {
           withDanger: false,
           workingDirectory: workdir.path,
@@ -68,7 +78,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(allowedTools).toContain("Read(.dr)");
       });
 
-      it("should NOT include write/edit/delete tools in allowlist", () => {
+      it("should NOT include write/edit/delete tools in allowlist", async () => {
         const options: ChatOptions = {
           withDanger: false,
           workingDirectory: workdir.path,
@@ -86,7 +96,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("Danger mode handling (--with-danger)", () => {
-      it("should use --dangerously-skip-permissions when withDanger is true", () => {
+      it("should use --dangerously-skip-permissions when withDanger is true", async () => {
         const options: ChatOptions = {
           withDanger: true,
           workingDirectory: workdir.path,
@@ -97,7 +107,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(args).toContain("--dangerously-skip-permissions");
       });
 
-      it("should NOT include --allowedTools when withDanger is true", () => {
+      it("should NOT include --allowedTools when withDanger is true", async () => {
         const options: ChatOptions = {
           withDanger: true,
           workingDirectory: workdir.path,
@@ -110,7 +120,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("Fallback when withDanger is undefined", () => {
-      it("should default to read-safe allowlist when withDanger is undefined", () => {
+      it("should default to read-safe allowlist when withDanger is undefined", async () => {
         const options: ChatOptions = {
           workingDirectory: workdir.path,
         };
@@ -124,7 +134,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("First message vs subsequent messages", () => {
-      it("should include --allowedTools for first message in default mode", () => {
+      it("should include --allowedTools for first message in default mode", async () => {
         const sessionId = "test-session-123";
         const options: ChatOptions = {
           sessionId,
@@ -138,7 +148,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(args).toContain("--session-id");
       });
 
-      it("should include --allowedTools for subsequent messages in default mode", () => {
+      it("should include --allowedTools for subsequent messages in default mode", async () => {
         const sessionId = "test-session-123";
         const options: ChatOptions = {
           sessionId,
@@ -155,14 +165,16 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
   });
 
   describe("VisualizationServer (dr visualize)", () => {
-    let server: VisualizationServer;
+    let t: TestFarmServer;
+    let server: any;
 
-    beforeEach(() => {
-      server = new VisualizationServer(testModel, { withDanger: false });
+    beforeEach(async () => {
+      t = await startServer({ withDanger: false });
+      server = t.server;
     });
 
     describe("Default mode permission handling", () => {
-      it("should include --allowedTools in launch args when withDanger is false", () => {
+      it("should include --allowedTools in launch args when withDanger is false", async () => {
         // Call the actual buildClaudeChatArgs method via type casting for testing
         const args = (server as any).drBot.buildClaudeChatArgs();
 
@@ -172,7 +184,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(args[allowedToolsIndex + 1]).toEqual(formatForClaudeCode());
       });
 
-      it("should NOT include --dangerously-skip-permissions in default mode", () => {
+      it("should NOT include --dangerously-skip-permissions in default mode", async () => {
         // Call the actual buildClaudeChatArgs method via type casting for testing
         const args = (server as any).drBot.buildClaudeChatArgs();
 
@@ -181,8 +193,8 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("Danger mode handling", () => {
-      it("should use --dangerously-skip-permissions when withDanger is true", () => {
-        const dangerServer = new VisualizationServer(testModel, { withDanger: true });
+      it("should use --dangerously-skip-permissions when withDanger is true", async () => {
+        const dangerServer = (await startServer({ withDanger: true })).server;
 
         // Call the actual buildClaudeChatArgs method on the danger server
         const args = (dangerServer as any).drBot.buildClaudeChatArgs();
@@ -193,35 +205,37 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("Changeset mode handling (--with-changesets)", () => {
-      it("should pass the changeset allowlist and set DR_CHANGESET_ONLY for the agent", () => {
-        const changesetServer = new VisualizationServer(testModel, { withChangesets: true });
+      it("should pass the changeset allowlist and set DR_CHANGESET_ONLY for the agent", async () => {
+        const changesetFarm = await startServer({ withChangesets: true });
+        const changesetServer = changesetFarm.server;
 
         const args = (changesetServer as any).drBot.buildClaudeChatArgs();
         const allowlist = args[args.indexOf("--allowedTools") + 1];
         expect(allowlist).toBe(formatForClaudeCodeWithChangesets());
         expect(args).not.toContain("--dangerously-skip-permissions");
 
-        const env = (changesetServer as any).drBot.buildChatEnv((changesetServer as any).context);
+        const env = (changesetServer as any).drBot.buildChatEnv(await changesetFarm.context());
         expect(env[CHANGESET_ONLY_ENV]).toBe("true");
       });
 
-      it("should not set DR_CHANGESET_ONLY in default mode", () => {
-        const env = (server as any).drBot.buildChatEnv((server as any).context);
+      it("should not set DR_CHANGESET_ONLY in default mode", async () => {
+        const env = (server as any).drBot.buildChatEnv(await t.context());
         expect(env[CHANGESET_ONLY_ENV]).toBeUndefined();
       });
 
-      it("should let danger mode win over changeset mode", () => {
-        const both = new VisualizationServer(testModel, { withDanger: true, withChangesets: true });
+      it("should let danger mode win over changeset mode", async () => {
+        const bothFarm = await startServer({ withDanger: true, withChangesets: true });
+        const both = bothFarm.server;
 
         expect((both as any).drBot.buildClaudeChatArgs()).toContain("--dangerously-skip-permissions");
-        expect((both as any).drBot.buildChatEnv((both as any).context)[CHANGESET_ONLY_ENV]).toBeUndefined();
+        expect((both as any).drBot.buildChatEnv(await bothFarm.context())[CHANGESET_ONLY_ENV]).toBeUndefined();
       });
     });
   });
 
   describe("Acceptance Criteria Verification", () => {
     describe("dr chat default mode can read without prompts", () => {
-      it("should include Bash tool for dr CLI execution", () => {
+      it("should include Bash tool for dr CLI execution", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: false };
 
@@ -232,7 +246,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(allowedTools).toContain("Bash(dr show:*)");
       });
 
-      it("should include Read tool for codebase access", () => {
+      it("should include Read tool for codebase access", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: false };
 
@@ -243,7 +257,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(allowedTools).toContain("Read(.)");
       });
 
-      it("should include Read tool for documentation-robotics folder", () => {
+      it("should include Read tool for documentation-robotics folder", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: false };
 
@@ -254,7 +268,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(allowedTools).toContain("Read(documentation-robotics)");
       });
 
-      it("should include Read tool for .dr folder", () => {
+      it("should include Read tool for .dr folder", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: false };
 
@@ -267,7 +281,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("dr visualize default mode exhibits same read behavior", () => {
-      it("should include all four read-safe capabilities", () => {
+      it("should include all four read-safe capabilities", async () => {
         const allowedTools = formatForClaudeCode();
 
         expect(allowedTools).toContain("Bash(dr show:*)");
@@ -278,22 +292,22 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("Default mode cannot write/edit/delete files", () => {
-      it("should NOT include Edit tool", () => {
+      it("should NOT include Edit tool", async () => {
         const allowedTools = formatForClaudeCode();
         expect(allowedTools).not.toContain("Edit");
       });
 
-      it("should NOT include Write tool", () => {
+      it("should NOT include Write tool", async () => {
         const allowedTools = formatForClaudeCode();
         expect(allowedTools).not.toContain("Write");
       });
 
-      it("should NOT include Delete tool", () => {
+      it("should NOT include Delete tool", async () => {
         const allowedTools = formatForClaudeCode();
         expect(allowedTools).not.toContain("Delete");
       });
 
-      it("should not include dangerous Bash commands", () => {
+      it("should not include dangerous Bash commands", async () => {
         const allowedTools = formatForClaudeCode();
         // Bash is scoped to "dr *" only
         expect(allowedTools).toContain("Bash(dr show:*)");
@@ -301,7 +315,7 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
     });
 
     describe("--with-danger behavior unchanged in both paths", () => {
-      it("should still use --dangerously-skip-permissions in claude-code-client", () => {
+      it("should still use --dangerously-skip-permissions in claude-code-client", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: true };
 
@@ -311,8 +325,8 @@ describe("Read-Safe Permissions in Claude Code Launch Paths", () => {
         expect(args).not.toContain("--allowedTools");
       });
 
-      it("should still use --dangerously-skip-permissions in server", () => {
-        const dangerServer = new VisualizationServer(testModel, { withDanger: true });
+      it("should still use --dangerously-skip-permissions in server", async () => {
+        const dangerServer = (await startServer({ withDanger: true })).server;
 
         // Call the actual buildClaudeChatArgs method on the danger server
         const args = (dangerServer as any).drBot.buildClaudeChatArgs();

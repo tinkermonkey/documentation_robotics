@@ -5,7 +5,7 @@
  * The mock-claude-stream fixture stands in for the claude binary.
  */
 
-import { describe, it, expect, beforeAll, afterAll, afterEach } from "bun:test";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,21 +14,44 @@ import { Model } from "../../../src/core/model.js";
 import { VisualizationServer } from "../../../src/server/server.js";
 import { ClaudeCodeClient } from "../../../src/coding-agents/claude-code-client.js";
 import { CopilotClient } from "../../../src/coding-agents/copilot-client.js";
-import { createFakeWs, createServerWithoutChatDetection, waitFor } from "./helpers.js";
+import { createFakeWs, waitFor } from "./helpers.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 
 const mockClaude = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 let scratch: string;
 const servers: VisualizationServer[] = [];
+/** Each server's farm: its checkout scope, context and stop. */
+const farms = new Map<VisualizationServer, TestFarmServer>();
+const farmOf = (server: VisualizationServer) => farms.get(server)!;
+/** Each server's loaded checkout context. */
+const contexts = new Map<VisualizationServer, unknown>();
+
+/**
+ * Runs a JSON-RPC message through the handler in the server's checkout, as the server does for a
+ * socket's message once it has found the checkout. The context is looked up once, up front, so
+ * messages sent together reach the handler in the order they were sent.
+ */
+function handle(server: VisualizationServer, ws: ReturnType<typeof createFakeWs>, message: Record<string, unknown>): Promise<void> {
+  return (server as any).inContext(contexts.get(server), () => (server as any).handleJSONRPCMessage(ws, message));
+}
 
 beforeAll(() => {
   scratch = join(tmpdir(), `dr-chat-conv-${randomUUID()}`);
   mkdirSync(scratch, { recursive: true });
 });
 
-afterEach(() => {
-  for (const server of servers.splice(0)) server.stop();
+// Stopped when the file ends, not after each test: under --concurrent an afterEach runs while
+// other tests' chats are still going, and stopping a farm server ends its checkouts' chats.
+afterAll(async () => {
+  for (const server of servers.splice(0)) {
+    const t = farms.get(server);
+    farms.delete(server);
+    contexts.delete(server);
+    if (t) await t.stop();
+    else server.stop();
+  }
 });
 
 afterAll(() => {
@@ -38,10 +61,13 @@ afterAll(() => {
 async function createServer(cmd: string[] = ["node", mockClaude]): Promise<VisualizationServer> {
   const dir = join(scratch, randomUUID());
   mkdirSync(dir, { recursive: true });
-  const model = await Model.init(dir, { name: "Chat Conversation Test", version: "0.1.0" }, { lazyLoad: false });
+  await Model.init(dir, { name: "Chat Conversation Test", version: "0.1.0" }, { lazyLoad: false });
 
-  // Keep the server from detecting the real chat CLIs, which would race the client set below.
-  const server = createServerWithoutChatDetection(model, { authEnabled: false });
+  // The helper keeps the server from detecting the real chat CLIs, which would race the client set below.
+  const t = await startTestFarmServer(dir);
+  const server = t.server;
+  farms.set(server, t);
+  contexts.set(server, await t.context());
 
   (server as any).drBot.chatClient = new ClaudeCodeClient();
   (server as any).drBot._testClaudeCmdOverride = cmd;
@@ -56,7 +82,7 @@ async function createServer(cmd: string[] = ["node", mockClaude]): Promise<Visua
 /** Sends a JSON-RPC request over the handler without waiting for its response. */
 async function request(server: VisualizationServer, ws: ReturnType<typeof createFakeWs>, method: string, params: Record<string, unknown>) {
   const id = `req-${randomUUID()}`;
-  await (server as any).handleJSONRPCMessage(ws, { jsonrpc: "2.0", method, params, id });
+  await handle(server, ws, { jsonrpc: "2.0", method, params, id });
   return id;
 }
 
@@ -71,7 +97,7 @@ const HANGS_IN_TOOL = [
 async function send(server: VisualizationServer, params: Record<string, unknown>): Promise<{ response: any; args: string[] }> {
   const ws = createFakeWs();
   const id = `req-${randomUUID()}`;
-  await (server as any).handleJSONRPCMessage(ws, { jsonrpc: "2.0", method: "chat.send", params, id });
+  await handle(server, ws, { jsonrpc: "2.0", method: "chat.send", params, id });
   const response = await waitFor(() => ws.sent.find((m) => m.id === id && (m.result || m.error)));
   return { response, args: [...((server as any).drBot._testLastClaudeChatArgs ?? [])] };
 }
@@ -161,7 +187,7 @@ describe("chat.send conversation_id", () => {
 describe("chat turns in one conversation", () => {
   it("keeps a cancelled conversation busy until its process exits, and tracks the next turn", async () => {
     const server = await createServer(HANGS_IN_TOOL);
-    const active: Map<string, unknown> = (server as any).context.chatProcesses;
+    const active: Map<string, unknown> = (await farmOf(server).context()).chatProcesses;
     const ws = createFakeWs();
 
     const firstId = await request(server, ws, "chat.send", { message: "Hello", conversation_id: "conv-c" });
@@ -253,7 +279,7 @@ describe("a session Claude Code already has", () => {
 
     expect(response.result.status).toBe("complete");
     expect(readFileSync(stateFile, "utf-8")).toBe("2");
-    const session = (server as any).drBot.session({ ...(server as any).context.ref, conversationId: "conv-in-use" });
+    const session = (server as any).drBot.session({ ...(await farmOf(server).context()).ref, conversationId: "conv-in-use" });
     expect(session.started).toBe(true);
     expect(valueOf(args, "--resume")).toBe(session.sessionId);
 
@@ -269,7 +295,7 @@ describe("a session Claude Code already has", () => {
     const sessionId = valueOf(first.args, "--session-id")!;
 
     // Claude Code keeps a session at <config>/projects/<cwd, non-alphanumerics as "-">/<id>.jsonl
-    const rootPath: string = (server as any).model.rootPath;
+    const rootPath: string = (await farmOf(server).context()).model.rootPath;
     const projectDir = join(
       (server as any).drBot._testClaudeConfigDir,
       "projects",
@@ -292,8 +318,11 @@ describe("chat.status permission mode (#1241)", () => {
   ): Promise<any> {
     const dir = join(scratch, randomUUID());
     mkdirSync(dir, { recursive: true });
-    const model = await Model.init(dir, { name: "Chat Status Test", version: "0.1.0" }, { lazyLoad: false });
-    const server = createServerWithoutChatDetection(model, { authEnabled: false, ...options });
+    await Model.init(dir, { name: "Chat Status Test", version: "0.1.0" }, { lazyLoad: false });
+    const t = await startTestFarmServer(dir, { server: options });
+    const server = t.server;
+    farms.set(server, t);
+    contexts.set(server, await t.context());
     if (client) (server as any).drBot.chatClient = client;
     servers.push(server);
     const ws = createFakeWs();

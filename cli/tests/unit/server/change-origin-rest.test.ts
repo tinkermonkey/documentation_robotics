@@ -11,8 +11,7 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import type { ChangeOrigin } from "../../../src/core/changeset.js";
 import { ChangeOriginSchema, ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
-import type { VisualizationServer } from "../../../src/server/server.js";
-import { createServerWithoutChatDetection } from "./helpers.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 
 const TIER1: ChangeOrigin = {
   by: "tier1",
@@ -29,7 +28,7 @@ const MANUAL = "application.applicationcomponent.manual-comp";
 const DROPPED = "application.applicationservice.dropped-service";
 
 let rootPath: string;
-let server: VisualizationServer | undefined;
+let server: TestFarmServer | undefined;
 
 beforeEach(async () => {
   const dir = join(tmpdir(), `dr-server-origin-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -39,7 +38,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  server?.stop();
+  await server?.stop();
   server = undefined;
   await rm(rootPath, { recursive: true, force: true });
 });
@@ -66,17 +65,17 @@ async function seed(): Promise<string> {
   return id;
 }
 
+/** Requests to the project's checkout-scoped routes: `request("/changesets")` is `/api/projects/<p>/checkouts/main/changesets`. */
 async function app() {
-  const model = await Model.load(rootPath, { lazyLoad: false });
-  server = createServerWithoutChatDetection(model, { authEnabled: false });
-  return (path: string) => (server as any).app.request(path) as Promise<Response>;
+  server = await startTestFarmServer(rootPath);
+  return (rest: string) => server!.request(rest);
 }
 
 describe("origin on changeset changes over REST", () => {
   it.serial("GET detail carries each change's origin and the tombstone's, as the schema documents", async () => {
     const id = await seed();
     const request = await app();
-    const response = await request(`/api/changesets/${id}`);
+    const response = await request(`/changesets/${id}`);
     expect(response.status).toBe(200);
     const detail = await response.json();
 
@@ -93,7 +92,7 @@ describe("origin on changeset changes over REST", () => {
     expect(parsed.unstaged[0].change.origin).toEqual({ by: "agent" });
 
     // The list carries counts, not changes; the changeset's own origin is a different field.
-    const list = ChangesetsListSchema.parse(await (await request("/api/changesets")).json());
+    const list = ChangesetsListSchema.parse(await (await request("/changesets")).json());
     expect(list.changesets[id].changes_count).toBe(4);
   });
 

@@ -2,13 +2,15 @@
  * JSON-RPC Chat Methods Tests for Visualization Server
  * Tests chat.status, chat.send, and chat.cancel JSON-RPC methods
  * over WebSocket connections
+ *
+ * The server is a central server over a scratch farm whose one project is the test model
+ * (tests/helpers/test-farm-server.ts). A JSON-RPC message runs in the socket's one checkout
+ * subscription, so each socket subscribes to the checkout's feed before it sends one.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { Model } from "../../src/core/model.js";
-import { VisualizationServer } from "../../src/server/server.js";
-import { portAllocator } from "../helpers/port-allocator.js";
 import { createTestModel } from "../helpers/test-model.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import * as fs from "fs/promises";
 import { tmpdir } from "os";
 
@@ -45,25 +47,46 @@ function waitForJsonRpcResponse(ws: WebSocket, requestId: string | number, timeo
   });
 }
 
+/** Subscribes an open socket to the test checkout's feed and waits for the confirmation. */
+function subscribeFeed(ws: WebSocket, t: TestFarmServer, timeout: number = 5000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      ws.removeEventListener("message", handler);
+      reject(new Error("Timeout waiting for the feed subscription"));
+    }, timeout);
+
+    const handler = (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === "subscribed" && message.project === t.project && message.checkout === t.checkout) {
+          ws.removeEventListener("message", handler);
+          clearTimeout(timer);
+          resolve();
+        }
+      } catch (error) {
+        // Ignore parse errors, wait for next message
+      }
+    };
+
+    ws.addEventListener("message", handler);
+    ws.send(JSON.stringify({ action: "subscribe", project: t.project, checkout: t.checkout }));
+  });
+}
+
 describe.serial("JSON-RPC Chat Methods", () => {
-  let server: VisualizationServer;
-  let model: Model;
-  let port: number;
+  let t: TestFarmServer;
   let wsUrl: string;
   let testDir: string;
 
   beforeAll(async () => {
-    port = await portAllocator.allocatePort();
     testDir = getTestDir();
-    model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(port);
-    wsUrl = `ws://localhost:${port}/ws`;
+    await createTestModel(testDir);
+    t = await startTestFarmServer(testDir, { listen: true });
+    wsUrl = t.wsUrl();
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(port);
+    await t?.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
@@ -78,6 +101,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             // Send chat.status request
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
@@ -125,6 +150,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
               method: "chat.status",
@@ -176,6 +203,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             // Send chat.send without message param
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
@@ -220,6 +249,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             // Send chat.send with empty message
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
@@ -262,6 +293,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             // Send chat.send with non-string message
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
@@ -306,6 +339,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             // Send chat.cancel without any active conversation
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
@@ -347,6 +382,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             ws.send(JSON.stringify({
               jsonrpc: "2.0",
               method: "chat.cancel",
@@ -390,6 +427,8 @@ describe.serial("JSON-RPC Chat Methods", () => {
 
         ws.onopen = async () => {
           try {
+            await subscribeFeed(ws, t);
+
             // chat.status doesn't take params, but extra ones should be ignored per JSON-RPC spec
             ws.send(JSON.stringify({
               jsonrpc: "2.0",

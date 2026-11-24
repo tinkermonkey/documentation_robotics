@@ -1,14 +1,17 @@
 /**
  * Integration tests for VisualizationServer
  *
- * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
- * - Tests start/stop the visualization server requiring exclusive port access
- * - Concurrent execution would cause port conflicts and server state issues
+ * The server is the one-mode central server over a scratch farm (tests/helpers/test-farm-server.ts),
+ * driven in process: REST calls go to the project's main checkout
+ * (/api/projects/{project}/checkouts/main/...), and private calls that need a checkout run inside
+ * its scope (t.inCheckout).
+ *
+ * Serial: the tests share one server and add annotations to it in order.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { Model } from "../../src/core/model.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { tmpdir } from "os";
 import { join } from "path";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
@@ -86,23 +89,27 @@ async function createTestModel(rootPath: string): Promise<Model> {
 describe.serial("VisualizationServer Integration Tests", () => {
   let testDir: string;
   let model: Model;
-  let server: VisualizationServer;
+  let t: TestFarmServer;
+  let server: any;
+  /** Runs a private server call inside the checkout's scope. */
+  const inCheckout = <T>(fn: () => T | Promise<T>) => t.inCheckout(fn);
 
   beforeAll(async () => {
     testDir = join(tmpdir(), `dr-integration-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
+    t = await startTestFarmServer(testDir);
+    server = t.server;
   });
 
-  afterAll(() => {
-    server.stop();
+  afterAll(async () => {
+    await t.stop();
     rmSync(testDir, { recursive: true, force: true });
   });
 
   describe("REST API - Model Endpoint", () => {
     it("should serialize model in graph format", async () => {
-      const modelData = await server["serializeModel"]();
+      const modelData = await inCheckout(() => server["serializeModel"]());
 
       expect(Array.isArray(modelData.nodes)).toBe(true);
       expect(Array.isArray(modelData.links)).toBe(true);
@@ -113,7 +120,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
     });
 
     it("should count elements accurately", async () => {
-      const modelData = await server["serializeModel"]();
+      const modelData = await inCheckout(() => server["serializeModel"]());
 
       const motivationNodes = modelData.nodes.filter((n: any) => n.layer_id === "motivation");
       const applicationNodes = modelData.nodes.filter((n: any) => n.layer_id === "application");
@@ -149,7 +156,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
 
   describe("REST API - Element Endpoint", () => {
     it("should find elements across layers", async () => {
-      const element = await server["findElement"]("motivation.goal.integration-test");
+      const element = await inCheckout(() => server["findElement"]("motivation.goal.integration-test"));
 
       expect(element).toBeDefined();
       expect(element?.name).toBe("Integration Test Goal");
@@ -157,14 +164,14 @@ describe.serial("VisualizationServer Integration Tests", () => {
     });
 
     it("should find elements in different layers", async () => {
-      const element = await server["findElement"]("application.service.integration-test");
+      const element = await inCheckout(() => server["findElement"]("application.service.integration-test"));
 
       expect(element).toBeDefined();
       expect(element?.type).toBe("service");
     });
 
     it("should return null for missing elements", async () => {
-      const element = await server["findElement"]("missing-element-id");
+      const element = await inCheckout(() => server["findElement"]("missing-element-id"));
 
       expect(element).toBeNull();
     });
@@ -180,13 +187,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
       };
 
       // Create annotation via POST HTTP API
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotationData),
-        })
-      );
+      });
 
       expect(response.status).toBe(201);
       const created = await response.json();
@@ -194,9 +199,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
       expect(created.elementId).toBe("motivation.goal.integration-test");
 
       // Retrieve annotation via GET HTTP API
-      const listResponse = await server["app"].request(
-        new Request("http://localhost/api/annotations?elementId=motivation.goal.integration-test")
-      );
+      const listResponse = await t.request("/annotations?elementId=motivation.goal.integration-test");
 
       expect(listResponse.status).toBe(200);
       const list = await listResponse.json();
@@ -224,29 +227,23 @@ describe.serial("VisualizationServer Integration Tests", () => {
       ];
 
       // Create first annotation
-      let response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      let response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotations[0]),
-        })
-      );
+      });
       expect(response.status).toBe(201);
 
       // Create second annotation
-      response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotations[1]),
-        })
-      );
+      });
       expect(response.status).toBe(201);
 
       // Retrieve all annotations for element
-      const listResponse = await server["app"].request(
-        new Request(`http://localhost/api/annotations?elementId=${elementId}`)
-      );
+      const listResponse = await t.request(`/annotations?elementId=${elementId}`);
 
       expect(listResponse.status).toBe(200);
       const list = await listResponse.json();
@@ -266,22 +263,18 @@ describe.serial("VisualizationServer Integration Tests", () => {
       };
 
       // Create annotation via HTTP API
-      const createResponse = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const createResponse = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotationData),
-        })
-      );
+      });
 
       expect(createResponse.status).toBe(201);
       const annotationFromCreate = await createResponse.json();
       expect(annotationFromCreate.id).toBeDefined();
 
       // Verify annotation can be retrieved directly by element ID
-      const listResponse = await server["app"].request(
-        new Request(`http://localhost/api/annotations?elementId=${elementId}`)
-      );
+      const listResponse = await t.request(`/annotations?elementId=${elementId}`);
 
       expect(listResponse.status).toBe(200);
       const list = await listResponse.json();
@@ -301,7 +294,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
       };
 
       const subscribeMsg = { type: "subscribe" as const };
-      await server["handleWSMessage"](mockWs, subscribeMsg);
+      await inCheckout(() => server["handleWSMessage"](mockWs, subscribeMsg));
 
       expect(receivedMessage).toBeDefined();
       expect(receivedMessage.type).toBe("model");
@@ -333,7 +326,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
       };
 
       const mockWs = { send: () => {} };
-      await server["handleWSMessage"](mockWs, annotateMsg);
+      await inCheckout(() => server["handleWSMessage"](mockWs, annotateMsg));
 
       expect(broadcastCalled).toBe(true);
 
@@ -351,7 +344,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
       };
 
       const invalidMsg = { type: "invalid" } as any;
-      await server["handleWSMessage"](mockWs, invalidMsg);
+      await inCheckout(() => server["handleWSMessage"](mockWs, invalidMsg));
 
       expect(errorResponse).toBeDefined();
       expect(errorResponse.type).toBe("error");
@@ -360,7 +353,7 @@ describe.serial("VisualizationServer Integration Tests", () => {
 
   describe("Multi-Layer Support", () => {
     it("should include nodes from all layers", async () => {
-      const modelData = await server["serializeModel"]();
+      const modelData = await inCheckout(() => server["serializeModel"]());
 
       const layerIds = new Set(modelData.nodes.map((n: any) => n.layer_id));
       expect(layerIds.size).toBeGreaterThanOrEqual(2);
@@ -369,10 +362,8 @@ describe.serial("VisualizationServer Integration Tests", () => {
     });
 
     it("should find elements across different layers", async () => {
-      const motivationElement = await server["findElement"]("motivation.goal.integration-test");
-      const applicationElement = await server["findElement"](
-        "application.service.integration-test"
-      );
+      const motivationElement = await inCheckout(() => server["findElement"]("motivation.goal.integration-test"));
+      const applicationElement = await inCheckout(() => server["findElement"]("application.service.integration-test"));
 
       expect(motivationElement?.type).toBe("goal");
       expect(applicationElement?.type).toBe("service");
@@ -434,13 +425,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "",
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -454,13 +443,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "a".repeat(5001),
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -474,13 +461,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "Valid content",
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -494,13 +479,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "Valid content",
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -514,13 +497,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "a".repeat(5000),
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       // Should succeed (200 or 201) or fail due to missing element, not validation
       expect(response.status).not.toBe(400);
@@ -533,13 +514,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "Valid content",
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       // Should succeed (200 or 201) or fail due to missing element, not validation
       expect(response.status).not.toBe(400);
@@ -551,15 +530,12 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "Valid content",
       };
 
-      const response = await server["app"].request(
-        new Request(
-          "http://localhost/api/annotations/test-annotation-id/replies",
+      const response = await t.request("/annotations/test-annotation-id/replies",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(reply),
           }
-        )
       );
 
       expect(response.status).toBe(400);
@@ -573,15 +549,12 @@ describe.serial("VisualizationServer Integration Tests", () => {
         content: "",
       };
 
-      const response = await server["app"].request(
-        new Request(
-          "http://localhost/api/annotations/test-annotation-id/replies",
+      const response = await t.request("/annotations/test-annotation-id/replies",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(reply),
           }
-        )
       );
 
       expect(response.status).toBe(400);
@@ -597,13 +570,11 @@ describe.serial("VisualizationServer Integration Tests", () => {
         extraField: "should be rejected",
       };
 
-      const response = await server["app"].request(
-        new Request("http://localhost/api/annotations", {
+      const response = await t.request("/annotations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(annotation),
-        })
-      );
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();

@@ -12,7 +12,7 @@ import { watchViewerLifetime } from "../../../src/server/viewer-lifetime.js";
 import { watchParent } from "../../../src/utils/parent-watch.js";
 import { parseIdleExitHours } from "../../../src/commands/visualize.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
-import { createServerWithoutChatDetection } from "./helpers.js";
+import { startTestFarmServer } from "../../helpers/test-farm-server.js";
 
 const HOUR = 3_600_000;
 
@@ -118,101 +118,95 @@ describe("watchViewerLifetime: project folder gone", () => {
   });
 });
 
-describe("VisualizationServer.getActivity", () => {
-  it("counts a request as use, and a health check not", async () => {
-    const dir = join(tmpdir(), `dr-viewer-activity-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+describe("VisualizationServer.centralActivity", () => {
+  async function farmServer(prefix: string, options: Parameters<typeof startTestFarmServer>[1] = {}) {
+    const dir = join(tmpdir(), `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     await mkdir(dir, { recursive: true });
     const rootPath = await realpath(dir);
     await Model.init(rootPath, { name: "Activity Test", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
-    const server = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), { authEnabled: false });
+    const t = await startTestFarmServer(rootPath, options);
+    return {
+      t,
+      done: async () => {
+        await t.stop();
+        await rm(rootPath, { recursive: true, force: true });
+      },
+    };
+  }
+
+  it("counts a request as use, and a health check not", async () => {
+    // There is no server without a token any more: the request that counts carries it.
+    const { t, done } = await farmServer("dr-viewer-activity");
+    const server = t.server;
     try {
-      const app = (server as any).app;
-      const started = server.getActivity();
+      const started = server.centralActivity();
       expect(started.clients).toBe(0);
 
       await new Promise((resolve) => setTimeout(resolve, 15));
-      await app.request("/health");
-      expect(server.getActivity().lastActivityAt).toBe(started.lastActivityAt);
+      await t.raw("/health");
+      expect(server.centralActivity().lastActivityAt).toBe(started.lastActivityAt);
 
-      await app.request("/api/model");
-      expect(server.getActivity().lastActivityAt).toBeGreaterThan(started.lastActivityAt);
+      await t.request("/model");
+      expect(server.centralActivity().lastActivityAt).toBeGreaterThan(started.lastActivityAt);
     } finally {
-      server.stop();
-      await rm(rootPath, { recursive: true, force: true });
+      await done();
     }
   });
 
   it("does not count a refused request, a page load or a health check as use; an authenticated one counts", async () => {
-    const dir = join(tmpdir(), `dr-viewer-activity-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    await mkdir(dir, { recursive: true });
-    const rootPath = await realpath(dir);
-    await Model.init(rootPath, { name: "Activity Test", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
-    const server = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
-      authEnabled: true,
-      authToken: "secret",
-    });
+    const { t, done } = await farmServer("dr-viewer-activity", { token: "secret" });
+    const server = t.server;
     try {
-      const app = (server as any).app;
-      const started = server.getActivity().lastActivityAt;
+      const started = server.centralActivity().lastActivityAt;
       await new Promise((resolve) => setTimeout(resolve, 15));
       // Anything polling the port: no token, a wrong token, the page, the health check.
-      expect((await app.request("/api/model")).status).toBe(401);
-      expect((await app.request("/api/model", { headers: { Authorization: "Bearer wrong" } })).status).toBe(403);
-      await app.request("/");
-      await app.request("/health");
-      expect(server.getActivity().lastActivityAt).toBe(started);
+      expect((await t.raw(t.api("/model"), { headers: {} })).status).toBe(401);
+      expect((await t.raw(t.api("/model"), { headers: { Authorization: "Bearer wrong" } })).status).toBe(403);
+      await t.raw("/", { headers: {} });
+      await t.raw("/health", { headers: {} });
+      expect(server.centralActivity().lastActivityAt).toBe(started);
 
-      await app.request("/api/model", { headers: { Authorization: "Bearer secret" } });
-      expect(server.getActivity().lastActivityAt).toBeGreaterThan(started);
+      await t.raw(t.api("/model"), { headers: { Authorization: "Bearer secret" } });
+      expect(server.centralActivity().lastActivityAt).toBeGreaterThan(started);
     } finally {
-      server.stop();
-      await rm(rootPath, { recursive: true, force: true });
+      await done();
     }
   });
 
   it("names itself, its pids and its connected tabs on /health, only to a caller with the token", async () => {
-    const dir = join(tmpdir(), `dr-viewer-health-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    await mkdir(dir, { recursive: true });
-    const rootPath = await realpath(dir);
-    await Model.init(rootPath, { name: "Health Test", version: "0.1.0", specVersion: getCliBundledSpecVersion() });
-    const server = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
-      authEnabled: true,
-      authToken: "secret",
-      viewerId: "viewer-xyz",
-      launcherPid: 4242,
+    const { t, done } = await farmServer("dr-viewer-health", {
+      token: "secret",
+      server: { launcherPid: 4242 },
+      central: { serverId: "server-xyz" },
     });
-    const open = createServerWithoutChatDetection(await Model.load(rootPath, { lazyLoad: false }), {
-      authEnabled: false,
-      viewerId: "viewer-open",
-      launcherPid: 4242,
-    });
-    const health = async (target: typeof server, init?: RequestInit) =>
-      ((await (target as any).app.request("/health", init)) as Response).json();
-    const identity = ["pid", "launcherPid", "viewerId", "clients"];
+    const health = async (init: RequestInit) => ((await t.raw("/health", init)) as Response).json();
+    const identity = ["serverId", "pid", "launcherPid", "farmRoot", "clients", "mcpSessions", "drBotTurns", "loadedCheckouts"];
     try {
-      expect(await health(server, { headers: { Authorization: "Bearer secret" } })).toMatchObject({
+      expect(await health({ headers: { Authorization: "Bearer secret" } })).toMatchObject({
         status: "ok",
-        viewerId: "viewer-xyz",
+        serverId: "server-xyz",
         pid: process.pid,
         launcherPid: 4242,
+        farmRoot: t.farm.root,
         clients: 0,
+        mcpSessions: 0,
+        drBotTurns: 0,
+        loadedCheckouts: expect.any(Number),
       });
-      expect(await health(server, { headers: { Authorization: "Bearer wrong" } })).toEqual({
+      expect(await health({ headers: { Authorization: "Bearer wrong" } })).toEqual({
         status: "ok",
         version: "0.1.0",
         cliVersion: expect.any(String),
       });
       // Anyone else, a web page included: status and version only.
-      const anonymous = await health(server);
+      const anonymous = await health({ headers: {} });
       for (const key of identity) expect(anonymous).not.toHaveProperty(key);
       expect(anonymous.cliVersion).toBeTruthy();
-      // A viewer without auth has no token, so it tells nobody.
-      const unauthenticated = await health(open);
+      // A caller without the token learns nothing more, whatever else it sends (a query that is not the token).
+      const unauthenticated = await health({ headers: { Authorization: "Basic secret" } });
       for (const key of identity) expect(unauthenticated).not.toHaveProperty(key);
     } finally {
-      open.stop();
-      server.stop();
-      await rm(rootPath, { recursive: true, force: true });
+      await done();
     }
   });
 });

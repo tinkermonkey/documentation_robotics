@@ -18,25 +18,35 @@ import {
   formatForClaudeCode,
   formatForCopilot,
 } from "../../src/coding-agents/default-permissions.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer, type TestFarmServerOptions } from "../helpers/test-farm-server.js";
 import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
 describe("Permission Parity Across All Four Code Paths", () => {
   let workdir: any;
   let testModel: Model;
+  const farms: TestFarmServer[] = [];
+
+  /** A central server whose one project is the test workdir (the model is already on disk). */
+  async function startServer(server: TestFarmServerOptions["server"]): Promise<TestFarmServer> {
+    const t = await startTestFarmServer(workdir.path, { server });
+    farms.push(t);
+    return t;
+  }
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
     testModel = await Model.load(workdir.path);
+    expect(testModel).toBeDefined();
   });
 
   afterEach(async () => {
+    for (const t of farms.splice(0)) await t.stop();
     await workdir.cleanup();
   });
 
   describe("Two-Tier Permission Model", () => {
-    it("should have exactly two tiers: read-safe (default) and unrestricted (danger)", () => {
+    it("should have exactly two tiers: read-safe (default) and unrestricted (danger)", async () => {
       // Verify the model is two-tier
       const permissionTiers = ["read-safe", "unrestricted"];
       expect(permissionTiers).toHaveLength(2);
@@ -50,7 +60,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
       expect(writePerms).toHaveLength(0);
     });
 
-    it("should enable four read-safe capabilities in default mode", () => {
+    it("should enable four read-safe capabilities in default mode", async () => {
       const capabilities = [
         "run dr CLI",
         "read codebase",
@@ -69,11 +79,11 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
   describe("Claude Code Permission Parity (dr chat vs dr visualize)", () => {
     describe("Default mode permission behavior", () => {
-      it("should use identical allowlist format in both paths", () => {
+      it("should use identical allowlist format in both paths", async () => {
         const claudeClient = new ClaudeCodeClient();
         const claudeFormat = formatForClaudeCode();
 
-        const visualizeServer = new VisualizationServer(testModel, { withDanger: false });
+        const visualizeServer = (await startServer({ withDanger: false })).server;
         const serverFormat = (visualizeServer as any).drBot.buildClaudeChatArgs();
         const serverAllowedToolsIdx = serverFormat.indexOf("--allowedTools");
         const serverAllowlist = serverFormat[serverAllowedToolsIdx + 1];
@@ -81,7 +91,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(claudeFormat).toEqual(serverAllowlist);
       });
 
-      it("should include all four read-safe capabilities in both paths", () => {
+      it("should include all four read-safe capabilities in both paths", async () => {
         const claudeFormat = formatForClaudeCode();
 
         // Verify all four capabilities
@@ -91,7 +101,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(claudeFormat).toContain("Read(.dr)");
       });
 
-      it("should NOT include write tools in either path", () => {
+      it("should NOT include write tools in either path", async () => {
         const claudeFormat = formatForClaudeCode();
 
         expect(claudeFormat).not.toContain("Edit");
@@ -99,7 +109,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(claudeFormat).not.toContain("Delete");
       });
 
-      it("should use --allowedTools in chat path when withDanger is false", () => {
+      it("should use --allowedTools in chat path when withDanger is false", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: false };
         const args = (client as any).getProcessArgs(options, true);
@@ -108,8 +118,8 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(args).not.toContain("--dangerously-skip-permissions");
       });
 
-      it("should use --allowedTools in visualize path when withDanger is false", () => {
-        const server = new VisualizationServer(testModel, { withDanger: false });
+      it("should use --allowedTools in visualize path when withDanger is false", async () => {
+        const server = (await startServer({ withDanger: false })).server;
         const args = (server as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--allowedTools");
@@ -118,7 +128,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
     });
 
     describe("Danger mode (--with-danger) consistency", () => {
-      it("should use --dangerously-skip-permissions in chat path when withDanger is true", () => {
+      it("should use --dangerously-skip-permissions in chat path when withDanger is true", async () => {
         const client = new ClaudeCodeClient();
         const options: ChatOptions = { withDanger: true };
         const args = (client as any).getProcessArgs(options, true);
@@ -127,20 +137,20 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(args).not.toContain("--allowedTools");
       });
 
-      it("should use --dangerously-skip-permissions in visualize path when withDanger is true", () => {
-        const server = new VisualizationServer(testModel, { withDanger: true });
+      it("should use --dangerously-skip-permissions in visualize path when withDanger is true", async () => {
+        const server = (await startServer({ withDanger: true })).server;
         const args = (server as any).drBot.buildClaudeChatArgs();
 
         expect(args).toContain("--dangerously-skip-permissions");
         expect(args).not.toContain("--allowedTools");
       });
 
-      it("should NOT include allowlist when danger mode is enabled in either path", () => {
+      it("should NOT include allowlist when danger mode is enabled in either path", async () => {
         const client = new ClaudeCodeClient();
         const chatArgs = (client as any).getProcessArgs({ withDanger: true }, true);
         const chatAllowlist = chatArgs.includes("--allowedTools");
 
-        const server = new VisualizationServer(testModel, { withDanger: true });
+        const server = (await startServer({ withDanger: true })).server;
         const visualizeArgs = (server as any).drBot.buildClaudeChatArgs();
         const visualizeAllowlist = visualizeArgs.includes("--allowedTools");
 
@@ -152,7 +162,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
   describe("GitHub Copilot Permission Parity (dr chat vs dr visualize)", () => {
     describe("Default mode permission behavior", () => {
-      it("should use identical allowlist format in both paths", () => {
+      it("should use identical allowlist format in both paths", async () => {
         const copilotFormat = formatForCopilot();
         // Note: Both CopilotClient (chat path) and VisualizationServer.addCopilotPermissionFlags
         // (visualize path) use the same formatForCopilot() function to build the --allowedTools
@@ -163,7 +173,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(copilotFormat.length).toBeGreaterThan(0);
       });
 
-      it("should include all four read-safe capabilities in both paths", () => {
+      it("should include all four read-safe capabilities in both paths", async () => {
         const copilotFormat = formatForCopilot();
 
         // Verify all four capabilities
@@ -173,7 +183,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(copilotFormat).toContain("Read(.dr)");
       });
 
-      it("should NOT include write tools in either path", () => {
+      it("should NOT include write tools in either path", async () => {
         const copilotFormat = formatForCopilot();
 
         expect(copilotFormat).not.toContain("Edit");
@@ -183,7 +193,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
     });
 
     describe("Danger mode (--with-danger) consistency", () => {
-      it("danger mode is verified via code inspection and shared utility usage", () => {
+      it("danger mode is verified via code inspection and shared utility usage", async () => {
         // Both CopilotClient (chat path) and VisualizationServer (visualize path)
         // now use the shared applyCopilotPermissions utility from default-permissions.ts
         // which implements danger mode by attempting to add --allow-all-tools.
@@ -199,7 +209,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
 
   describe("Cross-Client Behavioral Parity in Default Mode", () => {
     describe("Both clients restrict to same capabilities in default mode", () => {
-      it("should have identical tool count in default allowlists", () => {
+      it("should have identical tool count in default allowlists", async () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
@@ -210,7 +220,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(claudeSpecs.length).toBe(copilotSpecs.length);
       });
 
-      it("should enable dr CLI execution for both clients", () => {
+      it("should enable dr CLI execution for both clients", async () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
@@ -218,7 +228,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(copilotFormat).toContain("Bash(dr show:*)");
       });
 
-      it("should enable codebase reading for both clients", () => {
+      it("should enable codebase reading for both clients", async () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
@@ -226,7 +236,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(copilotFormat).toContain("Read(.");
       });
 
-      it("should enable documentation-robotics reading for both clients", () => {
+      it("should enable documentation-robotics reading for both clients", async () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
@@ -234,7 +244,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(copilotFormat).toContain("Read(documentation-robotics)");
       });
 
-      it("should enable .dr folder reading for both clients", () => {
+      it("should enable .dr folder reading for both clients", async () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
@@ -242,7 +252,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
         expect(copilotFormat).toContain("Read(.dr)");
       });
 
-      it("should deny write operations for both clients in default mode", () => {
+      it("should deny write operations for both clients in default mode", async () => {
         const claudeFormat = formatForClaudeCode();
         const copilotFormat = formatForCopilot();
 
@@ -256,19 +266,19 @@ describe("Permission Parity Across All Four Code Paths", () => {
   });
 
   describe("No Regression to Danger Mode Across All Paths", () => {
-    it("Claude Code chat path: withDanger=true uses --dangerously-skip-permissions", () => {
+    it("Claude Code chat path: withDanger=true uses --dangerously-skip-permissions", async () => {
       const client = new ClaudeCodeClient();
       const args = (client as any).getProcessArgs({ withDanger: true }, true);
       expect(args).toContain("--dangerously-skip-permissions");
     });
 
-    it("Claude Code visualize path: withDanger=true uses --dangerously-skip-permissions", () => {
-      const server = new VisualizationServer(testModel, { withDanger: true });
+    it("Claude Code visualize path: withDanger=true uses --dangerously-skip-permissions", async () => {
+      const server = (await startServer({ withDanger: true })).server;
       const args = (server as any).drBot.buildClaudeChatArgs();
       expect(args).toContain("--dangerously-skip-permissions");
     });
 
-    it("Copilot chat path: withDanger=true attempts --allow-all-tools", () => {
+    it("Copilot chat path: withDanger=true attempts --allow-all-tools", async () => {
       const client = new CopilotClient();
       // CopilotClient.spawnCopilotProcess uses the shared applyCopilotPermissions utility
       // which checks for danger mode and adds --allow-all-tools flag. This is verified
@@ -276,8 +286,8 @@ describe("Permission Parity Across All Four Code Paths", () => {
       expect(client).toBeDefined();
     });
 
-    it("Copilot visualize path: withDanger=true configured correctly", () => {
-      const server = new VisualizationServer(testModel, { withDanger: true });
+    it("Copilot visualize path: withDanger=true configured correctly", async () => {
+      const server = (await startServer({ withDanger: true })).server;
       // Verify danger mode is enabled on the instance
       expect((server as any).drBot.withDanger).toBe(true);
       // The VisualizationServer.addCopilotPermissionFlags calls the shared applyCopilotPermissions
@@ -286,7 +296,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
       // the permission logic will execute correctly when launching Copilot.
     });
 
-    it("Default mode (withDanger=false) is symmetric across all paths", () => {
+    it("Default mode (withDanger=false) is symmetric across all paths", async () => {
       // Chat paths
       const claudeClient = new ClaudeCodeClient();
       const claudeArgs = (claudeClient as any).getProcessArgs({ withDanger: false }, true);
@@ -296,17 +306,17 @@ describe("Permission Parity Across All Four Code Paths", () => {
       expect(copilotClient).toBeDefined(); // Can construct
 
       // Visualize paths
-      const claudeServer = new VisualizationServer(testModel, { withDanger: false });
+      const claudeServer = (await startServer({ withDanger: false })).server;
       const claudeServerArgs = (claudeServer as any).drBot.buildClaudeChatArgs();
       expect(claudeServerArgs).toContain("--allowedTools");
 
-      const copilotServer = new VisualizationServer(testModel, { withDanger: false });
+      const copilotServer = (await startServer({ withDanger: false })).server;
       expect((copilotServer as any).drBot.withDanger).toBe(false);
     });
   });
 
   describe("Acceptance Criteria Verification", () => {
-    it("✓ Default-mode read behavior confirmed identical across Claude Code and GitHub Copilot", () => {
+    it("✓ Default-mode read behavior confirmed identical across Claude Code and GitHub Copilot", async () => {
       const claudeFormat = formatForClaudeCode();
       const copilotFormat = formatForCopilot();
 
@@ -325,14 +335,14 @@ describe("Permission Parity Across All Four Code Paths", () => {
       });
     });
 
-    it("✓ Default-mode read behavior confirmed identical across dr chat and dr visualize", () => {
+    it("✓ Default-mode read behavior confirmed identical across dr chat and dr visualize", async () => {
       // Claude Code: chat vs visualize
       const claudeClient = new ClaudeCodeClient();
       const chatArgs = (claudeClient as any).getProcessArgs({ withDanger: false }, true);
       const chatAllowedToolsIdx = chatArgs.indexOf("--allowedTools");
       const chatAllowlist = chatArgs[chatAllowedToolsIdx + 1];
 
-      const claudeServer = new VisualizationServer(testModel, { withDanger: false });
+      const claudeServer = (await startServer({ withDanger: false })).server;
       const visualizeArgs = (claudeServer as any).drBot.buildClaudeChatArgs();
       const visualizeAllowedToolsIdx = visualizeArgs.indexOf("--allowedTools");
       const visualizeAllowlist = visualizeArgs[visualizeAllowedToolsIdx + 1];
@@ -340,7 +350,7 @@ describe("Permission Parity Across All Four Code Paths", () => {
       expect(chatAllowlist).toEqual(visualizeAllowlist);
     });
 
-    it("✓ --with-danger mode verified unchanged across all four code paths", () => {
+    it("✓ --with-danger mode verified unchanged across all four code paths", async () => {
       // Chat paths with danger
       const claudeChat = (new ClaudeCodeClient() as any).getProcessArgs(
         { withDanger: true },
@@ -350,13 +360,13 @@ describe("Permission Parity Across All Four Code Paths", () => {
       expect(claudeChat).not.toContain("--allowedTools");
 
       // Visualize paths with danger
-      const claudeViz = (new VisualizationServer(testModel, { withDanger: true }) as any).drBot.buildClaudeChatArgs();
+      const claudeViz = ((await startServer({ withDanger: true })).server as any).drBot.buildClaudeChatArgs();
       expect(claudeViz).toContain("--dangerously-skip-permissions");
       expect(claudeViz).not.toContain("--allowedTools");
 
       // Copilot clients should handle danger mode gracefully
       expect(new CopilotClient()).toBeDefined();
-      expect(new VisualizationServer(testModel, { withDanger: true })).toBeDefined();
+      expect((await startServer({ withDanger: true })).server).toBeDefined();
     });
   });
 });

@@ -1,14 +1,18 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { VisualizationServer } from "../../../src/server/server.js";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import type { VisualizationServer } from "../../../src/server/server.js";
 import { Model } from "../../../src/core/model.js";
-import { mkdtemp } from "fs/promises";
+import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 
 describe("VisualizationServer.getOpenAPIDocument()", () => {
   let server: VisualizationServer;
+  let farm: TestFarmServer | undefined;
   let testDir: string;
 
-  beforeEach(async () => {
+  // One server for the describe: getOpenAPIDocument reads no checkout, and a server per test
+  // would race on the shared variables when the tests run concurrently.
+  beforeAll(async () => {
     // Create a temporary directory for test model
     testDir = await mkdtemp(`${tmpdir()}/dr-test-`);
 
@@ -20,8 +24,15 @@ describe("VisualizationServer.getOpenAPIDocument()", () => {
       created: new Date().toISOString(),
     };
 
-    const model = await Model.init(testDir, manifestData, { lazyLoad: false });
-    server = new VisualizationServer(model);
+    await Model.init(testDir, manifestData, { lazyLoad: false });
+    farm = await startTestFarmServer(testDir);
+    server = farm.server;
+  });
+
+  afterAll(async () => {
+    await farm?.stop();
+    farm = undefined;
+    await rm(testDir, { recursive: true, force: true });
   });
 
   it("should return valid OpenAPI document structure", () => {

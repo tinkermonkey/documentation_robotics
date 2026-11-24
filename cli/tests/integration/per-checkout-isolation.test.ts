@@ -7,13 +7,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { realpath } from "node:fs/promises";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 import type { CheckoutRef, CheckoutResolver } from "../../src/core/checkout-types.js";
 import { Model } from "../../src/core/model.js";
 import { CheckoutContextPool } from "../../src/server/checkout-context-pool.js";
 import type { CheckoutContext } from "../../src/server/checkout-context.js";
-import { VisualizationServer } from "../../src/server/server.js";
-import { createFakeWs, createServerWithoutChatDetection } from "../unit/server/helpers.js";
+import { createFakeWs } from "../unit/server/helpers.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 
 const ELEMENT = "motivation.goal.manage-tasks";
 
@@ -92,24 +93,26 @@ describe("per-checkout isolation", () => {
   });
 
   it("servers over two checkouts never serve or broadcast each other's state", async () => {
-    const servers: VisualizationServer[] = [];
+    // One central server per checkout copy: each serves its copy as the main checkout of a
+    // one-project scratch farm, with a fake viewer socket subscribed to it.
+    const servers: TestFarmServer[] = [];
     const start = async (r: CheckoutRef) => {
-      const model = await Model.load(dirs.get(label(r))!, { lazyLoad: false });
-      const server = createServerWithoutChatDetection(model, { authEnabled: false });
+      const server = await startTestFarmServer(dirs.get(label(r))!);
       servers.push(server);
       const ws = createFakeWs();
-      (server as any).clients.add(ws);
+      (await server.context()).subscribers.add(ws);
       return { server, ws };
     };
-    const request = (server: VisualizationServer, path: string, init?: RequestInit): Promise<Response> =>
-      (server as any).app.request(path, init);
+    /** An in-process request to the server's scoped checkout path for `path`, with the token. */
+    const request = (server: TestFarmServer, path: string, init?: RequestInit): Promise<Response> =>
+      server.request(path, init);
 
     try {
       const alpha = await start(ALPHA_MAIN);
       const feature = await start(ALPHA_FEATURE);
       const beta = await start(BETA_MAIN);
 
-      const created = await request(alpha.server, "/api/annotations", {
+      const created = await request(alpha.server, "/annotations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ elementId: ELEMENT, author: "reviewer", content: "only in alpha/main" }),
@@ -118,25 +121,27 @@ describe("per-checkout isolation", () => {
       expect(alpha.ws.sent.map((m: any) => m.type)).toContain("annotation.added");
 
       for (const other of [feature, beta]) {
-        const listed = await (await request(other.server, "/api/annotations")).json();
+        const listed = await (await request(other.server, "/annotations")).json();
         expect(listed.annotations).toEqual([]);
         expect(other.ws.sent).toEqual([]);
       }
-      const own = await (await request(alpha.server, "/api/annotations")).json();
+      const own = await (await request(alpha.server, "/annotations")).json();
       expect(own.annotations).toHaveLength(1);
 
       // A changeset staged in alpha/feature is listed by its server only.
-      const featureModel = (feature.server as any).model as Model;
-      const staged = await (feature.server as any).context.stagingArea().create("feature-plan");
-      expect(featureModel.rootPath).toBe(dirs.get("alpha/feature"));
-      const featureList = (await (await request(feature.server, "/api/changesets")).json()).changesets;
+      const featureContext = await feature.server.context();
+      const featureModel = featureContext.model as Model;
+      const staged = await featureContext.stagingArea().create("feature-plan");
+      // The farm registers a project by its real path (macOS: /var is /private/var).
+      expect(featureModel.rootPath).toBe(await realpath(dirs.get("alpha/feature")!));
+      const featureList = (await (await request(feature.server, "/changesets")).json()).changesets;
       expect(Object.keys(featureList)).toContain(staged.id);
       for (const other of [alpha, beta]) {
-        const list = (await (await request(other.server, "/api/changesets")).json()).changesets;
+        const list = (await (await request(other.server, "/changesets")).json()).changesets;
         expect(Object.keys(list)).not.toContain(staged.id);
       }
     } finally {
-      for (const server of servers) server.stop();
+      for (const server of servers) await server.stop();
     }
   });
 });

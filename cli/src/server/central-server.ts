@@ -7,14 +7,15 @@
  * resolver; a `checkout-removed` event closes that checkout's context. It serves:
  *
  * - `GET /api/projects`, `/api/projects/{project}` and `/api/projects/{project}/checkouts`;
- * - every project-data route under `/api/projects/{project}/checkouts/{checkout}/...`, with the
- *   bodies of today's unscoped routes, and 404 for an unknown project or checkout, or a checkout
- *   that is not on disk;
- * - the unscoped `/api/...` routes, for the checkout the process was started in (its working
- *   directory's checkout, else the farm's first project's main checkout), until slice 4 removes them;
+ * - every project-data route under `/api/projects/{project}/checkouts/{checkout}/...`, and 404
+ *   for an unknown project or checkout, or a checkout that is not on disk;
+ * - the retired unscoped project-data paths (`/api/model`, `/api/changesets`, ...), each `410 Gone`
+ *   with the scoped template that replaces it, for this one release (slice 4);
+ * - `/mcp`, the MCP interface for every session of the farm;
  * - `/ws`: one socket per tab, subscribing per checkout with `{action, project, checkout}` frames;
  * - `/health` as `CentralHealth`, the only route that needs no token (the viewer's pages carry the
- *   token in the URL fragment, so they need none either).
+ *   token in the URL fragment, so they need none either), and the viewer, its deep-link paths
+ *   (`/p/<project>/c/<checkout>/...`) included.
  *
  * It listens on 127.0.0.1 only. (`application.applicationcomponent.visualization-server`)
  */
@@ -26,8 +27,9 @@ import type { CentralServer, CentralServerOptions, StartCentralServer } from "./
 import { VisualizationServer } from "./server.js";
 
 /**
- * The checkout the unscoped routes serve: the one the process was started in (its working
- * directory), else the main checkout of the farm's first project by name; null for an empty farm.
+ * The MCP fallback root (an MCP session with no root of its own works there): the checkout the
+ * process was started in (its working directory), else the main checkout of the farm's first
+ * project by name; null for an empty farm. It serves no route.
  */
 export async function defaultCheckoutFor(registry: ProjectRegistry, cwd: string = process.cwd()): Promise<CheckoutRef | null> {
   try {
@@ -44,7 +46,7 @@ export async function defaultCheckoutFor(registry: ProjectRegistry, cwd: string 
 }
 
 export interface StartCentralServerTestOptions {
-  /** The checkout the unscoped routes serve. Default: `defaultCheckoutFor(registry)`. */
+  /** The MCP fallback root. Default: `defaultCheckoutFor(registry)`. */
   defaultCheckout?: CheckoutRef | null;
   /** How often the server asks the registry about removed checkouts (ms; 0 turns it off). */
   removalCheckMs?: number;
@@ -60,8 +62,7 @@ export async function startCentralServerWith(
 ): Promise<CentralServer> {
   const defaultCheckout =
     extra.defaultCheckout !== undefined ? extra.defaultCheckout : await defaultCheckoutFor(options.registry);
-  const server = new VisualizationServer(null, {
-    authEnabled: true,
+  const server = new VisualizationServer({
     authToken: options.token,
     withChangesets: options.withChangesets,
     withDanger: options.withDanger,

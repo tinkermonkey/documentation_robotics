@@ -45,6 +45,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   given; a name another repository holds is refused, never suffixed.
 - **`dr farm sync` and `dr farm pull` act on the main checkout**, also when a v1 entry names a
   linked worktree.
+- **One server mode, and every project-data route names its checkout (issue 1279, slice 4B).**
+  The visualization server is the central process only: the per-project single-model mode and its
+  entry point (`dist/server-entry.js`) are gone. The model, layer, annotation, changeset
+  (verification, review, commit and discard included) and Tier 1 routes are served only under
+  `/api/projects/{project}/checkouts/{checkout}/...`. For this one release, each old unscoped path
+  (`/api/model`, `/api/changesets`, ...) answers `410 Gone` with
+  `{ "error", "replacement" }`, `replacement` being the scoped path template, for a custom viewer
+  build (`--viewer-path`) that still calls it; none is in `docs/api-spec.yaml`. The process's
+  default checkout serves no route: it is only where an MCP session with no root of its own works.
+  A websocket message that names no checkout runs in the socket's one subscription, else gets an
+  error: no checkout is assumed. Every call needs the token (there is no unauthenticated server).
+  `/health` no longer reports `viewerId`; with the token it reports `serverId`, `farmRoot`,
+  `mcpSessions`, `drBotTurns` and `loadedCheckouts`. The viewer's deep-link paths
+  (`/p/<project>/c/<checkout>/...`) load its page. `docs/api-spec.yaml` now also lists `/ws`, `/mcp`,
+  `/api-docs` and `/api-spec.yaml`.
 
 - **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
   Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`

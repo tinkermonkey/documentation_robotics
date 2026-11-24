@@ -49,16 +49,16 @@ async function generateOpenAPISpec() {
     const outputPath = resolveOutputPath(process.argv.slice(2), process.env);
     console.log("🔨 Generating OpenAPI specification...");
 
-    // The central server's routes: the project routes, every project-data route under
-    // /api/projects/{project}/checkouts/{checkout}/, and the unscoped routes it still serves
-    // (issue 1279). Its farm is empty: building the routes reads no project.
+    // The server's routes: the project routes, every project-data route under
+    // /api/projects/{project}/checkouts/{checkout}/, health, the spec, the docs, the websocket and
+    // MCP (issue 1279). The retired unscoped paths answer 410 and are not documented. Its farm is
+    // empty: building the routes reads no project.
     console.log("🚀 Creating server instance...");
     const registry = ProjectRegistry.fromManifest(
       { root: projectRoot, file: join(projectRoot, "farm.yaml"), source: "folder" },
       FarmManifest.create("openapi")
     );
-    const server = new VisualizationServer(null, {
-      authEnabled: false,
+    const server = new VisualizationServer({
       central: { registry, defaultCheckout: null },
     });
 

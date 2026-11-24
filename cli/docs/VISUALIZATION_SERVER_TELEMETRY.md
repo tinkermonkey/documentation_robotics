@@ -172,7 +172,7 @@ dr visualize
 ### HTTP API Request
 
 ```
-1. Client: GET /api/model?token=dr-123...
+1. Client: GET /api/projects/my-project/checkouts/main/model?token=dr-123...
 2. Middleware: Creates span "http.server.request"
 3. Middleware: Logs "Request received"
 4. Handler: Processes request

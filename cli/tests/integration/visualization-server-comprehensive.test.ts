@@ -10,10 +10,12 @@
  * 5. WebSocket protocol
  * 6. File monitoring
  *
- * REQUIRES SERIAL EXECUTION: Multiple describe.serial blocks are used because:
- * - Tests start/stop the visualization server which requires exclusive port access
- * - Tests watch the file system for changes which must happen sequentially
- * - Concurrent execution would cause port conflicts and file monitoring race conditions
+ * The server is the one-mode central server over a scratch farm (tests/helpers/test-farm-server.ts):
+ * each block registers its model folder as the farm's one project and talks to its main checkout
+ * at /api/projects/{project}/checkouts/main/..., over HTTP on a port the OS picks, with the token.
+ *
+ * REQUIRES SERIAL EXECUTION: describe.serial blocks are used because the tests in a block share
+ * state (annotations created in order, one websocket, file changes watched in sequence).
  */
 
 import {
@@ -24,17 +26,29 @@ import {
   afterAll,
   beforeEach
 } from "bun:test";
-import { VisualizationServer } from "../../src/server/server";
 import { Model } from "../../src/core/model";
 import { Element } from "../../src/core/element";
 import { Layer } from "../../src/core/layer";
 import { Manifest } from "../../src/core/manifest";
-import { portAllocator } from "../helpers/port-allocator.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import * as fs from "fs/promises";
 
 import { mkdtemp } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
+
+/** Listens on a port the OS picks, serving `testDir` as the farm's one project. */
+function startServer(testDir: string, options: { token?: string } = {}): Promise<TestFarmServer> {
+  return startTestFarmServer(testDir, { listen: true, ...options });
+}
+
+/** fetch() to the checkout-scoped path for `rest` (`/model` is `/api/projects/<p>/checkouts/main/model`), with the token. */
+function scopedFetch(t: TestFarmServer, rest: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(t.url(t.api(rest)), {
+    ...init,
+    headers: { ...t.auth, ...((init.headers as Record<string, string>) ?? {}) }
+  });
+}
 
 async function createTestModel(testDir: string): Promise<Model> {
   const testModelRoot = `${testDir}/documentation-robotics`;
@@ -110,29 +124,23 @@ async function createTestModel(testDir: string): Promise<Model> {
 }
 
 describe.serial("Visualization Server - Model Loading", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
-  let baseUrl: string;
   let testDir: string;
-  let testPort: number;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    testPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(testPort);
-    baseUrl = `http://localhost:${testPort}`;
+    t = await startServer(testDir);
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(testPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should load complete model via GET /api/model", async () => {
-    const response = await fetch(`${baseUrl}/api/model`);
+    const response = await scopedFetch(t, `/model`);
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -145,7 +153,7 @@ describe.serial("Visualization Server - Model Loading", () => {
   });
 
   it("should load specific layer via GET /api/layers/:name", async () => {
-    const response = await fetch(`${baseUrl}/api/layers/motivation`);
+    const response = await scopedFetch(t, `/layers/motivation`);
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -157,12 +165,12 @@ describe.serial("Visualization Server - Model Loading", () => {
   });
 
   it("should return 400 for invalid layer name format", async () => {
-    const response = await fetch(`${baseUrl}/api/layers/nonexistent`);
+    const response = await scopedFetch(t, `/layers/nonexistent`);
     expect(response.status).toBe(400);
   });
 
   it("should load model via GET /api/model", async () => {
-    const response = await fetch(`${baseUrl}/api/model`);
+    const response = await scopedFetch(t, `/model`);
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -174,25 +182,19 @@ describe.serial("Visualization Server - Model Loading", () => {
 });
 
 describe.serial("Visualization Server - Annotations", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
-  let baseUrl: string;
   let createdAnnotationId: string;
-  let annotationsPort: number;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    annotationsPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(annotationsPort);
-    baseUrl = `http://localhost:${annotationsPort}`;
+    t = await startServer(testDir);
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(annotationsPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
@@ -204,7 +206,7 @@ describe.serial("Visualization Server - Annotations", () => {
       tags: ["test", "review"]
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations`, {
+    const response = await scopedFetch(t, `/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(annotationData)
@@ -221,8 +223,7 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should get annotations for element via GET /api/annotations?elementId=", async () => {
-    const response = await fetch(
-      `${baseUrl}/api/annotations?elementId=motivation.goal.g1`
+    const response = await scopedFetch(t, `/annotations?elementId=motivation.goal.g1`
     );
     expect(response.status).toBe(200);
 
@@ -239,8 +240,7 @@ describe.serial("Visualization Server - Annotations", () => {
       tags: ["updated"]
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -255,8 +255,7 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should delete annotation via DELETE /api/annotations/:id", async () => {
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "DELETE"
       }
@@ -265,8 +264,7 @@ describe.serial("Visualization Server - Annotations", () => {
     expect(response.status).toBe(204);
 
     // Verify it's deleted
-    const getResponse = await fetch(
-      `${baseUrl}/api/annotations?elementId=motivation.goal.g1`
+    const getResponse = await scopedFetch(t, `/annotations?elementId=motivation.goal.g1`
     );
     const result = await getResponse.json();
     expect(result.annotations.length).toBe(0);
@@ -279,7 +277,7 @@ describe.serial("Visualization Server - Annotations", () => {
       content: "Element-specific annotation"
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations`, {
+    const response = await scopedFetch(t, `/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(annotationData)
@@ -298,7 +296,7 @@ describe.serial("Visualization Server - Annotations", () => {
       content: "Test resolved field"
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations`, {
+    const response = await scopedFetch(t, `/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(annotationData)
@@ -315,8 +313,7 @@ describe.serial("Visualization Server - Annotations", () => {
       resolved: true
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -334,8 +331,7 @@ describe.serial("Visualization Server - Annotations", () => {
       content: "Patched content only"
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -354,8 +350,7 @@ describe.serial("Visualization Server - Annotations", () => {
       resolved: false
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -371,8 +366,7 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should reject PATCH with empty body", async () => {
     // AnnotationUpdateSchema requires at least one field to be provided
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -388,8 +382,7 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should reject PUT with empty body", async () => {
     // AnnotationUpdateSchema requires at least one field to be provided
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -409,7 +402,7 @@ describe.serial("Visualization Server - Annotations", () => {
       content: "Anonymous annotation"
     };
 
-    const response = await fetch(`${baseUrl}/api/annotations`, {
+    const response = await scopedFetch(t, `/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(annotationData)
@@ -422,8 +415,7 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should get replies for annotation", async () => {
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}/replies`
     );
     expect(response.status).toBe(200);
 
@@ -439,8 +431,7 @@ describe.serial("Visualization Server - Annotations", () => {
       content: "This is a reply to the annotation"
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}/replies`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -457,8 +448,7 @@ describe.serial("Visualization Server - Annotations", () => {
   });
 
   it("should get replies after creating one", async () => {
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}/replies`
     );
     expect(response.status).toBe(200);
 
@@ -474,8 +464,7 @@ describe.serial("Visualization Server - Annotations", () => {
       content: "Reply to nowhere"
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/non-existent-id/replies`,
+    const response = await scopedFetch(t, `/annotations/non-existent-id/replies`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -492,8 +481,7 @@ describe.serial("Visualization Server - Annotations", () => {
       // Missing content
     };
 
-    const response = await fetch(
-      `${baseUrl}/api/annotations/${createdAnnotationId}/replies`,
+    const response = await scopedFetch(t, `/annotations/${createdAnnotationId}/replies`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -506,8 +494,7 @@ describe.serial("Visualization Server - Annotations", () => {
 
   it("should clean up replies when annotation is deleted", async () => {
     // Get annotation ID with replies
-    const annotationResponse = await fetch(
-      `${baseUrl}/api/annotations?elementId=motivation.goal.g1`
+    const annotationResponse = await scopedFetch(t, `/annotations?elementId=motivation.goal.g1`
     );
     const annotations = await annotationResponse.json();
     const annWithReplies = annotations.annotations.find(
@@ -515,8 +502,7 @@ describe.serial("Visualization Server - Annotations", () => {
     );
 
     // Delete the annotation
-    const deleteResponse = await fetch(
-      `${baseUrl}/api/annotations/${annWithReplies.id}`,
+    const deleteResponse = await scopedFetch(t, `/annotations/${annWithReplies.id}`,
       {
         method: "DELETE"
       }
@@ -524,8 +510,7 @@ describe.serial("Visualization Server - Annotations", () => {
     expect(deleteResponse.status).toBe(204);
 
     // Verify replies are also deleted (404 on GET replies)
-    const repliesResponse = await fetch(
-      `${baseUrl}/api/annotations/${annWithReplies.id}/replies`
+    const repliesResponse = await scopedFetch(t, `/annotations/${annWithReplies.id}/replies`
     );
     expect(repliesResponse.status).toBe(404);
   });
@@ -533,32 +518,28 @@ describe.serial("Visualization Server - Annotations", () => {
 
 // WebSocket tests now enabled - fixed by adding websocket handler to Bun.serve()
 describe.serial("Visualization Server - WebSocket", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
   let ws: WebSocket;
-  let wsPort: number;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    wsPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(wsPort);
+    t = await startServer(testDir);
   });
 
   afterAll(async () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.close();
     }
-    server.stop();
-    portAllocator.releasePort(wsPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should connect to WebSocket at /ws", async () => {
     return new Promise((resolve, reject) => {
-      const testWs = new WebSocket(`ws://localhost:${wsPort}/ws`);
+      const testWs = new WebSocket(t.wsUrl());
       const timer = setTimeout(() => {
         testWs.close();
         reject(new Error("WebSocket connection timeout"));
@@ -570,6 +551,10 @@ describe.serial("Visualization Server - WebSocket", () => {
         if (message.type === "connected") {
           expect(testWs.readyState).toBe(WebSocket.OPEN);
           expect(message.version).toBe("0.1.0");
+          // A socket gets nothing for a checkout until it subscribes to that checkout's feed
+          testWs.send(JSON.stringify({ action: "subscribe", project: t.project, checkout: t.checkout }));
+        }
+        if (message.type === "subscribed" && message.project === t.project && message.checkout === t.checkout) {
           clearTimeout(timer);
           ws = testWs;
           resolve(undefined);
@@ -646,7 +631,7 @@ describe.serial("Visualization Server - WebSocket", () => {
       };
 
       // Create annotation via HTTP
-      await fetch(`http://localhost:${wsPort}/api/annotations`, {
+      await scopedFetch(t, "/annotations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -660,30 +645,24 @@ describe.serial("Visualization Server - WebSocket", () => {
 });
 
 describe.serial("Visualization Server - File Watching", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
-  let baseUrl: string;
-  let watchingPort: number;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    watchingPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(watchingPort);
-    baseUrl = `http://localhost:${watchingPort}`;
+    t = await startServer(testDir);
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(watchingPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should detect changes to model files", async () => {
     // Get initial model state
-    const response1 = await fetch(`${baseUrl}/api/layers/motivation`);
+    const response1 = await scopedFetch(t, `/layers/motivation`);
     const data1 = await response1.json();
     const initialCount = data1.elements.length;
 
@@ -716,29 +695,23 @@ describe.serial("Visualization Server - File Watching", () => {
 });
 
 describe.serial("Visualization Server - Changesets", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
-  let baseUrl: string;
-  let changesetsPort: number;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    changesetsPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(changesetsPort);
-    baseUrl = `http://localhost:${changesetsPort}`;
+    t = await startServer(testDir);
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(changesetsPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should list changesets via GET /api/changesets", async () => {
-    const response = await fetch(`${baseUrl}/api/changesets`);
+    const response = await scopedFetch(t, `/changesets`);
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -749,39 +722,30 @@ describe.serial("Visualization Server - Changesets", () => {
 });
 
 describe("Visualization Server - Authentication", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
-  let baseUrl: string;
   let authToken: string;
-  let authPort: number;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    authPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
     authToken = "test-auth-token-123";
-    server = new VisualizationServer(model, {
-      authEnabled: true,
-      authToken: authToken
-    });
-    await server.start(authPort);
-    baseUrl = `http://localhost:${authPort}`;
+    t = await startServer(testDir, { token: authToken });
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(authPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should reject requests without auth token", async () => {
-    const response = await fetch(`${baseUrl}/api/model`);
+    const response = await fetch(t.url(t.api("/model")));
     expect(response.status).toBe(401);
   });
 
   it("should accept requests with valid Bearer token", async () => {
-    const response = await fetch(`${baseUrl}/api/model`, {
+    const response = await fetch(t.url(t.api("/model")), {
       headers: {
         Authorization: `Bearer ${authToken}`
       }
@@ -790,12 +754,12 @@ describe("Visualization Server - Authentication", () => {
   });
 
   it("should accept requests with query parameter token", async () => {
-    const response = await fetch(`${baseUrl}/api/model?token=${authToken}`);
+    const response = await fetch(t.url(t.api(`/model?token=${authToken}`)));
     expect(response.status).toBe(200);
   });
 
   it("should reject requests with invalid token", async () => {
-    const response = await fetch(`${baseUrl}/api/model`, {
+    const response = await fetch(t.url(t.api("/model")), {
       headers: {
         Authorization: "Bearer invalid-token"
       }
@@ -804,7 +768,7 @@ describe("Visualization Server - Authentication", () => {
   });
 
   it("should reject requests with malformed Bearer header (empty token)", async () => {
-    const response = await fetch(`${baseUrl}/api/model`, {
+    const response = await fetch(t.url(t.api("/model")), {
       headers: {
         Authorization: "Bearer "
       }
@@ -813,7 +777,7 @@ describe("Visualization Server - Authentication", () => {
   });
 
   it("should reject requests with wrong auth scheme (Basic instead of Bearer)", async () => {
-    const response = await fetch(`${baseUrl}/api/model`, {
+    const response = await fetch(t.url(t.api("/model")), {
       headers: {
         Authorization: "Basic aW52YWxpZDppbnZhbGlk" // base64 of "invalid:invalid"
       }
@@ -822,7 +786,7 @@ describe("Visualization Server - Authentication", () => {
   });
 
   it("should reject requests with missing token in Bearer scheme", async () => {
-    const response = await fetch(`${baseUrl}/api/model`, {
+    const response = await fetch(t.url(t.api("/model")), {
       headers: {
         Authorization: "Bearer"
       }
@@ -831,35 +795,29 @@ describe("Visualization Server - Authentication", () => {
   });
 
   it("should allow health check without authentication", async () => {
-    const response = await fetch(`${baseUrl}/health`);
+    const response = await fetch(t.url("/health"));
     expect(response.status).toBe(200);
   });
 });
 
 describe("Visualization Server - Health and Status", () => {
-  let server: VisualizationServer;
+  let t: TestFarmServer;
   let model: Model;
-  let baseUrl: string;
-  let healthPort: number;
   let testDir: string;
 
   beforeAll(async () => {
     testDir = await mkdtemp(join(tmpdir(), "dr-vis-test-"));
-    healthPort = await portAllocator.allocatePort();
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(healthPort);
-    baseUrl = `http://localhost:${healthPort}`;
+    t = await startServer(testDir);
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(healthPort);
+    await t.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it("should return healthy status from GET /health", async () => {
-    const response = await fetch(`${baseUrl}/health`);
+    const response = await fetch(t.url("/health"));
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -868,7 +826,7 @@ describe("Visualization Server - Health and Status", () => {
   });
 
   it("should serve viewer HTML at root /", async () => {
-    const response = await fetch(`${baseUrl}/`);
+    const response = await fetch(t.url("/"));
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
 
