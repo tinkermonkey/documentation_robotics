@@ -972,7 +972,12 @@
       created_at: 2026-11-21T17:14:10.902Z
       updated_at: 2026-11-21T17:14:10.902Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: viewerRecordDir
+  timestamp: 2026-11-24T12:28:02.043Z
   sequenceNumber: 42
 - type: add
   elementId: data-store.collection.active-changeset-marker
@@ -1929,7 +1934,12 @@
       created_at: 2026-11-21T17:14:10.910Z
       updated_at: 2026-11-21T17:14:10.910Z
       version: 1
-  timestamp: 2026-11-21T17:14:10.921Z
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/package.json
+          symbol: "@documentation-robotics/cli"
+  timestamp: 2026-11-24T12:28:02.043Z
   sequenceNumber: 82
 - type: relationship-add
   elementId: motivation.outcome.one-viewer-process-serves-every-mapped-project::realizes::motivation.goal.one-dr-per-user
@@ -8740,13 +8750,12 @@
     source_reference:
       provenance: manual
       locations:
-        - file: cli/src/server-entry.ts
         - file: cli/src/serve-entry.ts
     metadata:
       created_at: 2026-11-21T17:21:34.233Z
       updated_at: 2026-11-21T17:21:34.233Z
       version: 1
-  timestamp: 2026-11-23T23:18:38.814Z
+  timestamp: 2026-11-24T12:28:18.498Z
   sequenceNumber: 545
 - type: add
   elementId: technology.artifact.dr-viewer-bundle
@@ -9020,12 +9029,16 @@
     source_reference:
       provenance: manual
       locations:
-        - file: cli/tests/integration/visualize-viewer-lifetime.test.ts
+        - file: cli/tests/unit/server/checkout-context-pool.test.ts
+          symbol: "closes a removed checkout: tells its subscribers, ends its DrBot turns,
+            drops it even when busy"
+        - file: cli/tests/integration/serve-central-process.test.ts
+          symbol: ends on its own when idle, and removes its record
     metadata:
       created_at: 2026-11-21T17:21:34.233Z
       updated_at: 2026-11-21T17:21:34.233Z
       version: 1
-  timestamp: 2026-11-21T17:21:34.280Z
+  timestamp: 2026-11-24T12:28:34.797Z
   sequenceNumber: 557
 - type: add
   elementId: testing.testcasesketch.viewer-list-and-stop
@@ -9044,12 +9057,13 @@
     source_reference:
       provenance: manual
       locations:
+        - file: cli/tests/integration/visualize-central-process.test.ts
         - file: cli/tests/unit/server/viewer-control.test.ts
     metadata:
       created_at: 2026-11-21T17:21:34.234Z
       updated_at: 2026-11-21T17:21:34.234Z
       version: 1
-  timestamp: 2026-11-21T17:21:34.280Z
+  timestamp: 2026-11-24T12:28:34.797Z
   sequenceNumber: 558
 - type: relationship-add
   elementId: apm.resource.dr-cli-resource::aggregates::apm.instrumentationscope.dr-cli-tracer
@@ -10149,3 +10163,133 @@
     category: structural
   timestamp: 2026-11-21T17:43:54.796Z
   sequenceNumber: 648
+- type: update
+  elementId: application.applicationfunction.viewer-url
+  layerName: application
+  before:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: viewerUrl
+    metadata:
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: viewerUrl
+        - file: cli/src/server/viewer-link.ts
+          symbol: viewerUrl
+    metadata:
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  timestamp: 2026-11-24T12:28:02.043Z
+  sequenceNumber: 717
+- type: update
+  elementId: application.applicationfunction.viewer-url
+  layerName: application
+  before:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-registry.ts
+          symbol: viewerUrl
+        - file: cli/src/server/viewer-link.ts
+          symbol: viewerUrl
+    metadata: &a67
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    source_reference: null
+    metadata: *a67
+  timestamp: 2026-11-24T12:28:16.894Z
+  sequenceNumber: 718
+- type: update
+  elementId: application.applicationfunction.viewer-url
+  layerName: application
+  before:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    metadata: &a68
+      created_at: 2026-11-20T15:07:06.101Z
+      updated_at: 2026-11-20T15:07:06.101Z
+      version: 1
+  after:
+    id: 5d6a48a0-9bf8-4ca1-93cf-933ac07de660
+    path: application.applicationfunction.viewer-url
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: viewerUrl
+    description: A deep link into the shared viewer for a CheckoutRef, optionally to
+      a changeset or element. Built from the server record as
+      http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/...?token=<token>, with
+      the whole route and the token in the URL fragment, so the token stays out
+      of server logs and Referer headers.
+    metadata: *a68
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/viewer-link.ts
+          symbol: viewerUrl
+  timestamp: 2026-11-24T12:28:17.445Z
+  sequenceNumber: 719
