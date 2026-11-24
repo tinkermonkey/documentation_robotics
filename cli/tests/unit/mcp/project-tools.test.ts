@@ -545,7 +545,7 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
       removed: [],
     });
     expect(preview.wouldWrite.validationErrorsAfter).toBe(3);
-    expect(preview.derivedValues).toMatchObject({ changeset: "upgrade-fills-0.14.0", values: 2, elements: 1 });
+    expect(preview.derivedValues).toMatchObject({ changeset: `upgrade-fills-${getCliBundledSpecVersion()}`, values: 2, elements: 1 });
     expect(preview.derivedValues.id).toBeUndefined();
     expect(preview.derivedValues.fills.map((fill: any) => [fill.attribute, fill.value])).toEqual([
       ["operationId", "createOrder"],
@@ -571,9 +571,9 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     expect(applied.filesModified).toBe(1);
     expect(applied.otherFiles.added.some((file: string) => file.endsWith("/changes.yaml"))).toBe(true);
 
-    expect(applied.derivedValues).toMatchObject({ changeset: "upgrade-fills-0.14.0", values: 2, elements: 1 });
+    expect(applied.derivedValues).toMatchObject({ changeset: `upgrade-fills-${getCliBundledSpecVersion()}`, values: 2, elements: 1 });
     expect(applied.derivedValues.note).toContain("Nothing was written to the base model");
-    expect(applied.validation.stagedForReview).toMatchObject({ changeset: "upgrade-fills-0.14.0", attributeCount: 2 });
+    expect(applied.validation.stagedForReview).toMatchObject({ changeset: `upgrade-fills-${getCliBundledSpecVersion()}`, attributeCount: 2 });
     expect(applied.validation.unfilledRequired.elements).toEqual([
       { elementId: "api.operation.create-order", layer: "api", attributes: ["tags"] },
     ]);
@@ -582,7 +582,7 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
 
     const list = parse(await changesetListHandler({ rootPath: dir }));
     expect(list.changesets[applied.derivedValues.id]).toMatchObject({
-      name: "upgrade-fills-0.14.0",
+      name: `upgrade-fills-${getCliBundledSpecVersion()}`,
       status: "staged",
       changes_count: 1,
       purpose: "plan",
@@ -721,7 +721,7 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
     expect(applied.status).toBe("applied");
     expect(applied.derivedValues).toMatchObject({ values: 260, shown: 100, omitted: 160 });
-    expect(applied.derivedValues.more).toContain("changeset_show upgrade-fills-0.14.0 lists every staged value");
+    expect(applied.derivedValues.more).toContain(`changeset_show upgrade-fills-${getCliBundledSpecVersion()} lists every staged value`);
     expect(applied.validation).toMatchObject({ valid: false, errorCount: 390 });
     expect(applied.validation.errors).toHaveLength(20);
     expect(applied.validation.moreErrors).toBe(370);

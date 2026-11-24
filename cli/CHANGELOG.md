@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-24
+
+**Specification Support:** v0.15.0
+
+One DR process per user (issue 1279). `dr serve` runs a central process for the farm that serves
+every project and every git checkout (main checkout and worktrees) from one port, behind one token:
+the viewer, its API, the websocket feed, DrBot and the MCP interface. `dr mcp` becomes a stdio
+bridge to it, `dr visualize`, `review_open` and `project_status` link into it and start nothing
+else, and the bundled viewer (0.17.0) shows the checkout a link names. The release also clears the
+0.8.0 milestone: required attributes up front, id collisions in a batch, acronym ids, the YAML
+layout prettier leaves alone, and the brief's delta.
+
+**Breaking changes, and what to do:**
+
+- Project-data routes are served only under `/api/projects/{project}/checkouts/{checkout}/...`.
+  The old unscoped routes answer `410 Gone` with the replacement path for this release, then 404. A
+  custom viewer build (`--viewer-path`) must move to the scoped routes; the bundled viewer has.
+- `dr visualize` no longer starts a per-project server. `--no-auth`, `--token`, `--idle-exit`,
+  `--exit-with-parent`, `--stop <project>` and `--stop --port` are refused. Use `dr visualize
+--stop --all` once to end per-project viewers an older CLI left running (the process's start-up
+  sweep already stops the unused ones).
+- `farm.yaml` is `dr-farm-v2`. A v1 farm is read with a notice; run `dr farm migrate --apply` before
+  `dr farm add` or `remove` will write it.
+- Element ids for names with an acronym before a capitalised word change (`HTTPServer` →
+  `http-server`). Existing elements keep their ids and are still found when their name is added
+  again.
+
 ### Added
 
 - **Commit progress (issue 1361).** While a changeset commit runs, the server sends
@@ -22,21 +49,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name or a `{project, checkout}` to a checkout, discovers checkouts from `git worktree list`
   (`main`, or git's worktree name; `present`, `missing` or `prunable`; cached until the worktree
   metadata changes, raising checkout-removed once) and registers a project under a derived or
-  explicit name. Nothing calls it from MCP or the viewer yet.
+  explicit name. `dr serve`, `dr mcp`, the MCP tools and the viewer resolve projects through it.
 - **`dr serve` (issue 1279, slice 2B)** runs the central DR process for the farm in use: detached
   by default (it prints the link and pid), attached with `--foreground`; `--port` sets where the
   port search starts (8080, else the next free port). It records itself in
   `servers/<farm-hash>.json` with a 0600 token file, refuses a second process for the same farm,
   stops unused per-project viewers that `review_open` started, and exits after
   `DR_VIEWER_IDLE_HOURS` (24) with no tab, MCP session, DrBot turn or request. `--status` shows
-  the running process and its health; `--stop` stops it and waits. It needs the central server
-  (slice 2A) to serve anything.
+  the running process and its health; `--stop` stops it and waits.
 - **`dr farm migrate [--apply]`** moves a `dr-farm-v1` farm to `dr-farm-v2`: a preview by
   default, listing each project, the checkout each old entry becomes and the names dropped.
-- **`GET /api/changesets/:id/verification?against=<as-built id>`** on `dr visualize`: a plan compared
+- **`GET /api/projects/{project}/checkouts/{checkout}/changesets/{id}/verification?against=<as-built id>`**: a plan compared
   with an as-built changeset, the same report `changeset_verify` gives (matched, probable, divergent,
   missing, unverifiable and unplanned elements and relationships, by element id), plus the as-built
   changeset's id and name. Read-only. The viewer draws it on its C4 diagrams.
+- **MCP on the central process (issue 1279, slice 3A).** The process serves `/mcp` (streamable
+  HTTP, the one token), and each MCP session resolves its own checkout: from `DR_MCP_ROOT_PATH`,
+  else the client's roots, else the process's default checkout. No session changes another's
+  working directory. Every tool result names its `project` and `checkout` (`_meta["dr/checkout"]`).
+  `dr mcp` over stdio is now a bridge: it finds the farm's process (starting `dr serve` when none
+  runs, or replacing an older idle one) and forwards MCP messages to it, so the plugin's
+  configuration doesn't change. `dr mcp --http` prints the process's `/mcp` URL and token file.
+  `DR_MCP_IN_PROCESS=1` serves the tools inside `dr mcp` itself, for one session.
+- **`project_list` (issue 1279, slice 3B):** every project in the farm with its checkouts (branch,
+  head, state, active changeset, staged count), paged. `review_open` returns a link into the central
+  process for the session's checkout and starts nothing; `project_status` names the project and
+  checkout, lists the project's other checkouts and gives this checkout's link; `changeset_commit`'s
+  refusal carries the same link.
+- **DrBot per checkout (issue 1279, slice 3C).** Each turn runs in its checkout's directory with
+  `DR_MCP_ROOT_PATH` set to it; at most `DR_DRBOT_MAX_TURNS` (3) turns run at once, and a turn over
+  the cap is queued with `chat.turn.queued` and `chat.turn.started`. On the central process every
+  chat frame carries `project` and `checkout`.
 
 ### Changed
 
@@ -105,12 +148,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dr serve` leaves its file watchers to the exit** when it stops to exit (a signal, `--stop`, the
   idle exit), as the per-project viewer did (#1235): closing a watcher while a worktree is being
   deleted could hang the process. A call to a retired unscoped route no longer counts as use of the
-  server, and `/health` says `degraded`, with `warnings`, when the chat service failed to start.
+  server, and `/health` says `degraded` when the chat service failed to start; what failed is in
+  `warnings`, for the token's holder only.
 - **A queued DrBot turn is announced once.** `chat.turn.queued` and `chat.turn.started` are no longer
   also streamed as a quoted line of reply text, which a viewer showing the notifications showed twice.
 
-- **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
-  Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
+- **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (spec 0.15.0): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
   values, optional per-instance APM attributes, and the library-API, UI-component and test-sketch
   rulings.
 - **Layer skills:** a React component is a `ux.librarycomponent`, not an application component (the

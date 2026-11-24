@@ -24,9 +24,20 @@ function git(cwd: string, ...args: string[]): void {
   execFileSync("git", ["-c", "commit.gpgsign=false", ...args], { cwd, env: GIT_ENV, stdio: "pipe" });
 }
 
+/**
+ * A repository with its own identity: the commands under test commit in this process with its
+ * environment, not GIT_ENV, and the release gate's machine has no global git identity.
+ */
+function gitInit(dir: string): void {
+  git(dir, "init", "-q", "-b", "main");
+  git(dir, "config", "user.name", "Test");
+  git(dir, "config", "user.email", "test@example.com");
+  git(dir, "config", "commit.gpgsign", "false");
+}
+
 async function createRepo(dir: string, withModel = false): Promise<string> {
   await mkdir(dir, { recursive: true });
-  git(dir, "init", "-q", "-b", "main");
+  gitInit(dir);
   await writeFile(path.join(dir, "README.md"), "# test\n");
   if (withModel) {
     await mkdir(path.join(dir, "documentation-robotics", "model"), { recursive: true });
@@ -159,7 +170,7 @@ describe("dr farm migrate", () => {
   async function v1Farm(): Promise<string> {
     const farm = path.join(tmp, "farm");
     await mkdir(farm);
-    git(farm, "init", "-q", "-b", "main");
+    gitInit(farm);
     await createRepo(path.join(farm, "service"));
     git(path.join(farm, "service"), "worktree", "add", "-q", "-b", "feature", path.join(farm, "service-feature"));
     await createRepo(path.join(farm, "web"));

@@ -7,6 +7,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-24
+
 Gaps and rulings from the heimdall review pilot (2026-11-21) and from modelling DR's own user-level
 process (issue 1289), decided in Context Studio on 2026-11-22: proposals 3e1e77bf, f8336df1,
 73177e1d, a1bb34f1, 7030f486, 18b4f4ad, bd65fd8d and d7aa33cc. The catalog goes from 1,004

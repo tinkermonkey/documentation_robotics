@@ -404,6 +404,25 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.14.0 to v0.15.0: heimdall pilot and user-level DR spec gaps
+    this.migrations.push({
+      fromVersion: "0.14.0",
+      toVersion: "0.15.0",
+      description: "Design tokens, new softwareType and FILE_STORE values, and additive links (Spec v0.15.0)",
+      apply: async () => {
+        // Additive only: one new node type (ux.designtoken), thirteen new relationship types, new
+        // enum values (softwareType, database paradigm) and thirteen APM attributes no longer
+        // required. Nothing is renamed or removed and nothing becomes required, so existing models
+        // are valid as they are and the step only stamps the version.
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description:
+            "Spec version updated to 0.15.0 (design tokens, new softwareType and FILE_STORE values, additive links)",
+        };
+      },
+    });
   }
 
   /**
