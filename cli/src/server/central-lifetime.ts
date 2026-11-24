@@ -28,7 +28,6 @@ import { isProcessAlive } from "../utils/process-liveness.js";
 import type { CentralActivity, CentralServer, CentralServerOptions, StartCentralServer } from "./central-server-contract.js";
 import { sweepPerProjectViewers, type PerProjectViewerSweep, type SweepPerProjectViewersOptions } from "./legacy-viewer-sweep.js";
 import { findRunningServer, removeServerRecord, sweepServerRecords, writeServerRecord } from "./server-record.js";
-import { describeDuration } from "./viewer-lifetime.js";
 import { viewerSetting } from "./viewer-settings.js";
 
 /** For tests only: a module path whose `startCentralServer` serve-entry runs instead of the real server. */
@@ -43,6 +42,15 @@ export const DEFAULT_SERVE_PORT = 8080;
 // ---------------------------------------------------------------------------------------------
 // Idle exit
 // ---------------------------------------------------------------------------------------------
+
+/** A duration in words ("24 hours", "90 seconds"), as the exit reason says it. */
+export function describeDuration(ms: number): string {
+  const hours = ms / 3_600_000;
+  if (hours >= 1) return `${Number(hours.toFixed(1))} hour${hours === 1 ? "" : "s"}`;
+  const minutes = ms / 60_000;
+  if (minutes >= 1) return `${Number(minutes.toFixed(1))} minute${minutes === 1 ? "" : "s"}`;
+  return `${Number((ms / 1000).toFixed(1))} seconds`;
+}
 
 /** The idle limit in effect: `DR_VIEWER_IDLE_HOURS` (default 24) in ms; 0 means never. */
 export function centralIdleMs(env: NodeJS.ProcessEnv = process.env): number {

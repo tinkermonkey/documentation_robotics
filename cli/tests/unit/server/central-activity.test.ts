@@ -1,6 +1,7 @@
 /**
- * When a viewer's server ends on its own (#1237): idle for the limit it was given, or its
- * project's documentation-robotics/ folder is gone. And noticing that the launcher is gone.
+ * What the central process's idle exit reads (`centralActivity`: tabs, requests, /health), and
+ * noticing that a launcher is gone (`watchParent`). The idle exit itself is tested in
+ * central-lifetime's tests.
  */
 
 import { describe, expect, it } from "bun:test";
@@ -8,115 +9,9 @@ import { mkdir, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
-import { watchViewerLifetime } from "../../../src/server/viewer-lifetime.js";
 import { watchParent } from "../../../src/utils/parent-watch.js";
-import { parseIdleExitHours } from "../../../src/commands/visualize.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 import { startTestFarmServer } from "../../helpers/test-farm-server.js";
-
-const HOUR = 3_600_000;
-
-function lifetime(overrides: {
-  idleExitMs?: number;
-  clients?: () => number;
-  lastActivityAt?: () => number;
-  now?: () => number;
-  exists?: () => boolean;
-}) {
-  const watch = watchViewerLifetime({
-    projectRoot: "/projects/a",
-    activity: () => ({ clients: overrides.clients?.() ?? 0, lastActivityAt: overrides.lastActivityAt?.() ?? 0 }),
-    idleExitMs: overrides.idleExitMs,
-    onExit: () => {},
-    intervalMs: 3_600_000,
-    now: overrides.now ?? (() => 0),
-    exists: overrides.exists ?? (() => true),
-  });
-  watch.stop();
-  return watch;
-}
-
-describe("watchViewerLifetime: idle exit", () => {
-  it("ends after the limit with no browser tab and no request", () => {
-    let now = 0;
-    const watch = lifetime({ idleExitMs: 24 * HOUR, now: () => now });
-    now = 23 * HOUR;
-    expect(watch.check()).toBeNull();
-    now = 24 * HOUR;
-    expect(watch.check()).toBe("no browser tab was connected and no request came in for 24 hours");
-  });
-
-  it("never ends while a browser tab is connected, however long", () => {
-    let now = 0;
-    let clients = 1;
-    let lastActivityAt = 0;
-    const watch = lifetime({ idleExitMs: 24 * HOUR, now: () => now, clients: () => clients, lastActivityAt: () => lastActivityAt });
-    now = 100 * HOUR;
-    expect(watch.check()).toBeNull();
-    // The tab closes: the limit runs from then, not from the last request before it.
-    clients = 0;
-    lastActivityAt = now;
-    expect(watch.check()).toBeNull();
-    now += 24 * HOUR;
-    expect(watch.check()).not.toBeNull();
-  });
-
-  it("starts over at each request", () => {
-    let now = 0;
-    let lastActivityAt = 0;
-    const watch = lifetime({ idleExitMs: 24 * HOUR, now: () => now, lastActivityAt: () => lastActivityAt });
-    now = 20 * HOUR;
-    lastActivityAt = now;
-    now = 40 * HOUR;
-    expect(watch.check()).toBeNull();
-    now = 44 * HOUR;
-    expect(watch.check()).not.toBeNull();
-  });
-
-  it("never ends a viewer with no limit (one run in a terminal)", () => {
-    let now = 0;
-    for (const idleExitMs of [undefined, 0]) {
-      const watch = lifetime({ idleExitMs, now: () => now });
-      now += 1000 * HOUR;
-      expect(watch.check()).toBeNull();
-    }
-  });
-});
-
-describe("watchViewerLifetime: project folder gone", () => {
-  it("ends when documentation-robotics/ is missing on two checks in a row, with or without an idle limit", () => {
-    let present = true;
-    const watch = lifetime({ exists: () => present });
-    expect(watch.check()).toBeNull();
-    present = false;
-    // Once could be a branch switch.
-    expect(watch.check()).toBeNull();
-    expect(watch.check()).toBe("its project folder is gone (/projects/a/documentation-robotics)");
-  });
-
-  it("starts counting again when the folder comes back", () => {
-    let present = false;
-    const watch = lifetime({ exists: () => present });
-    expect(watch.check()).toBeNull();
-    present = true;
-    expect(watch.check()).toBeNull();
-    present = false;
-    expect(watch.check()).toBeNull();
-  });
-
-  it("calls onExit once, from its timer", async () => {
-    const reasons: string[] = [];
-    watchViewerLifetime({
-      projectRoot: "/projects/a",
-      activity: () => ({ clients: 0, lastActivityAt: 0 }),
-      onExit: (reason) => reasons.push(reason),
-      intervalMs: 5,
-      exists: () => false,
-    });
-    await new Promise((resolve) => setTimeout(resolve, 80));
-    expect(reasons).toEqual(["its project folder is gone (/projects/a/documentation-robotics)"]);
-  });
-});
 
 describe("VisualizationServer.centralActivity", () => {
   async function farmServer(prefix: string, options: Parameters<typeof startTestFarmServer>[1] = {}) {
@@ -239,19 +134,5 @@ describe("watchParent", () => {
     watch.stop();
     await new Promise((resolve) => setTimeout(resolve, 40));
     expect(calls).toBe(0);
-  });
-});
-
-describe("parseIdleExitHours", () => {
-  it("takes hours, with 0 or nothing for never", () => {
-    expect(parseIdleExitHours("24")).toBe(24);
-    expect(parseIdleExitHours("0.5")).toBe(0.5);
-    expect(parseIdleExitHours(0)).toBe(0);
-    expect(parseIdleExitHours(undefined)).toBe(0);
-  });
-
-  it("refuses anything else", () => {
-    expect(() => parseIdleExitHours("soon")).toThrow(/Invalid --idle-exit value: soon/);
-    expect(() => parseIdleExitHours("-1")).toThrow(/Invalid --idle-exit/);
   });
 });
