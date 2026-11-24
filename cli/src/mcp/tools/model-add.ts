@@ -441,6 +441,10 @@ async function addElementBatch(
       if (id) {
         rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
         refusedIds.push({ name: spec.name, ids: [id], holder: id });
+        // An element of another name may hold the id an earlier rule gave this name: a link by
+        // that id could mean the refused element too.
+        const near = existingUnderEarlierId(spec.layer, id.split(".")[1], spec.name, id, alreadyThere);
+        if (near.existing) refusedIds.push({ name: spec.name, ids: [near.existing, id], holder: near.existing });
       }
       results.push({
         ...asSent,
@@ -558,7 +562,8 @@ function idCollisions(
       : live && live.status !== "deleted"
         ? { name: live.name, where: live.status === "added" && !live.alreadyInBase ? "which this changeset adds" : "which the model has" }
         : undefined;
-    if (!kept || kept.name === refused.name) continue;
+    // An element with no name is refused as plain "already exists" (otherNameNote): no clash.
+    if (!kept || kept.name === undefined || kept.name === refused.name) continue;
     for (const id of refused.ids) {
       // An id the name gives today, held under the id an earlier rule gave: say which id holds it.
       const where = refused.holder === id ? kept.where : `as ${refused.holder}, ${kept.where}`;

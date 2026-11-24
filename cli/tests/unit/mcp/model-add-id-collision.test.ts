@@ -10,6 +10,9 @@ import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
+import { Element } from "../../../src/core/element.js";
+import { Layer } from "../../../src/core/layer.js";
+import { generateUUID } from "../../../src/utils/id-generator.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
@@ -42,8 +45,9 @@ beforeEach(async () => {
   rootPath = join(tmpdir(), `dr-mcp-id-collision-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   await mkdir(rootPath, { recursive: true });
   await Model.init(rootPath, { name: "Id Collision Test Model", version: "0.1.0" });
-  parse(await changesetCreateHandler({ name: "plan", rootPath }));
 });
+
+const createChangeset = async () => parse(await changesetCreateHandler({ name: "plan", rootPath }));
 
 afterEach(async () => {
   clearModelCache();
@@ -51,6 +55,8 @@ afterEach(async () => {
 });
 
 describe("model_add: two names, one id (#1297)", () => {
+  beforeEach(createChangeset);
+
   it("keeps the first, refuses the second, and attaches none of the refused element's links to the first", async () => {
     const result = await add({
       elements: [target("galaxyLayout tests"), target("galaxy-layout tests"), sketch("sketch a"), sketch("sketch b")],
@@ -133,5 +139,66 @@ describe("model_add: two names, one id (#1297)", () => {
     await add({ elements: [target("galaxyLayout tests"), target("galaxy-layout tests"), sketch("sketch a")] });
     const result = await relate({ relationships: [{ source: ID, predicate: "composes", target: SKETCH_A }] });
     expect(result.results[0]).toMatchObject({ status: "staged" });
+  });
+});
+
+describe("model_add: a name whose element is held under an earlier rule's id (#1297)", () => {
+  /** Writes an element straight into the model under an id an earlier CLI derived. */
+  async function seed(layer: string, type: string, id: string, name: string, attributes: Record<string, unknown>) {
+    const model = await Model.load(rootPath);
+    let layerObj = await model.getLayer(layer);
+    if (!layerObj) {
+      layerObj = new Layer(layer);
+      model.addLayer(layerObj);
+    }
+    layerObj.addElement(
+      new Element({ id: generateUUID(), path: id, spec_node_id: `${layer}.${type}`, layer_id: layer, type, name, attributes, layer })
+    );
+    await model.saveLayer(layer);
+    await model.saveManifest();
+    clearModelCache();
+  }
+
+  const OLD_STATUS = "data-model.objectschema.tier1status"; // "Tier1Status" before 0.7.0
+  const NEW_STATUS = "data-model.objectschema.tier1-status";
+  const schema = (name: string, attributes: Record<string, unknown> = { type: "object" }) => ({
+    layer: "data-model",
+    type: "objectschema",
+    name,
+    attributes,
+  });
+
+  it("reports target-end links by both ids when the name's element is held under an earlier rule's id", async () => {
+    await seed("data-model", "objectschema", OLD_STATUS, "Tier1Status", { type: "object" });
+    await createChangeset();
+    const loader = "application.applicationfunction.loader";
+    for (const [refused, why] of [
+      [schema("Tier1 Status"), "already exists"],
+      [schema("Tier1 Status", {}), "invalid attributes"],
+    ] as const) {
+      // Refused as the earlier-rule element, and refused for its attributes: links are reported alike.
+      clearModelCache();
+      const result = await add({
+        elements: [{ layer: "application", type: "applicationfunction", name: "loader" }, refused],
+        relationships: [
+          { source: loader, predicate: "accesses", target: OLD_STATUS },
+          { source: loader, predicate: "accesses", target: NEW_STATUS },
+          { source: loader, predicate: "accesses", target: "Tier1 Status" },
+          { source: loader, predicate: "accesses", target: "Tier1Status" },
+        ],
+      });
+      expect(result.elements.results[1]).toMatchObject({ status: "invalid", reason: expect.stringContaining(why) });
+      const rels = result.relationships.results;
+      expect(rels.map((r: any) => r.status)).toEqual(["invalid", "invalid", "invalid", expect.stringMatching(/staged|duplicate/)]);
+      expect(rels[0].reason).toBe(
+        `Target ${OLD_STATUS} is the id of more than one name: "Tier1Status" (which the model has) and "Tier1 Status" (not added)`
+      );
+      expect(rels[1].reason).toBe(
+        `Target ${NEW_STATUS} is the id of more than one name: "Tier1Status" (as ${OLD_STATUS}, which the model has) and "Tier1 Status" (not added)`
+      );
+      expect(rels[2].reason).toContain('Target "Tier1 Status" was not added');
+      // By the kept element's own name, the link binds to it.
+      expect(rels[3]).toMatchObject({ target: OLD_STATUS });
+    }
   });
 });
