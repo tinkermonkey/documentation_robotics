@@ -171,7 +171,9 @@ export async function specReferenceStanding(projectRoot: string): Promise<SpecRe
  * line says so, so its absence isn't read as the cause of validation errors (#1168).
  *
  * `via` names the step for whoever reads the line: `dr upgrade` on the command line,
- * project_upgrade for an agent using the MCP tools.
+ * project_upgrade for an agent using the MCP tools. The MCP step previews first and applies with
+ * modelOnly once the user approves: apply alone also writes .gitignore and .prettierignore lines
+ * and layer reports, and either way it migrates a model that is behind the spec dr carries.
  */
 export function specReferenceNotice(standing: SpecReferenceStanding, via: "cli" | "mcp" = "cli"): string | null {
   const bundled = getCliBundledSpecVersion();
@@ -181,14 +183,16 @@ export function specReferenceNotice(standing: SpecReferenceStanding, via: "cli" 
     const step =
       via === "cli"
         ? `run "dr upgrade" to install the reference for tools that read .dr/spec.`
-        : `project_upgrade with apply: true installs the reference for tools that read .dr/spec.`;
+        : `project_upgrade installs it for tools that read .dr/spec: preview it, then, once the user approves, call it with apply: true, modelOnly: true (nothing else outside the model; a model behind v${bundled} is migrated too).`;
     return (
       `Spec reference not installed in this checkout (.dr/spec is per-checkout and not committed). ` +
       `${validator} validates against the spec it carries (v${bundled}), so validation is unaffected; ${step}`
     );
   }
   const step =
-    via === "cli" ? `Run "dr upgrade" to refresh the reference.` : `project_upgrade with apply: true refreshes the reference.`;
+    via === "cli"
+      ? `Run "dr upgrade" to refresh the reference.`
+      : `project_upgrade refreshes it: preview it, then, once the user approves, call it with apply: true, modelOnly: true (nothing else outside the model; a model behind v${bundled} is migrated too).`;
   return (
     `The spec reference in .dr/ is ${standing.version ? `for spec v${standing.version}` : "incomplete (no readable .dr/manifest.json)"}; ` +
     `${validator} validates against the v${bundled} it carries, so validation is unaffected. ${step}`

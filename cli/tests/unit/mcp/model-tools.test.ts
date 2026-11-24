@@ -539,6 +539,8 @@ describe("MCP model tools", () => {
         expect(data.specReference).toContain("Spec reference not installed in this checkout");
         expect(data.specReference).toContain("validation is unaffected");
         expect(data.specReference).toContain("project_upgrade");
+        expect(data.specReference).toContain("once the user approves");
+        expect(data.specReference).toContain("modelOnly: true");
         expect(data.specReference).not.toMatch(/\bdr (upgrade|validate)\b/);
         expect(data.specReference).not.toContain("\n");
 

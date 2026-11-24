@@ -630,7 +630,15 @@ describe("model_validate: summary by default (#1215)", () => {
   it("returns counts by kind, layer and type, and no warning list", async () => {
     await withProject(async (rootPath) => {
       await mixedModel(rootPath);
-      // The size budget is of a set-up checkout: without .dr/spec the result adds one specReference line (#1168)
+
+      // A fresh clone or worktree has no .dr/: the summary adds one specReference line and stays small (#1168)
+      const fresh = await modelValidateHandler({ rootPath });
+      const freshData = parse(fresh);
+      expect(freshData.specReference).toContain("Spec reference not installed");
+      expect(text(fresh).length).toBeLessThan(1_200 + freshData.specReference.length + 30);
+      expect(text(fresh).length).toBeLessThan(1_800);
+
+      // The rest is of a set-up checkout, without that line
       await installSpecReference(rootPath, false);
       const result = await modelValidateHandler({ rootPath });
       const data = parse(result);

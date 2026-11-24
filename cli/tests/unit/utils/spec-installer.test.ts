@@ -254,12 +254,16 @@ describe('spec-installer', () => {
       const missing = specReferenceNotice({ state: 'missing' }, 'mcp')!;
       expect(missing).toContain('Spec reference not installed in this checkout');
       expect(missing).toContain('validation is unaffected');
-      expect(missing).toContain('project_upgrade with apply: true installs');
+      expect(missing).toContain('project_upgrade installs it');
+      expect(missing).toContain('preview it, then, once the user approves');
+      expect(missing).toContain('apply: true, modelOnly: true');
+      expect(missing).toContain('is migrated too');
       expect(missing).not.toMatch(/\bdr (upgrade|validate)\b/);
 
       const stale = specReferenceNotice({ state: 'stale', version: '0.12.0' }, 'mcp')!;
       expect(stale).toContain('for spec v0.12.0');
-      expect(stale).toContain('project_upgrade with apply: true refreshes');
+      expect(stale).toContain('project_upgrade refreshes it');
+      expect(stale).toContain('apply: true, modelOnly: true');
       expect(stale).not.toMatch(/\bdr (upgrade|validate)\b/);
 
       expect(specReferenceNotice({ state: 'installed', version: getCliBundledSpecVersion() }, 'mcp')).toBeNull();

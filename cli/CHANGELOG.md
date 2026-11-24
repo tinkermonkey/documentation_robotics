@@ -122,8 +122,9 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 - **MCP `model_validate` says when the spec reference is not installed (issue 1168).** In a fresh
   clone or git worktree, where `.dr/` is gitignored and absent, the result carries `specReference`:
   one line saying the reference is missing (or for another spec version), that validation is
-  unaffected because it runs against the spec dr carries, and that `project_upgrade` with
-  `apply: true` installs it. `dr validate` already said this in 0.7.0; it is now tested end to end
+  unaffected because it runs against the spec dr carries, and that `project_upgrade` installs it:
+  preview first, then, once the user approves, `apply: true, modelOnly: true`, which writes nothing
+  else outside the model (a model behind the spec is migrated too). `dr validate` already said this in 0.7.0; it is now tested end to end
   with `.dr/` removed (same report, one line more, no schema errors).
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the

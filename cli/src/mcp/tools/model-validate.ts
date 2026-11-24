@@ -385,7 +385,9 @@ export const modelValidateTool: McpToolDefinition<typeof inputSchema> = {
     "with page.total the true count and page.nextOffset the next page; valid and every count are of the whole " +
     "model. Motivation, business and product elements are not asked for a source reference: they have no " +
     "implementation to point at. specReference, when present, says the checkout's .dr/spec is missing or for " +
-    "another spec version: validation is unaffected, and project_upgrade installs it.",
+    "another spec version: validation is unaffected. project_upgrade installs it: preview first, then, once the " +
+    "user approves, apply: true with modelOnly: true, which writes nothing else outside the model (a model behind " +
+    "the spec is migrated too).",
   inputSchema,
   handler: modelValidateHandler,
 };
