@@ -73,8 +73,12 @@ export interface CentralServer {
   /** The port it listens on. */
   readonly port: number;
   activity(): CentralActivity;
-  /** Closes every checkout context (ending its DrBot turns and telling its subscribers), then the listener. */
-  stop(): Promise<void>;
+  /**
+   * Closes every checkout context (ending its DrBot turns and telling its subscribers), then the
+   * listener. With `processExiting` the file watchers are left to the exit: closing one while its
+   * tree is being deleted deadlocks Bun (#1235). Safe to call more than once.
+   */
+  stop(options?: { processExiting?: boolean }): Promise<void>;
 }
 
 export type StartCentralServer = (options: CentralServerOptions) => Promise<CentralServer>;

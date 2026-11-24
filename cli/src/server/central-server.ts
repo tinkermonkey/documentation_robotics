@@ -77,10 +77,10 @@ export async function startCentralServerWith(
     },
   });
   await server.start(options.port);
-  let stopped: Promise<void> | undefined;
   return {
     port: server.listeningPort() ?? options.port,
     activity: () => server.centralActivity(),
-    stop: () => (stopped ??= server.stopCentral()),
+    // stopCentral is idempotent, and honours a later call's processExiting.
+    stop: (stopOptions) => server.stopCentral(stopOptions),
   };
 }

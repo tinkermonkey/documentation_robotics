@@ -51,6 +51,19 @@ describe("VisualizationServer.stop", () => {
     expect(closes()).toBe(1);
   });
 
+  it.serial("leaves the file watcher open when a later stop says the process is about to exit", async () => {
+    const { farm, closes } = await serverWithWatcher();
+    // An MCP endpoint to close first, so the first stop is still under way when the second comes.
+    let release!: () => void;
+    const closing = new Promise<void>((resolve) => (release = resolve));
+    (farm.server as any).central.mcp = Promise.resolve({ close: () => closing });
+    const first = farm.server.stopCentral();
+    const second = farm.server.stopCentral({ processExiting: true });
+    release();
+    await Promise.all([first, second]);
+    expect(closes()).toBe(0);
+  });
+
   it.serial("leaves the file watcher open when the process is about to exit", async () => {
     const { farm, closes } = await serverWithWatcher();
     farm.server.stop({ processExiting: true });

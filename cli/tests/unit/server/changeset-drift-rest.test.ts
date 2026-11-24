@@ -520,8 +520,11 @@ describe("model reloads", () => {
     const context = await t.context();
     context.subscribers.add({ send: (data: string) => sent.push(JSON.parse(data)), close: () => {} } as any);
 
-    const first = t.inCheckout(() => (t.server as any).reloadAndBroadcast());
-    const second = t.inCheckout(() => (t.server as any).reloadAndBroadcast());
+    // Both start now, in this order, in the loaded context (t.inCheckout would look the checkout
+    // up first, and two lookups can finish in either order).
+    const reload = () => (t.server as any).inContext(context, () => (t.server as any).reloadAndBroadcast());
+    const first = reload();
+    const second = reload();
     await second;
     finishOlder(older);
     await first;

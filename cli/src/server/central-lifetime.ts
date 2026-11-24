@@ -179,8 +179,11 @@ export interface CentralProcess {
   /** What the start-up sweep stopped and kept; null when it failed (the failure is logged). */
   sweep: PerProjectViewerSweep | null;
   idle: CentralIdleWatch;
-  /** Stops the server and removes this process's record. Safe to call more than once. */
-  stop(): Promise<void>;
+  /**
+   * Stops the server and removes this process's record. Safe to call more than once. Pass
+   * `processExiting` when process.exit follows: the file watchers are left to the exit (#1235).
+   */
+  stop(options?: { processExiting?: boolean }): Promise<void>;
 }
 
 async function defaultOpenRegistry(farm: FarmLocation): Promise<ProjectRegistry> {
@@ -264,11 +267,13 @@ export async function runCentralProcess(options: RunCentralProcessOptions): Prom
   log(`[serve] Serving ${record.farmRoot} on http://127.0.0.1:${record.port}/ (pid ${pid})`);
 
   let stopping: Promise<void> | null = null;
-  const stop = (): Promise<void> => {
+  const stop = (stopOptions: { processExiting?: boolean } = {}): Promise<void> => {
+    // A later call that says the process is exiting reaches the server even when a stop is under way.
+    if (stopping && stopOptions.processExiting) void server.stop(stopOptions);
     stopping ??= (async () => {
       idle.stop();
       try {
-        await server.stop();
+        await server.stop(stopOptions);
       } finally {
         await removeServerRecord(farmRoot, { env, pid });
       }

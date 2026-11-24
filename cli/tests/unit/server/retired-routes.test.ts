@@ -75,6 +75,15 @@ describe("the retired unscoped routes", () => {
     });
   }
 
+  it("do not count as use of the server, where the scoped routes do", async () => {
+    const before = server.server.centralActivity().lastActivityAt;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect((await server.raw("/api/model")).status).toBe(410);
+    expect(server.server.centralActivity().lastActivityAt).toBe(before);
+    expect((await server.request("/model")).status).toBe(200);
+    expect(server.server.centralActivity().lastActivityAt).toBeGreaterThan(before);
+  });
+
   it("still asks for the token first", async () => {
     expect((await server.raw("/api/model", { headers: {} })).status).toBe(401);
   });
