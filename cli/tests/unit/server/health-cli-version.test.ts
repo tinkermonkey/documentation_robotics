@@ -42,11 +42,15 @@ describe("GET /health", () => {
     expect(health.warnings).toBeUndefined();
   });
 
-  it.serial("says degraded, with a warning, when the chat service failed to start", async () => {
+  it.serial("says degraded when the chat service failed to start, and what failed only with the token", async () => {
     server = await startTestFarmServer(rootPath);
-    (server.server as any).chatInitializationError = new Error("no chat CLI");
-    const health = HealthResponseSchema.parse(await (await server.raw("/health", { headers: {} })).json());
-    expect(health.status).toBe("degraded");
-    expect(health.warnings).toEqual(["Chat service unavailable: no chat CLI"]);
+    (server.server as any).chatInitializationError = new Error("no chat CLI at /private/path");
+    const anonymous = HealthResponseSchema.parse(await (await server.raw("/health", { headers: {} })).json());
+    expect(anonymous.status).toBe("degraded");
+    expect(anonymous.warnings).toBeUndefined();
+
+    const withToken = HealthResponseSchema.parse(await (await server.raw("/health", { headers: server.auth })).json());
+    expect(withToken.status).toBe("degraded");
+    expect(withToken.warnings).toEqual(["Chat service unavailable: no chat CLI at /private/path"]);
   });
 });

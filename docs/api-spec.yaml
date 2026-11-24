@@ -807,7 +807,7 @@ paths:
                       type: string
                     description:
                       What failed to start, e.g. the chat service; only when `status` is
-                      `degraded`
+                      `degraded`, and only with the auth token
                   version:
                     type: string
                     description:

@@ -4104,12 +4104,13 @@ export class VisualizationServer {
   private centralHealth(withToken: boolean): z.infer<typeof HealthResponseSchema> {
     const central = this.central;
     const response: z.infer<typeof HealthResponseSchema> = { status: "ok", version: "0.1.0", cliVersion: getCliVersion() };
-    // Chat detection failed at start-up: the server runs, without DrBot. Anyone may learn that.
+    // Chat detection failed at start-up: the server runs, without DrBot. Anyone may learn that it
+    // is degraded; what failed (an error that can name local paths) is for the token's holder only.
+    if (this.chatInitializationError) response.status = "degraded";
+    if (!withToken) return response;
     if (this.chatInitializationError) {
-      response.status = "degraded";
       response.warnings = [`Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`];
     }
-    if (!withToken) return response;
     if (central.options.serverId) response.serverId = central.options.serverId;
     response.pid = process.pid;
     if (this.launcherPid) response.launcherPid = this.launcherPid;
