@@ -6,7 +6,7 @@ description: "#1361: the central server broadcasts changeset.commit.progress {
   in-process), throttled, always ending with a final event. Existing contracts
   unchanged."
 created: 2026-11-24T14:08:47.464Z
-modified: 2026-11-24T14:09:23.261Z
+modified: 2026-11-24T14:59:48.411Z
 status: staged
 baseSnapshot: v2:sha256:250afd73da41227a27ce5033dda2ef3bb54a5ad71f97887dd7493b4739a1ece0
 origin:
@@ -16,4 +16,33 @@ stats:
   additions: 18
   modifications: 1
   deletions: 0
-lastSequence: 18
+lastSequence: 19
+unstaged:
+  - sequence: 2
+    removedAt: 19
+    change:
+      type: add
+      elementId: application.applicationfunction.broadcast-commit-progress
+      layerName: application
+      after:
+        id: 6cdfaee9-b3d2-4530-8f22-1bcb7a0730aa
+        path: application.applicationfunction.broadcast-commit-progress
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: broadcastCommitProgress
+        description: "The central server's listener on the commit progress channel:
+          finds the checkout context whose root path the report names and
+          broadcasts changeset.commit.progress to that checkout's subscribers
+          only."
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/server/server.ts
+              symbol: broadcastCommitProgress
+        metadata:
+          created_at: 2026-11-24T14:08:57.653Z
+          updated_at: 2026-11-24T14:08:57.653Z
+          version: 1
+      timestamp: 2026-11-24T14:08:57.660Z
+    rewritten: true
