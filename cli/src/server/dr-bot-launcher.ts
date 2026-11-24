@@ -314,8 +314,9 @@ export class DrBotLauncher {
   /**
    * Takes one `chat.send`. A conversation runs one turn at a time: a send to a conversation whose
    * turn is still running (or queued) is refused. Otherwise the conversation is reserved and the
-   * turn starts now, or, at the cap, waits: the chat is told it is queued (`chat.turn.queued`
-   * and a line of reply text), and again when it starts (`chat.turn.started`).
+   * turn starts now, or, at the cap, waits: the chat is told it is queued (`chat.turn.queued`),
+   * and again when it starts (`chat.turn.started`). Neither is repeated as reply text: the viewer
+   * shows the notifications, and a copy in the reply showed the notice twice.
    */
   async startTurn(request: DrBotTurnRequest): Promise<DrBotTurnStart> {
     if (this.stampCheckout) request = { ...request, channel: stampedChannel(request.channel, request.context.ref) };
@@ -356,12 +357,6 @@ export class DrBotLauncher {
           waited_ms: waitedMs,
           timestamp: new Date().toISOString(),
         });
-        this.sendChatNotification(request.channel, "chat.response.chunk", {
-          conversation_id: conversationId,
-          content: `> Starting now, after waiting ${Math.round(waitedMs / 1000)} s.\n\n`,
-          is_final: false,
-          timestamp: new Date().toISOString(),
-        });
         // launchChat has already freed the slot and the conversation when it throws.
         this.launchChat(request, turn).catch((error) => {
           try {
@@ -390,12 +385,6 @@ export class DrBotLauncher {
       running: this.running,
       max_turns: this.maxTurns,
       message: text,
-      timestamp: new Date().toISOString(),
-    });
-    this.sendChatNotification(request.channel, "chat.response.chunk", {
-      conversation_id: conversationId,
-      content: `> ${text}\n\n`,
-      is_final: false,
       timestamp: new Date().toISOString(),
     });
     return { status: "queued", position };

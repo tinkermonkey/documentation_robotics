@@ -29,31 +29,51 @@ Three kinds of message share the socket:
 ## Checkout feeds
 
 A socket receives no event until it subscribes to a checkout, and one socket can subscribe to
-several:
+several. Subscribing sends no model: fetch `GET .../model` for it.
 
 | Frame from the client                                | Reply                                                                         |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `{ "action": "subscribe", "project", "checkout" }`   | `subscribed { project, checkout }`, or `error { message, project, checkout }` |
 | `{ "action": "unsubscribe", "project", "checkout" }` | `unsubscribed { project, checkout }`                                          |
 
-Every broadcast below carries the `project` and `checkout` it is about. A checkout whose folder is
-removed sends `checkout.removed` to its subscribers, and a stopping server sends `server.stopping`;
-the socket stays open for its other subscriptions.
+Subscribing to a checkout the farm doesn't list, or whose folder is not on disk, gets the `error`.
+Every event the server sends (the broadcasts below and the chat frames) carries the `project` and
+`checkout` it is about, so a client subscribed to several checkouts can tell them apart.
+
+Two events end a subscription:
+
+| `type`             | Fields                             | Sent when                                                                                                                    |
+| ------------------ | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `checkout.removed` | `project`, `checkout`, `timestamp` | The checkout's folder is gone (its worktree was removed). Its DrBot turns end; the socket stays open for its other checkouts |
+| `server.stopping`  | `project`, `checkout`, `timestamp` | The server is stopping: one per subscribed checkout, then the socket is closed (code 1001)                                   |
 
 A plain or JSON-RPC message runs in the checkout its `params.project` and `params.checkout` name,
 else in the socket's one subscription. A socket with no subscription, or with several, that sends a
 message naming no checkout gets `error { message: "Subscribe to a checkout first ..." }`: no checkout
 is assumed.
 
+### Errors
+
+The server reports a problem with a message as a plain `{ "type": "error", "message" }` frame,
+with `project` and `checkout` when it is about one. A malformed frame gets
+`{ "error": "Invalid message format", "details" }` instead. The name `error` collides with a
+browser `WebSocket`'s own `error` event (a connection failure): a client that dispatches frames by
+their `type` should keep the two apart, for example by re-emitting the server's frame under another
+name.
+
 ## Plain messages
 
 ### From the client
 
-| `type`      | Fields              | Reply                                            |
-| ----------- | ------------------- | ------------------------------------------------ |
-| `subscribe` | `topics` (optional) | `subscribed { topics }`, then `model { data }`   |
-| `ping`      |                     | `pong`                                           |
-| `annotate`  | `annotation`        | Broadcasts `annotation { data }` to every client |
+| `type`      | Fields              | Reply                                                                                               |
+| ----------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| `subscribe` | `topics` (optional) | `subscribed { topics }`, then `model { data }` (a legacy per-message form: not a feed subscription) |
+| `ping`      |                     | `pong`                                                                                              |
+| `annotate`  | `annotation`        | Broadcasts `annotation { data }` to the checkout's subscribers                                      |
+
+`{ "type": "subscribe" }` is the earlier per-project viewer's form. It runs in the checkout the
+message is for (above), sends that checkout's model once, and subscribes to nothing: use the
+`action` frames for events.
 
 ### Broadcasts
 
@@ -149,8 +169,8 @@ The `chat.send` result:
 up and returns it.
 
 At most `DR_DRBOT_MAX_TURNS` replies (default 3) run at once in one server process, across every
-checkout it serves. A send over the cap waits: the server sends `chat.turn.queued` and a quoted line
-of reply text saying so, then `chat.turn.started` and another quoted line when the reply starts. A
+checkout it serves. A send over the cap waits: the server sends `chat.turn.queued` (its `message` says so
+in a sentence), then `chat.turn.started` when the reply starts. Neither is repeated as reply text. A
 queued send can be cancelled like a running one; its `chat.send` then gets an error. A send whose
 checkout is removed while it waits gets an error too.
 
@@ -231,4 +251,6 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
   receives nothing before; every event and chat frame carries `project` and `checkout`. A message
   that names no checkout runs only in the socket's one subscription: no default checkout. `/health`
   no longer reports `viewerId`; with the token it reports `serverId`, `farmRoot`, `mcpSessions`,
-  `drBotTurns` and `loadedCheckouts`.
+  `drBotTurns` and `loadedCheckouts`. Subscribing sends no model; `checkout.removed`,
+  `server.stopping` and the `error` frame are documented. A queued DrBot turn is announced by
+  `chat.turn.queued` and `chat.turn.started` only, no longer also as reply text.

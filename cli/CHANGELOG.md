@@ -81,6 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `mcpSessions`, `drBotTurns` and `loadedCheckouts`. The viewer's deep-link paths
   (`/p/<project>/c/<checkout>/...`) load its page. `docs/api-spec.yaml` now also lists `/ws`, `/mcp`,
   `/api-docs` and `/api-spec.yaml`.
+- **A queued DrBot turn is announced once.** `chat.turn.queued` and `chat.turn.started` are no longer
+  also streamed as a quoted line of reply text, which a viewer showing the notifications showed twice.
 
 - **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (see the spec changelog,
   Unreleased): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
