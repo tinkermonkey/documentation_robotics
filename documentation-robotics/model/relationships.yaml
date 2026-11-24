@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-24T13:51:11.950Z
+# Last updated: 2026-11-24T21:28:46.470Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -26978,4 +26978,74 @@
   predicate: satisfies
   layer: data-store
   targetLayer: motivation
+  category: structural
+- source: application.applicationfunction.create-commit-progress-reporter
+  target: application.applicationevent.changeset-commit-progress
+  predicate: triggers
+  layer: application
+  category: structural
+- source: application.applicationevent.changeset-commit-progress
+  target: application.applicationfunction.broadcast-commit-progress
+  predicate: triggers
+  layer: application
+  category: structural
+- source: application.applicationevent.changeset-commit-progress
+  target: data-model.objectschema.commit-progress
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: application.applicationfunction.staging-area-manager-commit
+  target: application.applicationevent.changeset-commit-progress
+  predicate: triggers
+  layer: application
+  category: structural
+- source: application.applicationservice.viewer-api
+  target: product.feature.commit-progress
+  predicate: realizes
+  layer: application
+  targetLayer: product
+  category: structural
+- source: application.applicationservice.changeset-commit-handler
+  target: product.feature.commit-progress
+  predicate: realizes
+  layer: application
+  targetLayer: product
+  category: structural
+- source: application.applicationfunction.create-commit-progress-reporter
+  target: application.applicationservice.viewer-api
+  predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.broadcast-commit-progress
+  target: application.applicationservice.viewer-api
+  predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.create-commit-progress-reporter
+  target: data-model.objectschema.commit-progress
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: product.feature.commit-progress
+  target: product.feature.changeset-commit
+  predicate: depends-on
+  layer: product
+  category: structural
+- source: product.feature.commit-progress
+  target: product.persona.reviewer
+  predicate: serves
+  layer: product
+  category: structural
+- source: application.applicationcomponent.visualization-server
+  target: application.applicationfunction.broadcast-commit-progress
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationfunction.broadcast-commit-progress
+  target: data-model.objectschema.commit-progress
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
   category: structural
