@@ -13,6 +13,7 @@ import {
   buildSourceReference,
 } from "../utils/source-reference.js";
 import { schemaLookupHint } from "../utils/error-hints.js";
+import { requiredAttributesLine } from "../utils/required-attributes.js";
 import { SchemaValidator } from "../validators/schema-validator.js";
 import { getActiveSpan } from "../telemetry/index.js";
 import { deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../utils/id-generator.js";
@@ -196,9 +197,13 @@ export async function addCommand(
               : `Element ${elementPath} is not valid:\n${errorMessages}`,
           ErrorCategory.USER,
           [
-            idRefused
-              ? "An id is lowercase letters, digits and hyphens, and each part starts with a letter: change the name so its id does"
-              : schemaLookupHint("cli", layer, resolvedType),
+            ...(idRefused
+              ? ["An id is lowercase letters, digits and hyphens, and each part starts with a letter: change the name so its id does"]
+              : [
+                  // What the type requires and what each takes, so one retry fixes it (#1153).
+                  ...(inAttributes ? [requiredAttributesLine(`${layer}.${resolvedType}`)].filter((s): s is string => s !== undefined) : []),
+                  schemaLookupHint("cli", layer, resolvedType),
+                ]),
           ]
         );
       }
