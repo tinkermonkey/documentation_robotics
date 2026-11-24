@@ -80,14 +80,42 @@ message is for (above), sends that checkout's model once, and subscribes to noth
 The server sends these to every socket subscribed to the checkout. Each has a `timestamp`, `project`
 and `checkout`.
 
-| `type`                   | Fields                      | Sent when                                                                                                                                                                                                                                                                                                                                  |
-| ------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model.updated`          | `data` (the model)          | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                                                                                                                                                                                                            |
-| `changesets.updated`     | `ids`, `active`             | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), a changeset was committed, discarded or reviewed (`PUT .../changesets/:id/review`) through the API, or the model was reloaded after a file under `documentation-robotics/model/` changed (a base change moves each staged changeset's `drift`) |
-| `annotation.added`       | `annotationId`, `elementId` | An annotation was created, through the API or by another process (the MCP annotation tools)                                                                                                                                                                                                                                                |
-| `annotation.updated`     | `annotationId`              | An annotation was changed (content, tags, resolved), through the API or by another process                                                                                                                                                                                                                                                 |
-| `annotation.deleted`     | `annotationId`              | An annotation was deleted, through the API or by another process                                                                                                                                                                                                                                                                           |
-| `annotation.reply.added` | `annotationId`, `replyId`   | A reply was added, through the API or by another process                                                                                                                                                                                                                                                                                   |
+| `type`                      | Fields                                                        | Sent when                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model.updated`             | `data` (the model)                                            | A file under `documentation-robotics/model/` changed, or a changeset was committed or discarded through the API                                                                                                                                                                                                                            |
+| `changesets.updated`        | `ids`, `active`                                               | A file under `documentation-robotics/changesets/` changed (including the `.active` marker), a changeset was committed, discarded or reviewed (`PUT .../changesets/:id/review`) through the API, or the model was reloaded after a file under `documentation-robotics/model/` changed (a base change moves each staged changeset's `drift`) |
+| `changeset.commit.progress` | `changesetId`, `applied`, `total`, `phase`, `layer`, `failed` | A changeset commit is running in the server process (throttled; the last report has `phase: "done"` or `failed: true`)                                                                                                                                                                                                                     |
+| `annotation.added`          | `annotationId`, `elementId`                                   | An annotation was created, through the API or by another process (the MCP annotation tools)                                                                                                                                                                                                                                                |
+| `annotation.updated`        | `annotationId`                                                | An annotation was changed (content, tags, resolved), through the API or by another process                                                                                                                                                                                                                                                 |
+| `annotation.deleted`        | `annotationId`                                                | An annotation was deleted, through the API or by another process                                                                                                                                                                                                                                                                           |
+| `annotation.reply.added`    | `annotationId`, `replyId`                                     | A reply was added, through the API or by another process                                                                                                                                                                                                                                                                                   |
+
+`changeset.commit.progress` (issue 1361) reports a changeset commit while it runs, to the sockets
+subscribed to the checkout it lands in and no other: `changesetId`, `applied` (changes handled so
+far), `total` (the changes the commit handles, known before the first write), `phase`
+(`validating`, `applying`, `saving`, `reloading`, `done`), `layer` while applying, and `failed:
+true` on the last report of a commit that failed (its `phase` is where it stopped). Reports are
+throttled: the first, each change of phase and the last always go out, otherwise at most one every
+200 ms, so a 1,200-change commit sends a handful. A success always ends with `phase: "done"` and
+`applied == total`, before the commit's HTTP response; `model.updated` and `changesets.updated`
+come before it as before. It is advisory: the response (or the tool result) says what happened. It
+is sent for `POST .../changesets/:id/commit` and for MCP `changeset_commit` (DrBot included) in the
+server process; a separate `dr changeset commit` process sends none. The shape is the
+`ChangesetCommitProgress` schema in `docs/api-spec.yaml`.
+
+```json
+{
+  "type": "changeset.commit.progress",
+  "changesetId": "changeset-1795529327434-rmjd8l2i8",
+  "applied": 340,
+  "total": 1200,
+  "phase": "applying",
+  "layer": "api",
+  "project": "my-project",
+  "checkout": "main",
+  "timestamp": "2026-11-24T12:00:00.000Z"
+}
+```
 
 `changesets.updated` carries only what changed: `ids` is every changeset on disk and `active` is
 the active changeset's id, or `null`. Fetch `GET .../changesets` or `GET .../changesets/:id` for
@@ -254,3 +282,5 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
   `drBotTurns` and `loadedCheckouts`. Subscribing sends no model; `checkout.removed`,
   `server.stopping` and the `error` frame are documented. A queued DrBot turn is announced by
   `chat.turn.queued` and `chat.turn.started` only, no longer also as reply text.
+- CLI 0.8.0 (Unreleased, issue 1361): `changeset.commit.progress` while a commit runs, to the
+  checkout's sockets only.

@@ -4,7 +4,7 @@
  * without the elicitation capability.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,6 +29,11 @@ import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
 import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
 import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
+import {
+  sameRootPath,
+  subscribeCommitProgress,
+  type PublishedCommitProgress,
+} from "../../../src/core/commit-progress.js";
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { changesetUnstageHandler, changesetUpdateHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import {
@@ -202,6 +207,44 @@ describe("changeset_commit confirmation", () => {
     expect(parse(result).reconciled).toBeUndefined();
     expect(parse(result).codeDrift).toContain("no as-built landing recorded");
     expect(parse(result).codeDrift).not.toContain("doesn't reconcile");
+  });
+
+  it("publishes the commit's progress for the checkout, ending with applied == total (#1361)", async () => {
+    const heard: PublishedCommitProgress[] = [];
+    const stop = subscribeCommitProgress((p) => heard.push(p));
+    try {
+      const c = await connect({ elicitation: true, answer: ACCEPT });
+      expect((await commit(c)).isError).toBeFalsy();
+    } finally {
+      stop();
+    }
+    const id = await planId();
+    const mine = heard.filter((p) => p.changesetId === id);
+    expect(mine[0]).toMatchObject({ phase: "validating", applied: 0, total: 3 });
+    expect(mine.at(-1)).toMatchObject({ phase: "done", applied: 3, total: 3 });
+    expect(mine.every((p) => sameRootPath(p.rootPath, rootPath))).toBe(true);
+    // The dialog's dry run reports nothing: only the real commit does.
+    expect(mine.filter((p) => p.phase === "validating")).toHaveLength(1);
+  });
+
+  it("ends a failed commit's progress with failed: true in the phase it stopped in (#1361)", async () => {
+    const heard: PublishedCommitProgress[] = [];
+    const stop = subscribeCommitProgress((p) => heard.push(p));
+    const backup = spyOn(StagingAreaManager.prototype as any, "backupModel").mockImplementation(async () => {
+      throw new Error("disk full");
+    });
+    try {
+      const c = await connect({ elicitation: true, answer: ACCEPT });
+      expect((await commit(c)).isError).toBe(true);
+    } finally {
+      backup.mockRestore();
+      stop();
+    }
+    const mine = heard.filter((p) => p.changesetId === (heard[0]?.changesetId ?? ""));
+    expect(mine.length).toBeGreaterThan(0);
+    expect(mine.at(-1)).toMatchObject({ phase: "validating", applied: 0, total: 3, failed: true });
+    expect(mine.some((p) => p.phase === "done")).toBe(false);
+    expect(await changesetStatus()).toBe("staged");
   });
 
   it("says a plan landing doesn't reset drift once the model records an as-built landing", async () => {

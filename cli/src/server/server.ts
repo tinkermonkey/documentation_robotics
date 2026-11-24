@@ -53,6 +53,12 @@ import { CHECKOUT_CONTEXT_KEY, telemetryMiddleware } from "./telemetry-middlewar
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
 import { getErrorMessage } from "../utils/errors.js";
 import {
+  createCommitProgressReporter,
+  sameRootPath,
+  subscribeCommitProgress,
+  type PublishedCommitProgress,
+} from "../core/commit-progress.js";
+import {
   AnnotationCreateSchema,
   AnnotationUpdateSchema,
   AnnotationReplyCreateSchema,
@@ -87,6 +93,7 @@ import {
   JSONRPCRequestSchema,
   JSONRPCResponseSchema,
   Tier1StatusResponseSchema,
+  ChangesetCommitProgressSchema,
 } from "./schemas.js";
 import {
   cappedReason,
@@ -581,9 +588,16 @@ export class VisualizationServer {
       settings: central.pool,
       load: (resolved) => this.loadCheckoutContext(resolved),
     });
-    const stopListening = central.registry.onCheckoutRemoved(({ ref }) => {
+    const stopRemovedListener = central.registry.onCheckoutRemoved(({ ref }) => {
       this.closeRemovedCheckout(ref);
     });
+    // A commit run in this process (the viewer's Apply, an MCP or DrBot changeset_commit) reports
+    // its progress on a process-wide channel; its checkout's subscribers hear it (issue 1361).
+    const stopProgressListener = subscribeCommitProgress((progress) => this.broadcastCommitProgress(progress));
+    const stopListening = () => {
+      stopRemovedListener();
+      stopProgressListener();
+    };
     this.central = { options: central, pool, sockets: new Map(), stopListening, connections: new Set() };
 
     // Set up the WebSocket adapter for this app instance (works under both
@@ -2157,6 +2171,8 @@ export class VisualizationServer {
    */
   private registerUnscopedRouteDocs(): void {
     const registry = this.app.openAPIRegistry;
+    // A websocket frame, not a route body: registered so clients generate its type (issue 1361).
+    registry.register("ChangesetCommitProgress", ChangesetCommitProgressSchema);
     const unauthorized = { description: "No token, or a wrong one" };
     registry.registerPath({
       method: "get",
@@ -2167,7 +2183,8 @@ export class VisualizationServer {
         "Upgrades to a websocket (one per browser tab). The token comes as ?token=, as the " +
         "Sec-WebSocket-Protocol pair [\"token\", <token>], or as Authorization: Bearer. A socket receives " +
         "nothing until it subscribes to a checkout: {action: \"subscribe\", project, checkout}. Every event " +
-        "carries the project and checkout it is about. The frames are in cli/docs/VISUALIZATION_SERVER_PROTOCOL.md.",
+        "carries the project and checkout it is about. The frames are in cli/docs/VISUALIZATION_SERVER_PROTOCOL.md; " +
+        "changeset.commit.progress is the ChangesetCommitProgress schema.",
       responses: {
         101: { description: "Switching to the websocket protocol" },
         401: unauthorized,
@@ -2764,6 +2781,36 @@ export class VisualizationServer {
         console.error(`[Watcher] Failed to broadcast changesets: ${getErrorMessage(error)}`);
       });
     });
+  }
+
+  /**
+   * Sends `changeset.commit.progress` to the subscribers of the checkout a commit in flight is
+   * landing in, and to no other checkout's (issue 1361). A report for a checkout this server has
+   * not loaded has no subscribers to reach and is dropped.
+   *
+   * Sent synchronously (no telemetry await, unlike broadcastMessage): a report is on every socket
+   * when the reporter returns, so the commit's final report goes out before its HTTP response.
+   */
+  private broadcastCommitProgress(progress: PublishedCommitProgress): void {
+    const { rootPath, ...payload } = progress;
+    for (const ref of this.central.pool.loaded()) {
+      const context = this.central.pool.peek(ref);
+      if (!context || !sameRootPath(context.rootPath, rootPath)) continue;
+      if (context.subscribers.size === 0) continue;
+      const message = JSON.stringify(
+        this.inContext(context, () =>
+          this.stamp({ type: "changeset.commit.progress", ...payload, timestamp: new Date().toISOString() })
+        )
+      );
+      for (const subscriber of [...context.subscribers]) {
+        try {
+          subscriber.send(message);
+        } catch (error) {
+          context.subscribers.delete(subscriber);
+          console.warn(`[WebSocket] Failed to send commit progress to a client: ${getErrorMessage(error)}`);
+        }
+      }
+    }
   }
 
   /**
@@ -3603,6 +3650,10 @@ export class VisualizationServer {
       }
     }
 
+    // The commit's progress, for the checkout's open viewers (issue 1361). Advisory: the response
+    // below is unchanged, and a failure's last report says the phase it stopped in.
+    const progress = action === "commit" ? createCommitProgressReporter(this.context.rootPath, changesetId) : undefined;
+
     let result: {
       committed?: number;
       skipped?: number;
@@ -3620,7 +3671,10 @@ export class VisualizationServer {
       }
       if (action === "commit") {
         // Only errors the changeset introduces block; the base model's own are counted.
-        const commit = await manager.commit(model, changesetId, { validate: true });
+        const commit = await manager.commit(model, changesetId, {
+          validate: true,
+          ...(progress ? { onProgress: progress.onProgress } : {}),
+        });
         result = {
           committed: commit.committed,
           skipped: commit.skipped ?? 0,
@@ -3635,6 +3689,7 @@ export class VisualizationServer {
         await manager.discard(changesetId);
       }
     } catch (error) {
+      progress?.fail();
       if (restoreOnFailure) await this.restoreDroppedChanges(changeset.id, restoreOnFailure);
       if (error instanceof RecordLandingError) {
         return c.json({ error: error.fullText }, 409);
@@ -3652,6 +3707,7 @@ export class VisualizationServer {
       await manager.clearActive();
     }
 
+    progress?.phase("reloading");
     try {
       await this.reloadAndBroadcast();
     } catch (error) {
@@ -3662,6 +3718,8 @@ export class VisualizationServer {
     } catch (error) {
       console.error(`[Changesets] Broadcast after ${action} failed: ${getErrorMessage(error)}`);
     }
+
+    progress?.finish();
 
     const updated = this.context.changesets.get(changesetId) ?? (await manager.load(changesetId));
     return c.json({

@@ -26,6 +26,73 @@ components:
         "API token (shown at server startup, pass as Authorization: Bearer
         <token>)"
   schemas:
+    ChangesetCommitProgress:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - changeset.commit.progress
+        changesetId:
+          type: string
+          description: The changeset being committed
+        applied:
+          type: integer
+          description: Changes handled so far (applied, or skipped as already in the base)
+        total:
+          type: integer
+          description:
+            "The changes the commit handles: the staged changes left after a
+            reviewed commit drops some. Relationships deleted with a delete
+            (deleteBlockedLinks) count inside that delete."
+        phase:
+          type: string
+          enum:
+            - validating
+            - applying
+            - saving
+            - reloading
+            - done
+          description:
+            "validating: checking the changeset; applying: writing the changes;
+            saving: writing the files; reloading: the server reloading the model
+            (the viewer's Apply and changeset_commit); done: landed."
+        layer:
+          type: string
+          description: "While applying: the layer of the change being written"
+        failed:
+          type: boolean
+          enum:
+            - true
+          description:
+            On the last report of a commit that failed; phase is where it
+            stopped. The commit response says why.
+        project:
+          type: string
+          description: The project the checkout belongs to
+        checkout:
+          type: string
+          description: The checkout being committed to
+        timestamp:
+          type: string
+          description: When the server sent it (ISO 8601)
+      required:
+        - type
+        - changesetId
+        - applied
+        - total
+        - phase
+        - project
+        - checkout
+        - timestamp
+      description:
+        "Websocket broadcast to the subscribers of the checkout a commit
+        lands in, while it runs: after POST .../changesets/{changesetId}/commit
+        or an MCP changeset_commit in the server process. Throttled: the first
+        report, each phase change and the last are always sent, otherwise at
+        most one per 200 ms. A success ends with phase done and applied ==
+        total; a failure ends with failed: true. Advisory: the commit's response
+        is what counts."
     ChangesetDriftSummary:
       type: object
       properties:
@@ -4799,7 +4866,8 @@ paths:
         Authorization: Bearer. A socket receives nothing until it subscribes to
         a checkout: {action: "subscribe", project, checkout}. Every event
         carries the project and checkout it is about. The frames are in
-        cli/docs/VISUALIZATION_SERVER_PROTOCOL.md.'
+        cli/docs/VISUALIZATION_SERVER_PROTOCOL.md; changeset.commit.progress is
+        the ChangesetCommitProgress schema.'
       responses:
         "101":
           description: Switching to the websocket protocol

@@ -56,6 +56,7 @@ import {
   type OverlapKind,
 } from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
+import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { changesetLinkIfRunning } from "./central-viewer.js";
@@ -729,13 +730,21 @@ export async function changesetCommitHandler(
           ['Show the user the changeset as it is now ("changeset_brief"), then ask again with changeset_commit']
         );
       }
+      // In the central process, the checkout's open viewers see the commit's progress (issue 1361).
+      const progress = createCommitProgressReporter(model.rootPath, changeset.id);
       let landed;
       try {
-        landed = await manager.commit(model, changeset.id, { validate: true });
+        landed = await manager.commit(model, changeset.id, { validate: true, onProgress: progress.onProgress });
       } catch (error) {
+        progress.fail();
         throw commitError(error, changeset.name);
       }
-      await reloadModel(args.rootPath);
+      progress.phase("reloading");
+      try {
+        await reloadModel(args.rootPath);
+      } finally {
+        progress.finish();
+      }
       return { result: landed, model };
     });
     if (result.deactivationError) {
