@@ -56,8 +56,7 @@ product.workflowstep.onboard-a-project-choose-how-the-model-starts:
   description: Chooses to bootstrap from the code or to let the model grow with each change
   attributes:
     sequence: 4
-    action: Chooses to bootstrap from the code or to let the model grow with each
-      change
+    action: Chooses to bootstrap from the code or to let the model grow with each change
     outcome: The agent continues with that path
   metadata:
     created_at: 2026-11-09T22:04:40.625Z
@@ -203,8 +202,7 @@ product.workflowstep.plan-a-change-agent-orients-in-the-model:
   attributes:
     sequence: 3
     action: Points the agent at related parts of the system if it asks
-    outcome: The agent knows what exists and what the spec allows each new element
-      to carry and connect to
+    outcome: The agent knows what exists and what the spec allows each new element to carry and connect to
   metadata:
     created_at: 2026-11-09T22:04:43.258Z
     updated_at: 2026-11-09T22:04:43.258Z
@@ -462,8 +460,7 @@ product.workflowstep.verify-a-build-against-its-plan-settle-each-difference:
   attributes:
     sequence: 3
     action: Decides whether the code or the plan is wrong for each difference
-    outcome: The code or the plan is fixed until they match or the difference is
-      explained
+    outcome: The code or the plan is fixed until they match or the difference is explained
   metadata:
     created_at: 2026-11-09T22:04:49.954Z
     updated_at: 2026-11-09T22:04:49.954Z
@@ -491,13 +488,10 @@ product.workflowstep.land-a-change-confirm-landing-it:
   type: workflowstep
   layer_id: product
   name: "Land a change: Confirm landing it"
-  description: Confirms in the dialog, approves the commit in Claude Code's
-    permission prompt after reading the landing summary, or presses Apply in the
-    viewer
+  description: Confirms in the dialog, approves the commit in Claude Code's permission prompt after reading the landing summary, or presses Apply in the viewer
   attributes:
     sequence: 2
-    action: Confirms in the dialog, approves the commit in Claude Code's permission
-      prompt after reading the landing summary, or presses Apply in the viewer
+    action: Confirms in the dialog, approves the commit in Claude Code's permission prompt after reading the landing summary, or presses Apply in the viewer
     outcome: The base model now describes what was built
   metadata:
     created_at: 2026-11-09T22:04:51.217Z
@@ -754,8 +748,7 @@ product.workflowstep.work-across-projects-and-worktrees-open-any-project-from-th
   type: workflowstep
   layer_id: product
   name: "Work across projects and worktrees: Open any project from the session"
-  description: Opens the link the agent gives; it lands in the shared viewer on
-    the session's project and checkout
+  description: Opens the link the agent gives; it lands in the shared viewer on the session's project and checkout
   attributes:
     sequence: 1
     action: Opens the link the agent gives
@@ -785,8 +778,7 @@ product.workflowstep.work-across-projects-and-worktrees-review-a-plan-staged-in-
   type: workflowstep
   layer_id: product
   name: "Work across projects and worktrees: Review a plan staged in a worktree"
-  description: Reviews and comments on a changeset staged in a worktree, which
-    DrBot answers in that worktree
+  description: Reviews and comments on a changeset staged in a worktree, which DrBot answers in that worktree
   attributes:
     sequence: 3
     action: Comments on the worktree's plan and asks DrBot about it
@@ -801,8 +793,7 @@ product.workflowstep.move-to-user-level-dr-preview-the-farm-migration:
   type: workflowstep
   layer_id: product
   name: "Move to user-level DR: Preview the farm migration"
-  description: Reads which farm entries become one project with checkouts and
-    which names are dropped
+  description: Reads which farm entries become one project with checkouts and which names are dropped
   attributes:
     sequence: 1
     action: Asks the agent to preview the farm migration

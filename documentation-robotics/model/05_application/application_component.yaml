@@ -937,9 +937,7 @@ application.applicationcomponent.farm-manifest:
   type: applicationcomponent
   layer_id: application
   name: FarmManifest
-  description: "FarmManifest: loads, validates and saves farm.yaml (dr-farm-v1
-    read, dr-farm-v2 written); the user farm it loads is the project registry's
-    store."
+  description: "FarmManifest: loads, validates and saves farm.yaml (dr-farm-v1 read, dr-farm-v2 written); the user farm it loads is the project registry's store."
   attributes:
     type: internal
   source_reference:
@@ -958,8 +956,7 @@ application.applicationcomponent.farm-sync-engine:
   type: applicationcomponent
   layer_id: application
   name: FarmSyncEngine
-  description: FarmSyncEngine - Orchestrates the sync pipeline Model parameter is
-    optional - only required for sync operations, not for pull
+  description: FarmSyncEngine - Orchestrates the sync pipeline Model parameter is optional - only required for sync operations, not for pull
   attributes:
     type: internal
   source_reference:
@@ -1035,8 +1032,7 @@ application.applicationcomponent.model:
   type: applicationcomponent
   layer_id: application
   name: Model
-  description: Model class representing the complete architecture model Uses
-    GraphModel internally for graph-based storage
+  description: Model class representing the complete architecture model Uses GraphModel internally for graph-based storage
   attributes:
     type: internal
   source_reference:
@@ -1074,8 +1070,7 @@ application.applicationcomponent.relationship-catalog:
   type: applicationcomponent
   layer_id: application
   name: RelationshipCatalog
-  description: Relationship catalog providing access to semantic relationship type
-    definitions
+  description: Relationship catalog providing access to semantic relationship type definitions
   attributes:
     type: internal
   source_reference:
@@ -1132,8 +1127,7 @@ application.applicationcomponent.spec-data-loader:
   type: applicationcomponent
   layer_id: application
   name: SpecDataLoader
-  description: SpecDataLoader loads specification metadata from the compiled
-    bundled dist files
+  description: SpecDataLoader loads specification metadata from the compiled bundled dist files
   attributes:
     type: internal
   source_reference:
@@ -1228,8 +1222,7 @@ application.applicationcomponent.archi-mate-exporter:
   type: applicationcomponent
   layer_id: application
   name: ArchiMateExporter
-  description: ArchiMate XML Exporter for layers 1, 2, 5, 6 (Motivation, Business,
-    Application, Technology) Generates valid ArchiMate 3.2 XML format Note
+  description: ArchiMate XML Exporter for layers 1, 2, 5, 6 (Motivation, Business, Application, Technology) Generates valid ArchiMate 3.2 XML format Note
   attributes:
     type: internal
   source_reference:
@@ -1267,9 +1260,7 @@ application.applicationcomponent.graph-mlexporter:
   type: applicationcomponent
   layer_id: application
   name: GraphMLExporter
-  description: GraphML Exporter - generates GraphML format for graph visualization
-    tools GraphML is an XML-based format supported by tools like yEd, Cytoscape,
-    etc.
+  description: GraphML Exporter - generates GraphML format for graph visualization tools GraphML is an XML-based format supported by tools like yEd, Cytoscape, etc.
   attributes:
     type: internal
   source_reference:
@@ -1307,8 +1298,7 @@ application.applicationcomponent.markdown-exporter:
   type: applicationcomponent
   layer_id: application
   name: MarkdownExporter
-  description: Markdown Exporter - generates comprehensive markdown documentation
-    Supports all 13 layers
+  description: Markdown Exporter - generates comprehensive markdown documentation Supports all 13 layers
   attributes:
     type: internal
   source_reference:
@@ -1327,8 +1317,7 @@ application.applicationcomponent.markdown-generator:
   type: applicationcomponent
   layer_id: application
   name: MarkdownGenerator
-  description: MarkdownGenerator - generates enhanced markdown with Mermaid
-    diagrams and tables
+  description: MarkdownGenerator - generates enhanced markdown with Mermaid diagrams and tables
   attributes:
     type: internal
   source_reference:
@@ -1347,8 +1336,7 @@ application.applicationcomponent.mermaid-markdown-exporter:
   type: applicationcomponent
   layer_id: application
   name: MermaidMarkdownExporter
-  description: Mermaid Markdown Exporter - generates comprehensive markdown
-    documentation with Mermaid diagrams and formatted tables
+  description: Mermaid Markdown Exporter - generates comprehensive markdown documentation with Mermaid diagrams and formatted tables
   attributes:
     type: internal
   source_reference:
@@ -1386,8 +1374,7 @@ application.applicationcomponent.plant-umlexporter:
   type: applicationcomponent
   layer_id: application
   name: PlantUMLExporter
-  description: PlantUML Exporter - generates PlantUML syntax for diagram
-    visualization Supports all 13 layers
+  description: PlantUML Exporter - generates PlantUML syntax for diagram visualization Supports all 13 layers
   attributes:
     type: internal
   source_reference:
@@ -1406,8 +1393,7 @@ application.applicationcomponent.archi-mate-importer:
   type: applicationcomponent
   layer_id: application
   name: ArchiMateImporter
-  description: ArchiMate XML Importer for layers 1, 2, 5, 6 Parses ArchiMate 3.2
-    XML and creates graph nodes/edges
+  description: ArchiMate XML Importer for layers 1, 2, 5, 6 Parses ArchiMate 3.2 XML and creates graph nodes/edges
   attributes:
     type: internal
   source_reference:
@@ -1444,8 +1430,7 @@ application.applicationcomponent.open-apiimporter:
   type: applicationcomponent
   layer_id: application
   name: OpenAPIImporter
-  description: OpenAPI 3.0 Importer for layer 7 (API) Parses OpenAPI JSON
-    specifications and creates graph nodes/edges
+  description: OpenAPI 3.0 Importer for layer 7 (API) Parses OpenAPI JSON specifications and creates graph nodes/edges
   attributes:
     type: internal
   source_reference:
@@ -1464,8 +1449,7 @@ application.applicationcomponent.base-integration-manager:
   type: applicationcomponent
   layer_id: application
   name: BaseIntegrationManager
-  description: Abstract base class for integration managers Provides shared logic
-    for file operations, version management, and update detection
+  description: Abstract base class for integration managers Provides shared logic for file operations, version management, and update detection
   attributes:
     type: internal
   source_reference:
@@ -1612,9 +1596,7 @@ application.applicationcomponent.model-report-data-collector:
   type: applicationcomponent
   layer_id: application
   name: ModelReportDataCollector
-  description: Data collector for generating layer report data from a live Model
-    instance Reads from Model/Layer/Relationships and transforms into
-    report-friendly shapes
+  description: Data collector for generating layer report data from a live Model instance Reads from Model/Layer/Relationships and transforms into report-friendly shapes
   attributes:
     type: internal
   source_reference:
@@ -1651,11 +1633,7 @@ application.applicationcomponent.visualization-server:
   type: applicationcomponent
   layer_id: application
   name: VisualizationServer
-  description: "The user's central DR process (dr serve): one per user, one port,
-    one token. Serves the MCP interface (/mcp), the viewer and its project- and
-    checkout-scoped API, and the websocket feed for every registered project,
-    holding each checkout's state in a CheckoutContext from the pool, and
-    launches DrBot through the DrBotLauncher. No longer built around one Model."
+  description: "The user's central DR process (dr serve): one per user, one port, one token. Serves the MCP interface (/mcp), the viewer and its project- and checkout-scoped API, and the websocket feed for every registered project, holding each checkout's state in a CheckoutContext from the pool, and launches DrBot through the DrBotLauncher. No longer built around one Model."
   attributes:
     type: internal
   source_reference:
@@ -1920,8 +1898,7 @@ application.applicationcomponent.paged-lists:
   type: applicationcomponent
   layer_id: application
   name: PagedLists
-  description: Pages every list of a result through one window and records each
-    list's true length.
+  description: Pages every list of a result through one window and records each list's true length.
   attributes:
     type: internal
   source_reference:
@@ -1940,10 +1917,7 @@ application.applicationcomponent.project-registry:
   type: applicationcomponent
   layer_id: application
   name: ProjectRegistry
-  description: The one project registry every interface reads. It loads the farm
-    in use (resolveFarm), names projects, discovers each project's checkouts
-    from git, and resolves a path, a project name or a CheckoutRef to a project
-    and checkout.
+  description: The one project registry every interface reads. It loads the farm in use (resolveFarm), names projects, discovers each project's checkouts from git, and resolves a path, a project name or a CheckoutRef to a project and checkout.
   attributes:
     type: internal
   source_reference:
@@ -1955,9 +1929,7 @@ application.applicationcomponent.project-registry:
     - direction: outgoing
       predicate: accesses
       other_spec_node_id: application.dataobject
-      reason: Everything the registry reads and writes has a declared shape
-        (FarmProject, Repository, Checkout, CheckoutRef, ProjectListEntry), so
-        it accesses object schemas, not data objects.
+      reason: Everything the registry reads and writes has a declared shape (FarmProject, Repository, Checkout, CheckoutRef, ProjectListEntry), so it accesses object schemas, not data objects.
       decided_by: agent
       decided_at: 2026-11-21T17:16:37.667Z
       changeset: changeset-1795281066041-0kg0ygyyb
@@ -1972,10 +1944,7 @@ application.applicationcomponent.checkout-context:
   type: applicationcomponent
   layer_id: application
   name: CheckoutContext
-  description: "Everything the central process holds for one checkout: its Model,
-    StagingAreaManager, AnnotationStore, StagedChangesetStorage, file watcher,
-    websocket subscribers and DrBot conversations. Created by the pool, never
-    shared between checkouts."
+  description: "Everything the central process holds for one checkout: its Model, StagingAreaManager, AnnotationStore, StagedChangesetStorage, file watcher, websocket subscribers and DrBot conversations. Created by the pool, never shared between checkouts."
   attributes:
     type: internal
   source_reference:
@@ -1994,9 +1963,7 @@ application.applicationcomponent.checkout-context-pool:
   type: applicationcomponent
   layer_id: application
   name: CheckoutContextPool
-  description: Loads a CheckoutContext on first use and evicts it when idle or
-    when the pool is full (least recently used first); never evicts a context
-    with a websocket subscriber or a running DrBot turn.
+  description: Loads a CheckoutContext on first use and evicts it when idle or when the pool is full (least recently used first); never evicts a context with a websocket subscriber or a running DrBot turn.
   attributes:
     type: internal
   source_reference:
@@ -2008,9 +1975,7 @@ application.applicationcomponent.checkout-context-pool:
     - direction: outgoing
       predicate: accesses
       other_spec_node_id: application.dataobject
-      reason: The pool holds CheckoutContext components and reads ContextPoolSettings
-        (an object schema); the domain objects (Model, Changeset) are reached
-        through each CheckoutContext.
+      reason: The pool holds CheckoutContext components and reads ContextPoolSettings (an object schema); the domain objects (Model, Changeset) are reached through each CheckoutContext.
       decided_by: agent
       decided_at: 2026-11-21T17:16:38.299Z
       changeset: changeset-1795281066041-0kg0ygyyb
@@ -2025,11 +1990,7 @@ application.applicationcomponent.dr-bot-launcher:
   type: applicationcomponent
   layer_id: application
   name: DrBotLauncher
-  description: "Launches DrBot sub-processes (Claude Code CLI, GitHub Copilot CLI)
-    for the central process: cwd is the checkout's path, DR_MCP_ROOT_PATH and
-    the MCP config pin the agent's dr MCP to that project and checkout,
-    conversations are keyed by DrBotSessionKey, and the number of running turns
-    per user is capped."
+  description: "Launches DrBot sub-processes (Claude Code CLI, GitHub Copilot CLI) for the central process: cwd is the checkout's path, DR_MCP_ROOT_PATH and the MCP config pin the agent's dr MCP to that project and checkout, conversations are keyed by DrBotSessionKey, and the number of running turns per user is capped."
   attributes:
     type: internal
   source_reference:
@@ -2041,9 +2002,7 @@ application.applicationcomponent.dr-bot-launcher:
     - direction: outgoing
       predicate: accesses
       other_spec_node_id: application.dataobject
-      reason: The launcher works with declared shapes only (DrBotSessionKey,
-        DrBotAgentLaunch); the model and changesets DrBot touches are reached by
-        the sub-process through the dr MCP, not by the launcher.
+      reason: The launcher works with declared shapes only (DrBotSessionKey, DrBotAgentLaunch); the model and changesets DrBot touches are reached by the sub-process through the dr MCP, not by the launcher.
       decided_by: agent
       decided_at: 2026-11-21T17:16:38.937Z
       changeset: changeset-1795281066041-0kg0ygyyb
@@ -2058,10 +2017,7 @@ application.applicationcomponent.mcp-stdio-bridge:
   type: applicationcomponent
   layer_id: application
   name: McpStdioBridge
-  description: "dr mcp over stdio becomes a bridge: it finds the central process
-    (starting it when absent or older than this CLI and idle), forwards MCP
-    messages to its /mcp endpoint with the token, and passes the client's roots
-    so tools resolve the session's checkout."
+  description: "dr mcp over stdio becomes a bridge: it finds the central process (starting it when absent or older than this CLI and idle), forwards MCP messages to its /mcp endpoint with the token, and passes the client's roots so tools resolve the session's checkout."
   attributes:
     type: internal
   source_reference:

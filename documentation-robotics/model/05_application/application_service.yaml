@@ -5,8 +5,7 @@ application.applicationservice.progress-tracker:
   type: applicationservice
   layer_id: application
   name: ProgressTracker
-  description: Tracks progress of AI evaluation operations, enabling resume
-    support for interrupted or long-running evaluation pipelines.
+  description: Tracks progress of AI evaluation operations, enabling resume support for interrupted or long-running evaluation pipelines.
   attributes:
     serviceType: synchronous
   source_reference:
@@ -440,9 +439,7 @@ application.applicationservice.chat-command:
   type: applicationservice
   layer_id: application
   name: chatCommand
-  description: Chat command implementation Launches an interactive conversation
-    with an AI chat client Supports Claude Code CLI and GitHub Copilot CLI with
-    auto-detection
+  description: Chat command implementation Launches an interactive conversation with an AI chat client Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
   attributes:
     serviceType: synchronous
   source_reference:
@@ -572,9 +569,7 @@ application.applicationservice.farm-add-command:
   type: applicationservice
   layer_id: application
   name: farmAddCommand
-  description: "Add a project to the user farm through the project registry: the
-    codebase path is resolved to its repository's main checkout, so adding a
-    worktree path adds (or finds) its project, never a project per worktree."
+  description: "Add a project to the user farm through the project registry: the codebase path is resolved to its repository's main checkout, so adding a worktree path adds (or finds) its project, never a project per worktree."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -760,9 +755,7 @@ application.applicationservice.mcp-command:
   type: applicationservice
   layer_id: application
   name: mcpCommand
-  description: "dr mcp: over stdio, the McpStdioBridge to the user's central
-    process (started when absent); --http serves the MCP interface in the
-    central process itself."
+  description: "dr mcp: over stdio, the McpStdioBridge to the user's central process (started when absent); --http serves the MCP interface in the central process itself."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1077,10 +1070,7 @@ application.applicationservice.visualize-command:
   type: applicationservice
   layer_id: application
   name: visualizeCommand
-  description: "dr visualize [path]: ensures the central process runs and opens
-    the shared viewer at the project and checkout the path resolves to. --list
-    shows the central process with its loaded checkouts and any old per-project
-    viewers; --stop stops them."
+  description: "dr visualize [path]: ensures the central process runs and opens the shared viewer at the project and checkout the path resolves to. --list shows the central process with its loaded checkouts and any old per-project viewers; --stop stops them."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1783,10 +1773,7 @@ application.applicationservice.project-status-handler:
   type: applicationservice
   layer_id: application
   name: projectStatusHandler
-  description: "project_status: names the project and checkout the session
-    resolves to, lists the project's other checkouts (branch, head, state,
-    active changeset, staged count; paged), and gives the viewer link for this
-    checkout."
+  description: "project_status: names the project and checkout the session resolves to, lists the project's other checkouts (branch, head, state, active changeset, staged count; paged), and gives the viewer link for this checkout."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1877,9 +1864,7 @@ application.applicationservice.create-review-open-handler:
   type: applicationservice
   layer_id: application
   name: createReviewOpenHandler
-  description: "review_open: resolves the session's project and checkout through
-    the registry and returns a ViewerLink to the changeset in the central
-    process, which serves the session; it never starts a viewer."
+  description: "review_open: resolves the session's project and checkout through the registry and returns a ViewerLink to the changeset in the central process, which serves the session; it never starts a viewer."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1934,8 +1919,7 @@ application.applicationservice.changeset-commit-preview-handler:
   type: applicationservice
   layer_id: application
   name: changesetCommitPreviewHandler
-  description: Checks a staged changeset for landing without writing anything and
-    returns the landing summary with a confirmation token
+  description: Checks a staged changeset for landing without writing anything and returns the landing summary with a confirmation token
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1954,11 +1938,7 @@ application.applicationservice.list-viewers-command:
   type: applicationservice
   layer_id: application
   name: listViewersCommand
-  description: "dr visualize --list: prints each running viewer with its project,
-    port, pid, CLI version and start time, from the registry and a process scan
-    (--json for a machine-readable list). It ends with how many viewers it found
-    and where, and what reading the registry removed; when the process table
-    cannot be read it says that viewers the registry has lost are not shown."
+  description: "dr visualize --list: prints each running viewer with its project, port, pid, CLI version and start time, from the registry and a process scan (--json for a machine-readable list). It ends with how many viewers it found and where, and what reading the registry removed; when the process table cannot be read it says that viewers the registry has lost are not shown."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1977,13 +1957,7 @@ application.applicationservice.stop-viewers-command:
   type: applicationservice
   layer_id: application
   name: stopViewersCommand
-  description: "dr visualize --stop [project] [--all] [--port n]
-    [--include-unrecorded]: stops the viewers this registry records for the
-    current or named project, one port, or all; viewers found only in the
-    process table are named and left unless --include-unrecorded is given. Only
-    pids confirmed to be the viewer's are signalled. It says how many were
-    running, matched and stopped, names each one not stopped with its pid and
-    why, and exits 1 when a matching viewer is still running."
+  description: "dr visualize --stop [project] [--all] [--port n] [--include-unrecorded]: stops the viewers this registry records for the current or named project, one port, or all; viewers found only in the process table are named and left unless --include-unrecorded is given. Only pids confirmed to be the viewer's are signalled. It says how many were running, matched and stopped, names each one not stopped with its pid and why, and exits 1 when a matching viewer is still running."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -2002,8 +1976,7 @@ application.applicationservice.dr-bot-conversation:
   type: applicationservice
   layer_id: application
   name: DrBot conversation
-  description: "DrBot over the viewer websocket: a message to a checkout's
-    conversation, answered by a sub-process running in that checkout."
+  description: "DrBot over the viewer websocket: a message to a checkout's conversation, answered by a sub-process running in that checkout."
   attributes:
     serviceType: asynchronous
   source_reference:
@@ -2022,9 +1995,7 @@ application.applicationservice.viewer-api:
   type: applicationservice
   layer_id: application
   name: Viewer API
-  description: "The viewer's HTTP API on the central process: GET /api/projects
-    and every project data route under
-    /api/projects/:project/checkouts/:checkout/, all requiring the one token."
+  description: "The viewer's HTTP API on the central process: GET /api/projects and every project data route under /api/projects/:project/checkouts/:checkout/, all requiring the one token."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -2043,8 +2014,7 @@ application.applicationservice.serve-command:
   type: applicationservice
   layer_id: application
   name: serveCommand
-  description: "dr serve: runs the user's central DR process in the foreground (dr
-    mcp and dr visualize start it detached)."
+  description: "dr serve: runs the user's central DR process in the foreground (dr mcp and dr visualize start it detached)."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -2063,8 +2033,7 @@ application.applicationservice.project-list-handler:
   type: applicationservice
   layer_id: application
   name: projectListHandler
-  description: "MCP project_list: every registered project with its checkouts
-    (ProjectListEntry), paged."
+  description: "MCP project_list: every registered project with its checkouts (ProjectListEntry), paged."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -2083,8 +2052,7 @@ application.applicationservice.farm-migrate-command:
   type: applicationservice
   layer_id: application
   name: farmMigrateCommand
-  description: "dr farm migrate [--apply]: previews the dr-farm-v2 migration of
-    the user farm, and writes it with --apply."
+  description: "dr farm migrate [--apply]: previews the dr-farm-v2 migration of the user farm, and writes it with --apply."
   attributes:
     serviceType: batch
   source_reference:

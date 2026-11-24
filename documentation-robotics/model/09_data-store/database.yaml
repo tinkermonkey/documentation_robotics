@@ -5,10 +5,7 @@ data-store.database.dr-user-state:
   type: database
   layer_id: data-store
   name: DR user state
-  description: "The user's DR state directory ($XDG_STATE_HOME/dr or
-    ~/.local/state/dr): the central process records and tokens, the starting
-    marker and the legacy viewer records. The farms themselves are in the Farm
-    root database."
+  description: "The user's DR state directory ($XDG_STATE_HOME/dr or ~/.local/state/dr): the central process records and tokens, the starting marker and the legacy viewer records. The farms themselves are in the Farm root database."
   attributes:
     engine: filesystem (YAML and JSON files)
     paradigm: DOCUMENT
@@ -23,10 +20,7 @@ data-store.database.checkout-dr-state:
   type: database
   layer_id: data-store
   name: Checkout DR state
-  description: "What each checkout holds for DR: its documentation-robotics/
-    folder (model, changesets, annotations), committed and branch-borne, and its
-    .dr/ folder (active changeset marker, analyzer index), local to the
-    checkout."
+  description: "What each checkout holds for DR: its documentation-robotics/ folder (model, changesets, annotations), committed and branch-borne, and its .dr/ folder (active changeset marker, analyzer index), local to the checkout."
   attributes:
     engine: filesystem (YAML and JSON files)
     paradigm: DOCUMENT
@@ -41,9 +35,7 @@ data-store.database.farm-root:
   type: database
   layer_id: data-store
   name: Farm root
-  description: "A farm's folder: the user farm at ~/.config/dr/, or a folder farm
-    with its own farm.yaml. It holds the farm manifest and each project's
-    .farm-sync.yaml."
+  description: "A farm's folder: the user farm at ~/.config/dr/, or a folder farm with its own farm.yaml. It holds the farm manifest and each project's .farm-sync.yaml."
   attributes:
     engine: filesystem (YAML and JSON files)
     paradigm: DOCUMENT

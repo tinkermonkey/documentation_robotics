@@ -5,9 +5,7 @@ apm.exporterconfig.dr-cli-otlp-exporter:
   type: exporterconfig
   layer_id: apm
   name: dr-cli OTLP exporter
-  description: "OTLP/HTTP exporter for spans and logs: DR_OTLP_ENDPOINT (default
-    http://localhost:4318/v1/traces), DR_OTLP_LOGS_ENDPOINT, wrapped to survive
-    an unreachable collector."
+  description: "OTLP/HTTP exporter for spans and logs: DR_OTLP_ENDPOINT (default http://localhost:4318/v1/traces), DR_OTLP_LOGS_ENDPOINT, wrapped to survive an unreachable collector."
   attributes:
     type: otlp
     endpoint: http://localhost:4318/v1/traces

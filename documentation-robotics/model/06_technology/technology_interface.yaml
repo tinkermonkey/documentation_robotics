@@ -5,8 +5,7 @@ technology.technologyinterface.loopback-http:
   type: technologyinterface
   layer_id: technology
   name: Loopback HTTP
-  description: HTTP on 127.0.0.1 at the central process's port (default 8080, the
-    next free port when taken; recorded in the server record).
+  description: HTTP on 127.0.0.1 at the central process's port (default 8080, the next free port when taken; recorded in the server record).
   attributes:
     protocol: http
   metadata:

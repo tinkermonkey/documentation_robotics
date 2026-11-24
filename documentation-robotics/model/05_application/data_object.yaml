@@ -73,8 +73,7 @@ application.dataobject.extraction-coverage:
   type: dataobject
   layer_id: application
   name: ExtractionCoverage
-  description: What an analyzer's extraction can produce, by element type,
-    relationship triple and field.
+  description: What an analyzer's extraction can produce, by element type, relationship triple and field.
   source_reference:
     provenance: extracted
     locations:
@@ -108,8 +107,7 @@ application.dataobject.layer:
   type: dataobject
   layer_id: application
   name: Layer
-  description: Layer class - thin wrapper over graph model for backward
-    compatibility Queries the graph for elements in a specific layer
+  description: Layer class - thin wrapper over graph model for backward compatibility Queries the graph for elements in a specific layer
   source_reference:
     provenance: extracted
     locations:
@@ -160,8 +158,7 @@ application.dataobject.relationship-registry:
   type: dataobject
   layer_id: application
   name: RelationshipRegistry
-  description: Relationship registry - manages intra-layer and cross-layer
-    relationships and their catalog
+  description: Relationship registry - manages intra-layer and cross-layer relationships and their catalog
   source_reference:
     provenance: extracted
     locations:
@@ -212,9 +209,7 @@ application.dataobject.dependency-graph:
   type: dataobject
   layer_id: application
   name: DependencyGraph
-  description: "The model's relationships as dependencies: each edge filed under
-    the element that depends and under the element depended on, by its
-    predicate."
+  description: "The model's relationships as dependencies: each edge filed under the element that depends and under the element depended on, by its predicate."
   source_reference:
     provenance: extracted
     locations:

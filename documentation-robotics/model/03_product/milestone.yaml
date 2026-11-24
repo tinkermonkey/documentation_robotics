@@ -5,8 +5,7 @@ product.milestone.cli-0-8-0:
   type: milestone
   layer_id: product
   name: CLI 0.8.0
-  description: "The CLI 0.8.0 release (GitHub milestone): user-level DR, issues
-    1279 and 1285."
+  description: "The CLI 0.8.0 release (GitHub milestone): user-level DR, issues 1279 and 1285."
   attributes:
     status: planned
   metadata:

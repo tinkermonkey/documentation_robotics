@@ -5,8 +5,7 @@ apm.instrumentationscope.dr-cli-tracer:
   type: instrumentationscope
   layer_id: apm
   name: dr-cli tracer
-  description: The tracer scope (trace.getTracer("dr-cli", cliVersion)) every DR
-    span is emitted under.
+  description: The tracer scope (trace.getTracer("dr-cli", cliVersion)) every DR span is emitted under.
   attributes:
     droppedAttributesCount: 0
   source_reference:

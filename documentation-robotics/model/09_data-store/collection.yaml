@@ -5,10 +5,7 @@ data-store.collection.user-farm-manifest:
   type: collection
   layer_id: data-store
   name: User farm manifest
-  description: "farm.yaml (dr-farm-v2), the project registry of the farm in use:
-    the folder at DR_FARM_PATH, else a farm root found upward from the working
-    directory, else the user farm at $XDG_CONFIG_HOME/dr/farm.yaml
-    (~/.config/dr/farm.yaml)."
+  description: "farm.yaml (dr-farm-v2), the project registry of the farm in use: the folder at DR_FARM_PATH, else a farm root found upward from the working directory, else the user farm at $XDG_CONFIG_HOME/dr/farm.yaml (~/.config/dr/farm.yaml)."
   metadata:
     created_at: 2026-11-21T17:14:10.901Z
     updated_at: 2026-11-21T17:14:10.901Z
@@ -20,9 +17,7 @@ data-store.collection.server-record:
   type: collection
   layer_id: data-store
   name: Server record
-  description: "servers/<farm-hash>.json and <farm-hash>.token (0600) in the user
-    state directory: one central process per farm, so normally just the user
-    farm's."
+  description: "servers/<farm-hash>.json and <farm-hash>.token (0600) in the user state directory: one central process per farm, so normally just the user farm's."
   source_reference:
     provenance: manual
     locations:
@@ -39,8 +34,7 @@ data-store.collection.legacy-viewer-records:
   type: collection
   layer_id: data-store
   name: Legacy viewer records
-  description: viewers/<hash>.<pid>.json from per-project viewers (CLI 0.7.0 and
-    earlier); read only to find and stop old viewers, then swept.
+  description: viewers/<hash>.<pid>.json from per-project viewers (CLI 0.7.0 and earlier); read only to find and stop old viewers, then swept.
   source_reference:
     provenance: manual
     locations:
@@ -69,8 +63,7 @@ data-store.collection.analyzer-index:
   type: collection
   layer_id: data-store
   name: Analyzer index
-  description: ".dr/analyzers/<analyzer>/ in a checkout (index,
-    index-worktree.json snapshot, tier1.json): per checkout."
+  description: ".dr/analyzers/<analyzer>/ in a checkout (index, index-worktree.json snapshot, tier1.json): per checkout."
   metadata:
     created_at: 2026-11-21T17:14:10.902Z
     updated_at: 2026-11-21T17:14:10.902Z
@@ -82,8 +75,7 @@ data-store.collection.changesets:
   type: collection
   layer_id: data-store
   name: Changesets
-  description: "documentation-robotics/changesets/ in a checkout: travels with the
-    branch, per checkout."
+  description: "documentation-robotics/changesets/ in a checkout: travels with the branch, per checkout."
   metadata:
     created_at: 2026-11-21T17:14:10.902Z
     updated_at: 2026-11-21T17:14:10.902Z
@@ -95,8 +87,7 @@ data-store.collection.annotations:
   type: collection
   layer_id: data-store
   name: Annotations
-  description: "documentation-robotics/annotations/ in a checkout: travels with
-    the branch, per checkout."
+  description: "documentation-robotics/annotations/ in a checkout: travels with the branch, per checkout."
   metadata:
     created_at: 2026-11-21T17:14:10.902Z
     updated_at: 2026-11-21T17:14:10.902Z
@@ -108,8 +99,7 @@ data-store.collection.farm-sync-state:
   type: collection
   layer_id: data-store
   name: Farm sync state
-  description: ".farm-sync.yaml per farm project: last synced commit and
-    ambiguities (FarmSyncState). Per project, kept for the main checkout."
+  description: ".farm-sync.yaml per farm project: last synced commit and ambiguities (FarmSyncState). Per project, kept for the main checkout."
   metadata:
     created_at: 2026-11-21T17:21:34.233Z
     updated_at: 2026-11-21T17:21:34.233Z
@@ -121,9 +111,7 @@ data-store.collection.server-starting-marker:
   type: collection
   layer_id: data-store
   name: Server starting marker
-  description: The 'a viewer is starting' marker (viewers/<hash>.starting today);
-    the central process uses one marker so concurrent bridges wait for one
-    start.
+  description: The 'a viewer is starting' marker (viewers/<hash>.starting today); the central process uses one marker so concurrent bridges wait for one start.
   source_reference:
     provenance: manual
     locations:

@@ -5,9 +5,7 @@ testing.testcasesketch.project-naming-sketch:
   type: testcasesketch
   layer_id: testing
   name: Project naming sketch
-  description: "Two repositories with the same folder name: the second
-    registration is refused with the explicit-name call; the same repository
-    through a worktree path resolves to the existing project, never a new one"
+  description: "Two repositories with the same folder name: the second registration is refused with the explicit-name call; the same repository through a worktree path resolves to the existing project, never a new one"
   attributes:
     status: draft
   metadata:
@@ -21,9 +19,7 @@ testing.testcasesketch.checkout-discovery-sketch:
   type: testcasesketch
   layer_id: testing
   name: Checkout discovery sketch
-  description: "A repository with a main checkout, two worktrees and one removed
-    worktree folder: keys main and the two worktree names, the removed one
-    reported prunable, and Checkout removed raised once"
+  description: "A repository with a main checkout, two worktrees and one removed worktree folder: keys main and the two worktree names, the removed one reported prunable, and Checkout removed raised once"
   attributes:
     status: draft
   metadata:
@@ -37,9 +33,7 @@ testing.testcasesketch.per-checkout-isolation-sketch:
   type: testcasesketch
   layer_id: testing
   name: Per-checkout isolation sketch
-  description: "Two checkouts of one project and a second project: an annotation,
-    an active changeset and a websocket event written for one are absent from
-    the other two's routes and feeds"
+  description: "Two checkouts of one project and a second project: an annotation, an active changeset and a websocket event written for one are absent from the other two's routes and feeds"
   attributes:
     status: draft
   metadata:
@@ -53,10 +47,7 @@ testing.testcasesketch.scoped-routes-sketch:
   type: testcasesketch
   layer_id: testing
   name: Scoped routes sketch
-  description: Every project data route answers only under
-    /api/projects/:project/checkouts/:checkout; the old unscoped paths answer
-    404, an unknown project or checkout answers 404, and a call without the
-    token answers 401
+  description: Every project data route answers only under /api/projects/:project/checkouts/:checkout; the old unscoped paths answer 404, an unknown project or checkout answers 404, and a call without the token answers 401
   attributes:
     status: draft
   metadata:
@@ -70,8 +61,7 @@ testing.testcasesketch.context-eviction-sketch:
   type: testcasesketch
   layer_id: testing
   name: Context eviction sketch
-  description: "maxLoaded 2 and three checkouts used in turn: the least recently
-    used is evicted, unless it has a subscriber or a running DrBot turn"
+  description: "maxLoaded 2 and three checkouts used in turn: the least recently used is evicted, unless it has a subscriber or a running DrBot turn"
   attributes:
     status: draft
   metadata:
@@ -85,9 +75,7 @@ testing.testcasesketch.dr-bot-scoping-sketch:
   type: testcasesketch
   layer_id: testing
   name: DrBot scoping sketch
-  description: A DrBot turn in a worktree runs with cwd the worktree and its dr
-    MCP resolves to that checkout; a conversation id reused in another checkout
-    starts a new session
+  description: A DrBot turn in a worktree runs with cwd the worktree and its dr MCP resolves to that checkout; a conversation id reused in another checkout starts a new session
   attributes:
     status: draft
   metadata:
@@ -101,9 +89,7 @@ testing.testcasesketch.deep-links-sketch:
   type: testcasesketch
   layer_id: testing
   name: Deep links sketch
-  description: review_open from a worktree session returns
-    /p/<project>/c/<worktree>/changesets/<id> on the running central process,
-    and no new process appears in the process table
+  description: review_open from a worktree session returns /p/<project>/c/<worktree>/changesets/<id> on the running central process, and no new process appears in the process table
   attributes:
     status: draft
   metadata:
@@ -117,9 +103,7 @@ testing.testcasesketch.farm-v2-migration-sketch:
   type: testcasesketch
   layer_id: testing
   name: Farm v2 migration sketch
-  description: "A dr-farm-v1 farm with three entries, two of them checkouts of one
-    repository: preview lists one project with two checkouts and one dropped
-    name; apply writes dr-farm-v2 and a second run changes nothing"
+  description: "A dr-farm-v1 farm with three entries, two of them checkouts of one repository: preview lists one project with two checkouts and one dropped name; apply writes dr-farm-v2 and a second run changes nothing"
   attributes:
     status: draft
   metadata:
@@ -133,9 +117,7 @@ testing.testcasesketch.review-open-reuses-the-running-viewer:
   type: testcasesketch
   layer_id: testing
   name: review_open reuses the running viewer
-  description: "Today: review_open starts or reuses a per-project viewer.
-    Rewritten for the design: it returns a deep link on the central process and
-    spawns nothing."
+  description: "Today: review_open starts or reuses a per-project viewer. Rewritten for the design: it returns a deep link on the central process and spawns nothing."
   attributes:
     status: automated
   source_reference:
@@ -153,8 +135,7 @@ testing.testcasesketch.project-status-reports-the-viewer:
   type: testcasesketch
   layer_id: testing
   name: project_status reports the viewer
-  description: "Today: the viewer section from the per-project record. Rewritten:
-    project, checkout, sibling checkouts and the deep link."
+  description: "Today: the viewer section from the per-project record. Rewritten: project, checkout, sibling checkouts and the deep link."
   attributes:
     status: automated
   source_reference:
@@ -172,8 +153,7 @@ testing.testcasesketch.mcp-root-resolution:
   type: testcasesketch
   layer_id: testing
   name: MCP root resolution
-  description: "Today: rootPath, client roots and cwd pick a root. Extended: every
-    route resolves through the registry to a project and checkout."
+  description: "Today: rootPath, client roots and cwd pick a root. Extended: every route resolves through the registry to a project and checkout."
   attributes:
     status: automated
   source_reference:
@@ -191,8 +171,7 @@ testing.testcasesketch.farm-commands:
   type: testcasesketch
   layer_id: testing
   name: Farm commands
-  description: "Today: dr-farm-v1 add/remove/status. Extended: v2 entries, a
-    worktree path adding its project, v1 read with a notice."
+  description: "Today: dr-farm-v1 add/remove/status. Extended: v2 entries, a worktree path adding its project, v1 read with a notice."
   attributes:
     status: automated
   source_reference:
@@ -210,8 +189,7 @@ testing.testcasesketch.viewer-api-routes:
   type: testcasesketch
   layer_id: testing
   name: Viewer API routes
-  description: "Today: the unscoped /api routes. Rewritten against
-    /api/projects/:project/checkouts/:checkout/..., plus 404 for the old paths."
+  description: "Today: the unscoped /api routes. Rewritten against /api/projects/:project/checkouts/:checkout/..., plus 404 for the old paths."
   attributes:
     status: automated
   source_reference:
@@ -229,8 +207,7 @@ testing.testcasesketch.dr-bot-mcp-launch:
   type: testcasesketch
   layer_id: testing
   name: DrBot MCP launch
-  description: "Today: DrBot's agent and MCP launch for the one project. Extended:
-    cwd and DR_MCP_ROOT_PATH per checkout."
+  description: "Today: DrBot's agent and MCP launch for the one project. Extended: cwd and DR_MCP_ROOT_PATH per checkout."
   attributes:
     status: automated
   source_reference:
@@ -248,17 +225,14 @@ testing.testcasesketch.viewer-lifetime:
   type: testcasesketch
   layer_id: testing
   name: Viewer lifetime
-  description: "Today: idle exit, folder-gone exit and parent watch of a
-    per-project viewer. Rewritten: idle exit of the central process; checkout
-    removal closes a context instead of exiting."
+  description: "Today: idle exit, folder-gone exit and parent watch of a per-project viewer. Rewritten: idle exit of the central process; checkout removal closes a context instead of exiting."
   attributes:
     status: automated
   source_reference:
     provenance: manual
     locations:
       - file: cli/tests/unit/server/checkout-context-pool.test.ts
-        symbol: "closes a removed checkout: tells its subscribers, ends its DrBot turns,
-          drops it even when busy"
+        symbol: "closes a removed checkout: tells its subscribers, ends its DrBot turns, drops it even when busy"
       - file: cli/tests/integration/serve-central-process.test.ts
         symbol: ends on its own when idle, and removes its record
   metadata:
@@ -272,8 +246,7 @@ testing.testcasesketch.viewer-list-and-stop:
   type: testcasesketch
   layer_id: testing
   name: Viewer list and stop
-  description: "Today: --list and --stop over per-project records and a ps scan.
-    Extended: the central process plus legacy viewers found by the sweep."
+  description: "Today: --list and --stop over per-project records and a ps scan. Extended: the central process plus legacy viewers found by the sweep."
   attributes:
     status: automated
   source_reference:

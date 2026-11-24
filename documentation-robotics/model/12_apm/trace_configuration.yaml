@@ -5,9 +5,7 @@ apm.traceconfiguration.dr-cli-trace-configuration:
   type: traceconfiguration
   layer_id: apm
   name: dr-cli trace configuration
-  description: "The tracer provider the CLI sets up when built with telemetry
-    (DR_TELEMETRY=true at build time): resilient OTLP span exporter, no
-    sampling."
+  description: "The tracer provider the CLI sets up when built with telemetry (DR_TELEMETRY=true at build time): resilient OTLP span exporter, no sampling."
   source_reference:
     provenance: manual
     locations:

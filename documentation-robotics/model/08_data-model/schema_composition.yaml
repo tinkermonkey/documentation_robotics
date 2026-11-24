@@ -85,8 +85,7 @@ data-model.schemacomposition.question:
   type: schemacomposition
   layer_id: data-model
   name: Question
-  description: The provider-agnostic decision-model interface Tier 1 talks to
-    (docs/analyzers/TIER1_DESIGN.md, section 3.1).
+  description: The provider-agnostic decision-model interface Tier 1 talks to (docs/analyzers/TIER1_DESIGN.md, section 3.1).
   source_reference:
     provenance: extracted
     locations:
@@ -220,9 +219,7 @@ data-model.schemacomposition.detection-result:
   type: schemacomposition
   layer_id: data-model
   name: DetectionResult
-  description: Binary detection result - whether an analyzer is installed and
-    functional Discriminated union on `installed` field to make binary_path
-    required when installed
+  description: Binary detection result - whether an analyzer is installed and functional Discriminated union on `installed` field to make binary_path required when installed
   source_reference:
     provenance: extracted
     locations:
@@ -239,8 +236,7 @@ data-model.schemacomposition.analyzer-status:
   type: schemacomposition
   layer_id: data-model
   name: AnalyzerStatus
-  description: Current status of an analyzer for a project Discriminated union on
-    `indexed` field to enforce index_meta presence when indexed
+  description: Current status of an analyzer for a project Discriminated union on `indexed` field to enforce index_meta presence when indexed
   source_reference:
     provenance: extracted
     locations:
@@ -257,8 +253,7 @@ data-model.schemacomposition.verify-changeset-context:
   type: schemacomposition
   layer_id: data-model
   name: VerifyChangesetContext
-  description: Changeset context information in verify report Discriminated union
-    to prevent impossible states like active_changeset
+  description: Changeset context information in verify report Discriminated union to prevent impossible states like active_changeset
   source_reference:
     provenance: extracted
     locations:
@@ -275,8 +270,7 @@ data-model.schemacomposition.pipeline-result:
   type: schemacomposition
   layer_id: data-model
   name: PipelineResult
-  description: Discriminated union of pipeline results based on AI enablement
-    Enforces type safety
+  description: Discriminated union of pipeline results based on AI enablement Enforces type safety
   source_reference:
     provenance: extracted
     locations:
@@ -343,8 +337,7 @@ data-model.schemacomposition.relationship-add-plan:
   type: schemacomposition
   layer_id: data-model
   name: RelationshipAddPlan
-  description: What staging a relationship add would do, given the changeset's
-    projected graph.
+  description: What staging a relationship add would do, given the changeset's projected graph.
   source_reference:
     provenance: extracted
     locations:
@@ -393,8 +386,7 @@ data-model.schemacomposition.earlier-card:
   type: schemacomposition
   layer_id: data-model
   name: EarlierCard
-  description: A card of an earlier run, as the card was (older records kept only
-    the identifying fields).
+  description: A card of an earlier run, as the card was (older records kept only the identifying fields).
   source_reference:
     provenance: extracted
     locations:
@@ -573,8 +565,7 @@ data-model.schemacomposition.model-view-name:
   type: schemacomposition
   layer_id: data-model
   name: ModelViewName
-  description: "Which model a result describes: the base model, or a changeset's
-    projection with the changeset's id and name."
+  description: "Which model a result describes: the base model, or a changeset's projection with the changeset's id and name."
   source_reference:
     provenance: extracted
     locations:
@@ -591,8 +582,7 @@ data-model.schemacomposition.server-section:
   type: schemacomposition
   layer_id: data-model
   name: ServerSection
-  description: "project_status's server section: current, stale (with the
-    installed CLI and a note) or unknown."
+  description: "project_status's server section: current, stale (with the installed CLI and a note) or unknown."
   source_reference:
     provenance: extracted
     locations:

@@ -5,8 +5,7 @@ technology.technologyservice.per-user-dr-service:
   type: technologyservice
   layer_id: technology
   name: Per-user DR service
-  description: "The central DR process as a platform service on the workstation:
-    compute for MCP, the viewer and DrBot, one per user."
+  description: "The central DR process as a platform service on the workstation: compute for MCP, the viewer and DrBot, one per user."
   attributes:
     serviceType: compute
   source_reference:
@@ -25,8 +24,7 @@ technology.technologyservice.otlp-collector:
   type: technologyservice
   layer_id: technology
   name: OTLP collector
-  description: The OpenTelemetry collector the CLI exports to when built with
-    telemetry (default localhost:4318); optional, outside DR.
+  description: The OpenTelemetry collector the CLI exports to when built with telemetry (default localhost:4318); optional, outside DR.
   attributes:
     serviceType: monitoring
   metadata:

@@ -5,8 +5,7 @@ technology.artifact.dr-cli-package:
   type: artifact
   layer_id: technology
   name: dr CLI package
-  description: "The @documentation-robotics/cli npm package: carries dr serve, dr
-    mcp, dr visualize and the bundled viewer."
+  description: "The @documentation-robotics/cli npm package: carries dr serve, dr mcp, dr visualize and the bundled viewer."
   attributes:
     artifactType: library
   source_reference:
@@ -25,9 +24,7 @@ technology.artifact.server-entry-js:
   type: artifact
   layer_id: technology
   name: server-entry.js
-  description: "The server process's entry point (cli/src/server-entry.ts bundled
-    to dist): today spawned per project by dr visualize; becomes the entry of dr
-    serve, the one central process."
+  description: "The server process's entry point (cli/src/server-entry.ts bundled to dist): today spawned per project by dr visualize; becomes the entry of dr serve, the one central process."
   attributes:
     artifactType: file
   source_reference:
@@ -45,9 +42,7 @@ technology.artifact.dr-viewer-bundle:
   type: artifact
   layer_id: technology
   name: dr-viewer bundle
-  description: The viewer build (dr-viewer-bundle-<version>.zip from the viewer
-    repository's releases, v0.13.0 today) that the CLI build downloads into
-    src/viewer and the server serves.
+  description: The viewer build (dr-viewer-bundle-<version>.zip from the viewer repository's releases, v0.13.0 today) that the CLI build downloads into src/viewer and the server serves.
   attributes:
     artifactType: archive
   source_reference:

@@ -19,8 +19,7 @@ technology.systemsoftware.git:
   type: systemsoftware
   layer_id: technology
   name: Git
-  description: git, which the project registry runs (worktree list, rev-parse
-    --git-common-dir) to discover a project's repository and checkouts.
+  description: git, which the project registry runs (worktree list, rev-parse --git-common-dir) to discover a project's repository and checkouts.
   attributes:
     softwareType: middleware
   metadata:
@@ -62,9 +61,7 @@ technology.systemsoftware.workstation-operating-system:
   type: systemsoftware
   layer_id: technology
   name: Workstation operating system
-  description: The workstation's operating system (macOS, Linux, Windows) and its
-    file system, which hold the user state directory, the user farm and every
-    checkout's files.
+  description: The workstation's operating system (macOS, Linux, Windows) and its file system, which hold the user state directory, the user farm and every checkout's files.
   attributes:
     softwareType: operating-system
   metadata:
@@ -78,8 +75,7 @@ technology.systemsoftware.bun-runtime:
   type: systemsoftware
   layer_id: technology
   name: Bun runtime
-  description: Bun, which runs the dr CLI and the server process when the CLI
-    itself runs under Bun (server-entry uses whichever runtime started the CLI).
+  description: Bun, which runs the dr CLI and the server process when the CLI itself runs under Bun (server-entry uses whichever runtime started the CLI).
   attributes:
     softwareType: middleware
   metadata:

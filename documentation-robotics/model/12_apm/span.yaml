@@ -5,10 +5,7 @@ apm.span.http-server-request:
   type: span
   layer_id: apm
   name: http.server.request
-  description: One span per HTTP request to the server (http.method, http.route,
-    http.status_code, http.duration_ms). In the central process it also carries
-    dr.project and dr.checkout for scoped routes, so traces separate per
-    checkout.
+  description: One span per HTTP request to the server (http.method, http.route, http.status_code, http.duration_ms). In the central process it also carries dr.project and dr.checkout for scoped routes, so traces separate per checkout.
   attributes:
     traceId: runtime
     spanId: runtime
@@ -36,10 +33,7 @@ apm.span.ws-message-processed:
   type: span
   layer_id: apm
   name: ws.message.processed
-  description: A websocket message handled (ws.message.type,
-    ws.message.duration_ms, ws.message.status); with ws.connection.open/close
-    and ws.message.received/error. In the central process it also carries
-    dr.project and dr.checkout of the subscription the message is for.
+  description: A websocket message handled (ws.message.type, ws.message.duration_ms, ws.message.status); with ws.connection.open/close and ws.message.received/error. In the central process it also carries dr.project and dr.checkout of the subscription the message is for.
   attributes:
     traceId: runtime
     spanId: runtime
@@ -67,8 +61,7 @@ apm.span.drbot-turn:
   type: span
   layer_id: apm
   name: drbot.turn
-  description: "One DrBot turn launched by the central process: dr.project,
-    dr.checkout, the coding agent, exit status and duration (planned)."
+  description: "One DrBot turn launched by the central process: dr.project, dr.checkout, the coding agent, exit status and duration (planned)."
   attributes:
     traceId: runtime
     spanId: runtime
@@ -96,8 +89,7 @@ apm.span.checkout-context-evict:
   type: span
   layer_id: apm
   name: checkout_context.evict
-  description: "A checkout context evicted from the pool: dr.project, dr.checkout,
-    reason (idle or capacity), loaded count (planned)."
+  description: "A checkout context evicted from the pool: dr.project, dr.checkout, reason (idle or capacity), loaded count (planned)."
   attributes:
     traceId: runtime
     spanId: runtime

@@ -117,8 +117,7 @@ testing.testcoveragetarget.central-process-lifecycle:
   type: testcoveragetarget
   layer_id: testing
   name: Central process lifecycle
-  description: Covers the central process's start, reuse, version replacement,
-    idle exit and --list/--stop.
+  description: Covers the central process's start, reuse, version replacement, idle exit and --list/--stop.
   attributes:
     targetType: application-component
   metadata:

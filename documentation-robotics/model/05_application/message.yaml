@@ -5,8 +5,7 @@ application.message.subscribe-to-checkout-feed:
   type: message
   layer_id: application
   name: Subscribe to checkout feed
-  description: A websocket frame asking the server to send (or stop sending) one
-    checkout's events.
+  description: A websocket frame asking the server to send (or stop sending) one checkout's events.
   attributes:
     messageType: command
   source_reference:
