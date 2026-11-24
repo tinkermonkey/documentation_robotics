@@ -26,7 +26,8 @@ import {
 } from "../../core/relationship-staging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
-import { getNodeType, getNodeTypesForLayer, isValidNodeType, normalizeNodeType, type SpecNodeId } from "../../generated/node-types.js";
+import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
+import { requiredAttributesLine, requiredAttributesOf } from "../../utils/required-attributes.js";
 import { compactId, deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
 import { schemaLookupHint } from "../../utils/error-hints.js";
@@ -198,7 +199,10 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
     if (inAttributes) {
       throw new AttributeRefusal(
         `Element ${elementPath} has invalid attributes:\n${errorMessages}`,
-        [schemaLookupHint("mcp", spec.layer, resolvedType)],
+        // What the type requires and what each takes, so one retry fixes it (#1153).
+        [requiredAttributesLine(`${spec.layer}.${resolvedType}`), schemaLookupHint("mcp", spec.layer, resolvedType)].filter(
+          (s): s is string => s !== undefined
+        ),
         `${spec.layer}.${resolvedType}`
       );
     }
@@ -217,26 +221,6 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
   }
 
   return { element, id: elementPath, layer: spec.layer, type: resolvedType, warnings, notes: derived.notes };
-}
-
-/**
- * What a type requires, as `attribute → what it takes`, so a refused batch can be fixed in one
- * retry without a spec_type call per type (#1153).
- */
-function requiredAttributesOf(specNodeId: string): Record<string, string> | undefined {
-  const info = getNodeType(specNodeId as SpecNodeId);
-  if (!info || info.requiredAttributes.length === 0) return undefined;
-  return Object.fromEntries(
-    info.requiredAttributes.map((name) => {
-      const constraint = (info.attributeConstraints[name] ?? {}) as { type?: unknown; enum?: unknown[] };
-      const takes = Array.isArray(constraint.enum)
-        ? `one of [${constraint.enum.join(", ")}]`
-        : typeof constraint.type === "string"
-          ? constraint.type
-          : "any value";
-      return [name, takes];
-    })
-  );
 }
 
 export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResult> {

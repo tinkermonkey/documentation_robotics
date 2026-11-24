@@ -119,6 +119,13 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 
 ### Fixed
 
+- **Required attributes are shown before a refusal, and a refusal gives their values (issue 1153).**
+  A page of `codebase_extract` cards carries `undecided.requiredAttributes`: once per type that its
+  cards name (candidates, hint, Tier 1's type), the attributes it requires and the values each
+  takes, so the first `model_add` from the cards can be valid. A refused single `model_add` and a
+  refused `dr add` now name the type's required attributes and their allowed values, as a refused
+  `model_add` batch already did (0.7.0). One helper, `cli/src/utils/required-attributes.ts`, serves
+  all three.
 - **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
   MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`

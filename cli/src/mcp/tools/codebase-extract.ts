@@ -60,6 +60,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { requiredAttributesFor } from "../../utils/required-attributes.js";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { codeChangesSince, inDirs, scopeChanges, type CodeChangesResult } from "../../analyzers/code-changes.js";
@@ -778,9 +779,19 @@ function fitNotes(fit: PageFit): Record<string, unknown> {
 
 /** The undecided section of a response: the page, how it was fitted, and how to read on. */
 function undecidedSection(p: CardPage, items: Array<Partial<UndecidedCard>>, fit: PageFit, requestedPageSize: number, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  // What each type the page's cards name (candidates, hint, Tier 1's type) requires, once per
+  // type, so the first model_add from these cards sends valid attributes (#1153).
+  const requiredAttributes = requiredAttributesFor(
+    items.flatMap((c) => [
+      ...(c.candidates ?? []),
+      ...(c.hint ? [c.hint] : []),
+      ...(c.tier1?.layer && c.tier1.type ? [`${c.tier1.layer}.${c.tier1.type}`] : []),
+    ])
+  );
   return {
     ...p,
     items,
+    ...(Object.keys(requiredAttributes).length > 0 ? { requiredAttributes } : {}),
     ...extra,
     ...(requestedPageSize > p.pageSize ? { pageSizeCapped: `pageSize ${requestedPageSize} was capped at ${p.pageSize}; use page: 2 and on for more.` } : {}),
     ...(fit.detail ? { detail: fit.detail, detailNote: `${fit.note} A smaller pageSize gives full cards.` } : {}),
@@ -1348,7 +1359,7 @@ function nextSteps(
       verify
         ? verifyCardStep(undecidedPages, readOn, grouped)
         : "Decide the undecided cards: for each one that is a model element, call model_add with a layer and type from its candidates " +
-            "(or its hint; spec_type says what a type needs), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
+            "(or its hint), the attributes undecided.requiredAttributes lists for that type (spec_type for a type it does not list), a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: \"extracted\". " +
             readFurther(undecidedPages, readOn, grouped),
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out.",
       verify
@@ -1415,8 +1426,8 @@ function pendingSteps(
     steps.push(
       verify
         ? verifyCardStep(undecidedPages, readOn, grouped)
-        : "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), a name (the card's name when it has one), " +
-            `sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn, grouped)}`,
+        : "For each card that is a model element, call model_add (into that changeset) with a layer and type from its candidates (or its hint), the attributes undecided.requiredAttributes lists for that type, " +
+            `a name (the card's name when it has one), sourceFile = file, sourceSymbol = symbol and sourceProvenance: "extracted". ${readFurther(undecidedPages, readOn, grouped)}`,
       "For cards that are not elements, call codebase_extract with reject: [{card: cardId, reason}] so later runs leave them out; that needs no changeset.",
       verify
         ? `Call codebase_extract again with changeset: "${name}", since: "${since}" for their relationships.`
@@ -4057,7 +4068,8 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
   name: "codebase_extract",
   description:
     "Model the indexed code as an as-built changeset: the project's rules and the Tier-0 rules decide what they can and those elements and " +
-    "their relationships are staged; the rest come back as undecided cards for you to decide. " +
+    "their relationships are staged; the rest come back as undecided cards for you to decide. A page of cards comes with undecided.requiredAttributes: " +
+    "what each type its cards name (candidates, hint, Tier 1) requires, with the values each attribute takes, for the model_add that stages a card. " +
     "More cards than a page come back grouped, not listed: undecided.groups (by folder: counts by label and visibility, what the model has there, " +
     "noElement for a folder no element names) and byKind, with the totals over every card. Decide them in bulk with decide: [{where, as, reason}] " +
     "(as: a layer.type, or none; where: files, label, visibility, nested, name, declaration, ownerType): with preview: true it returns each item's count " +

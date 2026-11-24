@@ -724,6 +724,13 @@ describe("required attributes of a refused type (#1153)", () => {
     expect(result.elements.attention[0].reason).toContain("has invalid attributes");
   });
 
+  it("names what the type requires, with allowed values, when a single add is refused", async () => {
+    const refused = errorOf(await modelAddHandler({ layer: "motivation", type: "goal", name: "Faster checkout", rootPath } as any));
+    expect(refused.error).toContain("has invalid attributes");
+    expect(refused.suggestions[0]).toBe("motivation.goal requires: priority (one of [critical, high, medium, low, informational])");
+    expect(refused.suggestions[1]).toContain('Call "spec_type"');
+  });
+
   it("tells the agent where required attributes are, before it sends anything", () => {
     expect(modelAddTool.description).toContain("Most types have required attributes: spec_type lists them");
     expect(modelAddTool.description).toContain("requiredAttributes");
