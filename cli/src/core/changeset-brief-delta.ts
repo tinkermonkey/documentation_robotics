@@ -11,6 +11,7 @@ import {
   buildBrief,
   computeUnwired,
   unwiredKey,
+  type BriefElementChange,
   type BriefGap,
   type ChangesetBrief,
   type ElementUnwired,
@@ -48,8 +49,11 @@ export interface BriefDelta {
   /** The revision now. */
   revision: number;
   /**
-   * Elements that entered or left the change, and elements whose content (name, description,
-   * attributes, source reference) changed since, with the fields that did.
+   * Elements that exist in the plan now and did not then (added: a planned add, or a planned delete
+   * unstaged), that existed then and do not now (removed: a planned delete, or a planned add
+   * unstaged), and elements that exist in both whose content (name, description, attributes,
+   * source reference) changed since, with the fields that did. Each element is in one list at most;
+   * an element added since and edited again is only under `added`. `unstaged` names what was withdrawn.
    */
   elements: { added: string[]; removed: string[]; updated: Array<{ element: string; fields: string[] }> };
   /** Relationships live now and not then (added), or then and not now (removed), new elements' included. */
@@ -160,9 +164,18 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
     );
   }
 
-  const changedIds = (brief: ChangesetBrief) => brief.layers.flatMap((l) => l.changes.map((c) => c.id));
-  const thenIds = new Set(changedIds(then.brief));
-  const nowIds = new Set(changedIds(now.brief));
+  // Each element in either change list, with what the plan does to it then and now (no entry: as
+  // in the base model). An element exists in the plan unless the plan deletes it, or it is in
+  // neither the plan nor the base: absent from one side's list while the other side adds it.
+  const changeOps = (brief: ChangesetBrief) =>
+    new Map(brief.layers.flatMap((l) => l.changes.map((c) => [c.id, c.op] as const)));
+  const thenOps = changeOps(then.brief);
+  const nowOps = changeOps(now.brief);
+  const exists = (op: BriefElementChange["op"] | undefined, otherOp: BriefElementChange["op"] | undefined) =>
+    op === undefined ? otherOp !== "added" : op !== "deleted";
+  const elementIds = [...new Set([...nowOps.keys(), ...thenOps.keys()])];
+  const existsThen = (id: string) => exists(thenOps.get(id), nowOps.get(id));
+  const existsNow = (id: string) => exists(nowOps.get(id), thenOps.get(id));
 
   const gapKey = (g: BriefGap) => `${g.kind}|${g.element}|${g.kind === "peer-pattern" ? g.detail.replace(/^\d+ of \d+ /, "") : g.detail}`;
   const thenGaps = new Map(then.brief.gaps.map((g) => [gapKey(g), g]));
@@ -200,8 +213,8 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
     since,
     revision,
     elements: {
-      added: [...nowIds].filter((id) => !thenIds.has(id)),
-      removed: [...thenIds].filter((id) => !nowIds.has(id)),
+      added: elementIds.filter((id) => existsNow(id) && !existsThen(id)),
+      removed: elementIds.filter((id) => existsThen(id) && !existsNow(id)),
       updated: then.graph && now.graph ? elementUpdates(then.graph, now.graph) : [],
     },
     relationships: then.graph && now.graph ? relationshipChanges(then.graph, now.graph) : { added: [], removed: [] },
