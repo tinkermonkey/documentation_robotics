@@ -123,6 +123,13 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
   `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
   MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`
   and ran the viewer's WebSocket on an unsupported pairing.
+- **`changeset_brief` with `since` lists each element once (issue 1291).** The delta's
+  `elements.added` and `elements.removed` now go by whether the element exists in the plan, as
+  `relationships.added` and `removed` do: `added` holds elements that exist now and did not then (a
+  planned add, or a planned delete unstaged), `removed` the reverse (a planned delete, or a planned
+  add unstaged). A base element a pass only updates, or whose update is unstaged, is listed under
+  `updated` alone; it was also listed under `added` (or `removed`). An element added since and
+  edited again stays under `added` only.
 
 ## [0.7.1] - 2026-11-21
 

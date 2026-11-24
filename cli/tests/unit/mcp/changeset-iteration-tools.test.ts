@@ -353,6 +353,61 @@ describe("changeset_brief deltas", () => {
     expect(after.delta.elements).toEqual({ added: [], removed: [], updated: [] });
   });
 
+  it("lists a base element a pass only updated under updated alone (#1291)", async () => {
+    await planExportOrders();
+    const first = await brief();
+    parse(await modelUpdateHandler({ id: SERVICE, description: "Checkout, reworked", rootPath } as any));
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.warnings).toBeUndefined();
+    expect(after.delta.elements).toEqual({
+      added: [],
+      removed: [],
+      updated: [{ element: SERVICE, fields: ["description"] }],
+    });
+
+    // Unstaging the update leaves the service in the plan, as the base has it: updated back, not removed.
+    const second = await brief();
+    parse(await changesetUnstageHandler({ elementId: SERVICE, rootPath }));
+    const reverted = await brief({ since: second.revisionToken });
+    expect(reverted.delta.elements).toEqual({
+      added: [],
+      removed: [],
+      updated: [{ element: SERVICE, fields: ["description"] }],
+    });
+  });
+
+  it("keeps an element added since and edited again under added alone", async () => {
+    await planExportOrders();
+    const first = await brief();
+    await add({ layer: "data-model", type: "objectschema", name: "order-export-row", attributes: { type: "object" } });
+    parse(await modelUpdateHandler({ id: SCHEMA, description: "One exported order", rootPath } as any));
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.elements).toEqual({ added: [SCHEMA], removed: [], updated: [] });
+
+    // Edited on a later pass, the element was already added then: updated only.
+    const second = await brief();
+    parse(await modelUpdateHandler({ id: SCHEMA, description: "One exported order row", rootPath } as any));
+    const later = await brief({ since: second.revisionToken });
+    expect(later.delta.elements).toEqual({
+      added: [],
+      removed: [],
+      updated: [{ element: SCHEMA, fields: ["description"] }],
+    });
+  });
+
+  it("lists a planned delete under removed, and its unstage under added", async () => {
+    await planExportOrders();
+    const first = await brief();
+    parse(await modelDeleteHandler({ id: GOAL, force: true, rootPath } as any));
+    const after = await brief({ since: first.revisionToken });
+    expect(after.delta.elements).toEqual({ added: [], removed: [GOAL], updated: [] });
+
+    const second = await brief();
+    parse(await changesetUnstageHandler({ elementId: GOAL, rootPath }));
+    const restored = await brief({ since: second.revisionToken });
+    expect(restored.delta.elements).toEqual({ added: [GOAL], removed: [], updated: [] });
+  });
+
   it("lists elements removed and layers no longer reached between two states of the plan", async () => {
     /** The brief side as the plan stands now, built in process. */
     async function side(): Promise<BriefSide> {
