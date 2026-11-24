@@ -17,6 +17,7 @@ import { z } from "zod";
 import { atomicWrite, ensureDir, fileExists } from "../utils/file-io.js";
 import { FileLock } from "../utils/file-lock.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { stringifyDrYaml } from "./dr-yaml.js";
 
 const AnnotationReplySchema = z.object({
   id: z.string(),
@@ -153,7 +154,7 @@ export class AnnotationStore {
     };
 
     await ensureDir(this.annotationsDir);
-    await atomicWrite(this.getPath(annotation.id), yaml.stringify(annotation));
+    await atomicWrite(this.getPath(annotation.id), stringifyDrYaml(annotation));
     return annotation;
   }
 
@@ -175,7 +176,7 @@ export class AnnotationStore {
         updatedAt: notBefore(annotation.createdAt),
       };
 
-      await atomicWrite(filePath, yaml.stringify(updated));
+      await atomicWrite(filePath, stringifyDrYaml(updated));
       return updated;
     });
   }
@@ -215,7 +216,7 @@ export class AnnotationStore {
       };
 
       annotation.replies.push(reply);
-      await atomicWrite(filePath, yaml.stringify(annotation));
+      await atomicWrite(filePath, stringifyDrYaml(annotation));
       return reply;
     });
   }

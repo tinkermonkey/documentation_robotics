@@ -119,6 +119,19 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
 
 ### Fixed
 
+- **dr writes model and changeset YAML in a layout prettier leaves alone (issue 1246).** Long
+  strings are no longer folded at 80 columns: each stays on its key's line, and a string that has
+  to be quoted gets the quote prettier gives it (single when it holds a double quote, else double).
+  Prettier at its default settings, and with this repository's `.prettierrc`, now leaves what dr
+  writes as it is, so a project that runs prettier on `documentation-robotics/` without a
+  `.prettierignore` entry no longer has the two rewriting each other, and a one-word edit is a
+  one-line diff. The layout covers the element files, `relationships.yaml`, the manifest, the files
+  `dr upgrade`'s migrations rewrite, changesets (`metadata.yaml`, `changes.yaml`, `review.yaml`),
+  annotations and `extraction-rules.yaml` (`cli/src/core/dr-yaml.ts`), and
+  `scripts/relayout-model-files.ts` lays element files out in it. A file whose data is unchanged is
+  still never rewritten; the first data change to an existing file puts its long strings on one
+  line, once.
+
 - **An acronym ends before the word after it, in ids (issue 1184).** `deriveElementId` (`dr add`,
   `model_add`, extraction) now splits a run of capitals before its last capital when a lowercase
   letter follows, as it already split camelCase and a digit before a capitalised word:

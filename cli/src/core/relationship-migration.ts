@@ -19,6 +19,7 @@ import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { stringifyDrYaml } from "./dr-yaml.js";
 import { normalizeNodeType } from "../generated/node-types.js";
 import { RELATIONSHIP_REWRITE_TABLE } from "./relationship-migration-table.js";
 
@@ -351,7 +352,7 @@ export async function migrateRelationshipsFile(
 # Last updated: ${new Date().toISOString()}
 
 `;
-  await fs.writeFile(relationshipsPath, header + YAML.stringify(relationships), "utf-8");
+  await fs.writeFile(relationshipsPath, header + stringifyDrYaml(relationships), "utf-8");
   return { filesModified: 1, changes, committed };
 }
 

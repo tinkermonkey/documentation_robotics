@@ -7,6 +7,7 @@
 
 import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { stringifyDrYaml } from "./dr-yaml.js";
 import { applyCatalogMigrations } from "./catalog-migration.js";
 
 /**
@@ -709,7 +710,7 @@ async function migrateObjectSchemaRequiredFiles(
       }
 
       if (modified) {
-        await fs.writeFile(filePath, YAML.stringify(doc), "utf-8");
+        await fs.writeFile(filePath, stringifyDrYaml(doc), "utf-8");
         filesModified++;
       }
     } catch (error) {
