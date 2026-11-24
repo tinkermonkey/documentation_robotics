@@ -22805,3 +22805,39 @@ application.applicationfunction.resolve-farm:
     created_at: 2026-11-21T17:43:54.697Z
     updated_at: 2026-11-21T17:43:54.697Z
     version: 1
+application.applicationfunction.create-commit-progress-reporter:
+  id: d3ee643d-d2bd-43c8-8019-3e10c3ddc9f2
+  path: application.applicationfunction.create-commit-progress-reporter
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: createCommitProgressReporter
+  description: "Throttles one commit's progress reports (the first, each phase change and the final one always; otherwise at most one per interval, default 200 ms) and publishes them on the process-wide commit progress channel keyed by the checkout's root path; finish() sends the final applied == total report, fail() the last one with failed: true."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/commit-progress.ts
+        symbol: createCommitProgressReporter
+  metadata:
+    created_at: 2026-11-24T14:08:57.652Z
+    updated_at: 2026-11-24T14:08:57.652Z
+    version: 1
+application.applicationfunction.broadcast-commit-progress:
+  id: 6cdfaee9-b3d2-4530-8f22-1bcb7a0730aa
+  path: application.applicationfunction.broadcast-commit-progress
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: broadcastCommitProgress
+  description: "The central server's listener on the commit progress channel: finds the checkout context whose root path the report names and broadcasts changeset.commit.progress to that checkout's subscribers only."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: broadcastCommitProgress
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.broadcastCommitProgress
+  metadata:
+    created_at: 2026-11-24T14:08:57.653Z
+    updated_at: 2026-11-24T14:08:57.653Z
+    version: 1

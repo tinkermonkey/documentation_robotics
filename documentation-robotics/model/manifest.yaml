@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.8.0
 spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-24T20:32:59.811Z
+updated: 2026-11-24T21:28:46.538Z
 project:
   name: dr-codebase
   description: ""
@@ -33,7 +33,7 @@ layers:
     path: documentation-robotics/model/03_product/
     enabled: true
     elements:
-      feature: 43
+      feature: 44
       milestone: 1
       persona: 3
       softwarecapability: 8
@@ -51,8 +51,8 @@ layers:
     enabled: true
     elements:
       applicationcomponent: 107
-      applicationevent: 1
-      applicationfunction: 1346
+      applicationevent: 2
+      applicationfunction: 1348
       applicationinterface: 2
       applicationservice: 112
       dataobject: 13
@@ -81,7 +81,7 @@ layers:
     path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
-      objectschema: 843
+      objectschema: 844
       schemacomposition: 36
       schemadefinition: 77
   data-store:
@@ -182,6 +182,9 @@ changeset_history:
     action: committed
   - name: user-level-dr
     committed_at: 2026-11-24T13:51:12.067Z
+    action: committed
+  - name: commit-progress-notification
+    committed_at: 2026-11-24T21:28:46.537Z
     action: committed
 reconciled:
   changeset: bootstrap-code-layers

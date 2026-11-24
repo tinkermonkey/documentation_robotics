@@ -2,8 +2,8 @@ id: changeset-1795529327434-rmjd8l2i8
 name: commit-progress-notification
 description: "#1361: the central server broadcasts changeset.commit.progress { changesetId, applied, total, phase, layer?, failed? } to the committing checkout's sockets while a commit runs (REST Apply, MCP/DrBot changeset_commit in-process), throttled, always ending with a final event. Existing contracts unchanged."
 created: 2026-11-24T14:08:47.464Z
-modified: 2026-11-24T20:33:00.407Z
-status: staged
+modified: 2026-11-24T21:28:46.535Z
+status: committed
 baseSnapshot: v2:sha256:250afd73da41227a27ce5033dda2ef3bb54a5ad71f97887dd7493b4739a1ece0
 origin:
   kind: plan

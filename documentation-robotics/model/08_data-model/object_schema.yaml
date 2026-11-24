@@ -2661,7 +2661,7 @@ data-model.objectschema.commit-options:
   type: objectschema
   layer_id: data-model
   name: CommitOptions
-  description: Options for commit operation
+  description: "StagingAreaManager.commit's options: validate, dryRun, the deprecated force, and onProgress (#1361), called with each CommitProgress report (validating, applying with the layer of each change, saving) while a real commit runs."
   attributes:
     type: object
   source_reference:
@@ -15621,4 +15621,23 @@ data-model.objectschema.feed-subscription:
   metadata:
     created_at: 2026-11-21T17:14:10.890Z
     updated_at: 2026-11-21T17:14:10.890Z
+    version: 1
+data-model.objectschema.commit-progress:
+  id: edd235c9-cd1d-4159-a9b1-a7ae9d6d5687
+  path: data-model.objectschema.commit-progress
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CommitProgress
+  description: "One progress report of a commit in flight: changesetId, applied, total, phase (validating | applying | saving | reloading | done), layer while applying, failed on the last report of a failed commit."
+  attributes:
+    type: object
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/commit-progress.ts
+        symbol: CommitProgress
+  metadata:
+    created_at: 2026-11-24T14:09:03.141Z
+    updated_at: 2026-11-24T14:09:03.141Z
     version: 1
