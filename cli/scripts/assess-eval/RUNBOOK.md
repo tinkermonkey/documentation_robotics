@@ -83,8 +83,8 @@ Each item has exactly one of `witness`, `ledger` and `p0`. The `verdict` is one 
 | `not-applicable`  | The question does not apply (question level only)                          |
 | `outside`         | Something noticed that no question asked about; not staged in step A       |
 
-The `begin` and `end` timestamps attribute the session's token use to each question afterwards,
-from the session transcript.
+`score.ts` (step C) uses the `begin` and `end` timestamps to attribute each staged change to a
+question, and the session's token use from its transcript.
 
 ## Step B: open review
 
@@ -110,6 +110,19 @@ The maintainer reviews both changesets in the viewer (`review_open`), not one it
 Accepted items land; rejected ones are noted with a reason. Then:
 
 1. Tag the result: `git tag assess/after-<YYYY-MM-DD>`.
-2. Score the run (the scoring script is not written yet): per question, precision (accepted over proposed) and its share of everything
-   accepted from steps A and B; per verdict, the count. Step B's categories that no question
-   covers are candidates for the next bank version.
+2. Score the run, from this directory:
+
+   ```bash
+   bun score.ts --model <model> --repo <repository path>
+   ```
+
+   It reads each step's changeset as staged (the first commit after the `assess/before` tag that
+   holds it, so commit each changeset as its step leaves it, before step C changes it), the model
+   at the `assess/after` tag, the answer logs, and `data/<model>/rejected-by-rule.jsonl` for the
+   ruling or reason behind each rejection (one line per change: `changeset`, `seq`, `change`,
+   `item`, `ruling`, `reason`). An item is accepted if the after model has it. Per question and
+   per step B category it reports precision with a Wilson interval, the share of everything
+   accepted, the verdict counts, spec-gap verdicts per register row (from a `register` key in the
+   log, or mapped in `data/<model>/spec-gaps.json`), and tokens per accepted item. It writes
+   `data/<model>/score-report.md` and `score.json`. Step B's categories that no question covers
+   are candidates for the next bank version.
