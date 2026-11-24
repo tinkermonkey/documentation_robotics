@@ -26,6 +26,7 @@ import { getErrorMessage } from "../utils/errors.js";
 import { FileLock } from "../utils/file-lock.js";
 import type { BaseRead, ChangesetDrift } from "./changeset-base-index.js";
 import { Layer } from "./layer.js";
+import type { CommitProgress } from "./commit-progress.js";
 import { canonicalStagedSnapshot } from "./staged-source-reference.js";
 import { elementIdentifiers, Relationships } from "./relationships.js";
 import { isValidLayerName } from "./layers.js";
@@ -62,6 +63,13 @@ export interface CommitOptions {
   force?: boolean;
   validate?: boolean; // Run validation (default: true)
   dryRun?: boolean; // Preview without applying
+  /**
+   * Called with each step of a real commit (never a dry run): `validating` with the total, then
+   * `applying` as each change starts (the changes before it handled, its layer) and once all are,
+   * then `saving` (issue 1361). Wrap it in
+   * a reporter (core/commit-progress.ts) to throttle it. A callback that throws is ignored.
+   */
+  onProgress?: (progress: CommitProgress) => void;
 }
 
 /**
@@ -965,6 +973,19 @@ export class StagingAreaManager {
       const isDryRun = options.dryRun === true;
       const shouldValidate = options.validate !== false;
 
+      // Progress for a real commit (issue 1361): every staged change is handled once (applied, or
+      // skipped as already in the base), so `total` is known before anything is written.
+      const total = changeset.changes.length;
+      const report = (progress: Omit<CommitProgress, "changesetId" | "total">) => {
+        if (isDryRun || !options.onProgress) return;
+        try {
+          options.onProgress({ changesetId, total, ...progress });
+        } catch {
+          // Progress is advisory: a failing listener never fails the commit.
+        }
+      };
+      report({ applied: 0, phase: "validating" });
+
       // Step 1: Detect drift. It is a warning, not a refusal (#1200): the landing goes ahead and
       // the result says what overlapped, read here, before the changes apply.
       const driftSpan = isTelemetryEnabled ? startSpan("staging.detectDrift") : null;
@@ -1143,7 +1164,9 @@ export class StagingAreaManager {
           : null;
 
         try {
-          for (const change of sortedChanges) {
+          for (const [index, change] of sortedChanges.entries()) {
+            // The changes before this one are handled; `layer` is the one being written now.
+            report({ applied: index, phase: "applying", layer: change.layerName });
             try {
               // Use getBaseLayer() so commit operates on the actual mutable base layer,
               // not a projected clone. getLayer() would return a projected (read-only clone)
@@ -1304,6 +1327,8 @@ export class StagingAreaManager {
             }
           }
 
+          report({ applied: sortedChanges.length, phase: "applying" });
+
           if (isTelemetryEnabled && applySpan) {
             (applySpan as any).setAttribute("apply.committed", result.committed);
             (applySpan as any).setAttribute("apply.failed", result.failed);
@@ -1314,6 +1339,7 @@ export class StagingAreaManager {
         }
 
         // Step 6: Save all modified layers and relationships atomically
+        report({ applied: sortedChanges.length, phase: "saving" });
         const modifiedLayers = new Set<string>();
         let hasRelationshipChanges = false;
         for (const change of sortedChanges) {

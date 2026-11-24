@@ -414,6 +414,49 @@ const driftSummaryShape = {
   message: z.string().describe('What the state means for this changeset, in a sentence or two. Names no CLI command'),
 };
 
+/**
+ * `changeset.commit.progress` (issue 1361): a websocket broadcast, not a route body. Registered as
+ * a component so clients generate its type from the OpenAPI document.
+ */
+export const ChangesetCommitProgressSchema = z
+  .object({
+    type: z.literal('changeset.commit.progress'),
+    changesetId: z.string().describe('The changeset being committed'),
+    applied: z
+      .number()
+      .int()
+      .describe('Changes handled so far (applied, or skipped as already in the base)'),
+    total: z
+      .number()
+      .int()
+      .describe(
+        'The changes the commit handles: the staged changes left after a reviewed commit drops some. ' +
+          'Relationships deleted with a delete (deleteBlockedLinks) count inside that delete.'
+      ),
+    phase: z
+      .enum(['validating', 'applying', 'saving', 'reloading', 'done'])
+      .describe(
+        'validating: checking the changeset; applying: writing the changes; saving: writing the files; ' +
+          'reloading: the server reloading the model (the viewer\'s Apply and changeset_commit); done: landed.'
+      ),
+    layer: z.string().optional().describe('While applying: the layer of the change being written'),
+    failed: z
+      .literal(true)
+      .optional()
+      .describe('On the last report of a commit that failed; phase is where it stopped. The commit response says why.'),
+    project: z.string().describe('The project the checkout belongs to'),
+    checkout: z.string().describe('The checkout being committed to'),
+    timestamp: z.string().describe('When the server sent it (ISO 8601)'),
+  })
+  .openapi('ChangesetCommitProgress', {
+    description:
+      'Websocket broadcast to the subscribers of the checkout a commit lands in, while it runs: after ' +
+      'POST .../changesets/{changesetId}/commit or an MCP changeset_commit in the server process. Throttled: ' +
+      'the first report, each phase change and the last are always sent, otherwise at most one per 200 ms. ' +
+      'A success ends with phase done and applied == total; a failure ends with failed: true. Advisory: the ' +
+      "commit's response is what counts.",
+  });
+
 export const ChangesetDriftSummarySchema = z.object(driftSummaryShape)
   .describe(
     'Base drift, checked on this read with no commit attempt, against the model as the server last loaded it (it ' +

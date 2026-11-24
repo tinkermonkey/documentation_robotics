@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Commit progress (issue 1361).** While a changeset commit runs, the server sends
+  `changeset.commit.progress` (`changesetId`, `applied`, `total`, `phase`, `layer`, `failed`) to the
+  websockets of the checkout it lands in, throttled to one per 200 ms plus the first, each phase
+  change and the last; a success ends with `phase: "done"` and `applied == total`, a failure with
+  `failed: true`. Sent for the viewer's Apply and for MCP `changeset_commit` (DrBot included) in the
+  server process. The commit response, `changesets.updated` and `model.updated` are unchanged. The
+  frame is the `ChangesetCommitProgress` schema in `docs/api-spec.yaml`.
 - **Project registry (issue 1279, slice 1A).** `cli/src/core/project-registry.ts` is the one code
   that resolves the farm in use (`DR_FARM_PATH`, else a farm found upward, else the user farm at
   `~/.config/dr/farm.yaml`), lists projects with their checkouts, resolves a path, a project

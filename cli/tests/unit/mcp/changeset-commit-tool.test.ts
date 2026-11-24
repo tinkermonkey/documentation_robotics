@@ -29,6 +29,11 @@ import { changesetShowHandler } from "../../../src/mcp/tools/changeset-show.js";
 import { changesetBriefHandler } from "../../../src/mcp/tools/changeset-analysis-tools.js";
 import { changesetListHandler } from "../../../src/mcp/tools/changeset-list.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
+import {
+  sameRootPath,
+  subscribeCommitProgress,
+  type PublishedCommitProgress,
+} from "../../../src/core/commit-progress.js";
 import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { changesetUnstageHandler, changesetUpdateHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import {
@@ -202,6 +207,24 @@ describe("changeset_commit confirmation", () => {
     expect(parse(result).reconciled).toBeUndefined();
     expect(parse(result).codeDrift).toContain("no as-built landing recorded");
     expect(parse(result).codeDrift).not.toContain("doesn't reconcile");
+  });
+
+  it("publishes the commit's progress for the checkout, ending with applied == total (#1361)", async () => {
+    const heard: PublishedCommitProgress[] = [];
+    const stop = subscribeCommitProgress((p) => heard.push(p));
+    try {
+      const c = await connect({ elicitation: true, answer: ACCEPT });
+      expect((await commit(c)).isError).toBeFalsy();
+    } finally {
+      stop();
+    }
+    const id = await planId();
+    const mine = heard.filter((p) => p.changesetId === id);
+    expect(mine[0]).toMatchObject({ phase: "validating", applied: 0, total: 3 });
+    expect(mine.at(-1)).toMatchObject({ phase: "done", applied: 3, total: 3 });
+    expect(mine.every((p) => sameRootPath(p.rootPath, rootPath))).toBe(true);
+    // The dialog's dry run reports nothing: only the real commit does.
+    expect(mine.filter((p) => p.phase === "validating")).toHaveLength(1);
   });
 
   it("says a plan landing doesn't reset drift once the model records an as-built landing", async () => {
