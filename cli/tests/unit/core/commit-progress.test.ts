@@ -4,6 +4,9 @@
  */
 
 import { describe, it, expect, spyOn } from "bun:test";
+import { mkdtemp, mkdir, realpath, rm, symlink } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import {
   createCommitProgressReporter,
   publishCommitProgress,
@@ -137,5 +140,20 @@ describe("the commit progress channel", () => {
   it("matches root paths by their resolved form", () => {
     expect(sameRootPath("/a/b/../c", "/a/c")).toBe(true);
     expect(sameRootPath("/a/c", "/a/d")).toBe(false);
+  });
+
+  it("matches a checkout reached through a symlink with its real path (macOS /tmp is /private/tmp)", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "dr-progress-root-"));
+    try {
+      const real = path.join(dir, "checkout");
+      await mkdir(real);
+      const linked = path.join(dir, "linked");
+      await symlink(real, linked);
+      expect(sameRootPath(linked, real)).toBe(true);
+      expect(sameRootPath(linked, await realpath(real))).toBe(true);
+      expect(sameRootPath(linked, path.join(dir, "other"))).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

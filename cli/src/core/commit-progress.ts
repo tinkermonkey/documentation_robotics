@@ -13,6 +13,7 @@
  * `failed: true` in the phase it stopped in.
  */
 
+import { realpathSync } from "node:fs";
 import path from "node:path";
 
 /** Where a commit is: checking, writing the changes, saving files, reloading the model, finished. */
@@ -60,9 +61,30 @@ export function publishCommitProgress(progress: PublishedCommitProgress): void {
   }
 }
 
-/** Whether two root paths name the same checkout folder (resolved; not followed through links). */
+/** Each root path's real path, read once: a checkout's folder doesn't move while it is served. */
+const realRoots = new Map<string, string>();
+
+/**
+ * The folder a root path names, with links followed (macOS `/tmp` is `/private/tmp`), so the
+ * registry's path for a checkout and a tool's path for the same folder compare equal. A path that
+ * can't be read (gone) is compared resolved, and not cached.
+ */
+function realRoot(rootPath: string): string {
+  const resolved = path.resolve(rootPath);
+  const cached = realRoots.get(resolved);
+  if (cached !== undefined) return cached;
+  try {
+    const real = realpathSync(resolved);
+    realRoots.set(resolved, real);
+    return real;
+  } catch {
+    return resolved;
+  }
+}
+
+/** Whether two root paths name the same checkout folder, through links. */
 export function sameRootPath(a: string, b: string): boolean {
-  return path.resolve(a) === path.resolve(b);
+  return realRoot(a) === realRoot(b);
 }
 
 /** The default gap between two throttled reports of one commit. */

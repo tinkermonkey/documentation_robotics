@@ -13,6 +13,10 @@ import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { publishCommitProgress } from "../../src/core/commit-progress.js";
 import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { createFakeWs } from "../unit/server/helpers.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { MCP_ROOT_PATH_HEADER } from "../../src/mcp/central-mcp.js";
 
 const add = (name: string, operationId: string) => [
   "add",
@@ -66,7 +70,13 @@ describe("changeset.commit.progress", () => {
     const id = await stageAdds(3);
     const { server, ws } = await serverWithClient();
 
-    const res = await server.request(`/changesets/${id}/commit`, { method: "POST" });
+    // What the socket had been sent when the route answered: the final report goes out before it.
+    let sentBeforeResponse: any[] = [];
+    const res = await server.request(`/changesets/${id}/commit`, { method: "POST" }).then((r) => {
+      sentBeforeResponse = [...ws.sent];
+      return r;
+    });
+    expect(sentBeforeResponse.some((m) => m.type === "changeset.commit.progress" && m.phase === "done")).toBe(true);
 
     // The response is the one it always was.
     expect(res.status).toBe(200);
@@ -100,9 +110,13 @@ describe("changeset.commit.progress", () => {
     const backup = spyOn(StagingAreaManager.prototype as any, "backupModel").mockImplementation(async () => {
       throw new Error("disk full");
     });
+    let sentBeforeResponse: any[] = [];
     const logged = spyOn(console, "error").mockImplementation(() => {});
     try {
-      const res = await server.request(`/changesets/${id}/commit`, { method: "POST" });
+      const res = await server.request(`/changesets/${id}/commit`, { method: "POST" }).then((r) => {
+        sentBeforeResponse = [...ws.sent];
+        return r;
+      });
       expect(res.status).toBeGreaterThanOrEqual(400);
     } finally {
       backup.mockRestore();
@@ -111,6 +125,8 @@ describe("changeset.commit.progress", () => {
 
     const last = progressOf(ws).at(-1);
     expect(last).toMatchObject({ changesetId: id, total: 1, applied: 0, phase: "validating", failed: true });
+    // The failed report goes out before the error response, like the final one of a success.
+    expect(sentBeforeResponse.some((m) => m.type === "changeset.commit.progress" && m.failed)).toBe(true);
     expect(progressOf(ws).some((p) => p.phase === "done")).toBe(false);
   });
 
@@ -120,11 +136,34 @@ describe("changeset.commit.progress", () => {
 
     publishCommitProgress({ rootPath: "/some/other/checkout", changesetId: "x", applied: 0, total: 1, phase: "validating" });
     publishCommitProgress({ rootPath: root, changesetId: "mine", applied: 1, total: 1, phase: "done" });
-    // broadcastMessage is async (it records telemetry first).
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
+    // Sent synchronously: no wait needed.
     expect(progressOf(ws).map((p) => p.changesetId)).toEqual(["mine"]);
     expect(progressOf(ws)[0].rootPath).toBeUndefined();
+  });
+
+  it("reports an MCP changeset_commit through /mcp to the checkout's subscribed socket", async () => {
+    const id = await stageAdds(2);
+    server = await startTestFarmServer(dir, { listen: true });
+    const ws = createFakeWs();
+    (await server.context()).subscribers.add(ws as any);
+
+    const transport = new StreamableHTTPClientTransport(new URL(server.url("/mcp")), {
+      requestInit: { headers: { ...server.auth, [MCP_ROOT_PATH_HEADER]: encodeURIComponent(server.root) } },
+    });
+    const client = new Client({ name: "progress-test", version: "1.0.0" }, { capabilities: { elicitation: {} } });
+    client.setRequestHandler(ElicitRequestSchema, async () => ({ action: "accept", content: { confirm: true } }));
+    await client.connect(transport);
+    try {
+      const result: any = await client.callTool({ name: "changeset_commit", arguments: { changeset: id } });
+      expect(result.isError).toBeFalsy();
+    } finally {
+      await client.close().catch(() => {});
+    }
+
+    const progress = progressOf(ws).filter((p) => p.changesetId === id);
+    expect(progress[0]).toMatchObject({ phase: "validating", applied: 0, total: 2 });
+    expect(progress.at(-1)).toMatchObject({ phase: "done", applied: 2, total: 2 });
+    expect(progress.every((p) => p.project === server!.project && p.checkout === server!.checkout)).toBe(true);
   });
 
   it("stops listening when the server stops", async () => {

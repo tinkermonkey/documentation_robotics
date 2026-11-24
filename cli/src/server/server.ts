@@ -2784,6 +2784,9 @@ export class VisualizationServer {
    * Sends `changeset.commit.progress` to the subscribers of the checkout a commit in flight is
    * landing in, and to no other checkout's (issue 1361). A report for a checkout this server has
    * not loaded has no subscribers to reach and is dropped.
+   *
+   * Sent synchronously (no telemetry await, unlike broadcastMessage): a report is on every socket
+   * when the reporter returns, so the commit's final report goes out before its HTTP response.
    */
   private broadcastCommitProgress(progress: PublishedCommitProgress): void {
     const { rootPath, ...payload } = progress;
@@ -2791,11 +2794,19 @@ export class VisualizationServer {
       const context = this.central.pool.peek(ref);
       if (!context || !sameRootPath(context.rootPath, rootPath)) continue;
       if (context.subscribers.size === 0) continue;
-      this.inContext(context, () =>
-        this.broadcastMessage({ type: "changeset.commit.progress", ...payload, timestamp: new Date().toISOString() })
-      ).catch((error) => {
-        console.warn(`[Changesets] Could not broadcast commit progress: ${getErrorMessage(error)}`);
-      });
+      const message = JSON.stringify(
+        this.inContext(context, () =>
+          this.stamp({ type: "changeset.commit.progress", ...payload, timestamp: new Date().toISOString() })
+        )
+      );
+      for (const subscriber of [...context.subscribers]) {
+        try {
+          subscriber.send(message);
+        } catch (error) {
+          context.subscribers.delete(subscriber);
+          console.warn(`[WebSocket] Failed to send commit progress to a client: ${getErrorMessage(error)}`);
+        }
+      }
     }
   }
 

@@ -4,7 +4,7 @@
  * without the elicitation capability.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -225,6 +225,26 @@ describe("changeset_commit confirmation", () => {
     expect(mine.every((p) => sameRootPath(p.rootPath, rootPath))).toBe(true);
     // The dialog's dry run reports nothing: only the real commit does.
     expect(mine.filter((p) => p.phase === "validating")).toHaveLength(1);
+  });
+
+  it("ends a failed commit's progress with failed: true in the phase it stopped in (#1361)", async () => {
+    const heard: PublishedCommitProgress[] = [];
+    const stop = subscribeCommitProgress((p) => heard.push(p));
+    const backup = spyOn(StagingAreaManager.prototype as any, "backupModel").mockImplementation(async () => {
+      throw new Error("disk full");
+    });
+    try {
+      const c = await connect({ elicitation: true, answer: ACCEPT });
+      expect((await commit(c)).isError).toBe(true);
+    } finally {
+      backup.mockRestore();
+      stop();
+    }
+    const mine = heard.filter((p) => p.changesetId === (heard[0]?.changesetId ?? ""));
+    expect(mine.length).toBeGreaterThan(0);
+    expect(mine.at(-1)).toMatchObject({ phase: "validating", applied: 0, total: 3, failed: true });
+    expect(mine.some((p) => p.phase === "done")).toBe(false);
+    expect(await changesetStatus()).toBe("staged");
   });
 
   it("says a plan landing doesn't reset drift once the model records an as-built landing", async () => {
