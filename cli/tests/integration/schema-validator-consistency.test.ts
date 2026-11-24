@@ -557,6 +557,19 @@ describe("Schema Validator Consistency", () => {
     });
   });
 
+  describe("a refused dr add (#1153)", () => {
+    it("names what the type requires and the values each attribute takes", async () => {
+      const addResult = await runDr(["add", "application", "applicationservice", "Order Service"], { cwd: workdir.path });
+      expect(addResult.exitCode).not.toBe(0);
+      const output = addResult.stdout + addResult.stderr;
+      expect(output).toContain("has invalid attributes");
+      expect(output).toContain(
+        "application.applicationservice requires: serviceType (one of [synchronous, asynchronous, event-driven, batch])"
+      );
+      expect(output).toContain('dr schema node application.applicationservice');
+    });
+  });
+
   describe("cross-type consistency", () => {
     it("should maintain consistency across all test types", async () => {
       const testTypes = [

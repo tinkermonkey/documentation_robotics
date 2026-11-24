@@ -402,6 +402,9 @@ describe("codebase_extract", () => {
     expect(first.undecided).toMatchObject({ total: 3, pageSize: 1, pages: 3, groups: { total: 2, returned: 2 } });
     expect(first.undecided.items).toBeUndefined();
     expect(first.next.join(" ")).toContain("view: {} lists the cards a page at a time (3 pages)");
+    // A grouped run lists no cards, so it points at the card pages for what each type requires.
+    expect(first.undecided.requiredAttributes).toBeUndefined();
+    expect(first.next.join(" ")).toContain("each page of cards, from view: {}, lists them under undecided.requiredAttributes");
     const listed = ok(await handler({ view: {}, pageSize: 1, rootPath }));
     expect(listed.undecided).toMatchObject({ total: 3, page: 1, pageSize: 1, pages: 3 });
     const [narrowed] = listed.undecided.items;
@@ -413,6 +416,11 @@ describe("codebase_extract", () => {
       rule: "tier0_spring_service",
     });
     expect(narrowed.reason).toContain("choosing needs judgment");
+    // What each candidate type requires, once per page, so the model_add below needs no refusal first (#1153).
+    expect(listed.undecided.requiredAttributes).toEqual({
+      "application.applicationcomponent": { type: "one of [generic, external, internal, service-component]" },
+      "application.applicationservice": { serviceType: "one of [synchronous, asynchronous, event-driven, batch]" },
+    });
     expect(listed.next).toContain("page: 2");
 
     // The agent stages its decision for the first card; page 2 reads the stored cards.
@@ -431,6 +439,10 @@ describe("codebase_extract", () => {
     const second = ok(await handler({ page: 2, pageSize: 1, rootPath }));
     expect(second.undecided.items).toHaveLength(1);
     expect(second.undecided.items[0]).toMatchObject({ kind: "no-rule", label: "Class", symbol: "Helpers", hint: "application.applicationcomponent" });
+    // A no-rule card's hint names a type too.
+    expect(second.undecided.requiredAttributes).toEqual({
+      "application.applicationcomponent": { type: "one of [generic, external, internal, service-component]" },
+    });
     const firstAgain = ok(await handler({ page: 1, pageSize: 1, rootPath }));
     // Page 1 again re-runs, and the decided card is gone: it is modelled now.
     expect(firstAgain.undecided.total).toBe(2);
