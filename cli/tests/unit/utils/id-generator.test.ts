@@ -122,6 +122,14 @@ describe("toKebabCase and acronyms (#1184)", () => {
     expect(toKebabCase("URLsList")).toBe("urls-list");
   });
 
+  it("reads an acronym before Is or As and a capital as a plural (known ambiguity, as in 0.7.x)", () => {
+    // Known ambiguity: "APIIsReady" reads like "APIsFor", so the acronym is not split off the word after it.
+    expect(toKebabCase("URLIsValid")).toBe("urlis-valid");
+    expect(toKebabCase("URL Is Valid")).toBe("url-is-valid");
+    expect(toKebabCase("APIIsReady")).toBe("apiis-ready");
+    expect(toKebabCase("APIsFor")).toBe("apis-for");
+  });
+
   it("splits a mixed-case word as camelCase does (accepted: OAuth is o-auth, as GitHub is git-hub)", () => {
     expect(toKebabCase("OAuth2Client")).toBe("o-auth2-client");
     expect(toKebabCase("GitHub")).toBe("git-hub");

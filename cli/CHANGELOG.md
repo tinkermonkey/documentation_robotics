@@ -126,7 +126,11 @@ library` and runtimes `language-runtime`, not `middleware`; one test case sketch
   `open-apiexporter`), `Vector3DPoint` → `vector3d-point` (was `vector3dpoint`), so a name gives
   the same id with or without a space at that break. A plural acronym stays whole (`URLs` → `urls`,
   `getIDsForUser` → `get-ids-for-user`). A mixed-case word splits as camelCase does: `OAuth` →
-  `o-auth`, as `GitHub` → `git-hub`. Existing ids are never rewritten: the 0.7.x rule is in
+  `o-auth`, as `GitHub` → `git-hub`; likewise `IPv4Address` → `i-pv4-address` and `SaaSApp` →
+  `saa-s-app`. An acronym before `Is` or `As` and a capital is read as a plural, as before:
+  `URLIsValid` → `urlis-valid`. `toKebabCase` also gives extraction's default `operationId` and
+  the analyzer's suggested names, so re-extracting a route whose path joins an acronym to a word
+  can propose a different `operationId` for an existing operation. Existing ids are never rewritten: the 0.7.x rule is in
   `EARLIER_ID_RULES` as `derive-0.7`, so adding an existing element's name again (50 in DR's own
   model, such as `AIEvaluator` at `aievaluator`) still finds that element.
 
