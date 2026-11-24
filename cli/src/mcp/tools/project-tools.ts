@@ -561,7 +561,7 @@ async function applyGitignore(projectRoot: string, choice: ProjectUpgradeArgs["g
 
 async function upgradeRoot(rootPath: string | undefined): Promise<string> {
   if (rootPath === undefined) await whenProjectRootSettled();
-  const start = rootPath !== undefined ? absoluteRootPath(rootPath) : process.cwd();
+  const start = rootPath !== undefined ? absoluteRootPath(rootPath) : currentProjectRoot().root;
   const root = await findProjectRoot(start);
   if (!root || !(await hasModel(root))) {
     throw new CLIError(`No DR model found at ${start}`, ErrorCategory.NOT_FOUND, [

@@ -15,6 +15,7 @@
 
 import type { Model } from "../core/model.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../core/changeset-only-guard.js";
+import { sessionEnv } from "../core/session-env.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { activeStagedChangeset } from "./tools/changeset-shared.js";
@@ -44,7 +45,7 @@ export function outsideChangesetError(toolName: string): CLIError {
         ? "Ask the user to create the model themselves (dr init, or project_init in a session without changeset-only mode)"
         : "Ask the user to upgrade the model themselves (dr upgrade, or project_upgrade in a session without changeset-only mode)",
     ],
-    { operation: toolName, context: `${CHANGESET_ONLY_ENV}=${process.env[CHANGESET_ONLY_ENV] ?? "true"}` }
+    { operation: toolName, context: `${CHANGESET_ONLY_ENV}=${sessionEnv()[CHANGESET_ONLY_ENV] ?? "true"}` }
   );
 }
 
@@ -59,7 +60,7 @@ export function changesetOnlyError(toolName?: string): CLIError {
         '"changeset_activate" to resume one from "changeset_list"',
       `${retry}: it will be staged in the changeset for the user to review and commit`,
     ],
-    { operation: toolName ?? "save model", context: `${CHANGESET_ONLY_ENV}=${process.env[CHANGESET_ONLY_ENV] ?? "true"}` }
+    { operation: toolName ?? "save model", context: `${CHANGESET_ONLY_ENV}=${sessionEnv()[CHANGESET_ONLY_ENV] ?? "true"}` }
   );
 }
 
@@ -75,7 +76,7 @@ export async function changesetOnlyRefusal(
   toolName: string,
   rootPath: string | undefined,
   loadModel: (rootPath?: string) => Promise<Model>,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = sessionEnv()
 ): Promise<CLIError | null> {
   if (!isChangesetOnly(env)) {
     return null;

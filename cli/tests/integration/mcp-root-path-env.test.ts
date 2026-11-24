@@ -58,6 +58,8 @@ function spawnMcp(rootPathEnv: string): McpProcess {
     DR_CONFIG_PATH: configPath,
     DR_MCP_API_KEY: apiKey,
     DR_MCP_ROOT_PATH: rootPathEnv,
+    // In process: the pinned root without the central process (the bridge pins it the same way).
+    DR_MCP_IN_PROCESS: "1",
   };
   const proc = spawn("node", [CLI_PATH, "mcp"], {
     cwd: elsewhere,

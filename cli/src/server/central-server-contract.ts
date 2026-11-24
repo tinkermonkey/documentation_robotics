@@ -42,7 +42,7 @@ export interface CentralServerOptions {
 export interface CentralActivity {
   /** Browser tabs connected now (websocket clients), across every checkout. */
   clients: number;
-  /** MCP sessions open now. Always 0 until `/mcp` is served on this process (slice 3). */
+  /** MCP sessions open now on `/mcp`. */
   mcpSessions: number;
   /** DrBot turns running now, across every checkout. */
   drBotTurns: number;
@@ -61,6 +61,10 @@ export interface CentralHealth {
   /** Real path of the farm root it serves. */
   farmRoot?: string;
   clients?: number;
+  /** MCP sessions open now (slice 3). A process that doesn't report it serves no MCP. */
+  mcpSessions?: number;
+  /** DrBot turns running now (slice 3). */
+  drBotTurns?: number;
   /** Checkout contexts loaded now. */
   loadedCheckouts?: number;
 }

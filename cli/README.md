@@ -303,18 +303,19 @@ dr chat github-copilot                   # Use GitHub Copilot, save as preferenc
 
 ### MCP Server
 
-`dr mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio, exposing the architecture model (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat) as tools an MCP-aware AI client can call directly.
+`dr mcp` connects an MCP-aware AI client to the [Model Context Protocol](https://modelcontextprotocol.io/) interface of your DR process, exposing the architecture model (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat) as tools the client can call directly.
 
 ```bash
-# Start the server (run by your MCP client, not typically by hand)
+# The stdio bridge (run by your MCP client, not typically by hand)
 dr mcp
 
-# Rotate the API key: generates a new key, overwrites it at the configured
-# storage path, and prints it — without touching the server process
-dr mcp --regenerate-key
+# Find or start the DR process and print its MCP endpoint and token file
+dr mcp --http
 ```
 
-**Which project**: the server serves the project the client has open. It asks the client for its MCP roots after connecting and moves to the first root inside a DR project (or the first root, if none has a model yet). `DR_MCP_ROOT_PATH` pins it to one model instead, and tool calls can pass `rootPath`.
+**One process for every project**: MCP is served by the DR process for your farm (`dr serve`), the same process that serves the viewer. `dr mcp` over stdio is a bridge: it finds that process from its server record, starts it detached when none runs (or replaces one older than this CLI when nothing is using it), and forwards the client's messages to its `/mcp` endpoint with the process's token. The client's configuration holds no token.
+
+**Which checkout**: each MCP session serves its own checkout, resolved through the farm's project registry: `DR_MCP_ROOT_PATH` when set, else the first of the client's MCP roots inside a registered project's checkout, else the first root (whose repository is then registered in the farm). Tool calls can still pass `rootPath`. Every tool result names the `project` and `checkout` it ran in. Nothing changes a process's working directory, so sessions in different checkouts never see each other's model.
 
 **Configuring an MCP client**: in Claude Code, install the `dr` plugin (see [MCP_SERVER.md](../integrations/claude_code/docs/MCP_SERVER.md)). Other clients point at the `dr` binary:
 
@@ -329,11 +330,9 @@ dr mcp --regenerate-key
 }
 ```
 
-**API key (HTTP transport only)**: over stdio the client starts the server as your own user, so there is no key. `dr mcp --transport http` requires the key as a bearer token:
+**HTTP**: `dr mcp --http` (or `--transport http`) prints `http://127.0.0.1:<port>/mcp` and the `0600` file holding the process's token, then exits; the process keeps serving. Send the token as `Authorization: Bearer <token>`. The port and token change when the process restarts, which is why the stdio bridge is the default. `--port` and `--host` no longer apply (`dr serve --port` sets the port when it starts the process), and `--regenerate-key` only rotates the old standalone key, which nothing uses now.
 
-- On first launch it generates a random key and stores it with `0600` permissions. Interactive sessions are prompted for a storage path; non-interactive launches default to `~/.dr-mcp-key`. The path is recorded under `mcp.api_key_path` in `~/.dr-config.yaml` (or the path from `DR_CONFIG_PATH`).
-- Every HTTP launch prints the key to stderr (`DR_MCP_QUIET_KEY=1` suppresses it).
-- `dr mcp --regenerate-key` rotates it: it overwrites the key at its configured path, updates `~/.dr-config.yaml`, prints the new key and exits without starting the server.
+**In process**: `DR_MCP_IN_PROCESS=1 dr mcp` serves the tools in the `dr mcp` process itself, for one session, without the DR process or the farm's registry, for a client that must not start a background process.
 
 ## Configuration
 

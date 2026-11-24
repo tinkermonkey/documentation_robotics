@@ -445,6 +445,9 @@ export class VisualizationServer {
     removalTimer?: ReturnType<typeof setInterval>;
     /** Open TCP connections, destroyed on stop: an upgraded websocket would otherwise hold the listener open. */
     connections: Set<import("net").Socket>;
+    /** `/mcp`: the MCP sessions (mcp/central-mcp.ts), made on the first MCP request. */
+    mcp?: Promise<import("../mcp/central-mcp.js").CentralMcpEndpoint>;
+    mcpEndpoint?: import("../mcp/central-mcp.js").CentralMcpEndpoint;
   };
 
   /**
@@ -667,6 +670,8 @@ export class VisualizationServer {
     // scoped route names, or for an unscoped route the checkout the process was started in.
     if (this.central) {
       this.app.use("/api/*", (c, next) => this.scopeRequest(c, next));
+      // MCP for every session of the farm (issue 1279, slice 3A), behind the one token.
+      this.app.all("/mcp", (c) => this.handleMcp(c.req.raw));
     }
 
     this.setupRoutes();
@@ -4057,6 +4062,8 @@ export class VisualizationServer {
     if (central.removalTimer) clearInterval(central.removalTimer);
     central.removalTimer = undefined;
     central.stopListening();
+    // End the MCP sessions (their bridges reconnect to the next process).
+    if (central.mcp) await (await central.mcp).close().catch(() => {});
     const timestamp = new Date().toISOString();
     for (const ref of central.pool.loaded()) {
       const context = central.pool.peek(ref);
@@ -4112,7 +4119,43 @@ export class VisualizationServer {
   centralActivity(): { clients: number; mcpSessions: number; drBotTurns: number; lastActivityAt: number } {
     // Running turns, across every checkout (the launcher's cap counts the same ones).
     const drBotTurns = this.drBot.runningTurns;
-    return { clients: this.socketCount(), mcpSessions: 0, drBotTurns, lastActivityAt: this.lastActivityAt };
+    return {
+      clients: this.socketCount(),
+      mcpSessions: this.central?.mcpEndpoint?.sessionCount ?? 0,
+      drBotTurns,
+      lastActivityAt: this.lastActivityAt,
+    };
+  }
+
+  /**
+   * `/mcp` on the central process: the token as a bearer header (never a query parameter: an MCP
+   * client always sends headers), then the session's own MCP server (mcp/central-mcp.ts).
+   */
+  private async handleMcp(request: Request): Promise<Response> {
+    const central = this.central!;
+    const header = request.headers.get("authorization") ?? "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+    if (!token || !this.isAuthToken(token)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    this.lastActivityAt = Date.now();
+    central.mcp ??= import("../mcp/central-mcp.js").then(({ CentralMcpEndpoint }) => {
+      central.mcpEndpoint = new CentralMcpEndpoint({
+        registry: central.options.registry,
+        fallbackRoot: async () => {
+          const ref = central.options.defaultCheckout;
+          return ref ? (await central.options.registry.resolveRef(ref))?.checkout.path : undefined;
+        },
+        onActivity: () => {
+          this.lastActivityAt = Date.now();
+        },
+      });
+      return central.mcpEndpoint;
+    });
+    return (await central.mcp).handle(request);
   }
 
   /** `/health` on the central process (`CentralHealth`): status and version, the rest only with the token. */
@@ -4125,6 +4168,10 @@ export class VisualizationServer {
     if (this.launcherPid) response.launcherPid = this.launcherPid;
     response.farmRoot = this.farmRoot();
     response.clients = this.socketCount();
+    // What `ensureCentralServer` reads before it replaces an older process: is anything using it?
+    const activity = this.centralActivity();
+    response.mcpSessions = activity.mcpSessions;
+    response.drBotTurns = activity.drBotTurns;
     response.loadedCheckouts = central.pool.size;
     return response;
   }
