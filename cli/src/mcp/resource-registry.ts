@@ -17,6 +17,9 @@ import { AnnotationStore } from "../core/annotation-store.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { loadModel } from "./tools/shared.js";
+import type { McpSession } from "./mcp-session.js";
+import { runInMcpSession } from "./project-root.js";
+import { runWithSessionEnv } from "../core/session-env.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUNDLED_SCHEMAS_DIR = path.join(__dirname, "../schemas/bundled");
@@ -37,8 +40,14 @@ export async function readBundledSchema(fileName: string): Promise<string> {
 }
 
 export class McpResourceRegistry {
-  /** Registers every spec/model resource onto the given MCP server instance. */
-  async registerAll(server: McpServer): Promise<void> {
+  /**
+   * Registers every spec/model resource onto the given MCP server instance. With a session (the
+   * central process), the model resources read that session's checkout.
+   */
+  async registerAll(server: McpServer, options: { session?: McpSession } = {}): Promise<void> {
+    const session = options.session;
+    const inSession = <T>(fn: () => Promise<T>): Promise<T> =>
+      session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, fn)) : fn();
     const { ResourceTemplate } = await import("@modelcontextprotocol/sdk/server/mcp.js");
 
     server.registerResource(
@@ -106,7 +115,7 @@ export class McpResourceRegistry {
         description: "Metadata and layer summary for the current architecture model.",
         mimeType: "application/json",
       },
-      async (uri) => {
+      async (uri) => inSession(async () => {
         try {
           const model = await loadModel();
           const manifest = {
@@ -125,7 +134,7 @@ export class McpResourceRegistry {
         } catch (error) {
           throw new Error(`Failed to load model manifest: ${getErrorMessage(error)}`);
         }
-      }
+      })
     );
 
     server.registerResource(
@@ -136,7 +145,7 @@ export class McpResourceRegistry {
         description: "All annotations on elements in the current architecture model.",
         mimeType: "application/json",
       },
-      async (uri) => {
+      async (uri) => inSession(async () => {
         try {
           const model = await loadModel();
           const store = new AnnotationStore(model.rootPath);
@@ -149,7 +158,7 @@ export class McpResourceRegistry {
         } catch (error) {
           throw new Error(`Failed to load model annotations: ${getErrorMessage(error)}`);
         }
-      }
+      })
     );
   }
 }
