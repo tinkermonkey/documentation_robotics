@@ -114,15 +114,25 @@ The `chat.send` result:
 `status` is `error` when the agent exited non-zero. Without `conversation_id`, the server makes one
 up and returns it.
 
+At most `DR_DRBOT_MAX_TURNS` replies (default 3) run at once in one server process, across every
+checkout it serves. A send over the cap waits: the server sends `chat.turn.queued` and a quoted line
+of reply text saying so, then `chat.turn.started` and another quoted line when the reply starts. A
+queued send can be cancelled like a running one; its `chat.send` then gets an error. A send whose
+checkout is removed while it waits gets an error too.
+
 ### Notifications during a reply
 
-All carry `conversation_id` and `timestamp`.
+All carry `conversation_id` and `timestamp`. On the central server (`dr serve`) they, and the `chat.send`
+result, also carry `project` and `checkout`: conversations are per checkout, and one socket can
+chat in several.
 
 | Method                   | Params                                                                                                                                                               | Meaning                               |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `chat.response.chunk`    | `content`, `is_final`                                                                                                                                                | Reply text                            |
 | `chat.tool.invoke`       | `tool_use_id`, `tool_name`, `tool_input`, `status`, and on completion `is_error`, `result`, `error`; on a refusal also `permission_denied`, `permission_explanation` | A tool call started, or finished      |
 | `chat.response.complete` | `result`, `is_error`                                                                                                                                                 | The agent's turn ended (one per send) |
+| `chat.turn.queued`       | `position`, `running`, `max_turns`, `message`                                                                                                                        | The send waits for a running reply    |
+| `chat.turn.started`      | `waited_ms`                                                                                                                                                          | A queued send's reply starts          |
 
 Each tool call sends `chat.tool.invoke` twice, matched by `tool_use_id` (Claude Code's `tool_use`
 id):
@@ -179,3 +189,6 @@ The Copilot path streams plain text only: `chat.response.chunk` and the `chat.se
   and changes other processes make are broadcast.
 - CLI 0.7.0: `permission_mode` on `chat.status`; `permission_denied` and `permission_explanation`
   on a refused `chat.tool.invoke`, whose `error` now ends with the explanation.
+- CLI 0.8.0 (Unreleased): `chat.turn.queued` and `chat.turn.started` for a send over the running-reply
+  cap (`DR_DRBOT_MAX_TURNS`); each reply runs in the checkout it belongs to. On the central server, chat
+  frames carry `project` and `checkout`.

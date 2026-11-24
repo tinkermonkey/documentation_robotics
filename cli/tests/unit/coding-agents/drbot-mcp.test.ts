@@ -251,7 +251,7 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
   });
 
   function args(options: { withDanger?: boolean; withChangesets?: boolean }, mcpConfigPath?: string): string[] {
-    return (new VisualizationServer(model, options) as any).buildClaudeChatArgs(mcpConfigPath);
+    return (new VisualizationServer(model, options) as any).drBot.buildClaudeChatArgs(mcpConfigPath);
   }
 
   function valueOf(cmd: string[], flag: string): string | undefined {
@@ -313,7 +313,7 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
   });
 
   it("names the agent only when its definition is passed or claude can load it", () => {
-    const server = new VisualizationServer(model, {}) as any;
+    const server = (new VisualizationServer(model, {}) as any).drBot;
     expect(server.buildClaudeChatArgs(undefined, undefined, [], true)).not.toContain("--agent");
     expect(server.buildClaudeChatArgs(undefined, undefined, ["--agents", "{}"]).slice(0, 5)).toEqual([
       "claude",

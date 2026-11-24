@@ -98,7 +98,7 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         // This is verified via code inspection rather than direct testing because
         // addCopilotPermissionFlags is private and doesn't expose arguments.
         const server = new VisualizationServer(testModel, { withDanger: true });
-        expect((server as any).withDanger).toBe(true);
+        expect((server as any).drBot.withDanger).toBe(true);
       });
     });
   });

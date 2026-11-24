@@ -1,7 +1,8 @@
 /**
  * Everything the server holds for one checkout (issue 1279, `docs/design/USER_LEVEL_DR.md`
  * section 7, "Per-checkout state"): its model, staging area, annotations, staged changesets,
- * file watcher, websocket subscribers and DrBot conversations, keyed by a `CheckoutRef`.
+ * file watcher, websocket subscribers and running DrBot turns, keyed by a `CheckoutRef`. (The DrBot
+ * launcher, dr-bot-launcher.ts, keeps each conversation's agent session, by `DrBotSessionKey`.)
  *
  * Contexts are never shared between checkouts: that is the whole isolation guarantee. The
  * checkout context pool (checkout-context-pool.ts) creates and evicts them; in slice 1 the
@@ -47,15 +48,6 @@ export function annotationFingerprint(annotation: StoredAnnotation): AnnotationF
     state: JSON.stringify([annotation.content, annotation.tags, annotation.resolved, annotation.updatedAt ?? null]),
     replyIds: annotation.replies.map((reply) => reply.id),
   };
-}
-
-/** A viewer conversation's Claude Code session. */
-export interface ChatSession {
-  sessionId: string;
-  /** Claude Code has created the session: later sends pass --resume. */
-  started: boolean;
-  /** A send has already launched with --session-id for it. */
-  attempted?: boolean;
 }
 
 /** What the file watcher reports, already sorted by the part of the checkout that changed. */
@@ -112,18 +104,14 @@ export class CheckoutContext<S extends CheckoutSubscriber = CheckoutSubscriber> 
   /** DrBot: conversationId -> the running chat process. */
   readonly chatProcesses: Map<string, ChildProcess> = new Map();
   /**
-   * Viewer conversation id -> Claude Code session id. The first send in a conversation starts the
-   * session with --session-id; `started` is set once Claude Code has created it, and later sends
-   * pass --resume. A new conversation id starts a new session.
-   */
-  readonly chatSessions: Map<string, ChatSession> = new Map();
-  /**
    * Conversation id -> the running turn's token. A conversation runs one turn at a time: it is
    * reserved when chat.send arrives and released only after that turn's process has exited.
    */
   readonly busyChatConversations: Map<string, symbol> = new Map();
   /** Chat processes stopped by chat.cancel: nothing more from them reaches the client. */
   readonly cancelledChatProcesses = new WeakSet<ChildProcess>();
+  /** Told when the context closes, before it closes (the DrBot launcher ends its queued turns). */
+  private closeListeners: Set<(reason: CheckoutCloseReason) => void> = new Set();
 
   /** When the context was last used, for the pool's idle and least-recently-used eviction. */
   lastUsedAt: number;
@@ -150,6 +138,12 @@ export class CheckoutContext<S extends CheckoutSubscriber = CheckoutSubscriber> 
 
   get closed(): boolean {
     return this._closed;
+  }
+
+  /** Calls listener when the context closes, with why. Returns the call that stops listening. */
+  onClose(listener: (reason: CheckoutCloseReason) => void): () => void {
+    this.closeListeners.add(listener);
+    return () => this.closeListeners.delete(listener);
   }
 
   /** Records a use, for eviction. */
@@ -365,6 +359,14 @@ export class CheckoutContext<S extends CheckoutSubscriber = CheckoutSubscriber> 
    */
   close(options: CheckoutCloseOptions = {}): void {
     const reason = options.reason ?? "stopped";
+    for (const listener of [...this.closeListeners]) {
+      try {
+        listener(reason);
+      } catch (error) {
+        console.warn(`[Checkout] A close listener failed: ${getErrorMessage(error)}`);
+      }
+    }
+    this.closeListeners.clear();
     if (reason === "removed") {
       const message = JSON.stringify({
         type: CHECKOUT_REMOVED_MESSAGE,
@@ -412,7 +414,6 @@ export class CheckoutContext<S extends CheckoutSubscriber = CheckoutSubscriber> 
 
     if (reason !== "stopped") {
       // Dropped from the pool: free what the context holds in memory.
-      this.chatSessions.clear();
       this.changesets.clear();
       this.annotationSnapshot.clear();
       this.watcher = undefined;
