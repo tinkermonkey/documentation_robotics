@@ -20,6 +20,7 @@ import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { ChangesetActionResultSchema, ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
 import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 import { FileLock } from "../../../src/utils/file-lock.js";
+import { clearChangesetWrites, runAsWriter } from "../../../src/core/changeset-write-activity.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const OTHER_GOAL = "motivation.goal.lower-costs";
@@ -105,12 +106,23 @@ afterEach(async () => {
 });
 
 describe("write activity on the changeset read, shown before Apply (#1437)", () => {
-  it.serial("says when something writes into the changeset now, and nothing otherwise", async () => {
+  it.serial("says when an agent's MCP session staged into it moments ago, or something writes into it now", async () => {
     const id = await planAdding("export-orders", service(SERVICE));
+    // Nothing recorded: no warning.
+    await clearChangesetWrites(rootPath, id);
     const { detail } = await api();
     expect((await detail(id)).stillWriting).toBeUndefined();
 
+    // An agent stages into it over MCP (the central process serves MCP and the viewer alike):
+    // the viewer's read, before Apply, names the session.
     const { manager } = await fresh();
+    await runAsWriter("mcp:agent-1", () =>
+      manager.stage(id, { type: "add", elementId: OTHER_GOAL, layerName: "motivation", after: goal(OTHER_GOAL, "Lower costs") })
+    );
+    expect((await detail(id)).stillWriting).toContain("An agent's MCP session (agent-1) staged into 'export-orders'");
+
+    // A write holding the changeset's lock now.
+    await clearChangesetWrites(rootPath, id);
     const lock = new FileLock(manager.changesetPath(id));
     await lock.acquire();
     try {

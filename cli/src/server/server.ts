@@ -9,6 +9,7 @@ import { swaggerUI } from "@hono/swagger-ui";
 import { createAdaptorServer, type ServerType } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { AsyncLocalStorage } from "async_hooks";
+import { runAsWriter } from "../core/changeset-write-activity.js";
 import { randomBytes, timingSafeEqual } from "crypto";
 import { realpathSync } from "fs";
 import { realpath } from "fs/promises";
@@ -468,9 +469,13 @@ export class VisualizationServer {
     throw new Error("No checkout for this call: the server serves a checkout only inside a request or message that names one");
   }
 
-  /** Runs fn with `context` as the checkout being served. */
+  /**
+   * Runs fn with `context` as the checkout being served, as the viewer's writer: a request or
+   * message's staging writes are the viewer's (changeset-write-activity.ts). An MCP tool call made
+   * inside one runs as its own session instead.
+   */
   private inContext<T>(context: CheckoutContext, fn: () => T): T {
-    return this.scope.run(context, fn);
+    return this.scope.run(context, () => runAsWriter("viewer", fn));
   }
 
   /** The checkout's model: the context's, which the watcher's reload replaces. */

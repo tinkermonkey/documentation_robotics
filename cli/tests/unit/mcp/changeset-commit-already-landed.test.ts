@@ -16,7 +16,14 @@ import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetCommitPreviewHandler } from "../../../src/mcp/tools/changeset-commit.js";
-import { writeActivityWarning, recordChangesetWrite, RECENT_OTHER_WRITE_MS } from "../../../src/core/changeset-write-activity.js";
+import {
+  clearChangesetWrites,
+  writeActivityWarning,
+  recordChangesetWrite,
+  runAsWriter,
+  RECENT_OTHER_WRITE_MS,
+} from "../../../src/core/changeset-write-activity.js";
+import { utimes } from "node:fs/promises";
 import { FileLock } from "../../../src/utils/file-lock.js";
 
 async function newProject(): Promise<string> {
@@ -89,15 +96,21 @@ describe("changeset_commit_preview on a changeset already landed (#1441)", () =>
       const manager = new StagingAreaManager(rootPath);
       const plan = (await manager.load("plan"))!;
       const folder = manager.changesetPath(plan.id!);
-      // Another process staged into it moments ago: a warning naming it, in the summary too.
+      // An agent's MCP session staged into it moments ago, and the person is about to Apply in the
+      // viewer, which the same central process serves: a warning naming the session.
       const at = Date.now();
-      await recordChangesetWrite(rootPath, plan.id!);
-      const other = await writeActivityWarning(rootPath, folder, plan, { pid: process.pid + 1, now: at + 5_000 });
-      expect(other).toContain(`Another process (${process.pid}) staged into 'plan' 5 s ago`);
+      await runAsWriter("mcp:agent-1", () => recordChangesetWrite(rootPath, plan.id!));
+      const other = await writeActivityWarning(rootPath, folder, plan, { writer: "viewer", now: at + 5_000 });
+      expect(other).toContain("An agent's MCP session (agent-1) staged into 'plan' 5 s ago");
       expect(other).toContain("refused (never lost)");
-      expect(await writeActivityWarning(rootPath, folder, plan, { pid: process.pid + 1, now: at + RECENT_OTHER_WRITE_MS + 1_000 })).toBeUndefined();
+      // Another session previewing sees it too; the session itself doesn't.
+      expect(await writeActivityWarning(rootPath, folder, plan, { writer: "mcp:agent-2", now: at + 5_000 })).toContain("agent-1");
+      expect(await writeActivityWarning(rootPath, folder, plan, { writer: "mcp:agent-1", now: at + 5_000 })).toBeUndefined();
+      // Long enough ago, it is not evidence.
+      expect(await writeActivityWarning(rootPath, folder, plan, { writer: "viewer", now: at + RECENT_OTHER_WRITE_MS + 1_000 })).toBeUndefined();
 
       // A write holding the changeset's lock now: a warning; a landing's own hold is not a write.
+      await clearChangesetWrites(rootPath, plan.id!);
       const lock = new FileLock(folder);
       await lock.acquire();
       try {
@@ -110,6 +123,15 @@ describe("changeset_commit_preview on a changeset already landed (#1441)", () =>
       }
       await lock.acquire({ owner: { purpose: "landing" } });
       try {
+        expect(await writeActivityWarning(rootPath, folder, plan)).toBeUndefined();
+      } finally {
+        await lock.release();
+      }
+      // A lock a crashed writer left behind is stale, not a write in progress.
+      await lock.acquire();
+      try {
+        const old = new Date(Date.now() - 60_000);
+        await utimes(`${folder}.lock`, old, old);
         expect(await writeActivityWarning(rootPath, folder, plan)).toBeUndefined();
       } finally {
         await lock.release();

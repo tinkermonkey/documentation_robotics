@@ -28,6 +28,7 @@ import {
   changesetDeactivateHandler,
 } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { writeGoal } from "../../helpers/landing-writer.js";
+import { lastChangesetWrite } from "../../../src/core/changeset-write-activity.js";
 
 async function newProject(): Promise<string> {
   clearModelCache();
@@ -82,19 +83,33 @@ describe("landing a changeset while writes stage into it (#1437)", () => {
     try {
       const { model, manager, plan } = await activePlan(rootPath, "wire-tests");
 
-      // Writers going through getWriteTarget and MutationHandler, as dr add and model_add do,
-      // started before the landing and still writing while and after it lands.
-      const names = Array.from({ length: 16 }, (_, i) => `racing-${i}`);
-      const writes = Promise.allSettled(
-        names.map(async (name, i) => {
-          await new Promise((resolve) => setTimeout(resolve, i * 15));
-          await writeGoal(rootPath, name);
-          return name;
-        })
-      );
-      await new Promise((resolve) => setTimeout(resolve, 70));
+      // Writers going through getWriteTarget and MutationHandler, as dr add and model_add do. Not
+      // timed: the landing starts once a write has succeeded, and each writer goes on until it has
+      // written twice after the landing ended, so both outcomes happen whatever the machine's load.
+      let landingDone = false;
+      let firstWrite!: () => void;
+      const someWritten = new Promise<void>((resolve) => (firstWrite = resolve));
+      const outcomes: PromiseSettledResult<string>[] = [];
+      const writer = async (w: number) => {
+        let after = 0;
+        for (let i = 0; after < 2; i++) {
+          if (landingDone) after++;
+          const name = `racing-${w}-${i}`;
+          try {
+            await writeGoal(rootPath, name);
+            outcomes.push({ status: "fulfilled", value: name });
+            firstWrite();
+          } catch (error) {
+            outcomes.push({ status: "rejected", reason: error });
+          }
+        }
+      };
+      const writers = Promise.all([0, 1, 2].map(writer));
+      await someWritten;
       const result = await manager.commit(model, plan.id!, { validate: false });
-      const settled = await writes;
+      landingDone = true;
+      await writers;
+      const settled = outcomes;
 
       const succeeded = settled.flatMap((w) => (w.status === "fulfilled" ? [w.value] : []));
       const refused = settled.flatMap((w) => (w.status === "rejected" ? [w.reason] : []));
@@ -289,8 +304,11 @@ describe("landing a changeset while writes stage into it (#1437)", () => {
     const rootPath = await newProject();
     try {
       const { model, manager, plan } = await activePlan(rootPath);
+      expect(await lastChangesetWrite(rootPath, plan.id!)).not.toBeNull();
       await manager.commit(model, plan.id!, { validate: true });
       expect((await readLandedNote(rootPath))?.name).toBe("plan");
+      // A landed changeset has no last writer to warn about.
+      expect(await lastChangesetWrite(rootPath, plan.id!)).toBeNull();
       clearModelCache();
 
       // Element and relationship writes, single and batch, all refuse naming the changeset.
@@ -309,12 +327,17 @@ describe("landing a changeset while writes stage into it (#1437)", () => {
 
       // A new changeset takes writes again, and clears the note.
       await changesetCreateHandler({ name: "next", rootPath });
+      const next = (await manager.load("next"))!;
       expect(await readLandedNote(rootPath)).toBeNull();
       const staged = JSON.parse(
         text(await modelAddHandler({ layer: "motivation", type: "goal", name: "after", attributes: { priority: "low" }, rootPath }))
       );
       expect(staged.status).toBe("staged");
       expect(staged.changeset).toBe("next");
+      // Discarding forgets its last writer too.
+      expect(await lastChangesetWrite(rootPath, next.id!)).not.toBeNull();
+      await new StagingAreaManager(rootPath).discard(next.id!);
+      expect(await lastChangesetWrite(rootPath, next.id!)).toBeNull();
     } finally {
       clearModelCache();
       await rm(rootPath, { recursive: true, force: true });

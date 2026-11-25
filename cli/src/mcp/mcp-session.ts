@@ -4,6 +4,7 @@
  * session's initialize request; the tool dispatch (tool-registry.ts) runs each call in it.
  */
 
+import { randomUUID } from "node:crypto";
 import type { CheckoutRef } from "../core/checkout-types.js";
 import type { SessionEnvValues } from "../core/session-env.js";
 import { McpSessionRoot, type SessionCheckoutResolver } from "./project-root.js";
@@ -23,6 +24,11 @@ export interface McpSessionOptions {
 export class McpSession {
   readonly root: McpSessionRoot;
   readonly env: SessionEnvValues;
+  /**
+   * Who this session's writes are from (core/changeset-write-activity.ts): one central process
+   * serves every session and the viewer, so a process id can't tell them apart.
+   */
+  readonly writer = `mcp:${randomUUID().slice(0, 8)}`;
   private readonly resolver?: SessionCheckoutResolver;
 
   constructor(options: McpSessionOptions = {}) {

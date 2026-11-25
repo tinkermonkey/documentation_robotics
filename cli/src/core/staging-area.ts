@@ -36,6 +36,7 @@ import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest, ReconciledStamp } from "../types/index.js";
 import { reconciliationStamp } from "./reconciliation.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
+import { clearChangesetWrites } from "./changeset-write-activity.js";
 import { FileLock } from "../utils/file-lock.js";
 import type { BaseRead, ChangesetDrift } from "./changeset-base-index.js";
 import { Layer } from "./layer.js";
@@ -693,6 +694,8 @@ export class StagingAreaManager {
     }
     // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
     await this.storage.delete(id);
+    // Nor its last writer: nothing writes into it now.
+    await clearChangesetWrites(this.rootPath, id);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();
@@ -1587,6 +1590,8 @@ export class StagingAreaManager {
         // Step 10: Clean up backup directory after successful commit
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
         await this.cleanupBackup(backup);
+        // Its last writer is forgotten: a landed changeset takes no writes (#1437).
+        await clearChangesetWrites(this.rootPath, changeset.id!);
 
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);

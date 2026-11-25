@@ -162,8 +162,9 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   landing's relationship rows, and the changeset read as landed though its changes were not.
 - **Still writing? (#1437):** the landing summary (`changeset_commit_preview`, with `stillWriting`,
   and `changeset_commit`'s dialog), the `dr changeset commit` prompt and the viewer's changeset read
-  say when something writes into the changeset now, or another process staged into it in the last
-  30 seconds.
+  say when something writes into the changeset now, or another writer staged into it in the last 30
+  seconds: another MCP session (an agent's writes count when the person presses Apply, though one
+  process serves both), the viewer, or a `dr` command. The caller's own writes don't count.
 - **An already-landed changeset (#1441):** `changeset_commit_preview` (and `changeset_commit`) on a
   committed changeset answers `already-landed`, with when it landed, its files (named as the model
   names them, `application_function.yaml`) and whether git has them, instead of an error that read

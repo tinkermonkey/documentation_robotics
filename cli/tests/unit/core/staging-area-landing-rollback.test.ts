@@ -95,12 +95,19 @@ describe("a landing that rolls back", () => {
       expect(after.changes.length).toBe(plan.changes.length);
       expect(await readActiveMarker(rootPath)).toBe(plan.id!);
       expect(await readLandedNote(rootPath)).toBeNull();
+      // Writable: a write stages into it, not into the base model.
+      clearModelCache();
+      const staged = await modelAddHandler({ layer: "motivation", type: "goal", name: "later", attributes: { priority: "low" }, rootPath });
+      expect(JSON.parse((staged.content[0] as { text: string }).text)).toMatchObject({ status: "staged", changeset: "plan" });
+      const changes = (await manager.load("plan"))!.changes.length;
+      expect(changes).toBe(plan.changes.length + 1);
+      expect(Object.keys(await modelSnapshot(rootPath))).toEqual(Object.keys(before));
 
-      // And it lands after all.
+      // And it lands after all, as a plan still to land (not "already-landed").
       clearModelCache();
       const retry = await Model.load(rootPath, { lazyLoad: false });
       const landed = await new StagingAreaManager(rootPath, retry).commit(retry, plan.id!, { validate: false });
-      expect(landed.committed).toBe(plan.changes.length);
+      expect(landed.committed).toBe(changes);
       const final = await modelSnapshot(rootPath);
       expect(created(final).length).toBe(2);
       expect(Object.keys(final)).toContain("01_motivation/");
