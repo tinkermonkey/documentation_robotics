@@ -86,6 +86,7 @@ import { getCliVersion } from "../../utils/spec-version.js";
 import { ClaudeIntegrationManager } from "../../integrations/claude-manager.js";
 import { CopilotIntegrationManager } from "../../integrations/copilot-manager.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { relayoutModelFiles } from "../../core/model-relayout.js";
 import { isDebug, isVerbose } from "../../utils/globals.js";
 import { unfilledRequired, validationSummary, type UnfilledRequired } from "../../core/upgrade-validation.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
@@ -337,6 +338,15 @@ const upgradeInputSchema = {
         "(.claude/ from dr claude install, .github/ from dr copilot install; files edited in the project are replaced), " +
         "even when the model is already on this spec. Without apply, the answer's integrations section previews it. " +
         "Pass it only when the user approves."
+    ),
+  relayout: z
+    .boolean()
+    .optional()
+    .describe(
+      "Also lay out every model element file an earlier dr wrote (long strings folded at 80 columns) or prettier " +
+        "laid out, as this dr writes them, data unchanged: a step of its own, previewed, on a model already on this " +
+        "spec too. The preview's relayout counts those files when it is not passed. Commit it on its own, so later " +
+        "landings carry only their own changes."
     ),
   rootPath: z
     .string()
@@ -676,6 +686,7 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
     const { result, modelFiles, otherFiles } = await rehearseModelUpgrade(projectRoot, modelUpgradeOptions(action, force));
     const errors = result.validationErrors;
     return {
+      migration: migrationKindReport(scan, modelFiles, otherFiles),
       wouldWrite: {
         note: "From running the migration on a copy of documentation-robotics/. The project was not written.",
         modelFiles: { count: countFiles(modelFiles), ...cappedFiles(modelFiles) },
@@ -691,6 +702,71 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
   } catch (error) {
     return { wouldWrite: { error: `Could not rehearse the migration on a copy: ${getErrorMessage(error)}` } };
   }
+}
+
+/** How many files the relayout step names before counting the rest. */
+const RELAYOUT_FILES_SHOWN = 10;
+
+/**
+ * The model files not in dr's layout when the call did not ask to lay them out (#1439): their
+ * count, the first of them and the call that does it. Empty when there are none or it was asked.
+ */
+function relayoutReport(scan: UpgradeScan): { relayout?: Record<string, unknown> & { note: string } } {
+  if (scan.relayoutCheckError) {
+    return {
+      relayout: {
+        error: scan.relayoutCheckError,
+        note: "The model's files could not be read for the relayout check; the rest of the upgrade is unaffected.",
+      },
+    };
+  }
+  const pending = scan.relayout;
+  if (!pending || pending.files.length === 0) return {};
+  const planned = scan.actions.some((action) => action.type === "relayout");
+  const { items, rest } = capped(pending.files, RELAYOUT_FILES_SHOWN);
+  return {
+    relayout: {
+      count: pending.files.length,
+      of: pending.total,
+      files: items,
+      ...rest,
+      ...(pending.skipped.length > 0 ? { leftAlone: pending.skipped } : {}),
+      dataUnchanged: true,
+      note: planned
+        ? `The relayout step lays out these ${pending.files.length} file(s) as this dr writes them, data unchanged ` +
+          "as YAML reads it: each file is written only when its new text parses to the same data. Comments are " +
+          "dropped, and a value YAML reads as a number is written as that number (1.10 becomes 1.1). Commit them " +
+          "on their own, apart from any plan, so later landings carry only their own changes."
+        : `${pending.files.length} model file(s) are in an earlier dr's layout (long strings folded at 80 columns): ` +
+          "the next landing that writes to one lays it out anew, so its diff shows every line. project_upgrade with " +
+          "relayout: true (and apply: true, once the user approves) lays them all out now, data unchanged, to commit " +
+          "on its own, apart from any plan.",
+    },
+  };
+}
+
+/**
+ * What the migration changes in this model, from the rehearsal (#1435): manifest-only when it
+ * writes manifest.yaml and nothing else under documentation-robotics/, so the user can be told
+ * plainly that nothing in their model changes but the spec version; else model.
+ */
+function migrationKindReport(scan: UpgradeScan, modelFiles: FilesChanged, otherFiles: FilesChanged) {
+  const manifest = "documentation-robotics/model/manifest.yaml";
+  const manifestOnly =
+    modelFiles.added.length === 0 &&
+    modelFiles.removed.length === 0 &&
+    modelFiles.modified.every((file) => file === manifest) &&
+    countFiles(otherFiles) === 0;
+  const relayout = scan.actions.find((action) => action.type === "relayout");
+  return manifestOnly
+    ? {
+        kind: "manifest-only" as const,
+        note:
+          "Nothing in the model changes but spec_version in manifest.yaml: no element, relationship or attribute " +
+          "is renamed, rewritten, dropped or filled. Tell the user that plainly when asking to apply it." +
+          (relayout ? " The relayout step is separate: it lays out files an earlier dr wrote, data unchanged." : ""),
+      }
+    : { kind: "model" as const, note: "The migration changes model files: wouldWrite names them." };
 }
 
 /** The choices for files git tracks under .dr/, as the preview and an apply without a choice return them. */
@@ -1002,7 +1078,18 @@ function versions(scan: UpgradeScan) {
   return {
     cliVersion: getCliVersion(),
     cliSpecVersion: scan.bundledSpecVersion,
-    model: { specVersion: model?.specVersion ?? null, targetSpecVersion: model?.targetSpecVersion ?? null },
+    model: {
+      specVersion: model?.specVersion ?? null,
+      targetSpecVersion: model?.targetSpecVersion ?? null,
+      ...(model?.assumed
+        ? {
+            assumed: true,
+            note:
+              `manifest.yaml has no spec_version: read as ${model.specVersion}, as Model.load and project_status ` +
+              "read it. The upgrade stamps the version it migrates to.",
+          }
+        : {}),
+    },
     specReference: { installed: scan.installedSpecVersion },
   };
 }
@@ -1141,13 +1228,16 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
     }
     const projectRoot = await upgradeRoot(args.rootPath);
     const force = args.force === true;
-    const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force });
+    const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force, relayout: args.relayout === true });
+    const relayoutPending = relayoutReport(scan);
 
+    // A manifest with no spec_version is read as 0.6.0 (scan.model.assumed), so only a project
+    // with no model at all stops here
     if (scan.model.state !== "found") {
       throw new CLIError(
-        "The model's manifest has no spec version, so the upgrade can't tell which migrations it needs.",
+        "The project has no model to upgrade (no documentation-robotics/model/manifest.yaml).",
         ErrorCategory.USER,
-        ["Check spec_version in documentation-robotics/model/manifest.yaml"]
+        ["project_init creates one"]
       );
     }
 
@@ -1245,10 +1335,11 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         ...gitignore,
         ...prettierignore,
         ...legacyMarker,
+        ...relayoutPending,
         ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
         ...(outside.commitHooks && !args.modelOnly ? { commitHooks: outside.commitHooks } : {}),
         ...(warnings.length > 0 ? { warnings } : {}),
-        ...(pending.length > 0 || decisionOpen || markerPending
+        ...(pending.length > 0 || decisionOpen || markerPending || relayoutPending.relayout
           ? {
               next: [
                 ...(pending.length > 0
@@ -1263,6 +1354,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
                 ...(decisionOpen
                   ? ['git tracks files under .dr/: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.']
                   : []),
+                ...(relayoutPending.relayout ? [relayoutPending.relayout.note] : []),
               ].join(" "),
             }
           : {}),
@@ -1271,6 +1363,8 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 
     if (!args.apply) {
       const catalog = await previewCatalog(projectRoot, scan);
+      const rehearsal: Awaited<ReturnType<typeof rehearsalReport>> & { migration?: { kind: string } } =
+        await rehearsalReport(projectRoot, scan, force);
       const errors = [...new Set([...checkErrors, ...catalog.errors])];
       return jsonResult(
         {
@@ -1282,10 +1376,15 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...catalogReport(catalog.details, errors),
           ...dropRecordReport(await previewDropRecord(projectRoot, scan, catalog.details).catch(() => undefined), false),
           ...(await wouldOrphan(projectRoot, catalog.details)),
-          ...(await rehearsalReport(projectRoot, scan, force)),
+          ...rehearsal,
+          ...relayoutPending,
           ...(await outsideModelReport(projectRoot, scan)),
           ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
-          next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
+          next:
+            rehearsal.migration?.kind === "manifest-only"
+              ? "Nothing has changed. Tell the user the migration changes nothing in their model but its spec version, " +
+                "then call project_upgrade with apply: true when they approve."
+              : "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
         },
         { compact: true }
       );
@@ -1309,6 +1408,9 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
             if (action.type === "spec") {
               await installSpecReference(projectRoot, true);
               applied.push(actionSummary(action));
+            } else if (action.type === "relayout") {
+              const relayout = await relayoutModelFiles(projectRoot);
+              applied.push({ ...actionSummary(action), files: relayout.files.length });
             } else if (action.type === "model") {
               const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, force));
               modelResult = result;
@@ -1459,7 +1561,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines), the active-changeset marker left in its old place (legacyMarker: documentation-robotics/changesets/.active, which apply removes, making the changeset it names active in .dr/ only when that is still staged; even when the model is current), the per-project integration files a project still has from dr claude install or dr copilot install (integrations: for each, whether an older dr installed it and what its upgrade would change, and for .claude/ which installed files the dr plugin also carries, inPlugin, and which only the files carry, notInPlugin; upgradeIntegrations: true with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is current) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines), the active-changeset marker left in its old place (legacyMarker: documentation-robotics/changesets/.active, which apply removes, making the changeset it names active in .dr/ only when that is still staged; even when the model is current), the per-project integration files a project still has from dr claude install or dr copilot install (integrations: for each, whether an older dr installed it and what its upgrade would change, and for .claude/ which installed files the dr plugin also carries, inPlugin, and which only the files carry, notInPlugin; upgradeIntegrations: true with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is current) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. migration.kind is manifest-only when the migration writes nothing in the model but spec_version in the manifest: tell the user so. relayout: true also lays out the element files an earlier dr wrote, data unchanged, as a step of its own; without it the result only counts them (relayout). Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

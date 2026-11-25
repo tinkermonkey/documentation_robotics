@@ -545,7 +545,7 @@ export class GoldenCopyCacheManager {
         {
           name: this.config.modelOptions.name || "Golden Copy Test Model",
           version: this.config.modelOptions.version || "0.1.0",
-          specVersion: this.config.modelOptions.specVersion || "0.7.1",
+          specVersion: this.config.modelOptions.specVersion || getCliBundledSpecVersion(),
           description:
             this.config.modelOptions.description || "Shared golden copy for test initialization",
           author: this.config.modelOptions.author || "Test Suite",

@@ -19,8 +19,18 @@ export interface Migration {
   description: string;
   /** True when the step runs the catalog migration (element type renames, relationship rewrites) */
   rewritesCatalog?: boolean;
+  /**
+   * True when the step only stamps the version: it writes nothing in the model but spec_version in
+   * manifest.yaml (an additive spec change). A path of such steps is a manifest-only migration (#1435).
+   */
+  stampsOnly?: boolean;
   apply: (model: Model) => Promise<MigrationResult>;
 }
+
+/**
+ * What a migration changes in a model: only the spec version in manifest.yaml, or model files too.
+ */
+export type MigrationKind = "manifest-only" | "model";
 
 /**
  * Result of applying a migration
@@ -51,6 +61,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.5.0",
       toVersion: "0.6.0",
+      stampsOnly: true,
       description: "Relationship Taxonomy (Spec v0.6.0)",
       apply: async () => {
         // This migration is opt-in - the new relationship taxonomy
@@ -67,6 +78,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.6.0",
       toVersion: "0.7.0",
+      stampsOnly: true,
       description: "Layer Schema Relationship Metadata (Spec v0.7.0)",
       apply: async () => {
         // This migration updates layer schemas with relationship metadata sections
@@ -87,6 +99,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.7.0",
       toVersion: "0.7.1",
+      stampsOnly: true,
       description: "Source Code Reference Infrastructure (Spec v0.7.1)",
       apply: async () => {
         // This migration adds source code reference infrastructure
@@ -105,6 +118,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.7.1",
       toVersion: "0.8.0",
+      stampsOnly: true,
       description: "JSON Schema-Only Spec Architecture (Spec v0.8.0)",
       apply: async () => {
         // Spec architecture refactored to JSON Schema-only model:
@@ -124,6 +138,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.8.0",
       toVersion: "0.8.1",
+      stampsOnly: true,
       description: "Expanded Relationship Coverage and Node Improvements (Spec v0.8.1)",
       apply: async () => {
         // Spec enhancements only - no model data format changes:
@@ -143,6 +158,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.8.1",
       toVersion: "0.8.2",
+      stampsOnly: true,
       description: "UUID/Path identifier separation (Spec v0.8.2)",
       apply: async () => {
         // The path field is now required on all spec nodes (spec-node.schema.json).
@@ -162,6 +178,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.8.2",
       toVersion: "0.8.3",
+      stampsOnly: true,
       description: "Inter-layer Relationship Schemas and APM Node Types (Spec v0.8.3)",
       apply: async () => {
         // Major expansion of inter-layer relationship coverage and APM layer:
@@ -181,6 +198,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.8.3",
       toVersion: "0.8.4",
+      stampsOnly: true,
       description: "Analyzer Infrastructure (Spec v0.8.4)",
       apply: async () => {
         // Introduces spec/analyzers/ with codebase-memory (CBM) mapping:
@@ -409,6 +427,7 @@ export class MigrationRegistry {
     this.migrations.push({
       fromVersion: "0.14.0",
       toVersion: "0.15.0",
+      stampsOnly: true,
       description: "Design tokens, new softwareType and FILE_STORE values, and additive links (Spec v0.15.0)",
       apply: async () => {
         // Additive only: one new node type (ux.designtoken), thirteen new relationship types, new
@@ -423,6 +442,18 @@ export class MigrationRegistry {
         };
       },
     });
+  }
+
+  /**
+   * What migrating a model from one version to another changes: "manifest-only" when every step
+   * on the path only stamps the version, so nothing in the model changes but spec_version in
+   * manifest.yaml; "model" when a step may change model files (the upgrade's preview names them).
+   * Null when no migration leads there (#1435).
+   */
+  migrationKind(fromVersion: string, toVersion?: string): MigrationKind | null {
+    const path = this.getMigrationPath(fromVersion, toVersion);
+    if (path.length === 0 || path[path.length - 1].toVersion !== (toVersion || this.getLatestVersion())) return null;
+    return path.every((step) => step.stampsOnly) ? "manifest-only" : "model";
   }
 
   /**
@@ -529,6 +560,7 @@ export class MigrationRegistry {
           // Only update model's spec version if migration succeeded (no error field)
           if (!result.error) {
             model.manifest.specVersion = migration.toVersion;
+            model.manifest.specVersionAssumed = false;
           } else {
             // If migration has errors, throw to prevent partial success state
             throw new Error(result.error);

@@ -78,7 +78,15 @@ Any diff means a generated file was stale. List the files.
 npm run build:spec:validate
 npm run check:skill-relationships
 (cd cli && bun scripts/generate-relationship-migration.ts --check)
+(cd cli && bun scripts/generate-spec-catalog-history.ts --check)
+(cd cli && bun scripts/generate-spec-catalog-history.ts --release-check)
 ```
+
+`--release-check` fails when the catalog in `spec/dist` differs from the one tagged
+`spec-v<spec/VERSION>`. That means the spec changed since it was released under that version, so
+the release needs a spec version bump. Without one, a model stamped with that version by an
+earlier CLI would take the new types and relationships unchecked (#1411). It passes when the
+version has no tag yet, which is the case for a new spec version.
 
 The migration check prints many `warning:` lines (rules superseded by later records, triples
 still in the catalog). These are informational. Only its exit code and its last line
@@ -87,6 +95,7 @@ still in the catalog). These are informational. Only its exit code and its last 
 Also check on a spec bump:
 
 - `cli/src/core/migration-registry.ts` has an entry from the previous spec version to the new one.
+  If it only stamps the version, it is marked `stampsOnly: true` (#1435).
 - `cli/tests/integration/upgrade-command.test.ts` expects the new version.
 
 ### 5. Tests

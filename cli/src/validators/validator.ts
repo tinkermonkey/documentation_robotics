@@ -8,6 +8,8 @@ import { NamingValidator } from "./naming-validator.js";
 import { ReferenceValidator } from "./reference-validator.js";
 import { SemanticValidator } from "./semantic-validator.js";
 import { RelationshipValidator } from "./relationship-schema-validator.js";
+import { typeNotInDeclaredSpec } from "../core/declared-spec.js";
+import { isValidNodeType, normalizeNodeType } from "../generated/node-types.js";
 import type { Model } from "../core/model.js";
 import { startActiveSpan } from "../telemetry/index.js";
 
@@ -50,6 +52,28 @@ export class Validator {
             result.merge(schemaResult, `[Schema/${layer.name}]`);
           })
         );
+        // A type this CLI's catalog has but the spec the model declares does not (#1411). A type
+        // the catalog doesn't know is the schema validator's to report; a legacy short id
+        // (business.service) is checked as the type it names.
+        for (const layer of model.layers.values()) {
+          const declared = new ValidationResult();
+          for (const element of layer.listElements()) {
+            if (!isValidNodeType(layer.name, element.type)) continue;
+            const specNodeId = `${layer.name}.${normalizeNodeType(layer.name, element.type)}`;
+            const gap = typeNotInDeclaredSpec(model.manifest, specNodeId);
+            if (!gap) continue;
+            const issue = {
+              layer: layer.name,
+              elementId: element.path || element.id,
+              message: `Element '${element.path || element.id}': ${gap.message}`,
+              category: "schema" as const,
+            };
+            // A manifest with no spec_version declares nothing: warn
+            if (gap.assumed) declared.addWarning(issue);
+            else declared.addError(issue);
+          }
+          result.merge(declared, `[Schema/${layer.name}]`);
+        }
         stageSpan.setAttribute("validation.error_count", result.errors.length);
       });
 

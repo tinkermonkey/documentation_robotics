@@ -10,12 +10,21 @@
 
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
-import type { Relationship } from "../core/relationships.js";
+import { relationshipEndLayer, type Relationship } from "../core/relationships.js";
+import { relationshipNotInDeclaredSpec } from "../core/declared-spec.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import { readFile } from "../utils/file-io.js";
 import { existsSync } from "fs";
 import { startActiveSpan } from "../telemetry/index.js";
+
+/** What validating one relationship found; warning marks one reported as a warning, not an error. */
+interface RelationshipIssue {
+  layer: string;
+  message: string;
+  elementId?: string;
+  warning?: true;
+}
 
 interface ManifestDistFile {
   layers: Array<{ id: string }>;
@@ -181,8 +190,9 @@ export class RelationshipValidator {
           );
 
           if (relErrors.length > 0) {
-            for (const error of relErrors) {
-              result.addError(error);
+            for (const { warning, ...issue } of relErrors) {
+              if (warning) result.addWarning(issue);
+              else result.addError(issue);
             }
           }
         }
@@ -207,8 +217,8 @@ export class RelationshipValidator {
     model: Model,
     relationshipsBySource: Map<string, Relationship[]>,
     relationshipsByTarget: Map<string, Relationship[]>
-  ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
-    const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
+  ): Promise<RelationshipIssue[]> {
+    const errors: RelationshipIssue[] = [];
 
     // Variables to cache found elements and avoid redundant lookups
     let sourceElement: any = null;
@@ -217,8 +227,9 @@ export class RelationshipValidator {
 
     // Check if relationship crosses layer boundary when --layers filter is active
     if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
-      const sourceLayer = this.extractLayerFromElementId(relationship.source);
-      const targetLayer = this.extractLayerFromElementId(relationship.target);
+      // An end named by UUID has no layer in its id: the relationship row records it (#1259)
+      const sourceLayer = relationshipEndLayer(relationship, "source");
+      const targetLayer = relationshipEndLayer(relationship, "target");
 
       // If we can parse layers and both endpoints are within the filter, proceed with full validation.
       // If one or both endpoints are outside the filter, only skip if both endpoints are
@@ -339,6 +350,19 @@ export class RelationshipValidator {
         message: `Failed to load schema for relationship: ${relationship.source} --[${relationship.predicate}]--> ${relationship.target} (${schemaKey})`,
       });
       return errors;
+    }
+
+    // In this CLI's catalog, but maybe not in the spec the model declares (#1411)
+    const notDeclared = relationshipNotInDeclaredSpec(model.manifest, sourceSpecId, relationship.predicate, targetSpecId);
+    if (notDeclared) {
+      errors.push({
+        layer: relationship.layer,
+        elementId: relationship.source,
+        message: `${relationship.source} --[${relationship.predicate}]--> ${relationship.target}: ${notDeclared.message}`,
+        // A manifest with no spec_version declares nothing: warn, and go on to the cardinality check
+        ...(notDeclared.assumed ? { warning: true } : {}),
+      });
+      if (!notDeclared.assumed) return errors;
     }
 
     // Validate cardinality constraints
@@ -562,14 +586,6 @@ export class RelationshipValidator {
       }
     }
     return null;
-  }
-
-  private extractLayerFromElementId(elementId: string): string | null {
-    const parts = elementId.split(".");
-    if (parts.length < 2) {
-      return null;
-    }
-    return parts[0];
   }
 
 }

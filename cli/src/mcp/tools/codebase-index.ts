@@ -30,7 +30,7 @@ import type { Model } from "../../core/model.js";
 import { cancelIndexJobFill, fillRunning, readIndexJob, startIndexJob, type IndexJob } from "../../analyzers/index-job.js";
 import { fillProgress } from "../../analyzers/classifier/status.js";
 import { readSession, writeSession } from "../../analyzers/session-state.js";
-import type { IndexFreshness } from "../../analyzers/active-analyzer.js";
+import { currentGitHead, type IndexFreshness } from "../../analyzers/active-analyzer.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
 import {
@@ -440,7 +440,11 @@ export async function indexFirst(
     const { freshness, judgement } = before;
     if (before.analyzer && freshness.indexed && judgement && judgement.state !== "stale") return { assessment: before, indexedFirst: null };
     why = !before.analyzer || !freshness.indexed || !judgement ? "the code was not indexed" : `the index was stale: ${judgement.reason ?? "by the freshness rule"}`;
-    const { analyzer } = await selectAnalyzer(projectRoot, before.analyzer ?? undefined, deps);
+    // A run that can't succeed is never started: say why the index can't be built, and what to do.
+    if ((deps.gitHead ?? currentGitHead)(codebaseRoot) === null) throw noGitHeadError(why, codebaseRoot, options.tool);
+    const { analyzer } = await selectAnalyzer(projectRoot, before.analyzer ?? undefined, deps).catch((error: unknown) => {
+      throw cannotIndexFirst(why, options.tool, error);
+    });
     // Not forced: the run's own check re-indexes a stale index (another commit, another analyzer
     // version, no code) and skips one another call has just made fresh.
     const run = await launchIndexRun(projectRoot, codebaseRoot, analyzer, deps, {});
@@ -475,6 +479,29 @@ export async function indexFirst(
 }
 
 const capitalized = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/**
+ * indexFirst's refusal when the code has no git HEAD (not a git repository, or no commit yet): an
+ * index records the commit it was taken at and is judged by it, so an index run there fails ("Failed
+ * to get git HEAD"). No run is started and nothing is written.
+ */
+function noGitHeadError(why: string, codebaseRoot: string, tool: string): CLIError {
+  return new CLIError(
+    `${capitalized(why)}, and it can't be indexed here: ${codebaseRoot} has no git HEAD (it isn't in a git repository, or has no commit yet). ` +
+      "An index records the commit it was taken at, so the code must be committed in git",
+    ErrorCategory.USER,
+    [
+      `Commit the code in a git repository (git init, then git commit), or point the project at the code's repository with --codebase-path, then call ${tool} again`,
+    ]
+  );
+}
+
+/** An analyzer selection failure (none installed, or it won't start), said as indexFirst's. */
+function cannotIndexFirst(why: string, tool: string, error: unknown): unknown {
+  if (!(error instanceof CLIError)) return error;
+  const message = `${capitalized(why)}, and ${tool} couldn't index it first: ${error.message}`;
+  return new CLIError(message, error.exitCode, error.suggestions, error.context);
+}
 
 /**
  * The crossRepo items as configured targets: each an existing directory other than this codebase,
