@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-25T02:07:39.997Z
+# Last updated: 2026-11-25T10:08:49.655Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -69079,4 +69079,22 @@
   target: application.applicationcomponent.central-mcp-endpoint
   predicate: uses
   layer: application
+  category: structural
+- source: api.operation.post-mcp
+  target: application.applicationfunction.central-mcp-endpoint-handle
+  predicate: realizes
+  layer: api
+  targetLayer: application
+  category: structural
+- source: api.operation.get-mcp
+  target: application.applicationfunction.central-mcp-endpoint-handle
+  predicate: realizes
+  layer: api
+  targetLayer: application
+  category: structural
+- source: api.operation.delete-mcp
+  target: application.applicationfunction.central-mcp-endpoint-handle
+  predicate: realizes
+  layer: api
+  targetLayer: application
   category: structural
