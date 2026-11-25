@@ -20,7 +20,7 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelDeleteHandler } from "../../../src/mcp/tools/model-delete.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
-import { createCodebaseExtractHandler, isExtractionChangeset } from "../../../src/mcp/tools/codebase-extract.js";
+import { codebaseExtractTool, createCodebaseExtractHandler, isExtractionChangeset } from "../../../src/mcp/tools/codebase-extract.js";
 import { extractionOrigin } from "../../../src/core/reconciliation.js";
 import { createCodebaseIndexHandler } from "../../../src/mcp/tools/codebase-index.js";
 import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
@@ -46,7 +46,7 @@ import { decisionKey, describeDocstring, extractedElementId, modelAddName, needs
 import { TEST_PATH, namedRoutePath, routesCalledIn } from "../../../src/analyzers/cards/routes.js";
 import { changesetDiscardHandler, changesetUnstageHandler } from "../../../src/mcp/tools/changeset-editing.js";
 import { generateElementId } from "../../../src/utils/id-generator.js";
-import { registeredToolNames } from "../../../src/mcp/tool-registry.js";
+import { registeredInputSchema, registeredToolNames } from "../../../src/mcp/tool-registry.js";
 import { drMcpAllowedTools } from "../../../src/coding-agents/drbot-mcp.js";
 import { changesetOnlyRefusal } from "../../../src/mcp/changeset-only.js";
 import { loadModel } from "../../../src/mcp/tools/shared.js";
@@ -200,6 +200,42 @@ const INFERRED_TEST = `${TEST_SKETCH}::tests::data-model.objectschema.owner`;
 // ---------------------------------------------------------------------------
 
 describe("codebase_extract", () => {
+  it("accepts every list a shortened list's hint names, and reads a run's contradicted gaps by it", async () => {
+    // The hints of these four named a list the schema refused
+    const schema = registeredInputSchema("codebase_extract", codebaseExtractTool.inputSchema);
+    for (const list of ["contradictedGaps", "tier1NotElementCards", "retiredDecisions", "rules"]) {
+      expect({ list, accepted: schema.safeParse({ list }).success }).toEqual({ list, accepted: true });
+    }
+
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    // The handler, as extraction stages it, in the base model with an accepted gap for the
+    // operation that realizes it: the code then contradicts the gap
+    const first = ok(await handler({ rootPath }));
+    const record = (await changesetOf(first.changeset.id)).changes.find((c) => c.elementId === HANDLER)!.after as Record<string, unknown>;
+    ok(await changesetDiscardHandler({ changeset: first.changeset.id, confirm: true, rootPath }));
+    const gap = {
+      direction: "incoming",
+      predicate: "realizes",
+      other_spec_node_id: "api.operation",
+      reason: "test",
+      decided_by: "test",
+      decided_at: "2026-11-25T00:00:00.000Z",
+      changeset: "test",
+    };
+    await writeFile(
+      join(rootPath, "documentation-robotics/model/05_application/application_function.yaml"),
+      JSON.stringify({ [HANDLER]: { ...record, accepted_gaps: [gap] } })
+    );
+    clearModelCache();
+
+    const run = ok(await handler({ rootPath }));
+    expect(run.acceptedGaps.contradicted.total).toBe(1);
+    const listed = ok(await handler({ rootPath, list: "contradictedGaps" }));
+    expect(listed.items).toEqual(run.acceptedGaps.contradicted.items);
+  });
+
   it("does not stage a relationship type the spec the model declares lacks, and says so (#1411)", async () => {
     await indexed();
     // A test case tests an object schema only from spec 0.12.0

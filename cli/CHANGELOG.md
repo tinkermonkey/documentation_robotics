@@ -180,6 +180,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract`'s shortened lists can all be read in full.** `acceptedGaps.contradicted`,
+  `unchanged.tier1NotElementCards`, decision records' `retired` and `rules.decided` named a
+  `list: "contradictedGaps"`, `"tier1NotElementCards"`, `"retiredDecisions"` or `"rules"` call that
+  the tool's schema refused. `list` now takes all four, and a list's hint can only name a list
+  `list` accepts.
 - **An empty or unreadable index never reads as fresh (#1345):** a codebase-memory-mcp answer
   without node and edge counts used to be recorded as 0 nodes with a warning in the log, and
   `codebase_index` then reported the index `done` and `fresh`, so `codebase_extract` staged

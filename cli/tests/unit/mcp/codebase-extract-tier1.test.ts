@@ -545,6 +545,9 @@ describe("codebase_extract with Tier 1 in hide mode (the not-element band alone 
     expect(r.tier1.thresholds).toMatchObject({ fit: "in-sample", heldOutBands: ["not-element"] });
     expect(r.unchanged.tier1NotElement).toBe(1);
     expect(r.unchanged.tier1NotElementCards).toEqual({ total: 1, returned: 1, items: [{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }] });
+    // The list its hint names reads the hidden cards from the run's record
+    const listed = ok(await createCodebaseExtractHandler(deps)({ rootPath, list: "tier1NotElementCards" }));
+    expect(listed.items).toEqual([{ symbol: "Helpers", file: HELPERS_FILE, p: 0.9 }]);
     // OwnerService is left as an accept-band suggestion, Helpers is hidden, the escalate card stays.
     expect(r.undecided.items.map((c: any) => c.symbol)).toEqual(["OwnerService", "Helpers.format"]);
     expect(r.undecided.items[0].tier1).toMatchObject({ band: "accept" });
