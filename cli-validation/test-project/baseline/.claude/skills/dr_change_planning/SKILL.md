@@ -86,6 +86,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    none, stage one, or ask the human what the change is for.
 2. **Orient.** `model_search` / `model_show` / `model_trace` for the elements the change touches.
    Inside a changeset these read the plan as it stands (each result carries a change status).
+   `model_search` with `excludeLayers: ["testing"]` leaves test sketches out, and with
+   `fields: ["name", "description"]` finds words in descriptions; `model_show` with `ids: [...]`
+   reads several elements in one call.
    `spec_type` for a type you will add: its required attributes, enums, and the relationships the
    catalog allows to and from it. Within reason, every connection the spec models for a type is
    expected, though not every one will exist: treat the catalog's list as the checklist for each
@@ -119,7 +122,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
      large model. Where `existingCount` is above 0, link an existing element; otherwise decide
      whether the change needs a new one.
    - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
-   - Read the plan with `changeset_show` `detail: "summary"`, not the full snapshots.
+   - Read the plan with `changeset_show`: one line per change by default, narrowed with `layers`,
+     `types` or `operations` and paged with `limit` and `offset`; not `detail: "full"`, which
+     carries every snapshot.
 
    Read the brief's gaps:
    - `peer-pattern`: most elements like this one have a connection it lacks.

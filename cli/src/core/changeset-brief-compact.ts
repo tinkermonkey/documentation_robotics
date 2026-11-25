@@ -18,16 +18,24 @@
  */
 
 import { getAllLayerIds } from "../generated/layer-registry.js";
+import { elementFilter, unknownFilterNote } from "./element-filter.js";
+import { nextPageCall } from "./paging.js";
 import type { BriefDelta } from "./changeset-brief-delta.js";
 import type { BriefAcceptedGap, BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./changeset-analysis.js";
 
 /**
- * Sections available through `sections`: each full-brief section, and `changes`, the build view of
- * every changed element. Naming sections returns only those, with a small header (revision, the
- * changeset's id, name and status, summary counts).
+ * Sections available through `sections`: each full-brief section, `changes` (the build view of
+ * every changed element), and every other top-level block of the compact brief (`summary`,
+ * `byLayer`, `reach`, `changesByType`, `neighborFiles`), so a block read in the default brief can be
+ * asked for by its name (#1281). Naming sections returns only those, with a small header (revision,
+ * the changeset's id, name and status, summary counts).
  */
 export const BRIEF_SECTIONS = [
+  "summary",
+  "byLayer",
+  "reach",
   "changes",
+  "changesByType",
   "changeset",
   "drift",
   "layers",
@@ -38,6 +46,7 @@ export const BRIEF_SECTIONS = [
   "unwired",
   "intent",
   "codeTouched",
+  "neighborFiles",
   "feedback",
   "delta",
 ] as const;
@@ -93,9 +102,14 @@ export interface BuildChange {
   connections: string[];
 }
 
-/** Narrows `sections` output to some elements: those in these layers, or with these ids. */
+/**
+ * Narrows `sections` output to some elements: those with these ids, or those in these layers and of
+ * these types (`layers` and `types` narrow together; either alone narrows by itself).
+ */
 export interface SectionFilter {
   layers?: string[];
+  /** Element types, as `applicationservice` or `application.applicationservice`. */
+  types?: string[];
   ids?: string[];
   /**
    * The compact `layers` section lists only connections whose other end is in these layers and counts
@@ -135,8 +149,9 @@ export interface CompactChange {
   origin?: string;
   /**
    * `predicate → id` for a relationship from this element, `predicate ← id` for one into it from an
-   * element the changeset does not change (one between two changed elements is listed once, on its
-   * source). `(deleted)` marks a relationship the change removes, `(base)` one the base already has.
+   * element the changeset does not change, or from a changed element the answer leaves out (a filter
+   * or ids that do not keep it). One between two changed elements the answer shows is listed once, on
+   * its source. `(deleted)` marks a relationship the change removes, `(base)` one the base already has.
    */
   connections: string[];
 }
@@ -476,6 +491,21 @@ function compactDrift(drift: BriefDrift): CompactDrift {
   };
 }
 
+/**
+ * What the compact drift leaves out: it counts every base change but lists only the elements changed
+ * and removed (cut where describeDrift cut them). Undefined when it lists everything there is.
+ */
+export function driftListsNote(drift: BriefDrift): string | undefined {
+  const base = drift.baseChanges;
+  if (!base) return undefined;
+  const unlisted = base.counts.elementsAdded + base.counts.relationshipsAdded + base.counts.relationshipsRemoved;
+  if (unlisted === 0 && !base.truncated) return undefined;
+  return (
+    "The drift counts every base change (baseChanges.counts) and lists only some of them here: " +
+    'changeset_brief with sections: ["drift"] lists them all, a page at a time.'
+  );
+}
+
 /** The delta's lists that page, by the name `page.totals` and `delta.counts` give them. */
 export function deltaLists(delta: BriefDelta): Record<string, unknown[]> {
   return {
@@ -488,6 +518,8 @@ export function deltaLists(delta: BriefDelta): Record<string, unknown[]> {
     "acceptedGaps.reopened": delta.acceptedGaps.reopened,
     "intent.newlyTraced": delta.intent.newlyTraced,
     "intent.newlyUntraced": delta.intent.newlyUntraced,
+    // What was unstaged since: up to MAX_UNSTAGED_TOMBSTONES, paged like the rest (an unstage's recovery call reads it).
+    unstaged: delta.unstaged,
   };
 }
 
@@ -517,7 +549,7 @@ export function compactDelta(delta: BriefDelta, options: { limit?: number; offse
       added: capped(delta.relationships.added, "relationships.added").map(rel),
       removed: capped(delta.relationships.removed, "relationships.removed").map(rel),
     },
-    unstaged: delta.unstaged.map(
+    unstaged: capped(delta.unstaged, "unstaged").map(
       (u) =>
         `#${u.sequence} ${u.operation} ${u.source ? rel({ source: u.source, predicate: u.predicate ?? "?", target: u.target ?? "?" }) : (u.elementId ?? "")} (unstaged at ${u.removedAt})`
     ),
@@ -542,8 +574,16 @@ export function compactDelta(delta: BriefDelta, options: { limit?: number; offse
   return out;
 }
 
-/** Each changed element in the compact form, and the touched files (changed ones counted, neighbour-only ones apart). */
-function compactChanges(brief: ChangesetBrief): {
+/**
+ * Each changed element in the compact form, and the touched files (changed ones counted, neighbour-only
+ * ones apart). `shown` says which changed elements the answer shows: a relationship into an element
+ * from a changed one is listed on its source only when the answer shows that source, and on the
+ * element itself otherwise (#1258), so no staged relationship is out of sight.
+ */
+function compactChanges(
+  brief: ChangesetBrief,
+  shown: (id: string) => boolean = () => true
+): {
   changes: CompactChange[];
   build: BuildChange[];
   files: Map<string, number>;
@@ -572,7 +612,7 @@ function compactChanges(brief: ChangesetBrief): {
   for (const c of brief.layers.flatMap((l) => l.changes)) {
     const connections: string[] = [];
     for (const n of c.connections) {
-      if (n.direction === "in" && changedIds.has(n.other)) continue; // listed on its source
+      if (n.direction === "in" && changedIds.has(n.other) && shown(n.other)) continue; // listed on its source
       const mark = n.status === "deleted" ? " (deleted)" : n.status === "unchanged" ? " (base)" : "";
       connections.push(n.direction === "out" ? `${n.predicate} → ${n.other}${mark}` : `${n.predicate} ← ${n.other}${mark}`);
     }
@@ -672,6 +712,7 @@ export function compactBrief(
         : "Each changed element is listed with a short description, its files and its connections; attributes are in the full brief. ") +
     (brief.gaps.length > limit ? 'Gaps that say the same thing share a line, every gap counted (sections: ["gaps"] lists each, a page at a time). ' : "") +
     (intent.more ? "intent.more says which intent lists are not whole. " : "") +
+    (brief.changeset.drift && driftListsNote(brief.changeset.drift) ? `${driftListsNote(brief.changeset.drift)} ` : "") +
     `Pass ${sectionNames}, or detail: "full" for the whole brief.`;
 
   const out: CompactBrief = {
@@ -795,9 +836,23 @@ export interface SectionsBrief {
   detail: "compact" | "full";
   revision: number;
   revisionToken: string;
-  /** The changeset's id, name and status; its description and drift with the `changeset` section. */
-  changeset: { id: string; name: string; status: string; description?: string; drift?: BriefDrift };
+  /**
+   * The changeset's id, name and status; its description and drift with the `changeset` section (the
+   * drift only when the `drift` section is not asked for: it is named once, #1373).
+   */
+  changeset: { id: string; name: string; status: string; description?: string; drift?: BriefDrift | CompactDrift };
   summary: ChangesetBrief["summary"];
+  /** With `summary` or `byLayer`: changed elements per layer, in layer order (the filter's, when one is given). */
+  byLayer?: CompactBrief["byLayer"];
+  reach?: ChangesetBrief["reach"];
+  changesByType?: ChangesByType[];
+  /** Files that hold only existing elements next to the change. */
+  neighborFiles?: string[];
+  /**
+   * Elements `ids` names that the changeset does not change, each as a card (its connections as
+   * the plan leaves them), so the elements a plan links to read in the same call (#1395).
+   */
+  unchanged?: unknown[];
   /** The sections returned, in the order asked. */
   sections: BriefSection[];
   /** The filter applied to the element sections, when one was given. */
@@ -843,10 +898,20 @@ export interface SectionsOptions {
   maxConnections?: number;
   /** The intent section also lists the traced elements, each with what it traces to, paged like the others (default: counted). */
   traced?: boolean;
+  /**
+   * The drift's base-change lists are whole (the caller set no driftLimit or driftOffset): the
+   * `drift` section pages them with the answer's other lists.
+   */
+  driftWhole?: boolean;
   /** Bytes of a value as the caller serialises it (default: indented JSON, the largest it can be). */
   measure?: (value: unknown) => number;
   /** The caller's other arguments (changeset, filters, since), repeated in the next call `more` names. */
   callArgs?: Record<string, unknown>;
+  /**
+   * Cards for the ids the filter names that the changeset does not change: `cards` for those the
+   * projected model has, `missing` for those it does not. Without it they are only named.
+   */
+  cardsFor?: (ids: string[]) => { cards: unknown[]; missing: string[] };
 }
 
 /** One list of a compact answer: its name in `page.totals`, how long it is, and its section's summary of the whole. */
@@ -963,12 +1028,16 @@ function unwiredByType(elements: NonNullable<ChangesetBrief["unwired"]>["element
  */
 export function briefSections(brief: ChangesetBrief, sections: readonly BriefSection[], options: SectionsOptions = {}): SectionsBrief {
   const names = [...new Set(sections)];
-  const filter = options.filter && (options.filter.layers?.length || options.filter.ids?.length) ? options.filter : undefined;
-  const ids = filter?.ids ? new Set(filter.ids) : undefined;
-  const layers = filter?.layers ? new Set(filter.layers) : undefined;
+  const given = options.filter;
+  const filter = given && (given.layers?.length || given.types?.length || given.ids?.length) ? given : undefined;
+  const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
+  // Layers and types narrow together; ids keep an element by themselves.
+  const byKind = filter && (filter.layers?.length || filter.types?.length)
+    ? elementFilter({ layers: filter.layers, types: filter.types })
+    : undefined;
   const keep = (id: string): boolean => {
     if (!filter) return true;
-    return (ids?.has(id) ?? false) || (layers?.has(id.split(".")[0]) ?? false);
+    return (ids?.has(id) ?? false) || (byKind?.keeps(id) ?? false);
   };
   const full = !!options.full;
   const out: SectionsBrief = {
@@ -978,16 +1047,25 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
     changeset: headerOf(brief),
     summary: brief.summary,
     sections: names,
-    ...(filter ? { filter: { ...(filter.layers ? { layers: filter.layers } : {}), ...(filter.ids ? { ids: filter.ids } : {}) } } : {}),
+    ...(filter
+      ? {
+          filter: {
+            ...(filter.layers?.length ? { layers: filter.layers } : {}),
+            ...(filter.types?.length ? { types: filter.types } : {}),
+            ...(filter.ids?.length ? { ids: filter.ids } : {}),
+          },
+        }
+      : {}),
     more: "",
   };
   const notes: string[] = [];
-  // A layer name that is not one keeps nothing: say so, or an empty answer reads as "no changes there".
-  const knownLayers = new Set(getAllLayerIds());
-  const unknownLayers = [...(options.filter?.layers ?? []), ...(options.filter?.otherLayers ?? [])].filter((l) => !knownLayers.has(l));
-  if (unknownLayers.length > 0) {
-    notes.push(`Not a layer: ${[...new Set(unknownLayers)].join(", ")} (it keeps nothing). The layers are ${[...knownLayers].join(", ")}.`);
-  }
+  /** Parts of the answer that are cut outside the paged lists (each named in a note): the answer is then never "whole". */
+  const cutApart: string[] = [];
+  // A layer or type that is not one keeps nothing: say so, or an empty answer reads as "no changes there".
+  const unknownNote = unknownFilterNote(
+    elementFilter({ layers: [...(given?.layers ?? []), ...(given?.otherLayers ?? [])], types: given?.types })
+  );
+  if (unknownNote) notes.push(unknownNote);
   const intent: ChangesetBrief["intent"] = filter
     ? {
         traced: brief.intent.traced.filter((t) => keep(t.element)),
@@ -1018,11 +1096,18 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
     switch (name) {
       case "changeset": {
         const description = brief.changeset.description;
+        // The drift is named once: in the drift section when that is asked for, here otherwise (#1373).
+        const drift = names.includes("drift") ? undefined : brief.changeset.drift;
         out.changeset = {
           ...out.changeset,
           ...(description ? { description } : {}),
-          ...(brief.changeset.drift ? { drift: brief.changeset.drift } : {}),
+          ...(drift ? { drift: full ? drift : compactDrift(drift) } : {}),
         };
+        const dropped = drift && !full ? driftListsNote(drift) : undefined;
+        if (dropped) {
+          notes.push(dropped);
+          cutApart.push("changeset.drift");
+        }
         break;
       }
       case "drift": {
@@ -1032,8 +1117,37 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           break;
         }
         out.drift = drift;
-        // The drift's base-change lists page with driftLimit and driftOffset, apart from the answer's other lists.
         const driftPage = (drift.baseChanges as { page?: { nextOffset?: number } } | undefined)?.page;
+        const baseChanges = drift.baseChanges;
+        if (!full && options.driftWhole && baseChanges) {
+          // The base-change lists came whole: they page with the answer's other lists, under the same
+          // limit, offset and size target, and page.totals has each one's length (#1373).
+          const { page: _page, truncated: _truncated, ...rest } = baseChanges as typeof baseChanges & { page?: unknown };
+          const driftLists = {
+            elementsAdded: baseChanges.elementsAdded,
+            elementsRemoved: baseChanges.elementsRemoved,
+            elementsChanged: baseChanges.elementsChanged,
+            relationshipsAdded: baseChanges.relationshipsAdded,
+            relationshipsRemoved: baseChanges.relationshipsRemoved,
+          };
+          for (const [key, all] of Object.entries(driftLists)) lists.push({ key: `drift.${key}`, section: name, total: all.length });
+          renderers.push((n) => {
+            const cutTo = <T>(all: T[]): T[] => all.slice(offset, offset + n);
+            out.drift = {
+              ...drift,
+              baseChanges: {
+                ...rest,
+                elementsAdded: cutTo(driftLists.elementsAdded),
+                elementsRemoved: cutTo(driftLists.elementsRemoved),
+                elementsChanged: cutTo(driftLists.elementsChanged),
+                relationshipsAdded: cutTo(driftLists.relationshipsAdded),
+                relationshipsRemoved: cutTo(driftLists.relationshipsRemoved),
+              } as typeof baseChanges,
+            };
+          });
+          break;
+        }
+        // The drift's base-change lists page with driftLimit and driftOffset, apart from the answer's other lists.
         if (driftPage?.nextOffset !== undefined) {
           notes.push(
             "The drift's base-change lists are a page (drift.baseChanges.page; baseChanges.counts has the true totals). " +
@@ -1050,8 +1164,44 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
       case "delta":
         if (!options.delta) notes.push("delta needs since: pass the revisionToken of an earlier brief.");
         break;
+      case "summary":
+      case "byLayer":
+        // The summary counts are in every answer's header; byLayer counts the elements the filter keeps.
+        out.byLayer = brief.layers
+          .map((l) => {
+            const kept = l.changes.filter((c) => keep(c.id));
+            const count = (op: string) => kept.filter((c) => c.op === op).length;
+            return { layer: l.layer, added: count("added"), updated: count("updated"), deleted: count("deleted") };
+          })
+          .filter((l) => l.added + l.updated + l.deleted > 0);
+        break;
+      case "reach":
+        out.reach = brief.reach;
+        break;
+      case "changesByType": {
+        const kept = { ...brief, layers: brief.layers.map((l) => ({ ...l, changes: l.changes.filter((c) => keep(c.id)) })) };
+        out.changesByType = changesByType(kept, full ? Number.MAX_SAFE_INTEGER : IDS_PER_TYPE);
+        // Each type lists its first ids and counts the rest: say where every id of a type is listed.
+        const cut = out.changesByType.filter((g) => g.more);
+        if (cut.length > 0) {
+          notes.push(
+            `changesByType lists the first ${IDS_PER_TYPE} ids of each type and counts the rest in more ` +
+              `(${cut.map((g) => `${g.type}: ${g.more} more`).join(", ")}). Every one is listed by ` +
+              `changeset_brief ${JSON.stringify({ ...options.callArgs, sections: ["changes"], types: [cut[0].type] })}, ` +
+              "one type at a time, a page at a time."
+          );
+          cutApart.push("changesByType");
+        }
+        break;
+      }
+      case "neighborFiles": {
+        const files = compactChanges(brief).neighborFiles;
+        if (full) out.neighborFiles = files;
+        else list(name, files, (page) => page);
+        break;
+      }
       case "changes": {
-        const all = compactChanges(brief).build.filter((c) => keep(c.id));
+        const all = compactChanges(brief, keep).build.filter((c) => keep(c.id));
         if (full) out.changes = all;
         else list(name, all, (page) => page, () => ({ byType: countBy(all.map((c) => typeOfId(c.id))) }));
         break;
@@ -1184,7 +1334,24 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
   if (filter && ids) {
     const known = new Set(brief.layers.flatMap((l) => l.changes.map((c) => c.id)));
     const unknown = [...ids].filter((id) => !known.has(id));
-    if (unknown.length > 0) notes.push(`Not changed by this changeset: ${unknown.join(", ")}.`);
+    if (unknown.length > 0 && options.cardsFor) {
+      // What the plan links to but does not change, read in the same call (#1395): a list of this
+      // answer like the others, paged with them.
+      const { cards, missing } = options.cardsFor(unknown);
+      if (cards.length > 0) {
+        notes.push(`Not changed by this changeset, so in unchanged as the plan leaves them: ${cards.length} of the ids.`);
+        if (full) out.unchanged = cards;
+        else {
+          lists.push({ key: "unchanged", section: "changes", total: cards.length });
+          renderers.push((n) => {
+            out.unchanged = cards.slice(offset, offset + n);
+          });
+        }
+      }
+      if (missing.length > 0) notes.push(`Not in the model or the plan: ${missing.join(", ")}.`);
+    } else if (unknown.length > 0) {
+      notes.push(`Not changed by this changeset: ${unknown.join(", ")}.`);
+    }
   }
   const which = `(${names.join(", ")})${filter ? ", for the elements the filter keeps" : ""}`;
   if (full) {
@@ -1235,32 +1402,46 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
         (!page
           ? ""
           : short.length === 0
-            ? " Every list is whole (page.totals)."
+            ? cutApart.length === 0
+              ? " Every list is whole (page.totals)."
+              : ` The paged lists are whole (page.totals); ${cutApart.join(" and ")} ${cutApart.length === 1 ? "is" : "are"} not, as said above.`
             : page.nextOffset === undefined
               ? ` This is the last page (from ${offset}); page.totals has each list's length, and counts and summaries are over the whole lists.`
               : ` Not everything is here: ${short.map((l) => `${l.key} holds ${page.returned[l.key]} of ${l.total}`).join("; ")}` +
                 `${offset > 0 ? ` (from ${offset})` : ""}; counts and summaries are over the whole lists.` +
-                ` Next page: changeset_brief ${JSON.stringify({ ...options.callArgs, sections: names, offset: page.nextOffset })}.` +
+                ` Next page: ${nextPageCall("changeset_brief", { ...options.callArgs, sections: names }, page.nextOffset)}.` +
                 (options.limit === undefined
-                  ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass limit for a fixed page size, ` +
-                    "targetBytes for another target, or narrow with layers or ids."
+                  ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass targetBytes for larger or ` +
+                    "smaller pages, limit for at most that many items, or narrow with layers, types or ids."
                   : "")) +
         ` Add detail: "full" for these sections in full at once, or call without sections for the compact brief.`,
     ].join(" ");
     return out;
   };
 
-  // The page size: the caller's limit, or the longest page that keeps the answer near the target (at least one item).
+  // The page size: the longest page, up to the caller's limit, that keeps the answer near the target
+  // (at least one item). A limit is the most a page holds, not a size that overrides the target (#1334).
+  const cap = options.limit === undefined ? longest : Math.min(options.limit, Math.max(longest, 0));
   let size = options.limit ?? longest;
-  if (options.limit === undefined && longest > 0 && measure(render(longest)) > target) {
+  const limitNote = (held: number) =>
+    `limit ${options.limit} would take this answer past the ${Math.round(target / 1024)} KB target, so the page ` +
+    `holds ${held}: pass a larger targetBytes for a larger page, or narrow with layers, types or ids.`;
+  // With a limit, the note that may say the page holds fewer is measured with the page, so the
+  // answer that carries it still fits the target. Its count only shrinks, so its length does too.
+  const noteAt = notes.length;
+  if (options.limit !== undefined) notes.push(limitNote(cap));
+  if (cap > 0 && measure(render(cap)) > target) {
     let low = 1;
-    let high = longest;
+    let high = cap;
     while (low < high) {
       const middle = Math.ceil((low + high) / 2);
       if (measure(render(middle)) <= target) low = middle;
       else high = middle - 1;
     }
     size = low;
+    if (options.limit !== undefined) notes[noteAt] = limitNote(size);
+  } else if (options.limit !== undefined) {
+    notes.splice(noteAt, 1);
   }
   return render(Math.max(0, size));
 }
