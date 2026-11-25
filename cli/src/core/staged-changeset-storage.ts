@@ -12,6 +12,7 @@ import { readFile, writeFile, readdir, rm } from "fs/promises";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { FileLock } from "../utils/file-lock.js";
 import { ChangesetClosedToWritesError, changesetNotStagedError, refuseWhileLanding } from "./changeset-write-refusal.js";
+import { recordChangesetWrite } from "./changeset-write-activity.js";
 import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
@@ -423,6 +424,7 @@ export class StagedChangesetStorage {
         changeset.updateModified();
 
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
 
         return sequenceNumber;
       }, { refuseWhenHeldBy: refuseWhileLanding(id) });
@@ -456,24 +458,40 @@ export class StagedChangesetStorage {
   }
 
   /**
-   * Add several changes, and rewrite some staged ones in place, in one write: one load and one save
-   * instead of one per change. Additions take the next sequence numbers in order; a rewrite keeps
-   * its change's number and leaves a tombstone, as {@link updateChange} does.
+   * Add several changes, rewrite some staged ones in place, and unstage others, in one write: one
+   * load and one save instead of one per change. `removals` (element ids, as {@link removeChanges}
+   * takes them) go first, as one revision that keeps each removed change as a tombstone; a rewrite
+   * keeps its change's number and leaves a tombstone, as {@link updateChange} does; additions take
+   * the next sequence numbers in order.
    *
    * @returns The sequence numbers assigned to the additions, in order
    */
   async addChanges(
     id: string,
     changes: Array<Omit<StagedChange, "sequenceNumber">>,
-    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = [],
+    removals: string[] = []
   ): Promise<number[]> {
-    if (changes.length === 0 && rewrites.length === 0) return [];
+    if (changes.length === 0 && rewrites.length === 0 && removals.length === 0) return [];
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
     try {
       return await lock.withLock(async () => {
         const changeset = await this.loadStaged(id);
         changeset.changes = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+        if (removals.length > 0) {
+          const keys = new Set(removals);
+          const removed = (changeset.changes as StagedChange[]).filter((c) => keys.has(c.elementId));
+          if (removed.length > 0) {
+            const revision = nextSequenceNumber(changeset);
+            changeset.lastSequence = revision;
+            changeset.changes = changeset.changes.filter((c) => !keys.has(c.elementId));
+            addTombstones(
+              changeset,
+              removed.map((c) => ({ sequence: c.sequenceNumber, removedAt: revision, change: compactChange(c) }))
+            );
+          }
+        }
         for (const { elementId, change } of rewrites) {
           const index = changeset.changes.findIndex((c) => c.elementId === elementId);
           if (index === -1) {
@@ -497,6 +515,7 @@ export class StagedChangesetStorage {
         }
         changeset.updateModified();
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
         return numbers;
       }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
@@ -618,6 +637,7 @@ export class StagedChangesetStorage {
         changeset.updateModified();
 
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
         return removedAt;
       }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
@@ -695,6 +715,7 @@ export class StagedChangesetStorage {
 
         changeset.updateModified();
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
       }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
       if (error instanceof ChangesetClosedToWritesError) throw error;

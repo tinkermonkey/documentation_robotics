@@ -16,7 +16,8 @@ import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetCommitPreviewHandler } from "../../../src/mcp/tools/changeset-commit.js";
-import { recentWritesWarning } from "../../../src/mcp/tools/changeset-landed.js";
+import { writeActivityWarning, recordChangesetWrite, RECENT_OTHER_WRITE_MS } from "../../../src/core/changeset-write-activity.js";
+import { FileLock } from "../../../src/utils/file-lock.js";
 
 async function newProject(): Promise<string> {
   clearModelCache();
@@ -39,6 +40,8 @@ describe("changeset_commit_preview on a changeset already landed (#1441)", () =>
       git(rootPath, "init", "-q");
       await changesetCreateHandler({ name: "dr-milestone-wording", rootPath });
       await modelAddHandler({ layer: "motivation", type: "goal", name: "Clear wording", attributes: { priority: "high" }, rootPath });
+      // A type of two words: its file is application_function.yaml, not applicationfunction.yaml.
+      await modelAddHandler({ layer: "application", type: "applicationfunction", name: "word wrap", rootPath });
       clearModelCache();
       const model = await Model.load(rootPath, { lazyLoad: false });
       const manager = new StagingAreaManager(model.rootPath, model);
@@ -54,8 +57,11 @@ describe("changeset_commit_preview on a changeset already landed (#1441)", () =>
       expect(typeof landed.landedAt).toBe("string");
       expect(landed.nothingToDo).toContain("already landed");
       expect(landed.files).toContain(join("documentation-robotics", "model", "01_motivation", "goal.yaml"));
+      const functions = join("documentation-robotics", "model", "05_application", "application_function.yaml");
+      expect(landed.files).toContain(functions);
       expect(landed.git.committed).toBe(false);
-      expect(landed.git.uncommitted.length).toBeGreaterThan(0);
+      // Every file it names is on disk, and git sees the multi-word one as uncommitted.
+      expect(landed.git.uncommitted).toContain(functions);
 
       // Once the model is committed, git says so.
       git(rootPath, "add", "-A");
@@ -69,21 +75,45 @@ describe("changeset_commit_preview on a changeset already landed (#1441)", () =>
     }
   });
 
-  it("warns when changes were staged into the changeset moments ago", async () => {
+  it("warns on evidence of a writer at work, not on the caller's own recent writes (#1437)", async () => {
     const rootPath = await newProject();
     try {
       await changesetCreateHandler({ name: "plan", rootPath });
       await modelAddHandler({ layer: "motivation", type: "goal", name: "Fresh", attributes: { priority: "high" }, rootPath });
       clearModelCache();
+      // The agent's own write moments ago, in this process: no warning.
       const preview = parse(await changesetCommitPreviewHandler({ changeset: "plan", rootPath }));
       expect(preview.status).toBe("ready-to-commit");
-      expect(preview.stillWriting).toContain("A change was staged into 'plan'");
-      expect(preview.stillWriting).toContain("refused (never lost)");
+      expect(preview.stillWriting).toBeUndefined();
 
       const manager = new StagingAreaManager(rootPath);
       const plan = (await manager.load("plan"))!;
-      // Long enough ago, nothing to say.
-      expect(await recentWritesWarning(manager.changesetPath(plan.id!), plan, Date.parse(plan.modified) + 120_000)).toBeUndefined();
+      const folder = manager.changesetPath(plan.id!);
+      // Another process staged into it moments ago: a warning naming it, in the summary too.
+      const at = Date.now();
+      await recordChangesetWrite(rootPath, plan.id!);
+      const other = await writeActivityWarning(rootPath, folder, plan, { pid: process.pid + 1, now: at + 5_000 });
+      expect(other).toContain(`Another process (${process.pid}) staged into 'plan' 5 s ago`);
+      expect(other).toContain("refused (never lost)");
+      expect(await writeActivityWarning(rootPath, folder, plan, { pid: process.pid + 1, now: at + RECENT_OTHER_WRITE_MS + 1_000 })).toBeUndefined();
+
+      // A write holding the changeset's lock now: a warning; a landing's own hold is not a write.
+      const lock = new FileLock(folder);
+      await lock.acquire();
+      try {
+        expect(await writeActivityWarning(rootPath, folder, plan)).toContain("Something is writing into 'plan' now");
+        const summary = parse(await changesetCommitPreviewHandler({ changeset: "plan", rootPath }));
+        expect(summary.stillWriting).toContain("writing into 'plan' now");
+        expect(summary.summary).toContain("writing into 'plan' now");
+      } finally {
+        await lock.release();
+      }
+      await lock.acquire({ owner: { purpose: "landing" } });
+      try {
+        expect(await writeActivityWarning(rootPath, folder, plan)).toBeUndefined();
+      } finally {
+        await lock.release();
+      }
     } finally {
       clearModelCache();
       await rm(rootPath, { recursive: true, force: true });

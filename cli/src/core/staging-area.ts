@@ -11,8 +11,20 @@
 import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
-import { clearActiveMarker, readActiveMarker, readLandedNote, writeActiveMarker, writeLandedNote } from "./active-changeset-marker.js";
-import { changesetNotStagedError, landedActiveChangesetError, landingLockOwner } from "./changeset-write-refusal.js";
+import {
+  clearActiveMarker,
+  clearLandedNote,
+  readActiveMarker,
+  readLandedNote,
+  writeActiveMarker,
+  writeLandedNote,
+} from "./active-changeset-marker.js";
+import {
+  changesetNotStagedError,
+  landedActiveChangesetError,
+  landingLockOwner,
+  refuseWhileLanding,
+} from "./changeset-write-refusal.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
@@ -23,7 +35,7 @@ import type { VirtualProjectionEngine } from "./virtual-projection.js";
 import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest, ReconciledStamp } from "../types/index.js";
 import { reconciliationStamp } from "./reconciliation.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { FileLock } from "../utils/file-lock.js";
 import type { BaseRead, ChangesetDrift } from "./changeset-base-index.js";
 import { Layer } from "./layer.js";
@@ -457,9 +469,11 @@ export class StagingAreaManager {
   async stageMany(
     changesetId: string,
     changes: Array<Omit<StagedChange, "sequenceNumber">>,
-    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = [],
+    /** Element ids whose staged changes are unstaged in the same write (see StagedChangesetStorage.addChanges). */
+    removals: string[] = []
   ): Promise<void> {
-    if (changes.length === 0 && rewrites.length === 0) return;
+    if (changes.length === 0 && rewrites.length === 0 && removals.length === 0) return;
     this.validateChangesetId(changesetId);
     const changeset = await this.load(changesetId);
     if (!changeset) {
@@ -472,9 +486,11 @@ export class StagingAreaManager {
     await this.storage.addChanges(
       changesetId,
       changes.map((change) => ({ ...change, timestamp: change.timestamp || now })),
-      rewrites.map((r) => ({ elementId: r.elementId, change: { ...r.change, timestamp: r.change.timestamp || now } }))
+      rewrites.map((r) => ({ elementId: r.elementId, change: { ...r.change, timestamp: r.change.timestamp || now } })),
+      removals
     );
     const engine = await this.getProjectionEngine();
+    if (removals.length > 0) await engine.invalidateOnUnstage(changesetId);
     for (const layerName of new Set([...changes, ...rewrites.map((r) => r.change)].map((c) => c.layerName))) {
       engine.invalidateOnStage(changesetId, layerName);
     }
@@ -643,17 +659,29 @@ export class StagingAreaManager {
     if (!this.model) {
       throw new Error("Model required for capturing base snapshot");
     }
-    const changeset = await this.load(changesetId);
-    if (!changeset) {
+    const model = this.model;
+    const id = (await this.load(changesetId))?.id;
+    if (!id) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const snapshotId = await this.snapshotManager.captureSnapshot(this.model);
-    changeset.baseSnapshot = snapshotId;
-    changeset.updateModified();
-    await this.storage.save(changeset);
-
-    return snapshotId;
+    // Under the changeset's file lock, on a fresh read, and only while it is staged: a copy read
+    // before a landing would save 'staged' back over 'committed', and drop writes staged meanwhile.
+    return new FileLock(this.storage.getChangesetPath(id)).withLock(
+      async () => {
+        const changeset = await this.storage.load(id);
+        if (!changeset) {
+          throw new Error(`Changeset '${changesetId}' not found`);
+        }
+        if (changeset.status !== "staged") throw changesetNotStagedError(changeset);
+        const snapshotId = await this.snapshotManager.captureSnapshot(model);
+        changeset.baseSnapshot = snapshotId;
+        changeset.updateModified();
+        await this.storage.save(changeset);
+        return snapshotId;
+      },
+      { refuseWhenHeldBy: refuseWhileLanding(id) }
+    );
   }
 
   /**
@@ -815,7 +843,8 @@ export class StagingAreaManager {
     if (!id) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
-    // Under the changeset's file lock, on a fresh read: nothing staged meanwhile is saved over.
+    // Under the changeset's file lock, on a fresh read: nothing staged meanwhile is saved over, and a
+    // changeset a landing holds is refused at once (#1437).
     return new FileLock(this.storage.getChangesetPath(id)).withLock(async () => {
       const changeset = await this.storage.load(id);
       if (!changeset) {
@@ -893,7 +922,7 @@ export class StagingAreaManager {
         before,
         after,
       };
-    });
+    }, { refuseWhenHeldBy: refuseWhileLanding(id) });
   }
 
   /**
@@ -1169,6 +1198,9 @@ export class StagingAreaManager {
         });
       }
 
+      // What Step 6.5 did to the active marker and the landed note, for the rollback to undo.
+      const landing = { noteWritten: false, markerCleared: false };
+
       try {
         const applySpan = isTelemetryEnabled
           ? startSpan("staging.apply", {
@@ -1384,6 +1416,41 @@ export class StagingAreaManager {
           }
         }
 
+        // Step 6.5 (#1437): when this is the active changeset, leave the landed note and then clear
+        // the marker, both before the status save. A write from another process asks
+        // getWriteTarget: until the marker is cleared it finds the changeset staged and stages into
+        // it, which the lock this landing holds refuses; once the status is saved it finds the note.
+        // There is no moment with neither, so no write goes to the base model in its place. The note
+        // is what keeps those writes out, so failing to write it fails the landing. A marker that
+        // can't be cleared is reported (deactivationError), not fatal: the note covers it.
+        const committedAt = new Date().toISOString();
+        if ((await this.readActiveMarker()) === changeset.id) {
+          try {
+            await writeLandedNote(this.rootPath, { id: changeset.id!, name: changeset.name, landedAt: committedAt });
+          } catch (error) {
+            throw new Error(
+              `Failed to record the landing for writes still aimed at '${changeset.name}': ${getErrorMessage(error)}. ` +
+                "Nothing was landed."
+            );
+          }
+          landing.noteWritten = true;
+          try {
+            await this.clearActive({ keepLandedNote: true });
+            landing.markerCleared = true;
+            result.deactivated = true;
+          } catch (error) {
+            result.deactivationError = getErrorMessage(error);
+            console.warn(
+              `Warning: changeset '${changeset.name}' is landing, but its active-changeset marker could not be cleared ` +
+                `(${result.deactivationError}). The marker is ignored once it is committed, and writes aimed at it are refused.`
+            );
+            emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
+              "changeset.id": changesetId,
+              "error.message": result.deactivationError,
+            });
+          }
+        }
+
         // Step 7: Update changeset status to committed ONLY AFTER successful saves
         changeset.status = "committed";
         changeset.updateModified();
@@ -1402,7 +1469,6 @@ export class StagingAreaManager {
         if (!model.manifest.changeset_history) {
           model.manifest.changeset_history = [];
         }
-        const committedAt = new Date().toISOString();
         model.manifest.changeset_history.push({
           name: changeset.name,
           committed_at: committedAt,
@@ -1438,7 +1504,7 @@ export class StagingAreaManager {
         }
 
         // The model in hand stops projecting the landed changeset before the reports are read
-        // from it; the active marker on disk is cleared in Step 11.
+        // from it; the active marker on disk was cleared in Step 6.5.
         model.noteChangesetDeactivated(changeset.id);
 
         // Step 9.5: Regenerate reports for the layers this changeset changed: the layers of its
@@ -1465,35 +1531,6 @@ export class StagingAreaManager {
         // Step 10: Clean up backup directory after successful commit
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
         await this.cleanupBackup(backup);
-
-        // Step 11: A landed changeset is no longer active, whoever landed it: left active, reads
-        // would project it over the base and writes would stage into it. Another changeset's
-        // active marker is left alone. The changes are already landed, so a failure here is
-        // reported in the result (deactivationError) rather than rolled back.
-        try {
-          if ((await this.readActiveMarker()) === changeset.id) {
-            await this.clearActive();
-            result.deactivated = true;
-            // A write still aimed at it refuses, naming it, instead of going to the base model.
-            await writeLandedNote(this.rootPath, { id: changeset.id!, name: changeset.name, landedAt: committedAt }).catch(
-              (error) =>
-                emitLog(SeverityNumber.WARN, "Could not record the landed changeset for later writes", {
-                  "changeset.id": changesetId,
-                  "error.message": getErrorMessage(error),
-                })
-            );
-          }
-        } catch (error) {
-          result.deactivationError = getErrorMessage(error);
-          console.warn(
-            `Warning: changeset '${changeset.name}' was committed, but its active-changeset marker could not be cleared ` +
-              `(${result.deactivationError}). The marker is ignored: a committed changeset is never the active one.`
-          );
-          emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
-            "changeset.id": changesetId,
-            "error.message": result.deactivationError,
-          });
-        }
 
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);
@@ -1543,6 +1580,8 @@ export class StagingAreaManager {
         } finally {
           endSpan(rollbackSpan);
         }
+        // The landing did not happen: writes stage into the changeset again, whatever the model's state.
+        await this.undoLandingMarkers(changeset, landing);
 
         // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
         let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
@@ -1702,10 +1741,18 @@ export class StagingAreaManager {
       throw new UpgradeRecordActivationError(changeset.name);
     }
 
-    // Transition to 'staged' status to enable interception
+    // Only a staged changeset can be the active one. Activating a landed (or discarded) one used to
+    // mark it staged again, reopening it with every change it landed (#1437 review): refused.
     if (changeset.status !== "staged") {
-      changeset.markStaged();
-      await this.storage.save(changeset);
+      throw new CLIError(
+        `Changeset '${changeset.name}' is ${changeset.status === "committed" ? "landed (committed)" : changeset.status}, so it ` +
+          "can't be made active: it takes no more writes",
+        ErrorCategory.USER,
+        [
+          'Create a changeset ("changeset_create"; dr changeset create) to keep planning',
+          'Or activate another staged changeset ("changeset_list"; dr changeset list shows them)',
+        ]
+      );
     }
 
     // Write the actual changeset ID (not the user-provided name)
@@ -1719,12 +1766,12 @@ export class StagingAreaManager {
    * Clear the active changeset marker.
    * Allows a new changeset to be activated or model mutations to proceed normally.
    */
-  async clearActive(): Promise<void> {
-    return trackModelWrite(this.rootPath, undefined, () => this.writeNoActive());
+  async clearActive(options: { keepLandedNote?: boolean } = {}): Promise<void> {
+    return trackModelWrite(this.rootPath, undefined, () => this.writeNoActive(options));
   }
 
-  private async writeNoActive(): Promise<void> {
-    await clearActiveMarker(this.rootPath);
+  private async writeNoActive(options: { keepLandedNote?: boolean } = {}): Promise<void> {
+    await clearActiveMarker(this.rootPath, options);
   }
 
   /**
@@ -1768,6 +1815,32 @@ export class StagingAreaManager {
     const landed = await readLandedNote(this.rootPath);
     if (landed) throw landedActiveChangesetError(landed);
     return null;
+  }
+
+  /**
+   * After a landing rolled back: take its landed note away and name the changeset active again if
+   * the landing cleared the marker, so writes stage into it as before. A failure is logged.
+   */
+  private async undoLandingMarkers(changeset: Changeset, landing: { noteWritten: boolean; markerCleared: boolean }): Promise<void> {
+    try {
+      if (landing.noteWritten) await clearLandedNote(this.rootPath);
+      if (landing.markerCleared) await writeActiveMarker(this.rootPath, changeset.id!);
+    } catch (error) {
+      emitLog(SeverityNumber.ERROR, "Could not restore the active marker after a rolled-back landing", {
+        "changeset.id": changeset.id ?? "",
+        "error.message": getErrorMessage(error),
+      });
+    }
+  }
+
+  /**
+   * A warning when there is evidence something is still writing into the changeset (its lock held
+   * by a write, or another process staged into it moments ago), for whoever is about to land it.
+   */
+  async writeActivityWarning(changeset: Changeset): Promise<string | undefined> {
+    if (!changeset.id) return undefined;
+    const { writeActivityWarning } = await import("./changeset-write-activity.js");
+    return writeActivityWarning(this.rootPath, this.storage.getChangesetPath(changeset.id), changeset);
   }
 
   /** A changeset's folder (its file lock sits beside it). */

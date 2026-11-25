@@ -707,6 +707,10 @@ export const ChangesetDetailSchema = z.object({
   scope: VerificationScopeSchema.optional(),
   actions: ChangesetActionsSchema,
   drift: ChangesetDriftSchema,
+  stillWriting: z.string().optional().describe(
+    'Staged changesets only: evidence that something is still writing into it (its lock held by a write, or another ' +
+      'process staged into it in the last 30 s). Show it before Apply: a write that arrives while it lands is refused.'
+  ),
   unstaged: z.array(UnstagedChangeSchema).describe('Unstaged and rewritten changes (tombstones), oldest first'),
   review: ChangesetReviewSchema,
   changes: z.array(z.object({

@@ -74,7 +74,7 @@
     type: applicationfunction
     layer_id: application
     name: insertWorkflowStep
-    description: "model_add's after/before for a product.workflowstep: places the new step after or before an existing one, rewires the flows-to links around it, adds it to the workflow that composes its neighbour, and renumbers the later steps' sequence where they collide (#1396)."
+    description: "model_add's after/before for a product.workflowstep: checks the step and every link it needs first (planRelationshipBatch), then in a changeset stages the step, the renumbered sequences, the replaced hand-offs and the new links in one write; in the model writes them in turn (#1396)."
     metadata:
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
@@ -84,7 +84,7 @@
       locations:
         - file: cli/src/mcp/tools/workflow-step-insert.ts
           symbol: insertWorkflowStep
-  timestamp: 2026-11-25T16:44:24.624Z
+  timestamp: 2026-11-25T17:21:49.177Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.delete-relationship-batch
@@ -96,7 +96,7 @@
     type: applicationfunction
     layer_id: application
     name: deleteRelationshipBatch
-    description: "relationship_delete's list form: each {source, predicate?, target} is resolved in the projection; the deletions are staged in one write (or written to the model), and the result is counts with failures grouped by cause; one the changeset already deletes is unchanged (#1372)."
+    description: "relationship_delete's list form: each {source, predicate?, target} is resolved in the projection; the removals are staged and the adds this changeset made unstaged in one write (or written to the model in one save). Failures are grouped by cause; one the changeset already removes, or whose add it unstaged, is unchanged (#1372)."
     metadata:
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
@@ -106,7 +106,7 @@
       locations:
         - file: cli/src/mcp/tools/relationship-tools.ts
           symbol: deleteRelationshipBatch
-  timestamp: 2026-11-25T16:44:24.624Z
+  timestamp: 2026-11-25T17:21:49.107Z
   sequenceNumber: 4
 - type: add
   elementId: application.applicationfunction.delete-element-batch
@@ -413,17 +413,6 @@
   timestamp: 2026-11-25T16:10:59.355Z
   sequenceNumber: 24
 - type: relationship-add
-  elementId: application.applicationfunction.insert-workflow-step::depends-on::application.applicationfunction.stage-relationship-deletes
-  layerName: application
-  after:
-    source: application.applicationfunction.insert-workflow-step
-    target: application.applicationfunction.stage-relationship-deletes
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:10:59.355Z
-  sequenceNumber: 25
-- type: relationship-add
   elementId: application.applicationfunction.delete-relationship-batch::realizes::application.applicationservice.relationship-delete-handler
   layerName: application
   after:
@@ -434,17 +423,6 @@
     category: structural
   timestamp: 2026-11-25T16:10:59.355Z
   sequenceNumber: 26
-- type: relationship-add
-  elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.stage-relationship-deletes
-  layerName: application
-  after:
-    source: application.applicationfunction.delete-relationship-batch
-    target: application.applicationfunction.stage-relationship-deletes
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:10:59.355Z
-  sequenceNumber: 27
 - type: relationship-add
   elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.batch-causes
   layerName: application
@@ -489,17 +467,6 @@
     category: structural
   timestamp: 2026-11-25T16:10:59.355Z
   sequenceNumber: 31
-- type: relationship-add
-  elementId: application.applicationfunction.resolve-source-reference-options::depends-on::application.applicationfunction.settle-source-location-change
-  layerName: application
-  after:
-    source: application.applicationfunction.resolve-source-reference-options
-    target: application.applicationfunction.settle-source-location-change
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:10:59.355Z
-  sequenceNumber: 32
 - type: relationship-add
   elementId: application.applicationfunction.validate-relationship-combination::depends-on::application.applicationfunction.predicates-between
   layerName: application
@@ -1177,3 +1144,317 @@
     category: structural
   timestamp: 2026-11-25T16:11:28.184Z
   sequenceNumber: 60
+- type: add
+  elementId: application.applicationfunction.relationship-delete-change
+  layerName: application
+  after:
+    id: 7f263982-a4ec-4881-b150-50f47ce3e91d
+    path: application.applicationfunction.relationship-delete-change
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: relationshipDeleteChange
+    description: The staged change that deletes a live relationship of the projection, naming the row as relationships.yaml does.
+    metadata:
+      created_at: 2026-11-25T17:21:47.505Z
+      updated_at: 2026-11-25T17:21:47.505Z
+      version: 1
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 74
+- type: add
+  elementId: application.applicationfunction.write-activity-warning
+  layerName: application
+  after:
+    id: be14e7e2-f37a-45e2-be0d-2e51f0d7cf02
+    path: application.applicationfunction.write-activity-warning
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: writeActivityWarning
+    description: Evidence that something is still writing into a changeset (its lock held by a write, or another process staged into it in the last 30 s), for the landing summary, the commit dialog, the dr changeset commit prompt and the viewer's changeset read (#1437).
+    metadata:
+      created_at: 2026-11-25T17:21:47.505Z
+      updated_at: 2026-11-25T17:21:47.505Z
+      version: 1
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 75
+- type: add
+  elementId: application.applicationfunction.record-changeset-write
+  layerName: application
+  after:
+    id: 661b9d75-f803-4eea-a22c-54573ec48f23
+    path: application.applicationfunction.record-changeset-write
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: recordChangesetWrite
+    description: "Records which process staged into a changeset, and when, in .dr/changeset-writes/ (per-checkout state): the evidence writeActivityWarning reads."
+    metadata:
+      created_at: 2026-11-25T17:21:47.505Z
+      updated_at: 2026-11-25T17:21:47.505Z
+      version: 1
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 76
+- type: add
+  elementId: application.applicationfunction.unstaged-relationship-add
+  layerName: application
+  after:
+    id: 3f39c5b0-ced3-42bd-a5b0-c60226491471
+    path: application.applicationfunction.unstaged-relationship-add
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: unstagedRelationshipAdd
+    description: "Whether the changeset had staged an add of a relationship and unstaged it since: a delete sent again finds it done, not missing (#1296)."
+    metadata:
+      created_at: 2026-11-25T17:21:47.505Z
+      updated_at: 2026-11-25T17:21:47.505Z
+      version: 1
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 77
+- type: add
+  elementId: application.applicationfunction.unstaged-element-add
+  layerName: application
+  after:
+    id: 3aff539d-e258-4383-afec-9862b5f4961a
+    path: application.applicationfunction.unstaged-element-add
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: unstagedElementAdd
+    description: "Whether the changeset had staged an add of an element and unstaged it since: a model_delete sent again finds it done, not missing (#1296)."
+    metadata:
+      created_at: 2026-11-25T17:21:47.505Z
+      updated_at: 2026-11-25T17:21:47.505Z
+      version: 1
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 78
+- type: relationship-add
+  elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.relationship-delete-change
+  layerName: application
+  after:
+    source: application.applicationfunction.delete-relationship-batch
+    target: application.applicationfunction.relationship-delete-change
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 79
+- type: relationship-add
+  elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.staging-area-manager-stage-many
+  layerName: application
+  after:
+    source: application.applicationfunction.delete-relationship-batch
+    target: application.applicationfunction.staging-area-manager-stage-many
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 80
+- type: relationship-add
+  elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.unstaged-relationship-add
+  layerName: application
+  after:
+    source: application.applicationfunction.delete-relationship-batch
+    target: application.applicationfunction.unstaged-relationship-add
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 81
+- type: relationship-add
+  elementId: application.applicationfunction.delete-element-batch::depends-on::application.applicationfunction.unstaged-element-add
+  layerName: application
+  after:
+    source: application.applicationfunction.delete-element-batch
+    target: application.applicationfunction.unstaged-element-add
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 82
+- type: relationship-add
+  elementId: application.applicationfunction.insert-workflow-step::depends-on::application.applicationfunction.relationship-delete-change
+  layerName: application
+  after:
+    source: application.applicationfunction.insert-workflow-step
+    target: application.applicationfunction.relationship-delete-change
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.insert-workflow-step::depends-on::application.applicationfunction.staging-area-manager-stage-many
+  layerName: application
+  after:
+    source: application.applicationfunction.insert-workflow-step
+    target: application.applicationfunction.staging-area-manager-stage-many
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: application.applicationfunction.insert-workflow-step::depends-on::application.applicationfunction.plan-relationship-batch
+  layerName: application
+  after:
+    source: application.applicationfunction.insert-workflow-step
+    target: application.applicationfunction.plan-relationship-batch
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: application.applicationfunction.stage-relationship-deletes::depends-on::application.applicationfunction.relationship-delete-change
+  layerName: application
+  after:
+    source: application.applicationfunction.stage-relationship-deletes
+    target: application.applicationfunction.relationship-delete-change
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 86
+- type: relationship-add
+  elementId: application.applicationfunction.write-activity-warning::realizes::application.applicationservice.changeset-commit-preview-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.write-activity-warning
+    target: application.applicationservice.changeset-commit-preview-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 87
+- type: relationship-add
+  elementId: application.applicationfunction.write-activity-warning::realizes::application.applicationservice.changeset-commit-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.write-activity-warning
+    target: application.applicationservice.changeset-commit-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 88
+- type: relationship-add
+  elementId: application.applicationfunction.staged-changeset-storage-add-changes::depends-on::application.applicationfunction.record-changeset-write
+  layerName: application
+  after:
+    source: application.applicationfunction.staged-changeset-storage-add-changes
+    target: application.applicationfunction.record-changeset-write
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 89
+- type: relationship-add
+  elementId: application.applicationfunction.staged-changeset-storage-add-change::depends-on::application.applicationfunction.record-changeset-write
+  layerName: application
+  after:
+    source: application.applicationfunction.staged-changeset-storage-add-change
+    target: application.applicationfunction.record-changeset-write
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 90
+- type: relationship-add
+  elementId: application.applicationfunction.write-activity-warning::depends-on::application.applicationfunction.file-lock-exists
+  layerName: application
+  after:
+    source: application.applicationfunction.write-activity-warning
+    target: application.applicationfunction.file-lock-exists
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 91
+- type: relationship-add
+  elementId: application.applicationfunction.unstaged-relationship-add::realizes::application.applicationservice.relationship-delete-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.unstaged-relationship-add
+    target: application.applicationservice.relationship-delete-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 92
+- type: relationship-add
+  elementId: application.applicationfunction.unstaged-element-add::realizes::application.applicationservice.model-delete-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.unstaged-element-add
+    target: application.applicationservice.model-delete-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:21:47.546Z
+  sequenceNumber: 93
+- type: update
+  elementId: application.applicationfunction.resolve-source-reference-options
+  layerName: application
+  before:
+    id: bafa68b6-3d96-4bc3-8cbf-6f8d4a671a74
+    path: application.applicationfunction.resolve-source-reference-options
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: resolveSourceReferenceOptions
+    description: "Settles source fields against the element's reference: a source file sent without a provenance that the element does not already have is hand-set, so it gets 'manual'; addSourceLocation and removeSourceLocation change one location."
+    source_reference: &a43
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/source-reference.ts
+          symbol: resolveSourceReferenceOptions
+    metadata: &a44
+      created_at: 2026-11-20T15:08:14.665Z
+      updated_at: 2026-11-20T15:08:14.665Z
+      version: 1
+  after:
+    id: bafa68b6-3d96-4bc3-8cbf-6f8d4a671a74
+    path: application.applicationfunction.resolve-source-reference-options
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: resolveSourceReferenceOptions
+    description: "Settles source fields against the element's reference: a source file sent without a provenance that the element does not already reference is hand-set, so it gets 'manual'."
+    source_reference: *a43
+    metadata: *a44
+  timestamp: 2026-11-25T17:21:48.968Z
+  sequenceNumber: 94
+- type: update
+  elementId: application.applicationfunction.staging-area-manager-commit
+  layerName: application
+  before:
+    id: 8e7efe93-6aca-4142-8784-7e33f1a3750e
+    path: application.applicationfunction.staging-area-manager-commit
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager commit
+    description: Commit a changeset to the base model with atomic guarantee, holding the changeset's lock from its read to its status save so no write staged meanwhile is lost; leaves a landed note when it lands the active changeset.
+    source_reference: &a45
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.commit
+    metadata: &a46
+      created_at: 2026-11-20T15:05:20.101Z
+      updated_at: 2026-11-20T15:05:20.101Z
+      version: 1
+  after:
+    id: 8e7efe93-6aca-4142-8784-7e33f1a3750e
+    path: application.applicationfunction.staging-area-manager-commit
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager commit
+    description: Commit a changeset to the base model with atomic guarantee, holding the changeset's lock from its read to its status save so no write staged meanwhile is lost. When it lands the active changeset it writes the landed note and clears the marker before the status save (a failed note write fails the landing; a rollback undoes both).
+    source_reference: *a45
+    metadata: *a46
+  timestamp: 2026-11-25T17:21:49.038Z
+  sequenceNumber: 95

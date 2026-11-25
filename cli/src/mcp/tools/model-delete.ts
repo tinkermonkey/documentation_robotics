@@ -12,6 +12,7 @@
 import { z } from "zod";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { unstagedElementAdd } from "../../core/relationship-staging.js";
 import { DependencyTracker, TraceDirection } from "../../core/dependency-tracker.js";
 import type { Model } from "../../core/model.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
@@ -21,7 +22,6 @@ import { findElementLayer } from "../../utils/element-utils.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { BATCH_FILE_DESCRIPTION, readBatchFile } from "../batch-file.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { writeTargetChangeset } from "./changeset-shared.js";
 import {
   BATCH_RESULT_DESCRIPTION,
   BATCH_RESULT_LINE_WIDTH,
@@ -235,7 +235,7 @@ async function deleteElementBatch(ids: string[], args: ModelDeleteArgs) {
   const model = await loadModel(args.rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
   // Before anything is deleted: refuses when the active changeset was landed (#1437).
-  const active = await writeTargetChangeset(manager);
+  const active = await manager.getWriteTarget();
   const graph = active ? await ChangesetGraph.build(model, active) : undefined;
   const tracker = dependencyTracker(model);
   // Every id in the list counts as going, so one never blocks another as its dependent.
@@ -249,8 +249,16 @@ async function deleteElementBatch(ids: string[], args: ModelDeleteArgs) {
       results.push({ index, id, status: "duplicate", reason: "Deleted earlier in this batch" });
       continue;
     }
-    if (graph?.getElement(id)?.status === "deleted") {
-      // Sent again after this changeset deleted it: a no-op (#1296).
+    // Sent again after this changeset deleted it (a staged delete, over the base's element or its own
+    // add), or unstaged its own add of it: a no-op (#1296).
+    const element = graph?.getElement(id);
+    const removed =
+      !!graph &&
+      !!active &&
+      !element &&
+      (active.changes.some((c) => c.type === "delete" && graph.resolve(c.elementId) === graph.resolve(id)) ||
+        unstagedElementAdd(graph, active, id));
+    if (element?.status === "deleted" || removed) {
       results.push({ index, id, status: "unchanged", reason: "This changeset already deletes it" });
       continue;
     }

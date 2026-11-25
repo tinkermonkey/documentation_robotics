@@ -45,7 +45,6 @@ import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { writeTargetChangeset } from "./changeset-shared.js";
 import { applyRelationshipPlan, previewChangeset, relationshipBatchReport, relationshipItemSchema } from "./relationship-tools.js";
 import {
   BATCH_RESULT_DESCRIPTION,
@@ -151,7 +150,7 @@ const SINGLE_FORM_FIELDS = [
 ] as const;
 export type ElementSpec = z.infer<typeof elementItemSchema>;
 
-interface PreparedElement {
+export interface PreparedElement {
   element: Element;
   id: string;
   layer: string;
@@ -173,7 +172,7 @@ class AttributeRefusal extends CLIError {
 }
 
 /** Validates one element and builds it; throws a CLIError saying what is wrong. */
-async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
+export async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
   if (!isValidLayer(spec.layer)) {
     const validLayers = getAllLayerIds();
     const similar = findSimilar(spec.layer, validLayers, 3);
@@ -328,6 +327,7 @@ export interface SingleAddOutcome {
 
 /** Validates and adds one element; throws a CLIError saying what is wrong. */
 export async function addOneElement(spec: ElementSpec, rootPath: string | undefined): Promise<SingleAddOutcome> {
+  const model = await loadModel(rootPath);
   let prepared: PreparedElement;
   try {
     prepared = await prepareElement(spec);
@@ -338,8 +338,6 @@ export async function addOneElement(spec: ElementSpec, rootPath: string | undefi
     throw error;
   }
   const { element, id: elementPath, layer } = prepared;
-
-  const model = await loadModel(rootPath);
 
   // Inside a changeset getLayer() projects even a layer the model has no elements in, so ask the
   // model's layer list whether this layer is new to it.
@@ -505,7 +503,7 @@ async function addElementBatch(
 ) {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await writeTargetChangeset(manager);
+  const active = await manager.getWriteTarget();
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
 

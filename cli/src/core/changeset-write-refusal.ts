@@ -21,8 +21,8 @@ export const LANDING_LOCK_PURPOSE = "landing";
 
 /** What to do instead, for every refusal here. */
 const NEXT_STEPS = [
-  'To keep planning, create or activate a changeset ("changeset_create" or "changeset_activate"; dr changeset ' +
-    "create or activate) and send the write again",
+  'To keep planning, create a changeset ("changeset_create"; dr changeset create), or activate another staged ' +
+    'one ("changeset_activate"), and send the write again',
   'To write the base model instead, deactivate ("changeset_deactivate"; dr changeset deactivate) and send the write again',
 ];
 
@@ -31,7 +31,8 @@ export class ChangesetClosedToWritesError extends CLIError {
   constructor(
     message: string,
     readonly changeset: { id: string; name: string },
-    readonly state: "landing" | "landed" | "discarded" | "missing"
+    /** landing: its landing holds it now; landed: committed; closed: any other status that is not staged. */
+    readonly state: "landing" | "landed" | "closed"
   ) {
     super(message, ErrorCategory.USER, NEXT_STEPS);
     this.name = "ChangesetClosedToWritesError";
@@ -72,7 +73,7 @@ export function changesetNotStagedError(
       ? `Changeset '${changeset.name}' was landed${when(changeset.modified)}, so it takes no more writes, and this one was not staged.`
       : `Changeset '${changeset.name}' is ${changeset.status}, so it takes no writes, and this one was not staged.`,
     { id: changeset.id ?? changeset.name, name: changeset.name },
-    landed ? "landed" : "discarded"
+    landed ? "landed" : "closed"
   );
 }
 

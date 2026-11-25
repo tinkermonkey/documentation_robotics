@@ -241,7 +241,8 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   content is refused, naming what differs (`model_update` changes it).
 - Once the changeset you were writing into is landed (by you, or by the user in the viewer), writes
   are refused, naming it, instead of going to the base model. To keep planning, `changeset_create`
-  or `changeset_activate`; to write the base model, `changeset_deactivate` first. A write that
+  (or `changeset_activate` another staged changeset: a landed one can't be reopened); to write the
+  base model, `changeset_deactivate` first. A write that
   arrives while it is landing is refused the same way: send it again into the next changeset.
   `changeset_commit_preview` on a changeset that is already landed answers `already-landed`: there
   is nothing to do.

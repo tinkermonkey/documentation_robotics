@@ -209,8 +209,9 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(missing.items.length + catalog.items.length).toBe(DEFAULT_ATTENTION_LIMIT);
     expect((missing.notListed ?? 0) + (catalog.notListed ?? 0)).toBe(extra);
     expect(body.notListed).toBe(extra);
+    // Not written, so sending the list again lists them; nothing written comes back but unchanged.
     expect(body.more).toContain(`limit: ${failures}`);
-    expect(body.more).toContain("verbose: true");
+    expect(body.more).toContain("comes back unchanged");
 
     // Every listed item's text, rebuilt from its cause, is the message it has in full.
     const whole = parse(await relationshipAddHandler({ relationships: relationships.slice(0, -1), verbose: true, rootPath } as any));
@@ -314,11 +315,12 @@ describe("batch results: counts and the items that need attention (#1182)", () =
       const report = batchReport(results, { limit, written: ["staged"], settled: ["unchanged"], byCause: true });
       expect(report.total).toBe(500);
       expect(report.attentionTotal).toBe(flagged);
-      expect(report.causes!.map((c) => c.status)).toEqual(["invalid", "staged"]);
+      // limit caps the causes listed too, at least one: the not written first.
+      expect(report.causes!.map((c) => c.status)).toEqual(limit >= 2 ? ["invalid", "staged"] : ["invalid"]);
+      expect(report.causesTotal).toBe(limit >= 2 ? undefined : 2);
       const shown = report.causes!.flatMap((c) => c.items.map((item) => item.index));
-      expect(shown).toHaveLength(Math.min(limit, flagged));
+      expect(shown).toHaveLength(Math.min(limit, report.causes!.reduce((n, c) => n + c.count, 0)));
       expect(new Set(shown).size).toBe(shown.length);
-      expect(report.causes!.reduce((n, c) => n + c.count, 0)).toBe(flagged);
       expect(report.notListed ?? 0).toBe(flagged - shown.length);
       // One of every cause before a second of any.
       if (limit >= 2) expect(report.causes!.every((c) => c.items.length > 0)).toBe(true);
@@ -410,7 +412,7 @@ describe("batch results: counts and the items that need attention (#1182)", () =
       expect(tool.description).toContain("unchanged");
       expect(tool.description).toContain("verbose: true");
       // The default is a named argument, stated in the description, and nothing is left out past it.
-      expect(tool.description).toContain("up to limit items across the causes (default 50)");
+      expect(tool.description).toContain("up to limit items across the causes (default 50; limit caps the causes too");
       expect(tool.description).toContain("notListed");
       expect(Object.keys(tool.inputSchema)).toContain("limit");
       expect(Object.keys(tool.inputSchema)).toContain("verbose");

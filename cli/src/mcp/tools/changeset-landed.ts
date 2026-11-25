@@ -5,20 +5,14 @@
  * - A changeset that is already landed is a result, not an error (#1441): when it landed, the
  *   model files it wrote and whether they are committed to git. "Only a staged changeset can be
  *   committed" read as if the wrong changeset was named, and sent the agent looking for another.
- * - A changeset staged into moments ago, or being written now, may still be receiving writes
- *   (#1437). The preview says so: a write that arrives while it lands, or after, is refused rather
- *   than lost, and has to be sent again elsewhere.
+ * Evidence that something is still writing into a staged changeset is core/changeset-write-activity.ts.
  */
 
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import type { Changeset } from "../../core/changeset.js";
-import type { Model } from "../../core/model.js";
-import { FileLock } from "../../utils/file-lock.js";
+import { typeToSnakeStem, type Model } from "../../core/model.js";
 import { runGit, type GitRunner } from "./codebase-shared.js";
-
-/** How recent a staged write must be for the preview to warn that writes may still be arriving. */
-export const RECENT_WRITE_MS = 60_000;
 
 export interface AlreadyLanded {
   id: string;
@@ -50,9 +44,12 @@ async function filesOf(rootPath: string, changeset: Changeset): Promise<string[]
       files.add(path.join(modelDir, "relationships.yaml"));
       continue;
     }
+    // Named as Model.saveLayer names a type's file: application_function.yaml for applicationfunction.
     const type = change.elementId.split(".")[1];
     const layerDir = layerDirs.find((dir) => dir.replace(/^\d+_/, "") === change.layerName);
-    if (layerDir && type) files.add(path.join(modelDir, layerDir, `${type}.yaml`));
+    if (layerDir && type) {
+      files.add(path.join(modelDir, layerDir, `${typeToSnakeStem(`${change.layerName}.${type}`, type)}.yaml`));
+    }
   }
   if (changeset.id) files.add(path.join("documentation-robotics", "changesets", changeset.id));
   return [...files].sort();
@@ -69,7 +66,8 @@ export async function alreadyLandedResult(
       .reverse()
       .find((entry) => entry.name === changeset.name && entry.action === "committed")?.committed_at ?? changeset.modified;
   const files = await filesOf(model.rootPath, changeset);
-  const status = await git(["status", "--porcelain", "--", ...files], model.rootPath);
+  // Every untracked file by name, not its folder, so each file the landing wrote can be checked.
+  const status = await git(["status", "--porcelain", "--untracked-files=all", "--", ...files], model.rootPath);
   const uncommitted = status.ok
     ? status.stdout
         .split("\n")
@@ -91,26 +89,4 @@ export async function alreadyLandedResult(
         ? { committed: false, uncommitted }
         : { committed: true },
   };
-}
-
-/**
- * A warning when the changeset may still be receiving writes: one holds its lock now, or a change
- * was staged into it within {@link RECENT_WRITE_MS}. Undefined otherwise.
- */
-export async function recentWritesWarning(
-  changesetPath: string,
-  changeset: Changeset,
-  now: number = Date.now()
-): Promise<string | undefined> {
-  const holder = FileLock.exists(changesetPath) ? await FileLock.readOwner(changesetPath) : null;
-  const modified = Date.parse(changeset.modified);
-  const ago = Number.isFinite(modified) ? now - modified : Infinity;
-  if (!FileLock.exists(changesetPath) && ago > RECENT_WRITE_MS) return undefined;
-  const what = FileLock.exists(changesetPath)
-    ? `Something is writing to '${changeset.name}' now${holder?.purpose ? ` (${holder.purpose})` : ""}`
-    : `A change was staged into '${changeset.name}' ${Math.max(0, Math.round(ago / 1000))} s ago`;
-  return (
-    `${what}. If anything is still staging into it, let it finish before landing: a write that arrives while it ` +
-    "lands, or after, is refused (never lost) and has to be sent again into another changeset."
-  );
 }

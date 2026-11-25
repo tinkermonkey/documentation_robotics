@@ -11,21 +11,23 @@
  *   renumbered where their sequence would collide, and no further: a gap in the numbering ends
  *   the shift. With no workflow, the steps downstream along flows-to are renumbered the same way.
  *
- * Everything is checked before anything is written. Then the step is added, the later steps
- * renumbered (model_update's code), the hand-offs it replaces removed and the new ones added, in
- * the active changeset when there is one, else in the model.
+ * Everything is checked before anything is written: the step against its schema, and every link
+ * against the catalog and the projection (planRelationshipBatch). In the active changeset it is then
+ * one write (stageMany): the step, the renumbered sequences, the replaced hand-offs removed and the
+ * new links. In the model, the step is added, the later steps renumbered (model_update's code), and
+ * the hand-offs replaced, with nothing left to refuse.
  */
 
+import type { StagedChange } from "../../core/changeset.js";
 import type { ChangesetGraph, GraphRelationship } from "../../core/changeset-graph.js";
 import { ChangesetGraph as Graph } from "../../core/changeset-graph.js";
-import { stageRelationshipDeletes } from "../../core/relationship-staging.js";
+import { planRelationshipBatch, relationshipDeleteChange, stagedRelationshipKeys } from "../../core/relationship-staging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { deleteRelationshipHandler } from "../../commands/relationship.js";
 import { deriveElementId } from "../../utils/id-generator.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { loadModel, reloadModel } from "./shared.js";
-import { writeTargetChangeset } from "./changeset-shared.js";
-import { addOneElement, type ElementSpec, type SingleAddOutcome } from "./model-add.js";
+import { addOneElement, prepareElement, type ElementSpec, type SingleAddOutcome } from "./model-add.js";
 import { updateElement } from "./model-update.js";
 import { addRelationshipBatch, previewChangeset } from "./relationship-tools.js";
 
@@ -122,7 +124,7 @@ export async function insertWorkflowStep(
 
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await writeTargetChangeset(manager);
+  const active = await manager.getWriteTarget();
   const graph = await Graph.build(model, active ?? previewChangeset());
 
   const after = placement.after ? stepOf(graph, placement.after, "after") : undefined;
@@ -194,42 +196,76 @@ export async function insertWorkflowStep(
     sequence
   );
 
-  // Checked: write. The step first, so the hand-offs can name it.
-  const outcome = await addOneElement({ ...spec, attributes: { ...(spec.attributes ?? {}), sequence } }, rootPath);
-  await reloadModel(rootPath);
-  for (const move of [...renumbered].reverse()) {
-    await updateElement(await loadModel(rootPath), { id: move.id, attributePatch: { sequence: move.to } });
-  }
-  await reloadModel(rootPath);
-
-  if (replaced.length > 0) {
-    if (active) {
-      const current = await loadModel(rootPath);
-      const target = (await manager.load(active.id!))!;
-      const fresh = await Graph.build(current, target);
-      const rels = replaced.flatMap((rel) => fresh.getRelationship(rel.source, rel.predicate, rel.target) ?? []);
-      await stageRelationshipDeletes(new StagingAreaManager(current.rootPath, current), fresh, target, rels);
-    } else {
-      for (const rel of replaced) {
-        await deleteRelationshipHandler(await loadModel(rootPath), rel.source, rel.target, rel.predicate, undefined, "mcp");
-      }
-    }
-    await reloadModel(rootPath);
-  }
-  const relationships = [
+  // Check everything before writing anything: the step against its schema, and every link it
+  // gets against the catalog and the projection (#1396 review): a refusal leaves the workflow as it was.
+  const step = { ...spec, attributes: { ...(spec.attributes ?? {}), sequence } };
+  const prepared = await prepareElement(step);
+  const links = [
     ...added.map((rel) => ({ ...rel, predicate: "flows-to" })),
     ...(workflow ? [{ source: workflow, predicate: "composes", target: newId }] : []),
   ];
-  const linked = await addRelationshipBatch(relationships, rootPath, { verbose: true });
-  const refused = (linked.results ?? []).filter((r) => r.status === "invalid");
+  const plan = await planRelationshipBatch(graph, active ?? previewChangeset(), links, {
+    pending: new Map([[newId, { id: newId, layer: "product", type: STEP, name: spec.name }]]),
+    addStatus: active ? "staged" : "added",
+  });
+  const refused = plan.results.filter((r) => r.status === "invalid");
   if (refused.length > 0) {
-    // Checked against the catalog beforehand in kind (step to step, workflow to step): say so if not.
     throw new CLIError(
-      `Step ${newId} was added, but ${refused.length} of its links were refused: ${refused.map((r) => r.reason).join("; ")}`,
-      ErrorCategory.SYSTEM,
-      ['Use "changeset_brief" to see what was staged, and relationship_add to add the missing links']
+      `Step ${newId} was not added: ${refused.length} of the links it needs ${refused.length === 1 ? "is" : "are"} refused: ` +
+        refused.map((r) => `${r.source} --[${r.predicate}]--> ${r.target}: ${r.reason}`).join("; "),
+      ErrorCategory.USER,
+      ["Nothing was written. Fix what the reasons name, or add the step without after/before and link it by hand"]
     );
   }
+
+  let outcome: SingleAddOutcome;
+  if (active) {
+    // In a changeset, one write: the step, the later steps' sequences (folded into a staged add, or
+    // an update), the hand-offs it replaces removed (an add this changeset made is unstaged) and the
+    // new links staged.
+    const product = await model.getLayer("product");
+    const changes: Array<Omit<StagedChange, "sequenceNumber">> = [
+      { type: "add", elementId: newId, layerName: "product", after: prepared.element.toJSON() as unknown as Record<string, unknown> },
+    ];
+    const rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = [];
+    for (const move of renumbered) {
+      const add = (active.changes as StagedChange[]).find((c) => c.type === "add" && graph.resolve(c.elementId) === move.id);
+      if (add?.after) {
+        const after = add.after as Record<string, unknown>;
+        const attributes = { ...((after.attributes as Record<string, unknown>) ?? {}), sequence: move.to };
+        const { sequenceNumber: _sequence, ...rest } = add;
+        rewrites.push({ elementId: add.elementId, change: { ...rest, after: { ...after, attributes } } });
+        continue;
+      }
+      const before = product?.getElement(move.id)?.toJSON() as unknown as Record<string, unknown> | undefined;
+      if (!before) throw new CLIError(`Workflow step ${move.id} could not be read to renumber it`, ErrorCategory.SYSTEM);
+      const attributes = { ...((before.attributes as Record<string, unknown>) ?? {}), sequence: move.to };
+      changes.push({ type: "update", elementId: move.id, layerName: "product", before, after: { ...before, attributes } });
+    }
+    const removals: string[] = [...plan.unstageKeys];
+    for (const rel of replaced) {
+      if (rel.status === "added") removals.push(...stagedRelationshipKeys(graph, active, "relationship-add", rel));
+      else changes.push(relationshipDeleteChange(rel));
+    }
+    changes.push(...plan.changes);
+    await manager.stageMany(active.id!, changes, rewrites, [...new Set(removals)]);
+    await reloadModel(rootPath);
+    outcome = { status: "staged", changeset: active.name, id: newId, layer: "product", type: STEP, name: spec.name };
+  } else {
+    // In the model: everything was checked above, so these writes fail only on I/O.
+    outcome = await addOneElement(step, rootPath);
+    await reloadModel(rootPath);
+    for (const move of [...renumbered].reverse()) {
+      await updateElement(await loadModel(rootPath), { id: move.id, attributePatch: { sequence: move.to } });
+    }
+    for (const rel of replaced) {
+      await deleteRelationshipHandler(await loadModel(rootPath), rel.source, rel.target, rel.predicate, undefined, "mcp");
+    }
+    await reloadModel(rootPath);
+    await addRelationshipBatch(links, rootPath);
+  }
+  if (prepared.notes.length > 0) outcome = { ...outcome, notes: prepared.notes };
+  if (prepared.warnings.length > 0) outcome = { ...outcome, warnings: prepared.warnings };
 
   return {
     ...outcome,

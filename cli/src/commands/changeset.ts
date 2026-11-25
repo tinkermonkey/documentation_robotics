@@ -310,7 +310,7 @@ export function overlapReport(kinds: OverlapKind[]): string[] {
  * was asked and said no; throws the refusal when no one could be asked.
  */
 export async function landsOverOverlaps(
-  manager: Pick<StagingAreaManager, "detectDrift">,
+  manager: Pick<StagingAreaManager, "detectDrift"> & Partial<Pick<StagingAreaManager, "writeActivityWarning">>,
   changeset: Changeset,
   options: {
     force?: boolean;
@@ -322,6 +322,9 @@ export async function landsOverOverlaps(
 ): Promise<boolean> {
   const confirm =
     options.confirm ?? (async (message: string) => (await prompts.confirm({ message, initialValue: false })) === true);
+  // Evidence that something still writes into it (#1437): said before anything else.
+  const stillWriting = await manager.writeActivityWarning?.(changeset);
+  if (stillWriting && !isJson()) console.log(ansis.yellow(`⚠ ${stillWriting}`));
   const report = await manager.detectDrift(changeset);
   const kinds = report.isDrifted && report.described ? overlapKinds(report.described) : [];
   const total = kinds.reduce((n, kind) => n + kind.items.length, 0);

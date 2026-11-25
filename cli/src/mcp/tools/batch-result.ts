@@ -63,17 +63,19 @@ export const limitSchema = z
   .optional()
   .describe(
     `Batch form only. How many of the items that need attention are listed by position under their cause (default ` +
-      `${DEFAULT_ATTENTION_LIMIT}), across the causes: one of every cause first. Every cause is returned with its true ` +
-      "count either way, and notListed counts the items not listed. Pass a larger number to list more."
+      `${DEFAULT_ATTENTION_LIMIT}), across the causes: one of every cause first. It caps the causes listed too (at ` +
+      "least one); causesTotal and notListed count what is left out. Pass a larger number to list more."
   );
 
 /** How a write tool's list answers, for its description. */
 export const BATCH_RESULT_DESCRIPTION =
   "A list answers summary first: total and counts by status, then causes, every item that needs attention grouped " +
   "by what is wrong (one missing element named by many items is one cause), each with its true count and its items " +
-  `by position (index), up to limit items across the causes (default ${DEFAULT_ATTENTION_LIMIT}); notListed counts ` +
-  "the rest. An item already there as sent is unchanged: counted, not listed, so a list can be sent again after a " +
-  "partial failure and writes nothing twice. verbose: true returns every item as results.";
+  `by position (index), up to limit items across the causes (default ${DEFAULT_ATTENTION_LIMIT}; limit caps the ` +
+  "causes too, and causesTotal says how many there are); notListed counts the rest. An item already as sent is " +
+  "unchanged: counted, not listed, so a list can be sent again after a partial failure and writes nothing twice " +
+  "(an item written with a warning comes back unchanged too, so its warning is in the first answer only). " +
+  "verbose: true returns every item as results.";
 
 export interface BatchItemResult {
   /** Position in the request, from 0. */
@@ -149,6 +151,8 @@ export interface BatchReport<T extends BatchItemResult> {
   causes?: BatchCause[];
   /** With byCause: how many items the causes count but do not list (the limit). */
   notListed?: number;
+  /** With byCause, when the limit leaves causes out: how many causes there are in all. */
+  causesTotal?: number;
   /** With byCause, when items are not listed: how to list them. */
   more?: string;
 }
@@ -245,12 +249,13 @@ function splitItem(item: BatchItemResult): {
  * cause of 123. Items whose text is their own, alone, are grouped by the text with what differs taken
  * out (`Element <id> has invalid attributes`), each item keeping its values. Causes come in the
  * items' order of need (not written first), the largest first, and list items up to `limit` across
- * them: one item of every cause before a second of any. Every cause is returned, with its true count.
+ * them: one item of every cause before a second of any. `limit` caps the causes listed too (at least
+ * one is): `causesTotal` is how many there are, and the items of causes left out count as notListed.
  */
 export function batchCauses<T extends BatchItemResult>(
   flagged: T[],
   options: { limit: number; isWritten: (item: T) => boolean }
-): { causes: BatchCause[]; notListed: number } {
+): { causes: BatchCause[]; causesTotal: number; notListed: number; notListedWritten: number } {
   type Member = { item: T; parts: ReturnType<typeof splitItem> };
   const exact = new Map<string, Member[]>();
   for (const item of flagged) {
@@ -289,24 +294,32 @@ export function batchCauses<T extends BatchItemResult>(
       a.members[0].item.index - b.members[0].item.index
   );
 
+  const causesTotal = drafts.length;
+  const shown = drafts.slice(0, Math.max(1, options.limit));
+  let notListed = 0;
+  let notListedWritten = 0;
+  for (const draft of drafts.slice(shown.length)) {
+    notListed += draft.members.length;
+    if (draft.written) notListedWritten += draft.members.length;
+  }
+
   let budget = Math.max(0, options.limit);
-  const listed = drafts.map(() => 0);
+  const listed = shown.map(() => 0);
   // One of every cause first, then fill in order.
-  for (const [i, draft] of drafts.entries()) {
+  for (const [i, draft] of shown.entries()) {
     if (budget === 0) break;
     if (draft.members.length > 0) {
       listed[i] = 1;
       budget--;
     }
   }
-  for (const [i, draft] of drafts.entries()) {
+  for (const [i, draft] of shown.entries()) {
     const more = Math.min(budget, draft.members.length - listed[i]);
     listed[i] += more;
     budget -= more;
   }
 
-  let notListed = 0;
-  const causes = drafts.map((draft, i): BatchCause => {
+  const causes = shown.map((draft, i): BatchCause => {
     const { members, kind } = draft;
     const first = members[0];
     const item = (m: Member, values: boolean): BatchAttentionGroupItem => ({
@@ -339,6 +352,7 @@ export function batchCauses<T extends BatchItemResult>(
     }
     const items = group.items.slice(0, listed[i]);
     notListed += members.length - items.length;
+    if (draft.written) notListedWritten += members.length - items.length;
     return {
       status: group.status,
       reason: group.reason,
@@ -349,7 +363,7 @@ export function batchCauses<T extends BatchItemResult>(
       ...(members.length > items.length ? { notListed: members.length - items.length } : {}),
     };
   });
-  return { causes, notListed };
+  return { causes, causesTotal, notListed, notListedWritten };
 }
 
 /**
@@ -389,22 +403,34 @@ export function batchReport<T extends BatchItemResult>(
 
   const limit = options.limit ?? DEFAULT_ATTENTION_LIMIT;
   if (options.byCause) {
-    const { causes, notListed } = batchCauses(flagged, { limit, isWritten });
+    const { causes, causesTotal, notListed, notListedWritten } = batchCauses(flagged, { limit, isWritten });
+    const notWrittenLeft = notListed - notListedWritten;
+    const more = [
+      `${flagged.length - notListed} of ${flagged.length} items that need attention are listed by position (index)` +
+        (causesTotal > causes.length ? `, under ${causes.length} of ${causesTotal} causes, the largest first` : "") +
+        `; notListed counts the rest (${notListed}).`,
+      // Items not written can be listed by sending them again: what was written comes back unchanged.
+      ...(notWrittenLeft > 0
+        ? [
+            `The ${notWrittenLeft} not written are listed by sending the list again with limit: ${flagged.length}; what ` +
+              "was written comes back unchanged, so nothing is written twice.",
+          ]
+        : []),
+      // Items written with a warning can't be listed again: sent again, they are unchanged.
+      ...(notListedWritten > 0
+        ? [
+            `The ${notListedWritten} written with a warning or note are counted only in this answer: send the next ` +
+              "list with verbose: true, or a larger limit, to have every one.",
+          ]
+        : []),
+    ].join(" ");
     return {
       total: results.length,
       counts,
       attentionTotal: flagged.length,
       causes,
-      ...(notListed > 0
-        ? {
-            notListed,
-            more:
-              `${flagged.length - notListed} of ${flagged.length} items that need attention are listed under their cause, ` +
-              `by position (index); notListed counts the rest (${notListed}). To list them, send the batch again with ` +
-              `limit: ${flagged.length}, or verbose: true for every item: items already written come back unchanged, so ` +
-              `nothing is written twice.`,
-          }
-        : {}),
+      ...(causesTotal > causes.length ? { causesTotal } : {}),
+      ...(notListed > 0 ? { notListed, more } : {}),
     };
   }
 

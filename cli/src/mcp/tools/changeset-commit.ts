@@ -71,7 +71,7 @@ import {
   type McpToolDefinition,
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
-import { alreadyLandedResult, recentWritesWarning } from "./changeset-landed.js";
+import { alreadyLandedResult } from "./changeset-landed.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
@@ -553,10 +553,14 @@ async function describeDriftSafely(target: LandingTarget, toolName: string): Pro
   }
 }
 
-/** An as-built changeset landing while the plan is staged: the plan should land instead. */
+/**
+ * What the person should know before landing: an as-built changeset landing while the plan is
+ * staged (the plan should land instead), and evidence that something is still writing into it.
+ */
 async function landingWarnings(target: LandingTarget): Promise<string[]> {
   const asBuiltFirst = await asBuiltFirstWarning(target.manager, target.rootPath, target.changeset);
-  return asBuiltFirst ? [asBuiltFirst] : [];
+  const stillWriting = await target.manager.writeActivityWarning(target.changeset);
+  return [...(asBuiltFirst ? [asBuiltFirst] : []), ...(stillWriting ? [stillWriting] : [])];
 }
 
 /**
@@ -755,8 +759,8 @@ export async function changesetCommitHandler(
     if (result.deactivationError) {
       warnings.push(
         `The changeset was committed, but its active-changeset marker could not be cleared (${result.deactivationError}). ` +
-          "The marker is ignored, since a committed changeset is never the active one: reads show the base model and " +
-          "writes go to it. Remove the marker with changeset_deactivate once the cause is fixed."
+          "The marker is ignored, since a committed changeset is never the active one: reads show the base model, and " +
+          "writes aimed at the changeset are refused. changeset_deactivate removes the marker once the cause is fixed."
       );
     }
 
@@ -858,7 +862,7 @@ export async function changesetCommitPreviewHandler(
     if ("result" in prepared) return prepared.result;
     const { changeset, hash } = prepared.landing;
     const { state, message, overlaps } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
-    const stillWriting = await recentWritesWarning(prepared.landing.manager.changesetPath(changeset.id!), changeset);
+    const stillWriting = await prepared.landing.manager.writeActivityWarning(changeset);
     const base = {
       id: changeset.id,
       name: changeset.name,
@@ -916,7 +920,7 @@ export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSc
     "with the token, which they approve in the permission prompt. Use it to land from a client that can't show the " +
     "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control). A changeset " +
     "already landed is answered with status 'already-landed' (when, its files, whether git has them): nothing to do. " +
-    "stillWriting says when changes were staged into it moments ago or something writes to it now.",
+    "stillWriting says when something writes into it now, or another process staged into it moments ago.",
   inputSchema: previewInputSchema,
   handler: changesetCommitPreviewHandler,
 };

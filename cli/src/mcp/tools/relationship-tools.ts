@@ -32,6 +32,7 @@ import {
   planRelationshipBatch,
   stagedRelationshipKeys,
   stageRelationshipDeletes,
+  unstagedRelationshipAdd,
   type RelationshipBatchItem,
   type RelationshipBatchPlan,
 } from "../../core/relationship-staging.js";
@@ -40,7 +41,6 @@ import { ModelReportOrchestrator } from "../../reports/model-report-orchestrator
 import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { writeTargetChangeset } from "./changeset-shared.js";
 import {
   BATCH_RESULT_DESCRIPTION,
   BATCH_RESULT_LINE_WIDTH,
@@ -134,7 +134,7 @@ async function addSingleRelationship(
 ): Promise<CallToolResult> {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await writeTargetChangeset(manager);
+  const active = await manager.getWriteTarget();
   const graph = await ChangesetGraph.build(model, active ?? previewChangeset());
 
   // An end that is not an exact id is read as the one element it names by name or by id without
@@ -227,7 +227,7 @@ export async function addRelationshipBatch(
 ): Promise<RelationshipBatchSummary> {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await writeTargetChangeset(manager);
+  const active = await manager.getWriteTarget();
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
   const plan = await planRelationshipBatch(graph, changeset, items, { addStatus: active ? "staged" : "added" });
@@ -385,7 +385,7 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
     const target = args.target;
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const active = await writeTargetChangeset(manager);
+    const active = await manager.getWriteTarget();
 
     if (!active) {
       const { deletedCount } = await deleteRelationshipHandler(model, source, target, args.predicate, undefined, "mcp");
@@ -427,9 +427,9 @@ interface RelationshipDeleteBatchResult extends BatchItemResult {
 }
 
 /**
- * relationship_delete's list form (#1372): match every item, then stage the removals in one write
- * and unstage, in one more, the adds of relationships this changeset added. With no changeset
- * active, remove them from the model in one save. Failures are grouped by cause (batch-result.ts).
+ * relationship_delete's list form (#1372): match every item, then stage the removals and unstage
+ * the adds of relationships this changeset added, in one write. With no changeset active, remove
+ * them from the model in one save. Failures are grouped by cause (batch-result.ts).
  */
 export async function deleteRelationshipBatch(
   items: DeleteItem[],
@@ -438,7 +438,7 @@ export async function deleteRelationshipBatch(
 ) {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await writeTargetChangeset(manager);
+  const active = await manager.getWriteTarget();
   const results: RelationshipDeleteBatchResult[] = [];
   const handled = new Set<string>();
   const keyOf = (rel: { source: string; predicate: string; target: string }) => `${rel.source}::${rel.predicate}::${rel.target}`;
@@ -476,8 +476,10 @@ export async function deleteRelationshipBatch(
               rel.target === to &&
               (!item.predicate || rel.predicate === item.predicate)
           );
+        // Sent again after this changeset removed it, or unstaged its own add of it: a no-op (#1296).
+        const done = removed || unstagedRelationshipAdd(graph, active, { source: from, target: to, predicate: item.predicate });
         results.push(
-          removed
+          done
             ? { ...asSent, status: "unchanged", reason: "This changeset already removes it" }
             : { ...asSent, ...notFound(item, true) }
         );
@@ -495,9 +497,11 @@ export async function deleteRelationshipBatch(
       }
       results.push({ ...asSent, status: staged > 0 ? "staged" : "unstaged", removed: fresh.length });
     }
-    if (toStage.length > 0) await manager.stageMany(active.id!, toStage);
-    if (toUnstage.length > 0) await manager.unstageMany(active.id!, [...new Set(toUnstage)]);
-    if (toStage.length > 0 || toUnstage.length > 0) await reloadModel(rootPath);
+    // One write: the removals staged and this changeset's own adds unstaged together.
+    if (toStage.length > 0 || toUnstage.length > 0) {
+      await manager.stageMany(active.id!, toStage, [], [...new Set(toUnstage)]);
+      await reloadModel(rootPath);
+    }
   } else {
     const removedRows: Relationship[] = [];
     for (const [index, item] of items.entries()) {

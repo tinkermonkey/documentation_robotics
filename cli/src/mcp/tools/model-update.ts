@@ -23,7 +23,10 @@ import {
   precheckUpdateSourceReferenceOptions,
   resolveSourceReferenceOptions,
   settleSourceLocationChange,
+  type SourceReferenceOptions,
 } from "../../utils/source-reference.js";
+import { stableJson } from "../../core/relationship-staging.js";
+import type { SourceReference } from "../../types/index.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
@@ -198,14 +201,15 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
     const outcome = await updateElement(model, { ...args, id: args.id });
     // The update mutated the cached (projected) element in place; reread so the next call projects
     // from what is on disk, staged or written.
-    if (outcome.status !== "no-op") await reloadModel(args.rootPath);
+    if (outcome.status !== "no-op" && outcome.status !== "unchanged") await reloadModel(args.rootPath);
     return jsonResult(outcome);
   }));
 }
 
 /** What one update did, as the single form returns it. */
 export interface UpdateOutcome {
-  status: "staged" | "updated" | "no-op";
+  /** unchanged: the element is already as sent (a list sent again, #1296); nothing written. */
+  status: "staged" | "updated" | "no-op" | "unchanged";
   changeset?: string;
   id: string;
   layer?: string;
@@ -229,7 +233,7 @@ async function updateElementBatch(model: Model, updates: UpdateSpec[], args: Mod
     try {
       const outcome = await updateElement(model, spec);
       changeset ??= outcome.changeset;
-      if (outcome.status !== "no-op") wrote = true;
+      if (outcome.status !== "no-op" && outcome.status !== "unchanged") wrote = true;
       results.push({
         index,
         id: outcome.id,
@@ -252,8 +256,38 @@ async function updateElementBatch(model: Model, updates: UpdateSpec[], args: Mod
   if (wrote) await reloadModel(args.rootPath);
   return {
     ...(changeset ? { changeset } : {}),
-    ...batchReport(results, { verbose: args.verbose, limit: args.limit, written: ["staged", "updated"], byCause: true }),
+    ...batchReport(results, {
+      verbose: args.verbose,
+      limit: args.limit,
+      written: ["staged", "updated"],
+      settled: ["unchanged"],
+      byCause: true,
+    }),
   };
+}
+
+/** Whether an update would leave the element as it is: every field it sends already has that value. */
+function alreadyAsSent(
+  element: Element,
+  args: UpdateSpec,
+  attributePatch: Record<string, unknown> | undefined,
+  currentSource: SourceReference | undefined,
+  locationChange: { reference: SourceReference | undefined } | undefined,
+  sourceOptions: SourceReferenceOptions,
+  layerName: string
+): boolean {
+  if (args.name && args.name !== element.name) return false;
+  if (args.description !== undefined && (args.description || undefined) !== (element.description || undefined)) return false;
+  if (args.type && (!isValidNodeType(layerName, args.type) || normalizeNodeType(layerName, args.type) !== element.type)) {
+    return false;
+  }
+  const newAttributes = resolveAttributeUpdate(element.attributes, { attributes: args.attributes, attributePatch });
+  if (newAttributes && stableJson(newAttributes) !== stableJson(element.attributes ?? {})) return false;
+  const same = (reference: SourceReference | undefined) => stableJson(reference ?? null) === stableJson(currentSource ?? null);
+  if (args.clearSourceReference && currentSource) return false;
+  if (locationChange && !same(locationChange.reference)) return false;
+  if (!locationChange && sourceOptions.sourceProvenance && !same(buildSourceReference(sourceOptions, currentSource))) return false;
+  return true;
 }
 
 /** Validates and applies one update to the loaded model; throws a CLIError saying what is wrong. */
@@ -311,6 +345,17 @@ export async function updateElement(model: Model, args: UpdateSpec): Promise<Upd
       status: "no-op",
       id: args.id,
       message: warnings.length > 0 ? "Nothing left to update" : "No fields specified for update",
+      ...(warnings.length > 0 ? { warnings } : {}),
+    };
+  }
+
+  // Already as sent: nothing to write (#1296), so a list sent again stages nothing twice.
+  if (alreadyAsSent(element, args, attributePatch, currentSource, locationChange, source.options, layerName)) {
+    return {
+      status: "unchanged",
+      id: args.id,
+      layer: layerName,
+      message: "Already as sent",
       ...(warnings.length > 0 ? { warnings } : {}),
     };
   }
@@ -435,8 +480,9 @@ export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
     "Update an existing element's name, description, type, attributes, or source reference. attributes replaces " +
     "all attributes; attributePatch changes only the keys it names (null removes one). sourceFile replaces the " +
     "element's source locations; addSourceLocation and removeSourceLocation add or remove one. Send one (id and its " +
-    "fields) or many (updates: [{id, ...}, ...], or file for a large list). The items that need attention are " +
-    "invalid (with the reason), no-op, or applied with a warning. " +
+    "fields) or many (updates: [{id, ...}, ...], or file for a large list). An update the element already matches " +
+    "is unchanged, and nothing is written. The items that need attention are invalid (with the reason), no-op, or " +
+    "applied with a warning. " +
     BATCH_RESULT_DESCRIPTION +
     " With verbose each item has its changedFields. Invalid items are skipped; the rest are still applied.",
   inputSchema,

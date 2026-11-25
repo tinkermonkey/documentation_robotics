@@ -95,11 +95,17 @@ export async function writeActiveMarker(projectRoot: string, changesetId: string
 
 /**
  * Remove the marker, from `.dr/` and from the old place, and any landed note. No active changeset
- * afterwards, and writes go to the base model.
+ * afterwards, and writes go to the base model. A landing keeps the note it just wrote
+ * (`keepLandedNote`): writes aimed at the changeset it lands are refused.
  */
-export async function clearActiveMarker(projectRoot: string): Promise<void> {
+export async function clearActiveMarker(projectRoot: string, options: { keepLandedNote?: boolean } = {}): Promise<void> {
   await rm(activeMarkerPath(projectRoot), { force: true });
   await rm(legacyActiveMarkerPath(projectRoot), { force: true });
+  if (!options.keepLandedNote) await clearLandedNote(projectRoot);
+}
+
+/** Remove the landed note (a landing that rolled back takes its note away). */
+export async function clearLandedNote(projectRoot: string): Promise<void> {
   await rm(landedNotePath(projectRoot), { force: true });
 }
 

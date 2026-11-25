@@ -1635,6 +1635,9 @@ export class VisualizationServer {
 
       const blockers = await this.changesetBlockers(changeset);
       const { purpose, verifies, scope } = await purposeOf(this.context.rootPath, changeset);
+      // Shown before Apply (#1437): a write that arrives while it lands is refused.
+      const stillWriting =
+        changeset.status === "staged" ? await this.context.stagingArea().writeActivityWarning(changeset) : undefined;
       return c.json({
         id: changeset.id,
         name: changeset.name,
@@ -1650,6 +1653,7 @@ export class VisualizationServer {
         ...(verifies ? { verifies } : {}),
         ...(scope ? { scope } : {}),
         actions: allowedActions(purpose, changeset.status),
+        ...(stillWriting ? { stillWriting } : {}),
         drift: await driftDetail(
           this.model,
           this.context.stagingArea(),

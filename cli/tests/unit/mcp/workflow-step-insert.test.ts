@@ -4,7 +4,7 @@
  * steps' sequence where it collides.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,6 +14,8 @@ import { modelAddHandler, modelAddTool } from "../../../src/mcp/tools/model-add.
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { renumberings } from "../../../src/mcp/tools/workflow-step-insert.js";
+import * as staging from "../../../src/core/relationship-staging.js";
+import { StagingAreaManager } from "../../../src/core/staging-area.js";
 
 let rootPath: string;
 
@@ -145,6 +147,50 @@ describe("model_add after / before for a workflow step (#1396)", () => {
     expect(await flowsFrom(S("pay"))).toEqual([S("confirm")]);
     expect(await flowsFrom(S("confirm"))).toEqual([S("receipt")]);
   });
+
+  it("in a changeset, stages the whole insert in one write", async () => {
+    await seed();
+    await changesetCreateHandler({ name: "plan", rootPath });
+    const many = spyOn(StagingAreaManager.prototype, "stageMany");
+    const single = spyOn(StagingAreaManager.prototype, "stage");
+    try {
+      parse(await modelAddHandler({ ...step("check stock"), after: S("cart"), rootPath } as any));
+      expect(many).toHaveBeenCalledTimes(1);
+      expect(single).not.toHaveBeenCalled();
+    } finally {
+      many.mockRestore();
+      single.mockRestore();
+    }
+  });
+
+  for (const staged of [true, false]) {
+    it(`writes nothing when a link it needs is refused (${staged ? "in a changeset" : "in the model"})`, async () => {
+      await seed();
+      if (staged) await changesetCreateHandler({ name: "plan", rootPath });
+      const before = staged ? (await new StagingAreaManager(rootPath).load("plan"))!.changes.length : 0;
+      const plan = staging.planRelationshipBatch;
+      const refuse = spyOn(staging, "planRelationshipBatch").mockImplementation(async (...args) => {
+        const result = await plan(...args);
+        const [first, ...rest] = result.results;
+        return { ...result, results: [{ ...first, status: "invalid" as const, reason: "The catalog has no such link" }, ...rest] };
+      });
+      try {
+        const result = await modelAddHandler({ ...step("check stock"), after: S("cart"), rootPath } as any);
+        expect(result.isError).toBe(true);
+        expect(text(result)).toContain("was not added");
+        expect(text(result)).toContain("The catalog has no such link");
+      } finally {
+        refuse.mockRestore();
+      }
+      // Nothing changed: no step, no renumbering, the hand-off intact, nothing staged.
+      clearModelCache();
+      const missing = await modelShowHandler({ id: S("check-stock"), rootPath });
+      expect(missing.isError).toBe(true);
+      expect(await sequence(S("pay"))).toBe(2);
+      expect(await flowsFrom(S("cart"))).toEqual([S("pay")]);
+      if (staged) expect((await new StagingAreaManager(rootPath).load("plan"))!.changes.length).toBe(before);
+    });
+  }
 
   it("renumbers the steps downstream along flows-to when no workflow composes them", async () => {
     await seed({ workflow: false });

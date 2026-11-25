@@ -653,6 +653,38 @@ export async function planRelationshipBatch(
   return { changes, unstageKeys, results };
 }
 
+/**
+ * Whether this changeset had staged an add matching `rel` (its predicate, or any when none is given)
+ * and unstaged it since: a delete sent again after it unstaged the add finds nothing live, and that
+ * is the delete already done, not a relationship that never was (#1296).
+ */
+export function unstagedRelationshipAdd(
+  graph: ChangesetGraph,
+  changeset: Changeset,
+  rel: { source: string; predicate?: string; target: string }
+): boolean {
+  const source = graph.resolve(rel.source);
+  const target = graph.resolve(rel.target);
+  return changeset.unstaged.some((tombstone) => {
+    if (tombstone.rewritten || tombstone.change.type !== "relationship-add") return false;
+    const triple = stagedRelationshipTriple(tombstone.change as StagedChange);
+    return (
+      !!triple &&
+      (!rel.predicate || triple.predicate === rel.predicate) &&
+      graph.resolve(triple.source) === source &&
+      graph.resolve(triple.target) === target
+    );
+  });
+}
+
+/** Whether this changeset had staged an add of the element and unstaged it since (see {@link unstagedRelationshipAdd}). */
+export function unstagedElementAdd(graph: ChangesetGraph, changeset: Changeset, id: string): boolean {
+  const resolved = graph.resolve(id);
+  return changeset.unstaged.some(
+    (tombstone) => !tombstone.rewritten && tombstone.change.type === "add" && graph.resolve(tombstone.change.elementId) === resolved
+  );
+}
+
 /** JSON with object keys sorted, so two values compare equal whatever their key order. */
 export function stableJson(value: unknown): string {
   return JSON.stringify(value, (_key, v) =>

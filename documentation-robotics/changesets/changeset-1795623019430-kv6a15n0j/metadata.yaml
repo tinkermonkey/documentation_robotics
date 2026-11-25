@@ -2,17 +2,17 @@ id: changeset-1795623019430-kv6a15n0j
 name: cli09-clear-write-results
 description: 'CLI 0.9.0 tranche "Clear write results" (#1437 #1441 #1295 #1296 #1302 #1415 #1354 #1372 #1426 #1260 #1396). Write results put the summary first, retry idempotently and group failures by cause: a landing holds the changeset''s lock, so no staged write is lost, and a write aimed at a landed or landing changeset fails naming it instead of falling through to the base model; changeset_commit_preview reports an already-landed changeset as a result; model_add/relationship_add batch results lead with counts, group failures by cause under limit, report re-sent items as unchanged and id notes once; a refused relationship names the predicates the catalog allows between the two types; relationship_delete and model_delete take lists; model_update gives a hand-set source file ''manual'' and adds or removes one location explicitly; model_add inserts a product workflow step after or before another, rewiring flows-to and renumbering sequence. Done: each issue fixed with tests, the changed tool descriptions and skills say so.'
 created: 2026-11-25T16:10:19.476Z
-modified: 2026-11-25T16:44:24.632Z
+modified: 2026-11-25T17:21:49.204Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 45
-  modifications: 16
+  additions: 62
+  modifications: 18
   deletions: 0
-lastSequence: 72
+lastSequence: 97
 unstaged:
   - sequence: 9
     removedAt: 61
@@ -257,4 +257,93 @@ unstaged:
           updated_at: 2026-11-25T16:10:59.333Z
           version: 1
       timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 25
+    removedAt: 73
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.insert-workflow-step::depends-on::application.applicationfunction.stage-relationship-deletes
+      layerName: application
+      after:
+        source: application.applicationfunction.insert-workflow-step
+        target: application.applicationfunction.stage-relationship-deletes
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:10:59.355Z
+  - sequence: 27
+    removedAt: 73
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.stage-relationship-deletes
+      layerName: application
+      after:
+        source: application.applicationfunction.delete-relationship-batch
+        target: application.applicationfunction.stage-relationship-deletes
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:10:59.355Z
+  - sequence: 32
+    removedAt: 73
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.resolve-source-reference-options::depends-on::application.applicationfunction.settle-source-location-change
+      layerName: application
+      after:
+        source: application.applicationfunction.resolve-source-reference-options
+        target: application.applicationfunction.settle-source-location-change
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:10:59.355Z
+  - sequence: 4
+    removedAt: 96
+    change:
+      type: add
+      elementId: application.applicationfunction.delete-relationship-batch
+      layerName: application
+      after:
+        id: 87518c04-a65d-4408-b9c9-9e726105fb56
+        path: application.applicationfunction.delete-relationship-batch
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: deleteRelationshipBatch
+        description: "relationship_delete's list form: each {source, predicate?, target} is resolved in the projection; the deletions are staged in one write (or written to the model), and the result is counts with failures grouped by cause; one the changeset already deletes is unchanged (#1372)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/relationship-tools.ts
+              symbol: deleteRelationshipBatch
+      timestamp: 2026-11-25T16:44:24.624Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 97
+    change:
+      type: add
+      elementId: application.applicationfunction.insert-workflow-step
+      layerName: application
+      after:
+        id: 3e07666c-137b-44e2-b504-1067c65bb7e5
+        path: application.applicationfunction.insert-workflow-step
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: insertWorkflowStep
+        description: "model_add's after/before for a product.workflowstep: places the new step after or before an existing one, rewires the flows-to links around it, adds it to the workflow that composes its neighbour, and renumbers the later steps' sequence where they collide (#1396)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/workflow-step-insert.ts
+              symbol: insertWorkflowStep
+      timestamp: 2026-11-25T16:44:24.624Z
     rewritten: true

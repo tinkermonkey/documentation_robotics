@@ -179,7 +179,7 @@ function titleToSnakeCase(title: string): string {
  * Uses the spec node title for accurate word boundaries (e.g., "InputSpacePartition" → "input_space_partition").
  * Falls back to the raw type string when the title is unavailable.
  */
-function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
+export function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
   if (specNodeId) {
     const nodeType = getNodeType(specNodeId as SpecNodeId);
     if (nodeType?.title) {

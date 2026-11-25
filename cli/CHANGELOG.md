@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lists answer with `total`, `counts` and `attentionTotal`, then `causes`: every item that needs
   attention grouped by what is wrong, each with its true count. One missing target named by 123
   relationships is one cause of 123, not 123 entries. Items are listed by position up to `limit`
-  across the causes (one of every cause first), and `notListed` counts the rest. This replaces
+  across the causes (one of every cause first); `limit` caps the causes listed too, and `causesTotal`
+  and `notListed` count the rest. This replaces
   `attention` and `attentionNotListed` in these tools; `codebase_extract`'s decide and reject lists
   keep them.
 - **Id notes once (#1302, #1415):** a list's id-derivation notes (dots and slashes as word breaks,
@@ -37,7 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Retry a list (#1296):** an element or relationship sent again as it is there comes back
   `unchanged`, counted and never listed, so a list can be sent again after a partial failure. One
   sent with other content is refused, naming what differs. A repeat within one list is a
-  `duplicate`. The single form of `model_add` answers `unchanged` too.
+  `duplicate`. The single form of `model_add` answers `unchanged` too, and so does `model_update`
+  when the element already matches (nothing is staged). A delete sent again after the changeset
+  removed the element or relationship, or unstaged its own add of it, is `unchanged` too.
 - **`relationship_delete` takes a list (#1372):** `relationships: [{source, target, predicate?}]`,
   or a `file`. The removals stage in one write, adds this changeset made are unstaged in one more,
   and the result is counts with failures grouped by cause.
@@ -56,17 +59,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A landing never loses a write (#1437):** landing a changeset holds its lock from the read it
   lands to the save that marks it committed. A write staging into it either lands with it or is
   refused, naming the changeset: at once while it lands, and as landed after. Writes were saved over
-  before, and reported success.
+  before, and reported success. Taking a base snapshot and re-baselining take the same lock and
+  re-check that the changeset is staged, so neither saves `staged` back over a landing.
 - **No fall-through after a landing (#1437):** after the active changeset lands (by
   `changeset_commit`, `dr changeset commit` or the viewer's Apply), writes are refused, naming it,
   until a changeset is created or activated, or `changeset_deactivate` (`dr changeset deactivate`)
-  says writes go to the base model. They used to go to the base model silently. A marker naming a
-  committed changeset in a fresh clone still reads as no active changeset (#1218).
-  `changeset_commit_preview` warns (`stillWriting`) when changes were staged into the changeset
-  moments ago.
+  says writes go to the base model. They used to go to the base model silently. The landing records
+  this before it marks the changeset committed, so no write slips through while it finishes, and a
+  failure to record it fails the landing. A marker naming a committed changeset in a fresh clone
+  still reads as no active changeset (#1218). Activating a landed or discarded changeset is refused:
+  it used to mark it staged again, reopening it.
+- **Still writing? (#1437):** the landing summary (`changeset_commit_preview`, with `stillWriting`,
+  and `changeset_commit`'s dialog), the `dr changeset commit` prompt and the viewer's changeset read
+  say when something writes into the changeset now, or another process staged into it in the last
+  30 seconds.
 - **An already-landed changeset (#1441):** `changeset_commit_preview` (and `changeset_commit`) on a
-  committed changeset answers `already-landed`, with when it landed, its files and whether git has
-  them, instead of an error that read as if the wrong changeset was named.
+  committed changeset answers `already-landed`, with when it landed, its files (named as the model
+  names them, `application_function.yaml`) and whether git has them, instead of an error that read
+  as if the wrong changeset was named.
 
 ## [0.8.0] - 2026-11-24
 

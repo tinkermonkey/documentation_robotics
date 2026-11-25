@@ -19,6 +19,7 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { ChangesetActionResultSchema, ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
 import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
+import { FileLock } from "../../../src/utils/file-lock.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const OTHER_GOAL = "motivation.goal.lower-costs";
@@ -101,6 +102,23 @@ afterEach(async () => {
   await server?.stop();
   server = undefined;
   await rm(rootPath, { recursive: true, force: true });
+});
+
+describe("write activity on the changeset read, shown before Apply (#1437)", () => {
+  it.serial("says when something writes into the changeset now, and nothing otherwise", async () => {
+    const id = await planAdding("export-orders", service(SERVICE));
+    const { detail } = await api();
+    expect((await detail(id)).stillWriting).toBeUndefined();
+
+    const { manager } = await fresh();
+    const lock = new FileLock(manager.changesetPath(id));
+    await lock.acquire();
+    try {
+      expect((await detail(id)).stillWriting).toContain("Something is writing into 'export-orders' now");
+    } finally {
+      await lock.release();
+    }
+  });
 });
 
 describe("base drift on the changeset endpoints", () => {

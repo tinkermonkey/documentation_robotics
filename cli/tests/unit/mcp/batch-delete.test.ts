@@ -130,16 +130,27 @@ describe("relationship_delete with a list (#1372)", () => {
     await seed();
     await changesetCreateHandler({ name: "plan", rootPath });
     parse(await modelAddHandler({ elements: [fn("f")], relationships: [{ source: F("f"), predicate: "depends-on", target: F("a") }], rootPath }));
-    const result = parse(
-      await relationshipDeleteHandler({
-        relationships: [
-          { source: F("f"), target: F("a") },
-          { source: F("e"), target: F("a") },
-        ],
-        verbose: true,
-        rootPath,
-      })
-    );
+    // The removal staged and the add unstaged in one write (review of PR 1455, finding 11).
+    const batch = spyOn(StagedChangesetStorage.prototype, "addChanges");
+    const removal = spyOn(StagedChangesetStorage.prototype, "removeChanges");
+    let result: any;
+    try {
+      result = parse(
+        await relationshipDeleteHandler({
+          relationships: [
+            { source: F("f"), target: F("a") },
+            { source: F("e"), target: F("a") },
+          ],
+          verbose: true,
+          rootPath,
+        })
+      );
+      expect(batch).toHaveBeenCalledTimes(1);
+      expect(removal).not.toHaveBeenCalled();
+    } finally {
+      batch.mockRestore();
+      removal.mockRestore();
+    }
     expect(result.results.map((r: any) => [r.status, r.removed])).toEqual([
       ["unstaged", 1],
       ["staged", 1],
