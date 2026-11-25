@@ -14,7 +14,7 @@ import type { Changeset } from "../../core/changeset.js";
 import type { BaseRead } from "../../core/changeset-base-index.js";
 import { driftDetail, driftStatus, type DriftDetail } from "../../core/changeset-drift-status.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { MigrationRegistry } from "../../core/migration-registry.js";
+import { MigrationRegistry, type MigrationKind } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
 import { getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
@@ -147,8 +147,12 @@ export type SpecSection = {
   model: string | null;
   cli: string;
   upgradeNeeded: boolean;
-  /** When behind: whether the CLI has a migration path to its spec, and its steps. */
-  migration?: { available: boolean; steps: string[] };
+  /**
+   * When behind: whether the CLI has a migration path to its spec, and its steps. kind is
+   * manifest-only when every step only stamps the version: nothing in the model changes but
+   * spec_version in manifest.yaml (#1435); project_upgrade's preview confirms it for this model.
+   */
+  migration?: { available: boolean; steps: string[]; kind?: MigrationKind };
   reason?: string;
   /** Set when the manifest names no spec version and `model` is the assumed one. */
   assumed?: true;
@@ -186,8 +190,10 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
     };
   }
 
-  const steps = new MigrationRegistry().getMigrationPath(modelVersion, cli);
+  const registry = new MigrationRegistry();
+  const steps = registry.getMigrationPath(modelVersion, cli);
   const reaches = steps.length > 0 && steps[steps.length - 1].toVersion === cli;
+  const kind = reaches ? registry.migrationKind(modelVersion, cli) : null;
   return {
     status: "behind",
     model: modelVersion,
@@ -196,6 +202,7 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
     migration: {
       available: reaches,
       steps: steps.map((step) => `${step.fromVersion} → ${step.toVersion}`),
+      ...(kind ? { kind } : {}),
     },
     ...(reaches ? {} : { reason: `no migration path from ${modelVersion} to ${cli}` }),
     ...assumed,

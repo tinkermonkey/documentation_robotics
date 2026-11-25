@@ -72,6 +72,7 @@ import {
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
+import { landingRelayoutNote } from "../../core/model-relayout.js";
 
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
@@ -552,10 +553,18 @@ async function describeDriftSafely(target: LandingTarget, toolName: string): Pro
   }
 }
 
-/** An as-built changeset landing while the plan is staged: the plan should land instead. */
+/**
+ * What the person should know before landing: an as-built changeset landing while the plan is
+ * staged (the plan should land instead), and the files the landing would re-lay out.
+ */
 async function landingWarnings(target: LandingTarget): Promise<string[]> {
   const asBuiltFirst = await asBuiltFirstWarning(target.manager, target.rootPath, target.changeset);
-  return asBuiltFirst ? [asBuiltFirst] : [];
+  // Files an earlier dr laid out, which the landing lays out anew (#1439): never refuses it
+  const relayout = await landingRelayoutNote(target.rootPath, target.changeset.changes).catch((error) => {
+    console.error(`[mcp] could not check the layout of the files the landing writes: ${getErrorMessage(error)}`);
+    return null;
+  });
+  return [...(asBuiltFirst ? [asBuiltFirst] : []), ...(relayout ? [relayout] : [])];
 }
 
 /**

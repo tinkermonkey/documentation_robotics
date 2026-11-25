@@ -995,6 +995,10 @@ program
     "Remove leftovers of older integration layouts (names an earlier dr installed that this one no longer has): the paths given, as the plan lists them, or all of them when none is given"
   )
   .option("--full", "List every file, element and derived value; long lists otherwise show their first entries with the total")
+  .option(
+    "--relayout",
+    "Also lay out the model files an earlier dr wrote (long strings folded at 80 columns) as this dr writes them, data unchanged"
+  )
   .addHelpText(
     "after",
     `
@@ -1004,6 +1008,7 @@ Examples:
   $ dr upgrade --dry-run --full  # The same, with no list shortened
   $ dr upgrade --yes        # Upgrade without prompting
   $ dr upgrade --model-only # Migrate the model; leave integrations, reports and ignore files alone
+  $ dr upgrade --relayout   # Also lay out an earlier dr's model files as this one writes them (commit it on its own)
   $ dr upgrade --force      # Force all upgrades, ignoring version checks`
   )
   .action(async (options) => {
@@ -1015,6 +1020,7 @@ Examples:
       dotDr: options.dotDr,
       removeStale: options.removeStale,
       full: options.full,
+      relayout: options.relayout,
     });
   });
 

@@ -13,12 +13,14 @@ import { Model } from "./model.js";
 import { applyCatalogMigrations, type CatalogMigrationResult } from "./catalog-migration.js";
 import { summarizeRetiredAttributeChanges } from "./attribute-migration.js";
 import { droppedRelationshipsOf, planDropRecord, type UpgradeDropRecord } from "./upgrade-drop-record.js";
+import { relayoutModelFiles, type RelayoutResult } from "./model-relayout.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { fileExists } from "../utils/file-io.js";
 import { join } from "path";
 
 export interface UpgradeAction {
-  type: "spec" | "model" | "integration";
+  /** relayout: model files an earlier dr wrote, laid out in dr's layout with their data unchanged (#1439) */
+  type: "spec" | "model" | "relayout" | "integration";
   description: string;
   fromVersion?: string;
   toVersion: string;
@@ -62,6 +64,11 @@ export interface UpgradeScan {
   catalogPreview?: CatalogMigrationResult;
   /** The catalog check failed; the scan goes on without a catalog action */
   catalogCheckError?: string;
+  /**
+   * The model's element files not in dr's layout (written by an earlier dr, or laid out by
+   * prettier): a relayout action lays them out when the scan was asked for one (#1439)
+   */
+  relayout?: RelayoutResult;
 }
 
 export interface UpgradeScanOptions {
@@ -72,6 +79,12 @@ export interface UpgradeScanOptions {
    * installed reference's version. `dr upgrade` and the MCP tool both set it.
    */
   targetBundledSpec?: boolean;
+  /**
+   * Plan a relayout of the model's element files not in dr's layout, data unchanged, as an action
+   * of its own (#1439). Without it the scan only counts them (`relayout`): an upgrade otherwise
+   * writes no model file whose data does not change.
+   */
+  relayout?: boolean;
 }
 
 /** An error reading the spec reference or model manifest; `dr upgrade` prints it before failing. */
@@ -218,7 +231,36 @@ export async function scanUpgrades(projectRoot: string, options: UpgradeScanOpti
     }
   }
 
+  // Model files an earlier dr laid out (long strings folded at 80 columns): counted, and with the
+  // relayout option laid out as a step of their own, so the next landing that touches one carries
+  // only its own changes (#1439)
+  const relayout = await relayoutModelFiles(projectRoot, { dryRun: true });
+  if (relayout.files.length > 0) {
+    scan.relayout = relayout;
+    if (options.relayout) actions.push(relayoutAction(relayout, targetSpecVersion));
+  }
+
   return scan;
+}
+
+/** How many files the relayout action names in its details before counting the rest. */
+const RELAYOUT_FILES_NAMED = 10;
+
+function relayoutAction(relayout: RelayoutResult, toVersion: string): UpgradeAction {
+  const { files } = relayout;
+  return {
+    type: "relayout",
+    description: `Lay out ${files.length} model file(s) as this dr writes them (data unchanged)`,
+    toVersion,
+    details: [
+      `${files.length} of ${relayout.total} element files are in an earlier dr's layout (long strings folded at 80 ` +
+        "columns). Re-laying them out now keeps that out of later landings: commit it on its own.",
+      ...files.slice(0, RELAYOUT_FILES_NAMED),
+      ...(files.length > RELAYOUT_FILES_NAMED
+        ? [`and ${files.length - RELAYOUT_FILES_NAMED} more (project_upgrade's relayout.files and dr upgrade --full list them all)`]
+        : []),
+    ],
+  };
 }
 
 /** What the catalog migration would change in the model at projectRoot, without changing it. */

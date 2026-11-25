@@ -378,9 +378,13 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
   if (spec.status === "behind") {
-    const how = spec.migration?.available
-      ? "Preview and apply the migration with project_upgrade."
-      : "The CLI has no migration path between them; project_upgrade reports the options.";
+    const how = !spec.migration?.available
+      ? "The CLI has no migration path between them; project_upgrade reports the options."
+      : spec.migration.kind === "manifest-only"
+        ? "The migration only stamps the new version: nothing in the model changes but spec_version in " +
+          "manifest.yaml (migration.kind: manifest-only). Preview it with project_upgrade, tell the user that, and " +
+          "apply it when they approve."
+        : "Preview and apply the migration with project_upgrade.";
     return {
       summary: `The model is on spec ${spec.model}; this CLI carries ${spec.cli}. ${how}`,
       tool: "project_upgrade",
