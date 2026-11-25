@@ -163,4 +163,49 @@ describe("SemanticValidator", () => {
     expect(result.isValid()).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
+
+  describe("application interface protocols (spec 0.16.0, Context Studio 43f52ae5)", () => {
+    function modelWith(protocols: Array<string | undefined>): Model {
+      const model = createTestModel();
+      model.addLayer(
+        new Layer(
+          "application",
+          protocols.map(
+            (protocol, i) =>
+              new Element({
+                id: `application.applicationinterface.i${i}`,
+                path: `application.applicationinterface.i${i}`,
+                type: "applicationinterface",
+                name: `Interface ${i}`,
+                attributes: protocol === undefined ? {} : { protocol },
+              })
+          )
+        )
+      );
+      return model;
+    }
+
+    it("advises HTTP for REST and HTTPS, as a warning, never an error", async () => {
+      const result = await new SemanticValidator().validateModel(modelWith(["REST", "HTTPS"]));
+      expect(result.isValid()).toBe(true);
+      const messages = result.warnings.map((w) => w.message);
+      expect(messages[0]).toContain("'REST' is written 'HTTP'");
+      expect(messages[1]).toContain("'HTTPS' is written 'HTTP'");
+      expect(result.warnings[0].fixSuggestion).toContain('--attribute-patch \'{"protocol":"HTTP"}\'');
+      expect(result.warnings[0].category).toBe("semantic");
+    });
+
+    it("gives a known protocol its own spelling, and names the vocabulary for an unknown one", async () => {
+      const result = await new SemanticValidator().validateModel(modelWith(["graphql", "Thrift"]));
+      expect(result.warnings.map((w) => w.message)).toEqual([
+        expect.stringContaining("'graphql' is written 'GraphQL'"),
+        expect.stringContaining("'Thrift' is not in the recommended vocabulary (HTTP, MCP, GraphQL"),
+      ]);
+    });
+
+    it("says nothing for a recommended protocol or an interface without one", async () => {
+      const result = await new SemanticValidator().validateModel(modelWith(["HTTP", "MCP", "gRPC", undefined, ""]));
+      expect(result.warnings).toHaveLength(0);
+    });
+  });
 });
