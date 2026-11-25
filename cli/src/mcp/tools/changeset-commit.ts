@@ -73,6 +73,7 @@ import {
   type McpToolDefinition,
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
+import { alreadyLandedResult } from "./changeset-landed.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { landingRelayoutNote } from "../../core/model-relayout.js";
 
@@ -557,7 +558,8 @@ async function describeDriftSafely(target: LandingTarget, toolName: string): Pro
 
 /**
  * What the person should know before landing: an as-built changeset landing while the plan is
- * staged (the plan should land instead), and the files the landing would re-lay out.
+ * staged (the plan should land instead), the files the landing would re-lay out, and evidence that
+ * something is still writing into it.
  */
 async function landingWarnings(target: LandingTarget): Promise<string[]> {
   const asBuiltFirst = await asBuiltFirstWarning(target.manager, target.rootPath, target.changeset);
@@ -566,7 +568,12 @@ async function landingWarnings(target: LandingTarget): Promise<string[]> {
     console.error(`[mcp] could not check the layout of the files the landing writes: ${getErrorMessage(error)}`);
     return null;
   });
-  return [...(asBuiltFirst ? [asBuiltFirst] : []), ...(relayout ? [relayout] : [])];
+  const stillWriting = await target.manager.writeActivityWarning(target.changeset);
+  return [
+    ...(asBuiltFirst ? [asBuiltFirst] : []),
+    ...(relayout ? [relayout] : []),
+    ...(stillWriting ? [stillWriting] : []),
+  ];
 }
 
 /**
@@ -584,6 +591,10 @@ async function prepareLanding(
   const model = await Model.load(rootPath, { lazyLoad: false });
   const manager = new StagingAreaManager(model.rootPath, model);
   const changeset = await resolveChangeset(manager, args.changeset, "changeset");
+  // Already landed is an answer, not a wrong name (#1441).
+  if (changeset.status === "committed") {
+    return { result: jsonResult(await alreadyLandedResult(model, changeset)) };
+  }
   if (changeset.status !== "staged") {
     throw new CLIError(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can be committed`, ErrorCategory.USER, [
       'Use "changeset_list" to find a staged changeset',
@@ -767,8 +778,8 @@ export async function changesetCommitHandler(
     if (result.deactivationError) {
       warnings.push(
         `The changeset was committed, but its active-changeset marker could not be cleared (${result.deactivationError}). ` +
-          "The marker is ignored, since a committed changeset is never the active one: reads show the base model and " +
-          "writes go to it. Remove the marker with changeset_deactivate once the cause is fixed."
+          "The marker is ignored, since a committed changeset is never the active one: reads show the base model, and " +
+          "writes aimed at the changeset are refused. changeset_deactivate removes the marker once the cause is fixed."
       );
     }
 
@@ -870,10 +881,12 @@ export async function changesetCommitPreviewHandler(
     if ("result" in prepared) return prepared.result;
     const { changeset, hash } = prepared.landing;
     const { state, message, overlaps } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
+    const stillWriting = await prepared.landing.manager.writeActivityWarning(changeset);
     const base = {
       id: changeset.id,
       name: changeset.name,
       status: "ready-to-commit",
+      ...(stillWriting ? { stillWriting } : {}),
       // The CLI that lands it, stamped as the manifest's cli_version (#1427).
       cliVersion: getCliVersion(),
       // Drift is in the summary; it does not stop the landing.
@@ -926,7 +939,9 @@ export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSc
     "Drift does not stop a landing. From Claude Code it also returns a confirmToken bound to the changeset and base " +
     "as they are now, good for an hour: show the user the summary, and if they want it landed, call changeset_commit " +
     "with the token, which they approve in the permission prompt. Use it to land from a client that can't show the " +
-    "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control).",
+    "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control). A changeset " +
+    "already landed is answered with status 'already-landed' (when, its files, whether git has them): nothing to do. " +
+    "stillWriting says when something writes into it now, or another process staged into it moments ago.",
   inputSchema: previewInputSchema,
   handler: changesetCommitPreviewHandler,
 };

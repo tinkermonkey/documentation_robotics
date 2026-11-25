@@ -809,17 +809,29 @@ describe("MCP model tools", () => {
       }
     });
 
-    it("returns a structured error when the element already exists", async () => {
+    it("answers unchanged for an element sent again as it is, and refuses one sent with other content (#1296)", async () => {
       await withProject(async (rootPath) => {
-        const result = await modelAddHandler({
+        const again = await modelAddHandler({
           layer: "business",
           type: "businessservice",
           name: "payments",
           rootPath,
         });
+        expect(again.isError).toBeFalsy();
+        expect(parse(again)).toMatchObject({ status: "unchanged", id: "business.businessservice.payments" });
+
+        const result = await modelAddHandler({
+          layer: "business",
+          type: "businessservice",
+          name: "payments",
+          description: "Something else entirely",
+          rootPath,
+        });
         expect(result.isError).toBe(true);
         const data = parse(result);
         expect(data.error).toContain("already exists");
+        expect(data.error).toContain("with another description");
+        expect(data.suggestions.join(" ")).toContain("model_update");
       });
     });
   });

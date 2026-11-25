@@ -12,6 +12,8 @@ import { createHash } from "crypto";
 import { readFile, writeFile, readdir, rm, stat } from "fs/promises";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { FileLock } from "../utils/file-lock.js";
+import { ChangesetClosedToWritesError, changesetNotStagedError, refuseWhileLanding } from "./changeset-write-refusal.js";
+import { recordChangesetWrite } from "./changeset-write-activity.js";
 import path from "path";
 import yaml from "yaml";
 import ansis from "ansis";
@@ -523,10 +525,7 @@ export class StagedChangesetStorage {
 
     try {
       return await lock.withLock(async () => {
-        const changeset = await this.load(id);
-        if (!changeset) {
-          throw new Error(`Changeset '${id}' not found`);
-        }
+        const changeset = await this.loadStaged(id);
 
         // Assign sequence number atomically inside the lock
         // This prevents race conditions when multiple concurrent operations
@@ -545,10 +544,12 @@ export class StagedChangesetStorage {
         changeset.updateModified();
 
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
 
         return sequenceNumber;
-      });
+      }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
+      if (error instanceof ChangesetClosedToWritesError) throw error;
       const errorMessage = getErrorMessage(error);
 
       // Detect lock-specific errors
@@ -577,27 +578,40 @@ export class StagedChangesetStorage {
   }
 
   /**
-   * Add several changes, and rewrite some staged ones in place, in one write: one load and one save
-   * instead of one per change. Additions take the next sequence numbers in order; a rewrite keeps
-   * its change's number and leaves a tombstone, as {@link updateChange} does.
+   * Add several changes, rewrite some staged ones in place, and unstage others, in one write: one
+   * load and one save instead of one per change. `removals` (element ids, as {@link removeChanges}
+   * takes them) go first, as one revision that keeps each removed change as a tombstone; a rewrite
+   * keeps its change's number and leaves a tombstone, as {@link updateChange} does; additions take
+   * the next sequence numbers in order.
    *
    * @returns The sequence numbers assigned to the additions, in order
    */
   async addChanges(
     id: string,
     changes: Array<Omit<StagedChange, "sequenceNumber">>,
-    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = [],
+    removals: string[] = []
   ): Promise<number[]> {
-    if (changes.length === 0 && rewrites.length === 0) return [];
+    if (changes.length === 0 && rewrites.length === 0 && removals.length === 0) return [];
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
     try {
       return await lock.withLock(async () => {
-        const changeset = await this.load(id);
-        if (!changeset) {
-          throw new Error(`Changeset '${id}' not found`);
-        }
+        const changeset = await this.loadStaged(id);
         changeset.changes = withSequenceNumbers(changeset.changes, nextSequenceNumber(changeset));
+        if (removals.length > 0) {
+          const keys = new Set(removals);
+          const removed = (changeset.changes as StagedChange[]).filter((c) => keys.has(c.elementId));
+          if (removed.length > 0) {
+            const revision = nextSequenceNumber(changeset);
+            changeset.lastSequence = revision;
+            changeset.changes = changeset.changes.filter((c) => !keys.has(c.elementId));
+            addTombstones(
+              changeset,
+              removed.map((c) => ({ sequence: c.sequenceNumber, removedAt: revision, change: compactChange(c) }))
+            );
+          }
+        }
         for (const { elementId, change } of rewrites) {
           const index = changeset.changes.findIndex((c) => c.elementId === elementId);
           if (index === -1) {
@@ -621,9 +635,11 @@ export class StagedChangesetStorage {
         }
         changeset.updateModified();
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
         return numbers;
-      });
+      }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
+      if (error instanceof ChangesetClosedToWritesError) throw error;
       const errorMessage = getErrorMessage(error);
       if (errorMessage.includes("lock") || errorMessage.includes("timeout")) {
         const lockFilePath = path.join(changesetPath, ".lock");
@@ -713,10 +729,7 @@ export class StagedChangesetStorage {
 
     try {
       return await lock.withLock(async () => {
-        const changeset = await this.load(id);
-        if (!changeset) {
-          throw new Error(`Changeset '${id}' not found`);
-        }
+        const changeset = await this.loadStaged(id);
 
         // Number any change that carries none by its position first, so the ones that stay keep
         // the numbers they had. Remaining changes are not renumbered.
@@ -744,9 +757,11 @@ export class StagedChangesetStorage {
         changeset.updateModified();
 
         await this.save(changeset);
+        await recordChangesetWrite(this.rootPath, id);
         return removedAt;
-      });
+      }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
+      if (error instanceof ChangesetClosedToWritesError) throw error;
       const errorMessage = getErrorMessage(error);
 
       // Detect lock-specific errors
@@ -793,10 +808,7 @@ export class StagedChangesetStorage {
 
     try {
       await lock.withLock(async () => {
-        const changeset = await this.load(id);
-        if (!changeset) {
-          throw new Error(`Changeset '${id}' not found`);
-        }
+        const changeset = await this.loadStaged(id);
 
         const index = changeset.changes.findIndex((c) => c.elementId === elementId);
         if (index === -1) {
@@ -823,8 +835,10 @@ export class StagedChangesetStorage {
 
         changeset.updateModified();
         await this.save(changeset);
-      });
+        await recordChangesetWrite(this.rootPath, id);
+      }, { refuseWhenHeldBy: refuseWhileLanding(id) });
     } catch (error) {
+      if (error instanceof ChangesetClosedToWritesError) throw error;
       const errorMessage = getErrorMessage(error);
       throw new Error(
         `Failed to update change in changeset '${id}': ${errorMessage}\n` +
@@ -948,6 +962,22 @@ export class StagedChangesetStorage {
       removed.push(entry.name);
     }
     return removed;
+  }
+
+  /**
+   * The changeset, read under its lock by a write that changes its staged changes: refused when it
+   * is not staged, since a landing (or a discard) may have closed it while the write waited for the
+   * lock (#1437). A write that reports success is in a staged changeset on disk.
+   */
+  private async loadStaged(id: string): Promise<Changeset> {
+    const changeset = await this.load(id);
+    if (!changeset) {
+      throw new Error(`Changeset '${id}' not found`);
+    }
+    if (changeset.status !== "staged") {
+      throw changesetNotStagedError({ ...changeset, id: changeset.id ?? id, name: changeset.name });
+    }
+    return changeset;
   }
 
   getChangesetPath(id: string): string {

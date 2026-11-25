@@ -132,11 +132,12 @@ describe("relationship_add with a list (D3)", () => {
     // The cross-layer one records its target layer, as the single form does.
     expect((relationshipAdds[1].after as any).targetLayer).toBe("application");
 
-    // A second identical batch stages nothing: all duplicates.
+    // A second identical batch stages nothing: what is already there is unchanged (#1296).
     const again = parse(
       await relationshipAddHandler({ relationships: [{ source: FUNCTION, predicate: "realizes", target: SERVICE }], rootPath })
     );
-    expect(again.counts).toEqual({ duplicate: 1 });
+    expect(again.counts).toEqual({ unchanged: 1 });
+    expect(again.causes).toBeUndefined();
   });
 
   it("re-adding what the changeset deletes restores it", async () => {
@@ -235,7 +236,7 @@ describe("model_add with a list (D3)", () => {
             { layer: "api", type: "operation", name: "export-orders", attributes: OPERATION_ATTRS },
             { layer: "api", type: "operation", name: "broken", attributes: {} }, // missing required attributes
             { layer: "api", type: "nonsense", name: "x" },
-            { layer: "application", type: "applicationservice", name: "checkout", attributes: { serviceType: "synchronous" } }, // exists
+            { layer: "application", type: "applicationservice", name: "checkout", attributes: { serviceType: "synchronous" } }, // there as sent
           ],
           relationships: [
             { source: OPERATION, predicate: "realizes", target: FUNCTION },
@@ -253,12 +254,12 @@ describe("model_add with a list (D3)", () => {
     }
 
     expect(result.changeset).toBe("plan");
-    expect(result.elements.counts).toEqual({ staged: 2, invalid: 3 });
-    expect(result.elements.results.map((r: any) => r.status)).toEqual(["staged", "staged", "invalid", "invalid", "invalid"]);
+    expect(result.elements.counts).toEqual({ staged: 2, invalid: 2, unchanged: 1 });
+    expect(result.elements.results.map((r: any) => r.status)).toEqual(["staged", "staged", "invalid", "invalid", "unchanged"]);
     expect(result.elements.results[2].reason).toContain("invalid attributes");
     expect(result.elements.results[2].suggestions.join(" ")).toContain("spec_type");
     expect(result.elements.results[3].reason).toContain('Invalid element type "nonsense"');
-    expect(result.elements.results[4].reason).toContain("already exists");
+    expect(result.elements.results[4].id).toBe(SERVICE);
     expect(result.relationships.counts).toEqual({ staged: 2, invalid: 1 });
     expect(result.relationships.results[2].reason).toContain("api.operation.broken was not added");
 
@@ -637,7 +638,7 @@ describe("source fields for planned elements (bug 14)", () => {
     expect(result.elements.results[1].warnings[0]).toContain("'extracted' was ignored");
   });
 
-  it("model_update: a file alone keeps the provenance (or gets 'manual'); a provenance alone keeps the file", async () => {
+  it("model_update: a file alone set by hand gets 'manual' (#1260); a provenance alone keeps the file", async () => {
     await createChangeset();
     const updated = parse(await modelUpdateHandler({ id: SERVICE, sourceFile: "src/checkout.ts", rootPath }));
     expect(updated.status).toBe("staged");
@@ -650,10 +651,14 @@ describe("source fields for planned elements (bug 14)", () => {
     ref = parse(await modelShowHandler({ id: SERVICE, rootPath })).element.source_reference;
     expect(ref).toEqual({ provenance: "extracted", locations: [{ file: "src/checkout.ts" }] });
 
+    // The same file again keeps the provenance; another file is set by hand, so it is 'manual'.
+    parse(await modelUpdateHandler({ id: SERVICE, sourceFile: "src/checkout.ts", sourceSymbol: "checkout", rootPath }));
+    ref = parse(await modelShowHandler({ id: SERVICE, rootPath })).element.source_reference;
+    expect(ref).toEqual({ provenance: "extracted", locations: [{ file: "src/checkout.ts", symbol: "checkout" }] });
     const moved = parse(await modelUpdateHandler({ id: SERVICE, sourceFile: "src/checkout/index.ts", rootPath }));
     expect(moved.warnings).toBeUndefined();
     ref = parse(await modelShowHandler({ id: SERVICE, rootPath })).element.source_reference;
-    expect(ref).toEqual({ provenance: "extracted", locations: [{ file: "src/checkout/index.ts" }] });
+    expect(ref).toEqual({ provenance: "manual", locations: [{ file: "src/checkout/index.ts" }] });
   });
 
   it("model_update: 'manual' alone on an element with no file is ignored with a warning, and stages nothing", async () => {

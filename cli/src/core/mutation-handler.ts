@@ -182,7 +182,7 @@ export class MutationHandler {
     this.context.before = undefined;
 
     // Check if we're in staging mode
-    const activeChangeset = await this.stagingManager.getActive();
+    const activeChangeset = await this.stagingManager.getWriteTarget();
     if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: capture after state and stage
       this.context.after = element.toJSON() as unknown as Record<string, unknown>;
@@ -218,7 +218,7 @@ export class MutationHandler {
     this.context.after = { ...this.context.before };
 
     // Check if we're in staging mode
-    const activeChangeset = await this.stagingManager.getActive();
+    const activeChangeset = await this.stagingManager.getWriteTarget();
     if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: apply mutations to after state, then stage
       await mutator(element, this.context.after);
@@ -268,7 +268,7 @@ export class MutationHandler {
     const identifiers = elementIdentifiers(element, this.context.elementId);
 
     // Check if we're in staging mode
-    const activeChangeset = await this.stagingManager.getActive();
+    const activeChangeset = await this.stagingManager.getWriteTarget();
     if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: stage the deletion, then stage the removal of every
       // relationship that names the element so the commit leaves no dangling rows
@@ -342,7 +342,7 @@ export class MutationHandler {
     }
 
     // Check if we're in staging mode
-    const activeChangeset = await this.stagingManager.getActive();
+    const activeChangeset = await this.stagingManager.getWriteTarget();
     if (activeChangeset && activeChangeset.status === "staged") {
       // Staging path: build after state and stage
       if (this.context.before === undefined && type !== "add") {

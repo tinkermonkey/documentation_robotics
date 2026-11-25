@@ -26,7 +26,8 @@ import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelUpdateHandler, modelUpdateTool } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler, relationshipAddTool } from "../../../src/mcp/tools/relationship-tools.js";
-import { generateUUID } from "../../../src/utils/id-generator.js";
+import { generateUUID, ID_NOTE_SUMMARY } from "../../../src/utils/id-generator.js";
+import { listed } from "../../helpers/batch-causes.js";
 
 function text(result: any): string {
   return result.content[0].text as string;
@@ -115,26 +116,30 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     expect(result.elements.total).toBe(5);
     expect(result.elements.counts).toEqual({ staged: 4, invalid: 1 });
     expect(result.elements.results).toBeUndefined();
-    expect(result.elements.attention.map((r: any) => [r.index, r.status])).toEqual([
+    // Not written first, then written with a warning; an id note is said once, apart (#1415).
+    expect(result.elements.causes.map((c: any) => [c.status, c.count])).toEqual([
+      ["invalid", 1],
+      ["staged", 1],
+    ]);
+    expect(listed(result.elements).map((r) => [r.index, r.status])).toEqual([
       [1, "invalid"],
       [2, "staged"],
-      [3, "staged"],
     ]);
-    expect(result.elements.attention[1].warnings[0]).toContain("'extracted' was ignored");
-    expect(result.elements.attention[2]).toMatchObject({
-      id: "application.applicationfunction.n-3d-preview",
-      notes: ["The name starts with a digit and an id must start with a letter, so the id is prefixed with 'n-'."],
-    });
+    expect(listed(result.elements)[1].reason).toContain("'extracted' was ignored");
+    expect(result.elements.attentionTotal).toBe(2);
+    expect(result.elements.idNotes).toEqual([
+      { note: ID_NOTE_SUMMARY["digit-prefix"], count: 1, sample: ["application.applicationfunction.n-3d-preview"] },
+    ]);
 
     expect(result.relationships.counts).toEqual({ staged: 2, duplicate: 1, invalid: 1 });
     // Only what was not staged needs attention. The relationship given by names was staged: how
     // its ends were read is reported once, as a map, not as an item to look at.
-    expect(result.relationships.attention.map((r: any) => [r.index, r.status])).toEqual([
+    expect(listed(result.relationships).map((r) => [r.index, r.status])).toEqual([
       [1, "duplicate"],
       [3, "invalid"],
     ]);
     expect(result.relationships.attentionTotal).toBe(2);
-    expect(result.relationships.attentionNotListed).toBeUndefined();
+    expect(result.relationships.notListed).toBeUndefined();
     expect(result.relationships.readByName).toEqual({
       exportOrders: "application.applicationfunction.export-orders",
       importOrders: "application.applicationfunction.import-orders",
@@ -150,7 +155,7 @@ describe("batch results: counts and the items that need attention (#1182)", () =
       ],
       verbose: true,
     });
-    expect(result.elements.attention).toBeUndefined();
+    expect(result.elements.causes).toBeUndefined();
     expect(result.elements.results).toEqual([
       { index: 0, name: "exportOrders", id: "application.applicationfunction.export-orders", status: "staged" },
       { index: 1, name: "archiveOrders", id: "application.applicationfunction.archive-orders", status: "staged" },
@@ -163,16 +168,16 @@ describe("batch results: counts and the items that need attention (#1182)", () =
       ],
       verbose: true,
     });
-    expect(again.counts).toEqual({ duplicate: 1 });
+    expect(again.counts).toEqual({ unchanged: 1 });
     expect(again.results).toHaveLength(1);
   });
 
-  it("accounts for every failure in one response when there are more than the default lists in full", async () => {
+  it("accounts for every failure in one response, by cause, when there are more than the limit lists", async () => {
     await createChangeset();
     await add({ elements: [fn("exportOrders"), fn("archiveOrders")] });
     const EXPORT = "application.applicationfunction.export-orders";
     const extra = 20;
-    // Two causes, interleaved: an end that does not exist, and a triple the catalog does not have.
+    // Two causes, interleaved: an end that does not exist (each its own), and a triple the catalog does not have.
     const relationships = Array.from({ length: DEFAULT_ATTENTION_LIMIT + extra }, (_, i) =>
       i % 2 === 0
         ? { source: EXPORT, predicate: "depends-on", target: `application.applicationfunction.missing-${i}` }
@@ -180,112 +185,146 @@ describe("batch results: counts and the items that need attention (#1182)", () =
     );
     relationships.push({ source: EXPORT, predicate: "depends-on", target: "application.applicationfunction.archive-orders" });
     const sent = relationships.length;
+    const failures = DEFAULT_ATTENTION_LIMIT + extra;
     const body = parse(await relationshipAddHandler({ relationships, rootPath } as any));
 
-    // Counts are over the whole batch, not the part listed.
+    // Summary first: counts are over the whole batch, not the part listed.
+    expect(Object.keys(body).slice(0, 4)).toEqual(["changeset", "total", "counts", "attentionTotal"]);
     expect(body.total).toBe(sent);
-    expect(body.counts).toEqual({ invalid: DEFAULT_ATTENTION_LIMIT + extra, staged: 1 });
-    expect(body.attentionTotal).toBe(DEFAULT_ATTENTION_LIMIT + extra);
-    expect(body.attention).toHaveLength(DEFAULT_ATTENTION_LIMIT);
-    expect(body.attentionNotListed.count).toBe(extra);
+    expect(body.counts).toEqual({ invalid: failures, staged: 1 });
+    expect(body.attentionTotal).toBe(failures);
 
-    // Every failure past the default is under its reason, by position: none is dropped.
-    const groups = body.attentionNotListed.groups;
-    expect(groups.map((g: any) => [g.status, g.count])).toEqual([
-      ["invalid", extra / 2],
-      ["invalid", extra / 2],
+    // Two causes, each with its true count; items listed up to the limit across them.
+    expect(body.causes.map((c: any) => [c.status, c.count])).toEqual([
+      ["invalid", failures / 2],
+      ["invalid", failures / 2],
     ]);
-    expect(groups[0].reason).toBe("Target element <id> not found");
-    expect(groups[1].reason).toContain("The catalog has no application.applicationfunction --[tests]--> application.applicationfunction");
-    const listed = body.attention.map((r: any) => r.index);
-    const grouped = groups.flatMap((g: any) => g.items.map((item: any) => item.index));
-    expect([...listed, ...grouped].sort((a: number, b: number) => a - b)).toEqual(Array.from({ length: sent - 1 }, (_, i) => i));
-    expect(groups.every((g: any) => g.count === g.items.length)).toBe(true);
-    // A grouped item keeps what its own message named: the group's text with the item's values put
-    // back is the message the item would have had in full.
-    const one = groups[0].items[0];
-    expect(one.values).toEqual([`application.applicationfunction.missing-${one.index}`]);
-    // What every item of the group shares stays in the group's text.
-    expect(groups[0].suggestions).toEqual(['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds']);
-    expect(body.attentionNotListed.more).toContain(`limit: ${DEFAULT_ATTENTION_LIMIT + extra}`);
-    expect(body.attentionNotListed.more).toContain("verbose: true");
+    const [missing, catalog] = body.causes;
+    expect(missing.reason).toBe("Target element <id> not found");
+    expect(missing.suggestions).toEqual(['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds']);
+    expect(missing.items[0].values).toEqual([`application.applicationfunction.missing-${missing.items[0].index}`]);
+    // One catalog refusal shared word for word by every item: written out once, items by position.
+    expect(catalog.reason).toContain("The catalog has no application.applicationfunction --[tests]--> application.applicationfunction");
+    expect(catalog.items.every((item: any) => item.values === undefined)).toBe(true);
+    expect(missing.items.length + catalog.items.length).toBe(DEFAULT_ATTENTION_LIMIT);
+    expect((missing.notListed ?? 0) + (catalog.notListed ?? 0)).toBe(extra);
+    expect(body.notListed).toBe(extra);
+    // Not written, so sending the list again lists them; nothing written comes back but unchanged.
+    expect(body.more).toContain(`limit: ${failures}`);
+    expect(body.more).toContain("comes back unchanged");
+
+    // Every listed item's text, rebuilt from its cause, is the message it has in full.
     const whole = parse(await relationshipAddHandler({ relationships: relationships.slice(0, -1), verbose: true, rootPath } as any));
-    const fill = (text: string, values: Array<string | number>) => {
-      let i = 0;
-      return text.replace(/<id>|"<name>"|\[n\]/g, (token) => (token === "<id>" ? String(values[i++]) : token === "[n]" ? `[${values[i++]}]` : `"${values[i++]}"`));
-    };
-    for (const group of groups) {
-      for (const item of group.items) {
-        const full = whole.results[item.index];
-        const values = item.values ?? [];
-        const reasonValues = values.slice(0, (group.reason.match(/<id>|"<name>"|\[n\]/g) ?? []).length);
-        expect(fill(group.reason, reasonValues)).toBe(full.reason);
-      }
+    for (const item of listed(body)) {
+      expect(item.reason).toBe(whole.results[item.index].reason);
+      expect(item.suggestions).toEqual(whole.results[item.index].suggestions);
     }
 
-    // Suggestions repeated across items are listed once and pointed at.
-    expect(body.attention[1].suggestions.length).toBeGreaterThan(0);
-    expect(body.attention[3].suggestions).toBeUndefined();
-    expect(body.attention[3].suggestionsAsFor).toBe(1);
-
-    // Sending the failures again writes nothing twice, and limit returns each one in full.
+    // Sending the batch again writes nothing twice (what was staged is unchanged), and limit lists every failure.
     const again = parse(await relationshipAddHandler({ relationships, limit: sent, rootPath } as any));
-    expect(again.counts).toEqual({ invalid: DEFAULT_ATTENTION_LIMIT + extra, duplicate: 1 });
-    expect(again.attention).toHaveLength(sent);
-    expect(again.attentionTotal).toBe(sent);
-    expect(again.attentionNotListed).toBeUndefined();
-    expect(again.attention.every((r: any) => typeof r.reason === "string")).toBe(true);
+    expect(again.counts).toEqual({ invalid: failures, unchanged: 1 });
+    expect(listed(again)).toHaveLength(failures);
+    expect(again.notListed).toBeUndefined();
   });
 
-  it("lists failures before notes, and gives a written item past the limit by position and id", async () => {
+  it("reports one missing target named by many relationships as one cause with its count (#1295)", async () => {
     await createChangeset();
-    // Six elements staged with a note about their id, then two that are refused.
+    const tags = ["a", "b", "c", "d"].map((t) => fn(`tag ${t}`));
+    await add({ elements: tags });
+    const relationships = Array.from({ length: 123 }, (_, i) => ({
+      source: `application.applicationfunction.tag-${"abcd"[i % 4]}`,
+      predicate: "depends-on",
+      target: "application.applicationfunction.no-such-function",
+    }));
+    const result = await relationshipAddHandler({ relationships, limit: 5, rootPath } as any);
+    const body = parse(result);
+    expect(body.counts).toEqual({ invalid: 123 });
+    expect(body.causes).toEqual([
+      {
+        status: "invalid",
+        reason: "Target element application.applicationfunction.no-such-function not found",
+        suggestions: ['Use "model_search" to find elements, or "changeset_brief" to see what this changeset adds'],
+        count: 123,
+        items: [0, 1, 2, 3, 4].map((index) => ({ index })),
+        notListed: 118,
+      },
+    ]);
+    expect(text(result).length).toBeLessThan(1024);
+  });
+
+  it("lists failures before warnings, one of every cause first, and says id notes once", async () => {
+    await createChangeset();
+    // Six elements staged with a note about their id, two with a warning, then two that are refused.
     const elements = [
       ...Array.from({ length: 6 }, (_, i) => fn(`${i + 1}D Preview`)),
+      fn("importOrders", { sourceProvenance: "extracted" }),
+      fn("exportOrders", { sourceProvenance: "extracted" }),
       schema("OrderExport", { attributes: { type: 7 } }),
       schema("OrderImport", { attributes: { type: 7 } }),
     ];
-    const result = await add({ elements, limit: 3 });
-    expect(result.elements.counts).toEqual({ staged: 6, invalid: 2 });
-    expect(result.elements.attentionTotal).toBe(8);
-    // The limit is spent on the failures first.
-    expect(result.elements.attention.map((r: any) => [r.index, r.status])).toEqual([
-      [6, "invalid"],
-      [7, "invalid"],
-      [0, "staged"],
+    const result = await add({ elements, limit: 2 });
+    expect(result.elements.counts).toEqual({ staged: 8, invalid: 2 });
+    // The id notes are not attention items (#1415): said once, with a count and sample ids (#1302).
+    expect(result.elements.attentionTotal).toBe(4);
+    expect(result.elements.idNotes).toEqual([
+      {
+        note: ID_NOTE_SUMMARY["digit-prefix"],
+        count: 6,
+        sample: [1, 2, 3, 4, 5].map((n) => `application.applicationfunction.n-${n}d-preview`),
+      },
     ]);
-    expect(result.elements.attentionNotListed).toMatchObject({
-      count: 5,
-      groups: [
-        {
-          status: "staged",
-          reason: "The name starts with a digit and an id must start with a letter, so the id is prefixed with 'n-'.",
-          count: 5,
-          items: [1, 2, 3, 4, 5].map((index) => ({ index, id: `application.applicationfunction.n-${index + 1}d-preview` })),
-        },
-      ],
-    });
+    // The refusals come first; the limit lists one of each cause before a second of any.
+    const [refused, warned] = result.elements.causes;
+    expect(refused).toMatchObject({ status: "invalid", count: 2, notListed: 1 });
+    expect(refused.reason).toContain("Element <id> has invalid attributes");
+    // The reason names the element twice; the item's values say it each time.
+    expect(refused.items).toEqual([{ index: 8, values: ["data-model.objectschema.order-export", "data-model.objectschema.order-export"] }]);
+    expect(warned).toMatchObject({ status: "staged", count: 2, notListed: 1 });
+    expect(warned.items).toEqual([{ index: 6, id: "application.applicationfunction.import-orders" }]);
+    expect(result.elements.notListed).toBe(2);
 
-    // limit: 0 lists none in full and still accounts for all eight.
-    await add({ elements: [fn("exportOrders")] });
+    // limit: 0 lists none and still accounts for both.
     const none = await update({
       updates: [{ id: "application.applicationfunction.nope-a", description: "x" }, { id: "application.applicationfunction.nope-b", description: "x" }],
       limit: 0,
     });
-    expect(none.attention).toEqual([]);
     expect(none.attentionTotal).toBe(2);
-    expect(none.attentionNotListed.groups).toEqual([
+    expect(none.causes).toEqual([
       {
         status: "invalid",
         reason: "Element <id> not found",
         suggestions: ['Use "model_search" to find similar elements'],
         count: 2,
-        items: [
-          { index: 0, values: ["application.applicationfunction.nope-a"] },
-          { index: 1, values: ["application.applicationfunction.nope-b"] },
-        ],
+        items: [],
+        notListed: 2,
       },
     ]);
+  });
+
+  it("batchReport by cause: listed and counted items together are every item that needs attention", () => {
+    const results = Array.from({ length: 500 }, (_, index) => ({
+      index,
+      id: `api.operation.op-${index}`,
+      status: index % 5 === 0 ? "invalid" : index % 11 === 0 ? "unchanged" : "staged",
+      ...(index % 5 === 0 ? { reason: `Element api.operation.op-${index} has invalid attributes` } : {}),
+      ...(index % 7 === 0 && index % 5 !== 0 ? { warnings: ["sourceProvenance 'extracted' was ignored"] } : {}),
+    }));
+    // An unchanged item is settled: never listed, even with a warning.
+    const flagged = results.filter((r) => r.status === "invalid" || (r.status === "staged" && "warnings" in r)).length;
+    for (const limit of [0, 1, 2, 50, flagged - 1, flagged, 10_000]) {
+      const report = batchReport(results, { limit, written: ["staged"], settled: ["unchanged"], byCause: true });
+      expect(report.total).toBe(500);
+      expect(report.attentionTotal).toBe(flagged);
+      // limit caps the causes listed too, at least one: the not written first.
+      expect(report.causes!.map((c) => c.status)).toEqual(limit >= 2 ? ["invalid", "staged"] : ["invalid"]);
+      expect(report.causesTotal).toBe(limit >= 2 ? undefined : 2);
+      const shown = report.causes!.flatMap((c) => c.items.map((item) => item.index));
+      expect(shown).toHaveLength(Math.min(limit, report.causes!.reduce((n, c) => n + c.count, 0)));
+      expect(new Set(shown).size).toBe(shown.length);
+      expect(report.notListed ?? 0).toBe(flagged - shown.length);
+      // One of every cause before a second of any.
+      if (limit >= 2) expect(report.causes!.every((c) => c.items.length > 0)).toBe(true);
+    }
   });
 
   it("batchReport: listed and grouped items together are every item that needs attention", () => {
@@ -368,11 +407,13 @@ describe("batch results: counts and the items that need attention (#1182)", () =
 
   it("documents the result shape and verbose in the tool descriptions", () => {
     for (const tool of [modelAddTool, relationshipAddTool, modelUpdateTool]) {
-      expect(tool.description).toContain("attention");
+      expect(tool.description).toContain("summary first");
+      expect(tool.description).toContain("causes");
+      expect(tool.description).toContain("unchanged");
       expect(tool.description).toContain("verbose: true");
       // The default is a named argument, stated in the description, and nothing is left out past it.
-      expect(tool.description).toContain("up to limit items in full (default 50)");
-      expect(tool.description).toContain("attentionNotListed");
+      expect(tool.description).toContain("up to limit items across the causes (default 50; limit caps the causes too");
+      expect(tool.description).toContain("notListed");
       expect(Object.keys(tool.inputSchema)).toContain("limit");
       expect(Object.keys(tool.inputSchema)).toContain("verbose");
       expect(Object.keys(tool.inputSchema)).toContain("file");
@@ -393,7 +434,7 @@ describe("a JSON file for a large batch (#1217)", () => {
     );
     const result = await add({ file });
     expect(result.elements.counts).toEqual({ staged: 2, invalid: 1 });
-    expect(result.elements.attention[0].reason).toContain("missing required property 'type'");
+    expect(listed(result.elements)[0].reason).toContain("missing required property 'type'");
     expect(result.relationships.counts).toEqual({ staged: 1 });
     expect((await show("application.applicationfunction.export-orders")).relationships.outgoing).toHaveLength(1);
   });
@@ -482,14 +523,14 @@ describe("model_update with a list", () => {
     expect(result.changeset).toBe("plan");
     expect(result.total).toBe(6);
     expect(result.counts).toEqual({ staged: 3, invalid: 2, "no-op": 1 });
-    expect(result.attention.map((r: any) => [r.index, r.status])).toEqual([
+    expect(listed(result).map((r) => [r.index, r.status])).toEqual([
       [2, "invalid"],
       [3, "invalid"],
       [4, "no-op"],
     ]);
-    expect(result.attention[0].reason).toContain("fail schema validation");
-    expect(result.attention[1].reason).toBe("Element application.applicationfunction.nope not found");
-    expect(result.attention[2].reason).toBe("No fields specified for update");
+    expect(listed(result)[0].reason).toContain("fail schema validation");
+    expect(listed(result)[1].reason).toBe("Element application.applicationfunction.nope not found");
+    expect(listed(result)[2].reason).toBe("No fields specified for update");
 
     const exported = (await show("application.applicationfunction.export-orders")).element;
     expect(exported.description).toBe("Exports orders");
@@ -555,7 +596,7 @@ describe("sourceProvenance default (#1233)", () => {
   it("still warns when a provenance is ignored", async () => {
     await createChangeset();
     const result = await add({ elements: [fn("importOrders", { sourceProvenance: "extracted" })] });
-    expect(result.elements.attention[0].warnings[0]).toContain("sourceProvenance 'extracted' was ignored");
+    expect(listed(result.elements)[0].reason).toContain("sourceProvenance 'extracted' was ignored");
   });
 });
 
@@ -585,7 +626,7 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
     // verbose says where each element was found.
     const again = await relate({ relationships: [{ source: "Offline Render Experience", predicate: "depends-on", target: "Render Idle" }], verbose: true });
     expect(again.results[0]).toMatchObject({
-      status: "duplicate",
+      status: "unchanged",
       source: "application.applicationfunction.offline-render-experience",
       notes: [
         "Source Offline Render Experience read as application.applicationfunction.offline-render-experience, which this changeset adds",
@@ -610,13 +651,13 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
     const result = await relationshipAddHandler({ relationships, rootPath } as any);
     const body = parse(result);
     expect(body.total).toBe(181);
-    expect((body.counts.staged ?? 0) + (body.counts.duplicate ?? 0) + (body.counts.invalid ?? 0)).toBe(181);
+    expect((body.counts.staged ?? 0) + (body.counts.duplicate ?? 0) + (body.counts.unchanged ?? 0) + (body.counts.invalid ?? 0)).toBe(181);
     expect(body.counts.staged).toBeGreaterThan(150);
     // One entry per distinct name, each with the id it was read as.
     expect(Object.keys(body.readByName)).toHaveLength(40);
     expect(body.readByName["Render State 7"]).toBe("application.applicationfunction.render-state-7");
-    // Only the items that were not staged are attention items.
-    expect(body.attentionTotal ?? 0).toBe(181 - body.counts.staged);
+    // Only the items that were not staged (or already there) are attention items.
+    expect(body.attentionTotal ?? 0).toBe(181 - body.counts.staged - (body.counts.unchanged ?? 0));
     expect(text(result).length).toBeLessThan(12 * 1024);
   });
 
@@ -670,7 +711,7 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
       ],
     });
     expect(result.relationships.counts).toEqual({ invalid: 1, staged: 1 });
-    expect(result.relationships.attention[0]).toMatchObject({
+    expect(listed(result.relationships)[0]).toMatchObject({
       index: 0,
       reason:
         "Source Order is not an exact id and matches more than one element: " +
@@ -684,11 +725,11 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
     await add({ elements: [fn("Order Export"), schema("Order Export"), fn("Render Idle")] });
     const result = await relate({ relationships: [{ source: "Order Export", predicate: "depends-on", target: "Render Idle" }] });
     expect(result.counts).toEqual({ invalid: 1 });
-    expect(result.attention[0].reason).toBe(
+    expect(listed(result)[0].reason).toBe(
       "Source Order Export is not an exact id and matches more than one element: " +
         "application.applicationfunction.order-export, data-model.objectschema.order-export"
     );
-    expect(result.attention[0].suggestions).toEqual(["Name the element by its exact id"]);
+    expect(listed(result)[0].suggestions).toEqual(["Name the element by its exact id"]);
   });
 
   it("offers the id that starts the same when two tools cut one long name differently (#1225)", async () => {
@@ -700,8 +741,8 @@ describe("relationships naming elements an earlier call staged (#1230)", () => {
     // The id an older build made for the same name: not cut.
     const uncut = `application.applicationfunction.${long.replace(/ /g, "-")}`;
     const result = await relate({ relationships: [{ source: uncut, predicate: "depends-on", target: "Render Idle" }] });
-    expect(result.attention[0].reason).toBe(`Source element ${uncut} not found`);
-    expect(result.attention[0].suggestions[0]).toContain(`Did you mean: ${id}`);
+    expect(listed(result)[0].reason).toBe(`Source element ${uncut} not found`);
+    expect(listed(result)[0].suggestions![0]).toContain(`Did you mean: ${id}`);
   });
 });
 
@@ -721,9 +762,9 @@ describe("required attributes of a refused type (#1153)", () => {
       "motivation.goal": { priority: "one of [critical, high, medium, low, informational]" },
       "api.operation": { operationId: "string", summary: "string", tags: "string" },
     });
-    expect(result.elements.attention[0].reason).toContain("has invalid attributes");
+    expect(listed(result.elements)[0].reason).toContain("has invalid attributes");
     // Each refused type once, in requiredAttributes: never repeated on every refused item.
-    for (const item of result.elements.attention) {
+    for (const item of listed(result.elements)) {
       expect((item.suggestions ?? []).some((s: string) => s.includes(" requires: "))).toBe(false);
     }
   });
@@ -769,19 +810,34 @@ describe("ids a name derives (#1212, #1184)", () => {
     for (const tool of [modelAddTool]) expect(tool.description).toContain("'Tier1Status' → tier1-status");
   });
 
-  it("lists an element whose id is not its name's plain kebab case, so the agent has the id", async () => {
+  it("names an element whose id is not its name's plain kebab case, so the agent has the id", async () => {
     await createChangeset();
     const result = await add({ elements: [fn("Node.js"), fn("exportOrders"), fn("PetTypeRepository.findPetTypes")] });
     expect(result.elements.counts).toEqual({ staged: 3 });
-    // camelCase, and a dot between code-symbol parts, split as the description says: not listed.
-    expect(result.elements.attention).toEqual([
-      {
-        index: 0,
-        name: "Node.js",
-        id: "application.applicationfunction.node-js",
-        status: "staged",
-        notes: ["Dots, slashes and braces in the name are word breaks in the id."],
-      },
+    // camelCase, and a dot between code-symbol parts, split as the description says: not named.
+    // Nothing needs attention: the note is said once, with the id (#1415).
+    expect(result.elements.causes).toBeUndefined();
+    expect(result.elements.idNotes).toEqual([
+      { note: ID_NOTE_SUMMARY["word-breaks"], count: 1, sample: ["application.applicationfunction.node-js"] },
+    ]);
+    // verbose keeps the note on the item.
+    const verbose = await add({ elements: [fn("Deno.js")], verbose: true });
+    expect(verbose.elements.results[0].notes).toEqual(["Dots, slashes and braces in the name are word breaks in the id."]);
+  });
+
+  it("says each id rule once with a count and sample, however many names and lengths (#1302, #1415)", async () => {
+    await createChangeset();
+    const long = (n: number) => `checks that ${"the order total ".repeat(5)}holds for case number ${n} ${"x".repeat(n)}`;
+    const elements = [
+      ...Array.from({ length: 40 }, (_, n) => fn(long(n))),
+      ...Array.from({ length: 30 }, (_, n) => fn(`GET /api/projects/${n}/parts`)),
+    ];
+    const result = await add({ elements });
+    expect(result.elements.counts).toEqual({ staged: 70 });
+    expect(result.elements.attentionTotal).toBeUndefined();
+    expect(result.elements.idNotes.map((n: any) => [n.note, n.count, n.sample.length])).toEqual([
+      [ID_NOTE_SUMMARY["shortened"], 40, 5],
+      [ID_NOTE_SUMMARY["word-breaks"], 30, 5],
     ]);
   });
 
@@ -790,16 +846,17 @@ describe("ids a name derives (#1212, #1184)", () => {
     const op = (name: string) => ({ layer: "api", type: "operation", name, attributes: { operationId: "x", summary: "x", tags: "x" } });
     const result = await add({ elements: [op("GET /"), op("GET /*"), op("GET *"), op("GET /")] });
     // "GET /" is the root route (get-root); "GET /*" and "GET *" both come down to "get".
-    expect(result.elements.counts).toEqual({ staged: 2, invalid: 2 });
-    const [star, repeat, root] = result.elements.attention;
-    // The root route was staged, and is listed (after the refusals) for its id: not the name's plain kebab case.
-    expect(root).toMatchObject({ index: 0, id: "api.operation.get-root", notes: ["A route on the root path gets an id that ends in -root."] });
+    expect(result.elements.counts).toEqual({ staged: 2, invalid: 1, duplicate: 1 });
+    const [star, repeat] = [listed(result.elements)[0], listed(result.elements)[1]];
+    // The root route was staged; its id note is said once, with its id.
+    expect(result.elements.idNotes).toEqual([{ note: ID_NOTE_SUMMARY["root-route"], count: 1, sample: ["api.operation.get-root"] }]);
     expect(star).toMatchObject({
       index: 2,
       reason: '"GET *" gives the same id as elements[1] "GET /*" (api.operation.get): an id comes from the name alone',
       suggestions: ["Give one of the two a name that differs in its letters or digits"],
     });
-    expect(repeat).toMatchObject({ index: 3, reason: "Repeated earlier in this batch (elements[0])" });
+    // The same element sent twice in one list is a duplicate, not a refusal (#1296).
+    expect(repeat).toMatchObject({ index: 3, status: "duplicate", reason: "Repeated earlier in this batch (elements[0])" });
   });
 });
 
@@ -847,11 +904,13 @@ describe("existing ids are never renamed", () => {
     await createChangeset();
     const result = await add({ elements: [schema("Tier1Status"), fn("Node.js"), fn("exportOrders")] });
     expect(result.elements.counts).toEqual({ invalid: 2, staged: 1 });
-    expect(result.elements.attention[0]).toMatchObject({
-      id: OLD_STATUS,
+    expect(result.elements.causes[0].reason).toBe(
+      `Element <id> already exists with this name (the name gives <id> today; the element keeps its id)`
+    );
+    expect(listed(result.elements)[0]).toMatchObject({
       reason: `Element ${OLD_STATUS} already exists with this name (the name gives data-model.objectschema.tier1-status today; the element keeps its id)`,
     });
-    expect(result.elements.attention[1].id).toBe(OLD_NODE);
+    expect(listed(result.elements)[1].reason).toContain(OLD_NODE);
 
     const single = errorOf(await modelAddHandler({ ...schema("Tier1Status"), rootPath } as any));
     expect(single.error).toContain(`Element ${OLD_STATUS} already exists with this name`);
@@ -893,12 +952,15 @@ describe("existing ids are never renamed", () => {
       ],
     });
     expect(result.elements.counts).toEqual({ invalid: 4 });
-    expect(result.elements.attention.map((r: any) => r.id)).toEqual(["api.operation.get", uncut, cutBefore, "api.operation.get"]);
-    expect(result.elements.attention[0].reason).toBe(
+    const refused = listed(result.elements);
+    for (const [i, id] of ["api.operation.get", uncut, cutBefore, "api.operation.get"].entries()) {
+      expect(refused[i].reason).toContain(`Element ${id} already exists`);
+    }
+    expect(refused[0].reason).toBe(
       "Element api.operation.get already exists with this name (the name gives api.operation.get-root today; the element keeps its id)"
     );
     // The fourth is refused for another reason, and says so: its id is taken by an element of another name.
-    expect(result.elements.attention[3].reason).toBe(
+    expect(refused[3].reason).toBe(
       'Element api.operation.get already exists, named "GET /": "GET /*" gives the same id, so give the new element a name that differs in its letters or digits'
     );
 
@@ -940,7 +1002,7 @@ describe("existing ids are never renamed", () => {
     await createChangeset();
     const list = await add({ elements: seeded.map((e) => fn(e.name)) });
     expect(list.elements.counts).toEqual({ invalid: 3 });
-    expect(list.elements.attention.map((r: any) => r.id)).toEqual(seeded.map((e) => e.id));
+    expect(listed(list.elements).map((r) => r.reason.split(" ")[1])).toEqual(seeded.map((e) => e.id));
     for (const e of seeded) {
       const single = errorOf(await modelAddHandler({ ...fn(e.name), rootPath } as any));
       expect(single.error).toContain(`Element ${e.id} already exists with this name`);
@@ -951,7 +1013,7 @@ describe("existing ids are never renamed", () => {
     await createChangeset();
     await add({ elements: [fn("3D Object Effect")] });
     const result = await add({ elements: [fn("N 3D Object Effect")] });
-    expect(result.elements.attention[0].reason).toBe(
+    expect(listed(result.elements)[0].reason).toBe(
       'Element application.applicationfunction.n-3d-object-effect already exists, named "3D Object Effect": ' +
         '"N 3D Object Effect" gives the same id, so give the new element a name that differs in its letters or digits'
     );
@@ -962,7 +1024,7 @@ describe("existing ids are never renamed", () => {
     const result = await add({ elements: [schema("TIER1Status"), schema("Tier1 Status")] });
     // "TIER1Status" and "Tier1 Status" both gave tier1status's id under some rule: one element.
     expect(result.elements.counts).toEqual({ invalid: 2 });
-    expect(result.elements.attention[0].reason).toBe(
+    expect(listed(result.elements)[0].reason).toBe(
       `Element ${OLD_STATUS} already exists, named "Tier1Status": that name and this one gave one id when it was made ` +
         "(this one gives data-model.objectschema.tier1-status today; the element keeps its id)"
     );
@@ -973,8 +1035,8 @@ describe("existing ids are never renamed", () => {
     // "Tier 1 Status" (tier-1-status) never gave Tier1Status's id: another element, worth a warning.
     const result = await add({ elements: [schema("Tier 1 Status")] });
     expect(result.elements.counts).toEqual({ staged: 1 });
-    expect(result.elements.attention[0].warnings).toEqual([
-      `data-model.objectschema.tier-1-status differs only by hyphens from ${OLD_STATUS}: check that they are not the same element.`,
-    ]);
+    expect(listed(result.elements)[0].reason).toBe(
+      `data-model.objectschema.tier-1-status differs only by hyphens from ${OLD_STATUS}: check that they are not the same element.`
+    );
   });
 });

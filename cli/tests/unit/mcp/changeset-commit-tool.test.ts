@@ -686,12 +686,13 @@ describe("changeset_commit drift and edge cases", () => {
     expect(elicitations).toHaveLength(0);
   });
 
-  it("refuses a changeset that is not staged", async () => {
+  it("answers that a changeset already landed is landed, without asking again (#1441)", async () => {
     const c = await connect({ elicitation: true, answer: { action: "accept", content: { confirm: true } } });
     expect((await commit(c)).isError).toBeFalsy();
     const again = await commit(c);
-    expect(again.isError).toBe(true);
-    expect(text(again)).toContain("is committed");
+    expect(again.isError).toBeFalsy();
+    expect(parse(again)).toMatchObject({ status: "already-landed" });
+    expect(parse(again).nothingToDo).toContain("is already landed");
     expect(elicitations).toHaveLength(1);
   });
 });

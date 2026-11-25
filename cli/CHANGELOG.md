@@ -50,6 +50,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   relayout first, on its own, and commit it apart from the plan, so the plan's pull request shows
   only its own changes.
   `cli/scripts/relayout-model-files.ts` now runs the same code.
+- **Retry a list (#1296):** an element or relationship sent again as it is there comes back
+  `unchanged`, counted and never listed, so a list can be sent again after a partial failure. One
+  sent with other content is refused, naming what differs. A repeat within one list is a
+  `duplicate`. The single form of `model_add` answers `unchanged` too, and so does `model_update`
+  when the element already matches (nothing is staged). A delete sent again after the changeset
+  removed the element or relationship, or unstaged its own add of it, is `unchanged` too.
+- **`relationship_delete` takes a list (#1372):** `relationships: [{source, target, predicate?}]`,
+  or a `file`. The removals are staged, and adds this changeset made unstaged, in one write; the
+  result is counts with failures grouped by cause.
+- **`model_delete` takes a list (#1426):** `ids: [...]`, or a `file`, with the call's `cascade`,
+  `force` and `dryRun`. Ids in the list never block one another as dependents.
+- **Insert a workflow step (#1396):** `model_add`'s single form takes `after` and/or `before` for a
+  `product.workflowstep`. It gets its place's sequence, joins the workflow, takes over the `flows-to`
+  hand-offs it splits, and the later steps are renumbered where they collide.
+- **One source location at a time (#1260):** `model_update` takes `addSourceLocation` and
+  `removeSourceLocation` (`{file, symbol?}`), keeping the element's other locations and provenance.
+- **Allowed predicates in a refusal (#1354):** a relationship the catalog refuses names, first, the
+  predicates it allows between the two types in both directions.
 
 ### Changed
 
@@ -97,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ruleWarnings` ("To keep rejecting these N symbol(s), add overrideTier0: true to rule '<name>' in
   documentation-robotics/extraction-rules.yaml"). Add the key to
   that rule and commit the file, or narrow the rule's `where` if it was never meant to cover them.
+
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.
@@ -106,6 +125,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Skills:** the application layer skill writes interfaces with `interfaceType` and the new
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
+- **Write results, summary first (#1295):** `model_add`, `relationship_add` and `model_update`
+  lists answer with `total`, `counts` and `attentionTotal`, then `causes`: every item that needs
+  attention grouped by what is wrong, each with its true count. One missing target named by 123
+  relationships is one cause of 123, not 123 entries. Items are listed by position up to `limit`
+  across the causes (one of every cause first); `limit` caps the causes listed too, and `causesTotal`
+  and `notListed` count the rest. This replaces
+  `attention` and `attentionNotListed` in these tools; `codebase_extract`'s decide and reject lists
+  keep them.
+- **Id notes once (#1302, #1415):** a list's id-derivation notes (dots and slashes as word breaks,
+  a digit prefix, a shortened id) are no longer attention items. `idNotes` says each rule once with
+  a count and five sample ids; `verbose: true` keeps the note on each item.
+- **A hand-set source file is manual (#1260):** `model_update` with a `sourceFile` the element
+  doesn't reference and no `sourceProvenance` gives it `manual`, where it kept `extracted`. The same
+  file keeps the element's provenance. `sourceFile`'s description says it replaces the locations.
 - **Compact changeset reads (CLI 0.9.0 milestone):** the reads below are compact by default, narrow
   by layer and type, and page with `limit` and `offset`: `page` gives the true total and `more`
   names the exact call for the next page (`nextPageHint` with the caller's arguments in
@@ -161,7 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for it within its own time budget (at most half of it, and never past 48 seconds), then extracts.
   `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts the wait
   is left running, and the error says how to wait for it (`codebase_index` with `status: true,
-  wait: 30`) before calling again. A preview never indexes (it changes nothing), nor does a page,
+wait: 30`) before calling again. A preview never indexes (it changes nothing), nor does a page,
   view, list or reject-only call. The index is judged once per call. The new `autoIndex: false`
   keeps the old refusal.
 - **`.cbmignore` stays out of the working tree's git view (#1300):** with no `.cbmignore` at the
@@ -172,7 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ignoreFile` says nothing needs committing (`excludedBy`). Whose file it is goes by DR's heading
   alone: a `.cbmignore` the developer tracks, or wrote, is never edited, in any worktree, and
   `ignoreFile.missing` lists the lines it lacks for the developer to add and commit (`git add -f
-  .cbmignore` while untracked, since the shared exclude entry hides it); `dr analyzer index` warns
+.cbmignore` while untracked, since the shared exclude entry hides it); `dr analyzer index` warns
   with them. An untracked `.cbmignore` an older DR wrote is hidden the same way. `codebase_extract`'s
   folder suggestion and the planning skills ask for lines the developer adds to be committed the
   same way, so every checkout indexes the same files; the server instructions and skills no longer
@@ -180,6 +213,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A landing never loses a write (#1437):** landing a changeset holds its lock from the read it
+  lands to the save that marks it committed. A write staging into it either lands with it or is
+  refused, naming the changeset: at once while it lands, and as landed after. Writes were saved over
+  before, and reported success. Taking a base snapshot and re-baselining take the same lock and
+  re-check that the changeset is staged, so neither saves `staged` back over a landing.
+- **No fall-through after a landing (#1437):** after the active changeset lands (by
+  `changeset_commit`, `dr changeset commit` or the viewer's Apply), writes are refused, naming it,
+  until a changeset is created (or another staged one activated), or `changeset_deactivate` (`dr changeset deactivate`)
+  says writes go to the base model. They used to go to the base model silently. The landing records
+  this before it marks the changeset committed, so no write slips through while it finishes, and a
+  failure to record it fails the landing. A marker naming a committed changeset in a fresh clone
+  still reads as no active changeset (#1218). Activating a landed or discarded changeset is refused:
+  it used to mark it staged again, reopening it.
+- **A rolled-back landing leaves nothing behind:** when a landing fails and rolls back, the files
+  and folders it created where nothing was (a type's first file, a layer's first folder) are
+  removed, and nothing else: a base file the save renamed for letter case (`Goal.yaml` to
+  `goal.yaml`) gets its name and content back, and a file something else wrote meanwhile stays.
+  `relationships.yaml` is put back as it was (it was not backed up), and a changeset the landing had
+  already marked committed is staged again. Before, the model kept the created files and the
+  landing's relationship rows, and the changeset read as landed though its changes were not.
+- **Still writing? (#1437):** the landing summary (`changeset_commit_preview`, with `stillWriting`,
+  and `changeset_commit`'s dialog), the `dr changeset commit` prompt and the viewer's changeset read
+  say when something writes into the changeset now, or another writer staged into it in the last 30
+  seconds: another MCP session (an agent's writes count when the person presses Apply, though one
+  process serves both), the viewer, or a `dr` command. The caller's own writes don't count.
+- **An already-landed changeset (#1441):** `changeset_commit_preview` (and `changeset_commit`) on a
+  committed changeset answers `already-landed`, with when it landed, its files (named as the model
+  names them, `application_function.yaml`) and whether git has them, instead of an error that read
+  as if the wrong changeset was named.
 - **`codebase_extract`'s shortened lists can all be read in full.** `acceptedGaps.contradicted`,
   `unchanged.tier1NotElementCards`, decision records' `retired` and `rules.decided` named a
   `list: "contradictedGaps"`, `"tier1NotElementCards"`, `"retiredDecisions"` or `"rules"` call that

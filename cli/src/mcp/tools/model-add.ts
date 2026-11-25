@@ -21,6 +21,7 @@ import type { Model } from "../../core/model.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
 import {
   planRelationshipBatch,
+  stableJson,
   type IdCollision,
   type PendingElement,
   type RejectedElement,
@@ -30,15 +31,30 @@ import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js"
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
 import { specAheadNote, typeNotInDeclaredSpec, type DeclaredSpec } from "../../core/declared-spec.js";
 import { requiredAttributesLine, requiredAttributesOf } from "../../utils/required-attributes.js";
-import { compactId, deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../../utils/id-generator.js";
+import {
+  compactId,
+  deriveElementId,
+  existingElementsIn,
+  existingUnderEarlierId,
+  generateUUID,
+  ID_NOTE_SUMMARY,
+  idNoteKind,
+  type IdNoteKind,
+} from "../../utils/id-generator.js";
 import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
 import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { activeStagedChangeset } from "./changeset-shared.js";
 import { applyRelationshipPlan, previewChangeset, relationshipBatchReport, relationshipItemSchema } from "./relationship-tools.js";
-import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
+import {
+  BATCH_RESULT_DESCRIPTION,
+  BATCH_RESULT_LINE_WIDTH,
+  batchReport,
+  limitSchema,
+  verboseSchema,
+  type BatchItemResult,
+} from "./batch-result.js";
 
 const provenanceSchema = z
   .enum(["extracted", "manual", "inferred", "generated"])
@@ -97,6 +113,22 @@ const inputSchema = {
         "element is refused, and a relationship naming that id or the refused name is reported, not linked " +
         "to the first."
     ),
+  after: z
+    .string()
+    .optional()
+    .describe(
+      "Single form, for a product.workflowstep: place it right after this existing step. It takes that step's " +
+        "sequence + 1, joins the workflow that composes it, takes over its flows-to hand-offs (that step flows to the " +
+        "new one, the new one to what it flowed to), and later steps are renumbered where their sequence collides. " +
+        "Send no sequence."
+    ),
+  before: z
+    .string()
+    .optional()
+    .describe(
+      "Single form, for a product.workflowstep: place it right before this existing step (it takes its sequence). With " +
+        "after, the two name one flows-to hand-off to split."
+    ),
   file: z
     .string()
     .optional()
@@ -113,11 +145,13 @@ const SINGLE_FORM_FIELDS = [
   "layer",
   "type",
   "name",
+  "after",
+  "before",
   ...(Object.keys(elementFields) as Array<keyof typeof elementFields>),
 ] as const;
-type ElementSpec = z.infer<typeof elementItemSchema>;
+export type ElementSpec = z.infer<typeof elementItemSchema>;
 
-interface PreparedElement {
+export interface PreparedElement {
   element: Element;
   id: string;
   layer: string;
@@ -143,7 +177,7 @@ class AttributeRefusal extends CLIError {
  * spec the model declares (its manifest), refuses a type only a later spec has, or warns about it
  * when the manifest has no spec_version (#1411).
  */
-async function prepareElement(spec: ElementSpec, specVersion?: DeclaredSpec): Promise<PreparedElement> {
+export async function prepareElement(spec: ElementSpec, specVersion?: DeclaredSpec): Promise<PreparedElement> {
   if (!isValidLayer(spec.layer)) {
     const validLayers = getAllLayerIds();
     const similar = findSimilar(spec.layer, validLayers, 3);
@@ -281,11 +315,34 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         "Batch: {elements: [{layer, type, name}, ...], relationships: [{source, predicate, target}, ...]}",
       ]);
     }
-    return addSingleElement({ ...args, layer: args.layer, type: args.type, name: args.name }, args.rootPath);
+    const { after, before, ...single } = args;
+    const spec = { ...single, layer: args.layer, type: args.type, name: args.name } as ElementSpec;
+    if (after !== undefined || before !== undefined) {
+      const { insertWorkflowStep } = await import("./workflow-step-insert.js");
+      return jsonResult(await insertWorkflowStep(spec, { after, before }, args.rootPath));
+    }
+    return addSingleElement(spec, args.rootPath);
   }));
 }
 
 async function addSingleElement(spec: ElementSpec, rootPath: string | undefined): Promise<CallToolResult> {
+  return jsonResult(await addOneElement(spec, rootPath));
+}
+
+/** What the single form of model_add did. */
+export interface SingleAddOutcome {
+  status: "staged" | "added" | "unchanged";
+  changeset?: string;
+  id: string;
+  layer: string;
+  type: string;
+  name: string;
+  warnings?: string[];
+  notes?: string[];
+}
+
+/** Validates and adds one element; throws a CLIError saying what is wrong. */
+export async function addOneElement(spec: ElementSpec, rootPath: string | undefined): Promise<SingleAddOutcome> {
   const model = await loadModel(rootPath);
   let prepared: PreparedElement;
   try {
@@ -309,6 +366,30 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
   }
 
   const taken = layerObj.getElement(elementPath);
+  if (taken && taken.name === spec.name) {
+    // Sent again as it is there: a no-op (#1296). With other content, refused: model_update changes it.
+    const differs = differencesFrom(
+      { description: taken.description, attributes: taken.attributes, sourceReference: taken.getSourceReference() },
+      spec,
+      prepared
+    );
+    if (differs.length === 0) {
+      const active = await new StagingAreaManager(model.rootPath, model).getWriteTarget();
+      return {
+        status: "unchanged",
+        ...(active ? { changeset: active.name } : {}),
+        id: elementPath,
+        layer,
+        type: prepared.type,
+        name: spec.name,
+      };
+    }
+    throw new CLIError(
+      `Element ${elementPath} already exists in ${layer} layer, with another ${differs.join(" and ")}`,
+      ErrorCategory.USER,
+      [`Use "model_update" to change it`, `Use "model_show" to view the existing element`]
+    );
+  }
   if (taken) {
     throw new CLIError(`Element ${elementPath} already exists in ${layer} layer${otherNameNote(taken.name, spec.name)}`, ErrorCategory.USER, [
       `Use "model_show" to view the existing element`,
@@ -347,7 +428,7 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     await reloadModel(rootPath);
   }
 
-  return jsonResult({
+  return {
     status: staged ? "staged" : "added",
     changeset: staged ? activeChangeset!.name : undefined,
     id: elementPath,
@@ -356,7 +437,7 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     name: spec.name,
     ...(warnings.length > 0 ? { warnings } : {}),
     ...(prepared.notes.length > 0 ? { notes: prepared.notes } : {}),
-  });
+  };
 }
 
 /**
@@ -388,8 +469,43 @@ function alreadyExistsUnderEarlierId(
 interface ElementBatchResult extends BatchItemResult {
   id?: string;
   name: string;
-  status: "staged" | "added" | "invalid";
+  /**
+   * unchanged: the element is already there as sent (a batch sent again, #1296); nothing written.
+   * duplicate: the same element earlier in this batch.
+   */
+  status: "staged" | "added" | "unchanged" | "duplicate" | "invalid";
 }
+
+/** The id notes of a batch, each rule once (#1302, #1415): how many elements it applied to, and a few of their ids. */
+export interface IdNoteSummary {
+  note: string;
+  count: number;
+  sample: string[];
+}
+
+/** How many ids each idNotes entry shows. */
+export const ID_NOTE_SAMPLE = 5;
+
+/** What a sent element would change in the element already there, or nothing: it is there as sent. */
+function differencesFrom(
+  existing: { description?: string; attributes?: Record<string, unknown>; sourceReference?: unknown },
+  spec: ElementSpec,
+  prepared: PreparedElement
+): string[] {
+  const differs: string[] = [];
+  if (spec.description !== undefined && (spec.description || undefined) !== (existing.description || undefined)) {
+    differs.push("description");
+  }
+  if (spec.attributes !== undefined && stableJson(spec.attributes) !== stableJson(existing.attributes ?? {})) {
+    differs.push("attributes");
+  }
+  const sentSource = prepared.element.getSourceReference();
+  if (sentSource && stableJson(sentSource) !== stableJson(existing.sourceReference ?? null)) {
+    differs.push("source reference");
+  }
+  return differs;
+}
+
 
 /**
  * model_add's batch form: validate every element and relationship, then stage the valid ones in
@@ -403,11 +519,13 @@ async function addElementBatch(
 ) {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await activeStagedChangeset(manager);
+  const active = await manager.getWriteTarget();
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
 
   const prepared: PreparedElement[] = [];
+  /** What each pending element was sent as, to tell a repeat from a conflicting one. */
+  const sentAs = new Map<string, { spec: ElementSpec; prepared: PreparedElement }>();
   const pending = new Map<string, PendingElement>();
   /** Where each pending element sits in the request, to name it when a later name gives its id. */
   const pendingAt = new Map<string, number>();
@@ -473,13 +591,22 @@ async function addElementBatch(
     const existing = graph.getElement(item.id);
     if (existing && existing.status !== "deleted") {
       refusedIds.push({ name: spec.name, ids: [item.id], holder: item.id });
-      results.push({
-        ...asSent,
-        id: item.id,
-        status: "invalid",
-        reason: `Element ${item.id} already exists${otherNameNote(existing.name, spec.name)}`,
-        suggestions: ['Use "model_update" to change it'],
-      });
+      // Sent again as it is there (a retry after a partial failure): a no-op, like a relationship
+      // already there (#1296). Sent with other content, it is refused: model_update changes it.
+      const differs = existing.name === spec.name ? differencesFrom(existing, spec, item) : undefined;
+      results.push(
+        differs && differs.length === 0
+          ? { ...asSent, id: item.id, status: "unchanged" }
+          : {
+              ...asSent,
+              id: item.id,
+              status: "invalid",
+              reason: differs
+                ? `Element ${item.id} already exists, with another ${differs.join(" and ")}`
+                : `Element ${item.id} already exists${otherNameNote(existing.name, spec.name)}`,
+              suggestions: ['Use "model_update" to change it'],
+            }
+      );
       continue;
     }
     const twin = pending.get(item.id);
@@ -488,16 +615,34 @@ async function addElementBatch(
       // ids alone do not show it.
       const at = `elements[${pendingAt.get(item.id)}]`;
       refusedIds.push({ name: spec.name, ids: [item.id], holder: item.id });
-      results.push({
-        ...asSent,
-        id: item.id,
-        status: "invalid",
-        reason:
-          twin.name === spec.name
-            ? `Repeated earlier in this batch (${at})`
-            : `"${spec.name}" gives the same id as ${at} "${twin.name}" (${item.id}): an id comes from the name alone`,
-        ...(twin.name === spec.name ? {} : { suggestions: ["Give one of the two a name that differs in its letters or digits"] }),
-      });
+      const first = sentAs.get(item.id)!;
+      const differs =
+        twin.name === spec.name
+          ? differencesFrom(
+              {
+                description: first.spec.description,
+                attributes: first.spec.attributes ?? {},
+                sourceReference: first.prepared.element.getSourceReference(),
+              },
+              spec,
+              item
+            )
+          : undefined;
+      results.push(
+        differs && differs.length === 0
+          ? { ...asSent, id: item.id, status: "duplicate", reason: `Repeated earlier in this batch (${at})` }
+          : {
+              ...asSent,
+              id: item.id,
+              status: "invalid",
+              reason: differs
+                ? `Repeated earlier in this batch (${at}) with another ${differs.join(" and ")}`
+                : `"${spec.name}" gives the same id as ${at} "${twin.name}" (${item.id}): an id comes from the name alone`,
+              suggestions: [
+                differs ? "Send the element once, as it should be" : "Give one of the two a name that differs in its letters or digits",
+              ],
+            }
+      );
       continue;
     }
     const near = existingUnderEarlierId(item.layer, item.type, spec.name, item.id, alreadyThere);
@@ -509,6 +654,7 @@ async function addElementBatch(
     }
     const warnings = [...item.warnings, ...(near.warning ? [near.warning] : [])];
     pending.set(item.id, { id: item.id, layer: item.layer, type: item.type, name: spec.name });
+    sentAs.set(item.id, { spec, prepared: item });
     pendingAt.set(item.id, index);
     indexCompact({ id: item.id, name: spec.name });
     prepared.push(item);
@@ -548,10 +694,37 @@ async function addElementBatch(
   }
 
   const written = ["staged", "added"] as const;
+  // Id notes say what a rule did to a name: the same for every element it applied to, so each rule
+  // is said once with a count and sample ids, and none counts as an item needing attention (#1302,
+  // #1415). verbose keeps them on each item.
+  const idNotes = new Map<IdNoteKind, string[]>();
+  const items = report.verbose
+    ? results
+    : results.map((result) => {
+        if (!result.notes?.length || !result.id) return result;
+        const own = result.notes.filter((note) => {
+          const kind = idNoteKind(note);
+          if (kind) idNotes.set(kind, [...(idNotes.get(kind) ?? []), result.id!]);
+          return !kind;
+        });
+        const { notes: _notes, ...rest } = result;
+        return own.length > 0 ? { ...rest, notes: own } : rest;
+      });
   return {
     ...(active ? { changeset: active.name } : {}),
     elements: {
-      ...batchReport(results, { ...report, written }),
+      ...batchReport(items, { ...report, written, settled: ["unchanged"], byCause: true }),
+      ...(idNotes.size > 0
+        ? {
+            idNotes: [...idNotes.entries()].map(
+              ([kind, ids]): IdNoteSummary => ({
+                note: ID_NOTE_SUMMARY[kind],
+                count: ids.length,
+                sample: ids.slice(0, ID_NOTE_SAMPLE),
+              })
+            ),
+          }
+        : {}),
       ...(Object.keys(requiredAttributes).length > 0 ? { requiredAttributes } : {}),
     },
     ...(relationships.length > 0 ? { relationships: relationshipBatchReport(plan.results, report) } : {}),
@@ -622,13 +795,13 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
     "capital of a run that a lowercase letter follows ('HTTPServer' → http-server; a plural acronym such as 'URLs' stays whole); the same name " +
     "gives the same id in codebase_extract. A relationship may name an element by its id, by that id without " +
     "hyphens or by its name, when exactly one element matches; relationships.readByName says how each such " +
-    "reference was read. A list returns, for elements and for relationships, counts by status (staged, or " +
-    "added with no changeset active; restored or duplicate for relationships; invalid) and attention: only the " +
-    "items that are invalid, duplicate or restored, or elements that carry a warning or a note (an id the name " +
-    "does not make obvious). " +
-    "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +
-    "verbose: true returns every item as results. A name longer than 100 characters as an id is cut with a hash, " +
-    "and the item says so. Invalid items are skipped; the rest are still staged.",
+    "reference was read. For elements and for relationships, statuses are staged (or added with no changeset " +
+    "active), unchanged (already there as sent), duplicate (repeated in the list), restored (relationships whose " +
+    "deletion the changeset had staged) and invalid. " +
+    BATCH_RESULT_DESCRIPTION +
+    " idNotes says once per rule what id derivation did to some names (dots and slashes as word breaks, a digit " +
+    "prefix, a name longer than 100 characters cut with a hash), with a count and sample ids. Invalid items are " +
+    "skipped; the rest are still staged. A product.workflowstep can be placed with after or before (single form).",
   inputSchema,
   handler: modelAddHandler,
 };

@@ -131,7 +131,8 @@ describe("model_add: two names, one id (#1297)", () => {
       elements: [target("galaxyLayout tests")],
       relationships: [{ source: ID, predicate: "composes", target: SKETCH_A }],
     });
-    expect(result.elements.counts).toEqual({ invalid: 1 });
+    // The same element sent again is unchanged (#1296), and a link by its id binds to it.
+    expect(result.elements.counts).toEqual({ unchanged: 1 });
     expect(result.relationships.results[0]).toMatchObject({ source: ID, status: "staged" });
   });
 
@@ -189,7 +190,7 @@ describe("model_add: a name whose element is held under an earlier rule's id (#1
       });
       expect(result.elements.results[1]).toMatchObject({ status: "invalid", reason: expect.stringContaining(why) });
       const rels = result.relationships.results;
-      expect(rels.map((r: any) => r.status)).toEqual(["invalid", "invalid", "invalid", expect.stringMatching(/staged|duplicate/)]);
+      expect(rels.map((r: any) => r.status)).toEqual(["invalid", "invalid", "invalid", expect.stringMatching(/staged|duplicate|unchanged/)]);
       expect(rels[0].reason).toBe(
         `Target ${OLD_STATUS} is the id of more than one name: "Tier1Status" (which the model has) and "Tier1 Status" (not added)`
       );

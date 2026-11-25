@@ -90,6 +90,7 @@ import { changesetOnlyRefusal } from "./changeset-only.js";
 import { CHAT_PROJECT_ROOT_ENV, chatToolRefusal } from "../coding-agents/chat-guard.js";
 import { DR_MCP_CHANGESET_TOOLS, DR_MCP_READ_TOOLS } from "../coding-agents/drbot-mcp.js";
 import { currentProjectRoot, runInMcpSession, whenProjectRootSettled } from "./project-root.js";
+import { currentWriter, runAsWriter } from "../core/changeset-write-activity.js";
 import type { McpSession } from "./mcp-session.js";
 import { runWithSessionEnv, sessionEnv } from "../core/session-env.js";
 import type { McpResultCheckout } from "../server/central-mcp-contract.js";
@@ -274,8 +275,13 @@ export class McpToolRegistry {
             },
             { "mcp.tool.name": tool.name }
           );
+          // Every write the call makes is this session's (changeset-write-activity.ts). A server
+          // without sessions serves one client from its own process: the process is the writer.
+          const writer = session?.writer ?? currentWriter();
           return countToolCall(() =>
-            session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, call)) : call()
+            runAsWriter(writer, () =>
+              session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, call)) : call()
+            )
           );
         }
       );

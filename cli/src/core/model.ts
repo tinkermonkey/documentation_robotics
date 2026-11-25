@@ -8,7 +8,7 @@ import { readActiveMarker } from "./active-changeset-marker.js";
 import { Relationships, type Relationship } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import type { StagedChange } from "./changeset.js";
-import { ensureDir, writeFile } from "../utils/file-io.js";
+import { ensureDir, fileExists, writeFile } from "../utils/file-io.js";
 import { getCliBundledSpecVersion, getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
@@ -275,6 +275,11 @@ export class Model {
    * from disk.
    */
   private layerFiles: Map<string, Map<string, LayerFileRecord>> = new Map();
+  /**
+   * While a landing writes (StagingAreaManager.commit), every file and folder the saves create
+   * where nothing was, as absolute paths: what the landing's rollback removes, and nothing else.
+   */
+  createdPaths?: Set<string>;
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
@@ -629,6 +634,15 @@ export class Model {
   /**
    * Save a layer to disk (model/XX_layername/*.yaml)
    */
+  /**
+   * Notes, for a landing that records them (`createdPaths`), that the write about to happen
+   * creates `target`: nothing is there yet, asked of the filesystem, so on a filesystem that
+   * ignores letter case `goal.yaml` exists when `Goal.yaml` does.
+   */
+  private async noteCreation(target: string): Promise<void> {
+    if (this.createdPaths && !(await fileExists(target))) this.createdPaths.add(path.resolve(target));
+  }
+
   async saveLayer(name: string): Promise<void> {
     return trackModelWrite(this.rootPath, this, () => this.writeLayer(name));
   }
@@ -695,6 +709,7 @@ export class Model {
       if (index >= 0) {
         const orderNum = String(index + 1).padStart(2, "0");
         layerPath = `${this.rootPath}/documentation-robotics/model/${orderNum}_${layerNameWithoutPrefix}`;
+        await this.noteCreation(layerPath);
         await ensureDir(layerPath);
       } else {
         throw new Error(`Unknown layer ${name} and no path configured in manifest`);
@@ -839,6 +854,8 @@ export class Model {
     }
 
     for (const [from, to] of renames) {
+      // Where letter case matters, the new name is a new file
+      await this.noteCreation(`${layerPath}/${to}`);
       await fs.rename(`${layerPath}/${from}`, `${layerPath}/${to}`);
       existingFiles.set(to, existingFiles.get(from)!);
       existingFiles.delete(from);
@@ -854,6 +871,7 @@ export class Model {
           `Warning: ${filePath(layerPath, filename)} held only comments; dr writes the layer's elements into it and does not keep them.`
         );
       }
+      if (onDisk === undefined) await this.noteCreation(`${layerPath}/${filename}`);
       await writeFile(`${layerPath}/${filename}`, text);
     }
 
@@ -1117,6 +1135,7 @@ export class Model {
     }
     const yamlContent = header + stringifyDrYaml(data);
 
+    await this.noteCreation(relationshipsPath);
     await fs.writeFile(relationshipsPath, yamlContent, "utf-8");
     this.relationships.markClean();
   }

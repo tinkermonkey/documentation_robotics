@@ -12,7 +12,11 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
-import { changesetActivateHandler, changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
+import {
+  changesetActivateHandler,
+  changesetCreateHandler,
+  changesetDeactivateHandler,
+} from "../../../src/mcp/tools/changeset-lifecycle.js";
 
 async function newProject(): Promise<string> {
   clearModelCache();
@@ -57,7 +61,24 @@ describe("StagingAreaManager.commit and the active changeset", () => {
       const reloaded = await Model.load(rootPath, { lazyLoad: false });
       expect(reloaded.getActiveChangesetId()).toBeNull();
 
-      // A later write lands in the base instead of staging into the committed changeset.
+      // A later write is refused, naming the landed changeset (#1437): it neither stages into the
+      // committed changeset nor falls through to the base model.
+      clearModelCache();
+      const refused = await modelAddHandler({
+        layer: "motivation",
+        type: "goal",
+        name: "lower-cost",
+        attributes: { priority: "high" },
+        rootPath,
+      });
+      expect(refused.isError).toBe(true);
+      expect(JSON.stringify(refused.content)).toContain("Changeset 'plan' was landed");
+      expect((await manager.load("plan"))!.changes.length).toBe(1);
+      expect(await baseGoals(rootPath)).toEqual(["motivation.goal.faster-checkout"]);
+
+      // Deactivating says writes go to the base model now.
+      const deactivated = JSON.parse((await changesetDeactivateHandler({ rootPath })).content[0].text as string);
+      expect(deactivated.clearedLanded.changeset).toBe("plan");
       clearModelCache();
       await addGoal(rootPath, "lower-cost");
       expect((await manager.load("plan"))!.changes.length).toBe(1);

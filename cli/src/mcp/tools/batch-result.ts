@@ -1,5 +1,17 @@
 /**
- * What a batch write tool returns (model_add, relationship_add and model_update with a list).
+ * What a batch write tool returns (model_add, relationship_add, model_update, model_delete and
+ * relationship_delete with a list).
+ *
+ * The write tools answer summary first, by cause (#1295): `total` and `counts`, then `causes`,
+ * every item that needs attention grouped by what is wrong, one entry per cause with its true count
+ * (one missing target named by 123 relationships is one entry, count 123, not 123 lines). Items are
+ * listed under their cause by position, up to `limit` across the causes (every cause gets one
+ * before any gets two); the rest are counted (`notListed`), never silently dropped, and sending the
+ * batch again with a larger limit lists them, since a re-sent item that is already written comes
+ * back unchanged (#1296). See {@link batchCauses}.
+ *
+ * The older shape below (attention in full, then attentionNotListed) is what codebase_extract's
+ * decide and reject lists still return.
  *
  * A batch used to echo every item: 300 elements came back as 300 `{index, name, id, status}`
  * objects that all said "staged", the largest single cost in a model sync (#1182). The default
@@ -50,10 +62,20 @@ export const limitSchema = z
   .min(0)
   .optional()
   .describe(
-    `Batch form only. How many of the items that need attention are returned in full (default ${DEFAULT_ATTENTION_LIMIT}), ` +
-      "the ones that were not written first. The rest are never dropped: each is listed by its position under its " +
-      "reason (attentionNotListed). Pass a larger number to get more of them in full."
+    `Batch form only. How many of the items that need attention are listed by position under their cause (default ` +
+      `${DEFAULT_ATTENTION_LIMIT}), across the causes: one of every cause first. It caps the causes listed too (at ` +
+      "least one); causesTotal and notListed count what is left out. Pass a larger number to list more."
   );
+
+/** How a write tool's list answers, for its description. */
+export const BATCH_RESULT_DESCRIPTION =
+  "A list answers summary first: total and counts by status, then causes, every item that needs attention grouped " +
+  "by what is wrong (one missing element named by many items is one cause), each with its true count and its items " +
+  `by position (index), up to limit items across the causes (default ${DEFAULT_ATTENTION_LIMIT}; limit caps the ` +
+  "causes too, and causesTotal says how many there are); notListed counts the rest. An item already as sent is " +
+  "unchanged: counted, not listed, so a list can be sent again after a partial failure and writes nothing twice " +
+  "(an item written with a warning comes back unchanged too, so its warning is in the first answer only). " +
+  "verbose: true returns every item as results.";
 
 export interface BatchItemResult {
   /** Position in the request, from 0. */
@@ -93,6 +115,25 @@ export interface BatchAttentionGroup {
   items: BatchAttentionGroupItem[];
 }
 
+/**
+ * One cause in a batch result (`causes`): the items that need attention for the same reason. The
+ * reason and suggestions are the items' own text, with `<id>`, `"<name>"` and `[n]` where the items
+ * differ (each item's `values` say what, in order); what every item shares is written out.
+ */
+export interface BatchCause {
+  status: string;
+  reason: string;
+  suggestions?: string[];
+  /** The text already held a placeholder's spelling, so it is each item's own text, nothing replaced. */
+  literal?: true;
+  /** How many items have this cause, all of them. */
+  count: number;
+  /** The items listed, by position in the request, up to the batch's limit. */
+  items: BatchAttentionGroupItem[];
+  /** How many of `count` are not listed in `items` (the limit). */
+  notListed?: number;
+}
+
 export interface BatchReport<T extends BatchItemResult> {
   /** Items in the request. */
   total: number;
@@ -106,6 +147,14 @@ export interface BatchReport<T extends BatchItemResult> {
   attentionTotal?: number;
   /** The attention items not in `attention`, all of them, grouped by reason. Absent when `attention` is complete. */
   attentionNotListed?: { count: number; groups: BatchAttentionGroup[]; more: string };
+  /** With byCause: every item that needs attention, grouped by cause, the largest first. */
+  causes?: BatchCause[];
+  /** With byCause: how many items the causes count but do not list (the limit). */
+  notListed?: number;
+  /** With byCause, when the limit leaves causes out: how many causes there are in all. */
+  causesTotal?: number;
+  /** With byCause, when items are not listed: how to list them. */
+  more?: string;
 }
 
 const VARYING = /(@?\b[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9-]*\b)|"([^"\n]*)"|\[(\d+)\]/g;
@@ -165,6 +214,158 @@ function foldSharedValues(group: BatchAttentionGroup): void {
   }
 }
 
+/** An item's text, split for grouping: its reason (or warnings and notes) and suggestions, with what varies taken out. */
+function splitItem(item: BatchItemResult): {
+  rawReason: string;
+  rawSuggestions: string[];
+  reason: string;
+  suggestions: string[];
+  values: Array<string | number>;
+  literal: boolean;
+} {
+  const rawReason = item.reason ?? [...(item.warnings ?? []), ...(item.notes ?? [])].join(" ");
+  const rawSuggestions = item.suggestions ?? [];
+  let said = reasonParts(rawReason);
+  let hints = rawSuggestions.map(reasonParts);
+  // One literal piece makes the whole item literal, so its values never shift.
+  const literal = said.literal === true || hints.some((hint) => hint.literal);
+  if (literal) {
+    said = { pattern: rawReason, values: [] };
+    hints = rawSuggestions.map((text) => ({ pattern: text, values: [] }));
+  }
+  return {
+    rawReason,
+    rawSuggestions,
+    reason: said.pattern || item.status,
+    suggestions: hints.map((hint) => hint.pattern),
+    values: [...said.values, ...hints.flatMap((hint) => hint.values)],
+    literal,
+  };
+}
+
+/**
+ * Groups the items that need attention by cause (#1295). Items with the same status and the same
+ * text are one cause, whatever they name: one missing target named by 123 relationships is one
+ * cause of 123. Items whose text is their own, alone, are grouped by the text with what differs taken
+ * out (`Element <id> has invalid attributes`), each item keeping its values. Causes come in the
+ * items' order of need (not written first), the largest first, and list items up to `limit` across
+ * them: one item of every cause before a second of any. `limit` caps the causes listed too (at least
+ * one is): `causesTotal` is how many there are, and the items of causes left out count as notListed.
+ */
+export function batchCauses<T extends BatchItemResult>(
+  flagged: T[],
+  options: { limit: number; isWritten: (item: T) => boolean }
+): { causes: BatchCause[]; causesTotal: number; notListed: number; notListedWritten: number } {
+  type Member = { item: T; parts: ReturnType<typeof splitItem> };
+  const exact = new Map<string, Member[]>();
+  for (const item of flagged) {
+    const parts = splitItem(item);
+    const key = [item.status, parts.rawReason, ...parts.rawSuggestions].join("\n");
+    exact.set(key, [...(exact.get(key) ?? []), { item, parts }]);
+  }
+
+  // A cause many items share word for word is written out whole (`shared`); items whose text is
+  // their own are grouped by its pattern (`pattern`).
+  type Draft = { members: Member[]; written: boolean; kind: "shared" | "pattern" };
+  const drafts: Draft[] = [];
+  const byPattern = new Map<string, Draft>();
+  for (const members of exact.values()) {
+    const written = options.isWritten(members[0].item);
+    if (members.length > 1) {
+      drafts.push({ members, written, kind: "shared" });
+      continue;
+    }
+    const { item, parts } = members[0];
+    const key = [parts.literal ? "literal" : "", item.status, parts.reason, ...parts.suggestions].join("\n");
+    const draft = byPattern.get(key);
+    if (draft) {
+      draft.members.push(members[0]);
+    } else {
+      const created: Draft = { members: [members[0]], written, kind: "pattern" };
+      byPattern.set(key, created);
+      drafts.push(created);
+    }
+  }
+
+  drafts.sort(
+    (a, b) =>
+      Number(a.written) - Number(b.written) ||
+      b.members.length - a.members.length ||
+      a.members[0].item.index - b.members[0].item.index
+  );
+
+  const causesTotal = drafts.length;
+  const shown = drafts.slice(0, Math.max(1, options.limit));
+  let notListed = 0;
+  let notListedWritten = 0;
+  for (const draft of drafts.slice(shown.length)) {
+    notListed += draft.members.length;
+    if (draft.written) notListedWritten += draft.members.length;
+  }
+
+  let budget = Math.max(0, options.limit);
+  const listed = shown.map(() => 0);
+  // One of every cause first, then fill in order.
+  for (const [i, draft] of shown.entries()) {
+    if (budget === 0) break;
+    if (draft.members.length > 0) {
+      listed[i] = 1;
+      budget--;
+    }
+  }
+  for (const [i, draft] of shown.entries()) {
+    const more = Math.min(budget, draft.members.length - listed[i]);
+    listed[i] += more;
+    budget -= more;
+  }
+
+  const causes = shown.map((draft, i): BatchCause => {
+    const { members, kind } = draft;
+    const first = members[0];
+    const item = (m: Member, values: boolean): BatchAttentionGroupItem => ({
+      index: m.item.index,
+      ...(options.isWritten(m.item) && m.item.id ? { id: m.item.id } : {}),
+      ...(values && m.parts.values.length ? { values: m.parts.values } : {}),
+    });
+    let group: BatchAttentionGroup;
+    if (kind === "shared" || members.length === 1) {
+      // One text: written out as the items have it.
+      group = {
+        status: first.item.status,
+        reason: first.parts.rawReason || first.item.status,
+        ...(first.parts.rawSuggestions.length ? { suggestions: first.parts.rawSuggestions } : {}),
+        count: members.length,
+        items: members.map((m) => item(m, false)),
+      };
+    } else {
+      // Texts that differ only where they name an id, a name or a position: the pattern, with what
+      // every item shares put back, and each item's own values.
+      group = {
+        status: first.item.status,
+        reason: first.parts.reason,
+        ...(first.parts.suggestions.length ? { suggestions: first.parts.suggestions } : {}),
+        ...(first.parts.literal ? { literal: true as const } : {}),
+        count: members.length,
+        items: members.map((m) => item(m, true)),
+      };
+      foldSharedValues(group);
+    }
+    const items = group.items.slice(0, listed[i]);
+    notListed += members.length - items.length;
+    if (draft.written) notListedWritten += members.length - items.length;
+    return {
+      status: group.status,
+      reason: group.reason,
+      ...(group.suggestions?.length ? { suggestions: group.suggestions } : {}),
+      ...(group.literal ? { literal: true as const } : {}),
+      count: members.length,
+      items,
+      ...(members.length > items.length ? { notListed: members.length - items.length } : {}),
+    };
+  });
+  return { causes, causesTotal, notListed, notListedWritten };
+}
+
 /**
  * Builds a batch's report. `written` names the statuses that mean the item was written as sent
  * ("staged", "added", "updated"): such an item needs attention only when it carries a warning or
@@ -178,6 +379,13 @@ export function batchReport<T extends BatchItemResult>(
     written: readonly string[];
     /** Whether a written item needs attention. Default: it carries a warning or a note. */
     writtenNeedsAttention?: (item: T) => boolean;
+    /**
+     * Statuses that need no attention though nothing was written: the item is already as sent
+     * ("unchanged", #1296). Counted, never listed.
+     */
+    settled?: readonly string[];
+    /** Answer summary first, by cause (causes), instead of attention and attentionNotListed. */
+    byCause?: boolean;
   }
 ): BatchReport<T> {
   const counts: Record<string, number> = {};
@@ -185,7 +393,8 @@ export function batchReport<T extends BatchItemResult>(
   if (options.verbose) return { total: results.length, counts, results };
 
   const isWritten = (r: T) => options.written.includes(r.status);
-  const notWritten = results.filter((r) => !isWritten(r));
+  const isSettled = (r: T) => options.settled?.includes(r.status) ?? false;
+  const notWritten = results.filter((r) => !isWritten(r) && !isSettled(r));
   const needs = options.writtenNeedsAttention ?? ((r: T) => (r.warnings?.length ?? 0) > 0 || (r.notes?.length ?? 0) > 0);
   const writtenFlagged = results.filter((r) => isWritten(r) && needs(r));
   // What the agent has to act on comes first, so the limit never hides a failure behind a note.
@@ -193,6 +402,37 @@ export function batchReport<T extends BatchItemResult>(
   if (flagged.length === 0) return { total: results.length, counts };
 
   const limit = options.limit ?? DEFAULT_ATTENTION_LIMIT;
+  if (options.byCause) {
+    const { causes, causesTotal, notListed, notListedWritten } = batchCauses(flagged, { limit, isWritten });
+    const notWrittenLeft = notListed - notListedWritten;
+    const more = [
+      `${flagged.length - notListed} of ${flagged.length} items that need attention are listed by position (index)` +
+        (causesTotal > causes.length ? `, under ${causes.length} of ${causesTotal} causes, the largest first` : "") +
+        `; notListed counts the rest (${notListed}).`,
+      // Items not written can be listed by sending them again: what was written comes back unchanged.
+      ...(notWrittenLeft > 0
+        ? [
+            `The ${notWrittenLeft} not written are listed by sending the list again with limit: ${flagged.length}; what ` +
+              "was written comes back unchanged, so nothing is written twice.",
+          ]
+        : []),
+      // Items written with a warning can't be listed again: sent again, they are unchanged.
+      ...(notListedWritten > 0
+        ? [
+            `The ${notListedWritten} written with a warning or note are counted only in this answer: send the next ` +
+              "list with verbose: true, or a larger limit, to have every one.",
+          ]
+        : []),
+    ].join(" ");
+    return {
+      total: results.length,
+      counts,
+      attentionTotal: flagged.length,
+      causes,
+      ...(causesTotal > causes.length ? { causesTotal } : {}),
+      ...(notListed > 0 ? { notListed, more } : {}),
+    };
+  }
 
   // The same suggestions on many items (a type's valid predicates, its required attributes) are
   // listed once and pointed at.

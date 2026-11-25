@@ -117,12 +117,20 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    exist only in the changeset. When you wire several, use the lists: `model_add` with
    `elements: [...]` (plus `relationships` that may name elements added in the same call), and
    `relationship_add` with `relationships: [{source, predicate, target, properties?}]`. Each list is
-   staged in one write; an invalid item is skipped and reported, so read `attention` in the result
-   (it lists only the items that were not staged as sent; `verbose: true` lists every item). A
-   large batch goes in a JSON file passed as `file`, not in the call. `model_update` takes a list
-   too (`updates: [...]`). For
+   staged in one write; an invalid item is skipped and reported. The result leads with `counts`,
+   then `causes`: the items that need attention grouped by what is wrong, each with its true count
+   (one missing element named by many links is one cause). Fix each cause and send the whole list
+   again: what is already there comes back `unchanged`, so nothing is staged twice (`verbose: true`
+   lists every item). `idNotes` says once what id derivation did to some names. A large batch goes
+   in a JSON file passed as `file`, not in the call. `model_update` takes a list too
+   (`updates: [...]`), and so do `model_delete` (`ids: [...]`) and `relationship_delete`
+   (`relationships: [{source, target, predicate?}]`): use them to move or remove several links or
+   elements in one call. To put a product workflow step between two others, send it to `model_add`
+   with `after` (or `before`): it rewires the `flows-to` links and renumbers `sequence` for you. For
    a planned element with no code yet, send no source fields. Pass `sourceFile` and `sourceSymbol`
-   (with `sourceProvenance: "manual"`) only when you know where the code goes.
+   (with `sourceProvenance: "manual"`) only when you know where the code goes. On `model_update`,
+   `sourceFile` replaces the element's locations; `addSourceLocation` adds one beside them and
+   `removeSourceLocation` removes one.
    Change one attribute with `model_update` `attributePatch`, not by repeating every attribute. Fix a
    mistake with `changeset_unstage` (one element, one relationship, or `source` or `target` alone for
    every staged connection at that end), not by staging the reverse. To drop several, send them as
@@ -272,7 +280,16 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 
 Tools report odd input and carry on instead of failing. Read the report each time:
 
-- `relationship_add` reports a duplicate, or restores a relationship the plan had deleted.
+- `relationship_add` reports a duplicate, or restores a relationship the plan had deleted. In a
+  list, an element or relationship already there as sent is `unchanged`; one already there with other
+  content is refused, naming what differs (`model_update` changes it).
+- Once the changeset you were writing into is landed (by you, or by the user in the viewer), writes
+  are refused, naming it, instead of going to the base model. To keep planning, `changeset_create`
+  (or `changeset_activate` another staged changeset: a landed one can't be reopened); to write the
+  base model, `changeset_deactivate` first. A write that
+  arrives while it is landing is refused the same way: send it again into the next changeset.
+  `changeset_commit_preview` on a changeset that is already landed answers `already-landed`: there
+  is nothing to do.
 - `changeset_unstage` reports `not-staged` when there was nothing to drop.
 - In a changeset-only session (DrBot with `--with-changesets`), a write with no active changeset is
   refused. Call `changeset_create` or `changeset_activate` and retry.

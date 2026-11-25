@@ -418,10 +418,19 @@ describe("validateSourceReferenceOptions", () => {
       });
     });
 
-    it("keeps the element's current provenance for a file sent alone on update", () => {
-      const resolved = resolveSourceReferenceOptions({ sourceFile: "src/new.ts" }, "mcp", {
+    it("gives a file the element doesn't reference 'manual' on update: it was set by hand (#1260)", () => {
+      const resolved = resolveSourceReferenceOptions({ sourceFile: "src/new.ts" }, "cli", {
         provenance: "extracted",
         locations: [{ file: "src/old.ts" }],
+      });
+      expect(resolved.options.sourceProvenance).toBe("manual");
+      expect(resolved.warnings[0]).toContain("used 'manual'.");
+    });
+
+    it("keeps the element's current provenance for a file it already references", () => {
+      const resolved = resolveSourceReferenceOptions({ sourceFile: "src/old.ts", sourceSymbol: "other" }, "cli", {
+        provenance: "extracted",
+        locations: [{ file: "src/old.ts", symbol: "first" }],
       });
       expect(resolved.options.sourceProvenance).toBe("extracted");
       expect(resolved.warnings[0]).toContain("the element's current provenance");

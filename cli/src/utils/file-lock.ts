@@ -5,8 +5,9 @@
  * Prevents race conditions in read-modify-write operations on changeset files.
  */
 
-import { mkdir, rm, stat } from "fs/promises";
+import { mkdir, readFile, rm, stat, utimes, writeFile } from "fs/promises";
 import { existsSync } from "fs";
+import path from "path";
 
 const DEFAULT_STALE_LOCK_THRESHOLD = 30000; // 30 seconds
 
@@ -15,7 +16,34 @@ export interface LockOptions {
   retryInterval?: number; // Time between retry attempts (ms)
   staleLockThreshold?: number; // Threshold in ms for detecting stale locks (default: 30000ms)
   detectStaleLocks?: boolean; // Whether to automatically detect and cleanup stale locks (default: true)
+  /**
+   * Who holds the lock and why, written into the lock (owner.json) once it is acquired, so a
+   * waiter can say what it waits for (a landing, #1437). Any JSON object; `purpose` names it.
+   */
+  owner?: LockOwner;
+  /**
+   * Keep the lock fresh while it is held, touching it every this many ms (default: a third of
+   * the stale threshold when set to true). A hold longer than the stale threshold (a large
+   * landing) is otherwise taken for a crashed process's lock and removed by the next waiter.
+   */
+  heartbeat?: boolean | number;
+  /**
+   * Called when the lock is found held, with its holder's owner (null when it recorded none). An
+   * error it returns is thrown at once instead of waiting: a write refuses a changeset that is
+   * being landed rather than wait for a landing that will close it to writes.
+   */
+  refuseWhenHeldBy?: (owner: LockOwner | null) => Error | null | undefined;
 }
+
+/** What a lock's holder recorded about itself (LockOptions.owner), with the time it took the lock. */
+export interface LockOwner {
+  purpose?: string;
+  pid?: number;
+  since?: string;
+  [key: string]: unknown;
+}
+
+const OWNER_FILE = "owner.json";
 
 /**
  * FileLock provides exclusive access to a resource using lockfiles
@@ -23,6 +51,7 @@ export interface LockOptions {
 export class FileLock {
   private lockPath: string;
   private acquired: boolean = false;
+  private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
   constructor(resourcePath: string) {
     // Create lock file path by appending .lock
@@ -61,14 +90,28 @@ export class FileLock {
         // Atomic operation: mkdir fails if directory exists
         await mkdir(this.lockPath, { recursive: false });
         this.acquired = true;
+        if (options.owner) {
+          const owner: LockOwner = { pid: process.pid, since: new Date().toISOString(), ...options.owner };
+          await writeFile(path.join(this.lockPath, OWNER_FILE), JSON.stringify(owner), "utf-8").catch(() => undefined);
+        }
+        this.startHeartbeat(options, staleLockThreshold);
         return;
       } catch (error: any) {
         if (error.code === "EEXIST") {
           // Lock is held by another process
+          if (options.refuseWhenHeldBy) {
+            const refusal = options.refuseWhenHeldBy(await FileLock.readOwner(this.lockPath.replace(/\.lock$/, "")));
+            if (refusal) throw refusal;
+          }
           if (Date.now() - startTime >= timeout) {
+            const owner = await FileLock.readOwner(this.lockPath.replace(/\.lock$/, ""));
+            const since = owner?.since ? ` since ${owner.since}` : "";
+            const by = owner?.pid ? ` (process ${owner.pid})` : "";
             throw new Error(
               `Failed to acquire lock on ${this.lockPath} within ${timeout}ms. ` +
-                `Resource may be locked by another process or operation.`
+                (owner?.purpose
+                  ? `It is held for ${owner.purpose}${since}${by}.`
+                  : `Resource may be locked by another process or operation.`)
             );
           }
 
@@ -94,6 +137,7 @@ export class FileLock {
     if (!this.acquired) {
       return;
     }
+    this.stopHeartbeat();
 
     try {
       await rm(this.lockPath, { recursive: true, force: true });
@@ -153,6 +197,36 @@ export class FileLock {
         }
         throw releaseError;
       }
+    }
+  }
+
+  /** Touch the lock every interval while it is held, so a long hold is never taken for a stale one. */
+  private startHeartbeat(options: LockOptions, staleLockThreshold: number): void {
+    if (!options.heartbeat) return;
+    const every = typeof options.heartbeat === "number" ? options.heartbeat : Math.max(1000, Math.floor(staleLockThreshold / 3));
+    this.heartbeatTimer = setInterval(() => {
+      const now = new Date();
+      utimes(this.lockPath, now, now).catch(() => undefined);
+    }, every);
+    // A held lock never keeps the process alive on its own.
+    this.heartbeatTimer.unref?.();
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = undefined;
+  }
+
+  /**
+   * What the holder of a resource's lock recorded about itself (LockOptions.owner), or null when
+   * the lock is free or its holder recorded nothing.
+   */
+  static async readOwner(resourcePath: string): Promise<LockOwner | null> {
+    try {
+      const parsed = JSON.parse(await readFile(path.join(`${resourcePath}.lock`, OWNER_FILE), "utf-8"));
+      return parsed && typeof parsed === "object" ? (parsed as LockOwner) : null;
+    } catch {
+      return null;
     }
   }
 

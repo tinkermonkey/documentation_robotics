@@ -11,7 +11,20 @@
 import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
-import { clearActiveMarker, readActiveMarker, writeActiveMarker } from "./active-changeset-marker.js";
+import {
+  clearActiveMarker,
+  clearLandedNote,
+  readActiveMarker,
+  readLandedNote,
+  writeActiveMarker,
+  writeLandedNote,
+} from "./active-changeset-marker.js";
+import {
+  changesetNotStagedError,
+  landedActiveChangesetError,
+  landingLockOwner,
+  refuseWhileLanding,
+} from "./changeset-write-refusal.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
@@ -22,7 +35,8 @@ import type { VirtualProjectionEngine } from "./virtual-projection.js";
 import { createSha256Hash } from "../types/index.js";
 import type { BackupManifest, ReconciledStamp } from "../types/index.js";
 import { reconciliationStamp } from "./reconciliation.js";
-import { getErrorMessage } from "../utils/errors.js";
+import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
+import { clearChangesetWrites } from "./changeset-write-activity.js";
 import { FileLock } from "../utils/file-lock.js";
 import type { BaseRead, ChangesetDrift } from "./changeset-base-index.js";
 import { Layer } from "./layer.js";
@@ -165,6 +179,44 @@ export interface CommitResult {
    * A plan's landing leaves it unset and the manifest's stamp as it was. See core/reconciliation.ts.
    */
   reconciled?: ReconciledStamp;
+}
+
+/**
+ * How long a landing waits for a write in progress to finish before it gives up (a write holds the
+ * changeset's lock for one load and save).
+ */
+const LANDING_LOCK_TIMEOUT_MS = 30_000;
+
+/**
+ * Removes what a rolled-back landing created where nothing was (`Model.createdPaths`): a layer's
+ * first folder, a type's first file, relationships.yaml. Nothing else: never a file the restore
+ * just put back (where letter case is ignored, a created `goal.yaml` is the restored `Goal.yaml`),
+ * nor a created folder something else wrote into meanwhile. Deepest first, so a created folder is
+ * empty when it goes.
+ */
+async function removeCreated(created: Iterable<string>, restored: Iterable<string>): Promise<string[]> {
+  const fs = await import("fs/promises");
+  const putBack = new Set([...restored].map((file) => path.resolve(file).toLowerCase()));
+  const entries = [...created].filter((entry) => !putBack.has(entry.toLowerCase()));
+  entries.sort((a, b) => b.split(path.sep).length - a.split(path.sep).length || b.localeCompare(a));
+  const removed: string[] = [];
+  for (const entry of entries) {
+    const stat = await fs.lstat(entry).catch(() => null);
+    if (!stat) continue;
+    if (!stat.isDirectory()) {
+      await fs.rm(entry, { force: true });
+    } else {
+      try {
+        await fs.rmdir(entry);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOTEMPTY") throw error;
+        console.warn(`Warning: kept ${entry}: the landing created it, but it holds files the landing did not write.`);
+        continue;
+      }
+    }
+    removed.push(entry);
+  }
+  return removed;
 }
 
 /**
@@ -331,6 +383,8 @@ export class StagingAreaManager {
     }
 
     await this.storage.delete(changeset.id);
+    // Its last writer is forgotten with it (#1437)
+    await clearChangesetWrites(this.rootPath, changeset.id);
   }
 
   /**
@@ -422,10 +476,7 @@ export class StagingAreaManager {
 
     // Only allow staging when status is 'staged' (not 'committed' or 'discarded')
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot stage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged' to accept new changes.`
-      );
+      throw changesetNotStagedError(changeset);
     }
 
     const stagedChange: Omit<StagedChange, "sequenceNumber"> = {
@@ -453,27 +504,28 @@ export class StagingAreaManager {
   async stageMany(
     changesetId: string,
     changes: Array<Omit<StagedChange, "sequenceNumber">>,
-    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = []
+    rewrites: Array<{ elementId: string; change: Omit<StagedChange, "sequenceNumber"> }> = [],
+    /** Element ids whose staged changes are unstaged in the same write (see StagedChangesetStorage.addChanges). */
+    removals: string[] = []
   ): Promise<void> {
-    if (changes.length === 0 && rewrites.length === 0) return;
+    if (changes.length === 0 && rewrites.length === 0 && removals.length === 0) return;
     this.validateChangesetId(changesetId);
     const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot stage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged' to accept new changes.`
-      );
+      throw changesetNotStagedError(changeset);
     }
     const now = new Date().toISOString();
     await this.storage.addChanges(
       changesetId,
       changes.map((change) => ({ ...change, timestamp: change.timestamp || now })),
-      rewrites.map((r) => ({ elementId: r.elementId, change: { ...r.change, timestamp: r.change.timestamp || now } }))
+      rewrites.map((r) => ({ elementId: r.elementId, change: { ...r.change, timestamp: r.change.timestamp || now } })),
+      removals
     );
     const engine = await this.getProjectionEngine();
+    if (removals.length > 0) await engine.invalidateOnUnstage(changesetId);
     for (const layerName of new Set([...changes, ...rewrites.map((r) => r.change)].map((c) => c.layerName))) {
       engine.invalidateOnStage(changesetId, layerName);
     }
@@ -503,10 +555,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot change staged changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError(changeset);
     }
 
     await this.storage.updateChange(changesetId, elementId, {
@@ -536,10 +585,7 @@ export class StagingAreaManager {
     }
 
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError(changeset);
     }
 
     // Remove the element's changes and resequence remaining changes
@@ -568,10 +614,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError(changeset);
     }
 
     await this.storage.removeChanges(changesetId, elementIds);
@@ -596,10 +639,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError(changeset);
     }
     const removedAt = await this.storage.removeChangesBySequence(changeset.id, sequences);
     const engine = await this.getProjectionEngine();
@@ -634,6 +674,8 @@ export class StagingAreaManager {
     }
     // No record is kept: a discarded changeset left as a folder is an artifact nothing owns.
     await this.storage.delete(id);
+    // Nor its last writer: nothing writes into it now.
+    await clearChangesetWrites(this.rootPath, id);
 
     // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();
@@ -654,17 +696,29 @@ export class StagingAreaManager {
     if (!this.model) {
       throw new Error("Model required for capturing base snapshot");
     }
-    const changeset = await this.load(changesetId);
-    if (!changeset) {
+    const model = this.model;
+    const id = (await this.load(changesetId))?.id;
+    if (!id) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const snapshotId = await this.snapshotManager.captureSnapshot(this.model);
-    changeset.baseSnapshot = snapshotId;
-    changeset.updateModified();
-    await this.storage.save(changeset);
-
-    return snapshotId;
+    // Under the changeset's file lock, on a fresh read, and only while it is staged: a copy read
+    // before a landing would save 'staged' back over 'committed', and drop writes staged meanwhile.
+    return new FileLock(this.storage.getChangesetPath(id)).withLock(
+      async () => {
+        const changeset = await this.storage.load(id);
+        if (!changeset) {
+          throw new Error(`Changeset '${changesetId}' not found`);
+        }
+        if (changeset.status !== "staged") throw changesetNotStagedError(changeset);
+        const snapshotId = await this.snapshotManager.captureSnapshot(model);
+        changeset.baseSnapshot = snapshotId;
+        changeset.updateModified();
+        await this.storage.save(changeset);
+        return snapshotId;
+      },
+      { refuseWhenHeldBy: refuseWhileLanding(id) }
+    );
   }
 
   /**
@@ -826,7 +880,8 @@ export class StagingAreaManager {
     if (!id) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
-    // Under the changeset's file lock, on a fresh read: nothing staged meanwhile is saved over.
+    // Under the changeset's file lock, on a fresh read: nothing staged meanwhile is saved over, and a
+    // changeset a landing holds is refused at once (#1437).
     return new FileLock(this.storage.getChangesetPath(id)).withLock(async () => {
       const changeset = await this.storage.load(id);
       if (!changeset) {
@@ -904,7 +959,7 @@ export class StagingAreaManager {
         before,
         after,
       };
-    });
+    }, { refuseWhenHeldBy: refuseWhileLanding(id) });
   }
 
   /**
@@ -942,7 +997,26 @@ export class StagingAreaManager {
     // The whole landing is one tracked write: a reader in this process doesn't read the model while
     // it is half landed (or being restored from the backup). A dry run writes nothing.
     if (options.dryRun === true) return this.commitUntracked(model, changesetId, options);
-    return trackModelWrite(this.rootPath, undefined, () => this.commitUntracked(model, changesetId, options));
+    return trackModelWrite(this.rootPath, undefined, () => this.commitLocked(model, changesetId, options));
+  }
+
+  /**
+   * A real landing, under the changeset's file lock from the read of what it lands to the save that
+   * marks it committed (#1437). Every stage, restage and unstage takes the same lock, so a write
+   * either goes in before the landing reads the changeset, and lands with it, or is refused: at
+   * once while the landing holds the lock (its owner says so), and as no longer staged after. None
+   * is saved over. The lock is kept fresh for as long as the landing takes.
+   */
+  private async commitLocked(model: Model, changesetId: string, options: CommitOptions): Promise<CommitResult> {
+    this.validateChangesetId(changesetId);
+    const changeset = await this.load(changesetId);
+    if (!changeset?.id) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    return new FileLock(this.storage.getChangesetPath(changeset.id)).withLock(
+      () => this.commitUntracked(model, changeset.id!, options),
+      { owner: landingLockOwner(changeset), heartbeat: true, timeout: LANDING_LOCK_TIMEOUT_MS }
+    );
   }
 
   private async commitUntracked(
@@ -960,6 +1034,11 @@ export class StagingAreaManager {
 
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
+
+      // Landed (or discarded) meanwhile, by another landing that held the lock first: never twice.
+      if (changeset.status !== "staged") {
+        throw new Error(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can be committed`);
+      }
 
       // Step 0: A record never lands, dry run or not.
       const refusal = await this.landingRefusal(changeset);
@@ -1121,6 +1200,9 @@ export class StagingAreaManager {
             `${backupError instanceof Error ? backupError.message : String(backupError)}`
         );
       }
+      // What the saves create where nothing was: a rollback removes these, and only these.
+      const created = new Set<string>();
+      model.createdPaths = created;
 
       // Step 5: Apply all changes sequentially by sequence number (numbers may have gaps where
       // changes were unstaged; unstage tombstones are never applied)
@@ -1155,6 +1237,10 @@ export class StagingAreaManager {
           "error.message": getErrorMessage(error),
         });
       }
+
+      // What Step 6.5 and Step 7 did to the active marker, the landed note and the changeset's
+      // status, for the rollback to undo.
+      const landing = { noteWritten: false, markerCleared: false, statusSaved: false };
 
       try {
         const applySpan = isTelemetryEnabled
@@ -1371,12 +1457,48 @@ export class StagingAreaManager {
           }
         }
 
+        // Step 6.5 (#1437): when this is the active changeset, leave the landed note and then clear
+        // the marker, both before the status save. A write from another process asks
+        // getWriteTarget: until the marker is cleared it finds the changeset staged and stages into
+        // it, which the lock this landing holds refuses; once the status is saved it finds the note.
+        // There is no moment with neither, so no write goes to the base model in its place. The note
+        // is what keeps those writes out, so failing to write it fails the landing. A marker that
+        // can't be cleared is reported (deactivationError), not fatal: the note covers it.
+        const committedAt = new Date().toISOString();
+        if ((await this.readActiveMarker()) === changeset.id) {
+          try {
+            await writeLandedNote(this.rootPath, { id: changeset.id!, name: changeset.name, landedAt: committedAt });
+          } catch (error) {
+            throw new Error(
+              `Failed to record the landing for writes still aimed at '${changeset.name}': ${getErrorMessage(error)}. ` +
+                "Nothing was landed."
+            );
+          }
+          landing.noteWritten = true;
+          try {
+            await this.clearActive({ keepLandedNote: true });
+            landing.markerCleared = true;
+            result.deactivated = true;
+          } catch (error) {
+            result.deactivationError = getErrorMessage(error);
+            console.warn(
+              `Warning: changeset '${changeset.name}' is landing, but its active-changeset marker could not be cleared ` +
+                `(${result.deactivationError}). The marker is ignored once it is committed, and writes aimed at it are refused.`
+            );
+            emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
+              "changeset.id": changesetId,
+              "error.message": result.deactivationError,
+            });
+          }
+        }
+
         // Step 7: Update changeset status to committed ONLY AFTER successful saves
         changeset.status = "committed";
         changeset.updateModified();
 
         try {
           await this.storage.save(changeset);
+          landing.statusSaved = true;
         } catch (error) {
           // Changeset status is critical metadata - must be persisted with model changes
           throw new Error(
@@ -1389,7 +1511,6 @@ export class StagingAreaManager {
         if (!model.manifest.changeset_history) {
           model.manifest.changeset_history = [];
         }
-        const committedAt = new Date().toISOString();
         model.manifest.changeset_history.push({
           name: changeset.name,
           committed_at: committedAt,
@@ -1425,7 +1546,7 @@ export class StagingAreaManager {
         }
 
         // The model in hand stops projecting the landed changeset before the reports are read
-        // from it; the active marker on disk is cleared in Step 11.
+        // from it; the active marker on disk was cleared in Step 6.5.
         model.noteChangesetDeactivated(changeset.id);
 
         // Step 9.5: Regenerate reports for the layers this changeset changed: the layers of its
@@ -1451,28 +1572,10 @@ export class StagingAreaManager {
 
         // Step 10: Clean up backup directory after successful commit
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
+        model.createdPaths = undefined;
         await this.cleanupBackup(backup);
-
-        // Step 11: A landed changeset is no longer active, whoever landed it: left active, reads
-        // would project it over the base and writes would stage into it. Another changeset's
-        // active marker is left alone. The changes are already landed, so a failure here is
-        // reported in the result (deactivationError) rather than rolled back.
-        try {
-          if ((await this.readActiveMarker()) === changeset.id) {
-            await this.clearActive();
-            result.deactivated = true;
-          }
-        } catch (error) {
-          result.deactivationError = getErrorMessage(error);
-          console.warn(
-            `Warning: changeset '${changeset.name}' was committed, but its active-changeset marker could not be cleared ` +
-              `(${result.deactivationError}). The marker is ignored: a committed changeset is never the active one.`
-          );
-          emitLog(SeverityNumber.ERROR, "Changeset committed but could not be deactivated", {
-            "changeset.id": changesetId,
-            "error.message": result.deactivationError,
-          });
-        }
+        // Its last writer is forgotten: a landed changeset takes no writes (#1437).
+        await clearChangesetWrites(this.rootPath, changeset.id!);
 
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);
@@ -1483,6 +1586,7 @@ export class StagingAreaManager {
 
         return result;
       } catch (commitError) {
+        model.createdPaths = undefined;
         // Attempt rollback on any failure - restore from backup
         let rollbackSucceeded = false;
         let rollbackError: Error | null = null;
@@ -1495,7 +1599,7 @@ export class StagingAreaManager {
               commitError instanceof Error ? commitError.message : String(commitError),
           });
 
-          await this.restoreModel(model, backup);
+          await this.restoreModel(model, backup, created);
           rollbackSucceeded = true;
 
           if (isTelemetryEnabled && rollbackSpan) {
@@ -1522,6 +1626,8 @@ export class StagingAreaManager {
         } finally {
           endSpan(rollbackSpan);
         }
+        // The landing did not happen: writes stage into the changeset again, whatever the model's state.
+        await this.undoLandingMarkers(changeset, landing);
 
         // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
         let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
@@ -1681,10 +1787,18 @@ export class StagingAreaManager {
       throw new UpgradeRecordActivationError(changeset.name);
     }
 
-    // Transition to 'staged' status to enable interception
+    // Only a staged changeset can be the active one. Activating a landed (or discarded) one used to
+    // mark it staged again, reopening it with every change it landed (#1437 review): refused.
     if (changeset.status !== "staged") {
-      changeset.markStaged();
-      await this.storage.save(changeset);
+      throw new CLIError(
+        `Changeset '${changeset.name}' is ${changeset.status === "committed" ? "landed (committed)" : changeset.status}, so it ` +
+          "can't be made active: it takes no more writes",
+        ErrorCategory.USER,
+        [
+          'Create a changeset ("changeset_create"; dr changeset create) to keep planning',
+          'Or activate another staged changeset ("changeset_list"; dr changeset list shows them)',
+        ]
+      );
     }
 
     // Write the actual changeset ID (not the user-provided name)
@@ -1698,12 +1812,12 @@ export class StagingAreaManager {
    * Clear the active changeset marker.
    * Allows a new changeset to be activated or model mutations to proceed normally.
    */
-  async clearActive(): Promise<void> {
-    return trackModelWrite(this.rootPath, undefined, () => this.writeNoActive());
+  async clearActive(options: { keepLandedNote?: boolean } = {}): Promise<void> {
+    return trackModelWrite(this.rootPath, undefined, () => this.writeNoActive(options));
   }
 
-  private async writeNoActive(): Promise<void> {
-    await clearActiveMarker(this.rootPath);
+  private async writeNoActive(options: { keepLandedNote?: boolean } = {}): Promise<void> {
+    await clearActiveMarker(this.rootPath, options);
   }
 
   /**
@@ -1731,6 +1845,70 @@ export class StagingAreaManager {
 
     const changeset = await this.storage.load(id);
     return changeset && changeset.status === "staged" ? changeset : null;
+  }
+
+  /**
+   * Where a write goes: the active changeset, or null for the base model. Refuses, naming the
+   * changeset, when the checkout's active changeset was landed and nothing was activated, created
+   * or deactivated since (the landed note, #1437): a write aimed at it is never made in the base
+   * model in its place. Every write path asks this instead of getActive.
+   *
+   * @throws ChangesetClosedToWritesError when the active changeset was landed
+   */
+  async getWriteTarget(): Promise<Changeset | null> {
+    const active = await this.getActive();
+    if (active) return active;
+    const landed = await readLandedNote(this.rootPath);
+    if (landed) throw landedActiveChangesetError(landed);
+    return null;
+  }
+
+  /**
+   * After a landing rolled back: mark the changeset staged again if the landing had saved it
+   * committed (the model is back as it was, so its changes are still to land), take the landed note
+   * away, and name the changeset active again if the landing cleared the marker, so writes stage
+   * into it as before. The landing still holds the changeset's lock. A failure is logged.
+   */
+  private async undoLandingMarkers(
+    changeset: Changeset,
+    landing: { noteWritten: boolean; markerCleared: boolean; statusSaved: boolean }
+  ): Promise<void> {
+    try {
+      if (landing.statusSaved) {
+        const saved = await this.storage.load(changeset.id!);
+        if (saved && saved.status === "committed") {
+          saved.markStaged();
+          await this.storage.save(saved);
+        }
+      }
+      if (landing.noteWritten) await clearLandedNote(this.rootPath);
+      if (landing.markerCleared) await writeActiveMarker(this.rootPath, changeset.id!);
+    } catch (error) {
+      emitLog(SeverityNumber.ERROR, "Could not restore the active marker after a rolled-back landing", {
+        "changeset.id": changeset.id ?? "",
+        "error.message": getErrorMessage(error),
+      });
+    }
+  }
+
+  /**
+   * A warning when there is evidence something is still writing into the changeset (its lock held
+   * by a write, or another process staged into it moments ago), for whoever is about to land it.
+   */
+  async writeActivityWarning(changeset: Changeset): Promise<string | undefined> {
+    if (!changeset.id) return undefined;
+    const { writeActivityWarning } = await import("./changeset-write-activity.js");
+    return writeActivityWarning(this.rootPath, this.storage.getChangesetPath(changeset.id), changeset);
+  }
+
+  /** A changeset's folder (its file lock sits beside it). */
+  changesetPath(changesetId: string): string {
+    return this.storage.getChangesetPath(changesetId);
+  }
+
+  /** The landed note (see getWriteTarget), for status output and changeset_deactivate. */
+  async landedNote() {
+    return readLandedNote(this.rootPath);
   }
 
   /**
@@ -1923,6 +2101,18 @@ export class StagingAreaManager {
             });
           }
         }
+      }
+
+      // relationships.yaml too: a landing rewrites it, and a rollback puts it back as it was.
+      const relationshipsPath = path.join(model.rootPath, "documentation-robotics", "model", "relationships.yaml");
+      if (await fileExists(relationshipsPath)) {
+        const content = await readFile(relationshipsPath);
+        await atomicWrite(path.join(backupDir, "relationships.yaml"), content);
+        backupFiles.push({
+          path: "relationships.yaml",
+          checksum: createSha256Hash(createHash("sha256").update(content).digest("hex")),
+          size: content.length,
+        });
       }
 
       // Create the final immutable BackupManifest
@@ -2274,6 +2464,7 @@ export class StagingAreaManager {
    *
    * @param model - The model to restore
    * @param backupDir - Path to the backup directory
+   * @param created - What the landing created where nothing was (`Model.createdPaths`): removed
    * @throws Error with detailed restoration summary if restoration fails
    *
    * @remarks
@@ -2284,10 +2475,12 @@ export class StagingAreaManager {
    * 4. Throw detailed error if critical files fail to restore
    * Both manifest and layer restoration failures are critical and will throw errors.
    */
-  private async restoreModel(model: Model, backupDir: string): Promise<void> {
+  private async restoreModel(model: Model, backupDir: string, created: ReadonlySet<string> = new Set()): Promise<void> {
     const { readFile, fileExists, atomicWrite } = await import("../utils/file-io.js");
 
     const restoredFiles: string[] = [];
+    // The same files as absolute paths: never removed as created
+    const restoredPaths: string[] = [];
     const failedFiles: Array<{ path: string; error: string; isCritical: boolean }> = [];
     const criticalLayers = new Set<string>(); // Track critical layer failures
 
@@ -2314,6 +2507,7 @@ export class StagingAreaManager {
         const manifestContent = await readFile(backupManifestFile);
         await atomicWrite(manifestDestPath, manifestContent);
         restoredFiles.push(path.basename(backupManifestFile));
+        restoredPaths.push(manifestDestPath);
       } catch (error) {
         failedFiles.push({
           path: path.basename(backupManifestFile),
@@ -2326,6 +2520,20 @@ export class StagingAreaManager {
         );
       }
 
+      // relationships.yaml as it was, when it was there (one the landing created is removed below).
+      const backupRelationships = path.join(backupDir, "relationships.yaml");
+      if (await fileExists(backupRelationships)) {
+        try {
+          const relationshipsPath = path.join(model.rootPath, "documentation-robotics", "model", "relationships.yaml");
+          await atomicWrite(relationshipsPath, await readFile(backupRelationships));
+          restoredFiles.push("relationships.yaml");
+          restoredPaths.push(relationshipsPath);
+        } catch (error) {
+          failedFiles.push({ path: "relationships.yaml", error: getErrorMessage(error), isCritical: true });
+          throw new Error(`Failed to restore relationships.yaml: ${getErrorMessage(error)}`);
+        }
+      }
+
       // Restore all layer files with defensive error handling
       const backupLayersDir = path.join(backupDir, "layers");
       const fs = await import("fs/promises");
@@ -2334,6 +2542,12 @@ export class StagingAreaManager {
         const backupLayerDir = path.join(backupLayersDir, layer.name);
 
         try {
+          if (!(await fileExists(backupLayerDir))) {
+            // A layer the landing added (it created the folder) has no backup: nothing to put
+            // back, and its files go below. A layer that was there is a corrupt backup.
+            const folder = await this.findLayerDirectory(model.rootPath, layer.name);
+            if (!folder || created.has(path.resolve(folder))) continue;
+          }
           if (!(await fileExists(backupLayerDir))) {
             // CRITICAL: Layer directory missing in backup - this is a data loss scenario
             const errorMsg = `Layer '${layer.name}' not found in backup (backup incomplete or corrupted)`;
@@ -2363,6 +2577,7 @@ export class StagingAreaManager {
 
           // Restore all YAML files from backup
           const backupFiles = await fs.readdir(backupLayerDir);
+          const onDisk = await fs.readdir(layerDirPath);
           let filesRestoredInLayer = 0;
 
           for (const file of backupFiles) {
@@ -2370,9 +2585,15 @@ export class StagingAreaManager {
               const backupFilePath = path.join(backupLayerDir, file);
               const destFilePath = path.join(layerDirPath, file);
               try {
+                // The save renamed `Goal.yaml` to `goal.yaml` (planLayerFiles): name it as it was
+                const renamed = onDisk.includes(file)
+                  ? undefined
+                  : onDisk.find((name) => name.toLowerCase() === file.toLowerCase() && !backupFiles.includes(name));
+                if (renamed) await fs.rename(path.join(layerDirPath, renamed), destFilePath);
                 const fileContent = await readFile(backupFilePath);
                 await atomicWrite(destFilePath, fileContent);
                 restoredFiles.push(`layers/${layer.name}/${file}`);
+                restoredPaths.push(destFilePath);
                 filesRestoredInLayer++;
               } catch (fileError) {
                 // Individual file restoration failure - still critical for data integrity
@@ -2400,6 +2621,14 @@ export class StagingAreaManager {
           });
           criticalLayers.add(layer.name);
         }
+      }
+
+      // Remove what the landing created where nothing was, and nothing else.
+      try {
+        await removeCreated(created, restoredPaths);
+      } catch (error) {
+        failedFiles.push({ path: "model/", error: `Could not remove files the landing created: ${getErrorMessage(error)}`, isCritical: true });
+        throw new Error(`Failed to remove files the landing created: ${getErrorMessage(error)}`);
       }
 
       // Reload model layers to reflect restored state

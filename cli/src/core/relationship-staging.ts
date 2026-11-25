@@ -148,6 +148,28 @@ export interface StagedRelationshipDeleteResult {
 }
 
 /**
+ * The staged change that deletes a live relationship of the projection. It names the row the way
+ * relationships.yaml does, so the commit finds it.
+ */
+export function relationshipDeleteChange(rel: GraphRelationship): Omit<StagedChange, "sequenceNumber"> {
+  const source = rel.raw?.source ?? rel.source;
+  const target = rel.raw?.target ?? rel.target;
+  return {
+    type: "relationship-delete",
+    elementId: `${source}::${rel.predicate}::${target}`,
+    layerName: rel.layer,
+    before: {
+      source,
+      target,
+      predicate: rel.predicate,
+      layer: rel.layer,
+      ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+      ...(rel.properties ? { properties: rel.properties } : {}),
+    },
+  };
+}
+
+/**
  * Removes `relationships` (live ones from the projection) within a changeset: unstages the ones
  * this changeset added and stages a deletion for the rest.
  */
@@ -166,25 +188,33 @@ export async function stageRelationshipDeletes(
       results.push({ predicate: rel.predicate, status: "unstaged" });
       continue;
     }
-    // Name the row the way relationships.yaml does, so the commit finds it.
-    const source = rel.raw?.source ?? rel.source;
-    const target = rel.raw?.target ?? rel.target;
-    await manager.stage(changeset.id!, {
-      type: "relationship-delete",
-      elementId: `${source}::${rel.predicate}::${target}`,
-      layerName: rel.layer,
-      before: {
-        source,
-        target,
-        predicate: rel.predicate,
-        layer: rel.layer,
-        ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-        ...(rel.properties ? { properties: rel.properties } : {}),
-      },
-    });
+    await manager.stage(changeset.id!, relationshipDeleteChange(rel));
     results.push({ predicate: rel.predicate, status: "staged" });
   }
   return results;
+}
+
+/**
+ * The predicates the catalog allows from `source` to `target` (`forward`), and from `target` back
+ * to `source` (`reverse`), each sorted. Type ids are spec node ids (`application.applicationservice`).
+ */
+export function predicatesBetween(source: string, target: string): { forward: string[]; reverse: string[] } {
+  const between = (from: string, to: string) =>
+    [...new Set(getValidRelationships(from, undefined, to).map((r) => r.predicate))].sort();
+  return { forward: between(source, target), reverse: source === target ? [] : between(target, source) };
+}
+
+/** {@link predicatesBetween} as one suggestion line. */
+export function predicatesBetweenLine(source: string, target: string): string {
+  const { forward, reverse } = predicatesBetween(source, target);
+  if (forward.length === 0 && reverse.length === 0) {
+    return `The catalog allows no relationship between ${source} and ${target}, in either direction`;
+  }
+  const parts = [
+    ...(forward.length ? [`${source} --[${forward.join(" | ")}]--> ${target}`] : []),
+    ...(reverse.length ? [`${target} --[${reverse.join(" | ")}]--> ${source}`] : []),
+  ];
+  return `Between these types the catalog allows: ${parts.join("; ")}`;
 }
 
 /**
@@ -222,8 +252,9 @@ export function validateRelationshipCombination(
     return { valid: true };
   }
 
-  // Generate helpful suggestions
-  const suggestions: string[] = [];
+  // Generate helpful suggestions. First what the catalog allows between these two types, in
+  // either direction, so the agent can pick a predicate in the same turn (#1354).
+  const suggestions: string[] = [predicatesBetweenLine(sourceSpecNodeId, destSpecNodeId)];
   const validPredicates = getValidPredicatesForSource(sourceSpecNodeId);
 
   if (validPredicates.length > 0) {
@@ -251,9 +282,10 @@ export function validateRelationshipCombination(
     }
   }
 
-  // A model on a newer spec may use a relationship type this dr doesn't know yet
+  // A model on a newer spec may use a relationship type this dr doesn't know yet: said right after
+  // the predicates line, which stays first
   const ahead = specAheadNote(modelSpecVersion);
-  if (ahead) suggestions.unshift(ahead);
+  if (ahead) suggestions.splice(1, 0, ahead);
 
   return { valid: false, suggestions };
 }
@@ -372,8 +404,12 @@ export function resolveLooseReference(graph: ChangesetGraph, ref: string): { id:
   return matches.length === 1 ? { id: matches[0] } : { candidates: matches };
 }
 
-/** "added" is "staged" when no changeset is active and the add is written to the model. */
-export type RelationshipBatchStatus = "staged" | "added" | "restored" | "duplicate" | "invalid";
+/**
+ * "added" is "staged" when no changeset is active and the add is written to the model. "unchanged":
+ * the model or the changeset already has it as sent, nothing written (a batch sent again, #1296).
+ * "duplicate": the same relationship earlier in this batch.
+ */
+export type RelationshipBatchStatus = "staged" | "added" | "restored" | "unchanged" | "duplicate" | "invalid";
 
 export interface RelationshipBatchResult {
   /** Position in the request, from 0. */
@@ -617,7 +653,18 @@ export async function planRelationshipBatch(
     // batch re-adds may have relationships whose deletion is staged, which are restored.
     const plan = planRelationshipAdd(graph, changeset, triple);
     if (plan.action === "duplicate") {
-      results.push({ ...resolved, status: "duplicate", reason: "Already in the model or this changeset" });
+      // Already there: a no-op, unless it was sent with other properties, which an add never changes.
+      const there = graph.getRelationship(triple.source, triple.predicate, triple.target);
+      if (item.properties !== undefined && stableJson(item.properties) !== stableJson(there?.properties ?? {})) {
+        results.push({
+          ...resolved,
+          status: "invalid",
+          reason: "Already in the model or this changeset, with other properties: an add does not change them",
+          suggestions: ["Delete it (relationship_delete) and add it again with these properties"],
+        });
+        return;
+      }
+      results.push({ ...resolved, status: "unchanged", reason: "Already in the model or this changeset" });
       return;
     }
     if (plan.action === "restore") {
@@ -643,6 +690,47 @@ export async function planRelationshipBatch(
   });
 
   return { changes, unstageKeys, results };
+}
+
+/**
+ * Whether this changeset had staged an add matching `rel` (its predicate, or any when none is given)
+ * and unstaged it since: a delete sent again after it unstaged the add finds nothing live, and that
+ * is the delete already done, not a relationship that never was (#1296).
+ */
+export function unstagedRelationshipAdd(
+  graph: ChangesetGraph,
+  changeset: Changeset,
+  rel: { source: string; predicate?: string; target: string }
+): boolean {
+  const source = graph.resolve(rel.source);
+  const target = graph.resolve(rel.target);
+  return changeset.unstaged.some((tombstone) => {
+    if (tombstone.rewritten || tombstone.change.type !== "relationship-add") return false;
+    const triple = stagedRelationshipTriple(tombstone.change as StagedChange);
+    return (
+      !!triple &&
+      (!rel.predicate || triple.predicate === rel.predicate) &&
+      graph.resolve(triple.source) === source &&
+      graph.resolve(triple.target) === target
+    );
+  });
+}
+
+/** Whether this changeset had staged an add of the element and unstaged it since (see {@link unstagedRelationshipAdd}). */
+export function unstagedElementAdd(graph: ChangesetGraph, changeset: Changeset, id: string): boolean {
+  const resolved = graph.resolve(id);
+  return changeset.unstaged.some(
+    (tombstone) => !tombstone.rewritten && tombstone.change.type === "add" && graph.resolve(tombstone.change.elementId) === resolved
+  );
+}
+
+/** JSON with object keys sorted, so two values compare equal whatever their key order. */
+export function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : v
+  );
 }
 
 /** Counts of a batch's results by status. */

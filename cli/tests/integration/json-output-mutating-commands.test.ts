@@ -661,9 +661,12 @@ describe("JSON Output on Mutating Commands", () => {
       const applied = await runCLICommand(workdir.path, ["changeset", "apply", "landed-plan", "--no-validate", "--force"]);
       expect(applied.exitCode).toBe(0);
 
-      // Put the marker back, as a landing interrupted before it cleared the marker leaves it
+      // Put the marker back, as a landing interrupted before it cleared the marker leaves it. Such a
+      // landing never wrote the landed note either (#1437: it is written after the marker is
+      // cleared), so take that away too: with the note, writes are refused instead.
       await fs.mkdir(path.dirname(markerPath), { recursive: true });
       await fs.writeFile(markerPath, marker);
+      await fs.rm(path.join(workdir.path, ".dr", "landed-changeset"), { force: true });
 
       const status = await runCLICommand(workdir.path, ["changeset", "status"]);
       expect(status.exitCode).toBe(0);
@@ -683,11 +686,11 @@ describe("JSON Output on Mutating Commands", () => {
       expect(shown.exitCode).toBe(0);
       expect(shown.stdout).toContain("Written After Landing");
 
-      // Deactivating removes the leftover marker
+      // Deactivating clears the leftover marker: the file is left empty, which means none (#1452)
       const deactivated = await runCLICommand(workdir.path, ["changeset", "deactivate"]);
       expect(deactivated.exitCode).toBe(0);
       expect(`${deactivated.stdout}${deactivated.stderr}`).toContain("cleared a marker");
-      expect(await fs.access(markerPath).then(() => true, () => false)).toBe(false);
+      expect((await fs.readFile(markerPath, "utf-8")).trim()).toBe("");
     });
 
     it("dr changeset apply --json should output valid JSON", async () => {

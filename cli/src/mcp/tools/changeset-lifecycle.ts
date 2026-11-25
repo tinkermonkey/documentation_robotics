@@ -150,13 +150,19 @@ export async function changesetDeactivateHandler(args: ChangesetDeactivateArgs):
     // A marker left by a changeset that is no longer staged is not the active changeset (#1218),
     // but this is the moment to remove it.
     const stale = activeId ? null : await manager.staleActiveMarker();
-    if (activeId || stale) {
+    // A landing of the active changeset leaves a note that refuses writes (#1437): deactivating is
+    // how the agent says writes go to the base model now.
+    const landed = activeId ? null : await manager.landedNote();
+    if (activeId || stale || landed) {
       await manager.clearActive();
       await reloadModel(args.rootPath);
     }
     return jsonResult({
       deactivated: activeId ?? null,
       ...(stale ? { clearedLeftoverMarker: { changeset: stale.name ?? stale.id, status: stale.status } } : {}),
+      ...(landed
+        ? { clearedLanded: { changeset: landed.name, landedAt: landed.landedAt, writes: "go to the base model now" } }
+        : {}),
     });
   });
 }
@@ -164,7 +170,9 @@ export async function changesetDeactivateHandler(args: ChangesetDeactivateArgs):
 export const changesetDeactivateTool: McpToolDefinition<typeof deactivateInputSchema> = {
   name: "changeset_deactivate",
   description:
-    "Deactivate the active changeset. Its changes stay staged; afterwards mutations write the base model directly.",
+    "Deactivate the active changeset. Its changes stay staged; afterwards mutations write the base model directly. " +
+    "After the active changeset was landed, writes are refused until a changeset is activated or created, or this " +
+    "is called: then they write the base model.",
   inputSchema: deactivateInputSchema,
   handler: changesetDeactivateHandler,
 };

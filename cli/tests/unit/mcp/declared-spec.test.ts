@@ -23,6 +23,7 @@ import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 import { stringifyDrYaml } from "../../../src/core/dr-yaml.js";
 import { projectUpgradeHandler } from "../../../src/mcp/tools/project-tools.js";
+import { listed } from "../../helpers/batch-causes.js";
 
 const SERVICE = "application.applicationservice.proposal-service";
 const COMPONENT = "application.applicationcomponent.proposal-repository";
@@ -88,8 +89,9 @@ describe("staging checks the spec the model declares (#1411)", () => {
       })
     );
     expect(result.counts).toEqual({ added: 1, invalid: 1 });
-    expect(result.attention[0].reason).toContain("is not in spec 0.13.0");
-    expect(result.attention[0].suggestions.join(" ")).toContain("project_upgrade");
+    const [refused] = listed(result);
+    expect(refused.reason).toContain("is not in spec 0.13.0");
+    expect(refused.suggestions!.join(" ")).toContain("project_upgrade");
   });
 
   it("model_add refuses a type only a later spec has, alone and in a list", async () => {
@@ -111,7 +113,7 @@ describe("staging checks the spec the model declares (#1411)", () => {
       })
     );
     expect(batch.elements.counts).toEqual({ invalid: 1 });
-    expect(batch.elements.attention[0].reason).toContain("it exists from spec 0.14.0");
+    expect(listed(batch.elements)[0].reason).toContain("it exists from spec 0.14.0");
   });
 
   it("model_update refuses changing an element to such a type", async () => {
@@ -153,7 +155,10 @@ describe("a model on a spec newer than this dr's (#1411)", () => {
     const relationship = parse(
       await relationshipAddHandler({ relationships: [{ source: SCHEMA, predicate: "serves", target: SERVICE }], rootPath })
     );
-    expect(relationship.attention[0].suggestions[0]).toContain("unknown here, not invalid");
+    // The predicates allowed between the two types first (#1354), then that the spec is newer
+    const [refused] = listed(relationship);
+    expect(refused.suggestions![0]).toContain("Between these types the catalog allows");
+    expect(refused.suggestions![1]).toContain("unknown here, not invalid");
   });
 });
 
