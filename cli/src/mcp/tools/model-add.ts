@@ -113,6 +113,22 @@ const inputSchema = {
         "element is refused, and a relationship naming that id or the refused name is reported, not linked " +
         "to the first."
     ),
+  after: z
+    .string()
+    .optional()
+    .describe(
+      "Single form, for a product.workflowstep: place it right after this existing step. It takes that step's " +
+        "sequence + 1, joins the workflow that composes it, takes over its flows-to hand-offs (that step flows to the " +
+        "new one, the new one to what it flowed to), and later steps are renumbered where their sequence collides. " +
+        "Send no sequence."
+    ),
+  before: z
+    .string()
+    .optional()
+    .describe(
+      "Single form, for a product.workflowstep: place it right before this existing step (it takes its sequence). With " +
+        "after, the two name one flows-to hand-off to split."
+    ),
   file: z
     .string()
     .optional()
@@ -129,9 +145,11 @@ const SINGLE_FORM_FIELDS = [
   "layer",
   "type",
   "name",
+  "after",
+  "before",
   ...(Object.keys(elementFields) as Array<keyof typeof elementFields>),
 ] as const;
-type ElementSpec = z.infer<typeof elementItemSchema>;
+export type ElementSpec = z.infer<typeof elementItemSchema>;
 
 interface PreparedElement {
   element: Element;
@@ -282,11 +300,34 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
         "Batch: {elements: [{layer, type, name}, ...], relationships: [{source, predicate, target}, ...]}",
       ]);
     }
-    return addSingleElement({ ...args, layer: args.layer, type: args.type, name: args.name }, args.rootPath);
+    const { after, before, ...single } = args;
+    const spec = { ...single, layer: args.layer, type: args.type, name: args.name } as ElementSpec;
+    if (after !== undefined || before !== undefined) {
+      const { insertWorkflowStep } = await import("./workflow-step-insert.js");
+      return jsonResult(await insertWorkflowStep(spec, { after, before }, args.rootPath));
+    }
+    return addSingleElement(spec, args.rootPath);
   }));
 }
 
 async function addSingleElement(spec: ElementSpec, rootPath: string | undefined): Promise<CallToolResult> {
+  return jsonResult(await addOneElement(spec, rootPath));
+}
+
+/** What the single form of model_add did. */
+export interface SingleAddOutcome {
+  status: "staged" | "added" | "unchanged";
+  changeset?: string;
+  id: string;
+  layer: string;
+  type: string;
+  name: string;
+  warnings?: string[];
+  notes?: string[];
+}
+
+/** Validates and adds one element; throws a CLIError saying what is wrong. */
+export async function addOneElement(spec: ElementSpec, rootPath: string | undefined): Promise<SingleAddOutcome> {
   let prepared: PreparedElement;
   try {
     prepared = await prepareElement(spec);
@@ -320,14 +361,14 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     );
     if (differs.length === 0) {
       const active = await new StagingAreaManager(model.rootPath, model).getWriteTarget();
-      return jsonResult({
+      return {
         status: "unchanged",
         ...(active ? { changeset: active.name } : {}),
         id: elementPath,
         layer,
         type: prepared.type,
         name: spec.name,
-      });
+      };
     }
     throw new CLIError(`Element ${elementPath} already exists in ${layer} layer, with another ${differs.join(" and ")}`, ErrorCategory.USER, [
       `Use "model_update" to change it`,
@@ -372,7 +413,7 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     await reloadModel(rootPath);
   }
 
-  return jsonResult({
+  return {
     status: staged ? "staged" : "added",
     changeset: staged ? activeChangeset!.name : undefined,
     id: elementPath,
@@ -381,7 +422,7 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     name: spec.name,
     ...(warnings.length > 0 ? { warnings } : {}),
     ...(prepared.notes.length > 0 ? { notes: prepared.notes } : {}),
-  });
+  };
 }
 
 /**

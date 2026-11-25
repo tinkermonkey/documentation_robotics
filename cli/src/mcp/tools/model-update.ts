@@ -198,7 +198,7 @@ export async function modelUpdateHandler(args: ModelUpdateArgs): Promise<CallToo
 }
 
 /** What one update did, as the single form returns it. */
-interface UpdateOutcome {
+export interface UpdateOutcome {
   status: "staged" | "updated" | "no-op";
   changeset?: string;
   id: string;
@@ -251,7 +251,7 @@ async function updateElementBatch(model: Model, updates: UpdateSpec[], args: Mod
 }
 
 /** Validates and applies one update to the loaded model; throws a CLIError saying what is wrong. */
-async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutcome> {
+export async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutcome> {
   validateUpdateSourceReferenceOptions(args);
   // Refuse attributes + attributePatch before touching the model.
   resolveAttributeUpdate(undefined, { attributes: args.attributes, attributePatch: args.attributePatch });
