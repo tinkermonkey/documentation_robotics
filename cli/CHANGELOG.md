@@ -142,7 +142,7 @@ rewrites application interfaces' `protocol` REST and HTTPS to HTTP (see Changed)
   documentation-robotics/extraction-rules.yaml"). Add the key to
   that rule and commit the file, or narrow the rule's `where` if it was never meant to cover them.
 
-- **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
+- **Bundled spec:** two Context Studio landings (spec 0.16.0). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.
 - **Tier 0:** a Spring `@RestController` typed as an application interface gets
