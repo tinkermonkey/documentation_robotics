@@ -41,18 +41,18 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 > **CLI Introspection:** Run `dr schema types application` for the authoritative, always-current list of node types.
 > Run `dr schema node <type-id>` for full attribute details on any type.
 
-| Entity Type                  | Description                                            | Key Attributes                                                                   |
-| ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: generic, external, internal, service-component                            |
-| **ApplicationCollaboration** | Aggregate of application components working together   | Example: Microservices ecosystem, service mesh                                   |
-| **ApplicationInterface**     | Point of access where application service is available | Protocols: REST, GraphQL, SOAP, gRPC, WebSocket, Message Queue, Event Bus        |
-| **ApplicationFunction**      | Automated behavior performed by application component  | Examples: Authentication, Data Validation, Caching, Logging                      |
-| **ApplicationInteraction**   | Unit of collective application behavior                | Patterns: request-response, publish-subscribe, async-messaging, streaming, batch |
-| **ApplicationProcess**       | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda)           |
-| **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                |
-| **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                      |
-| **DataObject**               | A domain object, or data with no declared shape        | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead |
-| **Message**                  | Named unit of data sent to a receiver that acts on it  | messageType (required): command, request, reply, document                        |
+| Entity Type                  | Description                                            | Key Attributes                                                                                                                                |
+| ---------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: generic, external, internal, service-component                                                                                         |
+| **ApplicationCollaboration** | Aggregate of application components working together   | Example: Microservices ecosystem, service mesh                                                                                                |
+| **ApplicationInterface**     | Point of access where application service is available | interfaceType: api, message-channel, in-process, command-line, user-interface, file-exchange; protocol (open): HTTP, gRPC, GraphQL, MCP, AMQP |
+| **ApplicationFunction**      | Automated behavior performed by application component  | Examples: Authentication, Data Validation, Caching, Logging                                                                                   |
+| **ApplicationInteraction**   | Unit of collective application behavior                | Patterns: request-response, publish-subscribe, async-messaging, streaming, batch                                                              |
+| **ApplicationProcess**       | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda)                                                                        |
+| **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                                                                             |
+| **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                                                                                   |
+| **DataObject**               | A domain object, or data with no declared shape        | A declared shape (interface, record, DTO) is a `data-model.objectschema` instead                                                              |
+| **Message**                  | Named unit of data sent to a receiver that acts on it  | messageType (required): command, request, reply, document                                                                                     |
 
 ---
 
@@ -89,8 +89,10 @@ IS this a class/function that provides a capability to other parts of the system
   → ApplicationService (serviceType: synchronous/asynchronous/event-driven/batch)
 
 IS this a URL, port, protocol interface, or access point
-  (REST endpoint group, WebSocket endpoint, message queue, postMessage bridge)?
-  → ApplicationInterface (protocol: REST/WebSocket/AMQP/HTTP)
+  (REST endpoint group, WebSocket endpoint, message queue, postMessage bridge,
+  a library's public entry point, a command-line tool)?
+  → ApplicationInterface (interfaceType: api, message-channel, in-process or command-line;
+    protocol where it has one, the highest-level one: HTTP for a REST API, WebSocket, AMQP, MCP)
 
 IS this a stateless, single-purpose algorithm or behavior
   (parse, validate, transform, export, calculate, layout)?
@@ -147,7 +149,7 @@ Explicit DO NOT rules with rationale:
 | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Zustand store as `ApplicationService`                                | `DataObject` (state plus the rules for changing it)                                                  | A store is one value that components read and change, not a contract that classes implement; its state-and-actions interface is a `data-model.objectschema` that realizes it |
 | Zustand store as `ApplicationFunction`                               | `DataObject`, or `ApplicationComponent` when its actions call services or do I/O                     | A store is state that is held, with rules over that state; an `ApplicationFunction` is behavior a component performs                                                         |
-| WebSocket client as `ApplicationService`                             | `ApplicationInterface` (protocol: WebSocket)                                                         | A WebSocket connection is an interface/access point, not a service                                                                                                           |
+| WebSocket client as `ApplicationService`                             | `ApplicationInterface` (interfaceType: api, protocol: WebSocket)                                     | A WebSocket connection is an interface/access point, not a service                                                                                                           |
 | Layout algorithm as `ApplicationService`                             | `ApplicationFunction`                                                                                | Stateless algorithm = function, not a service with a contract                                                                                                                |
 | Layout engine CLASS as `ApplicationFunction`                         | `ApplicationComponent` (type: internal)                                                              | A class implementing an interface IS a deployable, replaceable module — not a stateless function                                                                             |
 | Export function as `ApplicationService`                              | `ApplicationFunction` if purely internal; `ApplicationService` only if it exposes an output contract | If purely internal algorithm: function. If it has an external contract (API, file): service                                                                                  |
@@ -297,7 +299,7 @@ async def health_check():
 
 - ApplicationComponent: "UserManagementService" (type: backend, subtype: microservice)
 - ApplicationService: "User Management Service" (type: synchronous)
-- ApplicationInterface: "REST API" (protocol: REST)
+- ApplicationInterface: "REST API" (interfaceType: api, protocol: HTTP)
 
 ### Pattern 2: Application Function (Utility)
 
@@ -431,7 +433,7 @@ service UserService {
 
 **Maps to:**
 
-- ApplicationInterface: "UserServiceGRPC" (protocol: gRPC)
+- ApplicationInterface: "UserServiceGRPC" (interfaceType: api, protocol: gRPC)
 - ApplicationService: "User Service"
 - ApplicationComponent: "UserService"
 
@@ -487,7 +489,7 @@ class OrderEventConsumer:
     """
     Consumes order events from message queue
     ApplicationComponent: OrderEventConsumer (type: worker)
-    ApplicationInterface: Message Queue (protocol: AMQP)
+    ApplicationInterface: Message Queue (interfaceType: message-channel, protocol: AMQP)
     """
     def __init__(self):
         self.queue = Queue('orders.created', exchange='orders')
@@ -505,7 +507,7 @@ class OrderEventConsumer:
 **Maps to:**
 
 - ApplicationComponent: "OrderEventConsumer" (type: worker)
-- ApplicationInterface: "OrderQueue" (protocol: AMQP)
+- ApplicationInterface: "OrderQueue" (interfaceType: message-channel, protocol: AMQP)
 - ApplicationEvent: "OrderCreated" (triggers this component)
 
 ---
@@ -714,7 +716,7 @@ ApplicationEvent: "OrderCreated"
 ├── triggers → ApplicationProcess: "Send Confirmation Email" (assigned to "EmailWorker")
 ├── ← depends-on — ApplicationFunction: "Analytics Ingest" (handler in "AnalyticsService")
 └── ← triggers — ApplicationProcess: "Place Order" (assigned to "OrderService")
-    └── "OrderService" provides → ApplicationInterface: "EventBus" (protocol: AMQP)
+    └── "OrderService" provides → ApplicationInterface: "EventBus" (interfaceType: message-channel, protocol: AMQP)
 ```
 
 ### Pattern 3: Saga Orchestration
@@ -734,7 +736,7 @@ ApplicationProcess: "Order Fulfillment Saga"
 
 ```
 ApplicationInterface: "API Gateway"
-├── protocol: REST
+├── interfaceType: api, protocol: HTTP
 ├── assigned-to → ApplicationService: "User API"
 ├── assigned-to → ApplicationService: "Order API"
 ├── assigned-to → ApplicationService: "Payment API"
@@ -811,7 +813,7 @@ const ws = new WebSocket("ws://localhost:3000/ws");
 ws.on("model.updated", handler);
 ```
 
-→ `ApplicationInterface` (protocol: WebSocket) — the ws connection is the interface
+→ `ApplicationInterface` (interfaceType: api, protocol: WebSocket) — the ws connection is the interface
 → `ApplicationEvent` for each event type: `model.updated`, `annotation.added`, `changeset.created`
 
 ### Pattern: Layout Engine Class (implements interface)

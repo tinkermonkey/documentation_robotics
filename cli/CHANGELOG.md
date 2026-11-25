@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
+  cover an application function, and an application interface gains `interfaceType` while its
+  `protocol` becomes optional open text.
+- **Tier 0:** a Spring `@RestController` typed as an application interface gets
+  `interfaceType: api` and `protocol: HTTP`, where it got `protocol: REST`. A plain `@Controller`
+  gets `protocol: HTTP` and no `interfaceType`, since it may render pages.
+- **Skills:** the application layer skill writes interfaces with `interfaceType` and the new
+  protocol guidance, and the testing layer skill lists a coverage target covering an application
+  function.
+
 ## [0.8.0] - 2026-11-24
 
 **Specification Support:** v0.15.0

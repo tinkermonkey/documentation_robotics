@@ -7,6 +7,33 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+Context Studio proposals 9217c1d4 and 43f52ae5, decided on 2026-11-24 and 2026-11-25. The catalog
+goes from 1,017 relationship types to 1,018. Nothing is renamed or removed and nothing becomes
+required, so every existing model stays valid; one attribute stops being required and loses its
+fixed list.
+
+### Added
+
+- **`testing.testcoveragetarget` covers `application.applicationfunction`** (issue 1360): a coverage
+  target can name the function its test case sketches test, such as an algorithm or utility routine
+  whose unit tests it groups.
+- **`application.applicationinterface` `interfaceType`** (optional): the kind of channel the
+  interface is, by who or what reaches it and how: `api`, `message-channel`, `in-process`,
+  `command-line`, `user-interface` or `file-exchange`. A library's public entry point is
+  `in-process`. The exchange pattern stays on the interaction and the service.
+
+### Changed
+
+- **`application.applicationinterface` `protocol`** is optional free text. The fixed list (HTTP,
+  HTTPS, gRPC, AMQP, WebSocket, REST, GraphQL, SOAP) is gone: it couldn't name MCP, MQTT, Kafka, a
+  library entry point or a command-line tool, and it mixed protocols with a style (REST) and a
+  transport setting (HTTPS). The description gives the vocabulary: name the highest-level protocol
+  (MCP, not JSON-RPC or HTTP); a REST API's protocol is HTTP, and so is an HTTPS endpoint's.
+  Existing values stay valid; no migration normalises them yet.
+- Definitions: `testing.testcoveragetarget` may name an application function, and
+  `application.applicationinterface` refers to `interfaceType` where it spoke of an in-process
+  protocol.
+
 ## [0.15.0] - 2026-11-24
 
 Gaps and rulings from the heimdall review pilot (2026-11-21) and from modelling DR's own user-level
