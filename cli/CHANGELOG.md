@@ -134,6 +134,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `codebase_extract`) and the background run's own check call an index that records 0 nodes stale
   ("it holds no code"), and one recorded as `joined`, so it is re-indexed instead of skipped.
   `codebase_index`'s `next` for a stale index now gives the reason.
+- **`codebase_extract` outside a git repository:** indexing first no longer starts a run that
+  can't succeed. With no git HEAD (no repository, or no commit yet) it starts nothing, writes
+  nothing, and says the code can't be indexed there, why (an index records the commit it was
+  taken at) and what to do (commit the code, or point the project at its repository with
+  `--codebase-path`). With no analyzer installed, the error names the index-first step and keeps
+  the install steps.
 - **The central viewer no longer stalls on farm listings** (#1436). Listing projects counted each
   checkout's staged changesets by YAML-parsing every changeset in the farm, `changes.yaml` and
   all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
