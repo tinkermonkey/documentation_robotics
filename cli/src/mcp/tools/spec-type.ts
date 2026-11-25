@@ -34,13 +34,20 @@ import { acceptedGapView, findAcceptedGap, type AcceptedGap } from "../../core/a
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 const inputSchema = {
-  layer: z.string().optional().describe("Canonical layer name, e.g. 'api', 'data-model'. Omit when type is a qualified layer.type id."),
+  layer: z
+    .string()
+    .optional()
+    .describe(
+      "Canonical layer name, e.g. 'api', 'data-model'. Omit it when type is a dotted id ('product.feature') or " +
+        "element names an element by its id."
+    ),
   type: z
     .string()
     .optional()
     .describe(
-      "Node type within the layer, e.g. 'operation', or a qualified id, e.g. 'product.feature'. Omit to list the layer's types (with required attributes and " +
-        "their enum values), or, with any relationship filter, to query the catalog across the layer's types."
+      "Node type within the layer, e.g. 'operation', or its dotted id with the layer, e.g. 'product.feature', as the " +
+        "other tools name a type. Omit to list the layer's types (with required attributes and their enum values), " +
+        "or, with any relationship filter, to query the catalog across the layer's types."
     ),
   types: z
     .array(z.string())
@@ -93,6 +100,7 @@ function specLoader(): Promise<SpecDataLoader> {
 
 export async function specTypeHandler(inputArgs: SpecTypeArgs): Promise<CallToolResult> {
   return runTool(async () => {
+    // A type named by its dotted id, as model_add, model_search and the brief name it (#1280)
     let layerName = inputArgs.layer;
     let typeName = inputArgs.type;
     if (typeName?.includes(".")) {
@@ -103,16 +111,24 @@ export async function specTypeHandler(inputArgs: SpecTypeArgs): Promise<CallTool
         ]);
       }
       if (layerName && layerName !== qualifiedLayer) {
-        throw new CLIError(`Type "${typeName}" is in the ${qualifiedLayer} layer, not ${layerName}`, ErrorCategory.USER, [
-          `Pass layer "${qualifiedLayer}" or omit layer when using a qualified type`,
-        ]);
+        throw new CLIError(
+          `Type "${typeName}" is in the ${qualifiedLayer} layer, not ${layerName}`,
+          ErrorCategory.USER,
+          [`Pass layer "${qualifiedLayer}" or omit layer when using a qualified type`]
+        );
       }
       layerName = qualifiedLayer;
       typeName = qualifiedType;
     }
+    // An element named by its id says its layer too
+    if (!layerName && inputArgs.element?.includes(".")) layerName = inputArgs.element.split(".")[0];
 
     if (!layerName) {
-      throw new CLIError('Missing "layer"', ErrorCategory.USER, ['Pass "layer" or use a qualified "layer.type" value for "type"']);
+      throw new CLIError(
+        'Missing "layer": pass layer and type separately (layer: "product", type: "feature"), or the dotted type ' +
+          'alone (type: "product.feature")',
+        ErrorCategory.USER
+      );
     }
     let args: SpecTypeArgs & { layer: string } = { ...inputArgs, layer: layerName, type: typeName };
 
@@ -255,8 +271,8 @@ export const specTypeTool: McpToolDefinition<typeof inputSchema> = {
     "their enum values. Omit 'type' and pass otherLayers, otherType, predicate, types, direction or relationships: " +
     "true to query the catalog across the layer's types in one call, e.g. layer 'application', otherLayers " +
     "['product', 'motivation'], direction 'out' for every link from application to those layers. Use before " +
-    "model_add and relationship_add. With element, the relationships that element accepted as gaps are marked " +
-    "accepted, with the reason.",
+    "model_add and relationship_add. type also takes a type's dotted id ('product.feature') without layer. With " +
+    "element, the relationships that element accepted as gaps are marked accepted, with the reason.",
   inputSchema,
   handler: specTypeHandler,
 };

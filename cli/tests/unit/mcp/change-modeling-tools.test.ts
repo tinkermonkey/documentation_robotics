@@ -460,6 +460,14 @@ describe("spec_type", () => {
     expect(result.specNodeId).toBe("product.feature");
   });
 
+  it("says how to name a type when neither layer nor a dotted type is given (#1280)", async () => {
+    const result = await specTypeHandler({ type: "feature" });
+    expect(result.isError).toBe(true);
+    const { error } = parse(result);
+    expect(error).toContain('layer: "product", type: "feature"');
+    expect(error).toContain('type: "product.feature"');
+  });
+
   it("rejects a qualified type when the supplied layer conflicts", async () => {
     const result = await specTypeHandler({ layer: "api", type: "product.feature" });
     expect(result.isError).toBe(true);
