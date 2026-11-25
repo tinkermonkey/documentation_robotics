@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { checkedPageArgs, listsPager, nextPageHint, pageOf, pagingFields, wholePage } from "../../../src/core/paging.js";
+import { checkedPageArgs, listsPager, nextPageCall, nextPageHint, pageOf, pagingFields, wholePage } from "../../../src/core/paging.js";
 
 const numbers = (n: number) => Array.from({ length: n }, (_, i) => i);
 
@@ -164,5 +164,19 @@ describe("arguments are checked, whoever builds them", () => {
         }
       }
     }
+  });
+});
+
+describe("nextPageCall", () => {
+  it("names the tool with the caller's own arguments and the next offset", () => {
+    expect(nextPageCall("model_search", { query: "orders", limit: 3, offset: 0, rootPath: "/p" }, 3)).toBe(
+      'model_search {"query":"orders","limit":3,"rootPath":"/p","offset":3}'
+    );
+  });
+
+  it("leaves out undefined arguments and the ones named in omit", () => {
+    expect(nextPageCall("changeset_show", { changeset: "plan", layers: undefined, page: 2 }, 50, ["page"])).toBe(
+      'changeset_show {"changeset":"plan","offset":50}'
+    );
   });
 });

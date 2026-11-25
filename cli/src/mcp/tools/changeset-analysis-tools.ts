@@ -26,7 +26,9 @@ import {
 import { describeDrift } from "../../core/changeset-base-index.js";
 import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
+import { nextPageCall } from "../../core/paging.js";
 import { compactJson, jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { elementCard } from "./element-card.js";
 import { changesetArg, changesetArgFields, loadChangesetGraph } from "./changeset-shared.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
@@ -35,18 +37,36 @@ const changesetFields = changesetArgFields("Changeset ID or name. Defaults to th
 // changeset_impact
 // ---------------------------------------------------------------------------
 
+/** Reached elements listed per page by default: ids alone (compact), or each with how it was reached (full). */
+export const IMPACT_LIMITS = { compact: 200, full: 50 } as const;
+
 const impactInputSchema = {
   ...changesetFields,
   depth: z.number().int().min(1).max(6).optional().describe("Hops to walk out from the changed elements (default 2)."),
-  maxElements: z
+  detail: z
+    .enum(["compact", "full"])
+    .optional()
+    .describe(
+      `"compact" (default): byLayer lists the reached elements' ids, nearest first, ${IMPACT_LIMITS.compact} a page ` +
+        `(an id the changeset itself changes is marked). "full": each with its name, type, hop, the relationship ` +
+        `that reached it and its source files, ${IMPACT_LIMITS.full} a page.`
+    ),
+  limit: z
     .number()
     .int()
     .positive()
     .optional()
     .describe(
-      "How many reached elements to list, nearest first (default 200). A page size: reached, perHop and hubs always " +
-        "count everything the walk reaches, and page has total, returned, offset and, when more are left, nextOffset."
+      `How many reached elements to list, nearest first (default ${IMPACT_LIMITS.compact} compact, ${IMPACT_LIMITS.full} full). ` +
+        "A page size: reached, reachedByLayer, perHop and hubs always count everything the walk reaches, and page has " +
+        "total, returned, offset and, when more are left, nextOffset. maxElements is the older name."
     ),
+  maxElements: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Older name for limit; limit wins when both are given."),
   offset: z
     .number()
     .int()
@@ -79,9 +99,10 @@ export async function changesetImpactHandler(args: ChangesetImpactArgs): Promise
   return runTool(async () => {
     const model = await loadModel(args.rootPath);
     const { changeset, graph } = await loadChangesetGraph(model, changesetArg(args));
+    const detail = args.detail ?? "compact";
     const report = computeImpact(graph, {
       depth: args.depth,
-      maxElements: args.maxElements,
+      maxElements: args.limit ?? args.maxElements ?? IMPACT_LIMITS[detail],
       offset: args.offset,
       from: args.from,
       hubThreshold: args.hubThreshold,
@@ -89,33 +110,40 @@ export async function changesetImpactHandler(args: ChangesetImpactArgs): Promise
     });
     // When the page is not the whole list, say so and name the call that continues it.
     const { page } = report;
-    const more =
-      page.nextOffset !== undefined
-        ? {
-            more:
-              `byLayer lists ${page.returned} of the ${page.total} elements reached` +
-              `${page.offset ? ` (from ${page.offset})` : ""}; reached, perHop and hubs count them all. Next page: ` +
-              `changeset_impact ${JSON.stringify({ ...impactCallArgs(args), offset: page.nextOffset })}.`,
-          }
-        : {};
-    return jsonResult({ changeset: { id: changeset.id, name: changeset.name }, ...report, ...more });
+    const notes: string[] = [];
+    if (page.nextOffset !== undefined) {
+      notes.push(
+        `byLayer lists ${page.returned} of the ${page.total} elements reached` +
+          `${page.offset ? ` (from ${page.offset})` : ""}; reached, reachedByLayer, perHop and hubs count them all. ` +
+          `Next page: ${nextPageCall("changeset_impact", { ...args }, page.nextOffset)}.`
+      );
+    }
+    const head = { changeset: { id: changeset.id, name: changeset.name } };
+    if (detail === "full") {
+      return jsonResult({ ...head, ...report, ...(notes.length > 0 ? { more: notes.join(" ") } : {}) });
+    }
+    // Compact: the ids alone, an element the changeset itself changes marked (only a walk from chosen elements reaches one).
+    const byLayer = Object.fromEntries(
+      Object.entries(report.byLayer).map(([layer, list]) => [layer, list.map((e) => (e.status ? `${e.id} (${e.status})` : e.id))])
+    );
+    notes.push(
+      'byLayer lists ids, nearest first; detail: "full" gives each with its name, the relationship that reached it ' +
+        "and its source files. from: [...] walks from chosen elements only."
+    );
+    return jsonResult({ ...head, detail, ...report, byLayer, more: notes.join(" ") }, { compact: true });
   });
-}
-
-/** The caller's own arguments, for the call that returns the next page (rootPath left to the client's default when unset). */
-function impactCallArgs(args: ChangesetImpactArgs): Record<string, unknown> {
-  const { offset: _offset, ...rest } = args;
-  return Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== undefined));
 }
 
 export const changesetImpactTool: McpToolDefinition<typeof impactInputSchema> = {
   name: "changeset_impact",
   description:
     "Walk the model outward from everything a changeset adds, changes or removes (relationships included), or " +
-    "from the elements named in `from`, and list the existing elements it reaches, by layer, with how each was " +
-    "reached and its source files, plus how many each hop reached (perHop). These are what the change can break " +
-    "or must update. The walk is never cut short: reached, perHop and hubs count everything, byLayer lists the " +
-    "nearest maxElements (default 200), page says where that list sits (total, returned, offset, nextOffset when " +
+    "from the elements named in `from`, and list the existing elements it reaches, by layer, plus how many each " +
+    "hop reached (perHop). These are what the change can break " +
+    "or must update. Compact by default: byLayer lists the reached elements' ids, nearest first; detail: \"full\" " +
+    "lists each with how it was reached and its source files. The walk is never cut short: reached, reachedByLayer " +
+    "(per layer and type), perHop and hubs count everything, byLayer lists a page (limit: default " +
+    `${IMPACT_LIMITS.compact} ids, ${IMPACT_LIMITS.full} in full), page says where that list sits (total, returned, offset, nextOffset when ` +
     "more are left), and more names the call for the next page. Hubs (elements with more than hubThreshold relationships) are listed with their degree and " +
     "not walked through unless expandHubs is set.",
   inputSchema: impactInputSchema,
@@ -164,11 +192,13 @@ const briefInputSchema = {
         "(before and after), files and connections as `predicate → id` lines. [\"intent\"]: counts, the untraced ids " +
         "(every untraced element counted per type beside a page of them), the unanchored, the noCatalogRoute ids, " +
         "the walk's maxHops and hubThreshold with how many elements the hub rule leaves untraced, and with traced: " +
-        "true the traced, each with what it traces to. [\"gaps\"]: one line per gap. " +
+        "true the traced, each with what it traces to. [\"gaps\"]: one line per gap. [\"summary\"] or [\"byLayer\"]: " +
+        "the counts alone. [\"drift\"]: the drift, its base-change lists paged with the answer's other lists (named " +
+        "once: the changeset section then leaves it out). " +
         "[\"layers\"]: each changed element with the connections the change adds or deletes as lines " +
         "(maxConnections per predicate and layer) and the rest counted. [\"unwired\"]: per element. " +
-        "[\"codeTouched\"]: files with their changed ids. Others: drift, alreadyInBase, acceptedGaps, " +
-        "relationshipChanges, feedback, changeset. With since, the delta comes too, its lists paged with the others " +
+        "[\"codeTouched\"]: files with their changed ids. Others: reach, changesByType, neighborFiles, alreadyInBase, " +
+        "acceptedGaps, relationshipChanges, feedback, changeset. With since, the delta comes too, its lists paged with the others " +
         "when delta is named. detail: \"full\" returns the named sections as the full brief has them, all at once, " +
         "whatever their size."
     ),
@@ -177,7 +207,15 @@ const briefInputSchema = {
     .optional()
     .describe(
       "With sections: only the elements in these layers (canonical layer names), in changes, layers, gaps, " +
-        "acceptedGaps, unwired, intent, codeTouched and feedback. Combines with ids (either keeps an element)."
+        "acceptedGaps, unwired, intent, codeTouched, feedback, byLayer and changesByType. With types, both apply; " +
+        "ids keep an element by themselves."
+    ),
+  types: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'With sections: only the elements of these types, as "applicationservice" or "application.applicationservice", ' +
+        "in the same sections as layers. With layers, both apply (one layer's services); ids keep an element by themselves."
     ),
   otherLayers: z
     .array(z.string())
@@ -191,7 +229,8 @@ const briefInputSchema = {
     .optional()
     .describe(
       "With sections: only these changed elements (ids), in changes, layers, gaps, acceptedGaps, unwired, intent, " +
-        "codeTouched and feedback."
+        "codeTouched and feedback, each with its incoming staged relationships too. Ids the changeset does not " +
+        "change come back in unchanged, a card each (name, description, connections as the plan leaves them)."
     ),
   driftLimit: z
     .number()
@@ -226,8 +265,9 @@ const briefInputSchema = {
     .positive()
     .optional()
     .describe(
-      "With sections: the most items of each list in one answer, whatever their size (default: as many as keep " +
-        `the answer near targetBytes). Without sections: the entries each id list of the compact brief holds (default ${LIST_LIMIT}: ` +
+      "With sections: the most items of each list in one answer (default: as many as keep the answer near " +
+        "targetBytes); the page holds fewer when that many would take the answer past targetBytes, and says so. " +
+        `Without sections: the entries each id list of the compact brief holds (default ${LIST_LIMIT}: ` +
         "intent, the delta, gaps before they are grouped). A page size, not a cut-off: totals are always given."
     ),
   idsPerType: z
@@ -268,8 +308,8 @@ const briefInputSchema = {
     .min(2000)
     .optional()
     .describe(
-      `With sections and no limit: the size the answer aims for (default ${SECTIONS_TARGET_BYTES}, about ${SECTIONS_TARGET_BYTES / 1024} KB, which fits one tool ` +
-        "result). A target, not a cut-off: a page always holds at least one item."
+      `With sections: the size the answer aims for, limit or not (default ${SECTIONS_TARGET_BYTES}, about ${SECTIONS_TARGET_BYTES / 1024} KB, which fits one tool ` +
+        "result). A target, not a cut-off: a page always holds at least one item. Pass a larger one for larger pages."
     ),
   maxConnections: z
     .number()
@@ -305,6 +345,11 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
     const review = reviewForAgent(changeset, changeset.review);
     const withReview = <T extends object>(result: T): T => (review ? { ...result, review } : result);
 
+    const sections = args.sections ?? [];
+    // With the drift section in the compact form, its base-change lists come whole and page with the
+    // answer's other lists, unless the caller pages them apart with driftLimit or driftOffset (#1373).
+    const driftWhole =
+      sections.includes("drift") && args.detail !== "full" && args.driftLimit === undefined && args.driftOffset === undefined;
     let drift: BriefDrift | undefined;
     if (changeset.status === "staged") {
       // Each part is reported on failure and the brief goes on: the hash check, then the structured view.
@@ -320,6 +365,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
         const driftPage: Parameters<typeof describeDrift>[3] & { limit?: number; offset?: number } = {
           ...(args.driftLimit !== undefined ? { limit: args.driftLimit } : {}),
           ...(args.driftOffset !== undefined ? { offset: args.driftOffset } : {}),
+          ...(driftWhole ? { limit: Number.MAX_SAFE_INTEGER } : {}),
         };
         drift = await describeDrift(model, graph, hash, driftPage);
       } catch (error) {
@@ -330,7 +376,6 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       }
     }
 
-    const sections = args.sections ?? [];
     // The two numbers that bound the intent trace: the caller's, or the defaults.
     const walk = {
       ...(args.hubThreshold !== undefined ? { hubThreshold: args.hubThreshold } : {}),
@@ -363,7 +408,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       const callArgs = Object.fromEntries(Object.entries(own).filter(([, value]) => value !== undefined));
       const result = briefSections(brief, named, {
         delta,
-        filter: { layers: args.layers, ids: args.ids, otherLayers: args.otherLayers },
+        filter: { layers: args.layers, types: args.types, ids: args.ids, otherLayers: args.otherLayers },
         full: args.detail === "full",
         offset: args.offset,
         limit: args.limit,
@@ -371,8 +416,25 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
         targetBytes: (args.targetBytes ?? SECTIONS_TARGET_BYTES) - (review ? measure({ review }) : 0),
         maxConnections: args.maxConnections,
         traced: args.traced,
+        driftWhole,
         measure,
         callArgs,
+        cardsFor: (ids) => {
+          const cards: unknown[] = [];
+          const missing: string[] = [];
+          for (const id of ids) {
+            const element = graph.getElement(id);
+            if (!element) {
+              missing.push(id);
+              continue;
+            }
+            const connections = graph
+              .neighbors(element.id, { includeDeleted: true })
+              .map((n) => ({ direction: n.direction, predicate: n.relationship.predicate, other: n.other, status: n.relationship.status }));
+            cards.push(elementCard(element, connections, { status: element.status }));
+          }
+          return { cards, missing };
+        },
       });
       return jsonResult(withReview(result), { compact: true });
     }
@@ -383,9 +445,10 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
       idsPerType: args.idsPerType,
     });
     const sectionOnly = [args.otherLayers?.length, args.offset, args.targetBytes, args.maxConnections, args.traced];
-    if (args.layers?.length || args.ids?.length || sectionOnly.some((value) => value !== undefined && value !== 0 && value !== false)) {
+    const narrows = args.layers?.length || args.types?.length || args.ids?.length;
+    if (narrows || sectionOnly.some((value) => value !== undefined && value !== 0 && value !== false)) {
       compact.note =
-        "layers, ids, otherLayers, offset, targetBytes, maxConnections and traced shape sections output only, so the whole compact brief is returned. Pass sections too, " +
+        "layers, types, ids, otherLayers, offset, targetBytes, maxConnections and traced shape sections output only, so the whole compact brief is returned. Pass sections too, " +
         'e.g. sections: ["changes"] with them for those elements\' build view.';
     }
     return jsonResult(withReview(compact), { compact: true });

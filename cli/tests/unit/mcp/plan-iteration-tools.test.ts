@@ -67,7 +67,7 @@ async function attributesOf(id: string): Promise<Record<string, unknown>> {
 }
 
 async function stagedKeys(): Promise<string[]> {
-  const shown = parse(await changesetShowHandler({ changesetId: "plan", rootPath }));
+  const shown = parse(await changesetShowHandler({ changesetId: "plan", rootPath, detail: "full" }));
   return shown.changes.map((c: any) => `${c.type} ${c.elementId}`);
 }
 
@@ -103,9 +103,27 @@ describe("changeset_show detail", () => {
     parse(await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath }));
   }
 
-  it("defaults to the full output with before/after snapshots", async () => {
+  it("defaults to one line per change, with counts per operation and layer (#1257)", async () => {
     await stageMixedPlan();
-    const full = parse(await changesetShowHandler({ changesetId: "plan", rootPath }));
+    const compact = parse(await changesetShowHandler({ changesetId: "plan", rootPath }));
+    expect(compact.detail).toBe("compact");
+    expect(compact.changes).toEqual([
+      `#0 add ${FUNCTION}`,
+      `#1 update ${OPERATION} (attributes.summary, description)`,
+      `#2 relationship-add ${FUNCTION} --realizes--> ${SERVICE}`,
+      `#3 relationship-delete ${SERVICE} --realizes--> ${GOAL}`,
+    ]);
+    expect(compact.totals.total).toBe(4);
+    expect(compact.byLayer).toEqual({
+      application: { add: 1, "relationship-add": 1, "relationship-delete": 1 },
+      api: { update: 1 },
+    });
+    expect(compact.page).toEqual({ total: 4, returned: 4, offset: 0 });
+  });
+
+  it("full gives every change with its before/after snapshots", async () => {
+    await stageMixedPlan();
+    const full = parse(await changesetShowHandler({ changesetId: "plan", rootPath, detail: "full" }));
     expect(full.detail).toBeUndefined();
     expect(full.stats).toBeDefined();
     expect(full.changes[1].after.attributes.summary).toBe("List every order");
@@ -141,7 +159,7 @@ describe("changeset_show detail", () => {
     expect(text).not.toContain('"before"');
     expect(text).not.toContain('"after"');
     // Smaller than the full view.
-    const full = (await changesetShowHandler({ changesetId: "plan", rootPath })).content[0] as { text: string };
+    const full = (await changesetShowHandler({ changesetId: "plan", rootPath, detail: "full" })).content[0] as { text: string };
     expect(text.length).toBeLessThan(full.text.length);
   });
 
@@ -163,8 +181,9 @@ describe("changeset_show detail", () => {
     expect(summary.changes).toEqual([]);
   });
 
-  it("accepts only full or summary as detail", () => {
+  it("accepts only compact, summary or full as detail", () => {
     expect(changesetShowTool.inputSchema.detail.safeParse("brief").success).toBe(false);
+    expect(changesetShowTool.inputSchema.detail.safeParse("compact").success).toBe(true);
     expect(changesetShowTool.inputSchema.detail.safeParse("summary").success).toBe(true);
     expect(changesetShowTool.inputSchema.detail.safeParse(undefined).success).toBe(true);
   });
@@ -351,7 +370,7 @@ describe("changeset_unstage by one relationship end", () => {
 
   it("source alone drops every staged add and delete from that element, and nothing else", async () => {
     await stageRealizations();
-    const result = parse(await changesetUnstageHandler({ source: SERVICE, rootPath }));
+    const result = parse(await changesetUnstageHandler({ source: SERVICE, detail: "full", rootPath }));
     expect(result.status).toBe("unstaged");
     expect(result.unstaged.map((c: any) => [c.type, c.relationship])).toEqual([
       ["relationship-add", { source: SERVICE, predicate: "realizes", target: GOAL2 }],
@@ -370,7 +389,7 @@ describe("changeset_unstage by one relationship end", () => {
 
   it("target alone drops every staged change to that element", async () => {
     await stageRealizations();
-    const result = parse(await changesetUnstageHandler({ target: SERVICE, rootPath }));
+    const result = parse(await changesetUnstageHandler({ target: SERVICE, detail: "full", rootPath }));
     expect(result.unstaged).toEqual([
       expect.objectContaining({
         type: "relationship-add",
@@ -396,9 +415,9 @@ describe("changeset_unstage by one relationship end", () => {
 
   it("keeps source-and-target mode and elementId mode as they were", async () => {
     await stageRealizations();
-    const pair = parse(await changesetUnstageHandler({ source: SERVICE, target: GOAL2, rootPath }));
+    const pair = parse(await changesetUnstageHandler({ source: SERVICE, target: GOAL2, detail: "full", rootPath }));
     expect(pair.unstaged.map((c: any) => c.type)).toEqual(["relationship-add"]);
-    const element = parse(await changesetUnstageHandler({ elementId: FUNCTION, rootPath }));
+    const element = parse(await changesetUnstageHandler({ elementId: FUNCTION, detail: "full", rootPath }));
     expect(element.unstaged.map((c: any) => c.type).sort()).toEqual(["add", "relationship-add"]);
     expect(await stagedKeys()).toEqual([`add ${GOAL2}`, `relationship-delete ${SERVICE}::realizes::${GOAL}`]);
   });
@@ -422,13 +441,13 @@ describe("changeset_unstage by one relationship end", () => {
     // Other staged relationship changes at that end still go.
     parse(await modelAddHandler({ layer: "motivation", type: "goal", name: "fewer-abandoned-carts", attributes: { priority: "medium" }, rootPath }));
     parse(await relationshipAddHandler({ source: SERVICE, predicate: "realizes", target: GOAL2, rootPath }));
-    const mixed = parse(await changesetUnstageHandler({ source: SERVICE, rootPath }));
+    const mixed = parse(await changesetUnstageHandler({ source: SERVICE, detail: "full", rootPath }));
     expect(mixed.unstaged.map((c: any) => c.type)).toEqual(["relationship-add"]);
     expect(mixed.notes).toHaveLength(1);
     expect(await stagedKeys()).toContain(cascade);
 
     // Naming both ends drops it anyway, with a warning that it now dangles.
-    const pair = parse(await changesetUnstageHandler({ source: SERVICE, target: GOAL, rootPath }));
+    const pair = parse(await changesetUnstageHandler({ source: SERVICE, target: GOAL, detail: "full", rootPath }));
     expect(pair.unstaged.map((c: any) => c.type)).toEqual(["relationship-delete"]);
     expect(pair.notes[0]).toContain("now dangle");
     expect(await stagedKeys()).not.toContain(cascade);

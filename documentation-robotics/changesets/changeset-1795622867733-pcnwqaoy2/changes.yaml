@@ -1,0 +1,402 @@
+- type: update
+  elementId: product.feature.changeset-lifecycle
+  layerName: product
+  before:
+    id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+    path: product.feature.changeset-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset lifecycle
+    description: "MCP: changeset_create, changeset_activate, changeset_deactivate, changeset_update, changeset_list, changeset_show. CLI: dr changeset create/activate/deactivate/list/show/status. Which changeset is active is per-checkout state, kept in .dr/active-changeset, and it counts only while it names a staged changeset."
+    attributes: &a1
+      priority: critical
+      status: delivered
+      documentation: "The active changeset is named by one file, .dr/active-changeset (the changeset's id), read and written by cli/src/core/active-changeset-marker.ts. It is per-checkout state, so it sits in .dr/ with the spec reference and the analyzer state, out of git (#1218). The older documentation-robotics/changesets/.active is still read when .dr/ has no marker, and the next activate or deactivate writes .dr/ and deletes it. The marker counts only while it names a staged changeset: one that names a changeset committed, discarded or deleted since is no active changeset on any surface (Model.load, the CLI, the MCP tools, the viewer), and writes then go to the base model. dr changeset status says when such a marker is being ignored; dr changeset deactivate and changeset_deactivate remove it (the tool reports clearedLeftoverMarker)."
+    source_reference: &a2
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-lifecycle.ts
+    metadata: &a3
+      created_at: 2026-11-09T21:54:57.018Z
+      updated_at: 2026-11-09T21:54:57.018Z
+      version: 1
+  after:
+    id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+    path: product.feature.changeset-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset lifecycle
+    description: 'MCP: changeset_create, changeset_activate, changeset_deactivate, changeset_update, changeset_list, changeset_show. CLI: dr changeset create/activate/deactivate/list/show/status. Which changeset is active is per-checkout state, kept in .dr/active-changeset, and it counts only while it names a staged changeset. changeset_list lists the staged changesets by default and counts every changeset by status (status: committed, discarded or all lists those), a page at a time. changeset_show is compact by default: counts per operation and per layer, and one line per change (sequence, operation, element or relationship, changed fields), filtered by layers, types and operations and paged with the true total and the next call; detail: "summary" and "full" page too.'
+    attributes: *a1
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-25T16:08:01.553Z
+  sequenceNumber: 0
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: &a4
+      priority: critical
+      status: delivered
+      documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    source_reference: &a5
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a6
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them). layers, types and ids narrow the element sections; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged, with their connections as the plan leaves them. The drift is named once (the changeset section keeps a one-line state when drift is asked for) and its base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: *a4
+    source_reference: *a5
+    metadata: *a6
+  timestamp: 2026-11-25T16:08:02.697Z
+  sequenceNumber: 1
+- type: update
+  elementId: product.feature.changeset-impact
+  layerName: product
+  before:
+    id: a98cd774-cc48-480a-a395-8ea4e2a02a1b
+    path: product.feature.changeset-impact
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset impact
+    description: "MCP: changeset_impact (projected graph walk, focused 'from', hub collapsing)."
+    attributes: &a7
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_impact (projected graph walk, focused 'from', hub collapsing)."
+    source_reference: &a8
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-analysis.ts
+    metadata: &a9
+      created_at: 2026-11-09T21:54:57.281Z
+      updated_at: 2026-11-09T21:54:57.281Z
+      version: 1
+  after:
+    id: a98cd774-cc48-480a-a395-8ea4e2a02a1b
+    path: product.feature.changeset-impact
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset impact
+    description: 'MCP: changeset_impact (projected graph walk, focused ''from'', hub collapsing). Compact by default: the reached elements'' ids by layer, nearest first, with counts per layer and type over everything reached; detail: "full" lists each with how it was reached and its files. A page at a time (limit or maxElements, offset) with the true total and the next call.'
+    attributes: *a7
+    source_reference: *a8
+    metadata: *a9
+  timestamp: 2026-11-25T16:08:03.717Z
+  sequenceNumber: 2
+- type: update
+  elementId: product.feature.model-search-and-read
+  layerName: product
+  before:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: "MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info."
+    attributes: &a10
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info."
+    source_reference: &a11
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-search.ts
+    metadata: &a12
+      created_at: 2026-11-09T21:54:57.535Z
+      updated_at: 2026-11-09T21:54:57.535Z
+      version: 1
+  after:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: 'MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_show takes ids: [...] for several elements at once, one compact card each (name, short description, change status, connections as lines), paged; detail: "full" gives each as the one-element form does. model_search matches id and name by default, and descriptions and attribute values with fields; match: "all" or "any" matches the query''s words apart; name hits rank first; excludeLayers and excludeTypes leave layers and types out; results are compact entries a page at a time, with the true count and counts by layer and type. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info.'
+    attributes: *a10
+    source_reference: *a11
+    metadata: *a12
+  timestamp: 2026-11-25T16:08:04.746Z
+  sequenceNumber: 3
+- type: update
+  elementId: product.feature.unstage-and-discard-changes
+  layerName: product
+  before:
+    id: 3e811f2a-d8bc-47b1-b387-1f9b14c372e1
+    path: product.feature.unstage-and-discard-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Unstage and discard changes
+    description: "MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete."
+    attributes: &a13
+      priority: medium
+      status: delivered
+      documentation: "MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete."
+    source_reference: &a14
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-editing.ts
+    metadata: &a15
+      created_at: 2026-11-09T21:54:57.176Z
+      updated_at: 2026-11-09T21:54:57.176Z
+      version: 1
+  after:
+    id: 3e811f2a-d8bc-47b1-b387-1f9b14c372e1
+    path: product.feature.unstage-and-discard-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Unstage and discard changes
+    description: 'MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete. changeset_unstage reports what it removed compactly: the count per operation and one line per change (the first 25 of each item, the rest counted); detail: "full" returns each removed change whole.'
+    attributes: *a13
+    source_reference: *a14
+    metadata: *a15
+  timestamp: 2026-11-25T16:08:05.795Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.next-page-call
+  layerName: application
+  after:
+    id: 6c3feb2e-8578-4a58-aa66-f5eb7777e7f0
+    path: application.applicationfunction.next-page-call
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: nextPageCall
+    description: "The exact call that returns the next page of a paged tool result: the tool's name and the caller's own arguments with offset set to the next page's, undefined arguments left out. Every paged read names it in more."
+    metadata:
+      created_at: 2026-11-25T16:08:23.361Z
+      updated_at: 2026-11-25T16:08:23.361Z
+      version: 1
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.element-filter
+  layerName: application
+  after:
+    id: cb35efd0-3b45-4734-a65f-c06b41494b6b
+    path: application.applicationfunction.element-filter
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: elementFilter
+    description: "Which element ids a read keeps, from layers, types, excludeLayers and excludeTypes (a type as `type` or `layer.type`): layers and types narrow together, excludes take away. Names the layers that are not layers, so an empty answer never reads as nothing there."
+    metadata:
+      created_at: 2026-11-25T16:08:23.361Z
+      updated_at: 2026-11-25T16:08:23.361Z
+      version: 1
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.change-line
+  layerName: application
+  after:
+    id: 907c8610-c9d2-4903-ac8a-f3c86d9df17f
+    path: application.applicationfunction.change-line
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: changeLine
+    description: "One staged change as one line: `#sequence operation id (changed fields)` for an element, `#sequence operation source --predicate--> target` for a relationship, with who decided it when codebase_extract staged it. The compact form of changeset_show and changeset_unstage."
+    metadata:
+      created_at: 2026-11-25T16:08:23.361Z
+      updated_at: 2026-11-25T16:08:23.361Z
+      version: 1
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 7
+- type: add
+  elementId: application.applicationfunction.element-card
+  layerName: application
+  after:
+    id: be942063-7e5f-466f-989b-9d573ed8d02e
+    path: application.applicationfunction.element-card
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: elementCard
+    description: "An element in a few lines: id, name, the first sentence of its description, its change status in a changeset, and its connections as `predicate → id` / `predicate ← id` lines (a few per predicate and direction, the rest counted). model_show with ids and changeset_brief's unchanged elements use it."
+    metadata:
+      created_at: 2026-11-25T16:08:23.361Z
+      updated_at: 2026-11-25T16:08:23.361Z
+      version: 1
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-call
+    target: application.applicationservice.changeset-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-list-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-call
+    target: application.applicationservice.changeset-list-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.model-search-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-call
+    target: application.applicationservice.model-search-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.model-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-call
+    target: application.applicationservice.model-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-impact-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-call
+    target: application.applicationservice.changeset-impact-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: application.applicationfunction.element-filter::realizes::application.applicationservice.changeset-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-filter
+    target: application.applicationservice.changeset-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationfunction.element-filter::realizes::application.applicationservice.model-search-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-filter
+    target: application.applicationservice.model-search-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: application.applicationfunction.element-filter::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-filter
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationfunction.change-line::realizes::application.applicationservice.changeset-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.change-line
+    target: application.applicationservice.changeset-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.change-line::realizes::application.applicationservice.changeset-unstage-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.change-line
+    target: application.applicationservice.changeset-unstage-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: application.applicationfunction.element-card::realizes::application.applicationservice.model-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-card
+    target: application.applicationservice.model-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationfunction.element-card::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-card
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:23.372Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.change-line::depends-on::application.applicationfunction.summarize-change
+  layerName: application
+  after:
+    source: application.applicationfunction.change-line
+    target: application.applicationfunction.summarize-change
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:36.594Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.element-card::depends-on::application.applicationfunction.short-description
+  layerName: application
+  after:
+    source: application.applicationfunction.element-card
+    target: application.applicationfunction.short-description
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:36.594Z
+  sequenceNumber: 22

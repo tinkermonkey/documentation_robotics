@@ -24,6 +24,7 @@ import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../..
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
+import { unstageDetailField, unstagedNotListedNote, unstagedReport } from "./unstage-report.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
 
@@ -43,16 +44,6 @@ async function asUserError<T>(fn: () => Promise<T>, suggestions: string[]): Prom
     if (error instanceof CLIError) throw error;
     throw new CLIError(getErrorMessage(error), ErrorCategory.USER, suggestions);
   }
-}
-
-function summarize(change: StagedChange): Record<string, unknown> {
-  const triple = change.type.startsWith("relationship-") ? stagedRelationshipTriple(change) : null;
-  return {
-    type: change.type,
-    elementId: change.elementId,
-    layer: change.layerName,
-    ...(triple ? { relationship: triple } : {}),
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +272,7 @@ const unstageInputSchema = {
         "already-unstaged (an earlier item took its changes), not-staged, or invalid with the reason. Cannot be " +
         "combined with the single-form fields."
     ),
+  detail: unstageDetailField,
   rootPath: rootPathSchema,
 };
 
@@ -433,7 +425,7 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
           'Put those fields on the items of the "changes" list',
         ]);
       }
-      return unstageBatch(args.changes, changesetArg(args), args.rootPath);
+      return unstageBatch(args.changes, changesetArg(args), args.rootPath, args.detail);
     }
 
     checkUnstageSpec(args);
@@ -463,12 +455,14 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
     }
     await reloadModel(args.rootPath);
 
+    const report = unstagedReport(removed, args.detail);
+    const notListed = unstagedNotListedNote(report.unstagedNotListed ?? 0);
     return jsonResult({
       status: "unstaged",
       changeset: changeset.name,
-      unstaged: removed.map(summarize),
+      ...report,
       remainingChanges: changes.length - removed.length,
-      ...(notes.length > 0 ? { notes } : {}),
+      ...(notes.length > 0 || notListed ? { notes: [...notes, ...(notListed ? [notListed] : [])] } : {}),
     });
   });
 }
@@ -480,7 +474,10 @@ interface UnstageBatchResult {
   source?: string;
   target?: string;
   predicate?: string;
-  unstaged?: Record<string, unknown>[];
+  unstaged?: Array<string | Record<string, unknown>>;
+  unstagedCount?: number;
+  byOperation?: Record<string, number>;
+  unstagedNotListed?: number;
   message?: string;
   reason?: string;
   suggestions?: string[];
@@ -491,7 +488,12 @@ interface UnstageBatchResult {
  * changeset_unstage's list form: select each item's changes against the changeset as it stands,
  * then remove them all in one write. A change two items select is reported under the first.
  */
-async function unstageBatch(specs: UnstageSpec[], changesetId: string | undefined, rootPath: string | undefined) {
+async function unstageBatch(
+  specs: UnstageSpec[],
+  changesetId: string | undefined,
+  rootPath: string | undefined,
+  detail: "compact" | "full" | undefined
+) {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
   const changeset = await resolveChangeset(manager, changesetId);
@@ -534,7 +536,7 @@ async function unstageBatch(specs: UnstageSpec[], changesetId: string | undefine
     results.push({
       ...asSent,
       status,
-      ...(removed.length > 0 ? { unstaged: removed.map(summarize) } : {}),
+      ...(removed.length > 0 ? unstagedReport(removed, detail) : {}),
       ...(status === "not-staged" ? { message: notStagedMessage(spec, changeset.name) } : {}),
       ...(notes.length > 0 ? { notes } : {}),
     });
@@ -548,6 +550,7 @@ async function unstageBatch(specs: UnstageSpec[], changesetId: string | undefine
   const counts: Record<string, number> = {};
   for (const result of results) counts[result.status] = (counts[result.status] ?? 0) + 1;
   const removedCount = changes.filter((c) => claimed.has(c.elementId)).length;
+  const notListed = unstagedNotListedNote(results.reduce((sum, r) => sum + (r.unstagedNotListed ?? 0), 0));
   return jsonResult({
     changeset: changeset.name,
     counts,
@@ -557,6 +560,7 @@ async function unstageBatch(specs: UnstageSpec[], changesetId: string | undefine
     ...(results.some((r) => r.status === "not-staged")
       ? { suggestions: ['Use "changeset_show" to list the staged changes'] }
       : {}),
+    ...(notListed ? { more: notListed } : {}),
   });
 }
 
@@ -566,7 +570,9 @@ export const changesetUnstageTool: McpToolDefinition<typeof unstageInputSchema> 
     "Undo part of a staged changeset: drop the staged changes to one element (elementId), or the staged " +
     "relationship adds/deletes between source and target, or every one from source alone or to target alone " +
     "(optionally one predicate). To drop several, send changes: [...] (one write, a result per item). The base " +
-    "model is not touched. Defaults to the active changeset. Use changeset_show to see what is staged.",
+    "model is not touched. Defaults to the active changeset. The result counts what was removed per operation and " +
+    'lists it one line per change (the first 25 of each unstage, the rest counted); detail: "full" lists each ' +
+    "removed change as an object. Use changeset_show to see what is staged.",
   inputSchema: unstageInputSchema,
   handler: changesetUnstageHandler,
 };

@@ -2505,9 +2505,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const unstageFailed: Array<{ id: string; error: string }> = [];
         for (const [id, symbol] of toUnstage) {
           const result = await changesetUnstageHandler({ elementId: id, changeset: changeset!.id!, rootPath: args.rootPath });
-          const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
+          const body = JSON.parse((result.content[0] as { text: string }).text) as {
+            unstaged?: unknown[];
+            unstagedCount?: number;
+            error?: string;
+            message?: string;
+          };
+          // unstagedCount is every change removed; unstaged lists only the first of them.
+          const removed = body.unstagedCount ?? body.unstaged?.length ?? 0;
           if (result.isError) unstageFailed.push({ id, error: body.error ?? body.message ?? "unstage failed" });
-          else if (body.unstaged?.length) unstaged.push({ id, symbol, changes: body.unstaged.length });
+          else if (removed > 0) unstaged.push({ id, symbol, changes: removed });
         }
         const unstagedRels: string[] = [];
         for (const r of relationshipsToUnstage) {
@@ -2518,9 +2525,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             changeset: changeset!.id!,
             rootPath: args.rootPath,
           });
-          const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
+          const body = JSON.parse((result.content[0] as { text: string }).text) as {
+            unstagedCount?: number;
+            error?: string;
+            message?: string;
+          };
           if (result.isError) unstageFailed.push({ id: r.key, error: body.error ?? body.message ?? "unstage failed" });
-          else if (body.unstaged?.length) unstagedRels.push(r.key);
+          else if ((body.unstagedCount ?? 0) > 0) unstagedRels.push(r.key);
         }
         if ((unstaged.length || unstagedRels.length) && stored && changeset) {
           // The record of what extraction staged no longer holds what was unstaged. Waiting cards
