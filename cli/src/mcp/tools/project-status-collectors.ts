@@ -18,7 +18,14 @@ import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
 import { compareSpecVersions, getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
-import { readActiveMarker } from "../../core/active-changeset-marker.js";
+import { existsSync } from "node:fs";
+import {
+  activeMarkerPath,
+  ACTIVE_MARKER_RELATIVE,
+  LEGACY_ACTIVE_MARKER_RELATIVE,
+  legacyActiveMarkerPath,
+  readActiveMarker,
+} from "../../core/active-changeset-marker.js";
 import type { ProjectListCheckout } from "../../core/checkout-types.js";
 import { DEFAULT_CENTRAL_DEPS, runningCentralLink, type CentralDeps, type SessionCheckout } from "./central-viewer.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
@@ -478,7 +485,88 @@ export type ChangesetsSection =
       discarded: number;
       /** Set when base drift could not be checked. */
       driftUnknown?: string;
+      /** The pre-#1218 marker, documentation-robotics/changesets/.active, when it is still on disk or in git. */
+      legacyMarker?: LegacyMarkerState;
     };
+
+/**
+ * The active-changeset marker from before #1218, documentation-robotics/changesets/.active, which
+ * git tracked: every clone shared it. The marker is per checkout now, in .dr/active-changeset,
+ * which git ignores. Reported while the old file is on disk or git still tracks it (#1273).
+ */
+export interface LegacyMarkerState {
+  /** The old marker, relative to the project root. */
+  path: string;
+  /** Whether the file is in the working tree. */
+  onDisk: boolean;
+  /** Whether git tracks it (in the index or in HEAD); null when git can't say. */
+  tracked: boolean | null;
+  /**
+   * Whether it decides the active changeset here: it does only while .dr/active-changeset doesn't
+   * exist. Once .dr/ has a marker (an empty one means none), the old file is never read.
+   */
+  inUse: boolean;
+  /** The changeset it names, by name when there is one with its id. */
+  names?: string;
+  /** What it means and what to do, in a sentence or two. */
+  note: string;
+}
+
+/** The old marker's state, or null when it is neither on disk nor in git (the usual case). */
+export async function collectLegacyMarker(
+  ctx: Pick<StatusContext, "projectRoot" | "git">,
+  nameOf: (id: string) => string | undefined = () => undefined
+): Promise<LegacyMarkerState | null> {
+  if (!ctx.projectRoot) return null;
+  const file = legacyActiveMarkerPath(ctx.projectRoot);
+  const onDisk = existsSync(file);
+  // The index (a file not yet deleted there) or HEAD (a deletion not yet committed).
+  const listed = async (args: string[]): Promise<boolean | null> => {
+    const result = await ctx.git(args, ctx.projectRoot!);
+    return result.ok ? result.stdout.trim() !== "" : null;
+  };
+  const inIndex = await listed(["ls-files", "--", LEGACY_ACTIVE_MARKER_RELATIVE]);
+  const inHead =
+    inIndex === null ? null : await listed(["ls-tree", "--name-only", "HEAD", "--", LEGACY_ACTIVE_MARKER_RELATIVE]);
+  const tracked = inIndex === null ? null : inIndex || inHead === true;
+  if (!onDisk && !tracked) return null;
+
+  const inUse = onDisk && !existsSync(activeMarkerPath(ctx.projectRoot));
+  let id: string | undefined;
+  if (onDisk) {
+    try {
+      id = (await readFile(file)).trim() || undefined;
+    } catch {
+      // Unreadable: said as on disk, naming nothing.
+    }
+  }
+  const names = id ? nameOf(id) ?? id : undefined;
+  const where =
+    `${LEGACY_ACTIVE_MARKER_RELATIVE} is the active-changeset marker from before the marker moved to ` +
+    `${ACTIVE_MARKER_RELATIVE} (per checkout; git ignores .dr/)`;
+  const reads = inUse
+    ? ` This checkout has no ${ACTIVE_MARKER_RELATIVE}, so dr still reads the old file` +
+      `${names ? `: "${names}" is active because of it` : ""}, and every clone shares it.`
+    : onDisk
+      ? ` dr no longer reads it here: ${ACTIVE_MARKER_RELATIVE} decides.`
+      : "";
+  const todo = tracked
+    ? onDisk
+      ? ` git still tracks it: remove it with git rm ${LEGACY_ACTIVE_MARKER_RELATIVE} and commit the deletion.`
+      : " It is gone from this checkout but git still tracks it: commit its deletion " +
+        `(git rm ${LEGACY_ACTIVE_MARKER_RELATIVE}).`
+    : tracked === null
+      ? " git couldn't say whether it tracks it: delete it, and if git tracks it, commit the deletion."
+      : " git doesn't track it: delete it.";
+  return {
+    path: LEGACY_ACTIVE_MARKER_RELATIVE,
+    onDisk,
+    tracked,
+    inUse,
+    ...(names ? { names } : {}),
+    note: `${where}.${reads}${todo}`,
+  };
+}
 
 export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsSection> {
   if (!ctx.projectRoot || !ctx.modelDir) return { status: "no-model" };
@@ -547,6 +635,8 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
 
   const stagedEntries = await Promise.all(staged.map(entry));
   const active = activeId ? changesets.find((changeset) => changeset.id === activeId) : undefined;
+  const nameOf = (id: string) => changesets.find((changeset) => changeset.id === id)?.name;
+  const legacyMarker = await collectLegacyMarker(ctx, nameOf);
   return {
     status: "ok",
     active: active && active.status === "staged" ? stagedEntries.find((e) => e.id === active.id) ?? null : null,
@@ -555,6 +645,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     committed: changesets.filter((changeset) => changeset.status === "committed").length,
     discarded: changesets.filter((changeset) => changeset.status === "discarded").length,
     ...(driftUnknown ? { driftUnknown } : {}),
+    ...(legacyMarker ? { legacyMarker } : {}),
   };
 }
 
@@ -741,8 +832,9 @@ async function codebaseRootOf(ctx: StatusContext): Promise<string> {
  */
 export const LIST_DEFAULTS = {
   stagedChangesets: 10,
-  changedSourceFiles: 15,
-  uncommittedSourceFiles: 15,
+  /** The first changed files; changedSourceSummary counts them all per folder and layer (#1251). */
+  changedSourceFiles: 5,
+  uncommittedSourceFiles: 5,
   /** Element ids per changed file; `elementCount` is the whole count. */
   elementsPerFile: 3,
   unreferencedFiles: 5,
@@ -795,6 +887,52 @@ export interface ChangedSourceFile {
   /** Elements whose source reference names the file (the first few). */
   elements: string[];
   elementCount: number;
+}
+
+/** How many folders a changed-files summary names; `folderCount` is the whole count. */
+const SUMMARY_FOLDERS = 5;
+
+/**
+ * A list of changed source files in counts, over the whole list, so the status can show its first
+ * few files and still say where the change is (#1251).
+ */
+export interface SourceFileSummary {
+  /** The folders with the most changed files, most first: the first few (`folderCount` is the whole count). */
+  folders: Array<{ folder: string; files: number }>;
+  folderCount: number;
+  /** When `folders` shows fewer than `folderCount`: how many, and the call that lists every file. */
+  more?: string;
+  /** The elements that reference the changed files, counted per layer, each element once. */
+  elementsByLayer: Record<string, number>;
+}
+
+/**
+ * {@link SourceFileSummary} of a whole list of changed files (with every element of each).
+ * `listCall` is the call that returns the whole list, named in `more` when folders are left out.
+ */
+export function sourceFileSummary(entries: readonly ChangedSourceFile[], listCall?: string): SourceFileSummary {
+  const folders = new Map<string, number>();
+  const elements = new Set<string>();
+  for (const entry of entries) {
+    const folder = path.posix.dirname(entry.file);
+    folders.set(folder, (folders.get(folder) ?? 0) + 1);
+    for (const id of entry.elements) elements.add(id);
+  }
+  const elementsByLayer: Record<string, number> = {};
+  for (const id of elements) {
+    const layer = id.split(".")[0];
+    elementsByLayer[layer] = (elementsByLayer[layer] ?? 0) + 1;
+  }
+  const most = [...folders.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const shown = most.slice(0, SUMMARY_FOLDERS);
+  return {
+    folders: shown.map(([folder, files]) => ({ folder, files })),
+    folderCount: folders.size,
+    ...(listCall && folders.size > shown.length
+      ? { more: `folders shows ${shown.length} of ${folders.size}: ${listCall} returns every file.` }
+      : {}),
+    elementsByLayer,
+  };
 }
 
 /**
@@ -910,12 +1048,16 @@ export type CodeDriftSection =
       referencedFilesChanged: number;
       /** Referenced source files that changed, with the elements that reference each. */
       changedSourceFiles: ChangedSourceFile[];
+      /** The whole of `changedSourceFiles` counted per folder and per layer; absent when it is empty. */
+      changedSourceSummary?: SourceFileSummary;
       /** The rest: changed files no element references. Absent when there are none. */
       unreferenced?: UnreferencedChanges;
       /** How many referenced source files have uncommitted changes; `uncommittedSourceFiles` lists the first. */
       referencedFilesUncommitted: number;
       /** Referenced source files with uncommitted changes. */
       uncommittedSourceFiles: ChangedSourceFile[];
+      /** The whole of `uncommittedSourceFiles` counted per folder and per layer; absent when it is empty. */
+      uncommittedSourceSummary?: SourceFileSummary;
       /** Whether documentation-robotics/model/ itself has uncommitted changes. */
       modelUncommitted: boolean;
       /** How many distinct source files the model references. */
@@ -1554,6 +1696,20 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
         elementsCut = true;
         return { ...entry, elements: entry.elements.slice(0, LIST_DEFAULTS.elementsPerFile) };
       });
+    // Counted over the whole lists before they are cut, so the folders and layers are all of them.
+    const summaries = {
+      ...(drift.changedSourceFiles.length > 0
+        ? { changedSourceSummary: sourceFileSummary(drift.changedSourceFiles, listCall("changedSourceFiles", 0, rootPath)) }
+        : {}),
+      ...(drift.uncommittedSourceFiles.length > 0
+        ? {
+            uncommittedSourceSummary: sourceFileSummary(
+              drift.uncommittedSourceFiles,
+              listCall("uncommittedSourceFiles", 0, rootPath)
+            ),
+          }
+        : {}),
+    };
     const changedSourceFiles = cutFiles("changedSourceFiles");
     const uncommittedSourceFiles = cutFiles("uncommittedSourceFiles");
     if (elementsCut) {
@@ -1578,6 +1734,7 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     out.codeDrift = {
       ...drift,
       changedSourceFiles,
+      ...summaries,
       uncommittedSourceFiles,
       ...(unreferenced ? { unreferenced } : {}),
       ...(landedSince ? { landedSince } : {}),

@@ -8,8 +8,9 @@
  * anything is written, grouped by what it is, and `--model-only` leaves them all out.
  *
  * {@link scanOutsideModel} gathers the groups both `dr upgrade` and the `project_upgrade` MCP tool
- * report (the spec reference, reports, the two ignore files, the commit hook notes);
- * `dr upgrade` adds the integrations, which the MCP tool leaves alone. Nothing here writes.
+ * report (the spec reference, reports, the two ignore files, the commit hook notes, the
+ * active-changeset marker left in its old place); `dr upgrade` adds the integrations, which the MCP
+ * tool reports on its own (integrationsReport). Nothing here writes.
  */
 
 import path from "node:path";
@@ -20,6 +21,13 @@ import type { UpgradeScan } from "./upgrade-plan.js";
 import type { IntegrationUpgradePlan } from "../integrations/base-manager.js";
 import { hasLayerReports } from "../commands/reports.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { hasLegacyActiveMarker, LEGACY_ACTIVE_MARKER_PATH } from "./active-changeset-marker.js";
+
+/** What an upgrade says about the active-changeset marker left in its old place (#1273). */
+export const LEGACY_MARKER_NOTE =
+  "The active-changeset marker moved to .dr/active-changeset, which is per checkout (git ignores .dr/). " +
+  "Applying removes the old file; when this checkout has no marker there, the changeset it names becomes active " +
+  "only if it is still staged. git tracked it, so commit its deletion.";
 
 /** An installed integration and what upgrading it would change */
 export interface IntegrationPlan extends IntegrationUpgradePlan {
@@ -46,6 +54,8 @@ export interface OutsideModel {
   prettierignore?: { path: string; add: string[]; replace?: string[] };
   /** What the project's commit hooks would do to a commit of the files dr writes; dr changes nothing */
   commitHooks?: string[];
+  /** The active-changeset marker in its old place, which the upgrade removes (#1273) */
+  legacyMarker?: { path: string; note: string };
   /** Checks that failed; the upgrade goes on without them */
   errors: string[];
 }
@@ -120,6 +130,10 @@ export async function scanOutsideModel(
   const hookNotes = await commitHookNotes(projectRoot);
   if (hookNotes.length > 0) outside.commitHooks = hookNotes;
 
+  if (hasLegacyActiveMarker(projectRoot)) {
+    outside.legacyMarker = { path: LEGACY_ACTIVE_MARKER_PATH, note: LEGACY_MARKER_NOTE };
+  }
+
   return outside;
 }
 
@@ -130,6 +144,7 @@ export function touchesOutsideModel(outside: OutsideModel, integrations: Integra
       outside.reports ||
       outside.gitignore ||
       outside.prettierignore ||
+      outside.legacyMarker ||
       integrations.some((plan) => plan.upgrade || plan.stale.length > 0 || plan.changed.length > 0)
   );
 }
@@ -238,6 +253,12 @@ export function outsideModelLines(
     }
   }
   group("Ignore files and git's index", ignoreFiles);
+
+  if (outside.legacyMarker) {
+    group("Old active-changeset marker", [
+      `${"remove".padEnd(9)} ${outside.legacyMarker.path}  (now .dr/active-changeset, per checkout; commit the deletion)`,
+    ]);
+  }
 
   return lines;
 }

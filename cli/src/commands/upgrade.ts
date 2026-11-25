@@ -64,6 +64,7 @@ import {
   type StagedRetiredAttributeChange,
 } from "../core/attribute-migration.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
+import { LEGACY_ACTIVE_MARKER_PATH, retireLegacyActiveMarker, retiredMarkerClause } from "../core/active-changeset-marker.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { relayoutModelFiles } from "../core/model-relayout.js";
@@ -669,6 +670,15 @@ async function applyOutsideModel(
 ): Promise<void> {
   await keepDotDrOutOfGit(projectRoot, options);
   await keepPrettierOffDrFiles(projectRoot);
+  // The active-changeset marker in its old place, which git tracked (#1273)
+  const retired = await retireLegacyActiveMarker(projectRoot).catch((error) => {
+    console.log(ansis.yellow(`⚠ Could not remove ${LEGACY_ACTIVE_MARKER_PATH}: ${getErrorMessage(error)}`));
+    return null;
+  });
+  if (retired) {
+    console.log(ansis.green(`✓ Removed ${retired.path}: ${retiredMarkerClause(retired)}.`));
+    console.log(ansis.dim("  The marker is per checkout now, in .dr/active-changeset. git tracked the old file: commit the deletion."));
+  }
   await offerStaleRemoval(options, context.integrations);
   // No readable model: there is nothing to report on
   if (hasModel) {
@@ -1295,7 +1305,7 @@ function printDropRecord(record: UpgradeDropRecord | undefined): void {
   );
   console.log(
     ansis.dim(
-      `   Review it: documentation-robotics/changesets/${record.id}/changes.yaml lists each one (also in dr changeset list and the viewer's changesets view)`
+      `   Review it: dr changeset show ${record.name} lists each one (also the viewer's changesets view)`
     )
   );
   printDropRoutes(record);

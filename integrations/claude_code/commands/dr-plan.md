@@ -12,9 +12,11 @@ Plan `$ARGUMENTS` as a staged DR changeset instead of a prose plan.
 Follow the `dr_change_planning` skill for this change.
 In short:
 
-1. **Frame**: propose a kebab-case name and the change's intent, and confirm both with the human
-   before `changeset_create` uses them as the name and description (or `changeset_activate` an
-   existing one). Wait for their answer. Find or stage the goal, requirement or feature it serves.
+1. **Frame**: start with `project_status` with `task: "plan"`. Propose a kebab-case name and the
+   change's intent, and confirm both with the human before `changeset_create` takes them as `name`
+   and `intent` (or `changeset_activate` an existing one). Write the intent as markdown: one or two
+   sentences of intent, an **In scope** list naming the elements or areas (ids in code spans), and a
+   **Done when** line. Wait for their answer. Find or stage the goal, requirement or feature it serves.
    With no model yet, confirm the model's name before `project_init`, and ask whether to bootstrap
    it from the code or let it grow with each change.
 2. **Orient**: `model_search`, `model_show`, `model_trace` for what exists; `spec_type` for each
@@ -37,6 +39,8 @@ In short:
 5. **Review**: show the human the brief, then call `review_open` and give them its `url`, which
    opens the plan on the graph in the viewer. The human comments there; read the comments with
    `annotation_list`, answer with `annotation_reply`, revise. Wait for agreement before building.
+   The active changeset is per checkout (`.dr/active-changeset`), not shared through git: a reviewer
+   on the PR's branch finds the plan staged, not active, and opens it by name.
 6. **Build** from the brief: `changeset_brief` with `sections: ["changes"]` for each changed
    element's attributes and connections (for a large plan, one layer at a time with
    `layers: ["<layer>"]`, from the default brief's `byLayer`). Commit only the plan's own changeset directory

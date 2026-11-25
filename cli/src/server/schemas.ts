@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { CANONICAL_LAYER_NAMES } from '../core/layers.js';
+import { DESCRIPTION_IS_MARKDOWN } from '../core/changeset-description.js';
 
 /**
  * Branded type for ElementId
@@ -577,9 +578,17 @@ export const ChangesetReviewCountsSchema = z.object({
   asked: z.number().int().describe('Of the decided, those with verdict ask'),
 });
 
+/** A changeset's description: its intent, as markdown (#1210). */
+const ChangesetDescriptionSchema = z
+  .string()
+  .describe(
+    "The change's intent, as written, in " + DESCRIPTION_IS_MARKDOWN + '. Plain text is valid markdown. ' +
+      'Line breaks are kept, so render it rather than showing it on one line'
+  );
+
 export const ChangesetMetadataSchema = z.object({
   name: z.string(),
-  description: z.string().optional(),
+  description: ChangesetDescriptionSchema.optional(),
   status: z.enum(['staged', 'committed', 'discarded'] as const),
   created: z.string(),
   changes_count: z.number(),
@@ -695,7 +704,7 @@ export const ChangesetReviewUpdateSchema = z.object({
 export const ChangesetDetailSchema = z.object({
   id: z.string(),
   name: z.string(),
-  description: z.string().optional(),
+  description: ChangesetDescriptionSchema.optional(),
   status: z.enum(['staged', 'committed', 'discarded'] as const),
   created: z.string(),
   modified: z.string(),

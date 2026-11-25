@@ -8,6 +8,7 @@ import { ChangesetGraph } from "../../core/changeset-graph.js";
 import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
+import { DESCRIPTION_IS_MARKDOWN } from "../../core/changeset-description.js";
 
 /** What a tool's older name for its changeset argument says about itself. */
 export const CHANGESET_ALIAS_DESCRIPTION = "Older name for 'changeset'; accepted until the next release.";
@@ -23,6 +24,38 @@ export function changesetArgFields(description: string) {
     changeset: z.string().optional().describe(description),
     changesetId: z.string().optional().describe(CHANGESET_ALIAS_DESCRIPTION),
   };
+}
+
+/** What a changeset's description is, said once for every tool that writes it (#1210, #1433). */
+export const INTENT_IS_MARKDOWN =
+  `Write it as ${DESCRIPTION_IS_MARKDOWN}. A short shape: one or two sentences of intent; ` +
+  "**In scope:** a list naming the elements or areas, ids in code spans; **Done when:** what has to be true.";
+
+/**
+ * The schema fields for a changeset's intent: `intent`, the name the server instructions and the
+ * skills use, and `description`, the name the changeset stores it under and older calls send
+ * (#1433). Both stay; a call gives one, and `intentArg` reads it.
+ */
+export function intentFields(intentDescription: string) {
+  return {
+    intent: z.string().optional().describe(`${intentDescription} ${INTENT_IS_MARKDOWN}`),
+    description: z
+      .string()
+      .optional()
+      .describe("The same as intent, under the name the changeset stores it by. Give one of them."),
+  };
+}
+
+/** The intent a call gives under either name. Both, with different values, is refused. */
+export function intentArg(args: { intent?: string; description?: string }): string | undefined {
+  if (args.intent !== undefined && args.description !== undefined && args.intent !== args.description) {
+    throw new CLIError(
+      "intent and description name the same thing, and this call gives two different ones",
+      ErrorCategory.USER,
+      ["Pass intent alone"]
+    );
+  }
+  return args.intent ?? args.description;
 }
 
 export interface ChangesetArgOptions {

@@ -26,8 +26,10 @@ import {
 import {
   changesSpecVersion,
   LANDING_WHEN_DRIFT_BLOCKS,
+  collectLegacyMarker,
   readInstalledCli,
   runGit,
+  sourceFileSummary,
   type GitRunner,
 } from "../../../src/mcp/tools/project-status-collectors.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
@@ -835,13 +837,20 @@ describe("project_status", () => {
 
       const data = await status(rootPath);
 
-      // The default answer: the first 15, the whole count beside them, and the call for the rest.
+      // The default answer: the first 5, the whole count beside them, and the call for the rest (#1251).
       expect(data.codeDrift.referencedFilesChanged).toBe(17);
-      expect(data.codeDrift.changedSourceFiles).toHaveLength(15);
+      expect(data.codeDrift.changedSourceFiles).toHaveLength(5);
       expect(data.codeDrift.truncated).toBe(true);
       expect(data.codeDrift.more).toContain(
-        `changedSourceFiles shows 15 of 17: project_status with list: "changedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`
+        `changedSourceFiles shows 5 of 17: project_status with list: "changedSourceFiles", offset: 5, rootPath: "${rootPath}" returns the rest.`
       );
+      // Every changed file counted per folder, and the elements that reference them per layer, each once.
+      expect(data.codeDrift.changedSourceSummary).toEqual({
+        folders: [{ folder: "src", files: 17 }],
+        folderCount: 1,
+        elementsByLayer: { application: 21 },
+      });
+      expect(data.codeDrift.uncommittedSourceSummary).toBeUndefined();
       expect(data.codeDrift.unreferenced).toBeUndefined();
       // The sentence counts every file, not the ones listed.
       expect(data.nextStep.summary).toContain("17 source files the model references changed");
@@ -882,7 +891,7 @@ describe("project_status", () => {
       const sinceIndex = await page(rootPath, "changedSinceIndex", { offset: 15 });
       expect(sinceIndex.page).toEqual({ total: 17, returned: 2, offset: 15 });
       expect(data.codeIndex.pages).toEqual({ changedSinceIndex: { total: 17, returned: 15, offset: 0, nextOffset: 15 } });
-      expect(data.codeDrift.pages).toEqual({ changedSourceFiles: { total: 17, returned: 15, offset: 0, nextOffset: 15 } });
+      expect(data.codeDrift.pages).toEqual({ changedSourceFiles: { total: 17, returned: 5, offset: 0, nextOffset: 5 } });
     });
 
     it("shows three elements per file, with the whole count and the call that lists them all", async () => {
@@ -936,10 +945,11 @@ describe("project_status", () => {
 
       expect(data.codeDrift.status).toBe("drift");
       expect(data.codeDrift.referencedFilesUncommitted).toBe(18);
-      expect(data.codeDrift.uncommittedSourceFiles).toHaveLength(15);
+      expect(data.codeDrift.uncommittedSourceFiles).toHaveLength(5);
       expect(data.codeDrift.more).toBe(
-        `uncommittedSourceFiles shows 15 of 18: project_status with list: "uncommittedSourceFiles", offset: 15, rootPath: "${rootPath}" returns the rest.`
+        `uncommittedSourceFiles shows 5 of 18: project_status with list: "uncommittedSourceFiles", offset: 5, rootPath: "${rootPath}" returns the rest.`
       );
+      expect(data.codeDrift.uncommittedSourceSummary.folderCount).toBe(1);
       expect(data.nextStep.summary).toContain("18 source files the model references have uncommitted edits");
       expect((await page(rootPath, "uncommittedSourceFiles", { offset: 15 })).page).toEqual({ total: 18, returned: 3, offset: 15 });
     });
@@ -985,6 +995,76 @@ describe("project_status", () => {
       expect(data.codeDrift.rule).toContain(`No as-built landing is recorded, so drift is counted from the last model commit that is not a spec migration (${modelSha.slice(0, 7)})`);
       expect(data.codeDrift.rule).toContain("Any commit to the model moves it");
       expect(data.codeDrift.landedSince).toBeUndefined();
+    });
+
+    describe("the active-changeset marker from before .dr/ (#1273)", () => {
+      const legacy = () => join(rootPath, "documentation-robotics", "changesets", ".active");
+
+      it("says git couldn't say whether it tracks the old file, rather than that it doesn't", async () => {
+        await mkdir(join(rootPath, "documentation-robotics", "changesets"), { recursive: true });
+        await writeFile(legacy(), "changeset-x\n");
+        const noGit: GitRunner = async () => ({ ok: false, error: "git is not installed", missing: true });
+
+        const state = await collectLegacyMarker({ projectRoot: rootPath, git: noGit });
+
+        expect(state).toMatchObject({ onDisk: true, tracked: null, inUse: true, names: "changeset-x" });
+        expect(state!.note).toContain("git couldn't say whether it tracks it");
+        expect(state!.note).not.toContain("git doesn't track it");
+      });
+
+      it("reports an old marker git tracks, which still decides the active changeset, and asks for its deletion", async () => {
+        const planId = await stagePlan(rootPath, "shared-plan", "shared");
+        await rm(join(rootPath, ".dr", "active-changeset"), { force: true });
+        await writeFile(legacy(), `${planId}\n`);
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "a model from before the marker moved");
+        clearModelCache();
+
+        const data = await status(rootPath);
+
+        expect(data.changesets.active?.name).toBe("shared-plan");
+        expect(data.changesets.legacyMarker).toMatchObject({
+          path: join("documentation-robotics", "changesets", ".active"),
+          onDisk: true,
+          tracked: true,
+          inUse: true,
+          names: "shared-plan",
+        });
+        expect(data.changesets.legacyMarker.note).toContain('"shared-plan" is active because of it');
+        expect(data.changesets.legacyMarker.note).toContain("commit the deletion");
+        expect(data.nextStep.summary).toContain("Also: documentation-robotics");
+      });
+
+      it("says to commit the deletion once activating moved the marker to .dr/, and nothing once committed", async () => {
+        const planId = await stagePlan(rootPath, "shared-plan", "shared");
+        await writeFile(legacy(), `${planId}\n`);
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "a model from before the marker moved");
+        await ok(await changesetActivateHandler({ changeset: planId, rootPath }));
+
+        const moved = await status(rootPath);
+        expect(moved.changesets.legacyMarker).toMatchObject({ onDisk: false, tracked: true, inUse: false });
+        expect(moved.changesets.legacyMarker.note).toContain("commit its deletion");
+        expect(moved.nextStep.summary).toContain("commit its deletion");
+
+        git(rootPath, "add", "-A");
+        git(rootPath, "commit", "-q", "-m", "remove the old marker");
+        const done = await status(rootPath);
+        expect(done.changesets.legacyMarker).toBeUndefined();
+        expect(done.nextStep.summary).not.toContain(".active");
+      });
+
+      it("lists an untracked leftover in the section only, once .dr/ has a marker", async () => {
+        const planId = await stagePlan(rootPath, "mine", "mine");
+        await ok(await changesetActivateHandler({ changeset: planId, rootPath }));
+        await writeFile(legacy(), `${planId}\n`);
+
+        const data = await status(rootPath);
+
+        expect(data.changesets.legacyMarker).toMatchObject({ onDisk: true, tracked: false, inUse: false });
+        expect(data.changesets.legacyMarker.note).toContain("delete it");
+        expect(data.nextStep.summary).not.toContain(".active is the active-changeset marker");
+      });
     });
 
     describe("after an as-built landing", () => {
@@ -1292,6 +1372,100 @@ describe("project_status", () => {
         expect(data.nextStep.tool).toBe("codebase_verify");
         expect(data.nextStep.args).toEqual({ rootPath });
         expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+      });
+
+      describe("a session that says what it is for (task, #1301)", () => {
+        const statusFor = async (task: string) => ok(await projectStatusHandler({ rootPath, task } as any));
+
+        it("without a task keeps drift first, and says how to ask for the other", async () => {
+          const data = await status(rootPath);
+
+          expect(data.nextStep.tool).toBe("codebase_index");
+          expect(data.nextStep.summary).toContain('task: "plan" or "review"');
+          expect(data.nextStep.info).toBeUndefined();
+        });
+
+        it("reconcile keeps drift first, without the hint", async () => {
+          const data = await statusFor("reconcile");
+
+          expect(data.nextStep.tool).toBe("codebase_index");
+          expect(data.nextStep.then.tool).toBe("codebase_verify");
+          expect(data.nextStep.summary).not.toContain('task: "plan" or "review"');
+          expect(data.nextStep.info).toBeUndefined();
+        });
+
+        it("plan says drift and the index in info, and goes on to changeset_create", async () => {
+          const data = await statusFor("plan");
+
+          expect(data.nextStep.tool).toBe("changeset_create");
+          expect(data.nextStep.args).toEqual({ rootPath });
+          expect(data.nextStep.summary).toContain("The code has changed since the model was last reconciled");
+          expect(data.nextStep.summary).not.toContain("codebase_verify");
+          expect(data.nextStep.info).toContain("Not this session's task: 1 source file the model references changed");
+          expect(data.nextStep.info).toContain('task: "reconcile"');
+          expect(data.nextStep.info).toContain("The code has no index.");
+          // The status itself is unchanged: only the step reads it differently.
+          expect(data.codeDrift.status).toBe("drift");
+        });
+
+        it("review sends the session to the one staged plan, not to the code", async () => {
+          const planId = await stagePlan(rootPath, "add-refunds", "refunds");
+
+          const data = await statusFor("review");
+
+          expect(data.nextStep.tool).toBe("changeset_brief");
+          expect(data.nextStep.args).toEqual({ changeset: planId, rootPath });
+          expect(data.nextStep.then).toEqual({ tool: "review_open", args: { changeset: planId, rootPath } });
+          expect(data.nextStep.summary).toContain('Changeset "add-refunds" is staged, with 1 staged change.');
+          expect(data.nextStep.summary).toContain("per checkout");
+          expect(data.nextStep.info).toContain("1 source file the model references changed");
+        });
+
+        it("review asks which plan when several are staged, and says when none is", async () => {
+          const none = await statusFor("review");
+          expect(none.nextStep.tool).toBeNull();
+          expect(none.nextStep.summary).toContain("No changeset is staged in this checkout");
+
+          await stagePlan(rootPath, "add-refunds", "refunds");
+          await stagePlan(rootPath, "add-invoices", "invoices");
+          const two = await statusFor("review");
+          expect(two.nextStep.tool).toBe("changeset_list");
+          expect(two.nextStep.summary).toContain('2 changesets are staged: "add-');
+          expect(two.nextStep.summary).toContain("Ask the user which one is under review");
+        });
+
+        it("review counts plans only: an as-built record or an upgrade record is not what a review reads", async () => {
+          const model = await Model.load(rootPath, { lazyLoad: false });
+          const manager = new StagingAreaManager(model.rootPath, model);
+          await manager.create("extract-abc1234", "Staged by codebase_extract", { kind: "extract" }, {
+            purpose: "bootstrap",
+          });
+          await manager.create("upgrade-drops-9.9.9", "Dropped relationships", { kind: "upgrade" }, {
+            purpose: "upgrade-record",
+          });
+          clearModelCache();
+
+          const none = await statusFor("review");
+          expect(none.nextStep.tool).toBeNull();
+          expect(none.nextStep.summary).toContain("No changeset is staged in this checkout");
+
+          const planId = await stagePlan(rootPath, "add-refunds", "refunds");
+          const one = await statusFor("review");
+          expect(one.nextStep.tool).toBe("changeset_brief");
+          expect(one.nextStep.args).toEqual({ changeset: planId, rootPath });
+        });
+
+        it("review with a plan active reads that plan, and is not told to refresh the index", async () => {
+          await writeIndex(rootPath, modelSha);
+          const planId = await stagePlan(rootPath, "add-refunds", "refunds");
+          await ok(await changesetActivateHandler({ changeset: planId, rootPath }));
+
+          const data = await statusFor("review");
+
+          expect(data.nextStep.tool).toBe("changeset_brief");
+          expect(data.nextStep.also).toBeUndefined();
+          expect(data.nextStep.info).toContain("The code index is stale");
+        });
       });
 
       /** The service's YAML file, relative to the repo. */
@@ -1915,5 +2089,35 @@ describe("project_status indexing section", () => {
     // unless ps can't tell; either way the section reports the run.
     expect(["running", "failed"]).toContain(s.indexing.status);
     expect(s.indexing.jobId).toBe("job-1");
+  });
+});
+
+describe("sourceFileSummary (#1251)", () => {
+  const file = (path: string, elements: string[]) => ({ file: path, elements, elementCount: elements.length });
+
+  it("counts files per folder, most first, and each element once per layer", () => {
+    const summary = sourceFileSummary([
+      file("src/a/one.ts", ["application.applicationfunction.one", "api.operation.one"]),
+      file("src/a/two.ts", ["application.applicationfunction.one"]),
+      file("src/b/three.ts", ["testing.testcasesketch.three"]),
+      file("top.ts", ["application.applicationfunction.top"]),
+    ]);
+    expect(summary).toEqual({
+      folders: [
+        { folder: "src/a", files: 2 },
+        { folder: ".", files: 1 },
+        { folder: "src/b", files: 1 },
+      ],
+      folderCount: 3,
+      elementsByLayer: { application: 2, api: 1, testing: 1 },
+    });
+  });
+
+  it("names the call for every file when it shows only the first folders", () => {
+    const entries = Array.from({ length: 7 }, (_, i) => file(`src/f${i}/x.ts`, [`api.operation.op-${i}`]));
+    const summary = sourceFileSummary(entries, 'project_status with list: "changedSourceFiles"');
+    expect(summary.folders).toHaveLength(5);
+    expect(summary.folderCount).toBe(7);
+    expect(summary.more).toBe('folders shows 5 of 7: project_status with list: "changedSourceFiles" returns every file.');
   });
 });

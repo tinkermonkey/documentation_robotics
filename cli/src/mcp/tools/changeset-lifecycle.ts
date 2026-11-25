@@ -16,7 +16,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { resolveOrigin } from "../../core/changeset-review.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
 // changeset_create
@@ -24,10 +24,10 @@ import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-
 
 const createInputSchema = {
   name: z.string().min(1).describe("Short name for the change, e.g. 'add-order-export'."),
-  description: z
-    .string()
-    .optional()
-    .describe("The change's intent: what it is for and what done looks like. Shown to the human reviewing it."),
+  ...intentFields(
+    "The change's intent: what it is for, what it covers and what done looks like. Stored as the changeset's " +
+      "description, returned as written, and shown to the human reviewing it."
+  ),
   activate: z
     .boolean()
     .optional()
@@ -52,7 +52,7 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
     // A plan, unless DrBot (in `dr visualize`) is the one creating it. Its purpose is declared by
     // StagingAreaManager.create: `plan`, `chat` for DrBot, or the extraction's when it is the
     // changeset codebase_extract's waiting cards name.
-    const changeset = await manager.create(args.name, args.description, resolveOrigin("plan"));
+    const changeset = await manager.create(args.name, intentArg(args), resolveOrigin("plan"));
     const activate = args.activate ?? true;
     const previouslyActive = activate ? await manager.getActiveId() : null;
     if (activate) {
@@ -77,8 +77,8 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
   description:
     "Start planning a change: create a changeset carrying the change's intent and (by default) activate it, " +
     "so model_add / model_update / model_delete / relationship_add / relationship_delete stage into it instead " +
-    "of writing the model. Before calling it, propose the changeset's name and intent (description) to the user " +
-    "and confirm both with them. Landing it is the user's step: changeset_commit commits only after they confirm " +
+    "of writing the model. Before calling it, propose the changeset's name and intent to the user and confirm both " +
+    "with them. The intent is markdown, stored as the changeset's description (description is accepted for it too). Landing it is the user's step: changeset_commit commits only after they confirm " +
     "it, or they commit it in the viewer.",
   inputSchema: createInputSchema,
   handler: changesetCreateHandler,

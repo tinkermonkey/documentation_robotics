@@ -79,6 +79,16 @@ export interface IntegrationUpgradePlan {
  */
 export abstract class BaseIntegrationManager {
   /**
+   * The project the integration belongs to. Without it the project is found from the working
+   * directory, as the CLI commands do; the MCP server serves a project it names (project_upgrade).
+   */
+  protected readonly projectRoot?: string;
+
+  constructor(options: { projectRoot?: string } = {}) {
+    this.projectRoot = options.projectRoot;
+  }
+
+  /**
    * Component registry mapping component names to their configurations
    * Must be defined by subclasses
    */
@@ -136,6 +146,11 @@ export abstract class BaseIntegrationManager {
     if (existsSync(devPath)) {
       return devPath;
     }
+    // Run from source (cli/src/integrations/, as the tests do): the repository root is 3 levels up
+    const sourcePath = join(dirname(dirname(dirname(cliDir))), "integrations", this.integrationSourceDir);
+    if (existsSync(sourcePath)) {
+      return sourcePath;
+    }
 
     throw new Error(
       `Integration source directory not found for ${this.integrationSourceDir}. ` +
@@ -157,7 +172,7 @@ export abstract class BaseIntegrationManager {
     if (isAbsolute(this.targetDir)) {
       return this.targetDir;
     }
-    const projectRoot = await findProjectRoot();
+    const projectRoot = this.projectRoot ?? (await findProjectRoot());
     if (!projectRoot) {
       throw new Error(
         `Could not find project root. Are you in a Documentation Robotics project? ` +
@@ -624,6 +639,34 @@ export abstract class BaseIntegrationManager {
       versionFile: `${folder}/${this.versionFileName}`,
       ...(await this.findStaleEntries()),
     };
+  }
+
+  /**
+   * Upgrade the installed integration as {@link planUpgrade} with the same force lists it: the
+   * installed components' files written, files no longer shipped removed, the version file
+   * rewritten. Unlike the subclasses' upgrade(), it never prompts and prints nothing, so a caller
+   * that has neither a terminal nor a free stdout can use it (project_upgrade over MCP). Leftovers
+   * of older layouts (`stale`, `changed`) are left for removeStaleEntries, as upgrade() leaves them.
+   *
+   * @param options.force - overwrite files edited in the project (dr upgrade passes it)
+   * @returns the plan it applied, or null when the integration isn't installed
+   */
+  public async applyUpgrade(options: { force?: boolean } = {}): Promise<IntegrationUpgradePlan | null> {
+    const plan = await this.planUpgrade(options);
+    const versionData = plan ? await this.loadVersionFile() : null;
+    if (!plan || !versionData) return null;
+
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+    for (const componentName of Object.keys(versionData.components || {})) {
+      const config = this.components[componentName];
+      if (!config || !this.isTrackedComponent(componentName)) continue;
+      // As upgrade(): only components installed here
+      if (!existsSync(join(absoluteTargetDir, config.target))) continue;
+      await this.installComponent(componentName, options.force ?? false);
+    }
+    await this.removeObsoleteFiles();
+    await this.updateVersionFile(await this.getCliVersion());
+    return plan;
   }
 
   /**

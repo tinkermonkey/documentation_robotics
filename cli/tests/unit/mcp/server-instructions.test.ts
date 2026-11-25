@@ -97,7 +97,7 @@ describe("SERVER_INSTRUCTIONS", () => {
 
   it("says which layers codebase_verify checks, and that a layer it could not check is not in step", () => {
     expect(SERVER_INSTRUCTIONS).toContain("codebase_verify checks api, data-store, technology and testing");
-    expect(SERVER_INSTRUCTIONS).toContain("a not_checked layer is neither in step nor drifted");
+    expect(SERVER_INSTRUCTIONS).toContain("(not_checked: neither in step nor drifted)");
     expect(SERVER_INSTRUCTIONS).not.toContain("checks only the API layer");
   });
 

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -132,6 +132,73 @@ describe("changeset_update", () => {
     await changesetCreateHandler({ name: "later", activate: false, rootPath });
     const updated = parse(await changesetUpdateHandler({ changesetId: "later", description: "Next quarter", rootPath }));
     expect(updated.description).toBe("Next quarter");
+  });
+});
+
+/** An intent in the shape the planning skill asks for: markdown with a list and a "Done when" line. */
+const MARKDOWN_INTENT = [
+  "Export orders as CSV, for the admins who reconcile them by hand.",
+  "",
+  "**In scope**",
+  "- `application.applicationfunction.export-orders`, realizing the checkout service",
+  "- the `export-orders` operation",
+  "",
+  "**Done when** an admin can download every order of a month as one CSV file.",
+].join("\n");
+
+describe("a changeset's intent (#1433) is markdown (#1210)", () => {
+  it("changeset_create takes intent, the name the instructions and skills use, and stores it as the description", async () => {
+    const created = parse(await changesetCreateHandler({ name: "export-orders", intent: MARKDOWN_INTENT, rootPath }));
+    expect(created.description).toBe(MARKDOWN_INTENT);
+
+    // Every reader returns it as written, line breaks and all
+    const shown = parse(await changesetShowHandler({ changeset: "export-orders", detail: "summary", rootPath }));
+    expect(shown.description).toBe(MARKDOWN_INTENT);
+    const brief = parse(await changesetBriefHandler({ changeset: "export-orders", rootPath, detail: "full" }));
+    expect(brief.changeset.description).toBe(MARKDOWN_INTENT);
+  });
+
+  it("keeps description working, and refuses a call that gives both with different values", async () => {
+    expect(parse(await changesetCreateHandler({ name: "old-name", description: "As before", rootPath })).description).toBe(
+      "As before"
+    );
+    expect(parse(await changesetCreateHandler({ name: "same", intent: "Same", description: "Same", rootPath })).description).toBe(
+      "Same"
+    );
+    const both = await changesetCreateHandler({ name: "both", intent: "One", description: "Other", rootPath });
+    expect(both.isError).toBe(true);
+    expect(both.content[0].type === "text" && both.content[0].text).toContain("intent and description name the same thing");
+    const names = Object.values(parse(await changesetListHandler({ rootPath })).changesets).map((c: any) => c.name);
+    expect(names).not.toContain("both");
+  });
+
+  it("changeset_update takes intent too, and keeps a multi-line one through the files unchanged", async () => {
+    await planExportOrders();
+    const updated = parse(await changesetUpdateHandler({ intent: MARKDOWN_INTENT, rootPath }));
+    expect(updated.description).toBe(MARKDOWN_INTENT);
+
+    // A fresh read from disk: metadata.yaml keeps the line breaks (a block scalar, not one escaped line)
+    clearModelCache();
+    const model = await Model.load(rootPath);
+    const reloaded = await new StagingAreaManager(model.rootPath, model).load("export-orders");
+    expect(reloaded?.description).toBe(MARKDOWN_INTENT);
+    const metadata = await readFile(join(rootPath, "documentation-robotics", "changesets", reloaded!.id!, "metadata.yaml"), "utf-8");
+    expect(metadata).toMatch(/^description: \|/m);
+    expect(metadata).toContain("  **In scope**\n");
+
+    const refused = await changesetUpdateHandler({ intent: "One", description: "Other", rootPath });
+    expect(refused.isError).toBe(true);
+  });
+
+  it("says in the tool schemas that the intent is markdown", async () => {
+    const { changesetCreateTool } = await import("../../../src/mcp/tools/changeset-lifecycle.js");
+    const { changesetUpdateTool } = await import("../../../src/mcp/tools/changeset-editing.js");
+    for (const tool of [changesetCreateTool, changesetUpdateTool]) {
+      const schema = tool.inputSchema as Record<string, { description?: string }>;
+      expect(schema.intent.description).toContain("markdown (CommonMark");
+      expect(schema.intent.description).toContain("**Done when:**");
+      expect(schema.description.description).toContain("The same as intent");
+    }
   });
 });
 

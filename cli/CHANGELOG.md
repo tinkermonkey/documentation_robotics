@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`dr changeset show [changeset]` (#1219):** shows one changeset by name or id, whatever its state
+  or purpose (a staged plan that isn't active, an upgrade record, a committed changeset; the active
+  one when none is named): status, purpose, allowed actions, its description as written and one line
+  per change, as `changeset_show` lists them. `--json` returns what `changeset_show` returns with
+  `detail: "summary"`, every change on one page: both are built by `changesetShowView`. `dr upgrade`
+  points at it for its drop record instead of a `changes.yaml` path.
+- **`project_status` `task` (#1301):** `plan`, `review` or `reconcile` says what the session is for.
+  While planning or reviewing, code drift and the code index are said in `nextStep.info`, not made
+  the step: a review goes to the staged plan (`changeset_brief`, then `review_open`). Without a
+  task, a drift step says how to ask for the other.
+- **`project_upgrade` `upgradeIntegrations` (#1252):** with `apply`, brings the per-project
+  integration files (`.claude/` from `dr claude install`, `.github/` from `dr copilot install`) up to
+  this dr when an older dr installed them, as `dr upgrade` does, even when the model is current.
+  Files at this dr's version are left alone, edits and all.
 - **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
   on a farm of its own (the user farm is refused): its record, token and log in `<dir>`, no viewer
   sweep, `--port` exact. `--token-file <path>`, taken only with `--state-dir`, gives it the token
@@ -39,6 +53,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A changeset's intent is markdown, and called `intent` (#1210, #1433):** `changeset_create` and
+  `changeset_update` take `intent`, the name the server instructions and skills use; `description`
+  still works, and a call giving both with different values is refused. `dr changeset create` takes
+  `--intent` (`--description` still works). The tool schemas, the CLI and the viewer API
+  (`docs/api-spec.yaml`) say the description is markdown, and the planning skill, `/dr-plan`,
+  `/dr-changeset` and `docs/CHANGE_MODELING.md` show the shape to write (intent, **In scope**,
+  **Done when**). `dr changeset list` shows its first line.
+- **`dr changeset staged`, `diff` and `preview` take a changeset name (#1219):** they read the
+  changeset named, in any state, instead of ignoring the argument; unnamed, they read the active
+  one as before. An unknown name fails.
+- **`project_status` lists 5 changed source files, not 15 (#1251):** `changedSourceSummary` and
+  `uncommittedSourceSummary` count every changed file per folder (the first five folders, with
+  `folderCount`) and the elements that reference them per layer; `list` still returns every file.
+- **`project_upgrade` reports the per-project integration files (#1252):** for each, what its
+  upgrade would change, and for `.claude/` which installed files the dr plugin also carries (its
+  skills, `/dr-plan`, two agents: they load twice) and which only the project's files carry (the
+  other commands, `dr-extractor`), so removing `.claude/` is no longer called safe when it isn't.
+  An upgrade is pending only when the installed version is older, as `dr upgrade` decides, and the
+  files edited here that it would replace are named. The note no longer says there is no tool for
+  the Copilot files. `integrations` in the answer is now an object, one entry per integration and a
+  `note`, where it was a string.
+- **The old active-changeset marker (#1273):** clearing the active changeset leaves an empty
+  `.dr/active-changeset` instead of none, so `documentation-robotics/changesets/.active` restored
+  from git never makes its changeset active again. `project_status` reports an old marker still on
+  disk or in git (`changesets.legacyMarker`: whether git tracks it, whether it decides the active
+  changeset) and says to commit its deletion. `dr upgrade` and `project_upgrade` name the old file
+  in their plan and remove it when applied, saying to commit the deletion. When the checkout has no
+  marker in `.dr/`, the changeset it names becomes active only if it is still staged; one that
+  landed or is gone is reported (`stale`) and nothing is made active. The planning skill and `/dr-plan` say the active
+  changeset is per checkout, so a reviewer opens a PR's plan by name.
 - **Behaviour change, codebase_extract rules and Tier 0 (#1424):** a project rule that says `none`
   no longer takes a symbol Tier 0 decided as an element. Such symbols stay Tier 0's and are staged,
   unless the rule says `overrideTier0: true`, a new key on `decide` items and on rules in

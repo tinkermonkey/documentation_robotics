@@ -2561,6 +2561,12 @@ paths:
                           type: string
                         description:
                           type: string
+                          description:
+                            "The change's intent, as written, in markdown (CommonMark, GitHub
+                            flavoured: lists, code spans, emphasis, links, short
+                            headings; no raw HTML). Plain text is valid
+                            markdown. Line breaks are kept, so render it rather
+                            than showing it on one line"
                         status:
                           type: string
                           enum:
@@ -2772,6 +2778,12 @@ paths:
                     type: string
                   description:
                     type: string
+                    description:
+                      "The change's intent, as written, in markdown (CommonMark, GitHub
+                      flavoured: lists, code spans, emphasis, links, short
+                      headings; no raw HTML). Plain text is valid markdown. Line
+                      breaks are kept, so render it rather than showing it on
+                      one line"
                   status:
                     type: string
                     enum:

@@ -9,6 +9,7 @@ import { BaseIntegrationManager } from "@/integrations/base-manager";
 import { ComponentConfig, VersionData, validateVersionData } from "@/integrations/types";
 import { computeFileHash } from "@/integrations/hash-utils";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 
 /**
  * Test implementation of BaseIntegrationManager
@@ -823,6 +824,37 @@ components:
       // Planning wrote nothing
       expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1");
       expect(await readFile(join(targetDir, "commands", "cmd2.md"), "utf-8")).toBe("Command 2");
+    });
+
+    it("applyUpgrade does what the plan lists, without prompts, and returns that plan (#1252)", async () => {
+      expect(await manager.applyUpgrade({ force: true })).toBeNull();
+      await install();
+      await writeFile(join(sourceDir, "commands", "cmd1.md"), "Command 1, revised", "utf-8");
+      await writeFile(join(sourceDir, "commands", "cmd3.md"), "Command 3", "utf-8");
+      await rm(join(sourceDir, "commands", "cmd2.md"));
+      await writeFile(join(targetDir, "agents", "dr-agent1.md"), "Agent 1, edited here", "utf-8");
+      const planned = await manager.planUpgrade({ force: true });
+
+      const applied = await manager.applyUpgrade({ force: true });
+
+      expect(applied).toEqual(planned);
+      expect(await readFile(join(targetDir, "commands", "cmd1.md"), "utf-8")).toBe("Command 1, revised");
+      expect(await readFile(join(targetDir, "commands", "cmd3.md"), "utf-8")).toBe("Command 3");
+      expect(existsSync(join(targetDir, "commands", "cmd2.md"))).toBe(false);
+      expect(await readFile(join(targetDir, "agents", "dr-agent1.md"), "utf-8")).toBe("Agent 1");
+      // Nothing is left to do, and the version file names this dr
+      expect((await manager.planUpgrade({ force: true }))!.files).toEqual([]);
+      expect((await manager.loadVersionFile())!.version).not.toBe("0.1.0");
+    });
+
+    it("applyUpgrade without force keeps a file edited in the project, as the plan says", async () => {
+      await install();
+      await writeFile(join(targetDir, "agents", "dr-agent1.md"), "Agent 1, edited here", "utf-8");
+
+      const applied = await manager.applyUpgrade();
+
+      expect(applied!.kept).toEqual(["target/agents/dr-agent1.md"]);
+      expect(await readFile(join(targetDir, "agents", "dr-agent1.md"), "utf-8")).toBe("Agent 1, edited here");
     });
 
     /** Leftovers of an older layout beside the project's own files that happen to carry dr's prefix */
