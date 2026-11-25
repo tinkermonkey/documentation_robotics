@@ -2,8 +2,8 @@ id: changeset-1795622887596-sj2wvbxgf
 name: cli09-server-viewer-processes
 description: 'CLI 0.9.0 tranche "Dependable server and viewer processes" (#1436 #1427 #1438 #1369 #1282 #1308 #1362 #1376). Done looks like: farm listings count staged changesets from metadata.yaml alone (cached by mtime, concurrent listings share one run) and single-project routes scan one project; a long-lived DR process refuses base-model writes once the installed CLI changed under it, and restarts itself when nothing but MCP sessions use it; the test preload cannot write the real user farm, and farm listings flag a project whose repository is gone; dr serve sweeps only its own farm''s per-project viewers and has an isolated, authenticated test mode (--state-dir, --token-file, --no-sweep, a JSON ready line); ensureCentralServer reports a process that is not answering /health with its log path; viewer files are served with no-cache for index.html so a rebuilt --viewer-path bundle shows; the server instructions and project_status say what survived a reconnect.'
 created: 2026-11-25T16:08:07.642Z
-modified: 2026-11-25T17:36:16.997Z
-status: staged
+modified: 2026-11-25T22:29:43.876Z
+status: committed
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan

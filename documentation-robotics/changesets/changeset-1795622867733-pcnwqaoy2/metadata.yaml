@@ -2,17 +2,17 @@ id: changeset-1795622867733-pcnwqaoy2
 name: cli09-compact-changeset-reads
 description: 'CLI 0.9.0 tranche "Compact changeset reads" (#1250 #1257 #1258 #1281 #1283 #1284 #1294 #1299 #1334 #1373 #1390 #1395): changeset reads are compact by default and page. One approach everywhere: a compact default, layer and type filters, limit/offset paging with true totals and the exact next call (core/paging.ts). changeset_list lists staged changesets by default and counts the rest; changeset_show is one line per change, filtered by layer, type and operation, and paged; changeset_impact lists ids per layer by default; changeset_unstage returns counts and change lines; changeset_brief gains summary/byLayer/reach/changesByType/neighborFiles sections, a types filter, incoming staged links and unchanged elements for ids, drift named once and paged with the answer, and pages that stay near targetBytes even with limit; model_search excludes layers and types, searches descriptions and attributes, ranks name hits first and pages; model_show takes ids.'
 created: 2026-11-25T16:07:47.770Z
-modified: 2026-11-25T17:20:45.306Z
-status: staged
+modified: 2026-11-25T22:29:26.737Z
+status: committed
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
   additions: 21
-  modifications: 6
+  modifications: 7
   deletions: 0
-lastSequence: 45
+lastSequence: 46
 unstaged:
   - sequence: 16
     removedAt: 23

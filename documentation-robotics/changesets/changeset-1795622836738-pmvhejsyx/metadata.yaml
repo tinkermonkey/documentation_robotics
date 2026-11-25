@@ -11,8 +11,8 @@ description: |-
 
   **Done when** each issue's behaviour has a unit test (and an integration test where it is end to end), the skills and server instructions say the same, and verify finds the build matches this plan.
 created: 2026-11-25T16:07:16.780Z
-modified: 2026-11-25T17:53:20.524Z
-status: staged
+modified: 2026-11-25T22:28:50.614Z
+status: committed
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
