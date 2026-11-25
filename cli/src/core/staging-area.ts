@@ -1770,6 +1770,11 @@ export class StagingAreaManager {
     return null;
   }
 
+  /** A changeset's folder (its file lock sits beside it). */
+  changesetPath(changesetId: string): string {
+    return this.storage.getChangesetPath(changesetId);
+  }
+
   /** The landed note (see getWriteTarget), for status output and changeset_deactivate. */
   async landedNote() {
     return readLandedNote(this.rootPath);

@@ -71,6 +71,7 @@ import {
   type McpToolDefinition,
 } from "./shared.js";
 import { resolveChangeset } from "./changeset-shared.js";
+import { alreadyLandedResult, recentWritesWarning } from "./changeset-landed.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
@@ -570,6 +571,8 @@ async function prepareLanding(
   const model = await Model.load(rootPath, { lazyLoad: false });
   const manager = new StagingAreaManager(model.rootPath, model);
   const changeset = await resolveChangeset(manager, args.changeset, "changeset");
+  // Already landed is an answer, not a wrong name (#1441).
+  if (changeset.status === "committed") return { result: jsonResult(await alreadyLandedResult(model, changeset)) };
   if (changeset.status !== "staged") {
     throw new CLIError(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can be committed`, ErrorCategory.USER, [
       'Use "changeset_list" to find a staged changeset',
@@ -853,10 +856,12 @@ export async function changesetCommitPreviewHandler(
     if ("result" in prepared) return prepared.result;
     const { changeset, hash } = prepared.landing;
     const { state, message, overlaps } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
+    const stillWriting = await recentWritesWarning(prepared.landing.manager.changesetPath(changeset.id!), changeset);
     const base = {
       id: changeset.id,
       name: changeset.name,
       status: "ready-to-commit",
+      ...(stillWriting ? { stillWriting } : {}),
       // Drift is in the summary; it does not stop the landing.
       drifted: hash.isDrifted,
       summary: message,
@@ -907,7 +912,9 @@ export const changesetCommitPreviewTool: McpToolDefinition<typeof previewInputSc
     "Drift does not stop a landing. From Claude Code it also returns a confirmToken bound to the changeset and base " +
     "as they are now, good for an hour: show the user the summary, and if they want it landed, call changeset_commit " +
     "with the token, which they approve in the permission prompt. Use it to land from a client that can't show the " +
-    "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control).",
+    "confirmation dialog (print mode, the Claude desktop app, a session followed over Remote Control). A changeset " +
+    "already landed is answered with status 'already-landed' (when, its files, whether git has them): nothing to do. " +
+    "stillWriting says when changes were staged into it moments ago or something writes to it now.",
   inputSchema: previewInputSchema,
   handler: changesetCommitPreviewHandler,
 };
