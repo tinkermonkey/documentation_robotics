@@ -22,6 +22,7 @@ import {
   buildSourceReference,
   precheckUpdateSourceReferenceOptions,
   resolveSourceReferenceOptions,
+  settleSourceLocationChange,
 } from "../../utils/source-reference.js";
 import { schemaLookupHint, undefinedTypeWarning } from "../../utils/error-hints.js";
 import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-validator.js";
@@ -29,6 +30,14 @@ import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessa
 import { effectiveAttributePatch, resolveAttributeUpdate } from "../../utils/attribute-patch.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
+
+const sourceLocationSchema = z
+  .object({
+    file: z.string().min(1).describe("Source file path relative to the repository root."),
+    symbol: z.string().min(1).optional(),
+  })
+  .strict()
+  .optional();
 
 /** What an update may change: the single form's fields, and each `updates[]` item's beside its id. */
 const updateFields = {
@@ -44,26 +53,45 @@ const updateFields = {
         "need not be repeated; a null value removes that key. The merged result is validated against the spec " +
         "schema. Cannot be combined with attributes."
     ),
-  sourceFile: z.string().optional(),
+  sourceFile: z
+    .string()
+    .optional()
+    .describe(
+      "Replaces the element's source locations with this one file (and sourceSymbol with it). To add a location " +
+        "beside the ones the element has, use addSourceLocation; to remove one, removeSourceLocation. Sent without " +
+        "sourceProvenance, a file the element doesn't reference yet is set by hand, so it gets 'manual'; a file it " +
+        "already references keeps the element's provenance."
+    ),
   sourceSymbol: z
     .string()
     .optional()
     .describe(
       "Sent without sourceFile, goes on the element's source file and keeps its provenance: on its one location " +
         "when that has no symbol, else added beside the symbols the file already has (never twice). An element " +
-        "with no source file, or several, needs sourceFile with it."
+        "with no source file, or several, needs sourceFile with it, or addSourceLocation."
     ),
   sourceProvenance: z
     .enum(["extracted", "manual", "inferred", "generated"])
     .optional()
     .describe(
       "Sent alone, changes the provenance and keeps the element's file. A sourceFile sent alone keeps the current " +
-        "provenance, or gets 'manual'. 'extracted' and 'manual' need a file (on the element or sent): without one " +
-        "they are ignored with a warning."
+        "provenance when the element already references that file, else gets 'manual'. 'extracted' and 'manual' " +
+        "need a file (on the element or sent): without one they are ignored with a warning. With addSourceLocation or " +
+        "removeSourceLocation, sets the reference's provenance."
     ),
   sourceRepoRemote: z.string().optional(),
   sourceRepoCommit: z.string().optional().describe("Full 40-character Git commit SHA."),
   clearSourceReference: z.boolean().optional().describe("Remove the element's source reference. Cannot be combined with other source options."),
+  addSourceLocation: sourceLocationSchema.describe(
+    "Add one source location beside the element's others: {file, symbol?}. It goes on a location of that file " +
+      "with no symbol, else it is appended (never twice). Keeps the reference's provenance and repository unless " +
+      "sourceProvenance or the repository fields are sent; an element with no reference gets 'manual'."
+  ),
+  removeSourceLocation: sourceLocationSchema.describe(
+    "Remove source locations: {file} every location in that file, {file, symbol} that one. Refused when none " +
+      "matches. Removing the last location of an 'extracted' or 'manual' reference removes the reference. Applied " +
+      "before addSourceLocation, so the two move a location."
+  ),
 };
 
 const updateItemSchema = strictItem("An updates[] item", {
@@ -103,6 +131,19 @@ function validateUpdateSourceReferenceOptions(args: UpdateSpec): void {
     throw new CLIError("Cannot use clearSourceReference with other source reference options", ErrorCategory.USER, [
       "Specify either clearSourceReference or other source options, not both",
     ]);
+  }
+
+  if (args.addSourceLocation || args.removeSourceLocation) {
+    const conflicting = (["sourceFile", "sourceSymbol", "clearSourceReference"] as const).filter((field) => args[field] !== undefined);
+    if (conflicting.length > 0) {
+      throw new CLIError(
+        `addSourceLocation and removeSourceLocation change one location; ${conflicting.join(" and ")} replace${conflicting.length === 1 ? "s" : ""} them all`,
+        ErrorCategory.USER,
+        ["Send one or the other: sourceFile (with sourceSymbol) to replace the locations, or the location fields to add or remove one"]
+      );
+    }
+    // Provenance and repository go with the location change; they are checked there.
+    return;
   }
 
   if (hasSourceOptions) {
@@ -224,7 +265,12 @@ async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutc
 
   // Settle partial source fields first: one that is ignored (with a warning) is not an update.
   const currentSource = element.getSourceReference();
-  const source = resolveSourceReferenceOptions(args, "mcp", currentSource);
+  // A location added or removed (#1260) settles against the element's reference on its own.
+  const locationChange =
+    args.addSourceLocation || args.removeSourceLocation
+      ? settleSourceLocationChange({ add: args.addSourceLocation, remove: args.removeSourceLocation }, currentSource, args, "mcp")
+      : undefined;
+  const source = locationChange ? { options: {}, warnings: locationChange.warnings } : resolveSourceReferenceOptions(args, "mcp", currentSource);
   const warnings: string[] = [...source.warnings];
 
   const hasUpdates =
@@ -234,6 +280,7 @@ async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutc
     args.attributes ||
     attributePatch ||
     source.options.sourceProvenance ||
+    locationChange ||
     args.clearSourceReference;
 
   if (!hasUpdates) {
@@ -329,6 +376,9 @@ async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutc
     if (args.clearSourceReference) {
       elem.setSourceReference(undefined);
       setStagedSourceReference(after, undefined);
+    } else if (locationChange) {
+      elem.setSourceReference(locationChange.reference);
+      setStagedSourceReference(after, locationChange.reference);
     } else if (source.options.sourceProvenance) {
       const newRef = buildSourceReference(source.options, currentSource);
       if (newRef) {
@@ -360,7 +410,8 @@ export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
   name: "model_update",
   description:
     "Update an existing element's name, description, type, attributes, or source reference. attributes replaces " +
-    "all attributes; attributePatch changes only the keys it names (null removes one). Send one (id and its " +
+    "all attributes; attributePatch changes only the keys it names (null removes one). sourceFile replaces the " +
+    "element's source locations; addSourceLocation and removeSourceLocation add or remove one. Send one (id and its " +
     "fields) or many (updates: [{id, ...}, ...], or file for a large list). A list returns counts and only the " +
     "items that need attention: invalid (with the reason), no-op, or applied with a warning. " +
     "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +

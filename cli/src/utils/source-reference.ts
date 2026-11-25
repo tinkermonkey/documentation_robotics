@@ -191,14 +191,18 @@ export function resolveSourceReferenceOptions(
         `Send ${name("sourceFile")} with them, e.g. ${example("sourceFile", "src/services/auth.ts")}`,
       ]);
     }
-    const provenance = existing?.provenance ?? DEFAULT_PROVENANCE;
+    // A file the element already references keeps the element's provenance (a symbol added to an
+    // extracted file is still extracted). A file it doesn't reference is set by hand, so it is
+    // 'manual', as model_add defaults (#1260): keeping 'extracted' would claim extraction found it.
+    const keeps = !!existing?.provenance && referenceFiles(existing).includes(options.sourceFile);
+    const provenance = keeps ? existing!.provenance : DEFAULT_PROVENANCE;
     // The MCP tools state this default on the argument itself, so over MCP it is what the caller
     // meant, not news: a sync of 274 elements got the same warning 274 times (#1233). The CLI's
     // flag help does not state it, so the CLI still says what it used.
     if (surface === "cli") {
       warnings.push(
         `${name("sourceProvenance")} was not given; used '${provenance}'` +
-          (existing?.provenance ? " (the element's current provenance)." : ".")
+          (keeps ? " (the element's current provenance)." : ".")
       );
     }
     return { options: { ...options, sourceProvenance: provenance }, warnings };
@@ -277,4 +281,101 @@ export function buildSourceReference(
   }
 
   return reference;
+}
+
+/** One source location, as model_update's addSourceLocation and removeSourceLocation name it. */
+export interface SourceLocationSpec {
+  file: string;
+  symbol?: string;
+}
+
+/** What {@link settleSourceLocationChange} settles: the new reference, or undefined when none is left. */
+export interface SettledLocationChange {
+  reference: SourceReference | undefined;
+  warnings: string[];
+}
+
+/**
+ * Add one location beside an element's source locations, or remove the ones a spec names, keeping
+ * the reference's provenance and repository unless the call names them (#1260). `remove` goes
+ * first, so the two together move a location.
+ *
+ * - add: `{file, symbol}` goes on a location of that file with no symbol, else it is appended,
+ *   never twice. An element with no reference gets 'manual' (or the provenance sent).
+ * - remove: `{file}` removes every location in the file, `{file, symbol}` that one. Removing the
+ *   last location of an 'extracted' or 'manual' reference removes the reference, with a warning:
+ *   those provenances need a location.
+ *
+ * Throws when a removal matches no location, or the provenance or repository fields are invalid.
+ */
+export function settleSourceLocationChange(
+  change: { add?: SourceLocationSpec; remove?: SourceLocationSpec },
+  existing: SourceReference | undefined,
+  options: Pick<SourceReferenceOptions, "sourceProvenance" | "sourceRepoRemote" | "sourceRepoCommit">,
+  surface: HintSurface = "cli"
+): SettledLocationChange {
+  const name = (option: HintOption) => optionName(surface, option);
+  const warnings: string[] = [];
+  if (options.sourceProvenance && !VALID_PROVENANCE.includes(options.sourceProvenance)) {
+    throw new CLIError(`Invalid ${name("sourceProvenance")} value: "${options.sourceProvenance}"`, 1, [
+      `Must be one of: ${VALID_PROVENANCE.join(", ")}`,
+    ]);
+  }
+  if (!!options.sourceRepoRemote !== !!options.sourceRepoCommit) {
+    throw new CLIError(`${name("sourceRepoRemote")} and ${name("sourceRepoCommit")} go together`, 1, [
+      "Provide both remote URL and commit SHA for repository context",
+    ]);
+  }
+  if (options.sourceRepoCommit && !/^[0-9a-f]{40}$/.test(options.sourceRepoCommit)) {
+    throw new CLIError(`Invalid ${name("sourceRepoCommit")} value: "${options.sourceRepoCommit}"`, 1, [
+      "Must be exactly 40 hexadecimal characters (full Git commit SHA)",
+    ]);
+  }
+
+  let locations: SourceLocation[] = (existing?.locations ?? []).map((location) => ({ ...location }));
+  const where = (list: SourceLocation[]) =>
+    list.length ? list.map((l) => (l.symbol ? `${l.file}#${l.symbol}` : l.file)).join(", ") : "none";
+
+  if (change.remove) {
+    const { file, symbol } = change.remove;
+    const kept = locations.filter((l) => !(l.file === file && (symbol === undefined || l.symbol === symbol)));
+    if (kept.length === locations.length) {
+      throw new CLIError(
+        `removeSourceLocation matches no source location of this element: ${symbol ? `${file}#${symbol}` : file}`,
+        1,
+        [`The element's source locations: ${where(locations)}`]
+      );
+    }
+    locations = kept;
+  }
+
+  if (change.add) {
+    const { file, symbol } = change.add;
+    const bare = symbol ? locations.findIndex((l) => l.file === file && !l.symbol) : -1;
+    if (bare !== -1) {
+      locations[bare] = { ...locations[bare], symbol };
+    } else if (!locations.some((l) => l.file === file && l.symbol === symbol)) {
+      locations.push({ file, ...(symbol ? { symbol } : {}) });
+    }
+  }
+
+  const provenance = options.sourceProvenance ?? existing?.provenance ?? DEFAULT_PROVENANCE;
+  if (locations.length === 0 && FILE_REQUIRED_PROVENANCE.includes(provenance)) {
+    warnings.push(
+      `That was the element's last source location, and a '${provenance}' reference needs one, so its source ` +
+        "reference was removed."
+    );
+    return { reference: undefined, warnings };
+  }
+  const repository = options.sourceRepoRemote
+    ? { url: options.sourceRepoRemote, commit: options.sourceRepoCommit! }
+    : existing?.repository;
+  return {
+    reference: {
+      provenance: provenance as ProvenanceType,
+      ...(locations.length ? { locations } : {}),
+      ...(repository ? { repository } : {}),
+    },
+    warnings,
+  };
 }
