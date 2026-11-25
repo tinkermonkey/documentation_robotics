@@ -27,13 +27,15 @@ import type { Relationship } from "../../core/relationships.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import {
   liveRelationshipsBetween,
+  relationshipDeleteChange,
   resolveLooseReference,
   planRelationshipBatch,
+  stagedRelationshipKeys,
   stageRelationshipDeletes,
   type RelationshipBatchItem,
   type RelationshipBatchPlan,
 } from "../../core/relationship-staging.js";
-import { addRelationship, deleteRelationshipHandler } from "../../commands/relationship.js";
+import { addRelationship, deleteRelationshipHandler, findRelationshipsByEndpoints } from "../../commands/relationship.js";
 import { ModelReportOrchestrator } from "../../reports/model-report-orchestrator.js";
 import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
@@ -45,6 +47,7 @@ import {
   batchReport,
   limitSchema,
   verboseSchema,
+  type BatchItemResult,
   type BatchReport,
 } from "./batch-result.js";
 
@@ -320,41 +323,80 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
 // relationship_delete
 // ---------------------------------------------------------------------------
 
-const deleteInputSchema = {
+const deleteItemSchema = strictItem("A relationships[] item", {
   source: z.string().describe("Source element ID."),
   target: z.string().describe("Target element ID."),
   predicate: z.string().optional().describe("Only this predicate. Omit to remove every relationship from source to target."),
+});
+
+const deleteItemsSchema = z.array(deleteItemSchema);
+
+const deleteInputSchema = {
+  source: z.string().optional().describe("Source element ID. Single form."),
+  target: z.string().optional().describe("Target element ID. Single form."),
+  predicate: z.string().optional().describe("Only this predicate. Omit to remove every relationship from source to target. Single form."),
+  relationships: deleteItemsSchema
+    .optional()
+    .describe(
+      "Batch form, instead of source/target: a list of {source, target, predicate?}, removed in one write. Each " +
+        "item is matched on its own; one that matches nothing is skipped and reported, the rest are still removed."
+    ),
+  file: z.string().optional().describe(`${BATCH_FILE_DESCRIPTION} The file is one JSON object: {"relationships": [...]}.`),
+  verbose: verboseSchema,
+  limit: limitSchema,
   rootPath: rootPathSchema,
 };
 
 export type RelationshipDeleteArgs = z.infer<z.ZodObject<typeof deleteInputSchema>>;
+type DeleteItem = z.infer<typeof deleteItemSchema>;
 
 export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): Promise<CallToolResult> {
   return runTool(() => withProjectWriteLock(args.rootPath, async () => {
+    if (args.relationships !== undefined || args.file !== undefined) {
+      const list = args.relationships !== undefined ? "relationships" : "file";
+      const singleFields = (["source", "target", "predicate"] as const).filter((field) => args[field] !== undefined);
+      if (singleFields.length > 0) {
+        throw new CLIError(`Send either source/target or ${list}, not both (got ${singleFields.join(", ")} beside ${list})`, ErrorCategory.USER, [
+          "Put the single relationship in the relationships list too",
+        ]);
+      }
+      if (args.relationships !== undefined && args.file !== undefined) {
+        throw new CLIError("Send either file or relationships, not both", ErrorCategory.USER, [
+          "Put every relationship in the file, or send them all inline",
+        ]);
+      }
+      let items = args.relationships;
+      if (items === undefined) {
+        const model = await loadModel(args.rootPath);
+        items = (await readBatchFile("relationship_delete", args.file!, model.rootPath, { relationships: deleteItemsSchema })).relationships ?? [];
+      }
+      return jsonResult(await deleteRelationshipBatch(items, args.rootPath, args), { compact: true, lineWidth: BATCH_RESULT_LINE_WIDTH });
+    }
+    if (!args.source || !args.target) {
+      throw new CLIError("relationship_delete needs source and target, or a relationships list", ErrorCategory.USER, [
+        'Single: {source: "api.operation.x", target: "application.applicationfunction.y", predicate?: "realizes"}',
+        "Batch: {relationships: [{source, target, predicate?}, ...]}",
+      ]);
+    }
+    const source = args.source;
+    const target = args.target;
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
     const active = await writeTargetChangeset(manager);
 
     if (!active) {
-      const { deletedCount } = await deleteRelationshipHandler(
-        model,
-        args.source,
-        args.target,
-        args.predicate,
-        undefined,
-        "mcp"
-      );
-      return jsonResult({ status: "deleted", deletedCount, source: args.source, target: args.target });
+      const { deletedCount } = await deleteRelationshipHandler(model, source, target, args.predicate, undefined, "mcp");
+      return jsonResult({ status: "deleted", deletedCount, source, target });
     }
 
     const graph = await ChangesetGraph.build(model, active);
-    const source = graph.resolve(args.source);
-    const target = graph.resolve(args.target);
-    const matches = liveRelationshipsBetween(graph, source, target, args.predicate);
+    const from = graph.resolve(source);
+    const to = graph.resolve(target);
+    const matches = liveRelationshipsBetween(graph, from, to, args.predicate);
 
     if (matches.length === 0) {
       throw new CLIError("No matching relationships found", ErrorCategory.USER, [
-        `Use "model_show" on ${args.source} to see its relationships`,
+        `Use "model_show" on ${source} to see its relationships`,
         'Use "changeset_brief" to see what this changeset already stages',
       ]);
     }
@@ -362,15 +404,151 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
     const results = await stageRelationshipDeletes(manager, graph, active, matches);
     // Staged or unstaged, the cached model's merged relationships are now stale.
     await reloadModel(args.rootPath);
-    return jsonResult({ changeset: active.name, source, target, relationships: results });
+    return jsonResult({ changeset: active.name, source: from, target: to, relationships: results });
   }));
+}
+
+/** One item of relationship_delete's list: what it removed, or why it removed nothing. */
+interface RelationshipDeleteBatchResult extends BatchItemResult {
+  source: string;
+  target: string;
+  predicate?: string;
+  /**
+   * staged: a removal staged (or, for a relationship this changeset added, the add unstaged:
+   * unstaged when that is all it did). deleted: removed from the model (no changeset active).
+   * unchanged: already removed (this changeset deletes it). duplicate: an earlier item removed it.
+   */
+  status: "staged" | "unstaged" | "deleted" | "unchanged" | "duplicate" | "invalid";
+  /** How many relationships the item removed (several when it names no predicate). */
+  removed?: number;
+}
+
+/**
+ * relationship_delete's list form (#1372): match every item, then stage the removals in one write
+ * and unstage, in one more, the adds of relationships this changeset added. With no changeset
+ * active, remove them from the model in one save. Failures are grouped by cause (batch-result.ts).
+ */
+export async function deleteRelationshipBatch(
+  items: DeleteItem[],
+  rootPath?: string,
+  report: { verbose?: boolean; limit?: number } = {}
+) {
+  const model = await loadModel(rootPath);
+  const manager = new StagingAreaManager(model.rootPath, model);
+  const active = await writeTargetChangeset(manager);
+  const results: RelationshipDeleteBatchResult[] = [];
+  const handled = new Set<string>();
+  const keyOf = (rel: { source: string; predicate: string; target: string }) => `${rel.source}::${rel.predicate}::${rel.target}`;
+  const notFound = (item: DeleteItem, inChangeset: boolean) => ({
+    status: "invalid" as const,
+    reason: `No relationship from ${item.source} to ${item.target}${item.predicate ? ` with the predicate ${item.predicate}` : ""}`,
+    suggestions: [
+      `Use "model_show" on ${item.source} to see its relationships`,
+      ...(inChangeset ? ['Use "changeset_brief" to see what this changeset already stages'] : []),
+    ],
+  });
+
+  if (active) {
+    const graph = await ChangesetGraph.build(model, active);
+    const toStage: Array<Omit<StagedChange, "sequenceNumber">> = [];
+    const toUnstage: string[] = [];
+    for (const [index, item] of items.entries()) {
+      const asSent = { index, source: item.source, target: item.target, ...(item.predicate ? { predicate: item.predicate } : {}) };
+      const from = graph.resolve(item.source);
+      const to = graph.resolve(item.target);
+      const matches = liveRelationshipsBetween(graph, from, to, item.predicate);
+      const fresh = matches.filter((rel) => !handled.has(keyOf(rel)));
+      if (matches.length > 0 && fresh.length === 0) {
+        results.push({ ...asSent, status: "duplicate", reason: "Removed by an earlier item of this batch" });
+        continue;
+      }
+      if (fresh.length === 0) {
+        // Sent again after this changeset already removed it: a no-op (#1296).
+        const removed = graph
+          .relationships()
+          .some((rel) => rel.status === "deleted" && rel.source === from && rel.target === to && (!item.predicate || rel.predicate === item.predicate));
+        results.push(removed ? { ...asSent, status: "unchanged", reason: "This changeset already removes it" } : { ...asSent, ...notFound(item, true) });
+        continue;
+      }
+      let staged = 0;
+      for (const rel of fresh) {
+        handled.add(keyOf(rel));
+        if (rel.status === "added") {
+          toUnstage.push(...stagedRelationshipKeys(graph, active, "relationship-add", rel));
+        } else {
+          toStage.push(relationshipDeleteChange(rel));
+          staged++;
+        }
+      }
+      results.push({ ...asSent, status: staged > 0 ? "staged" : "unstaged", removed: fresh.length });
+    }
+    if (toStage.length > 0) await manager.stageMany(active.id!, toStage);
+    if (toUnstage.length > 0) await manager.unstageMany(active.id!, [...new Set(toUnstage)]);
+    if (toStage.length > 0 || toUnstage.length > 0) await reloadModel(rootPath);
+  } else {
+    const removedRows: Relationship[] = [];
+    for (const [index, item] of items.entries()) {
+      const asSent = { index, source: item.source, target: item.target, ...(item.predicate ? { predicate: item.predicate } : {}) };
+      const matches = await findRelationshipsByEndpoints(model, item.source, item.target, item.predicate);
+      const fresh = matches.filter((rel) => !handled.has(keyOf(rel)));
+      if (matches.length > 0 && fresh.length === 0) {
+        results.push({ ...asSent, status: "duplicate", reason: "Removed by an earlier item of this batch" });
+        continue;
+      }
+      if (fresh.length === 0) {
+        results.push({ ...asSent, ...notFound(item, false) });
+        continue;
+      }
+      for (const rel of fresh) {
+        handled.add(keyOf(rel));
+        removedRows.push(rel);
+      }
+      results.push({ ...asSent, status: "deleted", removed: fresh.length });
+    }
+    if (removedRows.length > 0) {
+      for (const rel of removedRows) model.relationships.delete(rel.source, rel.target, rel.predicate);
+      await model.saveRelationships();
+      await model.saveManifest();
+      await regenerateReportsFor(model, removedRows);
+      await reloadModel(rootPath);
+    }
+  }
+
+  return {
+    ...(active ? { changeset: active.name } : {}),
+    ...batchReport(results, { ...report, written: ["staged", "unstaged", "deleted"], settled: ["unchanged"], byCause: true }),
+  };
+}
+
+/** Regenerates the layer reports a set of relationship rows touch. A failure is logged, never fatal. */
+async function regenerateReportsFor(model: Model, rows: Array<{ layer: string; targetLayer?: string }>): Promise<void> {
+  try {
+    const orchestrator = new ModelReportOrchestrator(model, model.rootPath);
+    const affected = new Set<string>();
+    for (const row of rows) {
+      for (const layer of [row.layer, row.targetLayer]) {
+        if (!layer || !isValidLayerName(layer)) continue;
+        for (const each of orchestrator.computeAffectedLayers(layer)) affected.add(each);
+      }
+    }
+    await orchestrator.regenerate(affected);
+  } catch (error) {
+    emitLog(SeverityNumber.WARN, "Failed to regenerate layer reports after a relationship batch", {
+      "error.message": getErrorMessage(error),
+    });
+  }
 }
 
 export const relationshipDeleteTool: McpToolDefinition<typeof deleteInputSchema> = {
   name: "relationship_delete",
   description:
     "Remove relationships from source to target. In an active changeset, stages the removal, or unstages the " +
-    "relationship if this changeset added it; else writes the model.",
+    "relationship if this changeset added it; else writes the model. Send one (source/target, predicate?) or many " +
+    "(relationships: [{source, target, predicate?}, ...], or file for a large list), removed in one write: use the " +
+    "list when moving an element's links. In a list, statuses are staged, unstaged (only adds this changeset made " +
+    "were dropped), deleted (no changeset active), unchanged (this changeset already removes it), duplicate (an " +
+    "earlier item removed it) and invalid (nothing matched); removed says how many relationships an item took. " +
+    BATCH_RESULT_DESCRIPTION,
   inputSchema: deleteInputSchema,
   handler: relationshipDeleteHandler,
 };

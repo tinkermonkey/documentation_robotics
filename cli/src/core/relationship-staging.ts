@@ -142,6 +142,28 @@ export interface StagedRelationshipDeleteResult {
 }
 
 /**
+ * The staged change that deletes a live relationship of the projection. It names the row the way
+ * relationships.yaml does, so the commit finds it.
+ */
+export function relationshipDeleteChange(rel: GraphRelationship): Omit<StagedChange, "sequenceNumber"> {
+  const source = rel.raw?.source ?? rel.source;
+  const target = rel.raw?.target ?? rel.target;
+  return {
+    type: "relationship-delete",
+    elementId: `${source}::${rel.predicate}::${target}`,
+    layerName: rel.layer,
+    before: {
+      source,
+      target,
+      predicate: rel.predicate,
+      layer: rel.layer,
+      ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
+      ...(rel.properties ? { properties: rel.properties } : {}),
+    },
+  };
+}
+
+/**
  * Removes `relationships` (live ones from the projection) within a changeset: unstages the ones
  * this changeset added and stages a deletion for the rest.
  */
@@ -160,22 +182,7 @@ export async function stageRelationshipDeletes(
       results.push({ predicate: rel.predicate, status: "unstaged" });
       continue;
     }
-    // Name the row the way relationships.yaml does, so the commit finds it.
-    const source = rel.raw?.source ?? rel.source;
-    const target = rel.raw?.target ?? rel.target;
-    await manager.stage(changeset.id!, {
-      type: "relationship-delete",
-      elementId: `${source}::${rel.predicate}::${target}`,
-      layerName: rel.layer,
-      before: {
-        source,
-        target,
-        predicate: rel.predicate,
-        layer: rel.layer,
-        ...(rel.targetLayer ? { targetLayer: rel.targetLayer } : {}),
-        ...(rel.properties ? { properties: rel.properties } : {}),
-      },
-    });
+    await manager.stage(changeset.id!, relationshipDeleteChange(rel));
     results.push({ predicate: rel.predicate, status: "staged" });
   }
   return results;
