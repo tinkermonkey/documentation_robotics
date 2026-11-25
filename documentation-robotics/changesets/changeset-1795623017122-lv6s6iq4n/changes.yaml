@@ -34,7 +34,12 @@
       created_at: 2026-11-25T16:10:29.153Z
       updated_at: 2026-11-25T16:10:29.153Z
       version: 1
-  timestamp: 2026-11-25T16:10:29.174Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: releaseHeldCards
+  timestamp: 2026-11-25T16:35:43.653Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.rule-warnings
@@ -51,7 +56,12 @@
       created_at: 2026-11-25T16:10:29.154Z
       updated_at: 2026-11-25T16:10:29.154Z
       version: 1
-  timestamp: 2026-11-25T16:10:29.174Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: ruleWarnings
+  timestamp: 2026-11-25T16:35:43.653Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.shared-candidate-lists
@@ -68,7 +78,12 @@
       created_at: 2026-11-25T16:10:29.154Z
       updated_at: 2026-11-25T16:10:29.154Z
       version: 1
-  timestamp: 2026-11-25T16:10:29.174Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract.ts
+          symbol: sharedCandidateLists
+  timestamp: 2026-11-25T16:35:43.653Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.fit-verify-report
@@ -85,7 +100,12 @@
       created_at: 2026-11-25T16:10:29.154Z
       updated_at: 2026-11-25T16:10:29.154Z
       version: 1
-  timestamp: 2026-11-25T16:10:29.174Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-verify.ts
+          symbol: fitVerifyReport
+  timestamp: 2026-11-25T16:35:43.653Z
   sequenceNumber: 4
 - type: relationship-add
   elementId: product.feature.extraction-triage-by-rule::satisfies::motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided
@@ -165,42 +185,6 @@
     category: structural
   timestamp: 2026-11-25T16:10:29.174Z
   sequenceNumber: 11
-- type: relationship-add
-  elementId: application.applicationfunction.release-held-cards::accesses::data-model.objectschema.element-plan
-  layerName: application
-  after:
-    source: application.applicationfunction.release-held-cards
-    target: data-model.objectschema.element-plan
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-25T16:10:29.174Z
-  sequenceNumber: 12
-- type: relationship-add
-  elementId: application.applicationfunction.release-held-cards::accesses::data-model.objectschema.undecided-card
-  layerName: application
-  after:
-    source: application.applicationfunction.release-held-cards
-    target: data-model.objectschema.undecided-card
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-25T16:10:29.174Z
-  sequenceNumber: 13
-- type: relationship-add
-  elementId: application.applicationfunction.rule-warnings::accesses::data-model.objectschema.applied-rules
-  layerName: application
-  after:
-    source: application.applicationfunction.rule-warnings
-    target: data-model.objectschema.applied-rules
-    predicate: accesses
-    layer: application
-    targetLayer: data-model
-    category: structural
-  timestamp: 2026-11-25T16:10:29.174Z
-  sequenceNumber: 14
 - type: relationship-add
   elementId: application.applicationfunction.shared-candidate-lists::accesses::data-model.objectschema.undecided-card
   layerName: application
@@ -421,3 +405,15 @@
     metadata: *a11
   timestamp: 2026-11-25T16:10:43.945Z
   sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.rule-warnings::accesses::data-model.objectschema.rule-report
+  layerName: application
+  after:
+    source: application.applicationfunction.rule-warnings
+    target: data-model.objectschema.rule-report
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T16:35:36.768Z
+  sequenceNumber: 23
