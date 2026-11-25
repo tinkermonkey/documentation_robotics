@@ -1,12 +1,14 @@
 # Assessment pass: roadmap
 
-What has been tried, what was learned, and what to try next. Status: draft, 2026-11-24.
+What has been tried, what was learned, and the plan from here. This page links the design
+([SELF_ASSESSMENT_DESIGN.md](SELF_ASSESSMENT_DESIGN.md)) to the results
+([SELF_ASSESSMENT_RESULTS.md](SELF_ASSESSMENT_RESULTS.md)).
 
-This page links the design ([SELF_ASSESSMENT_DESIGN.md](SELF_ASSESSMENT_DESIGN.md)) to the results
-([SELF_ASSESSMENT_RESULTS.md](SELF_ASSESSMENT_RESULTS.md)). Update it whenever a track starts,
-finishes or is dropped.
+Where the work stands (milestones, tasks and what waits on what) is kept in House, under Personal ›
+Knowledge Graph Stream › Documentation Robotics › DR Self-Assessment, not here. This page keeps the
+design, the findings and the decisions behind the plan.
 
-## Where things stand
+## What has been tried
 
 The question is the maintainer's manual review: "there are no connections between the data model
 layer and the data store layer, is that expected?". The goal is to turn that review into a
@@ -100,11 +102,9 @@ edge route. Do it because it is cheap and it improves extraction itself, not onl
 
 ### B. Architecture review questions, run by the coding agent
 
-**Status (2026-11-21):** bank 0.1 curated with the maintainer. See
-[REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md) for the bank and its decisions,
-`cli/scripts/assess-eval/questions.json` for the data, and `RUNBOOK.md` beside it for the protocol.
-The heimdall pilot ran steps A and B on 2026-11-21, and step C landed both on 2026-11-24.
-`score.ts` scored it the same day (order step 3).
+The bank is in [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md) with its decisions, the data in
+`cli/scripts/assess-eval/questions.json`, and the protocol in `RUNBOOK.md` beside it. What the
+heimdall pilot found is under [The heimdall pilot](#the-heimdall-pilot).
 
 The finders show where the gaps are. Filling them takes inference, and the coding agent is the
 tool for that: it has the model (dr MCP), the code graph (CBM MCP) and the source. The proposal is
@@ -191,16 +191,24 @@ attribution clean.
    over all accepted items in A and B. The categories in B that no question covers become
    candidate questions.
 
-**Held out.** Write and revise the bank on two repositories. Measure it on the rest without
-changing it. The viewer and Context Studio are already in-sample for the 14 checks, so they are the
-authoring pair. heimdall, stagecraft, heimdall-layout-loop and DR's own model are the measurement
-set. Revise the bank only between rounds, never during one.
+**Held out.** Write and revise the bank on some repositories (the authoring set) and measure it on
+the rest (the measurement set) without changing it. Revise the bank only between rounds, never
+during one.
+
+- **Authoring set:** the viewer and Context Studio, which are already in-sample for the 14 checks,
+  and heimdall. heimdall was the pilot, and bank 0.2 is written from its findings, so measuring the
+  bank on it would flatter the questions (maintainer, 2026-11-25).
+- **Measurement set:** stagecraft, heimdall-layout-loop and DR's own model.
+
+The measurement set is thin. heimdall-layout-loop's model has 25 elements, and track D's arm 1
+needs one repository kept out of step A. toland-cad and house-tasks-mcp got models on 2026-11-24,
+with nothing written against them, and could widen it.
 
 **Fleet.** In scope are the repositories with a model and commits in the last 60 days: the viewer,
 Context Studio, heimdall, heimdall-layout-loop, stagecraft and DR itself. codetoreum and switchyard
-are dormant. Run one session per repository, in parallel. Each is a session of its own in its own
-repository. Pilot on heimdall first: it is small (131 elements) and out of sample, so the protocol
-and the cost per repository are known before the fleet starts.
+are dormant. Run one live session per repository, in parallel, each in its own repository. heimdall
+went first, as the pilot: it was small (131 elements) and out of sample, so the protocol and the
+cost per repository were known before the fleet.
 
 ### D. Build from scratch
 
@@ -216,17 +224,23 @@ end-to-end test and the original experiment 7.
      same scoring as the seeded gaps.
    - Precision by adjudicating what the rebuild has and the reference lacks. Some of those items
      will be things the reference missed.
-2. **Held-out fresh builds.** Run the pipeline on repositories that have no model and that no rule
-   or question was written against: toland-cad, house-tasks-mcp, barcut, phone-home. There is no
-   reference, so measure by pooled adjudication of the findings, as experiment 7 planned. These
-   repositories need models anyway, under the DR everywhere practice.
+2. **Fresh builds.** Run the pipeline from nothing on barcut, heimdall and the
+   documentation-robotics-viewer (maintainer, 2026-11-25). The first list (toland-cad,
+   house-tasks-mcp, barcut and phone-home) went stale when toland-cad and house-tasks-mcp got
+   models.
+   - barcut has no model and nothing was written against it, so it is the held-out build. There
+     is no reference, so measure it by pooled adjudication of the findings, as experiment 7
+     planned.
+   - heimdall and the viewer have reviewed models, so their builds can be scored against those
+     models. They are not held out: both are in the authoring set.
 
 **Measures:**
 
 - the cost curve, as tokens and recall after each stage. This shows what each tier and the
   question pass buy;
 - run-to-run variance, from three takes per arm (one take is a lead, not a result);
-- the gap between arm 1 and arm 2, which shows how much the bank overfits.
+- the gap between arm 1 and arm 2's held-out build (barcut), which shows how much the bank
+  overfits.
 
 Arm 1 depends on track C. A repository whose reference model was built by the questions favours the
 questions when rebuilt. To control for that, keep one repository out of step A: harden it by open
@@ -289,7 +303,7 @@ Per question, pooled over the fleet:
 
 **The pilot cannot decide this.** One repository yields a handful of items per question. The pilot
 settles the protocol and the cost per repository. Verdicts on questions need the fleet pooled, and
-they are measured on the held-out repositories with the bank unchanged. The same rule applies to
+they are measured on the measurement set (track C) with the bank unchanged. The same rule applies to
 step B's categories: one that no question covers becomes a candidate for the next bank version, not
 a change mid-round.
 
@@ -328,6 +342,36 @@ proposed shape:
    - in `/dr-plan`, the questions run scoped to a changeset's elements, the way the brief's intent
      trace does now.
 
+## The heimdall pilot
+
+The pilot ran bank 0.1 on heimdall: steps A and B on 2026-11-21, and step C, the maintainer's
+review, on 2026-11-24, with no verdicts recorded.
+
+- **What landed.** Every change left after the pruning below: 5,073 from step A (1,987 elements,
+  3,086 relationships, including the 1,689 per-test sketches) and 193 from step B. The model
+  validated with 2,197 elements, 3,375 relationships and no errors. Four schema definitions step B
+  added (layout options and trace formats) were left orphaned, apparently unlinked when the library
+  exports they belonged to were removed (S1).
+- **Rejected before landing,** each logged in `data/heimdall/rejected-by-rule.jsonl` beside the
+  answer logs, so scoring counts them as rejections: 1,219 changes the S1 and S10 rulings reject
+  by exact match (the 105 application components that duplicate a `ux.librarycomponent`, and step
+  B's 131 library exports staged as `api.operation` with their tags), and 3 step A links to
+  `api.operation.compute-edge-path`, which the maintainer dropped on accepting step B's delete of
+  it.
+- **The first numbers,** from `score.ts`:
+  - Step A proposed 6,021 changes and 5,073 were accepted (precision 0.84, or 0.95 over elements).
+    Step B proposed 467 and 193 were accepted (0.41, or 0.39 over elements). Step A holds 96% of
+    everything accepted.
+  - All 1,222 rejections come from the three rulings above, and every rejected relationship has a
+    rejected end. Apart from them, each question's own items were accepted (0.95 to 1.00), except
+    Q9 (0.17): it linked the package and the browser to the components S10 removed. By staging
+    time, S10's 945 rejections fall under Q4 (465), Q9 (210) and Q13 (270), not all under Q4 as
+    the rejected log's attribution by family has it.
+  - Spec-gap verdicts per row: S1 31, S6 3, S4 2, S5 2, and S2, S7, S8 and S9 one each.
+  - Tokens: 36.6M for step A and 18.4M for step B, 98% of them cache reads (131k and 69k output).
+  - The split between P0 cards and a question's own work is by family only, because the log lists
+    staged items as summaries, not ids.
+
 ## Upstream fixes from the heimdall pilot
 
 The pilot (2026-11-21, bank 0.1, steps A and B) found problems that belong upstream, in the spec,
@@ -335,8 +379,8 @@ the dr tools, the CBM mapping, or the bank itself. Most of what step B found and
 from these problems, not from the questions being badly chosen. Fixing them in the right place is
 part of this roadmap. A workaround in one repository's model does not count as a fix.
 
-This table is the index. Each row gets a link when it is filed, and its status changes when it
-lands. Nothing is filed without the maintainer's OK. Spec rows go to Context Studio as proposals and
+This table is the index: each row says where its fix goes. Whether a fix has landed is tracked in
+House (a task per issue), not here. Nothing is filed without the maintainer's OK. Spec rows go to Context Studio as proposals and
 are never edited into `spec/` directly. Tool rows are `dogfood` issues on this repository. Bank and
 runbook rows change in this repository, in bank 0.2.
 
@@ -345,19 +389,19 @@ rediscover in every repository.
 
 ### Spec (Context Studio proposals)
 
-| #   | Problem                                                                                                                                                                                                                                                     | Seen in | Blocks the fleet | Filed                                                                                                                                                                                                                           |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S1  | A library's public API has no type. `api.operation` is OpenAPI-only. Step A logged 29 spec-gaps and left about 225 exports unstaged; step B staged 131 exports as `api.operation` anyway. Needs a ruling: a new type, or `application.applicationinterface` | A, B    | yes              | ruled; landed: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311 (#1305 S1 items)                                                                                                |
-| S2  | No design-token type                                                                                                                                                                                                                                        | B       |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S3  | The `technology.systemsoftware` type enum has no browser or JavaScript runtime value                                                                                                                                                                        | A       | yes              | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a) and [CS 18b4f4ad](http://localhost:3100/app/proposals/18b4f4ad-8be2-46b2-a1a1-6ba09b8404bd), PR 1311; Tier 0 side open in #1179 |
-| S4  | Only system software and technology services may `satisfies` a requirement. Technology artifacts, functions and processes, and application processes cannot                                                                                                 | B       |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S5  | A technology process cannot compose a technology function or realize a countermeasure                                                                                                                                                                       | B       |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S6  | A UX library cannot aggregate state patterns. A UX library component has no link to a product feature or a data-model schema                                                                                                                                | A, B    |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S7  | An API operation cannot reach a data-model schema directly                                                                                                                                                                                                  | B       |                  | not a gap (ruled)                                                                                                                                                                                                               |
-| S8  | ~~Testing cannot link to the route a suite exercises.~~ Not a gap: `testcasesketch tests route` exists in 0.14.0; step B looked from the wrong type                                                                                                         | B       |                  | not a gap                                                                                                                                                                                                                       |
-| S9  | The technology layer's rule text allows a node `assigned-to` a technology process, but the catalog refuses it. One of the two is wrong                                                                                                                      | A       |                  | landed: [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                        |
-| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | ruled; spec and skills landed: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311; test clustering in #1312 is a later step (order step 5) and does not block                     |
-| S11 | A coverage target cannot cover an application function, though its test case sketches can test one. 116 step A sketches test 8 functions their targets cannot name; one target covers nothing once step B's delete of `compute-edge-path` is accepted       | C       |                  | #1360; [CS 9217c1d4](http://localhost:3100/app/proposals/9217c1d4-14b1-472f-8aef-e62e0f1d2853) (open)                                                                                                                           |
+| #   | Problem                                                                                                                                                                                                                                                     | Seen in | Blocks the fleet | Where                                                                                                                                                                                                                                             |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | A library's public API has no type. `api.operation` is OpenAPI-only. Step A logged 29 spec-gaps and left about 225 exports unstaged; step B staged 131 exports as `api.operation` anyway. Needs a ruling: a new type, or `application.applicationinterface` | A, B    | yes              | ruled (below); [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311, #1305; the library interface's protocol: [CS 43f52ae5](http://localhost:3100/app/proposals/43f52ae5-c15e-4a0b-8d1c-f477183b2596) |
+| S2  | No design-token type                                                                                                                                                                                                                                        | B       |                  | [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                                                  |
+| S3  | The `technology.systemsoftware` type enum has no browser or JavaScript runtime value                                                                                                                                                                        | A       |                  | [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a) and [CS 18b4f4ad](http://localhost:3100/app/proposals/18b4f4ad-8be2-46b2-a1a1-6ba09b8404bd), PR 1311; Tier 0's side: #1179                                |
+| S4  | Only system software and technology services may `satisfies` a requirement. Technology artifacts, functions and processes, and application processes cannot                                                                                                 | B       |                  | [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                                                  |
+| S5  | A technology process cannot compose a technology function or realize a countermeasure                                                                                                                                                                       | B       |                  | [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                                                  |
+| S6  | A UX library cannot aggregate state patterns. A UX library component has no link to a product feature or a data-model schema                                                                                                                                | A, B    |                  | [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                                                  |
+| S7  | An API operation cannot reach a data-model schema directly                                                                                                                                                                                                  | B       |                  | not a gap (ruled)                                                                                                                                                                                                                                 |
+| S8  | ~~Testing cannot link to the route a suite exercises.~~ Not a gap: `testcasesketch tests route` exists in 0.14.0; step B looked from the wrong type                                                                                                         | B       |                  | not a gap                                                                                                                                                                                                                                         |
+| S9  | The technology layer's rule text allows a node `assigned-to` a technology process, but the catalog refuses it. One of the two is wrong                                                                                                                      | A       |                  | [CS 3e1e77bf](http://localhost:3100/app/proposals/3e1e77bf-0281-4aa7-9aef-1d980727654a), PR 1311                                                                                                                                                  |
+| S10 | Layer rules leave granularity open, so the two runs disagreed. Should there be one test case sketch per test or per file? Is "browser serves component" plus "component depends-on browser" a duplicate? Is a React context a component or a data object?   | A, B    | yes              | ruled (below); spec and skills: [CS f8336df1](http://localhost:3100/app/proposals/f8336df1-6367-47b7-b024-7e297487a886), PR 1311; test clustering: #1312 (order step 5, does not block)                                                           |
+| S11 | A coverage target cannot cover an application function, though its test case sketches can test one. 116 step A sketches test 8 functions their targets cannot name; one target covers nothing once step B's delete of `compute-edge-path` is accepted       | C       |                  | #1360; [CS 9217c1d4](http://localhost:3100/app/proposals/9217c1d4-14b1-472f-8aef-e62e0f1d2853)                                                                                                                                                    |
 
 Rulings of 2026-11-21:
 
@@ -428,8 +472,8 @@ storage and authentication.
 - `score.ts` counts `spec-gap` verdicts per row, so the spec rows can be ranked by how much they
   cost. A verdict names its row with a `register` key in the log; for logs written before the
   register, `data/<model>/spec-gaps.json` maps them.
-- A row is closed only when its fix lands upstream. A bank 0.2 that works around a spec row leaves
-  that row open.
+- A row's fix counts only once it lands upstream. A bank 0.2 that works around a spec row doesn't
+  fix it.
 
 ## Order
 
@@ -441,46 +485,28 @@ B  draft bank → curate → pilot on heimdall ─┐       │
 D arm 2 (fresh builds) ──── needs the bank frozen after C's first round
 ```
 
-1. **B: draft and curate the bank.** Done 2026-11-21 (bank 0.1).
-2. **B and C: pilot on heimdall.** All three protocol steps. This gives the cost per repository and
-   the first precision and recall numbers. Steps A and B ran on 2026-11-21.
-   - **Step C landed both changesets on 2026-11-24, with no verdicts recorded.** Every change left
-     after the pruning below landed: 5,073 from step A (1,987 elements, 3,086 relationships,
-     including the 1,689 per-test sketches) and 193 from step B. The model validates with 2,197
-     elements, 3,375 relationships and no errors. Four schema definitions step B added (layout
-     options and trace formats) are orphans, apparently left unlinked when the library exports they
-     belonged to were removed (S1). Clustering the test sketches (#1312) is order step 5.
-   - **Rejected before landing,** each logged in `data/heimdall/rejected-by-rule.jsonl` beside the
-     answer logs, so scoring counts them as rejections: 1,219 changes the S1 and S10 rulings reject
-     by exact match (the 105 application components that duplicate a `ux.librarycomponent`, and
-     step B's 131 library exports staged as `api.operation` with their tags), and 3 step A links
-     to `api.operation.compute-edge-path`, which the maintainer dropped on accepting step B's
-     delete of it.
-3. **`score.ts`,** written against the pilot's outputs. Done 2026-11-24 (PR 1365).
-   - **The pilot's first numbers.** Step A proposed 6,021 changes and 5,073 were accepted
-     (precision 0.84, or 0.95 over elements). Step B proposed 467 and 193 were accepted (0.41, or
-     0.39 over elements). Step A holds 96% of everything accepted.
-   - All 1,222 rejections come from the three rulings above, and every rejected relationship has
-     a rejected end. Apart from them, each question's own items were accepted (0.95 to 1.00),
-     except Q9 (0.17): it linked the package and the browser to the components S10 removed. By
-     staging time, S10's 945 rejections fall under Q4 (465), Q9 (210) and Q13 (270), not all under
-     Q4 as the rejected log's attribution by family has it.
-   - Spec-gap verdicts per row: S1 31, S6 3, S4 2, S5 2, and S2, S7, S8 and S9 one each.
-   - Tokens: 36.6M for step A and 18.4M for step B, 98% of them cache reads (131k and 69k output).
-   - The split between P0 cards and a question's own work is by family only, because the log
-     lists staged items as summaries, not ids.
-   - **File the upstream fixes** (the section above), and land the rows marked "blocks the fleet":
-     S1, S3 and S10 through Context Studio (spec landed 2026-11-23 in PR 1311; S10's test
-     clustering, #1312, is step 5 and does not block); D1, D2 and D7 in the dr tools; bank 0.2 for the B rows.
-4. **C: the fleet,** one session per repository, once the rows that block it have landed. Then the
-   per-question verdicts (stage 2 above), and bank 0.2. The fleet reviews one sketch per test, as
-   extraction makes them today.
+1. **B: draft and curate the bank** (bank 0.1).
+2. **B and C: pilot on heimdall,** all three protocol steps, for the cost per repository and the
+   first precision and recall numbers. What it found is under
+   [The heimdall pilot](#the-heimdall-pilot).
+3. **`score.ts`,** written against the pilot's outputs (PR 1365). Then file the upstream fixes (the
+   section above) and land the rows marked "blocks the fleet": S1 and S10 through Context Studio
+   (S1's library interface also needs the protocol reshape,
+   [CS 43f52ae5](http://localhost:3100/app/proposals/43f52ae5-c15e-4a0b-8d1c-f477183b2596)); D1,
+   D2 and D7 in the dr tools; bank 0.2 for the B rows. S3's Tier 0 side (#1179) and the CBM rows
+   (#1303) don't hold up the fleet: C1 and C2 can be filtered in a repository's own mapping
+   (maintainer, 2026-11-25).
+4. **C: the fleet,** one live session per repository, once the rows that block it have landed. Then
+   the per-question verdicts (stage 2 above), taken from the measurement set, and the next bank
+   version. The fleet reviews one sketch per test, as extraction makes them today.
 5. **Test-case clustering after extraction** (#1312). Every test stays in the model, grouped so it
    can be reviewed as a unit. It lands before track D, whose rebuilds and fresh builds run the
    whole extraction pipeline.
-6. **The headless step A runner,** for the repeatability measure and for track D.
+6. **The headless step A runner,** for the repeatability measure and for track D. The fleet doesn't
+   wait for it.
 7. **E: re-measure** on the hardened models.
-8. **D:** arm 1 on one hardened repository, then arm 2 on two or three fresh repositories.
+8. **D:** arm 1 on one hardened repository, then arm 2's fresh builds (barcut, heimdall and the
+   viewer).
 9. **The product change** (stage 4 above), for the questions that passed.
 
 Turning the witnesses into finders (stage 3) is cheap and can be done at any point.
@@ -488,6 +514,8 @@ Turning the witnesses into finders (stage 3) is cheap and can be done at any poi
 Track A runs whenever there is a gap. It touches extraction and the catalog, not the bank.
 
 ## Decisions needed
+
+Which of these are still open is tracked on the House gate "Assessment run settings".
 
 1. **The bank.** Settled for version 0.1 on 2026-11-21 (see
    [REVIEW_QUESTION_BANK.md](REVIEW_QUESTION_BANK.md)); wording and cuts are revised between rounds.
