@@ -1,0 +1,15 @@
+id: changeset-1795602326494-for0ceyjs
+name: wire-test-sketches
+description: Link the 585 unwired test case sketches (66 test files, left by the CLI 0.8.0 reconcile) to the elements they test.
+created: 2026-11-25T10:25:26.541Z
+modified: 2026-11-25T10:45:30.512Z
+status: committed
+baseSnapshot: v2:sha256:9fdd7b5eb2201ec420cb5b9c9c1ee6956d1ce5280f68d2575a266707563e4ec7
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 697
+  modifications: 0
+  deletions: 0
+lastSequence: 696
