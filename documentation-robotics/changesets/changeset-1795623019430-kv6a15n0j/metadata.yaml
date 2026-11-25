@@ -2,7 +2,7 @@ id: changeset-1795623019430-kv6a15n0j
 name: cli09-clear-write-results
 description: 'CLI 0.9.0 tranche "Clear write results" (#1437 #1441 #1295 #1296 #1302 #1415 #1354 #1372 #1426 #1260 #1396). Write results put the summary first, retry idempotently and group failures by cause: a landing holds the changeset''s lock, so no staged write is lost, and a write aimed at a landed or landing changeset fails naming it instead of falling through to the base model; changeset_commit_preview reports an already-landed changeset as a result; model_add/relationship_add batch results lead with counts, group failures by cause under limit, report re-sent items as unchanged and id notes once; a refused relationship names the predicates the catalog allows between the two types; relationship_delete and model_delete take lists; model_update gives a hand-set source file ''manual'' and adds or removes one location explicitly; model_add inserts a product workflow step after or before another, rewiring flows-to and renumbering sequence. Done: each issue fixed with tests, the changed tool descriptions and skills say so.'
 created: 2026-11-25T16:10:19.476Z
-modified: 2026-11-25T16:11:28.192Z
+modified: 2026-11-25T16:44:24.632Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
@@ -12,4 +12,249 @@ stats:
   additions: 45
   modifications: 16
   deletions: 0
-lastSequence: 60
+lastSequence: 72
+unstaged:
+  - sequence: 9
+    removedAt: 61
+    change:
+      type: add
+      elementId: application.applicationfunction.batch-causes
+      layerName: application
+      after:
+        id: 2d0dfb81-255c-4b61-9084-a5c49e33d7cb
+        path: application.applicationfunction.batch-causes
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: batchCauses
+        description: Groups a batch's items that need attention by cause (status, reason and suggestions, one group per distinct cause such as one missing target), with true counts, listing items up to limit across the groups (#1295).
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 62
+    change:
+      type: add
+      elementId: application.applicationfunction.delete-element-batch
+      layerName: application
+      after:
+        id: 9daaac2b-f48c-4cbc-8b37-64d5a7faadac
+        path: application.applicationfunction.delete-element-batch
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: deleteElementBatch
+        description: "model_delete's list form (ids): each element is deleted (staged, or written) with the batch's cascade, force and dryRun; dependents the same list deletes don't block it; an element the changeset already deletes is unchanged; failures are grouped by cause (#1426)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 63
+    change:
+      type: add
+      elementId: application.applicationfunction.delete-relationship-batch
+      layerName: application
+      after:
+        id: 87518c04-a65d-4408-b9c9-9e726105fb56
+        path: application.applicationfunction.delete-relationship-batch
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: deleteRelationshipBatch
+        description: "relationship_delete's list form: each {source, predicate?, target} is resolved in the projection; the deletions are staged in one write (or written to the model), and the result is counts with failures grouped by cause; one the changeset already deletes is unchanged (#1372)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 8
+    removedAt: 64
+    change:
+      type: add
+      elementId: application.applicationfunction.id-note-kind
+      layerName: application
+      after:
+        id: faa96943-0bb5-4f4e-957c-08c6e4cdcdb8
+        path: application.applicationfunction.id-note-kind
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: idNoteKind
+        description: "Which id-derivation rule a note from deriveElementId describes (word breaks, root route, digit prefix, shortened), so a batch reports each rule once with a count and sample ids instead of one note per element (#1302, #1415)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 65
+    change:
+      type: add
+      elementId: application.applicationfunction.insert-workflow-step
+      layerName: application
+      after:
+        id: 3e07666c-137b-44e2-b504-1067c65bb7e5
+        path: application.applicationfunction.insert-workflow-step
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: insertWorkflowStep
+        description: "model_add's after/before for a product.workflowstep: places the new step after or before an existing one, rewires the flows-to links around it, adds it to the workflow that composes its neighbour, and renumbers the later steps' sequence where they collide (#1396)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 66
+    change:
+      type: add
+      elementId: application.applicationfunction.predicates-between
+      layerName: application
+      after:
+        id: 4cc0e6a1-def9-45b1-bc98-b3f4b8a16e3d
+        path: application.applicationfunction.predicates-between
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: predicatesBetween
+        description: "The predicates the catalog allows from one type to another, and back: a refused relationship's suggestions name them so the agent can pick one in the same turn (#1354)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 67
+    change:
+      type: add
+      elementId: application.applicationfunction.read-landed-note
+      layerName: application
+      after:
+        id: 63252267-69ab-47d6-94be-e7d8eed423c1
+        path: application.applicationfunction.read-landed-note
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: readLandedNote
+        description: "The landed note: the changeset the checkout was writing into when it landed, or null. Cleared with the active marker (activate, deactivate, create)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 68
+    change:
+      type: add
+      elementId: application.applicationfunction.settle-source-location-change
+      layerName: application
+      after:
+        id: c68a45b7-3471-4303-b573-70e5c12229cf
+        path: application.applicationfunction.settle-source-location-change
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: settleSourceLocationChange
+        description: "model_update's addSourceLocation and removeSourceLocation: adds one {file, symbol?} beside the element's locations (never twice) or removes the matching ones, keeping the provenance and repository unless the call names them; an element with no reference gets 'manual' (#1260)."
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 69
+    change:
+      type: add
+      elementId: application.applicationfunction.staging-area-manager-get-write-target
+      layerName: application
+      after:
+        id: 43a88ee8-b2d0-441c-9d09-4bce97e7ac67
+        path: application.applicationfunction.staging-area-manager-get-write-target
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: StagingAreaManager getWriteTarget
+        description: The changeset a write stages into, or null for a write to the base model. Refuses, naming the changeset and when it landed, when this checkout's active changeset was landed and nothing has been activated or deactivated since (the landed note), so a write never falls through to the base model (#1437).
+        metadata:
+          created_at: 2026-11-25T16:10:59.332Z
+          updated_at: 2026-11-25T16:10:59.332Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 70
+    change:
+      type: add
+      elementId: application.applicationfunction.write-landed-note
+      layerName: application
+      after:
+        id: 946a235e-1b1c-45f4-b04c-9c98bd627a27
+        path: application.applicationfunction.write-landed-note
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: writeLandedNote
+        description: Records in .dr/ that the active changeset was landed (its id, name and when), so later writes aimed at it refuse instead of writing the base model. Written by a landing that clears the active marker.
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 10
+    removedAt: 71
+    change:
+      type: add
+      elementId: data-model.objectschema.batch-cause
+      layerName: data-model
+      after:
+        id: 6fafd502-7bac-4e57-967b-b9afbdde7500
+        path: data-model.objectschema.batch-cause
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: BatchCause
+        description: "One cause in a batch result: status, reason, suggestions, how many items it affects (count) and the items listed under limit (index, id, own values), with notListed when the limit cut it."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 72
+    change:
+      type: add
+      elementId: data-model.objectschema.landed-note
+      layerName: data-model
+      after:
+        id: 8ada26fd-ea6a-4a73-9858-5421cc1fc5f1
+        path: data-model.objectschema.landed-note
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: LandedNote
+        description: "The landed note in .dr/: the id and name of the changeset that was active when it landed, and when."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:10:59.333Z
+          updated_at: 2026-11-25T16:10:59.333Z
+          version: 1
+      timestamp: 2026-11-25T16:10:59.355Z
+    rewritten: true

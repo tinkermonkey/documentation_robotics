@@ -13,7 +13,12 @@
       created_at: 2026-11-25T16:10:59.332Z
       updated_at: 2026-11-25T16:10:59.332Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.getWriteTarget
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.write-landed-note
@@ -30,7 +35,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/active-changeset-marker.ts
+          symbol: writeLandedNote
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.read-landed-note
@@ -47,7 +57,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/active-changeset-marker.ts
+          symbol: readLandedNote
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.insert-workflow-step
@@ -64,7 +79,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/workflow-step-insert.ts
+          symbol: insertWorkflowStep
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.delete-relationship-batch
@@ -81,7 +101,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/relationship-tools.ts
+          symbol: deleteRelationshipBatch
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 4
 - type: add
   elementId: application.applicationfunction.delete-element-batch
@@ -98,7 +123,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/model-delete.ts
+          symbol: deleteElementBatch
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 5
 - type: add
   elementId: application.applicationfunction.settle-source-location-change
@@ -115,7 +145,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/source-reference.ts
+          symbol: settleSourceLocationChange
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.predicates-between
@@ -132,7 +167,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: predicatesBetween
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.id-note-kind
@@ -149,7 +189,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/id-generator.ts
+          symbol: idNoteKind
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 8
 - type: add
   elementId: application.applicationfunction.batch-causes
@@ -166,7 +211,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: batchCauses
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 9
 - type: add
   elementId: data-model.objectschema.batch-cause
@@ -185,7 +235,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: BatchCause
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 10
 - type: add
   elementId: data-model.objectschema.landed-note
@@ -204,7 +259,12 @@
       created_at: 2026-11-25T16:10:59.333Z
       updated_at: 2026-11-25T16:10:59.333Z
       version: 1
-  timestamp: 2026-11-25T16:10:59.355Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/active-changeset-marker.ts
+          symbol: LandedNote
+  timestamp: 2026-11-25T16:44:24.624Z
   sequenceNumber: 11
 - type: relationship-add
   elementId: application.applicationfunction.staging-area-manager-get-write-target::depends-on::application.applicationfunction.read-landed-note
