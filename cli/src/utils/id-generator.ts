@@ -170,6 +170,32 @@ function deriveSlug(name: string, rules: KebabRules): { slug: string; notes: str
   return { slug, notes };
 }
 
+/** Which rule of {@link deriveElementId} a note describes. */
+export type IdNoteKind = "root-route" | "word-breaks" | "digit-prefix" | "shortened";
+
+/**
+ * A note's rule, for a batch that reports each rule once with a count instead of the note on every
+ * element (#1302, #1415): the shortened-id note names each name's own length, so grouping the notes
+ * by their text gave one group per length. Undefined for a note that is not an id note.
+ */
+export function idNoteKind(note: string): IdNoteKind | undefined {
+  if (note.startsWith("A route on the root path")) return "root-route";
+  if (note.startsWith("Dots, slashes and braces")) return "word-breaks";
+  if (note.startsWith("The name starts with a digit")) return "digit-prefix";
+  if (note.startsWith("The id is shortened")) return "shortened";
+  return undefined;
+}
+
+/** What each rule did, said once for every element of a batch it applied to. */
+export const ID_NOTE_SUMMARY: Record<IdNoteKind, string> = {
+  "root-route": "Routes on the root path get ids that end in -root.",
+  "word-breaks": "Dots, slashes and braces in these names are word breaks in their ids.",
+  "digit-prefix": `These names start with a digit, and an id must start with a letter, so their ids are prefixed with '${LEADING_DIGIT_PREFIX}'.`,
+  shortened:
+    `These names are longer than ${MAX_ID_SLUG} characters as ids, so each id is cut at a word and ends with a hash of the ` +
+    "whole name. The elements keep their full names.",
+};
+
 /**
  * Generate an element ID, {layer}.{type}.{kebab-name}, by the shared rules of
  * {@link deriveElementId}.

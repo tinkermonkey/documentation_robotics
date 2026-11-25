@@ -29,7 +29,14 @@ import { SchemaValidator, suggestNodeTypes } from "../../validators/schema-valid
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { effectiveAttributePatch, resolveAttributeUpdate } from "../../utils/attribute-patch.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
+import {
+  BATCH_RESULT_DESCRIPTION,
+  BATCH_RESULT_LINE_WIDTH,
+  batchReport,
+  limitSchema,
+  verboseSchema,
+  type BatchItemResult,
+} from "./batch-result.js";
 
 const sourceLocationSchema = z
   .object({
@@ -237,7 +244,10 @@ async function updateElementBatch(model: Model, updates: UpdateSpec[], args: Mod
     }
   }
   if (wrote) await reloadModel(args.rootPath);
-  return { ...(changeset ? { changeset } : {}), ...batchReport(results, { verbose: args.verbose, limit: args.limit, written: ["staged", "updated"] }) };
+  return {
+    ...(changeset ? { changeset } : {}),
+    ...batchReport(results, { verbose: args.verbose, limit: args.limit, written: ["staged", "updated"], byCause: true }),
+  };
 }
 
 /** Validates and applies one update to the loaded model; throws a CLIError saying what is wrong. */
@@ -412,10 +422,10 @@ export const modelUpdateTool: McpToolDefinition<typeof inputSchema> = {
     "Update an existing element's name, description, type, attributes, or source reference. attributes replaces " +
     "all attributes; attributePatch changes only the keys it names (null removes one). sourceFile replaces the " +
     "element's source locations; addSourceLocation and removeSourceLocation add or remove one. Send one (id and its " +
-    "fields) or many (updates: [{id, ...}, ...], or file for a large list). A list returns counts and only the " +
-    "items that need attention: invalid (with the reason), no-op, or applied with a warning. " +
-    "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +
-    "verbose: true returns every item with its changedFields. Invalid items are skipped; the rest are still applied.",
+    "fields) or many (updates: [{id, ...}, ...], or file for a large list). The items that need attention are " +
+    "invalid (with the reason), no-op, or applied with a warning. " +
+    BATCH_RESULT_DESCRIPTION +
+    " With verbose each item has its changedFields. Invalid items are skipped; the rest are still applied.",
   inputSchema,
   handler: modelUpdateHandler,
 };

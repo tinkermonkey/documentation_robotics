@@ -39,7 +39,14 @@ import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 import { writeTargetChangeset } from "./changeset-shared.js";
-import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchReport } from "./batch-result.js";
+import {
+  BATCH_RESULT_DESCRIPTION,
+  BATCH_RESULT_LINE_WIDTH,
+  batchReport,
+  limitSchema,
+  verboseSchema,
+  type BatchReport,
+} from "./batch-result.js";
 
 // ---------------------------------------------------------------------------
 // relationship_add
@@ -197,6 +204,8 @@ export function relationshipBatchReport(
   const report = batchReport(results, {
     ...options,
     written,
+    settled: ["unchanged"],
+    byCause: true,
     // A written relationship's only notes say how an end was read: that is in readByName.
     writtenNeedsAttention: () => false,
   });
@@ -298,10 +307,11 @@ export const relationshipAddTool: McpToolDefinition<typeof addInputSchema> = {
     "readByName says how each such reference was read. Single " +
     "status: 'staged' or 'added'; 'duplicate' when the model or " +
     "the changeset already has it (nothing staged); 'restored' when the changeset had staged its deletion (that " +
-    "deletion is unstaged). A list returns counts by status and attention: only the items that are invalid (with " +
-    "the reason and suggestions), duplicate or restored. " +
-    "attention holds up to limit items in full (default 50), the ones not written first; past that every remaining item is still listed by position under its reason (attentionNotListed), so nothing is left out. " +
-    "verbose: true returns every item as results. Invalid items are skipped; the rest are still staged.",
+    "deletion is unstaged). In a list the same is 'unchanged', 'duplicate' is a relationship repeated in the list, " +
+    "and invalid items carry the reason and suggestions (a catalog refusal names the predicates allowed between the " +
+    "two types). " +
+    BATCH_RESULT_DESCRIPTION +
+    " Invalid items are skipped; the rest are still staged.",
   inputSchema: addInputSchema,
   handler: relationshipAddHandler,
 };

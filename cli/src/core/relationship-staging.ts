@@ -368,8 +368,12 @@ export function resolveLooseReference(graph: ChangesetGraph, ref: string): { id:
   return matches.length === 1 ? { id: matches[0] } : { candidates: matches };
 }
 
-/** "added" is "staged" when no changeset is active and the add is written to the model. */
-export type RelationshipBatchStatus = "staged" | "added" | "restored" | "duplicate" | "invalid";
+/**
+ * "added" is "staged" when no changeset is active and the add is written to the model. "unchanged":
+ * the model or the changeset already has it as sent, nothing written (a batch sent again, #1296).
+ * "duplicate": the same relationship earlier in this batch.
+ */
+export type RelationshipBatchStatus = "staged" | "added" | "restored" | "unchanged" | "duplicate" | "invalid";
 
 export interface RelationshipBatchResult {
   /** Position in the request, from 0. */
@@ -603,7 +607,18 @@ export async function planRelationshipBatch(
     // batch re-adds may have relationships whose deletion is staged, which are restored.
     const plan = planRelationshipAdd(graph, changeset, triple);
     if (plan.action === "duplicate") {
-      results.push({ ...resolved, status: "duplicate", reason: "Already in the model or this changeset" });
+      // Already there: a no-op, unless it was sent with other properties, which an add never changes.
+      const there = graph.getRelationship(triple.source, triple.predicate, triple.target);
+      if (item.properties !== undefined && stableJson(item.properties) !== stableJson(there?.properties ?? {})) {
+        results.push({
+          ...resolved,
+          status: "invalid",
+          reason: "Already in the model or this changeset, with other properties: an add does not change them",
+          suggestions: ["Delete it (relationship_delete) and add it again with these properties"],
+        });
+        return;
+      }
+      results.push({ ...resolved, status: "unchanged", reason: "Already in the model or this changeset" });
       return;
     }
     if (plan.action === "restore") {
@@ -629,6 +644,15 @@ export async function planRelationshipBatch(
   });
 
   return { changes, unstageKeys, results };
+}
+
+/** JSON with object keys sorted, so two values compare equal whatever their key order. */
+export function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : v
+  );
 }
 
 /** Counts of a batch's results by status. */
