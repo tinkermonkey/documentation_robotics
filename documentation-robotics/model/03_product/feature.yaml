@@ -5,7 +5,7 @@ product.feature.changeset-lifecycle:
   type: feature
   layer_id: product
   name: Changeset lifecycle
-  description: "MCP: changeset_create, changeset_activate, changeset_deactivate, changeset_update, changeset_list, changeset_show. CLI: dr changeset create/activate/deactivate/list/show/status. Which changeset is active is per-checkout state, kept in .dr/active-changeset, and it counts only while it names a staged changeset."
+  description: 'MCP: changeset_create, changeset_activate, changeset_deactivate, changeset_update, changeset_list, changeset_show. CLI: dr changeset create/activate/deactivate/list/show/status; show, staged, diff and preview read any changeset by name or id, the active one when none is named. A changeset''s description is its intent, written as markdown (CommonMark, GitHub flavoured, no raw HTML): changeset_create and changeset_update take it as intent (or description, its older name), it is stored and returned as written, and the CLI prints it with its line breaks (list shows its first line). Which changeset is active is per-checkout state, kept in .dr/active-changeset, and it counts only while it names a staged changeset; once .dr/ has a marker (an empty one means none), the old documentation-robotics/changesets/.active is never read. changeset_list lists the staged changesets by default and counts every changeset by status (status: committed, discarded or all lists those), a page at a time. changeset_show is compact by default: counts per operation and per layer, and one line per change (sequence, operation, element or relationship, changed fields), filtered by layers, types and operations and paged with the true total and the next call; detail: "summary" and "full" page too. dr changeset show --json returns what changeset_show with detail: "summary" returns, every change on one page.'
   attributes:
     priority: critical
     status: delivered
@@ -25,7 +25,7 @@ product.feature.stage-element-changes:
   type: feature
   layer_id: product
   name: Stage element changes
-  description: "MCP: model_add, model_update (attributePatch), model_delete; stage into the active changeset. model_add and model_update take a list, inline or in a JSON file, and answer with counts and only the items that need attention. CLI: dr add/update/delete."
+  description: "MCP: model_add, model_update (attributePatch), model_delete; stage into the active changeset. model_add, model_update and model_delete take a list, inline or in a JSON file, and answer summary first: counts, then the items that need attention grouped by cause (one entry per cause with its true count, items listed up to limit), and id-derivation notes once each with a count and sample ids. A re-sent element that matches what is there is unchanged, not refused, so a batch can be retried. model_add places a product workflow step after or before another, rewiring flows-to and renumbering sequence. model_update gives a hand-set source file 'manual' and adds or removes one source location with addSourceLocation / removeSourceLocation. A write aimed at a changeset that landed or is landing fails naming it, never falling through to the base model. CLI: dr add/update/delete."
   attributes:
     priority: critical
     status: delivered
@@ -45,7 +45,7 @@ product.feature.stage-relationship-changes:
   type: feature
   layer_id: product
   name: Stage relationship changes
-  description: "MCP: relationship_add, relationship_delete, validated against the catalog. relationship_add takes a list, inline or in a JSON file, and answers with counts and only the items that need attention. CLI: dr relationship add/delete (same staging code)."
+  description: "MCP: relationship_add, relationship_delete, validated against the catalog and against the spec version the model declares: a relationship type only a newer spec has is refused, naming both versions and project_upgrade (#1411). Both take a list, inline or in a JSON file, and answer summary first: counts, then failures grouped by cause (one missing element is one entry with the count of relationships it affects). A re-sent relationship already there is unchanged. A refused relationship names the predicates the catalog allows between the two types, in both directions. CLI: dr relationship add/delete (same staging code)."
   attributes:
     priority: critical
     status: delivered
@@ -65,7 +65,7 @@ product.feature.unstage-and-discard-changes:
   type: feature
   layer_id: product
   name: Unstage and discard changes
-  description: "MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete."
+  description: 'MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete. changeset_unstage reports what it removed compactly: the count per operation and one line per change (the first 25 of each item, the rest counted); detail: "full" returns each removed change whole.'
   attributes:
     priority: medium
     status: delivered
@@ -85,7 +85,7 @@ product.feature.spec-type-lookup:
   type: feature
   layer_id: product
   name: Spec type lookup
-  description: "MCP: spec_type (a type's definition, attributes and allowed relationships; a layer's types with their required attributes and enum values; and, without a type, the relationships the catalog allows across the layer's types, filtered by other layers, other type, predicate and direction). CLI: dr schema, dr catalog."
+  description: "MCP: spec_type (a type's definition, attributes and allowed relationships; a layer's types with their required attributes and enum values; and, without a type, the relationships the catalog allows across the layer's types, filtered by other layers, other type, predicate and direction). type takes a dotted id such as product.feature, without layer, as the other tools name a type (#1280). CLI: dr schema, dr catalog."
   attributes:
     priority: high
     status: delivered
@@ -105,7 +105,7 @@ product.feature.changeset-impact:
   type: feature
   layer_id: product
   name: Changeset impact
-  description: "MCP: changeset_impact (projected graph walk, focused 'from', hub collapsing)."
+  description: 'MCP: changeset_impact (projected graph walk, focused ''from'', hub collapsing). Compact by default: the reached elements'' ids by layer, nearest first, with counts per layer and type over everything reached; detail: "full" lists each with how it was reached and its files. A page at a time (limit or maxElements, offset) with the true total and the next call.'
   attributes:
     priority: high
     status: delivered
@@ -125,7 +125,7 @@ product.feature.changeset-brief:
   type: feature
   layer_id: product
   name: Changeset brief
-  description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+  description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. With since, the delta''s lists page with the rest, the changes unstaged since included. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
   attributes:
     priority: critical
     status: delivered
@@ -145,7 +145,7 @@ product.feature.model-validation:
   type: feature
   layer_id: product
   name: Model validation
-  description: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. CLI: dr validate, dr conformance.'
+  description: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. layers narrows what is checked, and a link into another layer is placed by its id or, for an end named by UUID, by the layer its relationship row records, so it is never reported as not found (#1259). A type or relationship the model''s declared spec lacks is an error naming both versions (#1411). CLI: dr validate, dr conformance.'
   attributes:
     priority: high
     status: delivered
@@ -185,7 +185,7 @@ product.feature.model-search-and-read:
   type: feature
   layer_id: product
   name: Model search and read
-  description: "MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info."
+  description: 'MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_show takes ids: [...] for several elements at once, one compact card each (name, short description, change status, connections as lines), paged; detail: "full" gives each as the one-element form does. model_search matches id and name by default, and descriptions and attribute values with fields; match: "all" or "any" matches the query''s words apart; name hits rank first; excludeLayers and excludeTypes leave layers and types out; results are compact entries a page at a time, with the true count and counts by layer and type. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info.'
   attributes:
     priority: high
     status: delivered
@@ -269,7 +269,7 @@ product.feature.changeset-verify:
   attributes:
     priority: high
     status: delivered
-    documentation: "MCP: changeset_verify (limit and offset page every list; page.totals gives true lengths) and changeset_adopt_source_references (references: {id, sourceFile, sourceSymbol} for elements with no as-built match, stored root-relative with provenance manual; result counts over everything, items past limit still accounted for). CLI: dr changeset verify. Unverifiable: intent, re-exports, planned JS/TS test cases, relationships no code edge maps to, and a planned service, interface, function, event, process or operation a code file names only as a call argument or name property (reason gives file and line; verdict at best probable-match)."
+    documentation: "MCP: changeset_verify (limit and offset page every list; without limit the page is as long as keeps the answer near 40 KB; page.totals gives true lengths) and changeset_adopt_source_references (references: {id, sourceFile, sourceSymbol} for elements with no as-built match, stored root-relative with provenance manual; result counts over everything, items past limit still accounted for). CLI: dr changeset verify. Unverifiable: intent, re-exports, planned JS/TS test cases, relationships no code edge maps to, and a planned service, interface, function, event, process or operation a code file names only as a call argument or name property (reason gives file and line; verdict at best probable-match)."
   source_reference:
     provenance: manual
     locations:
@@ -285,7 +285,7 @@ product.feature.changeset-commit:
   type: feature
   layer_id: product
   name: Changeset commit
-  description: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why and names the route that works: declined, no confirmation came back, or the dialog could not be shown. Drift does not refuse it: the confirmation and the result name each staged change the base overlaps and what landing does about it, and force is accepted and ignored. Viewer: Apply, which lands a drifted changeset too. CLI: dr changeset commit, which lists the overlaps and asks at a terminal; with no terminal it refuses a real overlap unless --force is passed, and lands with no overlap."
+  description: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why and names the route that works: declined, no confirmation came back, or the dialog could not be shown. Drift does not refuse it: the confirmation and the result name each staged change the base overlaps and what landing does about it, and force is accepted and ignored. A landing holds the changeset's lock from its read to its status save, so a write staged meanwhile either lands with it or is refused naming the changeset; after a landing of the active changeset, writes refuse until a changeset is activated, created or deactivated, instead of falling through to the base model. Viewer: Apply, which lands a drifted changeset too. CLI: dr changeset commit, which lists the overlaps and asks at a terminal; with no terminal it refuses a real overlap unless --force is passed, and lands with no overlap."
   attributes:
     priority: critical
     status: delivered
@@ -349,7 +349,7 @@ product.feature.code-to-model-verification:
   attributes:
     priority: medium
     status: delivered
-    documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads with status (in_step, drifted, not_checked) and coverage; a layer that compared nothing is never in step. API: served routes, and the routes an OpenAPI file declares against operations sourced to it. Testing: test functions and methods, and JS/TS it()/test() cases. Technology: infrastructure, and system software sourced to a dependency manifest against what it lists. Elements that could not be compared are listed by reason under not_checked. Recorded codebase_extract rejections leave entries out of in_graph_only, listed under ignored, and rejections says how many were read and applied. Lists page with limit and offset (default 50, lowered near 40 KB); page.totals gives true lengths. An element sourced at a whole file is checked by its file alone."
+    documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads with status (in_step, drifted, not_checked) and coverage; a layer that compared nothing is never in step. API: served routes, and the routes an OpenAPI file declares against operations sourced to it. Testing: test functions and methods, and JS/TS it()/test() cases. Technology: infrastructure, and system software sourced to a dependency manifest against what it lists. Elements that could not be compared are listed by reason under not_checked. Recorded codebase_extract rejections and the project's kept rules (documentation-robotics/extraction-rules.yaml, applied as codebase_extract applies them) leave entries out of in_graph_only, listed under ignored with the rule or rejection; rejections and rules say how many were read and applied. Lists page with limit and offset (default 50, lowered near 40 KB); page.totals gives true lengths. An element sourced at a whole file is checked by its file alone."
   source_reference:
     provenance: manual
     locations:
@@ -445,7 +445,7 @@ product.feature.model-upgrade:
   type: feature
   layer_id: product
   name: Model upgrade
-  description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty); leaves installed integrations alone. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only. A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+  description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan (project_upgrade at the top level, legacyMarker, with a next line), and remove it when applied: when the checkout has no marker in .dr/, the changeset it names becomes active only if it is still staged, else nothing is made active and the stale id is said. The preview's migration.kind is manifest-only when the migration changes nothing but the spec version in manifest.yaml, and says so plainly (#1435). relayout: true (dr upgrade --relayout) lays out model files an earlier dr wrote (long strings folded at 80 columns) in dr's layout, data unchanged, as a previewed step of its own, also on a model already on this spec; without it the result only counts them, so later landings carry only their own changes once it is run (#1439). A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
   attributes:
     priority: high
     status: delivered
@@ -465,7 +465,7 @@ product.feature.project-status:
   type: feature
   layer_id: product
   name: Project status
-  description: "MCP: project_status, naming the project and checkout the session resolves to, with the project's other checkouts and this checkout's viewer link."
+  description: "MCP: project_status, naming the project and checkout the session resolves to, with the project's other checkouts and this checkout's viewer link. task (plan, review or reconcile) says what the session is for: while planning or reviewing, code drift and the index are information beside the step, not the step. Changed source files are counted per folder and their elements per layer, with the first five files listed. It reports a leftover documentation-robotics/changesets/.active, whether git still tracks it and whether it decides the active changeset, and asks for its deletion to be committed."
   attributes:
     priority: critical
     status: delivered
@@ -545,12 +545,12 @@ product.feature.commit-confirmation-token:
   type: feature
   layer_id: product
   name: Commit confirmation token
-  description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+  description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
   attributes:
     priority: high
     status: developing
     size: s
-    documentation: "Token: an HMAC, keyed per server process, over the changeset id, force, a 10-minute expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to."
+    documentation: "Token: an HMAC, keyed per server process, over the changeset id, force, a 10-minute expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout, with project_upgrade relayout: true as the way to do that first in a commit of its own (#1439)."
   source_reference:
     provenance: manual
     locations:
@@ -655,7 +655,7 @@ product.feature.extraction-triage-by-rule:
   attributes:
     priority: high
     status: delivered
-    documentation: "MCP: codebase_extract. Each card carries facts read from the code: visibility, whether it is nested in another function, and the element its class or file already has. A run with more cards than a page answers with groups (folder and file, kind and visibility, folders no element names, functions many services share) and the number of decisions needed; view filters and pages the cards. decide: [{where | card, as: layer.type | none, reason, keep}] decides cards by rule; with preview: true it returns each rule's count and a sample and changes nothing. Kept rules are applied before cards are made, in this order: an element that names the symbol, a decision on that one card, a rule that says none, Tier 0, a rule that names a type. A since run lists the symbols its range changed and counts the rest; with a plan active it lists planned elements with no as-built candidate. reject and decide take their items from a JSON file (file) and answer with counts and the items that need attention."
+    documentation: "MCP: codebase_extract. Each card carries facts read from the code: visibility, whether it is nested in another function, and the element its class or file already has. A run with more cards than a page answers with groups (folder and file, kind and visibility, folders no element names, functions many services share) and the number of decisions needed; view filters and pages the cards, states a candidate list several cards share once (candidateLists), and groups them by file with groupBy. decide: [{where | card, as: layer.type | none, reason, keep, attributes, overrideTier0}] decides cards by rule; where.name matches the bare name and where.symbol the card's symbol (Class.method); a card item takes a cardId, a symbol or file#symbol of this run; attributes supply what a type requires; with preview: true it returns each rule's count and a sample and changes nothing; with view it answers with that view's page after applying. A none rule leaves a symbol Tier 0 decided as an element to Tier 0 unless it says overrideTier0, and ruleWarnings says so at the top with counts. Kept rules are applied before cards are made, in this order: an element that names the symbol, a decision on that one card, a rule that says none, Tier 0, a rule that names a type. A since run lists the symbols its range changed and counts the rest; with a plan active it lists planned elements with no as-built candidate and marks cards the plan's elements name (planned). reject records what is not an element locally (it says so), skips cards an element now names, applies after the call's decide items, takes except on a files item, and with keep: true writes a rule instead; a kept decide rule that covers recorded rejections retires them; a preview of reject or clearRejected records nothing and says would-record. reject and decide take their items from a JSON file (file) and answer with counts and the items that need attention. The impacted list comes in full only when it changed since the last run."
   metadata:
     created_at: 2026-11-20T16:56:25.762Z
     updated_at: 2026-11-20T16:56:25.762Z
@@ -832,4 +832,23 @@ product.feature.commit-progress:
   metadata:
     created_at: 2026-11-24T14:09:03.141Z
     updated_at: 2026-11-24T14:09:03.141Z
+    version: 1
+product.feature.declared-spec-check:
+  id: 0866f6c4-2665-498b-8b6b-3c1dd995ce99
+  path: product.feature.declared-spec-check
+  spec_node_id: product.feature
+  type: feature
+  layer_id: product
+  name: Declared-spec check
+  description: 'relationship_add, model_add, model_update, model_validate and changeset_commit_preview check a type or relationship against the spec the model''s manifest declares, not only the CLI''s own catalog. One that exists only in a newer spec is refused: "<type or triple> is not in spec 0.13.0, the model''s version; it exists from 0.14.0. Run project_upgrade first." A model that already holds one still loads and reads; model_validate names its element ids, and a landing counts it with the errors already in the base. A model on a spec newer than dr''s is refused nothing extra, and a type dr doesn''t know is reported as unknown here, with the update to make. The versions come from a table generated from the released spec catalogs (0.8.0 on) and committed with the CLI (#1411).'
+  attributes:
+    priority: high
+    status: developing
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/declared-spec.ts
+  metadata:
+    created_at: 2026-11-25T16:09:06.301Z
+    updated_at: 2026-11-25T16:09:06.301Z
     version: 1

@@ -2313,7 +2313,7 @@ application.applicationfunction.validate-relationship-combination:
   type: applicationfunction
   layer_id: application
   name: validateRelationshipCombination
-  description: Validate a relationship combination using schema-driven registry @returns {valid, suggestions} where suggestions are provided if invalid
+  description: Checks a source type, predicate and target type against the catalog; a refusal names the predicates allowed between the two types in both directions.
   source_reference:
     provenance: extracted
     locations:
@@ -4000,7 +4000,7 @@ application.applicationfunction.verify-layers:
   type: applicationfunction
   layer_id: application
   name: verifyLayers
-  description: Verify each requested layer that has a check, in the order asked.
+  description: Verifies each requested layer that has a check, in the order asked, with the project's kept rules applied to what extraction makes of the code as codebase_extract applies them.
   source_reference:
     provenance: extracted
     locations:
@@ -4595,7 +4595,7 @@ application.applicationfunction.staging-area-manager-commit:
   type: applicationfunction
   layer_id: application
   name: StagingAreaManager commit
-  description: Commit a changeset to the base model with atomic guarantee.
+  description: Commit a changeset to the base model with atomic guarantee, holding the changeset's lock from its read to its status save so no write staged meanwhile is lost. When it lands the active changeset it writes the landed note and clears the marker before the status save (a failed note write fails the landing). A rollback puts the model back as it was, removing files and folders the landing created and restoring relationships.yaml, and undoes the status, the note and the marker.
   source_reference:
     provenance: extracted
     locations:
@@ -9296,7 +9296,7 @@ application.applicationfunction.judge-index:
   type: applicationfunction
   layer_id: application
   name: judgeIndex
-  description: Whether an index taken at `indexedCommit` and `indexedAt` still describes the code at `head`.
+  description: Whether an index taken at `indexedCommit` and `indexedAt` still describes the code at `head`. An index that holds no code (0 nodes) or was joined from another process's run (indexUntrusted) is stale whatever its commit (#1345), as is one another analyzer version built.
   source_reference:
     provenance: extracted
     locations:
@@ -9330,7 +9330,7 @@ application.applicationfunction.describe-index:
   type: applicationfunction
   layer_id: application
   name: describeIndex
-  description: The index part of a codebase tool result.
+  description: The index part of a codebase tool result. Carries indexedFirst from the judgement, so codebase_extract's result says when it indexed first and how long it took.
   source_reference:
     provenance: extracted
     locations:
@@ -10623,7 +10623,7 @@ application.applicationfunction.clear-active-marker:
   type: applicationfunction
   layer_id: application
   name: clearActiveMarker
-  description: Remove the marker, from `.dr/` and from the old place.
+  description: Leave .dr/active-changeset empty (no active changeset), remove the marker from the old place so a restored legacy file can't make a changeset active again, and remove the landed note with it unless keepLandedNote is set.
   source_reference:
     provenance: extracted
     locations:
@@ -11568,7 +11568,7 @@ application.applicationfunction.cbm-analyzer-status:
   type: applicationfunction
   layer_id: application
   name: CbmAnalyzer status
-  description: Get the current status of the analyzer for a project
+  description: Get the current status of the analyzer for a project. Fresh only at the indexed commit, with the same analyzer version, and when the index holds code (indexHoldsNoCode), so the background run re-indexes an empty index instead of skipping it (#1345).
   source_reference:
     provenance: extracted
     locations:
@@ -11585,7 +11585,7 @@ application.applicationfunction.cbm-analyzer-index:
   type: applicationfunction
   layer_id: application
   name: CbmAnalyzer index
-  description: Index a project or update the index
+  description: "Index a project or update the index. The counts come from settleIndexCounts. After joining another process's run it indexes again itself and records its own HEAD and time; if that run is joined too, the index is recorded with joined: true and reads stale. Unreadable counts or an index of 0 nodes fail the run, and the failed run removes index-meta.json (removeIndexMeta), since the analyzer's graph may have been replaced (#1345). DR's folders stay out through ensureCbmIgnore."
   source_reference:
     provenance: extracted
     locations:
@@ -13651,7 +13651,7 @@ application.applicationfunction.ensure-cbm-ignore:
   type: applicationfunction
   layer_id: application
   name: ensureCbmIgnore
-  description: Makes sure codebase-memory-mcp leaves DR's own folders ({@link DR_OWN_DIRS}
+  description: Makes sure codebase-memory-mcp leaves DR's own folders (documentation-robotics/, .dr/) out of the index without changing the tree as git sees it (#1300). Whose file it is goes by DR's heading alone, since the exclude entry is shared by every worktree. With no .cbmignore, or DR's own untracked one, it hides the file through the repository's local exclude first (excludeFromGit) and then writes the lines, so a failure leaves no untracked file. A .cbmignore the developer tracks or wrote is never edited; the lines it lacks come back as missing, for the developer to add and commit with git add -f.
   source_reference:
     provenance: extracted
     locations:
@@ -17641,7 +17641,7 @@ application.applicationfunction.file-lock-acquire:
   type: applicationfunction
   layer_id: application
   name: FileLock acquire
-  description: Acquire exclusive lock with timeout and retry
+  description: Acquire exclusive lock with timeout and retry; records who holds it (owner) and keeps a long hold fresh (heartbeat), and refuses at once when the holder's owner says so (a landing)
   source_reference:
     provenance: extracted
     locations:
@@ -18270,7 +18270,7 @@ application.applicationfunction.resolve-source-reference-options:
   type: applicationfunction
   layer_id: application
   name: resolveSourceReferenceOptions
-  description: Check source reference options and settle the two partial forms instead of refusing them
+  description: "Settles source fields against the element's reference: a source file sent without a provenance that the element does not already reference is hand-set, so it gets 'manual'."
   source_reference:
     provenance: extracted
     locations:
@@ -19791,7 +19791,7 @@ application.applicationfunction.farm-manifest-save:
   type: applicationfunction
   layer_id: application
   name: FarmManifest save
-  description: Save manifest to file @param filePath - Path where to save farm.yaml
+  description: "Save the manifest to its farm.yaml. Refused for a file named in DR_PROTECTED_FARM_FILES (assertFarmFileWritable): the test preload protects the developer's real user farm that way (#1438)."
   source_reference:
     provenance: extracted
     locations:
@@ -20775,7 +20775,7 @@ application.applicationfunction.next-page-hint:
   type: applicationfunction
   layer_id: application
   name: nextPageHint
-  description: One line naming the call that returns the next page of a list, or nothing when the page is the last.
+  description: One line naming the call that returns the next page, or nothing on the last page. Given the caller's arguments it names that call exactly (nextPageCall); without them it says to repeat the call with the next offset.
   source_reference:
     provenance: extracted
     locations:
@@ -21370,7 +21370,7 @@ application.applicationfunction.batch-report:
   type: applicationfunction
   layer_id: application
   name: batchReport
-  description: "Builds a batch's report: counts by status and the items that need attention, or every item with verbose"
+  description: "Builds a batch's report summary first: counts by status, then the items that need attention grouped by cause with true counts (items listed up to limit), or every item with verbose"
   source_reference:
     provenance: extracted
     locations:
@@ -21574,11 +21574,11 @@ application.applicationfunction.read-installed-cli:
   type: applicationfunction
   layer_id: application
   name: readInstalledCli
-  description: "The CLI installed where this process was loaded from, read from disk now: its version, the spec version it bundles and when its files last changed."
+  description: "The CLI installed where this process was loaded from, read from disk now: its version, the spec it bundles and when its files last changed. Moved from project-status-collectors to utils/running-code.ts, so the write guard reads it too (#1427)."
   source_reference:
     provenance: extracted
     locations:
-      - file: cli/src/mcp/tools/project-status-collectors.ts
+      - file: cli/src/utils/running-code.ts
         symbol: readInstalledCli
   metadata:
     created_at: 2026-11-20T16:39:29.295Z
@@ -21727,7 +21727,7 @@ application.applicationfunction.apply-project-rules:
   type: applicationfunction
   layer_id: application
   name: applyProjectRules
-  description: "Applies a project's rules to the extracted symbols before cards are made: a rule that says none first, then Tier 0, then a rule that names a type for what Tier 0 left open. Reports what each rule decided."
+  description: "Applies a project's rules to the extracted symbols before cards are made: a rule that says none first (a symbol Tier 0 decided as an element only with overrideTier0; otherwise held for Tier 0 and counted), then Tier 0, then a rule that names a type, with its attributes, for what Tier 0 left open. Reports what each rule decided, overrode and held."
   source_reference:
     provenance: extracted
     locations:
@@ -21744,7 +21744,7 @@ application.applicationfunction.plan-decisions:
   type: applicationfunction
   layer_id: application
   name: compileDecide
-  description: Resolves decide items to the cards they cover and to what staging or rejecting them would do, with a count and a sample per item for a preview.
+  description: Resolves decide items to the cards they cover (a card item by cardId, symbol or file#symbol, among the last run's cards and then this run's symbols) and to what staging or rejecting them would do, with a count and a sample per item for a preview.
   source_reference:
     provenance: manual
     locations:
@@ -22082,7 +22082,7 @@ application.applicationfunction.scan-outside-model:
   type: applicationfunction
   layer_id: application
   name: scanOutsideModel
-  description: "What an upgrade would touch outside the model, apart from integrations: spec reference, reports, .gitignore and git's index, .prettierignore, commit hook notes. Reads only."
+  description: "What an upgrade would touch outside the model, apart from integrations: spec reference, reports, .gitignore and git's index, .prettierignore, commit hook notes, and the active-changeset marker left in its old place. Reads only."
   source_reference:
     provenance: extracted
     locations:
@@ -22388,7 +22388,7 @@ application.applicationfunction.list-projects:
   type: applicationfunction
   layer_id: application
   name: listProjects
-  description: The ProjectListEntry for every registered project, in name order, with its checkouts.
+  description: The ProjectListEntry for every registered project, in name order, with its checkouts. Each checkout's staged changesets are counted from their metadata.yaml alone (StagedChangesetStorage listStatuses, cached by file mtime), never by parsing changes.yaml, and concurrent listings share one run, so a page load's several requests cost one scan (#1436). A project whose repository folder is gone is flagged missing, with the dr farm remove call that drops it (#1438).
   source_reference:
     provenance: manual
     locations:
@@ -22473,7 +22473,7 @@ application.applicationfunction.ensure-central-server:
   type: applicationfunction
   layer_id: application
   name: ensureCentralServer
-  description: Finds the running central process for the farm in use from its server record, or starts one detached (dr serve) under the starting marker. It replaces an older process only when no browser tab, MCP session or DrBot turn is connected; otherwise it returns the older one with a notice.
+  description: The central DR process for the farm in use, started when there is none, returned once its record is written and its /health answers. A recorded process that does not answer /health within three tries is still returned, with a notice naming its pid, port and log, rather than a link said to be starting (#1282). A timed-out wait for another caller's start names the log too. A process older than this CLI is replaced only when nothing uses it.
   source_reference:
     provenance: manual
     locations:
@@ -22490,7 +22490,7 @@ application.applicationfunction.sweep-per-project-viewers:
   type: applicationfunction
   layer_id: application
   name: sweepPerProjectViewers
-  description: At start-up, finds per-project viewers from the legacy records and a process scan, stops those review_open started that have no connected tab, and reports the rest with their pids for dr visualize --stop.
+  description: At start-up, finds per-project viewers from the legacy records and a process scan, stops those review_open started that have no connected tab and whose project is in this process's farm, and reports the rest with their pids for dr visualize --stop. Never runs for dr serve --no-sweep or an isolated process (--state-dir), so a CLI run from source leaves the installed CLI's viewers alone (#1369).
   source_reference:
     provenance: manual
     locations:
@@ -24272,7 +24272,7 @@ application.applicationfunction.project-registry-reload:
   type: applicationfunction
   layer_id: application
   name: ProjectRegistry.reload
-  description: Re-read farm.yaml from disk (another process may have registered a project).
+  description: Re-read farm.yaml from disk (another process may have registered a project). When its text is what was read last time, nothing changes and the repositories already resolved are kept (#1436).
   source_reference:
     provenance: extracted
     locations:
@@ -24289,7 +24289,7 @@ application.applicationfunction.project-registry-repository-of:
   type: applicationfunction
   layer_id: application
   name: ProjectRegistry.repositoryOf
-  description: The repository of a project, from git; null when its folder is not a git working tree.
+  description: "The repository of a project, from git; null when its folder is not a git working tree. Only a repository found is cached: a null is asked again, so a repository cloned again, a git init after registering or one failed git call doesn't stick until a restart."
   source_reference:
     provenance: extracted
     locations:
@@ -24884,7 +24884,7 @@ application.applicationfunction.bridge-headers:
   type: applicationfunction
   layer_id: application
   name: bridgeHeaders
-  description: The headers a bridge session sends with every request to `/mcp`.
+  description: "The headers a bridge session sends with every request to /mcp: the token, the pinned root and session env, and x-dr-mcp-bridge, which marks the session as one the bridge replays after a restart."
   source_reference:
     provenance: extracted
     locations:
@@ -25541,7 +25541,7 @@ application.applicationfunction.checkout-context-load-changesets:
   type: applicationfunction
   layer_id: application
   name: CheckoutContext.loadChangesets
-  description: Reads every staged changeset from disk into `changesets`.
+  description: "Reads every staged changeset from disk into the context's map. A changeset whose files are unchanged since the last read (a hash of metadata.yaml and review.yaml, the mtime and size of changes.yaml) is kept as it was read, not parsed again: routes call it on every request (#1436)."
   source_reference:
     provenance: extracted
     locations:
@@ -27215,4 +27215,1134 @@ application.applicationfunction.mcp-session-root-resolve-fallback:
   metadata:
     created_at: 2026-11-24T21:43:21.602Z
     updated_at: 2026-11-24T21:43:21.602Z
+    version: 1
+application.applicationfunction.changeset-for-command:
+  id: 1d8e59f6-0f2f-4510-87fe-bb7e4e2e7ca5
+  path: application.applicationfunction.changeset-for-command
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: changesetForCommand
+  description: The changeset a read command (show, staged, diff, preview) names, by name or id and in any state, or the active one when it names none; { error } saying why when there is neither (noActive when nothing was named and none is active).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetForCommand
+  metadata:
+    created_at: 2026-11-25T16:08:10.392Z
+    updated_at: 2026-11-25T16:08:10.392Z
+    version: 1
+application.applicationfunction.description-lines:
+  id: 1cd22f90-a661-4df4-927f-9862b53878b5
+  path: application.applicationfunction.description-lines
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: descriptionLines
+  description: "A changeset description (markdown) as terminal lines: as written, line breaks and blank lines kept, each indented, so lists and headings stay readable."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-description.ts
+        symbol: descriptionLines
+  metadata:
+    created_at: 2026-11-25T16:08:10.392Z
+    updated_at: 2026-11-25T16:08:10.392Z
+    version: 1
+application.applicationfunction.description-excerpt:
+  id: c9d2a590-279d-49c6-88db-827e703412d5
+  path: application.applicationfunction.description-excerpt
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: descriptionExcerpt
+  description: "The first line of a changeset description (markdown), cut to a width, with a mark when the rest is left out: what dr changeset list shows."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-description.ts
+        symbol: descriptionExcerpt
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.source-file-summary:
+  id: 3092d6ca-277a-480e-abde-96e739271043
+  path: application.applicationfunction.source-file-summary
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sourceFileSummary
+  description: "Changed source files counted per folder (the first few folders by file count, with the folder total) and the elements that reference them counted per layer, over the whole list: what project_status shows beside the first few files."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: sourceFileSummary
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.collect-legacy-marker:
+  id: 68b0fc1e-f991-42e2-b333-dc79320ceba5
+  path: application.applicationfunction.collect-legacy-marker
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: collectLegacyMarker
+  description: "The pre-#1218 active-changeset marker, documentation-robotics/changesets/.active: whether it is on disk, whether git still tracks it, whether it is the marker in use (no .dr/active-changeset), the changeset it names, and what to do (commit its deletion)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: collectLegacyMarker
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.with-legacy-marker-note:
+  id: 6bff4831-5b06-4a68-9b1b-895ce5c8643e
+  path: application.applicationfunction.with-legacy-marker-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: withLegacyMarkerNote
+  description: A next step that also says, whatever the step, when the old tracked active-changeset marker is still in git or still decides the active changeset, and that its deletion should be committed.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status.ts
+        symbol: withLegacyMarkerNote
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.review-step:
+  id: 244cd0e7-b590-4697-9835-48451edca8f5
+  path: application.applicationfunction.review-step
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: reviewStep
+  description: "The next step for a session reviewing a change (task: review): the active changeset's brief, else the one staged plan to read with changeset_brief and show with review_open, else the staged plans to pick from; code drift and the index are information, never the step."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status.ts
+        symbol: reviewStep
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.drift-as-information:
+  id: ff475a14-e90d-4a2f-a0be-d950eaca82df
+  path: application.applicationfunction.drift-as-information
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: driftAsInformation
+  description: "Code drift and index state said as information for a session that is planning or reviewing (task: plan or review): what drifted, and that reconciling is a session of its own (task: reconcile)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status.ts
+        symbol: driftAsInformation
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.base-integration-manager-apply-upgrade:
+  id: 1d22c8a3-015e-4be9-b797-0ce54d3387a2
+  path: application.applicationfunction.base-integration-manager-apply-upgrade
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: BaseIntegrationManager applyUpgrade
+  description: "Upgrade the installed integration without prompts or console output: the files planUpgrade lists are written or removed and the version file rewritten. Returns the plan it applied, or null when the integration isn't installed. For project_upgrade over MCP."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/base-manager.ts
+        symbol: BaseIntegrationManager.applyUpgrade
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.claude-integration-manager-plugin-coverage:
+  id: 18e4ccae-57d4-4241-b305-be95329bad5c
+  path: application.applicationfunction.claude-integration-manager-plugin-coverage
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: ClaudeIntegrationManager pluginCoverage
+  description: Which installed per-project Claude Code files (.claude/) the dr plugin also carries (its skills, /dr-plan, dr-architect and dr-advisor, which then load twice) and which it doesn't (the other commands and agents), read from the plugin manifest shipped with this dr.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/claude-manager.ts
+        symbol: ClaudeIntegrationManager.pluginCoverage
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.integrations-report:
+  id: f522695f-4e59-4788-a4e8-813baa386fef
+  path: application.applicationfunction.integrations-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: integrationsReport
+  description: "project_upgrade's integrations section: for each per-project integration installed (.claude/ from dr claude install, .github/ from dr copilot install), its version and whether an upgrade is pending by dr upgrade's rule (the installed version is older than this dr's), what that upgrade would change or changed and the edited files it replaces, or with none pending the edited files that stay; for Claude Code which installed files the dr plugin carries, described from the lists; with a note on what removing them would drop and how to upgrade them (upgradeIntegrations with apply)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-tools.ts
+        symbol: integrationsReport
+  metadata:
+    created_at: 2026-11-25T16:08:10.393Z
+    updated_at: 2026-11-25T16:08:10.393Z
+    version: 1
+application.applicationfunction.intent-fields:
+  id: 165be09c-b83a-445a-8f8a-a7e85f33e17d
+  path: application.applicationfunction.intent-fields
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: intentFields
+  description: "The schema fields for a changeset's intent: intent, the name the server instructions and skills use, and description, the name the changeset stores it under; both say the intent is markdown and the shape to write."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-shared.ts
+        symbol: intentFields
+  metadata:
+    created_at: 2026-11-25T16:29:36.404Z
+    updated_at: 2026-11-25T16:29:36.404Z
+    version: 1
+application.applicationfunction.intent-arg:
+  id: 011822fa-4460-494a-a9d1-e5a0b3424458
+  path: application.applicationfunction.intent-arg
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: intentArg
+  description: The intent a call gives under either name, intent or description; a call that gives both with different values is refused.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-shared.ts
+        symbol: intentArg
+  metadata:
+    created_at: 2026-11-25T16:29:36.405Z
+    updated_at: 2026-11-25T16:29:36.405Z
+    version: 1
+application.applicationfunction.retire-legacy-active-marker:
+  id: 63f3cd40-5b69-442d-b098-c60ddc559073
+  path: application.applicationfunction.retire-legacy-active-marker
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: retireLegacyActiveMarker
+  description: "The upgrade's step for the active-changeset marker left in its old place (documentation-robotics/changesets/.active): when .dr/ has no marker, the changeset it names becomes active there only if it is still staged; one that is committed, discarded or gone is reported as stale and .dr/active-changeset is left empty. The old file is removed either way; committing the deletion is the user's. Null when there is no old file."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/active-changeset-marker.ts
+        symbol: retireLegacyActiveMarker
+  metadata:
+    created_at: 2026-11-25T17:12:51.188Z
+    updated_at: 2026-11-25T17:12:51.188Z
+    version: 1
+application.applicationfunction.legacy-marker-report:
+  id: 29aa62d5-9adb-43c4-9ed2-a1627ce6155d
+  path: application.applicationfunction.legacy-marker-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: legacyMarkerReport
+  description: "project_upgrade's legacyMarker: the old active-changeset marker named, with what applying does, in a preview; removed by an apply (not with modelOnly), with the changeset it moved to .dr/."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/project-tools.ts
+        symbol: legacyMarkerReport
+  metadata:
+    created_at: 2026-11-25T17:12:51.188Z
+    updated_at: 2026-11-25T17:12:51.188Z
+    version: 1
+application.applicationfunction.changeset-show-view:
+  id: 039c268c-9c75-4e70-ae65-027867a82b08
+  path: application.applicationfunction.changeset-show-view
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: changesetShowView
+  description: "One changeset as changeset_show answers it: its head, purpose and review, counts over all its changes per operation and per layer, and a page of the changes (narrowed by layers, types and operations) as lines, objects or whole changes. changeset_show and dr changeset show --json both return it."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-show-view.ts
+        symbol: changesetShowView
+  metadata:
+    created_at: 2026-11-25T17:31:11.426Z
+    updated_at: 2026-11-25T17:31:11.426Z
+    version: 1
+application.applicationfunction.next-page-call:
+  id: 6c3feb2e-8578-4a58-aa66-f5eb7777e7f0
+  path: application.applicationfunction.next-page-call
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: nextPageCall
+  description: "The exact call that returns the next page of a paged tool result: the tool's name and the caller's own arguments with offset set to the next page's, undefined arguments left out. Every paged read names it in more."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/paging.ts
+        symbol: nextPageCall
+  metadata:
+    created_at: 2026-11-25T16:08:23.361Z
+    updated_at: 2026-11-25T16:08:23.361Z
+    version: 1
+application.applicationfunction.element-filter:
+  id: cb35efd0-3b45-4734-a65f-c06b41494b6b
+  path: application.applicationfunction.element-filter
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: elementFilter
+  description: "Which element ids a read keeps, from layers, types, excludeLayers and excludeTypes (a type as `type` or `layer.type`): layers and types narrow together, excludes take away. Names the layers and the types that are not ones (checked against the spec's node types), so an empty answer never reads as nothing there."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/element-filter.ts
+        symbol: elementFilter
+  metadata:
+    created_at: 2026-11-25T16:08:23.361Z
+    updated_at: 2026-11-25T16:08:23.361Z
+    version: 1
+application.applicationfunction.change-line:
+  id: 907c8610-c9d2-4903-ac8a-f3c86d9df17f
+  path: application.applicationfunction.change-line
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: changeLine
+  description: "One staged change as one line: `#sequence operation id (changed fields)` for an element, `#sequence operation source --predicate--> target` for a relationship, with who decided it when codebase_extract staged it. The compact form of changeset_show and changeset_unstage."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-summary.ts
+        symbol: changeLine
+  metadata:
+    created_at: 2026-11-25T16:08:23.361Z
+    updated_at: 2026-11-25T16:08:23.361Z
+    version: 1
+application.applicationfunction.element-card:
+  id: be942063-7e5f-466f-989b-9d573ed8d02e
+  path: application.applicationfunction.element-card
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: elementCard
+  description: "An element in a few lines: id, name, the first sentence of its description, its change status in a changeset, and its connections as `predicate → id` / `predicate ← id` lines (a few per predicate and direction, the rest counted). model_show with ids and changeset_brief's unchanged elements use it."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/element-card.ts
+        symbol: elementCard
+  metadata:
+    created_at: 2026-11-25T16:08:23.361Z
+    updated_at: 2026-11-25T16:08:23.361Z
+    version: 1
+application.applicationfunction.unstaged-report:
+  id: baa107dc-b7b7-4b82-9b08-67edb3308dce
+  path: application.applicationfunction.unstaged-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: unstagedReport
+  description: 'What changeset_unstage says it removed: the count, the count per operation and one line per change for the first 25, the rest counted, or each change whole with detail "full". With unstagedNotListedNote, the exact changeset_brief call (the delta since the revision before the write) that lists the changes not shown.'
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/unstage-report.ts
+        symbol: unstagedReport
+  metadata:
+    created_at: 2026-11-25T17:04:27.721Z
+    updated_at: 2026-11-25T17:04:27.721Z
+    version: 1
+application.applicationfunction.graph-connections:
+  id: 54396ec3-e007-48c3-9ad4-6f78e6e84520
+  path: application.applicationfunction.graph-connections
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: graphConnections
+  description: "An element's connections in a changeset's projection as a card lists them: every relationship at either end, staged deletes included, each with its standing. The one place model_show's cards and changeset_brief's unchanged cards read an element's links."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/element-card.ts
+        symbol: graphConnections
+  metadata:
+    created_at: 2026-11-25T17:04:27.721Z
+    updated_at: 2026-11-25T17:04:27.721Z
+    version: 1
+application.applicationfunction.staged-changeset-storage-list-statuses:
+  id: fa1a5a84-5f5e-4ea4-a6b1-ab134be7f833
+  path: application.applicationfunction.staged-changeset-storage-list-statuses
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: StagedChangesetStorage listStatuses
+  description: Each changeset folder's id and status, read from its metadata.yaml alone (never changes.yaml), with a status kept until the file's mtime or size changes. What a farm listing counts a checkout's staged changesets with, so listing projects no longer YAML-parses every changeset in the farm (#1436).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staged-changeset-storage.ts
+        symbol: StagedChangesetStorage.listStatuses
+  metadata:
+    created_at: 2026-11-25T16:08:59.368Z
+    updated_at: 2026-11-25T16:08:59.368Z
+    version: 1
+application.applicationfunction.running-code-drift:
+  id: c9c1c309-a537-4892-a1d2-126ae1f2f06a
+  path: application.applicationfunction.running-code-drift
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: runningCodeDrift
+  description: "How the CLI installed where this process was loaded from differs from the code it runs: another version on disk, or its files written after the process started. Null when they agree. What project_status's server section and the write guard read (#1427)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/running-code.ts
+        symbol: runningCodeDrift
+  metadata:
+    created_at: 2026-11-25T16:08:59.368Z
+    updated_at: 2026-11-25T16:08:59.368Z
+    version: 1
+application.applicationfunction.assert-running-code-installed:
+  id: dd3408c1-f5e9-4dc9-ae18-aa2352715d7e
+  path: application.applicationfunction.assert-running-code-installed
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: assertRunningCodeInstalled
+  description: "In the central process (which turns it on with its RunningCodeWatch), refuses a write to the base model once the installed CLI changed since the process started: nothing is written, and the error names both versions and the restart. Drift already there at start is never refused. Inside withRunningCodeChecked it passes: that commit was checked once, at its start (#1427)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/running-code.ts
+        symbol: assertRunningCodeInstalled
+  metadata:
+    created_at: 2026-11-25T16:08:59.368Z
+    updated_at: 2026-11-25T16:08:59.368Z
+    version: 1
+application.applicationfunction.central-stale-reason:
+  id: 3f45a542-7ff1-4f76-9d3a-b81cfcd9c1d9
+  path: application.applicationfunction.central-stale-reason
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: centralStaleReason
+  description: "Why the central process should stop for a restart on the installed CLI, or null (#1427): the CLI changed since it started, and nothing a restart would cut is using it: no browser tab, no DrBot turn, no API request or MCP tool call being answered (requestsInFlight) and no MCP client connected straight to /mcp (directMcpSessions). Sessions of the dr mcp bridge, which marks them, don't hold it: it replays them. Only a process started detached with the default options restarts; any other keeps running and says to restart it by hand."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/central-lifetime.ts
+        symbol: centralStaleReason
+  metadata:
+    created_at: 2026-11-25T16:08:59.368Z
+    updated_at: 2026-11-25T16:08:59.368Z
+    version: 1
+application.applicationfunction.visualization-server-serve-custom-viewer:
+  id: 309be28e-4b18-44af-b0ef-07e145e85906
+  path: application.applicationfunction.visualization-server-serve-custom-viewer
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: VisualizationServer serveCustomViewer
+  description: "Serves a file of the viewer build (the bundled one, or --viewer-path) from disk on every request. index.html and every file without a content hash in its name go out with Cache-Control: no-cache and an ETag (a 304 when unchanged), so a rebuilt bundle shows on the next load; hashed assets are immutable (#1308)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.serveCustomViewer
+  metadata:
+    created_at: 2026-11-25T16:08:59.368Z
+    updated_at: 2026-11-25T16:08:59.368Z
+    version: 1
+application.applicationfunction.assert-farm-file-writable:
+  id: 913f4581-38a0-4cb5-871f-a479a78d0f46
+  path: application.applicationfunction.assert-farm-file-writable
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: assertFarmFileWritable
+  description: Throws when a farm.yaml is one this process must not write (DR_PROTECTED_FARM_FILES, compared with symlinks resolved). The test preload names the developer's real user farm there, so a test that forgets to isolate itself fails instead of writing it (#1438).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/farm-manifest.ts
+        symbol: assertFarmFileWritable
+  metadata:
+    created_at: 2026-11-25T17:18:22.817Z
+    updated_at: 2026-11-25T17:18:22.817Z
+    version: 1
+application.applicationfunction.watch-running-code:
+  id: 114edac1-3150-478f-bde9-4731523b849d
+  path: application.applicationfunction.watch-running-code
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: watchRunningCode
+  description: Records what is installed when a long-lived process starts, as its baseline, and reports drift already there then (driftAtStart). Its check says how the installed CLI changed since the baseline, so drift present at start, a dev checkout bumped without a rebuild or a skewed clock is never refused or restarted on (#1427).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/running-code.ts
+        symbol: watchRunningCode
+  metadata:
+    created_at: 2026-11-25T17:18:22.817Z
+    updated_at: 2026-11-25T17:18:22.817Z
+    version: 1
+application.applicationfunction.with-running-code-checked:
+  id: be94a817-bbc8-454b-97f7-ff9e5f38f6ce
+  path: application.applicationfunction.with-running-code-checked
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: withRunningCodeChecked
+  description: "Runs a commit with the write guard checked once, at its start: refused then, or never during it, so a CLI change partway through can't leave a changeset marked committed with the model unwritten. The changeset_commit tool and the viewer's Apply both land through it (#1427)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/running-code.ts
+        symbol: withRunningCodeChecked
+  metadata:
+    created_at: 2026-11-25T17:18:22.817Z
+    updated_at: 2026-11-25T17:18:22.817Z
+    version: 1
+application.applicationfunction.restarts-itself-when-stale:
+  id: 4395c7c4-c98e-4711-8044-d4bf7d7729d8
+  path: application.applicationfunction.restarts-itself-when-stale
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: restartsItselfWhenStale
+  description: "Whether a central process may restart itself on the installed CLI: only one started detached with the default options (as dr mcp and a bare dr serve start it), so a restart through the next dr mcp call loses nothing. An attached, isolated or customised one keeps running (#1427)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/serve.ts
+        symbol: restartsItselfWhenStale
+  metadata:
+    created_at: 2026-11-25T17:18:22.817Z
+    updated_at: 2026-11-25T17:18:22.817Z
+    version: 1
+application.applicationfunction.relayout-model-files:
+  id: 7171dd33-c11c-4046-b9ad-beaee4bdd7c6
+  path: application.applicationfunction.relayout-model-files
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: relayoutModelFiles
+  description: "Lays a model's element files out as dr writes them, data unchanged, or with dryRun lists the files not in dr's layout. The upgrade scan counts them, and plans it as a step of its own with project_upgrade relayout: true or dr upgrade --relayout. Moved from cli/scripts/relayout-model-files.ts, which now calls it (#1439)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model-relayout.ts
+        symbol: relayoutModelFiles
+  metadata:
+    created_at: 2026-11-25T16:09:06.301Z
+    updated_at: 2026-11-25T16:09:06.301Z
+    version: 1
+application.applicationfunction.relationship-end-layer:
+  id: f6fa8264-1f76-4f51-a591-5ff3497b09e1
+  path: application.applicationfunction.relationship-end-layer
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: relationshipEndLayer
+  description: "The layer a relationship's source or target is in: the id's first segment for a dotted id, else the layer the relationship row records (layer for the source, targetLayer or layer for the target). Lets a layer-scoped validation place an end named by UUID without loading other layers (#1259)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationships.ts
+        symbol: relationshipEndLayer
+  metadata:
+    created_at: 2026-11-25T16:09:06.301Z
+    updated_at: 2026-11-25T16:09:06.301Z
+    version: 1
+application.applicationfunction.type-not-in-declared-spec:
+  id: 6eb4d87d-7778-4468-9e6d-033681b610ed
+  path: application.applicationfunction.type-not-in-declared-spec
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: typeNotInDeclaredSpec
+  description: Whether the spec the model's manifest declares lacks a node type of the bundled catalog, and from which spec version it exists, read from the spec catalog history. model_add, model_update, dr add and the validator's schema stage refuse such a type (#1411).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/declared-spec.ts
+        symbol: typeNotInDeclaredSpec
+  metadata:
+    created_at: 2026-11-25T16:42:35.475Z
+    updated_at: 2026-11-25T16:42:35.475Z
+    version: 1
+application.applicationfunction.relationship-not-in-declared-spec:
+  id: 053032f5-6cfb-48e8-a857-2a4a89f76655
+  path: application.applicationfunction.relationship-not-in-declared-spec
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: relationshipNotInDeclaredSpec
+  description: Whether the spec the model's manifest declares lacks a relationship type (source type, predicate, destination type) of the bundled catalog, and from which spec version it exists. relationship_add and dr relationship add (through validateRelationshipCombination) and the relationship validator refuse such a relationship (#1411).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/declared-spec.ts
+        symbol: relationshipNotInDeclaredSpec
+  metadata:
+    created_at: 2026-11-25T16:42:35.476Z
+    updated_at: 2026-11-25T16:42:35.476Z
+    version: 1
+application.applicationfunction.migration-registry-migration-kind:
+  id: 1330d43e-e554-459b-9331-0f10b39842c5
+  path: application.applicationfunction.migration-registry-migration-kind
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: MigrationRegistry migrationKind
+  description: "What a pending spec migration changes: manifest-only when every step on the path only stamps the version (stampsOnly), so nothing in the model changes but spec_version in manifest.yaml; model otherwise. project_status reports it (#1435)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/migration-registry.ts
+        symbol: MigrationRegistry.migrationKind
+  metadata:
+    created_at: 2026-11-25T16:42:35.476Z
+    updated_at: 2026-11-25T16:42:35.476Z
+    version: 1
+application.applicationfunction.files-a-landing-relays-out:
+  id: d7cdd876-3b1b-450d-af9c-95512ef7eee0
+  path: application.applicationfunction.files-a-landing-relays-out
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: filesALandingRelaysOut
+  description: "The element files a landing of a changeset's changes would write that are not in dr's layout: each file holding an element it adds, updates or deletes, and the file of each type it adds to (#1439)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model-relayout.ts
+        symbol: filesALandingRelaysOut
+  metadata:
+    created_at: 2026-11-25T16:42:35.476Z
+    updated_at: 2026-11-25T16:42:35.476Z
+    version: 1
+application.applicationfunction.landing-relayout-note:
+  id: 60efb39d-ca69-4eb4-b48c-d910e09275d5
+  path: application.applicationfunction.landing-relayout-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: landingRelayoutNote
+  description: "The landing summary's line naming the files a landing would lay out anew, with project_upgrade relayout: true as the way to do it first in a commit of its own (#1439)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model-relayout.ts
+        symbol: landingRelayoutNote
+  metadata:
+    created_at: 2026-11-25T16:42:35.476Z
+    updated_at: 2026-11-25T16:42:35.476Z
+    version: 1
+application.applicationfunction.spec-ahead-note:
+  id: abea87fc-815e-4ccf-9c67-05e342857b1c
+  path: application.applicationfunction.spec-ahead-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: specAheadNote
+  description: "One line when the model declares a spec newer than dr's: a type or relationship that spec added is unknown here, not invalid, with the update to make. model_add, model_update and relationship_add add it to a refusal for a type or relationship type dr doesn't know (#1411)."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/declared-spec.ts
+        symbol: specAheadNote
+  metadata:
+    created_at: 2026-11-25T16:53:00.238Z
+    updated_at: 2026-11-25T16:53:00.238Z
+    version: 1
+application.applicationfunction.index-first:
+  id: 1bf98bdc-5e9a-422f-a090-a30caca228ef
+  path: application.applicationfunction.index-first
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: indexFirst
+  description: "Before codebase_extract judges the index (#1347), for a run only: never a preview (it changes nothing, and an index run writes .dr/ and may write .cbmignore), a page, view, list or reject-only call, nor with autoIndex: false (codebase_extract's indexesFirst decides it in one place). It waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks until the caller's deadline (indexFirstDeadline: half the call's time, at most 48 s). Returns the index as judged at the end (IndexAssessment, so requireFreshIndex doesn't judge it again) and what it did (IndexedFirst); throws a CLIError with the job's error when the run fails, and one that says how to wait when the run outlasts the wait."
+  attributes:
+    documentation: cli/src/mcp/tools/codebase-index.ts. Reuses the handler's own start path (analyzer selection, the .cbmignore check, the worktree snapshot, startIndexJob) so a run it starts is the same run codebase_index would start.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-index.ts
+        symbol: indexFirst
+  metadata:
+    created_at: 2026-11-25T16:08:53.896Z
+    updated_at: 2026-11-25T16:08:53.896Z
+    version: 1
+application.applicationfunction.exclude-from-git:
+  id: 1938986a-c66a-4583-a48f-9d6e70999d0a
+  path: application.applicationfunction.exclude-from-git
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: excludeFromGit
+  description: Adds a path to the repository's local exclude file (git rev-parse --git-path info/exclude, shared by every worktree), under DR's heading, unless git already ignores it. Never touches a tracked file or the working tree's .gitignore. Returns the exclude file's path, or null when the code is not in a git work tree (#1300).
+  attributes:
+    documentation: cli/src/analyzers/cbm-analyzer.ts, used by ensureCbmIgnore.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cbm-analyzer.ts
+        symbol: excludeFromGit
+  metadata:
+    created_at: 2026-11-25T16:08:53.896Z
+    updated_at: 2026-11-25T16:08:53.896Z
+    version: 1
+application.applicationfunction.settle-index-counts:
+  id: 38eca707-526d-4fdb-a204-b742c1bb8955
+  path: application.applicationfunction.settle-index-counts
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: settleIndexCounts
+  description: "The node and edge counts of an index_repository call (#1345), with joined: true when they came from another process's run. When CBM answered without counts (status indexing, busy or pending), it waits for that run through index_status within the run's timeout and reads the counts there; index_status records no commit or start time (its indexed_at is when a run finished), hence joined. Throws when CBM reports failed, when the counts stay unreadable, or when the index holds no nodes."
+  attributes:
+    documentation: cli/src/analyzers/cbm-analyzer.ts, used by CbmAnalyzer.index.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cbm-analyzer.ts
+        symbol: settleIndexCounts
+  metadata:
+    created_at: 2026-11-25T16:08:53.896Z
+    updated_at: 2026-11-25T16:08:53.896Z
+    version: 1
+application.applicationfunction.index-holds-no-code:
+  id: e16b62a4-1008-4084-a801-3e0f372885b9
+  path: application.applicationfunction.index-holds-no-code
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: indexHoldsNoCode
+  description: "Whether recorded index metadata describes an index with no code in it (0 nodes): such an index is never fresh, whatever its commit (#1345)."
+  attributes:
+    documentation: cli/src/analyzers/session-state.ts, beside IndexMeta. Used by judgeIndex and CbmAnalyzer.status, so the MCP tools and the background child agree.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/session-state.ts
+        symbol: indexHoldsNoCode
+  metadata:
+    created_at: 2026-11-25T16:08:53.897Z
+    updated_at: 2026-11-25T16:08:53.897Z
+    version: 1
+application.applicationfunction.remove-index-meta:
+  id: 4d9078d9-34a4-4ac7-8314-deaedf97cfbd
+  path: application.applicationfunction.remove-index-meta
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: removeIndexMeta
+  description: "Removes an analyzer's index-meta.json, so the code reads as not indexed: a run that replaced the analyzer's graph and then failed calls it (#1345)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/session-state.ts
+        symbol: removeIndexMeta
+  metadata:
+    created_at: 2026-11-25T17:00:03.724Z
+    updated_at: 2026-11-25T17:00:03.724Z
+    version: 1
+application.applicationfunction.assess-selected-index:
+  id: 366bef0d-d385-4cf1-9511-f4d2ea7fa09e
+  path: application.applicationfunction.assess-selected-index
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: assessSelectedIndex
+  description: assessIndex for the analyzer the session selected; not indexed when none is. indexFirst and requireFreshIndex judge the index through it.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: assessSelectedIndex
+  metadata:
+    created_at: 2026-11-25T17:00:03.724Z
+    updated_at: 2026-11-25T17:00:03.724Z
+    version: 1
+application.applicationfunction.index-first-deadline:
+  id: 5525227d-e779-42f8-a934-b36c8880fbdb
+  path: application.applicationfunction.index-first-deadline
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: indexFirstDeadline
+  description: "How long indexFirst may wait for the index: half the call's time, and never past codebase_index's longest wait (48 s)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-index.ts
+        symbol: indexFirstDeadline
+  metadata:
+    created_at: 2026-11-25T17:00:03.724Z
+    updated_at: 2026-11-25T17:00:03.724Z
+    version: 1
+application.applicationfunction.index-untrusted:
+  id: 1880045b-12a9-4545-821e-3547555731cc
+  path: application.applicationfunction.index-untrusted
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: indexUntrusted
+  description: "Why recorded index metadata can't be trusted to describe the code, or null: it holds no code, or it was joined from another process's run whose commit and start are unknown (#1345). judgeIndex and CbmAnalyzer.status call such an index stale."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/session-state.ts
+        symbol: indexUntrusted
+  metadata:
+    created_at: 2026-11-25T17:18:30.936Z
+    updated_at: 2026-11-25T17:18:30.936Z
+    version: 1
+application.applicationfunction.release-held-cards:
+  id: 3b1239ce-4f96-4396-8d26-8713e43071a3
+  path: application.applicationfunction.release-held-cards
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: releaseHeldCards
+  description: After validation, gives back to its none rule each card whose symbol the rule held for Tier 0 and that ended up a card (needs-attributes or ambiguous) instead of being staged; returns the cards left and the ones each rule took.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/project-rules.ts
+        symbol: releaseHeldCards
+  metadata:
+    created_at: 2026-11-25T16:10:29.153Z
+    updated_at: 2026-11-25T16:10:29.153Z
+    version: 1
+application.applicationfunction.rule-warnings:
+  id: 0a15a31d-bd21-483d-8153-a4b08370dac0
+  path: application.applicationfunction.rule-warnings
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: ruleWarnings
+  description: "The run's top-level warnings about rules and Tier 0: per rule, how many symbols Tier 0 decided that the rule left to Tier 0, or took with overrideTier0, by type."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract-decide.ts
+        symbol: ruleWarnings
+  metadata:
+    created_at: 2026-11-25T16:10:29.154Z
+    updated_at: 2026-11-25T16:10:29.154Z
+    version: 1
+application.applicationfunction.shared-candidate-lists:
+  id: bf6c6020-8a19-4103-9e5a-9db8cf79ad37
+  path: application.applicationfunction.shared-candidate-lists
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: sharedCandidateLists
+  description: A page of cards with each candidate list two or more cards share stated once (candidateLists, by a short name) and named on those cards (candidateList) instead of repeated; a list of one type, or one only one card has, stays on its card.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: sharedCandidateLists
+  metadata:
+    created_at: 2026-11-25T16:10:29.154Z
+    updated_at: 2026-11-25T16:10:29.154Z
+    version: 1
+application.applicationfunction.fit-verify-report:
+  id: 52abaa68-055a-426b-9013-c0f1d7759374
+  path: application.applicationfunction.fit-verify-report
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: fitVerifyReport
+  description: changeset_verify's compact or sections answer at the most entries per list that keep it near 40 KB when no limit is given, with page.totals and the call for the next page.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/changeset-verify.ts
+        symbol: fitVerifyReport
+  metadata:
+    created_at: 2026-11-25T16:10:29.154Z
+    updated_at: 2026-11-25T16:10:29.154Z
+    version: 1
+application.applicationfunction.staging-area-manager-get-write-target:
+  id: 43a88ee8-b2d0-441c-9d09-4bce97e7ac67
+  path: application.applicationfunction.staging-area-manager-get-write-target
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: StagingAreaManager getWriteTarget
+  description: The changeset a write stages into, or null for a write to the base model. Refuses, naming the changeset and when it landed, when this checkout's active changeset was landed and nothing has been activated or deactivated since (the landed note), so a write never falls through to the base model (#1437).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/staging-area.ts
+        symbol: StagingAreaManager.getWriteTarget
+  metadata:
+    created_at: 2026-11-25T16:10:59.332Z
+    updated_at: 2026-11-25T16:10:59.332Z
+    version: 1
+application.applicationfunction.write-landed-note:
+  id: 946a235e-1b1c-45f4-b04c-9c98bd627a27
+  path: application.applicationfunction.write-landed-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: writeLandedNote
+  description: Records in .dr/ that the active changeset was landed (its id, name and when), so later writes aimed at it refuse instead of writing the base model. Written by a landing that clears the active marker.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/active-changeset-marker.ts
+        symbol: writeLandedNote
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.read-landed-note:
+  id: 63252267-69ab-47d6-94be-e7d8eed423c1
+  path: application.applicationfunction.read-landed-note
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readLandedNote
+  description: "The landed note: the changeset the checkout was writing into when it landed, or null. Cleared with the active marker (activate, deactivate, create)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/active-changeset-marker.ts
+        symbol: readLandedNote
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.insert-workflow-step:
+  id: 3e07666c-137b-44e2-b504-1067c65bb7e5
+  path: application.applicationfunction.insert-workflow-step
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: insertWorkflowStep
+  description: "model_add's after/before for a product.workflowstep: checks the step and every link it needs first (planRelationshipBatch), then in a changeset stages the step, the renumbered sequences, the replaced hand-offs and the new links in one write; in the model writes them in turn (#1396)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/workflow-step-insert.ts
+        symbol: insertWorkflowStep
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.delete-relationship-batch:
+  id: 87518c04-a65d-4408-b9c9-9e726105fb56
+  path: application.applicationfunction.delete-relationship-batch
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deleteRelationshipBatch
+  description: "relationship_delete's list form: each {source, predicate?, target} is resolved in the projection; the removals are staged and the adds this changeset made unstaged in one write (or written to the model in one save). Failures are grouped by cause; one the changeset already removes, or whose add it unstaged, is unchanged (#1372)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/relationship-tools.ts
+        symbol: deleteRelationshipBatch
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.delete-element-batch:
+  id: 9daaac2b-f48c-4cbc-8b37-64d5a7faadac
+  path: application.applicationfunction.delete-element-batch
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: deleteElementBatch
+  description: "model_delete's list form (ids): each element is deleted (staged, or written) with the batch's cascade, force and dryRun; dependents the same list deletes don't block it; an element the changeset already deletes is unchanged; failures are grouped by cause (#1426)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/model-delete.ts
+        symbol: deleteElementBatch
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.settle-source-location-change:
+  id: c68a45b7-3471-4303-b573-70e5c12229cf
+  path: application.applicationfunction.settle-source-location-change
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: settleSourceLocationChange
+  description: "model_update's addSourceLocation and removeSourceLocation: adds one {file, symbol?} beside the element's locations (never twice) or removes the matching ones, keeping the provenance and repository unless the call names them; an element with no reference gets 'manual' (#1260)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/source-reference.ts
+        symbol: settleSourceLocationChange
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.predicates-between:
+  id: 4cc0e6a1-def9-45b1-bc98-b3f4b8a16e3d
+  path: application.applicationfunction.predicates-between
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: predicatesBetween
+  description: "The predicates the catalog allows from one type to another, and back: a refused relationship's suggestions name them so the agent can pick one in the same turn (#1354)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: predicatesBetween
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.id-note-kind:
+  id: faa96943-0bb5-4f4e-957c-08c6e4cdcdb8
+  path: application.applicationfunction.id-note-kind
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: idNoteKind
+  description: "Which id-derivation rule a note from deriveElementId describes (word breaks, root route, digit prefix, shortened), so a batch reports each rule once with a count and sample ids instead of one note per element (#1302, #1415)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/utils/id-generator.ts
+        symbol: idNoteKind
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.batch-causes:
+  id: 2d0dfb81-255c-4b61-9084-a5c49e33d7cb
+  path: application.applicationfunction.batch-causes
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: batchCauses
+  description: Groups a batch's items that need attention by cause (status, reason and suggestions, one group per distinct cause such as one missing target), with true counts, listing items up to limit across the groups (#1295).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: batchCauses
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+application.applicationfunction.relationship-delete-change:
+  id: 7f263982-a4ec-4881-b150-50f47ce3e91d
+  path: application.applicationfunction.relationship-delete-change
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: relationshipDeleteChange
+  description: The staged change that deletes a live relationship of the projection, naming the row as relationships.yaml does.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: relationshipDeleteChange
+  metadata:
+    created_at: 2026-11-25T17:21:47.505Z
+    updated_at: 2026-11-25T17:21:47.505Z
+    version: 1
+application.applicationfunction.write-activity-warning:
+  id: be14e7e2-f37a-45e2-be0d-2e51f0d7cf02
+  path: application.applicationfunction.write-activity-warning
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: writeActivityWarning
+  description: Evidence that something is still writing into a changeset (its lock held by a write, or another process staged into it in the last 30 s), for the landing summary, the commit dialog, the dr changeset commit prompt and the viewer's changeset read (#1437).
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-write-activity.ts
+        symbol: writeActivityWarning
+  metadata:
+    created_at: 2026-11-25T17:21:47.505Z
+    updated_at: 2026-11-25T17:21:47.505Z
+    version: 1
+application.applicationfunction.record-changeset-write:
+  id: 661b9d75-f803-4eea-a22c-54573ec48f23
+  path: application.applicationfunction.record-changeset-write
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: recordChangesetWrite
+  description: "Records which process staged into a changeset, and when, in .dr/changeset-writes/ (per-checkout state): the evidence writeActivityWarning reads."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-write-activity.ts
+        symbol: recordChangesetWrite
+  metadata:
+    created_at: 2026-11-25T17:21:47.505Z
+    updated_at: 2026-11-25T17:21:47.505Z
+    version: 1
+application.applicationfunction.unstaged-relationship-add:
+  id: 3f39c5b0-ced3-42bd-a5b0-c60226491471
+  path: application.applicationfunction.unstaged-relationship-add
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: unstagedRelationshipAdd
+  description: "Whether the changeset had staged an add of a relationship and unstaged it since: a delete sent again finds it done, not missing (#1296)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: unstagedRelationshipAdd
+  metadata:
+    created_at: 2026-11-25T17:21:47.505Z
+    updated_at: 2026-11-25T17:21:47.505Z
+    version: 1
+application.applicationfunction.unstaged-element-add:
+  id: 3aff539d-e258-4383-afec-9862b5f4961a
+  path: application.applicationfunction.unstaged-element-add
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: unstagedElementAdd
+  description: "Whether the changeset had staged an add of an element and unstaged it since: a model_delete sent again finds it done, not missing (#1296)."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/relationship-staging.ts
+        symbol: unstagedElementAdd
+  metadata:
+    created_at: 2026-11-25T17:21:47.505Z
+    updated_at: 2026-11-25T17:21:47.505Z
     version: 1

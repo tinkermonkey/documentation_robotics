@@ -4993,6 +4993,7 @@ data-model.objectschema.changeset-update-args:
   type: objectschema
   layer_id: data-model
   name: ChangesetUpdateArgs
+  description: "changeset_update's input: changeset, name, intent or description (markdown; an empty string clears it), rebaseline, limit, offset, rootPath."
   attributes:
     type: object
   source_reference:
@@ -5083,6 +5084,7 @@ data-model.objectschema.changeset-create-args:
   type: objectschema
   layer_id: data-model
   name: ChangesetCreateArgs
+  description: "changeset_create's input: name, intent (the change's intent as markdown; description is its older name, and both may not differ), activate, rootPath."
   attributes:
     type: object
   source_reference:
@@ -6426,6 +6428,7 @@ data-model.objectschema.codebase-extract-args:
   type: objectschema
   layer_id: data-model
   name: CodebaseExtractArgs
+  description: "codebase_extract's arguments. autoIndex (default true): index first when the index is missing or stale; false refuses as before (#1347)."
   attributes:
     type: object
   source_reference:
@@ -6776,6 +6779,7 @@ data-model.objectschema.index-judgement:
   type: objectschema
   layer_id: data-model
   name: IndexJudgement
+  description: "The freshness rule's judgement of an index (state, reason, committedSince, editedSince), with indexedFirst when the calling tool indexed the code before judging it (IndexedFirst: why, jobId, started, seconds, ignoreFile)."
   attributes:
     type: object
   source_reference:
@@ -7283,6 +7287,7 @@ data-model.objectschema.project-status-args:
   type: objectschema
   layer_id: data-model
   name: ProjectStatusArgs
+  description: "project_status's input: rootPath, task (plan, review or reconcile), and list with limit and offset for one of the shortened lists."
   attributes:
     type: object
   source_reference:
@@ -7373,6 +7378,7 @@ data-model.objectschema.project-upgrade-args:
   type: objectschema
   layer_id: data-model
   name: ProjectUpgradeArgs
+  description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, and upgradeIntegrations (with apply: bring the per-project integration files an older dr installed up to this dr, as dr upgrade does; refused with modelOnly)."
   attributes:
     type: object
   source_reference:
@@ -14702,7 +14708,7 @@ data-model.objectschema.batch-report:
   type: objectschema
   layer_id: data-model
   name: BatchReport
-  description: "What a batch write tool returns: total, counts, and attention or results"
+  description: "What a batch write tool returns: total, counts, then causes (the items that need attention grouped by cause) or results"
   attributes:
     type: object
   source_reference:
@@ -15253,7 +15259,7 @@ data-model.objectschema.outside-model:
   type: objectschema
   layer_id: data-model
   name: OutsideModel
-  description: What an upgrade touches outside the model, by group
+  description: What an upgrade touches outside the model, by group, the old active-changeset marker included
   attributes:
     type: object
   source_reference:
@@ -15405,7 +15411,7 @@ data-model.objectschema.project-list-entry:
   type: objectschema
   layer_id: data-model
   name: ProjectListEntry
-  description: "What project_list, GET /api/projects and dr farm list return for a project: name, repository, model path, and its checkouts with branch, head, state, active changeset and staged changeset count."
+  description: "One farm project as every interface lists it: name, repository (the main checkout's path), model folder, remote, and its checkouts with their state, active changeset and staged count. missing: true, with remove (the dr farm remove call), when the repository folder is gone (#1438)."
   attributes:
     type: object
   source_reference:
@@ -18675,4 +18681,251 @@ data-model.objectschema.spec-reference-standing:
   metadata:
     created_at: 2026-11-24T21:42:21.516Z
     updated_at: 2026-11-24T21:42:21.516Z
+    version: 1
+data-model.objectschema.source-file-summary:
+  id: 2a198ac7-7a8b-4509-a1a3-5ceadf2c686e
+  path: data-model.objectschema.source-file-summary
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SourceFileSummary
+  description: "Changed source files per folder and their elements per layer: folders (first few, by file count), folderCount, elementsByLayer."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: SourceFileSummary
+  metadata:
+    created_at: 2026-11-25T16:08:17.266Z
+    updated_at: 2026-11-25T16:08:17.266Z
+    version: 1
+data-model.objectschema.legacy-marker-state:
+  id: 33f855e2-c119-4253-989f-e4dbedc7f2f0
+  path: data-model.objectschema.legacy-marker-state
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: LegacyMarkerState
+  description: "The old active-changeset marker: path, onDisk, tracked (by git), inUse, names, note."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-status-collectors.ts
+        symbol: LegacyMarkerState
+  metadata:
+    created_at: 2026-11-25T16:08:17.266Z
+    updated_at: 2026-11-25T16:08:17.266Z
+    version: 1
+data-model.objectschema.plugin-coverage:
+  id: faaecce8-0226-41ad-84de-9cd3647efde7
+  path: data-model.objectschema.plugin-coverage
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: PluginCoverage
+  description: Installed per-project Claude Code entries the dr plugin carries (inPlugin) and the ones it doesn't (notInPlugin), paths relative to the project root.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/integrations/claude-manager.ts
+        symbol: PluginCoverage
+  metadata:
+    created_at: 2026-11-25T16:08:17.266Z
+    updated_at: 2026-11-25T16:08:17.266Z
+    version: 1
+data-model.objectschema.integration-report:
+  id: 526d6948-3af3-4e39-829f-8384b692751b
+  path: data-model.objectschema.integration-report
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: IntegrationReport
+  description: "One per-project integration in project_upgrade's answer: folder, installedVersion, state (an upgrade is pending only when the installed version is older than this dr's, as dr upgrade decides), and with one pending or done the file counts by action, the first paths and the files edited here it replaces (wouldReplace); with none pending the files edited here that stay (kept); stale entries; and for Claude Code the plugin coverage."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-tools.ts
+        symbol: IntegrationReport
+  metadata:
+    created_at: 2026-11-25T16:08:17.266Z
+    updated_at: 2026-11-25T16:08:17.266Z
+    version: 1
+data-model.objectschema.spec-catalog-history:
+  id: 3f6b58e7-e501-4a95-b26b-bda93c210c6b
+  path: data-model.objectschema.spec-catalog-history
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: SpecCatalogHistory
+  description: "Generated table of the released spec versions before the bundled one (0.8.0 on), oldest first, with a mask per node type and per relationship type: one character per version, 1 where that version's catalog has it. Built by cli/scripts/generate-spec-catalog-history.ts from each version's release tag, or its last main-line commit when untagged."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/declared-spec.ts
+        symbol: SpecCatalogHistory
+  metadata:
+    created_at: 2026-11-25T16:09:15.076Z
+    updated_at: 2026-11-25T16:09:15.076Z
+    version: 1
+data-model.objectschema.declared-spec-gap:
+  id: f5a6822e-7e09-4f4e-a2f8-c4d8c55bb5f8
+  path: data-model.objectschema.declared-spec-gap
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: DeclaredSpecGap
+  description: "A type or relationship the model's declared spec lacks: the model's version, the first version that has it, the bundled version, and the one-line message naming them and project_upgrade."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/declared-spec.ts
+        symbol: DeclaredSpecGap
+  metadata:
+    created_at: 2026-11-25T16:42:35.476Z
+    updated_at: 2026-11-25T16:42:35.476Z
+    version: 1
+data-model.objectschema.relayout-result:
+  id: d3d3ce2e-1cc1-4dd0-89d6-99571460be0b
+  path: data-model.objectschema.relayout-result
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: RelayoutResult
+  description: "What a relayout found: the element files looked at, the ones not in dr's layout, and the ones left alone with why."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/model-relayout.ts
+        symbol: RelayoutResult
+  metadata:
+    created_at: 2026-11-25T16:42:35.476Z
+    updated_at: 2026-11-25T16:42:35.476Z
+    version: 1
+data-model.objectschema.indexed-first:
+  id: 1da2586c-e27f-47a0-9b69-2c204e179353
+  path: data-model.objectschema.indexed-first
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: IndexedFirst
+  description: "What indexFirst did before a tool judged the index, as index.indexedFirst: why, jobId, started, seconds, ignoreFile."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: IndexedFirst
+  metadata:
+    created_at: 2026-11-25T17:00:03.724Z
+    updated_at: 2026-11-25T17:00:03.724Z
+    version: 1
+data-model.objectschema.index-assessment:
+  id: 7b1ac24f-c15b-49a1-b64f-d61456b2d40f
+  path: data-model.objectschema.index-assessment
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: IndexAssessment
+  description: The selected analyzer and its index judged by the rule (analyzer, freshness, judgement), passed from indexFirst to requireFreshIndex so the index is judged once per call.
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-shared.ts
+        symbol: IndexAssessment
+  metadata:
+    created_at: 2026-11-25T17:00:03.724Z
+    updated_at: 2026-11-25T17:00:03.724Z
+    version: 1
+data-model.objectschema.cbm-ignore-result:
+  id: ce012998-97ce-41f9-abb3-c46b5184ae1a
+  path: data-model.objectschema.cbm-ignore-result
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: CbmIgnoreResult
+  description: "What ensureCbmIgnore did to the codebase's .cbmignore: path, added, created, missing (a developer's file's lacking lines), excludedBy, notInGit."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cbm-analyzer.ts
+        symbol: CbmIgnoreResult
+  metadata:
+    created_at: 2026-11-25T17:00:03.724Z
+    updated_at: 2026-11-25T17:00:03.724Z
+    version: 1
+data-model.objectschema.index-count-tools:
+  id: 2e3ee934-1014-4382-b180-116bbad2979b
+  path: data-model.objectschema.index-count-tools
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: IndexCountTools
+  description: "The codebase-memory-mcp calls settleIndexCounts makes: list_projects and index_status."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cbm-analyzer.ts
+        symbol: IndexCountTools
+  metadata:
+    created_at: 2026-11-25T17:00:03.725Z
+    updated_at: 2026-11-25T17:00:03.725Z
+    version: 1
+data-model.objectschema.batch-cause:
+  id: 6fafd502-7bac-4e57-967b-b9afbdde7500
+  path: data-model.objectschema.batch-cause
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: BatchCause
+  description: "One cause in a batch result: status, reason, suggestions, how many items it affects (count) and the items listed under limit (index, id, own values), with notListed when the limit cut it."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/batch-result.ts
+        symbol: BatchCause
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
+    version: 1
+data-model.objectschema.landed-note:
+  id: 8ada26fd-ea6a-4a73-9858-5421cc1fc5f1
+  path: data-model.objectschema.landed-note
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: LandedNote
+  description: "The landed note in .dr/: the id and name of the changeset that was active when it landed, and when."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/active-changeset-marker.ts
+        symbol: LandedNote
+  metadata:
+    created_at: 2026-11-25T16:10:59.333Z
+    updated_at: 2026-11-25T16:10:59.333Z
     version: 1

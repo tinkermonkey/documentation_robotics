@@ -117,7 +117,7 @@ application.applicationservice.changeset-create-command:
   type: applicationservice
   layer_id: application
   name: changesetCreateCommand
-  description: Create a new changeset
+  description: Create a new changeset and activate it; --intent (or --description) takes the change's intent as markdown
   attributes:
     serviceType: synchronous
   source_reference:
@@ -136,7 +136,7 @@ application.applicationservice.changeset-list-command:
   type: applicationservice
   layer_id: application
   name: changesetListCommand
-  description: List all changesets
+  description: List all changesets, each with the first line of its description
   attributes:
     serviceType: synchronous
   source_reference:
@@ -269,7 +269,7 @@ application.applicationservice.changeset-staged-command:
   type: applicationservice
   layer_id: application
   name: changesetStagedCommand
-  description: List all staged changes in the active changeset
+  description: List the staged changes of the changeset named (by name or id, in any state), or of the active one when none is named
   attributes:
     serviceType: synchronous
   source_reference:
@@ -344,7 +344,7 @@ application.applicationservice.changeset-preview-command:
   type: applicationservice
   layer_id: application
   name: changesetPreviewCommand
-  description: Preview the merged model state with staged changes applied
+  description: Preview the merged model state with the staged changes of the changeset named, or of the active one when none is named
   attributes:
     serviceType: synchronous
   source_reference:
@@ -363,7 +363,7 @@ application.applicationservice.changeset-diff-command:
   type: applicationservice
   layer_id: application
   name: changesetDiffCommand
-  description: Show delta between base model and staged changes
+  description: Show delta between base model and the staged changes of the changeset named, or of the active one when none is named
   attributes:
     serviceType: synchronous
   source_reference:
@@ -607,7 +607,7 @@ application.applicationservice.farm-status-command:
   type: applicationservice
   layer_id: application
   name: farmStatusCommand
-  description: Show farm status
+  description: "dr farm status: the farm and each registered project with its sync state. A project whose repository folder is gone is reported as such, with the dr farm remove call that drops it (#1438)."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1467,6 +1467,7 @@ application.applicationservice.create-codebase-extract-handler:
   type: applicationservice
   layer_id: application
   name: createCodebaseExtractHandler
+  description: "codebase_extract. Before judging the index it indexes first (indexFirst) when the code is not indexed, the index is stale or holds no code, or a run is in flight, within its time budget, and reports it as index.indexedFirst (what it did, why, seconds); when the run outlasts the wait it says so and how to wait. autoIndex: false keeps the old refusal (#1347)."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1485,6 +1486,7 @@ application.applicationservice.create-codebase-index-handler:
   type: applicationservice
   layer_id: application
   name: createCodebaseIndexHandler
+  description: "codebase_index. Its ignoreFile result says when it wrote DR's .cbmignore (hidden from git through the local exclude: nothing to commit) or, for a .cbmignore the developer tracks, which lines it lacks (missing) for the developer to add (#1300). An index that holds no code reads stale, and a run that could not read its counts fails (#1345)."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1557,6 +1559,7 @@ application.applicationservice.model-add-handler:
   type: applicationservice
   layer_id: application
   name: modelAddHandler
+  description: "model_add: adds one element or a list with relationships, answering summary first with failures grouped by cause; re-sent elements that match are unchanged; a workflow step can be placed after or before another"
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1575,6 +1578,7 @@ application.applicationservice.model-delete-handler:
   type: applicationservice
   layer_id: application
   name: modelDeleteHandler
+  description: "model_delete: deletes one element (id) or a list (ids, or a file), staged or written, with cascade, force and dryRun; a list answers with counts and failures grouped by cause"
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1737,6 +1741,7 @@ application.applicationservice.model-update-handler:
   type: applicationservice
   layer_id: application
   name: modelUpdateHandler
+  description: "model_update: updates one element or a list; source fields settle against the element's reference, with addSourceLocation and removeSourceLocation for one location"
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1846,6 +1851,7 @@ application.applicationservice.relationship-delete-handler:
   type: applicationservice
   layer_id: application
   name: relationshipDeleteHandler
+  description: "relationship_delete: removes relationships from source to target, or a list of {source, predicate?, target} (relationships, or a file) in one write; a list answers with counts and failures grouped by cause"
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1919,7 +1925,7 @@ application.applicationservice.changeset-commit-preview-handler:
   type: applicationservice
   layer_id: application
   name: changesetCommitPreviewHandler
-  description: Checks a staged changeset for landing without writing anything and returns the landing summary with a confirmation token
+  description: Checks a staged changeset for landing without writing anything and returns the landing summary with a confirmation token; reports a changeset already landed as a result, and changes staged into it moments ago as a warning
   attributes:
     serviceType: synchronous
   source_reference:
@@ -2014,7 +2020,7 @@ application.applicationservice.serve-command:
   type: applicationservice
   layer_id: application
   name: serveCommand
-  description: "dr serve: runs the user's central DR process in the foreground (dr mcp and dr visualize start it detached)."
+  description: "dr serve: runs the user's central DR process (detached, or attached with --foreground; dr mcp and dr visualize start it detached), and --status and --stop it. --state-dir <dir> runs an isolated process for a test suite: its record, token and log go in <dir>, it sweeps no viewers, and --port is the exact port. --token-file <path> gives the process the token the suite chose (every call still needs it). --no-sweep skips the start-up sweep. With --json, a foreground process prints one ready line (pid, port, url, farm) once it serves (#1376, #1369)."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -2120,4 +2126,23 @@ application.applicationservice.create-project-list-handler:
   metadata:
     created_at: 2026-11-24T21:42:21.516Z
     updated_at: 2026-11-24T21:42:21.516Z
+    version: 1
+application.applicationservice.changeset-show-command:
+  id: 61a44d2c-462a-43b1-b7cf-b699f871a993
+  path: application.applicationservice.changeset-show-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: changesetShowCommand
+  description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change as changeset_show lists them. --json returns what changeset_show returns with detail summary, every change on one page, built by the same changesetShowView."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/changeset.ts
+        symbol: changesetShowCommand
+  metadata:
+    created_at: 2026-11-25T16:08:10.392Z
+    updated_at: 2026-11-25T16:08:10.392Z
     version: 1

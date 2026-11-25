@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.8.0
 spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-25T14:04:13.481Z
+updated: 2026-11-25T22:31:47.147Z
 project:
   name: dr-codebase
   description: ""
@@ -21,7 +21,7 @@ layers:
       goal: 3
       outcome: 6
       principle: 10
-      requirement: 31
+      requirement: 34
   business:
     order: 2
     name: Business
@@ -33,7 +33,7 @@ layers:
     path: documentation-robotics/model/03_product/
     enabled: true
     elements:
-      feature: 44
+      feature: 45
       milestone: 1
       persona: 3
       softwarecapability: 8
@@ -52,9 +52,9 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1606
+      applicationfunction: 1672
       applicationinterface: 2
-      applicationservice: 115
+      applicationservice: 116
       dataobject: 13
       message: 1
   technology:
@@ -81,7 +81,7 @@ layers:
     path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
-      objectschema: 1007
+      objectschema: 1020
       schemacomposition: 35
       schemadefinition: 77
   data-store:
@@ -194,6 +194,27 @@ changeset_history:
     action: committed
   - name: wire-api-operations
     committed_at: 2026-11-25T14:04:13.481Z
+    action: committed
+  - name: cli09-status-changeset-cli
+    committed_at: 2026-11-25T22:28:50.623Z
+    action: committed
+  - name: cli09-compact-changeset-reads
+    committed_at: 2026-11-25T22:29:26.740Z
+    action: committed
+  - name: cli09-server-viewer-processes
+    committed_at: 2026-11-25T22:29:43.879Z
+    action: committed
+  - name: cli09-validate-upgrades
+    committed_at: 2026-11-25T22:30:37.496Z
+    action: committed
+  - name: cli09-index-freshness
+    committed_at: 2026-11-25T22:30:58.273Z
+    action: committed
+  - name: cli09-extract-decide
+    committed_at: 2026-11-25T22:31:14.691Z
+    action: committed
+  - name: cli09-clear-write-results
+    committed_at: 2026-11-25T22:31:47.147Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

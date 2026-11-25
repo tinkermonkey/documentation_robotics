@@ -2,17 +2,17 @@ id: changeset-1795623019430-kv6a15n0j
 name: cli09-clear-write-results
 description: 'CLI 0.9.0 tranche "Clear write results" (#1437 #1441 #1295 #1296 #1302 #1415 #1354 #1372 #1426 #1260 #1396). Write results put the summary first, retry idempotently and group failures by cause: a landing holds the changeset''s lock, so no staged write is lost, and a write aimed at a landed or landing changeset fails naming it instead of falling through to the base model; changeset_commit_preview reports an already-landed changeset as a result; model_add/relationship_add batch results lead with counts, group failures by cause under limit, report re-sent items as unchanged and id notes once; a refused relationship names the predicates the catalog allows between the two types; relationship_delete and model_delete take lists; model_update gives a hand-set source file ''manual'' and adds or removes one location explicitly; model_add inserts a product workflow step after or before another, rewiring flows-to and renumbering sequence. Done: each issue fixed with tests, the changed tool descriptions and skills say so.'
 created: 2026-11-25T16:10:19.476Z
-modified: 2026-11-25T17:57:27.757Z
-status: staged
+modified: 2026-11-25T22:31:47.141Z
+status: committed
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
   additions: 62
-  modifications: 19
+  modifications: 22
   deletions: 0
-lastSequence: 103
+lastSequence: 106
 unstaged:
   - sequence: 9
     removedAt: 61

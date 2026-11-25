@@ -565,7 +565,7 @@ data-model.schemacomposition.server-section:
   type: schemacomposition
   layer_id: data-model
   name: ServerSection
-  description: "project_status's server section: current, stale (with the installed CLI and a note) or unknown."
+  description: "project_status's server section: the dr server process that answered (its CLI version, pid and start time, so an agent can tell after the tools reconnect whether the process restarted) and whether it is the CLI installed now (current, stale with what changed and the restart, or unknown) (#1362, #1427)."
   source_reference:
     provenance: extracted
     locations:

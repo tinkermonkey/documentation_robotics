@@ -507,3 +507,39 @@
     metadata: *a17
   timestamp: 2026-11-25T17:20:45.228Z
   sequenceNumber: 45
+- type: update
+  elementId: product.feature.changeset-lifecycle
+  layerName: product
+  before:
+    id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+    path: product.feature.changeset-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset lifecycle
+    description: 'MCP: changeset_create, changeset_activate, changeset_deactivate, changeset_update, changeset_list, changeset_show. CLI: dr changeset create/activate/deactivate/list/show/status. Which changeset is active is per-checkout state, kept in .dr/active-changeset, and it counts only while it names a staged changeset. changeset_list lists the staged changesets by default and counts every changeset by status (status: committed, discarded or all lists those), a page at a time. changeset_show is compact by default: counts per operation and per layer, and one line per change (sequence, operation, element or relationship, changed fields), filtered by layers, types and operations and paged with the true total and the next call; detail: "summary" and "full" page too.'
+    attributes: &a18
+      priority: critical
+      status: delivered
+      documentation: "The active changeset is named by one file, .dr/active-changeset (the changeset's id), read and written by cli/src/core/active-changeset-marker.ts. It is per-checkout state, so it sits in .dr/ with the spec reference and the analyzer state, out of git (#1218). The older documentation-robotics/changesets/.active is still read when .dr/ has no marker, and the next activate or deactivate writes .dr/ and deletes it. The marker counts only while it names a staged changeset: one that names a changeset committed, discarded or deleted since is no active changeset on any surface (Model.load, the CLI, the MCP tools, the viewer), and writes then go to the base model. dr changeset status says when such a marker is being ignored; dr changeset deactivate and changeset_deactivate remove it (the tool reports clearedLeftoverMarker)."
+    source_reference: &a19
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-lifecycle.ts
+    metadata: &a20
+      created_at: 2026-11-09T21:54:57.018Z
+      updated_at: 2026-11-09T21:54:57.018Z
+      version: 1
+  after:
+    id: 0e9afa3e-65d4-4d6e-b661-9df09cd9a9c1
+    path: product.feature.changeset-lifecycle
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset lifecycle
+    description: 'MCP: changeset_create, changeset_activate, changeset_deactivate, changeset_update, changeset_list, changeset_show. CLI: dr changeset create/activate/deactivate/list/show/status; show, staged, diff and preview read any changeset by name or id, the active one when none is named. A changeset''s description is its intent, written as markdown (CommonMark, GitHub flavoured, no raw HTML): changeset_create and changeset_update take it as intent (or description, its older name), it is stored and returned as written, and the CLI prints it with its line breaks (list shows its first line). Which changeset is active is per-checkout state, kept in .dr/active-changeset, and it counts only while it names a staged changeset; once .dr/ has a marker (an empty one means none), the old documentation-robotics/changesets/.active is never read. changeset_list lists the staged changesets by default and counts every changeset by status (status: committed, discarded or all lists those), a page at a time. changeset_show is compact by default: counts per operation and per layer, and one line per change (sequence, operation, element or relationship, changed fields), filtered by layers, types and operations and paged with the true total and the next call; detail: "summary" and "full" page too. dr changeset show --json returns what changeset_show with detail: "summary" returns, every change on one page.'
+    attributes: *a18
+    source_reference: *a19
+    metadata: *a20
+  timestamp: 2026-11-25T22:29:00.940Z
+  sequenceNumber: 46

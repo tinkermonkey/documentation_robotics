@@ -1515,3 +1515,113 @@
     metadata: *a48
   timestamp: 2026-11-25T17:57:27.710Z
   sequenceNumber: 103
+- type: update
+  elementId: application.applicationfunction.clear-active-marker
+  layerName: application
+  before:
+    id: 0d4274d2-6697-49aa-9b68-f0523d8408fe
+    path: application.applicationfunction.clear-active-marker
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: clearActiveMarker
+    description: Remove the marker, from `.dr/` and from the old place, and the landed note with it.
+    source_reference: &a49
+      provenance: extracted
+      locations:
+        - file: cli/src/core/active-changeset-marker.ts
+          symbol: clearActiveMarker
+    metadata: &a50
+      created_at: 2026-11-20T15:06:32.643Z
+      updated_at: 2026-11-20T15:06:32.643Z
+      version: 1
+  after:
+    id: 0d4274d2-6697-49aa-9b68-f0523d8408fe
+    path: application.applicationfunction.clear-active-marker
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: clearActiveMarker
+    description: Leave .dr/active-changeset empty (no active changeset), remove the marker from the old place so a restored legacy file can't make a changeset active again, and remove the landed note with it unless keepLandedNote is set.
+    source_reference: *a49
+    metadata: *a50
+  timestamp: 2026-11-25T22:31:27.751Z
+  sequenceNumber: 104
+- type: update
+  elementId: product.feature.stage-relationship-changes
+  layerName: product
+  before:
+    id: a5c62b62-6de7-4435-b545-73944e15a9e7
+    path: product.feature.stage-relationship-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage relationship changes
+    description: "MCP: relationship_add, relationship_delete, validated against the catalog. Both take a list, inline or in a JSON file, and answer summary first: counts, then failures grouped by cause (one missing element is one entry with the count of relationships it affects). A re-sent relationship already there is unchanged. A refused relationship names the predicates the catalog allows between the two types, in both directions. CLI: dr relationship add/delete (same staging code)."
+    attributes: &a51
+      priority: critical
+      status: delivered
+      documentation: 'MCP: relationship_add, relationship_delete, validated against the catalog. CLI: dr relationship add/delete (same staging code). Batches (CLI 0.7.0): relationship_add takes relationships inline or in a JSON file inside the project named by file ({"relationships": [...]}), staged in one write. It returns total, counts by status and attention: the items that are invalid (with the reason), duplicate or restored, up to limit in full (default 50) and every one past that by position under its reason with what its message named (attentionNotListed); verbose: true returns every item (#1182, #1217). An end that is not an exact id is read as the one element it names by its name or its id without hyphens, among the elements the call adds and the model as the active changeset leaves it, in a list (model_add''s relationships too) and in the single form; more than one match is refused, naming the candidates and which the call adds; a list reports the readings once, as readByName (#1230). An end that is not found is offered the id that starts the same (#1225).'
+    source_reference: &a52
+      provenance: manual
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+    metadata: &a53
+      created_at: 2026-11-09T21:54:57.127Z
+      updated_at: 2026-11-09T21:54:57.127Z
+      version: 1
+  after:
+    id: a5c62b62-6de7-4435-b545-73944e15a9e7
+    path: product.feature.stage-relationship-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage relationship changes
+    description: "MCP: relationship_add, relationship_delete, validated against the catalog and against the spec version the model declares: a relationship type only a newer spec has is refused, naming both versions and project_upgrade (#1411). Both take a list, inline or in a JSON file, and answer summary first: counts, then failures grouped by cause (one missing element is one entry with the count of relationships it affects). A re-sent relationship already there is unchanged. A refused relationship names the predicates the catalog allows between the two types, in both directions. CLI: dr relationship add/delete (same staging code)."
+    attributes: *a51
+    source_reference: *a52
+    metadata: *a53
+  timestamp: 2026-11-25T22:31:27.800Z
+  sequenceNumber: 105
+- type: update
+  elementId: product.feature.commit-confirmation-token
+  layerName: product
+  before:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id, force, a 10-minute expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to."
+    source_reference: &a54
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a55
+      created_at: 2026-11-17T20:42:52.469Z
+      updated_at: 2026-11-17T20:42:52.469Z
+      version: 1
+  after:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id, force, a 10-minute expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout, with project_upgrade relayout: true as the way to do that first in a commit of its own (#1439)."
+    source_reference: *a54
+    metadata: *a55
+  timestamp: 2026-11-25T22:31:27.861Z
+  sequenceNumber: 106

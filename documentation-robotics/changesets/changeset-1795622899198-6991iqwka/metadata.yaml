@@ -2,17 +2,17 @@ id: changeset-1795622899198-6991iqwka
 name: cli09-validate-upgrades
 description: 'CLI 0.9.0, Tool ergonomics, "Validation and upgrades": a model is checked against the spec it declares, not only the CLI''s catalog, so staging, model_validate and changeset_commit_preview refuse a type or relationship that exists only in a newer spec, naming both versions and project_upgrade (#1411). model_validate with layers places a link end named by UUID through the relationship''s recorded layers instead of calling it not found (#1259). spec_type takes a dotted layer.type id (#1280, carries fork PR #1288). project_status and project_upgrade''s preview say when a pending migration changes nothing but the manifest (#1435). project_upgrade and dr upgrade re-lay out model files written by an earlier dr as a previewed step of their own, and changeset_commit_preview says how many files a landing would re-lay out (#1439). Done: each behaviour has a unit test, and the end-to-end ones an integration test.'
 created: 2026-11-25T16:08:19.240Z
-modified: 2026-11-25T17:29:18.586Z
-status: staged
+modified: 2026-11-25T22:30:37.492Z
+status: committed
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
   additions: 52
-  modifications: 7
+  modifications: 9
   deletions: 0
-lastSequence: 88
+lastSequence: 90
 unstaged:
   - sequence: 41
     removedAt: 42
