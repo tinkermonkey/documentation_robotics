@@ -8,7 +8,7 @@
     type: feature
     layer_id: product
     name: Declared-spec check
-    description: 'relationship_add, model_add, model_update, model_validate and changeset_commit_preview check a type or relationship against the spec the model''s manifest declares, not only the CLI''s own catalog. One that exists only in a newer spec is refused: "<type or triple> is not in spec 0.13.0, the model''s version; it exists from 0.14.0. Run project_upgrade first." The versions come from a table generated from the released spec catalogs (0.8.1 on) and committed with the CLI (#1411).'
+    description: 'relationship_add, model_add, model_update, model_validate and changeset_commit_preview check a type or relationship against the spec the model''s manifest declares, not only the CLI''s own catalog. One that exists only in a newer spec is refused: "<type or triple> is not in spec 0.13.0, the model''s version; it exists from 0.14.0. Run project_upgrade first." A model that already holds one still loads and reads; model_validate names its element ids, and a landing counts it with the errors already in the base. A model on a spec newer than dr''s is refused nothing extra, and a type dr doesn''t know is reported as unknown here, with the update to make. The versions come from a table generated from the released spec catalogs (0.8.0 on) and committed with the CLI (#1411).'
     attributes:
       priority: high
       status: developing
@@ -20,7 +20,7 @@
       provenance: manual
       locations:
         - file: cli/src/core/declared-spec.ts
-  timestamp: 2026-11-25T16:42:54.404Z
+  timestamp: 2026-11-25T16:53:01.433Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.relayout-model-files
@@ -940,3 +940,58 @@
     metadata: *a19
   timestamp: 2026-11-25T16:42:37.210Z
   sequenceNumber: 71
+- type: add
+  elementId: application.applicationfunction.spec-ahead-note
+  layerName: application
+  after:
+    id: abea87fc-815e-4ccf-9c67-05e342857b1c
+    path: application.applicationfunction.spec-ahead-note
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: specAheadNote
+    description: "One line when the model declares a spec newer than dr's: a type or relationship that spec added is unknown here, not invalid, with the update to make. model_add, model_update and relationship_add add it to a refusal for a type or relationship type dr doesn't know (#1411)."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/declared-spec.ts
+          symbol: specAheadNote
+    metadata:
+      created_at: 2026-11-25T16:53:00.238Z
+      updated_at: 2026-11-25T16:53:00.238Z
+      version: 1
+  timestamp: 2026-11-25T16:53:00.281Z
+  sequenceNumber: 83
+- type: relationship-add
+  elementId: application.applicationfunction.validate-relationship-combination::depends-on::application.applicationfunction.spec-ahead-note
+  layerName: application
+  after:
+    source: application.applicationfunction.validate-relationship-combination
+    target: application.applicationfunction.spec-ahead-note
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:53:00.281Z
+  sequenceNumber: 84
+- type: relationship-add
+  elementId: application.applicationfunction.spec-ahead-note::realizes::application.applicationservice.model-add-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.spec-ahead-note
+    target: application.applicationservice.model-add-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:53:00.281Z
+  sequenceNumber: 85
+- type: relationship-add
+  elementId: application.applicationfunction.spec-ahead-note::realizes::application.applicationservice.model-update-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.spec-ahead-note
+    target: application.applicationservice.model-update-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:53:00.281Z
+  sequenceNumber: 86
