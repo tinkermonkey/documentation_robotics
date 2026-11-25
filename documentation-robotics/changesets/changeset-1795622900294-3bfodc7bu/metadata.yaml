@@ -2,17 +2,17 @@ id: changeset-1795622900294-3bfodc7bu
 name: cli09-index-freshness
 description: "CLI 0.9.0 (Tool ergonomics), index tranche: #1345, #1347, #1300. An index that holds no code, or whose run could not read its counts, never reads as fresh: the CBM run fails instead of recording 0 nodes, and the freshness rule calls a 0-node index stale. codebase_extract indexes first when the index is missing or stale (or a run is in flight), within its time budget, reports that it did and how long it took, and says how to wait when the run outlasts the budget; autoIndex: false keeps the old refusal. codebase_index keeps .cbmignore out of git's view (the repository's local info/exclude) and never edits a .cbmignore the developer tracks, so a read-only run leaves the tree as git saw it. Done: unit tests beside each change, integration test for the job, skills and CHANGELOG updated."
 created: 2026-11-25T16:08:20.333Z
-modified: 2026-11-25T17:08:28.671Z
+modified: 2026-11-25T17:18:32.281Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 31
-  modifications: 12
+  additions: 33
+  modifications: 14
   deletions: 0
-lastSequence: 57
+lastSequence: 65
 unstaged:
   - sequence: 1
     removedAt: 25
@@ -316,4 +316,57 @@ unstaged:
             - file: cli/src/mcp/tools/codebase-index.ts
               symbol: indexFirst
       timestamp: 2026-11-25T17:00:02.383Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 58
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.judge-index::depends-on::application.applicationfunction.index-holds-no-code
+      layerName: application
+      after:
+        source: application.applicationfunction.judge-index
+        target: application.applicationfunction.index-holds-no-code
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:53.905Z
+  - sequence: 12
+    removedAt: 58
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.cbm-analyzer-status::depends-on::application.applicationfunction.index-holds-no-code
+      layerName: application
+      after:
+        source: application.applicationfunction.cbm-analyzer-status
+        target: application.applicationfunction.index-holds-no-code
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:53.905Z
+  - sequence: 2
+    removedAt: 63
+    change:
+      type: add
+      elementId: application.applicationfunction.settle-index-counts
+      layerName: application
+      after:
+        id: 38eca707-526d-4fdb-a204-b742c1bb8955
+        path: application.applicationfunction.settle-index-counts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: settleIndexCounts
+        description: "The node and edge counts of an index_repository call (#1345). When CBM answered without them (status indexing, busy or pending: another process is indexing the same code), waits for that run through index_status within the run's timeout and reads the counts there. Throws when CBM reports failed, when the counts stay unreadable, or when the index holds no nodes, so the run fails and no index metadata reads as fresh."
+        attributes:
+          documentation: cli/src/analyzers/cbm-analyzer.ts, used by CbmAnalyzer.index.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/analyzers/cbm-analyzer.ts
+              symbol: settleIndexCounts
+      timestamp: 2026-11-25T16:28:22.188Z
     rewritten: true

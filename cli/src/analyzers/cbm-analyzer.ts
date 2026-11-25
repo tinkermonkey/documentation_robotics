@@ -34,7 +34,7 @@ import type {
 } from "./types.js";
 import { VALID_HTTP_METHODS } from "./types.js";
 import { START_FAILURE_SUGGESTIONS, StdioClient, resolveInitTimeoutMs } from "./stdio-client.js";
-import { indexHoldsNoCode, readIndexMeta, removeIndexMeta, writeIndexMeta } from "./session-state.js";
+import { indexUntrusted, readIndexMeta, removeIndexMeta, writeIndexMeta } from "./session-state.js";
 import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
@@ -428,8 +428,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       if (currentHeadResult.status === 0) {
         const currentHead = currentHeadResult.stdout.trim();
-        // An index that holds no code is never fresh, so a run re-indexes it instead of skipping (#1345).
-        fresh = currentHead === indexMeta.git_head && !analyzerChanged(indexMeta, detected) && !indexHoldsNoCode(indexMeta);
+        // An index that holds no code, or was joined from another process's run, is never fresh, so a
+        // run re-indexes it instead of skipping (#1345).
+        fresh = currentHead === indexMeta.git_head && !analyzerChanged(indexMeta, detected) && indexUntrusted(indexMeta) === null;
       } else {
         // Git command failed - log diagnostic info but don't fail if codebaseRoot was provided
         const gitError = currentHeadResult.stderr?.trim() || "git returned non-zero status";
@@ -627,30 +628,47 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       const analyzerName = this.mapper.getAnalyzerName();
       // The counts, or a failed run (#1345): never an index recorded with 0 nodes that reads fresh.
-      let counts: { nodes: number; edges: number; indexedAt?: string };
+      const settle = (response: Record<string, unknown>) =>
+        settleIndexCounts(tools, response, effectiveCodebaseRoot, { timeoutMs: Math.min(options?.timeoutMs ?? 120_000, MAX_SETTLE_MS) });
+      let counts: { nodes: number; edges: number; joined: boolean };
+      let indexedHead = gitHead;
+      let indexedAt = timestamp;
       try {
-        counts = await settleIndexCounts(tools, indexResponse, effectiveCodebaseRoot, {
-          timeoutMs: Math.min(options?.timeoutMs ?? 120_000, MAX_SETTLE_MS),
-        });
+        counts = await settle(indexResponse);
+        if (counts.joined) {
+          // The run it waited for read the code at a commit and from a time DR can't know
+          // (index_status records neither; its indexed_at is when that run finished). With that run
+          // over, index once more, at a HEAD and time this run knows.
+          const retryHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: effectiveCodebaseRoot, stdio: "pipe", encoding: "utf-8" });
+          const retryAt = new Date().toISOString();
+          counts = await settle(
+            await tools.indexRepository(effectiveCodebaseRoot, options?.timeoutMs ? { timeout: options.timeoutMs } : undefined)
+          );
+          if (!counts.joined && retryHead.status === 0) {
+            indexedHead = retryHead.stdout.trim();
+            indexedAt = retryAt;
+          }
+        }
       } catch (error) {
         // The analyzer's graph may have been replaced: the old metadata no longer describes it.
         await removeIndexMeta(projectRoot, analyzerName).catch(() => undefined);
         throw error;
       }
-      const nodeCount = counts.nodes;
-      const edgeCount = counts.edges;
-      // A joined run may have read the code before this one started: record the older time, so an
-      // edit between the two reads as newer than the index.
-      const joinedAt = counts.indexedAt ? Date.parse(counts.indexedAt) : NaN;
-      const indexedAt = joinedAt < Date.parse(timestamp) ? new Date(joinedAt).toISOString() : timestamp;
+      if (counts.joined) {
+        handleWarning("Another process indexed this code during both of this run's attempts; the index is recorded as joined", [
+          "It reads stale until a run indexes the code itself: call codebase_index again once the other process is done",
+        ]);
+      }
 
       // Write index metadata
       const meta: IndexMeta = {
-        git_head: gitHead,
+        git_head: indexedHead,
         timestamp: indexedAt,
-        node_count: nodeCount,
-        edge_count: edgeCount,
+        node_count: counts.nodes,
+        edge_count: counts.edges,
         ...(detection.version ? { analyzer_version: detection.version } : {}),
+        // Another process's run: its commit and start are unknown, so it never reads fresh.
+        ...(counts.joined ? { joined: true } : {}),
       };
 
       await writeIndexMeta(meta, projectRoot, analyzerName);
@@ -666,9 +684,9 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
 
       return {
-        node_count: nodeCount,
-        edge_count: edgeCount,
-        git_head: gitHead,
+        node_count: counts.nodes,
+        edge_count: counts.edges,
+        git_head: indexedHead,
         timestamp: indexedAt,
       };
     } finally {
@@ -2824,8 +2842,9 @@ function describeAnswer(answer: Record<string, unknown>): string {
  * - `status: "failed"`: codebase-memory-mcp says the index failed; the error carries its reason.
  * - No counts (`status` indexing, busy or pending: another process, such as a watcher or a second
  *   DR session, is indexing the same code): waits for that run through index_status, up to
- *   `timeoutMs`, and reads the counts there once it is ready, with that run's `indexed_at`
- *   (`indexedAt`), so the caller can record the older of the two index times.
+ *   `timeoutMs`, and reads the counts there once it is ready, as `joined`: index_status records no
+ *   commit and no start time (its `indexed_at` is when that run finished), so the caller can't say
+ *   what code the joined index read.
  * - Counts that stay unreadable, or an index of 0 nodes: an error. Nothing that reads as fresh is
  *   recorded; the caller removes the old metadata.
  *
@@ -2836,7 +2855,7 @@ export async function settleIndexCounts(
   response: Record<string, unknown>,
   codebaseRoot: string,
   options: { timeoutMs?: number; pollMs?: number; sleep?: (ms: number) => Promise<void> } = {}
-): Promise<{ nodes: number; edges: number; indexedAt?: string }> {
+): Promise<{ nodes: number; edges: number; joined: boolean }> {
   const retry = "Call codebase_index again (or run `dr analyzer index`); see the job log for the analyzer's output";
   const failed = (answer: Record<string, unknown>) =>
     new CLIError(
@@ -2846,7 +2865,8 @@ export async function settleIndexCounts(
     );
   if (response.status === "failed") throw failed(response);
 
-  let counts: { nodes: number; edges: number; indexedAt?: string } | null = countsIn(response);
+  let counts: { nodes: number; edges: number } | null = countsIn(response);
+  const joined = !counts;
   let last = response;
   if (!counts) {
     // CBM's own record of the project has the counts once the run in flight is over.
@@ -2863,9 +2883,7 @@ export async function settleIndexCounts(
           last = status;
           if (status.status === "failed") throw failed(status);
           const underWay = typeof status.status === "string" && CBM_INDEX_UNDER_WAY.has(status.status);
-          const joined = underWay ? null : countsIn(status);
-          // The joined run's own index time: it may have read the code before this run started.
-          counts = joined && typeof status.indexed_at === "string" ? { ...joined, indexedAt: status.indexed_at } : joined;
+          counts = underWay ? null : countsIn(status);
           if (counts || !underWay) break;
         }
         if (Date.now() >= deadline) break;
@@ -2893,5 +2911,5 @@ export async function settleIndexCounts(
       ]
     );
   }
-  return counts;
+  return { ...counts, joined };
 }

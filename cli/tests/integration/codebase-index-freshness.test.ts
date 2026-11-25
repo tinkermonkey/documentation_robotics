@@ -100,15 +100,35 @@ describe("the index path end to end", () => {
     expect(status()).toBe("");
   }, 60000);
 
-  it("waits for another process's run when CBM answers without counts, then records that run's (#1345)", async () => {
+  it("waits for another process's run, then indexes again itself: its own HEAD, time and counts (#1345)", async () => {
+    mode.value = "indexing-once";
+    const before = Date.now();
+    const result = (await createCodebaseIndexHandler(deps())({ rootPath: project, wait: 40 })) as any;
+    const body = JSON.parse(result.content[0].text);
+    expect(body.job.state).toBe("done");
+    expect(body.index).toMatchObject({ fresh: true, state: "fresh", nodeCount: 5, edgeCount: 7, gitHead: git("rev-parse", "HEAD") });
+    expect(body.index.joined).toBeUndefined();
+    // The time is this run's own second read, after the joined run ended.
+    expect(Date.parse(body.index.lastIndexed)).toBeGreaterThanOrEqual(before);
+  }, 60000);
+
+  it("records an index joined twice as joined, so it reads stale until a run of its own (#1345)", async () => {
     mode.value = "indexing";
     const result = (await createCodebaseIndexHandler(deps())({ rootPath: project, wait: 40 })) as any;
     const body = JSON.parse(result.content[0].text);
     expect(body.job.state).toBe("done");
-    expect(body.index).toMatchObject({ fresh: true, nodeCount: 6, edgeCount: 8 });
-    // The joined run read the code earlier than this one started: its time is the one recorded.
-    expect(body.index.lastIndexed).toBe("2026-01-01T00:00:00.000Z");
-  }, 60000);
+    expect(body.index).toMatchObject({ fresh: false, state: "stale", joined: true, nodeCount: 6, edgeCount: 8 });
+    expect(body.index.reason).toContain("another process's index run");
+    expect((await readIndexMeta(project, "cbm"))?.joined).toBe(true);
+    expect(await readFile(body.job.logPath, "utf-8")).toContain("recorded as joined");
+
+    // The next run doesn't skip it as fresh: it indexes, and this time on its own.
+    mode.value = "ok";
+    const again = JSON.parse(((await createCodebaseIndexHandler(deps())({ rootPath: project, wait: 40 })) as any).content[0].text);
+    expect(again.started).toBe(true);
+    expect(again.index).toMatchObject({ fresh: true, nodeCount: 5 });
+    expect(again.index.joined).toBeUndefined();
+  }, 90000);
 
   it("fails a run that indexed no code, and leaves no metadata that reads fresh (#1345)", async () => {
     // An earlier index at this very commit, as a forced re-index would find.

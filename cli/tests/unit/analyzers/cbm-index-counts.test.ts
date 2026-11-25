@@ -32,7 +32,7 @@ describe("settleIndexCounts", () => {
   it("takes the counts from an indexed answer, asking nothing more", async () => {
     const { fake, asked } = tools([]);
     const counts = await settleIndexCounts(fake, { project: "work-app", status: "indexed", nodes: 9671, edges: 35488 }, ROOT);
-    expect(counts).toEqual({ nodes: 9671, edges: 35488 });
+    expect(counts).toEqual({ nodes: 9671, edges: 35488, joined: false });
     expect(asked).toEqual([]);
   });
 
@@ -44,8 +44,9 @@ describe("settleIndexCounts", () => {
     ]);
     // CBM's answer while a run of the same code is in flight carries no counts and no project.
     const counts = await settleIndexCounts(fake, { status: "indexing", slot: 1, path: ROOT }, ROOT, { sleep: noSleep });
-    // With the joined run's own index time, which the caller records when it is the older one.
-    expect(counts).toEqual({ nodes: 8, edges: 9, indexedAt: "2026-11-25T16:04:42Z" });
+    // joined: index_status gives no commit and no start time (its indexed_at is when that run
+    // finished), so the caller can't say what code this index read.
+    expect(counts).toEqual({ nodes: 8, edges: 9, joined: true });
     // The project came from list_projects, by root path.
     expect(asked).toEqual(["work-app", "work-app", "work-app"]);
   });
@@ -89,6 +90,6 @@ describe("settleIndexCounts", () => {
 
   it("keeps waiting through an index_status call that errors", async () => {
     const { fake } = tools([new Error("socket closed"), { status: "ready", nodes: 3, edges: 2 }]);
-    expect(await settleIndexCounts(fake, { status: "indexing", project: "work-app" }, ROOT, { sleep: noSleep })).toEqual({ nodes: 3, edges: 2 });
+    expect(await settleIndexCounts(fake, { status: "indexing", project: "work-app" }, ROOT, { sleep: noSleep })).toEqual({ nodes: 3, edges: 2, joined: true });
   });
 });

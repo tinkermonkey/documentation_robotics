@@ -56,7 +56,7 @@
     type: applicationfunction
     layer_id: application
     name: settleIndexCounts
-    description: "The node and edge counts of an index_repository call (#1345). When CBM answered without them (status indexing, busy or pending: another process is indexing the same code), waits for that run through index_status within the run's timeout and reads the counts there. Throws when CBM reports failed, when the counts stay unreadable, or when the index holds no nodes, so the run fails and no index metadata reads as fresh."
+    description: "The node and edge counts of an index_repository call (#1345), with joined: true when they came from another process's run. When CBM answered without counts (status indexing, busy or pending), it waits for that run through index_status within the run's timeout and reads the counts there; index_status records no commit or start time (its indexed_at is when a run finished), hence joined. Throws when CBM reports failed, when the counts stay unreadable, or when the index holds no nodes."
     attributes:
       documentation: cli/src/analyzers/cbm-analyzer.ts, used by CbmAnalyzer.index.
     metadata:
@@ -68,7 +68,7 @@
       locations:
         - file: cli/src/analyzers/cbm-analyzer.ts
           symbol: settleIndexCounts
-  timestamp: 2026-11-25T16:28:22.188Z
+  timestamp: 2026-11-25T17:18:32.169Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.index-holds-no-code
@@ -160,28 +160,6 @@
     category: structural
   timestamp: 2026-11-25T16:08:53.905Z
   sequenceNumber: 10
-- type: relationship-add
-  elementId: application.applicationfunction.judge-index::depends-on::application.applicationfunction.index-holds-no-code
-  layerName: application
-  after:
-    source: application.applicationfunction.judge-index
-    target: application.applicationfunction.index-holds-no-code
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:53.905Z
-  sequenceNumber: 11
-- type: relationship-add
-  elementId: application.applicationfunction.cbm-analyzer-status::depends-on::application.applicationfunction.index-holds-no-code
-  layerName: application
-  after:
-    source: application.applicationfunction.cbm-analyzer-status
-    target: application.applicationfunction.index-holds-no-code
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:53.905Z
-  sequenceNumber: 12
 - type: update
   elementId: application.applicationfunction.ensure-cbm-ignore
   layerName: application
@@ -878,3 +856,122 @@
     category: structural
   timestamp: 2026-11-25T17:00:03.738Z
   sequenceNumber: 48
+- type: add
+  elementId: application.applicationfunction.index-untrusted
+  layerName: application
+  after:
+    id: 1880045b-12a9-4545-821e-3547555731cc
+    path: application.applicationfunction.index-untrusted
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: indexUntrusted
+    description: "Why recorded index metadata can't be trusted to describe the code, or null: it holds no code, or it was joined from another process's run whose commit and start are unknown (#1345). judgeIndex and CbmAnalyzer.status call such an index stale."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/session-state.ts
+          symbol: indexUntrusted
+    metadata:
+      created_at: 2026-11-25T17:18:30.936Z
+      updated_at: 2026-11-25T17:18:30.936Z
+      version: 1
+  timestamp: 2026-11-25T17:18:30.951Z
+  sequenceNumber: 59
+- type: relationship-add
+  elementId: application.applicationfunction.judge-index::depends-on::application.applicationfunction.index-untrusted
+  layerName: application
+  after:
+    source: application.applicationfunction.judge-index
+    target: application.applicationfunction.index-untrusted
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:30.951Z
+  sequenceNumber: 60
+- type: relationship-add
+  elementId: application.applicationfunction.cbm-analyzer-status::depends-on::application.applicationfunction.index-untrusted
+  layerName: application
+  after:
+    source: application.applicationfunction.cbm-analyzer-status
+    target: application.applicationfunction.index-untrusted
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:30.951Z
+  sequenceNumber: 61
+- type: relationship-add
+  elementId: application.applicationfunction.index-untrusted::depends-on::application.applicationfunction.index-holds-no-code
+  layerName: application
+  after:
+    source: application.applicationfunction.index-untrusted
+    target: application.applicationfunction.index-holds-no-code
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:30.951Z
+  sequenceNumber: 62
+- type: update
+  elementId: application.applicationfunction.cbm-analyzer-index
+  layerName: application
+  before:
+    id: 5d3bf549-edec-45d9-90b7-6d3350746c80
+    path: application.applicationfunction.cbm-analyzer-index
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: CbmAnalyzer index
+    description: "Index a project or update the index. The counts come from settleIndexCounts: a response without them (another process indexing the same code) waits for that run and records the older of the two index times; unreadable counts or an index of 0 nodes fail the run, and the failed run removes index-meta.json (removeIndexMeta), since the analyzer's graph may have been replaced (#1345). DR's folders stay out through ensureCbmIgnore."
+    source_reference: &a30
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: CbmAnalyzer.index
+    metadata: &a31
+      created_at: 2026-11-20T15:06:35.166Z
+      updated_at: 2026-11-20T15:06:35.166Z
+      version: 1
+  after:
+    id: 5d3bf549-edec-45d9-90b7-6d3350746c80
+    path: application.applicationfunction.cbm-analyzer-index
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: CbmAnalyzer index
+    description: "Index a project or update the index. The counts come from settleIndexCounts. After joining another process's run it indexes again itself and records its own HEAD and time; if that run is joined too, the index is recorded with joined: true and reads stale. Unreadable counts or an index of 0 nodes fail the run, and the failed run removes index-meta.json (removeIndexMeta), since the analyzer's graph may have been replaced (#1345). DR's folders stay out through ensureCbmIgnore."
+    source_reference: *a30
+    metadata: *a31
+  timestamp: 2026-11-25T17:18:32.218Z
+  sequenceNumber: 64
+- type: update
+  elementId: application.applicationfunction.judge-index
+  layerName: application
+  before:
+    id: a7aed3a5-1fb0-4657-a507-3cb0a0cb19a6
+    path: application.applicationfunction.judge-index
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: judgeIndex
+    description: Whether an index taken at `indexedCommit` and `indexedAt` still describes the code at `head`. An index that holds no code (0 nodes, indexHoldsNoCode) is stale whatever its commit (#1345), as is one another analyzer version built.
+    source_reference: &a32
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-shared.ts
+          symbol: judgeIndex
+    metadata: &a33
+      created_at: 2026-11-20T15:06:30.044Z
+      updated_at: 2026-11-20T15:06:30.044Z
+      version: 1
+  after:
+    id: a7aed3a5-1fb0-4657-a507-3cb0a0cb19a6
+    path: application.applicationfunction.judge-index
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: judgeIndex
+    description: Whether an index taken at `indexedCommit` and `indexedAt` still describes the code at `head`. An index that holds no code (0 nodes) or was joined from another process's run (indexUntrusted) is stale whatever its commit (#1345), as is one another analyzer version built.
+    source_reference: *a32
+    metadata: *a33
+  timestamp: 2026-11-25T17:18:32.266Z
+  sequenceNumber: 65

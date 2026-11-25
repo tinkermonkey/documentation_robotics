@@ -44,12 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without node and edge counts used to be recorded as 0 nodes with a warning in the log, and
   `codebase_index` then reported the index `done` and `fresh`, so `codebase_extract` staged
   nothing for changed files. The run now waits for another process's index of the same code
-  (`status: indexing`) through `index_status` and records that run's counts, with the older of the
-  two index times. A failed answer, counts that stay unreadable, or an index of 0 nodes fail the
-  run, and the old index metadata is removed, since the analyzer's graph may have been replaced. The freshness rule (`project_status`,
+  (`status: indexing`) through `index_status`, then indexes again itself, so the index it records
+  is at a HEAD and time it knows (`index_status` records no commit, and its `indexed_at` is when a
+  run finished). If another run is still in the way, the index is recorded as `joined` and reads
+  stale until a run of its own. A failed answer, counts that stay unreadable, or an index of 0
+  nodes fail the run, and the old index metadata is removed, since the analyzer's graph may have
+  been replaced. The freshness rule (`project_status`,
   `codebase_index`, `codebase_verify`, `codebase_extract`) and the background run's own check call
-  an index that records 0 nodes stale, with the reason "it holds no code", so it is re-indexed
-  instead of skipped. `codebase_index`'s `next` for a stale index now gives the reason.
+  an index that records 0 nodes stale ("it holds no code"), and one recorded as `joined`, so it
+  is re-indexed instead of skipped. `codebase_index`'s `next` for a stale index now gives the reason.
 
 ## [0.8.0] - 2026-11-24
 

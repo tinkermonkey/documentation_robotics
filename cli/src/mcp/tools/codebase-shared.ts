@@ -14,7 +14,7 @@ import { analyzerHomepage, currentGitHead, installedAnalyzerVersion, readIndexFr
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { analyzerChanged } from "../../analyzers/version.js";
-import { indexHoldsNoCode, readSession } from "../../analyzers/session-state.js";
+import { indexUntrusted, readSession } from "../../analyzers/session-state.js";
 import type { CodeChangesResult } from "../../analyzers/code-changes.js";
 import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
 import type { AvailableAnalyzer } from "../../analyzers/types.js";
@@ -415,11 +415,12 @@ function listed(files: string[]): string {
  * did: an analyzer upgrade can change the graph's format and qualified names (codebase-memory-mcp
  * 0.11, 0.12.0 and 0.12.1 each did). A version unknown on either side does not count.
  *
- * An index that holds no code (`nodeCount` 0) is stale whatever its commit (#1345): it describes
- * none of the code, so a tool that read it as fresh would find nothing and say nothing changed.
+ * An index that holds no code (`nodeCount` 0), or that was joined from another process's run
+ * (`joined`: its commit and start are unknown), is stale whatever its commit (#1345): a tool that
+ * read it as fresh could find nothing, or miss code, and say nothing changed.
  */
 export async function judgeIndex(
-  index: { indexedCommit: string; indexedAt: string; analyzerVersion?: string; nodeCount?: number },
+  index: { indexedCommit: string; indexedAt: string; analyzerVersion?: string; nodeCount?: number; joined?: boolean },
   head: string | null,
   probe: IndexProbe,
   installedVersion?: string | null
@@ -427,16 +428,8 @@ export async function judgeIndex(
   if (head === null) {
     return { state: "stale", reason: "the code's git HEAD can't be read", committedSince: [], editedSince: [] };
   }
-  if (index.nodeCount !== undefined && indexHoldsNoCode({ node_count: index.nodeCount })) {
-    return {
-      state: "stale",
-      reason:
-        `it holds no code: the run that wrote it recorded ${index.nodeCount} nodes, so the index is empty or ` +
-        "the run could not read what it indexed (see the job log)",
-      committedSince: [],
-      editedSince: [],
-    };
-  }
+  const untrusted = indexUntrusted({ node_count: index.nodeCount ?? 1, joined: index.joined });
+  if (untrusted) return { state: "stale", reason: untrusted, committedSince: [], editedSince: [] };
   if (analyzerChanged({ analyzer_version: index.analyzerVersion }, installedVersion)) {
     return {
       state: "stale",
@@ -510,6 +503,7 @@ export async function assessIndex(
       indexedAt: freshness.meta.timestamp,
       analyzerVersion: freshness.meta.analyzer_version,
       nodeCount: freshness.meta.node_count,
+      joined: freshness.meta.joined,
     },
     freshness.currentGitHead,
     options.uncommittedEdits === false ? { ...probe, editedSince: async () => [] } : probe,
@@ -562,6 +556,7 @@ export function describeIndex(freshness: IndexFreshness, judgement?: IndexJudgem
     nodeCount: freshness.meta.node_count,
     edgeCount: freshness.meta.edge_count,
     ...(freshness.meta.analyzer_version ? { analyzerVersion: freshness.meta.analyzer_version } : {}),
+    ...(freshness.meta.joined ? { joined: true } : {}),
     ...(judgement?.indexedFirst ? { indexedFirst: judgement.indexedFirst } : {}),
   };
 }

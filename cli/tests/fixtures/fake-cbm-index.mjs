@@ -6,9 +6,10 @@
  *
  * FAKE_CBM_MODE picks how index_repository answers (the shapes codebase-memory-mcp 0.12.1 sends):
  * - "ok": `{ project, status: "indexed", nodes: 5, edges: 7 }`
- * - "indexing": `{ status: "indexing", slot, path }`, as when another process is indexing the same
- *   code; index_status then answers `indexing` twice and `ready` with the counts and an older
- *   `indexed_at` (that run read the code before this one started)
+ * - "indexing": `{ status: "indexing", slot, path }` to every call, as when another process keeps
+ *   indexing the same code; index_status answers `indexing` twice and then `ready` with the counts
+ *   (and an `indexed_at`, which codebase-memory-mcp sets when a run finishes)
+ * - "indexing-once": `indexing` to the first index_repository call, then as "ok"
  * - "empty": `{ project, status: "indexed", nodes: 0, edges: 0 }`
  * It reads no code and keeps no state between processes beyond a counter file in FAKE_CBM_STATE.
  */
@@ -24,9 +25,9 @@ const TOOLS = ["search_graph", "index_repository", "list_projects", "trace_path"
 let root = null;
 const projectName = () => (root ? root.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") : "none");
 
-/** How many times index_status has been asked, across this run's processes. */
-function statusTurn() {
-  const file = path.join(stateDir, "fake-cbm-status-turns");
+/** How many times a tool has been asked before, across this run's processes. */
+function turnOf(tool) {
+  const file = path.join(stateDir, `fake-cbm-${tool}-turns`);
   const turn = fs.existsSync(file) ? Number(fs.readFileSync(file, "utf-8")) || 0 : 0;
   fs.writeFileSync(file, String(turn + 1));
   return turn;
@@ -44,12 +45,13 @@ function callTool(name, args) {
   }
   if (name === "index_repository") {
     root = args.repo_path;
-    if (mode === "indexing") return { status: "indexing", slot: 1, path: root };
+    const turn = turnOf("index_repository");
+    if (mode === "indexing" || (mode === "indexing-once" && turn === 0)) return { status: "indexing", slot: 1, path: root };
     if (mode === "empty") return { project: projectName(), status: "indexed", nodes: 0, edges: 0 };
     return { project: projectName(), status: "indexed", nodes: 5, edges: 7 };
   }
   if (name === "index_status") {
-    return statusTurn() < 2
+    return turnOf("index_status") < 2
       ? { project: args.project, status: "indexing" }
       : { project: args.project, status: "ready", nodes: 6, edges: 8, root_path: root, indexed_at: "2026-01-01T00:00:00Z" };
   }

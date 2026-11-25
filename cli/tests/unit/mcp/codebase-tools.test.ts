@@ -1197,6 +1197,21 @@ describe("an index that holds no code (#1345)", () => {
     expect((await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, nodeCount: 120 }, HEAD, probe)).state).toBe("fresh");
   });
 
+  it("an index joined from another process's run is stale too, and says so", async () => {
+    const probe = { changedBetween: async () => [], editedSince: async () => [] };
+    const judgement = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, nodeCount: 120, joined: true }, HEAD, probe);
+    expect(judgement.state).toBe("stale");
+    expect(judgement.reason).toContain("another process's index run");
+
+    await selectCbm();
+    await writeIndexMeta({ ...META, joined: true }, rootPath, "cbm");
+    const h = harness();
+    const status = ok(await createCodebaseIndexHandler(h.deps)({ status: true, rootPath }));
+    expect(status.index).toMatchObject({ fresh: false, state: "stale", joined: true });
+    // Not skipped as fresh: a run starts, and the child's own check agrees (CbmAnalyzer.status).
+    expect(ok(await createCodebaseIndexHandler(h.deps)({ rootPath })).started).toBe(true);
+  });
+
   it("never reads fresh: codebase_index re-indexes it at the same HEAD, and the tools refuse it", async () => {
     await selectCbm();
     await writeIndexMeta(EMPTY, rootPath, "cbm");
@@ -1229,6 +1244,8 @@ describe("an index that holds no code (#1345)", () => {
     (analyzer as any).detect = async () => ({ installed: true, binary_path: "/bin/cbm" });
 
     await writeIndexMeta({ ...EMPTY, git_head: head }, rootPath, "cbm");
+    expect((await analyzer.status(rootPath)).fresh).toBe(false);
+    await writeIndexMeta({ ...META, git_head: head, joined: true }, rootPath, "cbm");
     expect((await analyzer.status(rootPath)).fresh).toBe(false);
     await writeIndexMeta({ ...META, git_head: head }, rootPath, "cbm");
     expect((await analyzer.status(rootPath)).fresh).toBe(true);
