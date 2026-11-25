@@ -8,7 +8,8 @@ import { StagingAreaManager } from "../core/staging-area.js";
 import { overlapKinds, type OverlapKind } from "../core/changeset-base-index.js";
 import type { Changeset } from "../core/changeset.js";
 import { VerificationRecordLandingError, allowedActions, type RecordLandingError } from "../core/changeset-purpose.js";
-import { summarizeChangeset } from "../core/changeset-summary.js";
+import { changeLine, summarizeChangeset } from "../core/changeset-summary.js";
+import { changesetShowView } from "../core/changeset-show-view.js";
 import { descriptionExcerpt, descriptionLines } from "../core/changeset-description.js";
 import { resolveOrigin } from "../core/changeset-review.js";
 import { originLabel } from "../core/changeset.js";
@@ -1005,23 +1006,12 @@ function changesWord(changeset: Changeset): string {
   return changeset.status === "staged" ? "Staged Changes" : `Changes (${changeset.status})`;
 }
 
-/** The line `dr changeset show` prints for one change of the summary (changeset-summary.ts). */
-function changeLine(change: ReturnType<typeof summarizeChangeset>["changes"][number]): string {
-  const mark = change.operation.endsWith("add") ? "+" : change.operation.endsWith("delete") ? "-" : "~";
-  const what = change.elementId
-    ? `${change.elementId}${change.elementType ? ` (${change.elementType})` : ""}`
-    : `${change.source} --${change.predicate}--> ${change.target}`;
-  const fields = change.changedFields?.length ? `: ${change.changedFields.join(", ")}` : "";
-  const origin = change.origin ? `  [${change.origin}]` : "";
-  return `${mark} #${change.sequence} ${what}${fields}${origin}`;
-}
-
 /**
  * Show one changeset, whatever its state or purpose (the active one when none is named): its
  * status, purpose and the actions its state allows, its description as written (markdown, line
- * breaks kept), and one line per change (#1219). --json returns the changeset's metadata, purpose
- * and allowed actions, whether it is active here, and the per-change summary changeset_show gives
- * with detail "summary" (summarizeChangeset); not changeset_show's revision or review verdicts.
+ * breaks kept), and one line per change as changeset_show lists them (changeLine) (#1219). --json
+ * returns what changeset_show returns with detail "summary", every change on one page: the same
+ * object, built by the same code (changesetShowView).
  */
 export async function changesetShowCommand(name: string | undefined, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("changeset.show", { "changeset.named": !!name }) : null;
@@ -1034,7 +1024,7 @@ export async function changesetShowCommand(name: string | undefined, options: { 
       failRead(found.noActive ? "No active changeset: name one (dr changeset list shows them)" : found.error, span);
     }
     const { changeset } = found;
-    const { purpose, verifies, scope } = await manager.purposeOf(changeset);
+    const { purpose, verifies } = await manager.purposeOf(changeset);
     const actions = allowedActions(purpose, changeset.status);
     const summary = summarizeChangeset(changeset.changes);
     const active = (await manager.getActiveId()) === changeset.id;
@@ -1046,25 +1036,9 @@ export async function changesetShowCommand(name: string | undefined, options: { 
     }
 
     if (isJson()) {
-      console.log(
-        JSON.stringify({
-          id: changeset.id,
-          name: changeset.name,
-          description: changeset.description,
-          status: changeset.status,
-          active,
-          created: changeset.created,
-          modified: changeset.modified,
-          detail: "summary",
-          ...(changeset.origin ? { origin: changeset.origin } : {}),
-          purpose,
-          ...(verifies ? { verifies } : {}),
-          ...(scope ? { scope } : {}),
-          actions,
-          totals: summary.totals,
-          changes: summary.changes,
-        })
-      );
+      // changeset_show's answer, every change on one page
+      const limit = Math.max(1, changeset.changes.length);
+      console.log(JSON.stringify(await changesetShowView(manager, changeset, { detail: "summary", limit })));
       return;
     }
 

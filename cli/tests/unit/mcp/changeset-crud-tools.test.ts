@@ -76,8 +76,11 @@ async function planExportOrders(): Promise<void> {
   );
 }
 
+/** The operation of each compact unstage line (`#3 relationship-add a --p--> b`). */
+const opsOf = (lines: string[]): string[] => lines.map((line) => line.split(" ")[1]);
+
 async function stagedChanges(): Promise<string[]> {
-  const shown = parse(await changesetShowHandler({ changesetId: "export-orders", rootPath }));
+  const shown = parse(await changesetShowHandler({ changesetId: "export-orders", rootPath, detail: "full" }));
   return shown.changes.map((c: any) => `${c.type} ${c.elementId}`);
 }
 
@@ -206,12 +209,8 @@ describe("changeset_unstage", () => {
       await changesetUnstageHandler({ source: OPERATION, predicate: "realizes", target: FUNCTION, rootPath })
     );
     expect(result.status).toBe("unstaged");
-    expect(result.unstaged).toEqual([
-      expect.objectContaining({
-        type: "relationship-add",
-        relationship: { source: OPERATION, predicate: "realizes", target: FUNCTION },
-      }),
-    ]);
+    expect(result.unstaged).toEqual([expect.stringMatching(new RegExp(`^#\\d+ relationship-add ${OPERATION} --realizes--> ${FUNCTION}$`))]);
+    expect(result).toMatchObject({ unstagedCount: 1, byOperation: { "relationship-add": 1 } });
     expect(result.remainingChanges).toBe(3);
     expect(parse(await changesetBriefHandler({ rootPath, detail: "full" })).summary.relationshipsAdded).toBe(1);
   });
@@ -219,7 +218,7 @@ describe("changeset_unstage", () => {
   it("drops an element's add together with the staged relationships that need it, and reloads the model", async () => {
     await planExportOrders();
     const result = parse(await changesetUnstageHandler({ elementId: OPERATION, rootPath }));
-    expect(result.unstaged.map((c: any) => c.type).sort()).toEqual(["add", "relationship-add"]);
+    expect(opsOf(result.unstaged).sort()).toEqual(["add", "relationship-add"]);
     // The cached model no longer projects the element.
     expect((await modelShowHandler({ id: OPERATION, rootPath })).isError).toBe(true);
     expect(await stagedChanges()).toEqual([
@@ -231,7 +230,7 @@ describe("changeset_unstage", () => {
   it("keeps dependent relationships when asked, and says they will dangle", async () => {
     await planExportOrders();
     const result = parse(await changesetUnstageHandler({ elementId: OPERATION, keepRelationships: true, rootPath }));
-    expect(result.unstaged.map((c: any) => c.type)).toEqual(["add"]);
+    expect(opsOf(result.unstaged)).toEqual(["add"]);
     expect(result.notes[0]).toContain("dangle");
   });
 
@@ -254,7 +253,7 @@ describe("changeset_unstage", () => {
     expect((await stagedChanges()).map((c) => c.split(" ")[0])).toEqual(["relationship-delete", "delete"]);
 
     const result = parse(await changesetUnstageHandler({ elementId: GOAL, rootPath }));
-    expect(result.unstaged.map((c: any) => c.type)).toEqual(["delete"]);
+    expect(opsOf(result.unstaged)).toEqual(["delete"]);
     expect(result.notes[0]).toContain("staged before its delete were kept");
     expect(await stagedChanges()).toEqual([`relationship-delete ${SERVICE}::realizes::${GOAL}`]);
   });
@@ -309,7 +308,7 @@ describe("changeset_unstage list form", () => {
       "invalid",
     ]);
     expect(result.counts).toEqual({ unstaged: 2, "already-unstaged": 1, "not-staged": 1, invalid: 1 });
-    expect(result.results[0].unstaged.map((c: any) => c.type).sort()).toEqual(["add", "relationship-add"]);
+    expect(opsOf(result.results[0].unstaged).sort()).toEqual(["add", "relationship-add"]);
     expect(result.results[1].notes[0]).toContain("already unstaged by an earlier item");
     expect(result.results[4].reason).toContain("Name either an element or a relationship");
     expect(result.unstagedChanges).toBe(3);

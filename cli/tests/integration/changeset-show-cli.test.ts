@@ -14,6 +14,8 @@ import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
 import { runDr } from "../helpers/cli-runner.js";
+import { changesetShowHandler } from "../../src/mcp/tools/changeset-show.js";
+import { clearModelCache } from "../../src/mcp/tools/shared.js";
 
 const INTENT = [
   "Ship order exports.",
@@ -73,16 +75,19 @@ describe("dr changeset show and the changeset read commands", () => {
       // As written, line by line
       expect(shown.stdout).toContain("  **In scope**\n  - `motivation.goal.ship-exports`\n");
       expect(shown.stdout).toContain("Changes (1)");
-      expect(shown.stdout).toContain("+ #0 motivation.goal.ship-exports (goal)");
+      // One line per change, as changeset_show lists them
+      expect(shown.stdout).toContain("#0 add motivation.goal.ship-exports");
     }
 
-    // --json returns what changeset_show with detail "summary" returns
+    // --json returns what changeset_show with detail "summary" returns: the same object
     const json = await runDr(["--json", "changeset", "show", "ship-exports"], { cwd: root });
     expect(json.exitCode).toBe(0);
     const body = JSON.parse(json.stdout.trim().split("\n").filter((line) => line.startsWith("{")).at(-1)!);
-    expect(body).toMatchObject({ name: "ship-exports", description: INTENT, status: "staged", active: false, purpose: "plan" });
-    expect(body.totals.total).toBe(1);
+    expect(body).toMatchObject({ name: "ship-exports", description: INTENT, status: "staged", purpose: "plan" });
     expect(body.changes[0]).toMatchObject({ operation: "add", elementId: "motivation.goal.ship-exports" });
+    clearModelCache();
+    const tool = await changesetShowHandler({ changeset: "ship-exports", detail: "summary", rootPath: root });
+    expect(body).toEqual(JSON.parse((tool.content[0] as { text: string }).text));
   });
 
   it("shows an upgrade record, which can't be activated, and a committed changeset", async () => {

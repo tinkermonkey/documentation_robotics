@@ -12,9 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dr changeset show [changeset]` (#1219):** shows one changeset by name or id, whatever its state
   or purpose (a staged plan that isn't active, an upgrade record, a committed changeset; the active
   one when none is named): status, purpose, allowed actions, its description as written and one line
-  per change. `--json` returns its metadata, purpose, allowed actions, whether it is active, and the
-  per-change summary `changeset_show` gives with `detail: "summary"`. `dr upgrade` points at it for
-  its drop record instead of a `changes.yaml` path.
+  per change, as `changeset_show` lists them. `--json` returns what `changeset_show` returns with
+  `detail: "summary"`, every change on one page: both are built by `changesetShowView`. `dr upgrade`
+  points at it for its drop record instead of a `changes.yaml` path.
 - **`project_status` `task` (#1301):** `plan`, `review` or `reconcile` says what the session is for.
   While planning or reviewing, code drift and the code index are said in `nextStep.info`, not made
   the step: a review goes to the staged plan (`changeset_brief`, then `review_open`). Without a
@@ -64,6 +64,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Skills:** the application layer skill writes interfaces with `interfaceType` and the new
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
+- **Compact changeset reads (CLI 0.9.0 milestone):** the reads below are compact by default, narrow
+  by layer and type, and page with `limit` and `offset`: `page` gives the true total and `more`
+  names the exact call for the next page (`nextPageHint` with the caller's arguments in
+  `core/paging.ts`, `elementFilter` in `core/element-filter.ts`). A read never stops short without
+  saying so: a layer or type that is not one is named (it keeps nothing), and a part cut outside the
+  pages names the call that lists it whole.
+- **`changeset_list`** lists the staged changesets by default, newest first, and counts every
+  changeset by status; `status: "committed"`, `"discarded"` or `"all"` lists the others. 50 a page.
+  (#1250)
+- **`changeset_show`** is compact by default: totals per operation and per layer, and one line per
+  change (`#12 update api.operation.list (attributes.summary)`, `#13 relationship-add a --serves--> b`,
+  with who decided it in brackets). `layers`, `types` and `operations` narrow the changes listed,
+  and every form pages (200 lines, 100 summary entries or 25 full changes a page). `detail: "full"`
+  is the old default, now paged. (#1257, #1294)
+- **`changeset_impact`** lists the reached elements' ids by layer by default, with `reachedByLayer`
+  counting everything reached per layer and type; `detail: "full"` gives each with how it was
+  reached and its files, 50 a page. `limit` is the page size's name, as on the other reads;
+  `maxElements` still works. (#1284)
+- **`changeset_unstage`** reports what it removed as counts per operation and one line per change,
+  the first 25 of each unstage, the rest counted. Past 25 it names the exact `changeset_brief` call
+  (the delta since the revision before the write) that lists every removed change, a page at a time
+  (the delta's `unstaged` list now pages with its other lists); `detail: "full"`
+  returns each removed change as an object, as before. (#1299)
+- **`changeset_brief`:** every top-level block of the compact brief is a section: `summary`,
+  `byLayer`, `reach`, `changesByType` and `neighborFiles` join the others (#1281). `types` narrows
+  the sections like `layers`, both together when given (#1294). With `ids`, an element lists the
+  staged relationships into it from changed elements the answer leaves out (#1258), and ids the
+  plan does not change come back in `unchanged`, a card each, as the plan leaves them, paged with
+  the other lists (#1395). The drift is named once: the `changeset` section leaves it out when
+  `drift` is asked for, and keeps it compact otherwise, saying `sections: ["drift"]` lists what the
+  compact form leaves out; the drift section's base-change lists page with the answer's other lists
+  (`driftLimit` and `driftOffset` still page them apart) (#1373). `changesByType` names the call that
+  lists a type's every id when it shows only the first. `limit` is now the most a page holds: the
+  page also stays near `targetBytes`, and says when it holds fewer than the limit, so `limit: 40` on
+  a large unwired listing no longer returns 73 KB (#1334).
+- **`model_search`:** `excludeLayers` and `excludeTypes` leave layers and types out (#1283);
+  `fields` adds descriptions and attribute values to what is searched, staged elements included,
+  and `match: "all"` or `"any"` matches the query's words apart (#1390). The closest results come
+  first (an exact id or name, more words, then name and id hits before description hits), as
+  compact entries 50 a page with the true count and counts by layer and type; `detail: "full"`
+  gives the whole description. When the query matches only with a field not searched (its words
+  split between name and description, say), the answer says how many and which `fields` finds them.
+- **`model_show`** takes `ids: [...]` to read several elements in one call: a compact card each
+  (name, first sentence of the description, change status, connections as `predicate → id` lines,
+  five per predicate and direction with the rest counted), or with `detail: "full"` each as `id`
+  returns it, paged; ids not in the model are listed in `notFound`. (#1395)
+- **`model_trace`** already honoured `limit` on every list on main; a test now holds it to that for
+  `changedEdges` (#1299).
+- **Skills:** the change-planning skill reads the plan with the compact `changeset_show`, and
+  orients with `model_search`'s `excludeLayers` and `fields` and `model_show`'s `ids`.
 
 ## [0.8.0] - 2026-11-24
 

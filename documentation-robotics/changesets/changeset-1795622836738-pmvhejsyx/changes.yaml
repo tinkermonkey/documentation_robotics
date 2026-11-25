@@ -8,7 +8,7 @@
     type: applicationservice
     layer_id: application
     name: changesetShowCommand
-    description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change. --json returns its metadata, purpose, allowed actions, whether it is active, and the per-change summary changeset_show gives with detail summary."
+    description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change as changeset_show lists them. --json returns what changeset_show returns with detail summary, every change on one page, built by the same changesetShowView."
     attributes:
       serviceType: synchronous
     metadata:
@@ -20,7 +20,7 @@
       locations:
         - file: cli/src/commands/changeset.ts
           symbol: changesetShowCommand
-  timestamp: 2026-11-25T17:12:40.988Z
+  timestamp: 2026-11-25T17:31:09.678Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.changeset-for-command
@@ -1653,3 +1653,58 @@
     category: structural
   timestamp: 2026-11-25T17:12:51.215Z
   sequenceNumber: 115
+- type: add
+  elementId: application.applicationfunction.changeset-show-view
+  layerName: application
+  after:
+    id: 039c268c-9c75-4e70-ae65-027867a82b08
+    path: application.applicationfunction.changeset-show-view
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: changesetShowView
+    description: "One changeset as changeset_show answers it: its head, purpose and review, counts over all its changes per operation and per layer, and a page of the changes (narrowed by layers, types and operations) as lines, objects or whole changes. changeset_show and dr changeset show --json both return it."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-show-view.ts
+          symbol: changesetShowView
+    metadata:
+      created_at: 2026-11-25T17:31:11.426Z
+      updated_at: 2026-11-25T17:31:11.426Z
+      version: 1
+  timestamp: 2026-11-25T17:31:11.456Z
+  sequenceNumber: 117
+- type: relationship-add
+  elementId: application.applicationfunction.changeset-show-view::realizes::application.applicationservice.changeset-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.changeset-show-view
+    target: application.applicationservice.changeset-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:31:11.456Z
+  sequenceNumber: 118
+- type: relationship-add
+  elementId: application.applicationfunction.changeset-show-view::realizes::application.applicationservice.changeset-show-command
+  layerName: application
+  after:
+    source: application.applicationfunction.changeset-show-view
+    target: application.applicationservice.changeset-show-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:31:11.456Z
+  sequenceNumber: 119
+- type: relationship-add
+  elementId: application.applicationfunction.changeset-show-view::depends-on::application.applicationfunction.changeset-summary-summarize-changeset
+  layerName: application
+  after:
+    source: application.applicationfunction.changeset-show-view
+    target: application.applicationfunction.changeset-summary-summarize-changeset
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:31:11.456Z
+  sequenceNumber: 120

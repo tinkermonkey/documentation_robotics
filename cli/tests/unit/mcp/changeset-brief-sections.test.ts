@@ -170,6 +170,9 @@ function itemsOf(section: BriefSection, result: any): unknown[] {
   }
 }
 
+/** A target no test answer reaches: with a large limit, the whole of every list in one answer. */
+const WHOLE = 100_000_000;
+
 /** The name a section's list has in `page.totals`. */
 const listKey = (section: BriefSection) => (section === "intent" ? "intent.untraced" : section);
 
@@ -324,8 +327,14 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect(seen).toEqual(whole);
     expect(seen).toHaveLength(44);
 
-    // A limit is the page size whatever the bytes: 44 elements in one answer, past the target.
-    const all = briefSections(full, ["changes"], { filter, limit: 100, targetBytes: target });
+    // A limit is the most a page holds: the answer still stays near the target, and says why it holds fewer (#1334).
+    const capped = briefSections(full, ["changes"], { filter, limit: 100, targetBytes: target, callArgs });
+    expect(Buffer.byteLength(JSON.stringify(capped, null, 2))).toBeLessThanOrEqual(target);
+    expect(capped.changes!.length).toBeLessThan(44);
+    expect(capped.page).toMatchObject({ offset: 0, totals: { changes: 44 }, nextOffset: capped.changes!.length });
+    expect(capped.more).toContain("limit 100 would take this answer past the 6 KB target");
+    // With room for it, a limit is the page size: 44 elements in one answer.
+    const all = briefSections(full, ["changes"], { filter, limit: 100, targetBytes: WHOLE });
     expect(all.changes).toHaveLength(44);
     expect(all.page).toEqual({ offset: 0, totals: { changes: 44 }, returned: { changes: 44 } });
     expect(Buffer.byteLength(JSON.stringify(all, null, 2))).toBeGreaterThan(target);
@@ -362,7 +371,7 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
 
     const read = readAll(full, ["changes", "layers"], { targetBytes: 12_000 });
     expect(read.pages).toBeGreaterThan(2);
-    const whole = itemsOf("changes", briefSections(full, ["changes"], { limit: 10_000 }));
+    const whole = itemsOf("changes", briefSections(full, ["changes"], { limit: 10_000, targetBytes: WHOLE }));
     expect(read.items.changes).toEqual(whole);
     expect(read.items.layers).toEqual(whole);
 
@@ -397,10 +406,17 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
         decidedAt: "2026-11-20T00:00:00.000Z",
       })) as any,
       feedback: many((i) => ({ annotationId: `ann-${i}`, elementId: SERVICE, author: "reviewer", content: `Comment ${i}`, tags: [], replies: 0 })),
-      codeTouched: many((i) => ({
-        file: `src/export/step-${i}.ts`,
-        elements: [{ id: `application.applicationfunction.export-step-number-${i % 40}`, role: "changed" as const }],
-      })),
+      codeTouched: [
+        ...many((i) => ({
+          file: `src/export/step-${i}.ts`,
+          elements: [{ id: `application.applicationfunction.export-step-number-${i % 40}`, role: "changed" as const }],
+        })),
+        // Files that hold only existing elements next to the change: the neighborFiles list.
+        ...many((i) => ({
+          file: `src/export/neighbouring-modules/that-the-build-must-not-break/near-${i}.ts`,
+          elements: [{ id: `application.applicationfunction.near-${i}`, role: "neighbor" as const }],
+        })),
+      ],
     };
     const withUnwired = { ...full, unwired: buildBriefUnwired(full) };
     const expected: Record<string, number> = {
@@ -409,17 +425,19 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
       gaps: 40,
       intent: 40,
       unwired: 84,
-      codeTouched: 53,
+      codeTouched: 106,
+      neighborFiles: 53,
       relationshipChanges: 53,
       alreadyInBase: 53,
       acceptedGaps: 53,
       feedback: 53,
     };
-    // Every section but the two that are not lists, and the delta (paged below).
-    const listSections = BRIEF_SECTIONS.filter((section) => !["changeset", "drift", "delta"].includes(section));
+    // Every section but the ones that are not lists, and the delta and drift (paged below).
+    const notLists = ["changeset", "drift", "delta", "summary", "byLayer", "reach", "changesByType"];
+    const listSections = BRIEF_SECTIONS.filter((section) => !notLists.includes(section));
     expect(Object.keys(expected).sort()).toEqual([...listSections].sort());
     for (const section of listSections) {
-      const whole = itemsOf(section, briefSections(withUnwired, [section], { limit: 10_000 }));
+      const whole = itemsOf(section, briefSections(withUnwired, [section], { limit: 10_000, targetBytes: WHOLE }));
       expect(whole).toHaveLength(expected[section]);
       for (const options of [{ limit: 7 }, { targetBytes: 2_500 }]) {
         const read = readAll(withUnwired, [section], options);
@@ -508,7 +526,12 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     const roomy = await brief({ sections: ["changes"], targetBytes: 400_000 });
     expect(roomy.json.changes).toHaveLength(231);
     expect(roomy.json.page).toEqual({ offset: 0, totals: { changes: 231 }, returned: { changes: 231 } });
-    expect((await brief({ sections: ["changes"], limit: 231 })).json.changes).toHaveLength(231);
+    expect((await brief({ sections: ["changes"], limit: 231, targetBytes: 400_000 })).json.changes).toHaveLength(231);
+    // A limit alone stays near the 40 KB target, and says it holds fewer than the limit (#1334).
+    const limited = (await brief({ sections: ["changes"], limit: 231 })).json;
+    expect(limited.changes.length).toBeLessThan(231);
+    expect(limited.page).toMatchObject({ totals: { changes: 231 }, nextOffset: limited.changes.length });
+    expect(limited.more).toContain("limit 231 would take this answer past the 40 KB target");
 
     // A filtered section costs what it returns: one element, one element's bytes.
     const one = await brief({ sections: ["changes", "intent", "gaps"], ids: ["data-model.objectschema.export-row-shape-7"] });
@@ -819,7 +842,12 @@ describe("changeset_impact: the walk counts everything and lists a page", () => 
     expect(first.more).toContain("byLayer lists 5 of the 13 elements reached");
     expect(first.more).toContain(`changeset_impact ${JSON.stringify({ depth: 1, maxElements: 5, rootPath, offset: 5 })}`);
     const all = JSON.parse(text(await changesetImpactHandler({ depth: 1, rootPath })));
-    expect(all.more).toBeUndefined();
+    expect(all.page.nextOffset).toBeUndefined();
+    expect(all.more).not.toContain("elements reached");
+    // limit is the page size's name the other reads share; maxElements stays as the older one.
+    const limited = JSON.parse(text(await changesetImpactHandler({ depth: 1, limit: 5, maxElements: 9, rootPath })));
+    expect(limited.page).toMatchObject({ total: 13, returned: 5, nextOffset: 5 });
+    expect(limited.reachedByLayer.application).toEqual({ count: 12, types: { applicationfunction: 12 } });
     expect(changesetImpactTool.description).toContain("never cut short");
   });
 });
