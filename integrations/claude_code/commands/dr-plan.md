@@ -49,8 +49,8 @@ In short:
    during the build: no `codebase_extract`, no as-built changeset and no `changeset_verify` until
    the build is committed.
 7. **Verify**, as its own step after the build is committed: `codebase_index` with `wait: 30`
-   (then `status: true`, `wait: 30` until it is done; if it reports `ignoreFile`, tell the developer
-   to commit that file), then `codebase_extract`
+   (then `status: true`, `wait: 30` until it is done; if it reports `ignoreFile.missing`, ask the
+   developer to add those lines to their `.cbmignore`), then `codebase_extract`
    with `since` (the branch the work started from) and `changeset: "<name>-as-built"`. Stage the
    cards it returns that are elements with `model_add` (`sourceProvenance: "extracted"`), call it again for their relationships, then
    `changeset_verify` the plan against `<name>-as-built`. The as-built comes from `codebase_extract`,

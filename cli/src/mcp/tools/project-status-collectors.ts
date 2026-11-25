@@ -795,7 +795,7 @@ export async function collectCodeIndex(ctx: StatusContext): Promise<CodeIndexSec
   const headCommit = head.stdout.trim();
   const installedVersion = meta.analyzer_version ? await (ctx.analyzerVersion ?? installedAnalyzerVersion)(analyzer) : null;
   const judgement = await judgeIndex(
-    { indexedCommit: meta.git_head, indexedAt: meta.timestamp, analyzerVersion: meta.analyzer_version },
+    { indexedCommit: meta.git_head, indexedAt: meta.timestamp, analyzerVersion: meta.analyzer_version, nodeCount: meta.node_count, joined: meta.joined },
     headCommit,
     indexProbe(await real(codebaseRoot), { git: ctx.git, snapshot: await readWorktreeSnapshot(base, analyzer, meta.timestamp) }),
     installedVersion

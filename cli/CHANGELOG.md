@@ -114,6 +114,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `changedEdges` (#1299).
 - **Skills:** the change-planning skill reads the plan with the compact `changeset_show`, and
   orients with `model_search`'s `excludeLayers` and `fields` and `model_show`'s `ids`.
+- **`codebase_extract` indexes first (#1347):** when the code is not indexed, the index is stale
+  (or holds no code), or an index run is in flight, a run starts or joins the index run and waits
+  for it within its own time budget (at most half of it, and never past 48 seconds), then extracts.
+  `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts the wait
+  is left running, and the error says how to wait for it (`codebase_index` with `status: true,
+  wait: 30`) before calling again. A preview never indexes (it changes nothing), nor does a page,
+  view, list or reject-only call. The index is judged once per call. The new `autoIndex: false`
+  keeps the old refusal.
+- **`.cbmignore` stays out of the working tree's git view (#1300):** with no `.cbmignore` at the
+  codebase root, `codebase_index` and `dr analyzer index` write DR's own and hide it from git
+  through the repository's local exclude (`.git/info/exclude`, in no commit, shared by every
+  worktree), so a read-only run leaves the tree as git saw it and a frozen review tag never has to
+  move. The exclude entry is written first, so a failure to write it leaves no untracked file.
+  `ignoreFile` says nothing needs committing (`excludedBy`). Whose file it is goes by DR's heading
+  alone: a `.cbmignore` the developer tracks, or wrote, is never edited, in any worktree, and
+  `ignoreFile.missing` lists the lines it lacks for the developer to add and commit (`git add -f
+  .cbmignore` while untracked, since the shared exclude entry hides it); `dr analyzer index` warns
+  with them. An untracked `.cbmignore` an older DR wrote is hidden the same way. `codebase_extract`'s
+  folder suggestion and the planning skills ask for lines the developer adds to be committed the
+  same way, so every checkout indexes the same files; the server instructions and skills no longer
+  say to commit DR's own file.
+
+### Fixed
+
+- **An empty or unreadable index never reads as fresh (#1345):** a codebase-memory-mcp answer
+  without node and edge counts used to be recorded as 0 nodes with a warning in the log, and
+  `codebase_index` then reported the index `done` and `fresh`, so `codebase_extract` staged
+  nothing for changed files. The run now waits for another process's index of the same code
+  (`status: indexing`) through `index_status`, then indexes again itself, so the index it records
+  is at a HEAD and time it knows (`index_status` records no commit, and its `indexed_at` is when a
+  run finished). If another run is still in the way, the index is recorded as `joined` and reads
+  stale until a run of its own. A failed answer, counts that stay unreadable, or an index of 0
+  nodes fail the run, and the old index metadata is removed, since the analyzer's graph may have
+  been replaced. The freshness rule (`project_status`, `codebase_index`, `codebase_verify`,
+  `codebase_extract`) and the background run's own check call an index that records 0 nodes stale
+  ("it holds no code"), and one recorded as `joined`, so it is re-indexed instead of skipped.
+  `codebase_index`'s `next` for a stale index now gives the reason.
 
 ## [0.8.0] - 2026-11-24
 

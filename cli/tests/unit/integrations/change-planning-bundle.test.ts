@@ -163,8 +163,10 @@ describe("change-planning integration", () => {
         expect(text).toMatch(/cards you can't place[^.]*one short\s+list/);
       });
 
-      it("asks for the index's ignore file to be committed", () => {
-        expect(text).toMatch(/`ignoreFile`[\s\S]{0,120}commit that file/);
+      // #1300: DR's own .cbmignore is hidden from git; only a developer's file missing lines needs them.
+      it("asks the developer for .cbmignore lines only when their own file lacks them", () => {
+        expect(text).toMatch(/`ignoreFile\.missing`[\s\S]{0,120}add/);
+        expect(text).not.toMatch(/`ignoreFile`[\s\S]{0,120}commit that file/);
       });
 
       it("names the list form of changeset_unstage", () => {
