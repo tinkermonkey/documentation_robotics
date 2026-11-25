@@ -125,7 +125,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
   It now reads `metadata.yaml`'s status alone, cached by file mtime; concurrent listings share one
   scan; the single-project routes scan that project only; and a checkout's changeset list re-reads
-  only the changesets whose files changed. On a farm the size of the report (9 projects, 264
+  only the changesets whose files changed (an empty metadata.yaml, as read mid-write, is skipped by
+  both). A project folder that is not a git repository costs no git call per listing while it has
+  no `.git`. On a farm the size of the report (9 projects, 264
   changeset folders, 108 MB), `GET /api/projects/{project}/checkouts` went from 22–25 s to 0.06 s
   (4 ms warm), `GET /api/projects` from 24 s to 0.4 s, six concurrent requests from 112 s to
   0.03 s, and a repeat `…/changesets` from 2.5 s to 0.02 s.
@@ -138,8 +140,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a rebuild) is logged, not acted on. A process started detached with the default options
   also restarts itself once no browser tab, DrBot turn, request or directly connected MCP client is
   using it (`dr mcp` bridge sessions reconnect on their own); any other keeps running and says to
-  restart it by hand. project_status words the restart for an in-process dr MCP server
-  (`DR_MCP_IN_PROCESS`) too.
+  restart it by hand. project_status's server section compares with the same start baseline, so
+  it says stale only when a restart would help (a build bumped without a rebuild gets a rebuild
+  note instead), and words the restart for an in-process dr MCP server (`DR_MCP_IN_PROCESS`) too.
+  project_upgrade's apply is checked once before it writes, as a commit is.
 - **Tests can't write the real user farm** (#1438). The test preload points the user farm at a
   scratch folder, drops a `DR_FARM_PATH` from the shell, and names the real farm in
   `DR_PROTECTED_FARM_FILES`, which `FarmManifest.save` refuses to write.
