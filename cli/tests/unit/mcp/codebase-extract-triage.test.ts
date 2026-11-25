@@ -944,7 +944,8 @@ describe("codebase_extract reject, keep and the files path (PR 1453 review)", ()
     ok(await handler({ rootPath }));
     const kept = ok(await handler({ reject: [{ card: "app/users/[id]/page.tsx#UserPage", reason: "a route page, modelled as a UX view", keep: true }], verbose: true, rootPath }));
     expect(kept.reject.results[0].status).toBe("kept");
-    expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("files: app/users/[id]/page.tsx");
+    // The file exactly, not as a glob: [id] doesn't stand for i or d.
+    expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("file: app/users/[id]/page.tsx");
     await rm(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true, force: true });
     const later = ok(await handler({ changeset: "later", view: {}, decide: [NOT_PRODUCT], pageSize: 50, rootPath }));
     expect(later.undecided.items.map((c: any) => c.symbol)).not.toContain("UserPage");
@@ -992,6 +993,19 @@ describe("codebase_extract reject, keep and the files path (PR 1453 review)", ()
     const retry = ok(await handler({ decide: [{ ...BUTTONS, attributes: { type: "button" } }], verbose: true, rootPath }));
     expect(retry.decide.results[0]).toMatchObject({ status: "applied", staged: 1 });
 
+    // Kept, the same files item writes no rule: a none rule on the file would beat the typed item sent again.
+    const h2 = harness();
+    h2.project.nodes.push(fn("src/ui/save.tsx", "SaveButton", 1), local("src/ui/save.tsx", "noop", 10));
+    await rm(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true, force: true });
+    const handler2 = createCodebaseExtractHandler(h2.deps);
+    ok(await handler2({ changeset: "keep-try", rootPath }));
+    const keptRun = ok(await handler2({ changeset: "keep-try", decide: [BUTTONS], reject: [{ files: "src/ui/save.tsx", reason: "helpers", keep: true }], verbose: true, rootPath }));
+    expect(keptRun.reject.results[0]).toMatchObject({ status: "recorded", recorded: 1, decided: 1, recordedLocally: 1 });
+    expect(keptRun.reject.results[0].notKept).toContain("this call's decide items decided");
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+    const keptRetry = ok(await handler2({ changeset: "keep-try", decide: [{ ...BUTTONS, attributes: { type: "button" } }], verbose: true, rootPath }));
+    expect(keptRetry.decide.results[0]).toMatchObject({ status: "applied", staged: 1 });
+
     // A typo in except: the item records nothing and says which entry named no card.
     const typo = ok(await handler({ reject: [{ files: "src/app/report.ts", except: ["renderReprot"], reason: "x" }, { card: "pad", reason: "a helper" }], verbose: true, rootPath }));
     expect(typo.reject.results[0]).toMatchObject({ status: "no-match" });
@@ -1011,6 +1025,15 @@ describe("codebase_extract reject, keep and the files path (PR 1453 review)", ()
     expect(run.next.some((s: string) => s.includes("are code an element of the plan names (card.planned"))).toBe(true);
     const planned = ok(await handler({ view: { planned: true }, rootPath })).undecided.items;
     expect(planned.map((c: any) => [c.symbol, c.planned])).toEqual([["buildPlan", "application.applicationfunction.build-plan"]]);
+    // Kept, the item would write a rule on the file that takes the planned card from the next run on:
+    // no rule is written, the other cards are recorded here, and the item says why.
+    const kept = ok(await handler({ reject: [{ files: "src/app/plan.ts", reason: "helpers", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results[0]).toMatchObject({ status: "recorded", recorded: 4, planned: 1, recordedLocally: 4 });
+    expect(kept.reject.results[0].notKept).toContain("1 card(s) the plan names");
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toHaveLength(4);
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).not.toContain("src/app/plan.ts#buildPlan");
+    ok(await handler({ clearRejected: true, rootPath }));
     const rejected = ok(await handler({ reject: [{ files: "src/app/plan.ts", reason: "helpers" }], verbose: true, rootPath }));
     expect(rejected.reject.results[0]).toMatchObject({ status: "recorded", recorded: 4, planned: 1 });
     expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).not.toContain("src/app/plan.ts#buildPlan");

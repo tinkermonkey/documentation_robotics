@@ -230,6 +230,8 @@ interface Planned {
   plan: ElementPlan;
   /** Symbols (by qualified name) a project rule says are not elements, with the rule's name and reason. */
   ruled: Map<string, { rule: string; reason: string }>;
+  /** Adds (by id) a none rule matched and left to Tier 0, which can stage them, with the rule's name (#1424). */
+  heldKept: Map<string, string>;
 }
 
 /** The layers checked, and those whose check failed (with why). */
@@ -436,6 +438,7 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
       ...(input.notElements ? { notElements: input.notElements } : {}),
     });
     const ruled = new Map<string, { rule: string; reason: string }>();
+    const heldKept = new Map<string, string>();
     if (applied) {
       const reasonOf = new Map(rules.map((r) => [r.rule.name, r.rule.reason] as const));
       for (const s of applied.extraction.symbols) {
@@ -448,12 +451,9 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
       const held = planned.adds.filter((a) => applied.held.has(a.symbol.card.id));
       if (held.length) {
         const failing = new Set((await validatePlannedAdds(held)).filter((x) => x.errors.length).map((x) => x.add));
-        // What Tier 0 can stage stays Tier 0's: in the code only, counted under the rule that matched it.
-        for (const a of held) {
-          if (failing.has(a) || !layers.includes(a.layer) || !LAYER_CHECKS[a.layer]?.types.includes(a.type)) continue;
-          const rule = applied.held.get(a.symbol.card.id)!.rule;
-          tier0Kept[rule] = (tier0Kept[rule] ?? 0) + 1;
-        }
+        // What Tier 0 can stage stays Tier 0's: counted under the rule that matched it once its layer's
+        // check says it is in the code only (an ignore rule may still cover it).
+        for (const a of held) if (!failing.has(a)) heldKept.set(a.id, applied.held.get(a.symbol.card.id)!.rule);
         if (failing.size) {
           planned.adds = planned.adds.filter((a) => !failing.has(a));
           for (const a of failing) {
@@ -464,7 +464,7 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
         }
       }
     }
-    return { extraction, plan: planned, ruled };
+    return { extraction, plan: planned, ruled, heldKept };
   };
 
   // Infrastructure: one extraction over the requested layers' labels, the whole project.
@@ -482,7 +482,7 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
   const reports: LayerVerifyReport[] = [];
   for (const layer of layers) {
     if (failed.has(layer)) continue;
-    const report = await attempt([layer], () => verifyLayer(layer, layer === "testing" ? tests : infra, live, input));
+    const report = await attempt([layer], () => verifyLayer(layer, layer === "testing" ? tests : infra, live, input, tier0Kept));
     if (report) reports.push(report);
   }
   for (const layer of layers) if (failed.has(layer)) notVerified.push({ layer, reason: failed.get(layer)! });
@@ -506,7 +506,14 @@ async function planTests(input: LayerVerifyInput, live: GraphElement[], plan: (e
   return plan(await collectExtraction(input.graph, input.config, input.analyzer, { sourceRoot: input.sourceRoot, labels, files }));
 }
 
-async function verifyLayer(layer: string, planned: Planned | null, live: GraphElement[], input: LayerVerifyInput): Promise<LayerVerifyReport> {
+async function verifyLayer(
+  layer: string,
+  planned: Planned | null,
+  live: GraphElement[],
+  input: LayerVerifyInput,
+  /** Counts, per none rule, this layer's in-the-code-only entries that rule left to Tier 0. */
+  tier0Kept: Record<string, number> = {}
+): Promise<LayerVerifyReport> {
   const check = LAYER_CHECKS[layer];
   const checked = (layerOf: string, type: string) => layerOf === layer && check.types.includes(type);
   const matched = new Map<string, LayerVerifyEntry>();
@@ -639,6 +646,10 @@ async function verifyLayer(layer: string, planned: Planned | null, live: GraphEl
       return !reason;
     });
   const inGraphOnly = unlessIgnored([...inCode.values()], "route");
+  for (const entry of inGraphOnly) {
+    const rule = planned?.heldKept.get(entry.id);
+    if (rule) tier0Kept[rule] = (tier0Kept[rule] ?? 0) + 1;
+  }
   const inModelOnly = unlessIgnored(inModel, "element");
 
   // The testing layer also compares the matched test cases' tests relationships.

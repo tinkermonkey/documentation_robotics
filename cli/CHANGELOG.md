@@ -56,8 +56,10 @@ Extract output and decide (CLI 0.9.0, Tool ergonomics):
   answer now includes the reject results.
 - **codebase_extract kept decisions (#1332):** `reject` items take `keep: true`, which writes a rule
   to `extraction-rules.yaml` instead of the checkout's `.dr/` (a card becomes a rule on its file and
-  `symbol`, with `overrideTier0`). A decision record's card, or a card with no file, can't be held by
-  a rule: it is recorded in the checkout and the item says why (`notKept`). A reject answer says when
+  `symbol`, with `overrideTier0`; the file is matched exactly, through a new `where.file` condition).
+  A decision record's card, a card with no file, and a `files` item that left out cards the plan
+  names or this call's decide items decided can't be kept as a rule: they are recorded in the
+  checkout and the item says why (`notKept`). A reject answer says when
   its decisions are local. A kept `none` decide rule that covers recorded rejections retires them
   (`retired`) instead of matching nothing. A rule the file already holds under another name is not
   written again. `list: "notElements"` works before any run, after a commit and without a fresh index.

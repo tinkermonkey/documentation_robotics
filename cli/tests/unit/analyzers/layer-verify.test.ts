@@ -307,6 +307,13 @@ describe("layer-verify (#1082)", () => {
     // The kept rule without overrideTier0 left what Tier 0 can stage in the code only: counted, with what to add.
     const result = await verifyResult(["technology"], new Map(), { graph, rules });
     expect(result.tier0Kept).toEqual({ "k8s-not-ours": 1 });
+    // What the ignore file covers is not in the code only, so the rule is not said to leave it there.
+    const ignoring = await verifyResult(["technology"], new Map(), {
+      graph,
+      rules,
+      ignoreRules: [{ patterns: [{ handler: "Secret/*" }], reason: "secrets are modelled by hand", match: "graph_only" }],
+    });
+    expect(ignoring.tier0Kept).toBeUndefined();
     const warned = rulesApplied(2, result.reports, undefined, result.tier0Kept);
     expect(warned.tier0Kept).toEqual({ "k8s-not-ours": 1 });
     expect(warned.warnings).toEqual([

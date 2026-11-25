@@ -110,6 +110,13 @@ describe("project rules", () => {
     expect(filesMatcher("app/users/[id]/page.tsx")("app/users/x/page.tsx")).toBe(false);
   });
 
+  it("matches where.file exactly: a path with glob characters names only itself", () => {
+    const page = (file: string) => symbol("Function", "UserPage", file, "export function UserPage() {}");
+    const rules = compileRules([{ name: "user-page", where: { file: "app/users/[id]/page.tsx", symbol: "^UserPage$" }, as: "none", reason: "x", overrideTier0: true }]);
+    const out = applyProjectRules(graphOf([page("app/users/[id]/page.tsx"), page("app/users/i/page.tsx")]), rules).extraction.symbols;
+    expect(out.map((s) => s.tier0?.rule ?? null)).toEqual(["project:user-page", null]);
+  });
+
   it("says what to add, and where, for symbols a none rule left to Tier 0", () => {
     expect(overrideTier0Advice("not-tests", 3, true)).toBe(
       "To keep rejecting these 3 symbol(s), add overrideTier0: true to rule 'not-tests' in documentation-robotics/extraction-rules.yaml"

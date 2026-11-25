@@ -48,6 +48,11 @@ const VISIBILITIES: readonly Visibility[] = ["exported", "local", "public", "pri
 export interface RuleWhere {
   /** A file, a folder or a glob from the codebase root (`scripts/`, `src/**\/*.test.ts`), or several. */
   files?: string | string[];
+  /**
+   * A file path from the codebase root, matched exactly: no folder, no glob, so a path with glob
+   * characters (`app/users/[id]/page.tsx`) names only itself. A kept card reject writes it. Or several.
+   */
+  file?: string | string[];
   /** The card's label (`Function`, `Method`, `Class`, `Interface`, `Type`, `Enum`, `Route`, ...), or several. */
   label?: string | string[];
   visibility?: Visibility | Visibility[];
@@ -192,7 +197,7 @@ export const RULE_LABELS: readonly string[] = [
 export const PROJECT_RULES_VERSION = 1;
 const FILE_KEYS = ["version", "rules"] as const;
 
-const WHERE_KEYS = ["files", "label", "visibility", "nested", "name", "symbol", "declaration", "ownerType"] as const;
+const WHERE_KEYS = ["files", "file", "label", "visibility", "nested", "name", "symbol", "declaration", "ownerType"] as const;
 const RULE_KEYS = ["name", "where", "relationship", "as", "reason", "attributes", "overrideTier0", "decided"] as const;
 const RELATIONSHIP_KEYS = ["source", "predicate", "target"] as const;
 
@@ -273,6 +278,7 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
     if (bad.length) throw new Error(`rule '${name}': unknown condition ${bad.map((k) => `'${k}'`).join(", ")} (known: ${WHERE_KEYS.join(", ")})`);
     if (!Object.keys(w).length) throw new Error(`rule '${name}': where needs at least one condition, so a rule can't cover every symbol by accident`);
     const files = strings(name, "files", w.files);
+    const exactFiles = strings(name, "file", w.file)?.map((f) => f.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, ""));
     const labels = strings(name, "label", w.label);
     const visibility = strings(name, "visibility", w.visibility);
     const ownerType = strings(name, "ownerType", w.ownerType);
@@ -293,6 +299,7 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
     const nested = w.nested as boolean | undefined;
     where = {
       ...(w.files !== undefined ? { files: w.files as string | string[] } : {}),
+      ...(w.file !== undefined ? { file: w.file as string | string[] } : {}),
       ...(w.label !== undefined ? { label: w.label as string | string[] } : {}),
       ...(w.visibility !== undefined ? { visibility: w.visibility as Visibility | Visibility[] } : {}),
       ...(nested !== undefined ? { nested } : {}),
@@ -303,6 +310,7 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
     };
     matches = (s) => {
       if (fileMatchers && !(s.file && fileMatchers.some((m) => m(s.file!)))) return false;
+      if (exactFiles && !(s.file && exactFiles.includes(s.file.replace(/\\/g, "/").replace(/^\.\//, "")))) return false;
       if (labels && !labels.includes(s.label)) return false;
       if (visibility && !(s.visibility && visibility.includes(s.visibility))) return false;
       if (nested !== undefined && !!s.nested !== nested) return false;
@@ -386,7 +394,7 @@ export async function loadProjectRules(projectRoot: string): Promise<CompiledRul
 
 const FILE_HEADER =
   "# Extraction rules for this project, applied by codebase_extract before it makes cards.\n" +
-  "# Each rule: name, where (files, label, visibility, nested, name, symbol, declaration, ownerType) or\n" +
+  "# Each rule: name, where (files, file, label, visibility, nested, name, symbol, declaration, ownerType) or\n" +
   "# relationship (source, predicate, target), as (a layer.type, or none) and reason; attributes for a\n" +
   "# typed rule; overrideTier0: true for a none rule that also takes what Tier 0 decided as elements.\n" +
   "# The first rule that matches a symbol wins. Written by codebase_extract (decide with keep: true);\n" +
@@ -432,7 +440,7 @@ export function ruleNameFor(rule: Pick<ProjectRule, "where" | "relationship" | "
     if (w.ownerType) parts.push("of", ...(list(w.ownerType) ?? []).map((o) => o.split(".").pop()!));
     if (w.name) parts.push("named", w.name);
     if (w.symbol) parts.push("symbol", w.symbol);
-    const files = list(w.files);
+    const files = list(w.files) ?? list(w.file);
     if (files?.length) parts.push("in", files[0].replace(/\*+/g, ""), ...(files.length > 1 ? [`and-${files.length - 1}-more`] : []));
   } else if (rule.relationship) {
     parts.push(rule.relationship.predicate, (rule.relationship.source ?? rule.relationship.target ?? "").split(".").pop() ?? "");

@@ -33,6 +33,10 @@ const whereSchema = strictItem("A decide[] item's where", {
     .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
     .optional()
     .describe("A file, a folder or a glob from the codebase root (scripts/, src/**/*.stories.tsx), or a list of them."),
+  file: z
+    .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
+    .optional()
+    .describe("A file path from the codebase root, matched exactly (no folder, no glob: app/users/[id]/page.tsx names only itself), or a list."),
   label: z
     .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
     .optional()
