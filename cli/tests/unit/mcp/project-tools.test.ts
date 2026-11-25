@@ -32,6 +32,7 @@ import { installSpecReference } from "../../../src/utils/spec-installer.js";
 import { Validator } from "../../../src/validators/validator.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 import { fileExists } from "../../../src/utils/file-io.js";
+import { ClaudeIntegrationManager } from "../../../src/integrations/claude-manager.js";
 
 let dir: string;
 
@@ -730,5 +731,78 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
     // One staged update per element, all 130 of them
     const list = parse(await changesetListHandler({ rootPath: dir }));
     expect(list.changesets[applied.derivedValues.id].changes_count).toBe(130);
+  });
+});
+
+describe("project_upgrade and per-project integration files (#1252)", () => {
+  const versionFile = () => join(dir, ".claude", ".dr-version");
+
+  /** A current model with .claude/ from an older dr: its version file says 0.6.0, and one command is gone. */
+  async function withOlderClaudeFiles(): Promise<void> {
+    await currentModel(dir);
+    await new ClaudeIntegrationManager({ projectRoot: dir }).install({ force: true });
+    const version = yaml.parse(await readFile(versionFile(), "utf8"));
+    version.version = "0.6.0";
+    await writeFile(versionFile(), yaml.stringify(version));
+    await rm(join(dir, ".claude", "commands", "dr-model.md"));
+  }
+
+  it("says what the upgrade would change and which installed files the dr plugin carries, and writes nothing", async () => {
+    await withOlderClaudeFiles();
+
+    const body = parse(await projectUpgradeHandler({ rootPath: dir }));
+
+    expect(body.status).toBe("up-to-date");
+    const claude = body.integrations.claude;
+    expect(claude).toMatchObject({ folder: ".claude", installedVersion: "0.6.0", state: "upgrade-available" });
+    expect(claude.files.add).toBe(1);
+    expect(claude.paths).toContain("add .claude/commands/dr-model.md");
+    // The plugin carries its skills, /dr-plan and two agents; the other commands and dr-extractor are only here
+    expect(claude.plugin.inPlugin).toContain(".claude/commands/dr-plan.md");
+    expect(claude.plugin.inPlugin).toContain(".claude/agents/dr-architect.md");
+    expect(claude.plugin.inPlugin.some((path: string) => path.startsWith(".claude/skills/"))).toBe(true);
+    expect(claude.plugin.notInPlugin).toContain(".claude/commands/dr-changeset.md");
+    // The lists show their first ten, with the true counts and the call for all of them
+    expect(claude.plugin.notInPlugin).toHaveLength(10);
+    expect(claude.plugin.notInPluginCount).toBe(11);
+    expect(claude.plugin.more).toContain('detail: "full"');
+    const full = parse(await projectUpgradeHandler({ rootPath: dir, detail: "full" })).integrations.claude;
+    expect(full.plugin.notInPlugin).toHaveLength(11);
+    expect(full.plugin.notInPlugin).toContain(".claude/agents/dr-extractor.md");
+    expect(body.integrations.note).toContain("so removing .claude/ would drop them");
+    expect(body.integrations.note).toContain("upgradeIntegrations: true");
+    expect(body.integrations.note).not.toContain("there is no tool for it");
+    // A preview writes nothing
+    expect(yaml.parse(await readFile(versionFile(), "utf8")).version).toBe("0.6.0");
+    expect(await fileExists(join(dir, ".claude", "commands", "dr-model.md"))).toBe(false);
+  });
+
+  it("upgrades them with upgradeIntegrations and apply, even when the model is current", async () => {
+    await withOlderClaudeFiles();
+
+    const body = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, upgradeIntegrations: true }));
+
+    expect(body.status).toBe("up-to-date");
+    expect(body.integrations.claude.state).toBe("upgraded");
+    expect(body.integrations.note).toContain("Upgraded .claude");
+    expect(await fileExists(join(dir, ".claude", "commands", "dr-model.md"))).toBe(true);
+    expect(yaml.parse(await readFile(versionFile(), "utf8")).version).not.toBe("0.6.0");
+
+    const again = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(again.integrations.claude.state).toBe("up-to-date");
+    expect(again.integrations.claude.paths).toEqual([]);
+    expect(again.integrations.note).not.toContain("behind this dr");
+  });
+
+  it("refuses upgradeIntegrations with modelOnly, which writes nothing outside the model", async () => {
+    await currentModel(dir);
+    const result = await projectUpgradeHandler({ rootPath: dir, apply: true, modelOnly: true, upgradeIntegrations: true });
+    expect(result.isError).toBe(true);
+    expect(parse(result).error).toContain("modelOnly writes nothing outside the model");
+  });
+
+  it("says nothing about integrations when the project has none", async () => {
+    await currentModel(dir);
+    expect(parse(await projectUpgradeHandler({ rootPath: dir })).integrations).toBeUndefined();
   });
 });

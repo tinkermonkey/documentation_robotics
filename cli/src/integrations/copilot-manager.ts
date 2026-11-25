@@ -472,7 +472,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
    * @throws Error if no project found
    */
   private async getProjectRoot(): Promise<string> {
-    const root = await findProjectRoot();
+    const root = this.projectRoot ?? (await findProjectRoot());
     if (!root) {
       throw new Error('No DR project found. Run "dr init" to create a new project');
     }

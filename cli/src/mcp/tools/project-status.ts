@@ -52,8 +52,21 @@ import { DEFAULT_CENTRAL_DEPS, type CentralDeps } from "./central-viewer.js";
 /** How many entries a `list` call returns when `limit` is not given. */
 export const LIST_PAGE_DEFAULT = 50;
 
+/** What a session is for, as project_status's `task` takes it (#1301). */
+export const STATUS_TASKS = ["plan", "review", "reconcile"] as const;
+export type StatusTask = (typeof STATUS_TASKS)[number];
+
 const inputSchema = {
   rootPath: rootPathSchema,
+  task: z
+    .enum(STATUS_TASKS)
+    .optional()
+    .describe(
+      "What this session is for, so nextStep fits it. plan: planning or building a change; review: reviewing a " +
+        "change (a PR's plan, a staged changeset); reconcile: catching the model up with the code. With plan or " +
+        "review, code drift and the code index are said in nextStep.info, not made the step. Omitted, the step " +
+        "covers everything, drift included."
+    ),
   list: z
     .enum(STATUS_LISTS)
     .optional()
@@ -104,6 +117,11 @@ export interface NextStep {
    * or an index that hasn't seen the latest code, while a changeset is active.
    */
   also?: { summary: string; tool: string; args?: Record<string, unknown> };
+  /**
+   * What the status found that this session's task leaves for later, said rather than made the
+   * step: code drift and the index while planning or reviewing (task: plan or review).
+   */
+  info?: string;
 }
 
 export interface ProjectStatus extends Sections {
@@ -195,7 +213,7 @@ export async function projectStatus(args: ProjectStatusArgs, options: StatusOpti
   return {
     project: { root, resolvedBy, projectRoot, ...at },
     ...shortenSections(sections, args.rootPath),
-    nextStep: suggestNextStep(sections, { root, rootPath: args.rootPath }),
+    nextStep: suggestNextStep(sections, { root, rootPath: args.rootPath, task: args.task }),
   };
 }
 
@@ -262,10 +280,15 @@ export async function projectStatusList(
 /**
  * The one thing to do next, in order: create a model, restart a dr server older than the installed
  * CLI when the spec versions disagree, upgrade the model, continue the active changeset, index the
- * code when drift needs a fresh index, catch the model up with the code, index the code.
+ * code when drift needs a fresh index, catch the model up with the code, index the code. With task
+ * plan or review, drift and the index are said in `info` and the step is the task's (#1301); the
+ * old tracked active-changeset marker is said whatever the step (#1273).
  */
-export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: string }): NextStep {
-  const step = withServerNote(withIndexNote(whileIndexing(pickNextStep(s, ctx.root), s), s), s);
+export function suggestNextStep(s: Sections, ctx: { root: string; rootPath?: string; task?: StatusTask }): NextStep {
+  const picked = whileIndexing(pickNextStep(s, ctx.root, ctx.task), s);
+  const info = ctx.task === "plan" || ctx.task === "review" ? driftAsInformation(s) : undefined;
+  const informed = info ? { ...picked, info } : picked;
+  const step = withLegacyMarkerNote(withServerNote(withIndexNote(informed, s, ctx.task), s), s);
   if (!ctx.rootPath) return step;
   // A call that named its project passes it on, so the next call serves the same one.
   const withRoot = (args?: Record<string, unknown>) => ({ ...args, rootPath: ctx.rootPath });
@@ -286,7 +309,7 @@ const WAIT_ARGS = { status: true, wait: 30 };
  * The step itself stands: an active changeset is still the thing to pick up. The index call goes
  * in `also` unless the step already uses it, and in the summary either way.
  */
-function withIndexNote(step: NextStep, s: Sections): NextStep {
+function withIndexNote(step: NextStep, s: Sections, task?: StatusTask): NextStep {
   if (step.tool === "codebase_index") return step;
   let also: NextStep["also"];
   if (s.indexing?.status === "running") {
@@ -295,8 +318,9 @@ function withIndexNote(step: NextStep, s: Sections): NextStep {
       tool: "codebase_index",
       args: WAIT_ARGS,
     };
-  } else if (s.changesets?.status === "ok" && s.changesets.active) {
-    // Without an active changeset, pickNextStep already sends a stale index to codebase_index.
+  } else if (s.changesets?.status === "ok" && s.changesets.active && task !== "review") {
+    // Without an active changeset, pickNextStep already sends a stale index to codebase_index. A
+    // review reads the plan, not the code, so it is not told to refresh the index.
     if (s.codeIndex?.status === "fresh-with-uncommitted-edits" || s.codeIndex?.status === "stale") {
       const why =
         s.codeIndex.status === "stale"
@@ -326,6 +350,16 @@ function withServerNote(step: NextStep, s: Sections): NextStep {
   return { ...step, summary: `${step.summary} Also: ${stale.note}` };
 }
 
+/**
+ * The old tracked active-changeset marker (#1273), whatever the step: said while git still tracks
+ * it or it still decides the active changeset here. An untracked leftover is only in the section.
+ */
+function withLegacyMarkerNote(step: NextStep, s: Sections): NextStep {
+  const legacy = s.changesets?.status === "ok" ? s.changesets.legacyMarker : undefined;
+  if (!legacy || (!legacy.tracked && !legacy.inUse)) return step;
+  return { ...step, summary: `${step.summary} Also: ${legacy.note}` };
+}
+
 const RESTART = RESTART_SERVER;
 
 /** A step that would start an index run waits for the one already running instead. */
@@ -342,7 +376,7 @@ function whileIndexing(step: NextStep, s: Sections): NextStep {
 /** Starting an index run: block up to 30 s for it rather than poll. */
 const INDEX_ARGS = { wait: 30 };
 
-function pickNextStep(s: Sections, root: string): NextStep {
+function pickNextStep(s: Sections, root: string, task?: StatusTask): NextStep {
   const ctx = { root };
   const { model, spec, changesets, codeDrift, codeIndex } = s;
 
@@ -433,7 +467,14 @@ function pickNextStep(s: Sections, root: string): NextStep {
     };
   }
 
-  if (codeDrift.status === "drift") {
+  // A review reads a plan, and planning makes one: code drift and the index are said in
+  // nextStep.info for them, never made the step (#1301). Reconciling, or no task, puts them first.
+  if (task === "review") return reviewStep(changesets);
+  const upkeepFirst = task !== "plan";
+  // Said with an upkeep step when the session didn't say what it is for.
+  const taskHint = task ? "" : ` ${TASK_HINT}`;
+
+  if (upkeepFirst && codeDrift.status === "drift") {
     const from = (codeDrift.countedFrom ?? codeDrift.modelCommit).sha;
     // The count could not start where it should: a since run from where it did start would leave
     // the earlier code unchecked and still end in "in step". Read the whole codebase instead.
@@ -460,21 +501,23 @@ function pickNextStep(s: Sections, root: string): NextStep {
             ? "Source files were edited after the code index was taken"
             : "The code has no usable index";
       return {
-        summary: `${drift} ${index}: rebuild it with codebase_index, then check the model against the code with codebase_verify and ${clear}`,
+        summary:
+          `${drift} ${index}: rebuild it with codebase_index, then check the model against the code with codebase_verify ` +
+          `and ${clear}${taskHint}`,
         tool: "codebase_index",
         args: INDEX_ARGS,
         then: { tool: "codebase_verify" },
       };
     }
     return {
-      summary: `${drift} To clear it, check the model against the code with codebase_verify, then ${clear}`,
+      summary: `${drift} To clear it, check the model against the code with codebase_verify, then ${clear}${taskHint}`,
       tool: "codebase_verify",
       then: { tool: "codebase_extract", ...(partial ? {} : { args: { since: from } }) },
     };
   }
 
   // The baseline is out of reach and nothing is seen to have changed: that is not "in step".
-  if (codeDrift.status === "unknown" && codeDrift.incompleteHistory) {
+  if (upkeepFirst && codeDrift.status === "unknown" && codeDrift.incompleteHistory) {
     const fetch = codeDrift.shallow
       ? "Fetch the full history (git fetch --unshallow) and call project_status again"
       : "Fetch the branch that holds that commit and call project_status again";
@@ -482,26 +525,26 @@ function pickNextStep(s: Sections, root: string): NextStep {
       summary:
         `Code drift can't be measured here: ${codeDrift.reason}. Don't take the model as current with the code. ${fetch}; ` +
         "if the commit is gone for good, run codebase_extract with no since and no plan active, and land the changeset it makes " +
-        "when the user asks, which records a new baseline.",
+        `when the user asks, which records a new baseline.${taskHint}`,
       tool: null,
     };
   }
 
-  if (codeIndex.status === "absent") {
+  if (upkeepFirst && codeIndex.status === "absent") {
     return {
       summary: "The code has no index. Build one with codebase_index.",
       tool: "codebase_index",
       args: INDEX_ARGS,
     };
   }
-  if (codeIndex.status === "stale") {
+  if (upkeepFirst && codeIndex.status === "stale") {
     return {
       summary: `The code index is stale: ${codeIndex.reason ?? `it was built at ${codeIndex.indexedCommit.slice(0, 7)}`}. Refresh it with codebase_index.`,
       tool: "codebase_index",
       args: INDEX_ARGS,
     };
   }
-  if (codeIndex.status === "fresh-with-uncommitted-edits") {
+  if (upkeepFirst && codeIndex.status === "fresh-with-uncommitted-edits") {
     return {
       summary: `The code index predates uncommitted edits: ${codeIndex.reason}. Refresh it with codebase_index.`,
       tool: "codebase_index",
@@ -537,11 +580,13 @@ function pickNextStep(s: Sections, root: string): NextStep {
       ? `The model is in step with the code: no source file it references changed ${sinceLanding(codeDrift)}.${unseen}`
       : codeDrift.status === "in-step"
         ? `The model is current and in step with the code, counted from its last commit: no as-built landing is recorded yet.${unseen}`
-        : codeDrift.status === "unlinked"
-          ? "No element has a source reference, so changed code can't be tied to the model."
-          : codeDrift.status === "unknown" || codeDrift.status === "no-git" || codeDrift.status === "error"
-            ? `Whether the model is in step with the code could not be checked${"reason" in codeDrift && codeDrift.reason ? `: ${codeDrift.reason}` : "error" in codeDrift ? `: ${codeDrift.error}` : ""}.`
-            : "The model is current.";
+        : codeDrift.status === "drift"
+          ? "The code has changed since the model was last reconciled with it (nextStep.info says what)."
+          : codeDrift.status === "unlinked"
+            ? "No element has a source reference, so changed code can't be tied to the model."
+            : codeDrift.status === "unknown" || codeDrift.status === "no-git" || codeDrift.status === "error"
+              ? `Whether the model is in step with the code could not be checked${"reason" in codeDrift && codeDrift.reason ? `: ${codeDrift.reason}` : "error" in codeDrift ? `: ${codeDrift.error}` : ""}.`
+              : "The model is current.";
   // New source files no element references are code no extraction has read: offer the catch-up.
   const catchUp =
     codeDrift.status === "in-step" && (codeDrift.unreferenced?.newSourceFiles ?? 0) > 0
@@ -672,6 +717,87 @@ function codeDriftSentence(codeDrift: CodeDrift): string {
   return `${changed}.${unseen}${landedNote}`;
 }
 
+/** What an upkeep step adds when the session didn't say what it is for (#1301). */
+const TASK_HINT =
+  'If this session is planning or reviewing a change rather than reconciling the model, call project_status with ' +
+  'task: "plan" or "review": drift is then said in nextStep.info, not made the step.';
+
+/**
+ * The step for a session reviewing a change (task: review) with no changeset active: the staged
+ * plan to read and show, or the ones to pick from. The active changeset is per checkout, so a plan
+ * on a PR's branch is staged here but not active.
+ */
+function reviewStep(changesets: Sections["changesets"]): NextStep {
+  if (changesets.status !== "ok") {
+    const why = "error" in changesets ? `: ${changesets.error}` : "";
+    return { summary: `The changesets could not be read${why}.`, tool: null };
+  }
+  const plans = changesets.staged.filter((entry) => entry.purpose !== "upgrade-record");
+  const perCheckout =
+    "The active changeset is per checkout (.dr/active-changeset), so a plan from a branch is staged here, not active.";
+  if (plans.length === 1) {
+    const [plan] = plans;
+    const changes = `${plan.changes.total} staged change${plan.changes.total === 1 ? "" : "s"}`;
+    return {
+      summary:
+        `Changeset "${plan.name}" is staged, with ${changes}. ${perCheckout} Read it with changeset_brief ` +
+        `(changeset: "${plan.name}"), and show it to the user with review_open; read their comments with annotation_list.`,
+      tool: "changeset_brief",
+      args: { changeset: plan.id },
+      then: { tool: "review_open", args: { changeset: plan.id } },
+    };
+  }
+  if (plans.length > 1) {
+    return {
+      summary:
+        `${plans.length} changesets are staged: ${nameSome(plans.map((entry) => entry.name))}. ${perCheckout} ` +
+        "Ask the user " +
+        "which one is under review (a PR's diff names its folder under documentation-robotics/changesets/), then read it " +
+        "with changeset_brief (changeset: <its name>) and show it with review_open.",
+      tool: "changeset_list",
+    };
+  }
+  return {
+    summary:
+      "No changeset is staged in this checkout, so there is no plan here to review. A PR's plan is staged on its branch, " +
+      "under documentation-robotics/changesets/: check that branch out and call project_status again. A plan that landed " +
+      "is part of the model: model_show reads its elements.",
+    tool: null,
+  };
+}
+
+/**
+ * Code drift and the index's state, said as information for a session that is planning or
+ * reviewing (task: plan or review); undefined when there is nothing to say.
+ */
+function driftAsInformation(s: Sections): string | undefined {
+  const { codeDrift, codeIndex } = s;
+  const parts: string[] = [];
+  let drifted = false;
+  if (codeDrift?.status === "drift") {
+    parts.push(codeDriftSentence(codeDrift));
+    drifted = true;
+  } else if (codeDrift?.status === "unknown" && codeDrift.incompleteHistory) {
+    parts.push(`Code drift can't be measured here: ${codeDrift.reason}.`);
+    drifted = true;
+  }
+  const index =
+    codeIndex?.status === "absent"
+      ? "The code has no index."
+      : codeIndex?.status === "stale"
+        ? `The code index is stale${codeIndex.reason ? `: ${codeIndex.reason}` : ""}.`
+        : codeIndex?.status === "fresh-with-uncommitted-edits"
+          ? "The code index predates uncommitted edits."
+          : "";
+  if (index) parts.push(index);
+  if (parts.length === 0) return undefined;
+  const reconcile = drifted
+    ? ' Reconciling the model with the code is a session of its own (project_status with task: "reconcile").'
+    : "";
+  const refresh = index ? " codebase_index refreshes the index when this task needs the code." : "";
+  return `Not this session's task: ${parts.join(" ")}${reconcile}${refresh}`;
+}
+
 /**
  * The step for an active as-built changeset (one codebase_extract staged): it holds what was
  * built, not a plan, so it is never "the plan to pick up". With a plan staged it is the as-built
@@ -753,7 +879,7 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the farm project and checkout this folder is (checkout) with the project's other checkouts (branch, head, state, active changeset, staged count), the central DR process serving the shared viewer with this checkout's link when it runs (it never starts it: review_open does), and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active changeset (in this checkout: the marker is per checkout, in .dr/; an old documentation-robotics/changesets/.active still on disk or in git is reported as legacyMarker, with what to commit) and the staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart; the changed files are counted per folder and their elements per layer in changedSourceSummary), the farm project and checkout this folder is (checkout) with the project's other checkouts (branch, head, state, active changeset, staged count), the central DR process serving the shared viewer with this checkout's link when it runs (it never starts it: review_open does), and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. Pass task (plan, review or reconcile) to say what the session is for: while planning or reviewing, code drift and the index go in nextStep.info, not the step. The status is kept small, so its lists show their first entries by default: " +
     `${LIST_DEFAULTS.stagedChangesets} staged changesets, ${LIST_DEFAULTS.changedSourceFiles} changed source files with ${LIST_DEFAULTS.elementsPerFile} elements each, ` +
     `${LIST_DEFAULTS.unreferencedFiles} unreferenced files, the ${LIST_DEFAULTS.landedSince} latest changesets landed since, ${LIST_DEFAULTS.changedSinceIndex} files changed since the index, ` +
     `${LIST_DEFAULTS.otherCheckouts} other checkouts, ` +

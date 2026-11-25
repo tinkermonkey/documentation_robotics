@@ -1255,7 +1255,7 @@ function printDropRecord(record: UpgradeDropRecord | undefined): void {
   );
   console.log(
     ansis.dim(
-      `   Review it: documentation-robotics/changesets/${record.id}/changes.yaml lists each one (also in dr changeset list and the viewer's changesets view)`
+      `   Review it: dr changeset show ${record.name} lists each one (also the viewer's changesets view)`
     )
   );
   printDropRoutes(record);

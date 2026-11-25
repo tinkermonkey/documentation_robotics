@@ -9,7 +9,10 @@
  * which are committed. A marker committed with them outlived its changeset in every clone. That
  * place is still read when `.dr/` has no marker, so a checkout that was mid-change keeps its
  * active changeset across the upgrade (and a dr older than the move, such as an installed plugin,
- * is still heard). Every write goes to `.dr/` and removes the old file.
+ * is still heard). Every write goes to `.dr/` and removes the old file. Clearing the marker leaves
+ * an empty `.dr/active-changeset` rather than none, so once a checkout has used `.dr/`, an old
+ * file restored from git (`git checkout -- .`) never makes its changeset active again (#1273).
+ * project_status reports an old file still on disk or in git (collectLegacyMarker).
  *
  * Whether the changeset a marker names is still the active one is not decided here: a marker
  * counts only while it names a staged changeset (StagingAreaManager.getActive, Model.load).
@@ -79,8 +82,13 @@ export async function writeActiveMarker(projectRoot: string, changesetId: string
   await rm(legacyActiveMarkerPath(projectRoot), { force: true });
 }
 
-/** Remove the marker, from `.dr/` and from the old place. No active changeset afterwards. */
+/**
+ * No active changeset: `.dr/active-changeset` is left empty, which means none and keeps the old
+ * place from being read again, and the old file is removed.
+ */
 export async function clearActiveMarker(projectRoot: string): Promise<void> {
-  await rm(activeMarkerPath(projectRoot), { force: true });
+  const file = activeMarkerPath(projectRoot);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, "", "utf-8");
   await rm(legacyActiveMarkerPath(projectRoot), { force: true });
 }

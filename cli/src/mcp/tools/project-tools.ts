@@ -13,7 +13,8 @@
  * `apply: true` runs the migration, then reloads and validates the model with the warnings
  * `dr validate` reports, and lists every file it wrote, the model's apart from the rest. Values
  * derived for required attributes are staged in a changeset for review, never written to the base
- * model. Per-project integration files are left alone (the dr plugin replaces them). Files git
+ * model. Per-project integration files (.claude/, .github/) are reported, with what the dr plugin
+ * carries of them, and upgraded only with `upgradeIntegrations` (integrationsReport). Files git
  * tracks under .dr/ are the caller's decision to put to the user (`gitignore`).
  *
  * Both write outside a changeset, so changeset-only mode refuses them (mcp/changeset-only.ts),
@@ -81,10 +82,11 @@ import type { Model } from "../../core/model.js";
 import { installSpecReference } from "../../utils/spec-installer.js";
 import { findProjectRoot } from "../../utils/project-paths.js";
 import { getCliVersion } from "../../utils/spec-version.js";
+import { ClaudeIntegrationManager } from "../../integrations/claude-manager.js";
+import { CopilotIntegrationManager } from "../../integrations/copilot-manager.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { isDebug, isVerbose } from "../../utils/globals.js";
 import { unfilledRequired, validationSummary, type UnfilledRequired } from "../../core/upgrade-validation.js";
-import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 import { clearModelCache, jsonResult, reloadModel, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
@@ -325,6 +327,15 @@ const upgradeInputSchema = {
     .describe(
       "Only with apply: true. Upgrade the model and the per-checkout spec reference and nothing else: no layer reports, no .gitignore or .prettierignore lines."
     ),
+  upgradeIntegrations: z
+    .boolean()
+    .optional()
+    .describe(
+      "With apply: true, also bring the project's per-project integration files up to this dr, as dr upgrade does " +
+        "(.claude/ from dr claude install, .github/ from dr copilot install; files edited in the project are replaced), " +
+        "even when the model is already on this spec. Without apply, the answer's integrations section previews it. " +
+        "Pass it only when the user approves."
+    ),
   rootPath: z
     .string()
     .optional()
@@ -335,23 +346,131 @@ const upgradeInputSchema = {
 
 export type ProjectUpgradeArgs = z.infer<z.ZodObject<typeof upgradeInputSchema>>;
 
+/** How many paths each list of an integration report shows by default; detail: "full" shows all. */
+const INTEGRATION_PATHS_SHOWN = 10;
+
+/** One per-project integration in project_upgrade's answer (#1252). */
+interface IntegrationReport {
+  /** The integration's folder: .claude (dr claude install) or .github (dr copilot install). */
+  folder: string;
+  installedVersion?: string;
+  /**
+   * up-to-date: nothing to change. upgrade-available: its upgrade would change the files counted.
+   * upgraded: upgradeIntegrations (with apply) changed them. newer: a newer dr installed it, and
+   * it is left alone (dr upgrade --force would put this dr's older files in).
+   */
+  state: "up-to-date" | "upgrade-available" | "upgraded" | "newer";
+  /** The upgrade's files by action (would change, or changed once upgraded). */
+  files: Record<"add" | "update" | "overwrite" | "remove", number>;
+  /** "<action> <path>" for those files: the first ones, with shown/omitted/more beside them when cut. */
+  paths: string[];
+  /** Leftovers of older layouts the upgrade doesn't touch (dr upgrade offers to remove them). */
+  stale?: string[];
+  /** For Claude Code: which installed entries the dr plugin also carries and which it doesn't. */
+  plugin?: { inPlugin: string[]; notInPlugin: string[]; inPluginCount: number; notInPluginCount: number; more?: string };
+  [key: string]: unknown;
+}
+
 /**
- * What to say about per-project integration files, which the dr plugin replaces: nothing when
- * there are none, which is the usual case.
+ * The per-project integration files a project has from `dr claude install` (.claude/) and
+ * `dr copilot install` (.github/): for each, what its upgrade would change, or changed when
+ * `upgrade` is set (the result of upgradeIntegrations with apply), and for Claude Code which
+ * installed entries the dr plugin carries, so the advice is to keep and upgrade the files, or that
+ * removing them is safe (#1252). Nothing when there are none, which is the usual case.
  */
-async function integrationsNote(projectRoot: string): Promise<{ integrations?: string }> {
+async function integrationsReport(
+  projectRoot: string,
+  options: { upgrade: boolean }
+): Promise<{ integrations?: Record<string, unknown> }> {
+  const cliVersion = await getCliVersion();
+  const reports: Record<string, IntegrationReport | { folder: string; error: string }> = {};
   const notes: string[] = [];
-  if (await fileExists(join(projectRoot, ".claude", ".dr-version"))) {
+  const managers = [
+    { name: "claude", folder: ".claude", manager: new ClaudeIntegrationManager({ projectRoot }) },
+    { name: "copilot", folder: ".github", manager: new CopilotIntegrationManager({ projectRoot }) },
+  ] as const;
+
+  for (const { name, folder, manager } of managers) {
+    try {
+      const installed = await manager.loadVersionFile();
+      if (!installed) continue;
+      const newer = compareVersions(installed.version, cliVersion) > 0;
+      // As dr upgrade runs it: with force, which replaces files edited in the project.
+      const plan = await manager.planUpgrade({ force: true });
+      if (!plan) continue;
+      const changes = plan.files.length > 0 || installed.version !== cliVersion;
+      const upgrade = options.upgrade && changes && !newer;
+      if (upgrade) await manager.applyUpgrade({ force: true });
+      const files = { add: 0, update: 0, overwrite: 0, remove: 0 };
+      for (const file of plan.files) files[file.action]++;
+      const { items: paths, rest } = capped(
+        plan.files.map((file) => `${file.action} ${file.path}`),
+        INTEGRATION_PATHS_SHOWN
+      );
+      const report: IntegrationReport = {
+        folder,
+        installedVersion: installed.version,
+        state: newer ? "newer" : upgrade ? "upgraded" : changes ? "upgrade-available" : "up-to-date",
+        files,
+        paths,
+        ...(Object.keys(rest).length > 0 ? { pathsShown: rest.shown, pathsOmitted: rest.omitted, more: rest.more } : {}),
+        ...(plan.stale.length > 0 ? { stale: plan.stale } : {}),
+      };
+      if (manager instanceof ClaudeIntegrationManager) {
+        const coverage = await manager.pluginCoverage();
+        if (coverage) {
+          const inPlugin = capped(coverage.inPlugin, INTEGRATION_PATHS_SHOWN);
+          const notInPlugin = capped(coverage.notInPlugin, INTEGRATION_PATHS_SHOWN);
+          const more = inPlugin.rest.more ?? notInPlugin.rest.more;
+          report.plugin = {
+            inPlugin: inPlugin.items,
+            notInPlugin: notInPlugin.items,
+            inPluginCount: coverage.inPlugin.length,
+            notInPluginCount: coverage.notInPlugin.length,
+            ...(more ? { more } : {}),
+          };
+          notes.push(
+            `This project has per-project Claude Code files from \`dr claude install\` (.claude/). The dr plugin carries ` +
+              `${coverage.inPlugin.length} of them (its skills, /dr-plan, the dr-architect and dr-advisor agents), which ` +
+              "load twice while both are installed" +
+              (coverage.notInPlugin.length > 0
+                ? `; it doesn't carry the other ${coverage.notInPlugin.length} (integrations.claude.plugin.notInPlugin, ` +
+                  "such as the /dr-model and /dr-changeset commands), so removing .claude/ would drop them. Keep the files " +
+                  "and keep them current, or remove them once the user no longer wants what only they carry."
+                : ", and it carries everything they hold, so the user can remove them.")
+          );
+        }
+      } else {
+        notes.push("This project has per-project GitHub Copilot files from `dr copilot install` (.github/).");
+      }
+      reports[name] = report;
+    } catch (error) {
+      reports[name] = { folder, error: getErrorMessage(error) };
+    }
+  }
+
+  const found = Object.values(reports);
+  if (found.length === 0) return {};
+  const states = found.filter((report): report is IntegrationReport => "state" in report);
+  const pending = states.filter((report) => report.state === "upgrade-available").map((report) => report.folder);
+  const upgraded = states.filter((report) => report.state === "upgraded").map((report) => report.folder);
+  if (upgraded.length > 0) {
     notes.push(
-      "This project still has per-project integration files from `dr claude install` (.claude/). The dr Claude Code plugin replaces them and project_upgrade leaves them alone; the user can remove them."
+      `Upgraded ${upgraded.join(" and ")} to this dr (${cliVersion}), as dr upgrade does: files edited in the project ` +
+        "were replaced (paths lists them), so show the user the diff before committing."
     );
   }
-  if (await fileExists(join(projectRoot, ".github", ".dr-copilot-version"))) {
+  if (pending.length > 0) {
     notes.push(
-      "This project has per-project GitHub Copilot integration files from `dr copilot install` (.github/), which project_upgrade leaves alone. To bring them up to this dr's version, the user runs `dr copilot upgrade` in a terminal (there is no tool for it)."
+      `${pending.join(" and ")} ${pending.length === 1 ? "is" : "are"} behind this dr (${cliVersion}): ` +
+        "project_upgrade with apply: true and upgradeIntegrations: true brings them up to date, as dr upgrade does " +
+        "(files edited in the project are replaced: paths lists every file), once the user approves."
     );
   }
-  return notes.length > 0 ? { integrations: notes.join(" ") } : {};
+  if (states.some((report) => report.state === "newer")) {
+    notes.push("A newer dr installed some of these files; they are left alone.");
+  }
+  return { integrations: { ...reports, note: notes.join(" ") } };
 }
 
 const MODEL_PREFIX = "documentation-robotics/model/";
@@ -569,6 +688,11 @@ async function upgradeRoot(rootPath: string | undefined): Promise<string> {
     ]);
   }
   return root;
+}
+
+/** Whether this call upgrades the per-project integration files: upgradeIntegrations with apply. */
+function upgradesIntegrations(args: ProjectUpgradeArgs): boolean {
+  return args.apply === true && args.upgradeIntegrations === true && args.modelOnly !== true;
 }
 
 function compareVersions(a: string, b: string): number {
@@ -913,6 +1037,13 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         "Preview without force first, then call project_upgrade with apply: true and force: true when the user approves",
       ]);
     }
+    if (args.modelOnly && args.upgradeIntegrations) {
+      throw new CLIError(
+        "modelOnly writes nothing outside the model, and upgradeIntegrations writes .claude/ and .github/",
+        ErrorCategory.USER,
+        ["Pass one of them"]
+      );
+    }
     const projectRoot = await upgradeRoot(args.rootPath);
     const force = args.force === true;
     const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force });
@@ -1008,6 +1139,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
         ...gitignore,
         ...prettierignore,
+        ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
         ...(outside.commitHooks && !args.modelOnly ? { commitHooks: outside.commitHooks } : {}),
         ...(warnings.length > 0 ? { warnings } : {}),
         ...(pending.length > 0 || decisionOpen
@@ -1040,7 +1172,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...(await wouldOrphan(projectRoot, catalog.details)),
           ...(await rehearsalReport(projectRoot, scan, force)),
           ...(await outsideModelReport(projectRoot, scan)),
-          ...(await integrationsNote(projectRoot)),
+          ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
           next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
         },
         { compact: true }
@@ -1173,7 +1305,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...reports,
           ...(commitHooks.length > 0 ? { commitHooks } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
-          ...(await integrationsNote(projectRoot)),
+          ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
           ...(decisionOpen
             ? {
                 next: 'The model is upgraded. git tracks files under .dr/, so .gitignore was left alone: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.',
@@ -1191,7 +1323,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
-          ...(await integrationsNote(projectRoot)),
+          ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
           next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",
         },
         { compact: true }
@@ -1203,7 +1335,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines), the per-project integration files a project still has from dr claude install or dr copilot install (integrations: for each, what its upgrade would change, and for .claude/ which installed files the dr plugin also carries, inPlugin, and which only the files carry, notInPlugin; upgradeIntegrations: true with apply upgrades them, even when the model is current) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

@@ -179,7 +179,8 @@ describe("a .active marker that names a changeset that is no longer staged", () 
         deactivated: null,
         clearedLeftoverMarker: { changeset: "landed-earlier", status: "committed" },
       });
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
       expect(JSON.parse(text(await changesetDeactivateHandler({ rootPath: root })))).toEqual({ deactivated: null });
     }));
 
@@ -188,7 +189,8 @@ describe("a .active marker that names a changeset that is no longer staged", () 
       const id = await leaveMarkerBehind(root, "committed");
       const { manager } = await managerFor(root);
       await manager.delete(id);
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
     }));
 });
 
@@ -234,7 +236,8 @@ describe("where the marker lives", () => {
       expect(await exists(legacyMarkerPath(root))).toBe(false);
 
       await manager.clearActive();
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
       expect(await manager.getActiveId()).toBeNull();
     }));
 
@@ -274,7 +277,28 @@ describe("where the marker lives", () => {
 
       await manager.clearActive();
       expect(await exists(legacyMarkerPath(root))).toBe(false);
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
       expect(await manager.getActiveId()).toBeNull();
+    }));
+
+  it("doesn't let an old marker restored from git make its changeset active after a deactivate (#1273)", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const shared = await manager.create("committed-in-the-old-marker");
+      const mine = await manager.create("this-checkouts-plan");
+      await manager.setActive(mine.id!);
+      await manager.clearActive();
+
+      // As `git checkout -- documentation-robotics/changesets/.active` does in a repository that tracked it
+      await writeFile(legacyMarkerPath(root), `${shared.id}\n`);
+
+      expect(await manager.getActiveId()).toBeNull();
+      expect((await Model.load(root, { lazyLoad: false })).getActiveChangesetId()).toBeFalsy();
+
+      // Activating still works, and the next deactivate leaves the old file gone again
+      await manager.setActive(mine.id!);
+      expect(await manager.getActiveId()).toBe(mine.id!);
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
     }));
 });

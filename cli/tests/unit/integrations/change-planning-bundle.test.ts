@@ -77,7 +77,10 @@ describe("change-planning integration", () => {
       });
 
       it("confirms the changeset's name and intent before creating it (D4)", () => {
-        expect(text).toMatch(/confirm both with the human\s+before/);
+        expect(text).toMatch(/confirm both\s+with the human\s+before/);
+        // The intent is markdown, in a shape the skill shows (#1210), and is passed as intent (#1433)
+        expect(text).toContain("**Done when**");
+        expect(text).toMatch(/`intent`/);
         expect(text).toContain("`project_init`");
         expect(text).toMatch(
           /bootstrap\s+(?:the model\s+)?(?:it\s+)?from the code/

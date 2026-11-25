@@ -1,0 +1,24 @@
+id: changeset-1795622836738-pmvhejsyx
+name: cli09-status-changeset-cli
+description: |-
+  CLI 0.9.0, "Status and the changeset CLI": the changeset CLI reads any changeset by name, a changeset's intent is markdown and called the same everywhere, and project_status and project_upgrade say what a session needs and no more.
+
+  **In scope**
+  - `dr changeset show <name>` (new), and `staged`, `diff`, `preview` take a changeset name (#1219); `dr upgrade` points at `show` for its record.
+  - `changeset_create` and `changeset_update` take `intent` (keeping `description`); the description is documented as markdown in the tools, the CLI and the viewer API, and the CLI prints it with its line breaks (#1433, #1210).
+  - `project_status`: changed source files counted per folder and per layer, with fewer listed (#1251); a `task` parameter (plan, review, reconcile) so code drift is information, not the next step, while planning or reviewing (#1301); it reports a leftover `documentation-robotics/changesets/.active` and whether git still tracks it, and the legacy file no longer wins once `.dr/` has a marker (#1273).
+  - `project_upgrade` reports what each per-project integration's upgrade would change and which installed files the dr plugin carries, and upgrades them on request (`upgradeIntegrations` with `apply`) (#1252).
+
+  **Done when** each issue's behaviour has a unit test (and an integration test where it is end to end), the skills and server instructions say the same, and verify finds the build matches this plan.
+created: 2026-11-25T16:07:16.780Z
+modified: 2026-11-25T16:29:36.575Z
+status: staged
+baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 66
+  modifications: 13
+  deletions: 0
+lastSequence: 78

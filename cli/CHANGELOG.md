@@ -7,7 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`dr changeset show [changeset]` (#1219):** shows one changeset by name or id, whatever its state
+  or purpose (a staged plan that isn't active, an upgrade record, a committed changeset; the active
+  one when none is named): status, purpose, allowed actions, its description as written and one line
+  per change. `--json` returns what `changeset_show` with `detail: "summary"` returns. `dr upgrade`
+  points at it for its drop record instead of a `changes.yaml` path.
+- **`project_status` `task` (#1301):** `plan`, `review` or `reconcile` says what the session is for.
+  While planning or reviewing, code drift and the code index are said in `nextStep.info`, not made
+  the step: a review goes to the staged plan (`changeset_brief`, then `review_open`). Without a
+  task, a drift step says how to ask for the other.
+- **`project_upgrade` `upgradeIntegrations` (#1252):** with `apply`, brings the per-project
+  integration files (`.claude/` from `dr claude install`, `.github/` from `dr copilot install`) up to
+  this dr as `dr upgrade` does, even when the model is current.
+
 ### Changed
+
+- **A changeset's intent is markdown, and called `intent` (#1210, #1433):** `changeset_create` and
+  `changeset_update` take `intent`, the name the server instructions and skills use; `description`
+  still works, and a call giving both with different values is refused. `dr changeset create` takes
+  `--intent` (`--description` still works). The tool schemas, the CLI and the viewer API
+  (`docs/api-spec.yaml`) say the description is markdown, and the planning skill, `/dr-plan`,
+  `/dr-changeset` and `docs/CHANGE_MODELING.md` show the shape to write (intent, **In scope**,
+  **Done when**). `dr changeset list` shows its first line.
+- **`dr changeset staged`, `diff` and `preview` take a changeset name (#1219):** they read the
+  changeset named, in any state, instead of ignoring the argument; unnamed, they read the active
+  one as before. An unknown name fails.
+- **`project_status` lists 5 changed source files, not 15 (#1251):** `changedSourceSummary` and
+  `uncommittedSourceSummary` count every changed file per folder (the first five folders, with
+  `folderCount`) and the elements that reference them per layer; `list` still returns every file.
+- **`project_upgrade` reports the per-project integration files (#1252):** for each, what its
+  upgrade would change, and for `.claude/` which installed files the dr plugin also carries (its
+  skills, `/dr-plan`, two agents: they load twice) and which only the project's files carry (the
+  other commands, `dr-extractor`), so removing `.claude/` is no longer called safe when it isn't.
+  The note no longer says there is no tool for the Copilot files.
+- **The old active-changeset marker (#1273):** clearing the active changeset leaves an empty
+  `.dr/active-changeset` instead of none, so `documentation-robotics/changesets/.active` restored
+  from git never makes its changeset active again. `project_status` reports an old marker still on
+  disk or in git (`changesets.legacyMarker`: whether git tracks it, whether it decides the active
+  changeset) and says to commit its deletion. The planning skill and `/dr-plan` say the active
+  changeset is per checkout, so a reviewer opens a PR's plan by name.
 
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its

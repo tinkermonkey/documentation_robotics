@@ -130,8 +130,13 @@ fi
 
 # 3. Create changeset
 dr changeset create "feature-name"
-# Add optional description
-dr changeset create "feature-name" --description "Detailed description"
+# With its intent, as markdown (--description is the older name for --intent)
+dr changeset create "feature-name" --intent "What the change is for.
+
+**In scope**
+- \`product.feature.feature-name\` and what realizes it
+
+**Done when** what has to be true."
 ```
 
 **Example:**
@@ -144,7 +149,7 @@ You should:
 2. Inform: "I'll create a new changeset for the authentication system work"
 3. Execute:
    dr changeset create "auth-system" \
-     --description "New authentication and authorization system"
+     --intent "New authentication and authorization system"
 4. Confirm:
    "✓ Created changeset: feature-auth-system-2024-01-15-001
    All your changes will be tracked here.
@@ -169,7 +174,12 @@ dr changeset list
 # 2. Show active changeset status
 dr changeset status
 
-# 3. Preview staged changes merged with model
+# 3. Show one changeset in full: its description (markdown) and each change.
+#    Any changeset by name, even one that isn't active or is an upgrade record.
+dr changeset show
+dr changeset show "feature-name"
+
+# 4. Preview staged changes merged with model
 dr changeset preview
 ```
 
@@ -560,13 +570,15 @@ dr delete business.service.old --force
 
 ```bash
 # Status and viewing
-dr changeset list                    # List all changesets
+dr changeset list                    # List all changesets (first line of each description)
 dr changeset status                  # Show active changeset
-dr changeset staged                  # List staged changes in active changeset
-dr changeset preview                 # Preview staged changes merged with model
+dr changeset show [name]             # One changeset in full: description and each change
+dr changeset staged [name]           # List staged changes (active changeset unless named)
+dr changeset diff [name]             # Diff staged changes against the model
+dr changeset preview [name]          # Preview staged changes merged with model
 
 # Lifecycle
-dr changeset create "name"           # Create new changeset
+dr changeset create "name" --intent "<markdown>"   # Create (and activate) a changeset
 dr changeset activate <name>         # Activate a changeset (auto-stages changes)
 dr changeset deactivate              # Deactivate the active changeset
 dr changeset commit                  # Commit the active changeset's staged changes to model

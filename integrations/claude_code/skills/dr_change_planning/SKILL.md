@@ -76,12 +76,28 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
 
 ## The loop
 
-1. **Frame.** `changeset_list` first: if a changeset for this change exists, `changeset_activate` it
-   and continue. Otherwise propose a short kebab-case `name` and a `description` that states the
-   intent (what the change is for and what done looks like), and confirm both with the human before
-   you call `changeset_create` with them. Wait for their answer. Find the goal,
+1. **Frame.** `project_status` with `task: "plan"` (code drift is then information, not the step),
+   then `changeset_list`: if a changeset for this change exists, `changeset_activate` it and
+   continue. Otherwise propose a short kebab-case `name` and the change's `intent`, and confirm both
+   with the human before you call `changeset_create` with them (the intent is stored as the
+   changeset's description; `description` is accepted for it too). Write the intent as markdown,
+   which the viewer and `dr changeset show` keep as written, in this shape:
+
+   ```markdown
+   One or two sentences: what the change is for.
+
+   **In scope**
+
+   - `product.feature.order-export`, and the services that realize it
+   - the export endpoint and its response schema
+
+   **Done when** an order can be exported as CSV, and the export endpoint is in the API layer.
+   ```
+
+   Wait for their answer. Find the goal,
    requirement or feature it serves (`model_search` in motivation, business, product). If there is
    none, stage one, or ask the human what the change is for.
+
 2. **Orient.** `model_search` / `model_show` / `model_trace` for the elements the change touches.
    Inside a changeset these read the plan as it stands (each result carries a change status).
    `spec_type` for a type you will add: its required attributes, enums, and the relationships the
@@ -144,6 +160,10 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    in the viewer, reusing the viewer already running for the project or starting one. The human
    comments on elements there, including ones the plan adds. Read their comments with
    `annotation_list`, answer with `annotation_reply`, revise, and run the brief again. Don't start building until they agree.
+   Which changeset is active is per checkout (`.dr/active-changeset`, which git ignores), so it is
+   not shared through git: a reviewer who checks out the PR's branch finds the plan staged but not
+   active. They read it with `changeset_brief` (`changeset: "<name>"`) or open it with `review_open`
+   rather than expect it active; `project_status` with `task: "review"` points at it.
 6. **Build.** Build from the brief. At the start of the build, read it with
    `sections: ["changes"]`: each changed element's attributes and changed fields, and its
    connections as `predicate → id` lines. For a large plan, read one layer at a time with
@@ -254,6 +274,9 @@ Tools report odd input and carry on instead of failing. Read the report each tim
   human lands it in the viewer (`review_open`, then Apply), or from an interactive session.
 - DrBot cannot write annotations (`annotation_create` and `annotation_reply` are not among its
   tools). There, accept gaps with `gap_accept` and answer the human's comments in the chat.
+- `project_status` reports a leftover `documentation-robotics/changesets/.active`, the marker from
+  before it moved to `.dr/`, as `changesets.legacyMarker`: while git still tracks it, commit its
+  deletion. Once `.dr/` has a marker, the old file is never read.
 - `gap_accept` and `gap_reopen` are refused with no active changeset, and `gap_accept` for a triple
   the catalog doesn't define or marks required, or a connection the element already has.
 - DrBot has no `review_open`: it runs in the viewer, so the human already has the plan in front
