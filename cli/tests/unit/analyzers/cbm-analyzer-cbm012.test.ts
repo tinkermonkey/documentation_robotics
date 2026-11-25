@@ -222,6 +222,48 @@ describe("CbmAnalyzer with CBM 0.12.1 responses", () => {
         await rm(projectRoot, { recursive: true, force: true });
       }
     });
+
+    it("verify(): applies the project's kept rules to every layer, routes included, and reports them (#1414)", async () => {
+      const projectRoot = await realpath(await mkdtemp(join(tmpdir(), "dr-cbm-verify-rules-")));
+      try {
+        await Model.init(projectRoot, { name: "verify rules", version: "0.1.0" });
+        await writeFile(
+          join(projectRoot, "documentation-robotics", "extraction-rules.yaml"),
+          "version: 1\nrules:\n" +
+            "  - name: launched-processes\n    where: { label: Process }\n    as: none\n    reason: modelled by hand\n" +
+            "  - name: fixture-routes\n    where: { files: fixtures/ }\n    as: none\n    reason: a fixture\n    overrideTier0: true\n"
+        );
+        let context: any;
+        VerifyEngine.prototype.computeReport = async function (...args: any[]) {
+          context = args[6];
+          return {} as any;
+        } as any;
+        let layerInput: any;
+        const spy = spyOn(layerVerify, "verifyLayers").mockImplementation(async (input: any) => {
+          layerInput = input;
+          return { reports: [], notVerified: [] };
+        });
+        let report: any;
+        try {
+          report = await analyzer.verify(projectRoot, { codebaseRoot: CODEBASE_ROOT, layers: ["api", "technology"] });
+        } finally {
+          spy.mockRestore();
+        }
+        expect(layerInput.rules.map((r: any) => r.rule.name)).toEqual(["launched-processes", "fixture-routes"]);
+        // A served route is Tier 0's: only a rule that says overrideTier0 takes it.
+        expect(context.ruleExcluded({ http_method: "GET", http_path: "/todos", source_file: "fixtures/main.py" })).toContain("fixture-routes: a fixture");
+        expect(context.ruleExcluded({ http_method: "GET", http_path: "/owners", source_file: "src/app.py" })).toBeNull();
+        expect(report.rules).toMatchObject({ file: join("documentation-robotics", "extraction-rules.yaml"), read: 2 });
+
+        // A rules file that can't be used is said, and no rule is applied.
+        await writeFile(join(projectRoot, "documentation-robotics", "extraction-rules.yaml"), "version: 2\nrules: []\n");
+        const broken = await analyzer.verify(projectRoot, { codebaseRoot: CODEBASE_ROOT, layers: ["api"] });
+        expect(broken.rules).toMatchObject({ read: 0 });
+        expect(broken.rules!.error).toContain("version 2");
+      } finally {
+        await rm(projectRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   it("callees(): reads grouped trace rows and looks up their files", async () => {

@@ -25,6 +25,7 @@ import type { ImpactedSymbol } from "./types.js";
 import { dedupeRelationships, relationshipFor, type EdgeRelationship } from "./edge-relationships.js";
 import {
   FILE_JOINED_EDGES,
+  extractedSymbolOf,
   parseRouteName,
   shortQualifiedName,
   symbolSpellings,
@@ -191,6 +192,11 @@ export interface UndecidedCard {
   nested?: true;
   /** For a member: the element its class is, when it has one. */
   owner?: string;
+  /**
+   * With a plan active before a since run: the plan's element that names this symbol (its source
+   * reference), so the card is that planned element as built (codebase_extract marks it).
+   */
+  planned?: string;
   rule?: string;
   reason: string;
   /**
@@ -312,14 +318,8 @@ function routePathOf(s: ExtractedSymbol, route: { path: string }): string {
 
 /** The source symbol an extracted element records: `METHOD /path`, `Parent.method`, or the name. */
 export function sourceSymbolOf(s: ExtractedSymbol): string {
-  const { card } = s;
-  const route = parseRouteName(card.name);
-  if (route) return `${route.method} ${routePathOf(s, route)}`;
-  if (card.label === "Method" && card.parent_class) {
-    const parent = card.parent_class.split(".").pop();
-    if (parent) return `${parent}.${card.name}`;
-  }
-  return card.name;
+  // The same symbol a project rule's where.symbol is matched against (project-rules.ts subjectOf).
+  return extractedSymbolOf(s);
 }
 
 /**
@@ -597,6 +597,23 @@ export function findBySymbol(index: ExistingIndex, file: string | null, spelling
     }
   }
   return undefined;
+}
+
+/**
+ * What a project rule's `ownerType` asks of a member (project-rules.ts): the `layer.type` of the
+ * element the model (as `existing` has it) holds for its class, `none` when the class has none;
+ * undefined for a symbol that is not a member. codebase_extract and codebase_verify ask the same.
+ */
+export function ownerTypeResolver(existing: ChangesetGraph, project: string): (s: ExtractedSymbol) => string | undefined {
+  const index = indexExisting(existing);
+  return (s) => {
+    if (s.card.label !== "Method") return undefined;
+    const cut = s.qualifiedName.lastIndexOf(".");
+    if (cut <= 0) return "none";
+    const parent = s.qualifiedName.slice(0, cut);
+    const owner = findBySymbol(index, s.card.file_path, symbolSpellings(parent, parent.slice(parent.lastIndexOf(".") + 1), project));
+    return owner ? `${owner.layer}.${owner.type}` : "none";
+  };
 }
 
 function hasSymbol(spellings: Set<string> | undefined, symbol: string): boolean {
@@ -1017,7 +1034,8 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       type: tier0.type,
       name,
       ...(description ? { description } : {}),
-      attributes: { ...defaults, ...facts },
+      // What the agent gave (a decide item's attributes) fills what the code can't; the code's own facts win.
+      attributes: { ...defaults, ...(tier0.attributes ?? {}), ...facts },
       ...(file ? { sourceReference: { provenance: "extracted" as const, locations: [{ file, symbol }] } } : {}),
       symbol: s,
       rule: tier0.rule,

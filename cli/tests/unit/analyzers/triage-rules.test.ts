@@ -15,7 +15,9 @@ import {
   filesMatcher,
   loadProjectRules,
   projectRulesPath,
+  overrideTier0Advice,
   relationshipRuleFor,
+  releaseHeldCards,
   ruleNameFor,
   saveProjectRule,
 } from "../../../src/analyzers/project-rules.js";
@@ -101,6 +103,25 @@ describe("project rules", () => {
     expect(filesMatcher("src/**/*.test.ts")("src/a/b.test.ts")).toBe(true);
     expect(filesMatcher("design/**")("design/x/y.js")).toBe(true);
     expect(filesMatcher("src/a.ts")("src/a.ts")).toBe(true);
+    // A path with glob characters names itself (a kept reject writes a card's file as the pattern).
+    expect(filesMatcher("app/users/[id]/page.tsx")("app/users/[id]/page.tsx")).toBe(true);
+    expect(filesMatcher("app/users/[id]/")("app/users/[id]/page.tsx")).toBe(true);
+    expect(filesMatcher("app/users/[id]/page.tsx")("app/users/i/page.tsx")).toBe(true);
+    expect(filesMatcher("app/users/[id]/page.tsx")("app/users/x/page.tsx")).toBe(false);
+  });
+
+  it("matches where.file exactly: a path with glob characters names only itself", () => {
+    const page = (file: string) => symbol("Function", "UserPage", file, "export function UserPage() {}");
+    const rules = compileRules([{ name: "user-page", where: { file: "app/users/[id]/page.tsx", symbol: "^UserPage$" }, as: "none", reason: "x", overrideTier0: true }]);
+    const out = applyProjectRules(graphOf([page("app/users/[id]/page.tsx"), page("app/users/i/page.tsx")]), rules).extraction.symbols;
+    expect(out.map((s) => s.tier0?.rule ?? null)).toEqual(["project:user-page", null]);
+  });
+
+  it("says what to add, and where, for symbols a none rule left to Tier 0", () => {
+    expect(overrideTier0Advice("not-tests", 3, true)).toBe(
+      "To keep rejecting these 3 symbol(s), add overrideTier0: true to rule 'not-tests' in documentation-robotics/extraction-rules.yaml"
+    );
+    expect(overrideTier0Advice("not-tests", 1, false)).toBe("To keep rejecting these 1 symbol(s), add overrideTier0: true to the decide item 'not-tests'");
   });
 
   it("refuses a rule that is malformed, naming it and what is wrong", () => {
@@ -118,7 +139,7 @@ describe("project rules", () => {
     expect(() => compileRules([{ name: "r", where: { label: "Class" }, as: "none", reason: "x" }, { name: "r", where: { label: "Type" }, as: "none", reason: "y" }])).toThrow("twice");
   });
 
-  it("applies a none rule over Tier 0, and a typed rule only to what Tier 0 left open", () => {
+  it("applies a none rule that overrides Tier 0 over it, and a typed rule only to what Tier 0 left open", () => {
     const fixtureRoute = symbol("Route", "__route__GET__/todos", "fixtures/app/main.py", "@app.get('/todos')", {
       tier0: { kind: "decide", layer: "api", type: "operation", rule: "node-mapping:Route", confidence: "high" },
     });
@@ -131,7 +152,7 @@ describe("project rules", () => {
       tier0: { kind: "decide", layer: "testing", type: "testcasesketch", rule: "tier0_test_case_name", confidence: "high" },
     });
     const rules = compileRules([
-      { name: "fixtures", where: { files: "fixtures/**" }, as: "none", reason: "test fixtures are not product code" },
+      { name: "fixtures", where: { files: "fixtures/**" }, as: "none", reason: "test fixtures are not product code", overrideTier0: true },
       { name: "local-functions", where: { label: "Function", visibility: "local" }, as: "none", reason: "module-private helpers" },
       { name: "exported-functions", where: { files: "src/**", label: "Function", visibility: "exported" }, as: "application.applicationfunction", reason: "the public behaviour of a module" },
       { name: "exported-types", where: { label: ["Interface", "Type"], visibility: "exported" }, as: "data-model.objectschema", reason: "an interface is a schema" },
@@ -145,6 +166,69 @@ describe("project rules", () => {
       // Tier 0 decided it: a typed rule does not replace that.
       { kind: "decide", layer: "testing", type: "testcasesketch", rule: "tier0_test_case_name", confidence: "high" },
     ]);
+  });
+
+  it("holds a symbol Tier 0 decided as an element for Tier 0 unless the none rule says overrideTier0 (#1424)", () => {
+    const testCase = (n: number) =>
+      symbol("Function", `test_case_${n}`, "cli/tests/plan.test.ts", `export function test_case_${n}() {}`, {
+        tier0: { kind: "decide", layer: "testing", type: "testcasesketch", rule: "tier0_test_case_name", confidence: "high" },
+      });
+    const helper = symbol("Interface", "Fixture", "cli/tests/helpers.ts", "export interface Fixture {}");
+    const rejected = symbol("Function", "noise", "cli/tests/x.ts", "function noise() {}", { tier0: { kind: "reject", rule: "tier0_noise", confidence: "high" } });
+    const tests = { name: "not-in-tests", where: { files: "cli/tests/" }, as: "none", reason: "test helpers are not product code" };
+    const symbols = [testCase(1), testCase(2), helper, rejected];
+
+    // Without overrideTier0 the test cases stay Tier 0's, held under the rule; the helper and the
+    // symbol Tier 0 rejected are the rule's.
+    const held = applyProjectRules(graphOf(symbols), compileRules([tests]));
+    expect(held.extraction.symbols.map((s) => s.tier0?.rule)).toEqual(["tier0_test_case_name", "tier0_test_case_name", "project:not-in-tests", "project:not-in-tests"]);
+    expect([...held.held.values()]).toEqual([
+      { rule: "not-in-tests", type: "testing.testcasesketch" },
+      { rule: "not-in-tests", type: "testing.testcasesketch" },
+    ]);
+    expect(held.overrode.get("not-in-tests")).toEqual({ decided: 0, rejected: 1 });
+
+    // With it the rule takes them, counted by the type Tier 0 gave them.
+    const taken = applyProjectRules(graphOf(symbols), compileRules([{ ...tests, overrideTier0: true }]));
+    expect(taken.extraction.symbols.every((s) => s.tier0?.rule === "project:not-in-tests")).toBe(true);
+    expect(taken.held.size).toBe(0);
+    expect(taken.overrode.get("not-in-tests")).toEqual({ decided: 2, rejected: 1, types: { "testing.testcasesketch": 2 } });
+
+    // A held symbol that ends up a card (Tier 0 could not stage it) goes back to its rule.
+    const cards = [{ cardId: symbols[0].card.id }, { cardId: "other" }];
+    const released = releaseHeldCards(cards, held.held);
+    expect(released.cards).toEqual([{ cardId: "other" }]);
+    expect(released.released).toEqual([{ rule: "not-in-tests", card: { cardId: symbols[0].card.id } }]);
+  });
+
+  it("matches where.symbol on the card's Class.method while where.name sees the bare name (#1333)", () => {
+    const method = symbol("Method", "_copy_grooves", "sheets/assembly.py", "def _copy_grooves(self):", {
+      card: { ...card("Method", "_copy_grooves", "sheets/assembly.py", "def _copy_grooves(self):"), id: "m", qualified_name: "_copy_grooves", parent_class: "p.sheets.assembly.Assembly" } as unknown as ExtractedSymbol["card"],
+    });
+    const byName = compileRules([{ name: "by-name", where: { name: "^Assembly\\._copy_grooves$" }, as: "none", reason: "x" }]);
+    expect(applyProjectRules(graphOf([method]), byName).extraction.symbols[0].tier0).toBeNull();
+    const bySymbol = compileRules([{ name: "by-symbol", where: { symbol: "^Assembly\\._copy_grooves$" }, as: "none", reason: "x" }]);
+    expect(applyProjectRules(graphOf([method]), bySymbol).extraction.symbols[0].tier0?.rule).toBe("project:by-symbol");
+    const bare = compileRules([{ name: "bare", where: { name: "^_copy_grooves$" }, as: "none", reason: "x" }]);
+    expect(applyProjectRules(graphOf([method]), bare).extraction.symbols[0].tier0?.rule).toBe("project:bare");
+  });
+
+  it("carries a typed rule's attributes on its decision, and refuses attributes and overrideTier0 where they don't apply (#1380, #1424)", () => {
+    const button = symbol("Function", "SaveButton", "src/ui/save.tsx", "export function SaveButton() {}");
+    const rules = compileRules([{ name: "buttons", where: { name: "Button$" }, as: "ux.actioncomponent", reason: "a button", attributes: { type: "button" } }]);
+    expect(applyProjectRules(graphOf([button]), rules).extraction.symbols[0].tier0).toEqual({
+      kind: "decide",
+      layer: "ux",
+      type: "actioncomponent",
+      attributes: { type: "button" },
+      rule: "project:buttons",
+      confidence: "high",
+    });
+    expect(() => compileRule({ name: "r", where: { label: "Function" }, as: "none", reason: "x", attributes: { type: "button" } })).toThrow("attributes go with a rule that names a type");
+    expect(() => compileRule({ name: "r", where: { label: "Function" }, as: "ux.actioncomponent", reason: "x", attributes: ["button"] })).toThrow("attributes must be an object");
+    expect(() => compileRule({ name: "r", where: { label: "Function" }, as: "ux.actioncomponent", reason: "x", overrideTier0: true })).toThrow("overrideTier0 goes with a symbol rule that says none");
+    expect(() => compileRule({ name: "r", where: { label: "Function" }, as: "none", reason: "x", overrideTier0: "yes" })).toThrow("must be true or false");
+    expect(() => compileRule({ name: "r", where: { symbol: "(" }, as: "none", reason: "x" })).toThrow("where.symbol is not a valid regular expression");
   });
 
   it("applies every none rule before any typed rule, whatever their order", () => {
@@ -244,6 +328,16 @@ describe("project rules", () => {
       const text = await readFile(projectRulesPath(root), "utf-8");
       expect(text.startsWith("# Extraction rules for this project")).toBe(true);
       expect(text).toContain("version: 1");
+    });
+
+    it("doesn't write a rule the file already holds under another name", async () => {
+      const rule = { name: "not-in-design", where: { files: "design/**" }, as: "none", reason: "prototypes" };
+      await saveProjectRule(root, rule);
+      const again = await saveProjectRule(root, { ...rule, name: "not-in-design-2", reason: "said again" });
+      expect(again).toEqual({ replaced: false, file: projectRulesPath(root), duplicateOf: "not-in-design" });
+      expect((await loadProjectRules(root)).map((r) => r.rule.name)).toEqual(["not-in-design"]);
+      // One that decides more (it overrides Tier 0) is another rule.
+      expect((await saveProjectRule(root, { ...rule, name: "not-in-design-2", overrideTier0: true })).duplicateOf).toBeUndefined();
     });
 
     it("refuses a file it cannot read as rules, saying which rule and why", async () => {

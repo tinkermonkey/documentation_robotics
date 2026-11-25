@@ -22,7 +22,9 @@ import type { AnalyzerBackend } from "../../../src/analyzers/base-analyzer.js";
 import { collectExtraction } from "../../../src/analyzers/cards/extract.js";
 import type { CodeChangesResult } from "../../../src/analyzers/code-changes.js";
 import { projectRulesPath } from "../../../src/analyzers/project-rules.js";
-import { CONFIG, P, fakeGraph, type FakeNode, type FakeProject } from "../../helpers/fake-cbm-graph.js";
+import { CONFIG, P, fakeGraph, springProject, type FakeNode, type FakeProject } from "../../helpers/fake-cbm-graph.js";
+import { sharedCandidateLists } from "../../../src/mcp/tools/codebase-extract.js";
+import { cardsNamed } from "../../../src/mcp/tools/codebase-extract-decide.js";
 
 const HEAD = "1111111111111111111111111111111111111111";
 const META = { git_head: HEAD, timestamp: "2026-11-20T12:00:00.000Z", node_count: 120, edge_count: 340 };
@@ -230,8 +232,6 @@ describe("codebase_extract triage: groups before cards (#1154, #1177)", () => {
     clearModelCache();
     expect((await new StagingAreaManager(rootPath, await Model.load(rootPath)).list()).length).toBe(0);
     expect(existsSync(decisionsFile())).toBe(false);
-    // A preview with reject is still refused.
-    expect(fail(await handler({ preview: true, reject: [{ files: "design/**", reason: "x" }], rootPath })).error).toContain("can't be combined with reject");
   }, SLOW);
 
   it("decides one card a preview showed, before any real run, and a real run removes the preview's store", async () => {
@@ -419,8 +419,8 @@ describe("codebase_extract decide: bulk decisions by a stated rule", () => {
     const ids = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId);
     expect(ids).toContain("data-model.objectschema.plan-options");
     expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toContain("src/app/report.ts#ReportRow");
-    // decide is a run: it cannot ride on a read.
-    expect(fail(await handler({ decide: [NOT_PRODUCT], view: {}, rootPath })).error).toContain("decide is applied in a run");
+    // decide is a run: it cannot ride on a list read (with view it answers with the view, #1350).
+    expect(fail(await handler({ decide: [NOT_PRODUCT], list: "groups", rootPath })).error).toContain("decide is applied in a run");
   }, SLOW);
 
   it("takes reject and decide from a file, in the batch file format", async () => {
@@ -717,5 +717,370 @@ describe("codebase_extract lists: nothing is shortened without its total and the
     }
     expect(ids).toHaveLength(130);
     expect(new Set(ids).size).toBe(130);
+  }, SLOW);
+});
+
+describe("codebase_extract output and decide (CLI 0.9.0)", () => {
+  const NOT_TESTS = { name: "not-tests", where: { files: "src/test/" }, as: "none", reason: "test helpers are not product code" };
+
+  it("a none rule leaves what Tier 0 decided to Tier 0 and says so at the top; overrideTier0 takes it (#1424)", async () => {
+    const handler = createCodebaseExtractHandler(harness(springProject()).deps);
+    const kept = ok(await handler({ preview: true, decide: [NOT_TESTS], verbose: true, rootPath }));
+    // Not only a nested count: the answer leads with the rule, the count and the type.
+    expect(Object.keys(kept).indexOf("ruleWarnings")).toBeLessThan(Object.keys(kept).indexOf("budget"));
+    expect(kept.ruleWarnings).toEqual([expect.stringContaining("Rule 'not-tests' says none, but 1 symbol(s) it matches were decided by Tier 0 as elements (testing.testcasesketch: 1)")]);
+    expect(kept.ruleWarnings[0]).toContain("would be staged");
+    expect(kept.ruleWarnings[0]).toContain("To keep rejecting these 1 symbol(s), add overrideTier0: true to the decide item 'not-tests'");
+    expect(kept.decide.results[0]).toMatchObject({ status: "no-match", tier0Kept: 1 });
+    expect(kept.decide.results[0].reason).toContain("overrideTier0: true takes them");
+    expect(kept.wouldStage.byLayer.testing).toMatchObject({ adds: 1 });
+    expect(kept.rules.decided.items[0]).toMatchObject({ rule: "not-tests", tier0Kept: 1 });
+
+    const taken = ok(await handler({ preview: true, decide: [{ ...NOT_TESTS, overrideTier0: true }], verbose: true, rootPath }));
+    expect(taken.ruleWarnings).toEqual([expect.stringContaining("Rule 'not-tests' says overrideTier0, so it takes 1 symbol(s) Tier 0 decided as elements (testing.testcasesketch: 1)")]);
+    expect(taken.decide.results[0]).toMatchObject({ status: "would-apply", notElements: 1, tier0Overridden: 1 });
+    expect(taken.wouldStage.byLayer.testing).toBeUndefined();
+
+    // Kept with overrideTier0, the rule says so in the file, and a later run applies it.
+    const run = ok(await handler({ decide: [{ ...NOT_TESTS, overrideTier0: true, keep: true }], rootPath }));
+    expect(run.decide.counts).toEqual({ kept: 1 });
+    expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("overrideTier0: true");
+    expect(run.ruleWarnings[0]).toContain("they are not staged");
+
+    // A rule kept before CLI 0.9.0 (no overrideTier0) leaves them to Tier 0, and the warning names the file and the key.
+    await writeFile(
+      projectRulesPath(rootPath),
+      "version: 1\nrules:\n  - name: not-tests\n    where: { files: src/test/ }\n    as: none\n    reason: test helpers are not product code\n",
+      "utf-8"
+    );
+    const old = ok(await handler({ changeset: "after-upgrade", rootPath }));
+    expect(old.ruleWarnings).toEqual([
+      expect.stringContaining(
+        "To keep rejecting these 1 symbol(s), add overrideTier0: true to rule 'not-tests' in documentation-robotics/extraction-rules.yaml"
+      ),
+    ]);
+    expect(old.ruleWarnings[0]).toContain("they stay Tier 0's and are staged");
+  }, SLOW);
+
+  it("a files reject leaves out cards an element names now and what except names, and says so (#1254)", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    // Modelled after the run, from its card: the run's cached cards still list it.
+    ok(await modelAddHandler({ rootPath, layer: "application", type: "applicationfunction", name: "buildPlan", sourceFile: "src/app/plan.ts", sourceSymbol: "buildPlan", sourceProvenance: "extracted" } as any));
+    clearModelCache();
+    const rejected = ok(await handler({ reject: [{ files: "src/app/plan.ts", except: ["applyPlan"], reason: "the planner's helpers" }], verbose: true, rootPath }));
+    expect(rejected.reject.results[0]).toMatchObject({ status: "recorded", recorded: 3, modelled: 1, excepted: 1 });
+    expect(rejected.reject.leftOut).toContain("1 card(s) in the files named were left out");
+    expect(rejected.reject.local).toContain("git ignores");
+    const keys = Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements).sort();
+    expect(keys).toEqual(["src/app/plan.ts#PlanOptions", "src/app/plan.ts#pluralize", "src/app/plan.ts#tally"]);
+    // except goes with files, and a kept files item can't carry it.
+    const bad = ok(await handler({ reject: [{ card: "pad", except: ["x"], reason: "x" }, { files: "src/app/report.ts", except: ["pad"], keep: true, reason: "x" }, { card: "pad", reason: "local" }], rootPath }));
+    expect(bad.reject.attention.map((a: any) => [a.index, a.status])).toEqual([[0, "malformed"], [1, "malformed"]]);
+  }, SLOW);
+
+  it("with a plan's decide in the same call, decide applies first and a files reject covers what it left; a card is decide's (#1394)", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    const run = ok(
+      await handler({
+        decide: [
+          { card: "src/app/plan.ts#buildPlan", as: "application.applicationfunction", reason: "the planner" },
+          { card: "./src/app/plan.ts#applyPlan", as: "application.applicationfunction", reason: "applies a plan" },
+        ],
+        reject: [
+          { files: "src/app/plan.ts", reason: "the rest of the planner is helpers" },
+          { card: "src/app/plan.ts#buildPlan", reason: "a mistake" },
+        ],
+        verbose: true,
+        rootPath,
+      })
+    );
+    expect(run.decide.results.map((r: any) => r.status)).toEqual(["applied", "applied"]);
+    expect(run.reject.results[0]).toMatchObject({ status: "recorded", recorded: 3 });
+    expect(run.reject.results[1]).toMatchObject({ status: "decided" });
+    const staged = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId).sort();
+    expect(staged).toEqual(["application.applicationfunction.apply-plan", "application.applicationfunction.build-plan"]);
+    const keys = Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements).sort();
+    expect(keys).toEqual(["src/app/plan.ts#PlanOptions", "src/app/plan.ts#pluralize", "src/app/plan.ts#tally"]);
+    expect(run.undecided.total).toBe(33);
+    // A card item is found among this run's symbols when the last run's record doesn't list it.
+    const later = ok(await handler({ changeset: "later", decide: [{ card: "src/app/report.ts#renderReport", as: "application.applicationfunction", reason: "the report" }], verbose: true, rootPath }));
+    expect(later.decide.results[0]).toMatchObject({ status: "applied", id: "application.applicationfunction.render-report" });
+  }, SLOW);
+
+  it("a reject or clearRejected with preview records, clears and unstages nothing, and says would-record (#1322)", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    const run = ok(await handler({ decide: [EXPORTED_FUNCTIONS], rootPath }));
+    const preview = ok(
+      await handler({ preview: true, reject: [{ files: "design/**", reason: "prototypes" }, { card: "application.applicationfunction.build-plan", reason: "x" }], verbose: true, rootPath })
+    );
+    expect(preview.preview).toBe(true);
+    expect(preview.message).toContain("Preview: nothing was recorded");
+    expect(preview.reject.results.map((r: any) => r.status)).toEqual(["would-record", "would-record"]);
+    expect(preview.reject.results[0].recorded).toBe(30);
+    expect(preview.wouldUnstage.elements).toEqual(["application.applicationfunction.build-plan"]);
+    expect(existsSync(decisionsFile())).toBe(false);
+    const adds = (await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId);
+    expect(adds).toContain("application.applicationfunction.build-plan");
+    // With decide (a run preview), the reject items come back as would-record too, and nothing is unstaged.
+    const runPreview = ok(await handler({ preview: true, decide: [LOCAL_FUNCTIONS], reject: [{ card: "application.applicationfunction.build-plan", reason: "x" }], verbose: true, rootPath }));
+    expect(runPreview.reject.results[0].status).toBe("would-record");
+    expect((await changesetOf(run.changeset.id)).changes.filter((c) => c.type === "add").map((c) => c.elementId)).toContain("application.applicationfunction.build-plan");
+    expect(existsSync(decisionsFile())).toBe(false);
+  }, SLOW);
+
+  it("keeps a reject as a rule, lists recorded decisions without a run, and a kept decide rule retires the records it covers (#1332)", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    // No run yet: the checkout's decisions are listed all the same.
+    expect(ok(await handler({ list: "notElements", rootPath }))).toMatchObject({ list: "notElements", total: 0 });
+    ok(await handler({ rootPath }));
+    const kept = ok(await handler({ reject: [{ files: "design/**", reason: "prototypes", keep: true }, { card: "pad", reason: "a helper", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results.map((r: any) => r.status)).toEqual(["kept", "kept"]);
+    const rulesText = await readFile(projectRulesPath(rootPath), "utf-8");
+    expect(rulesText).toContain("files: design/**");
+    expect(rulesText).toContain("symbol: ^pad$");
+    expect(rulesText).toContain("overrideTier0: true");
+    expect(existsSync(decisionsFile())).toBe(false);
+    expect(kept.next.some((s: string) => s.includes("commit that file"))).toBe(true);
+
+    // Recorded locally, then promoted: a kept decide rule over them retires the records.
+    ok(await handler({ reject: [{ card: "tally", reason: "a helper" }, { card: "pluralize", reason: "a helper" }], rootPath }));
+    expect(ok(await handler({ list: "notElements", rootPath })).total).toBe(2);
+    const promoted = ok(await handler({ decide: [{ ...LOCAL_FUNCTIONS, name: "local-functions", keep: true }], verbose: true, rootPath }));
+    expect(promoted.decide.results[0]).toMatchObject({ status: "kept", retired: 2 });
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toEqual([]);
+    expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("name: local-functions");
+  }, SLOW);
+
+  it("decide passes a type's required attributes, and says which a card lacks when it can't stage (#1380)", async () => {
+    const h = harness();
+    h.project.nodes.push(fn("src/ui/save.tsx", "SaveButton", 1));
+    const handler = createCodebaseExtractHandler(h.deps);
+    const BUTTONS = { name: "buttons", where: { name: "Button$" }, as: "ux.actioncomponent", reason: "a button" };
+    const lacking = ok(await handler({ preview: true, decide: [BUTTONS], verbose: true, rootPath }));
+    expect(lacking.decide.results[0].warnings[0]).toContain("need attributes the code can't give for ux.actioncomponent");
+    expect(lacking.decide.results[0].requiredAttributes).toEqual({ "ux.actioncomponent": { type: "one of [button, link, menu, voice-command, icon-button]" } });
+    const run = ok(await handler({ decide: [{ ...BUTTONS, attributes: { type: "button" }, keep: true }], verbose: true, rootPath }));
+    expect(run.decide.results[0]).toMatchObject({ status: "kept", staged: 1 });
+    const add = (await changesetOf(run.changeset.id)).changes.find((c) => c.type === "add" && c.elementId === "ux.actioncomponent.save-button");
+    expect((add!.after as any).attributes).toMatchObject({ type: "button" });
+    expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("type: button");
+  }, SLOW);
+
+  it("names a card by file#symbol whole, a # in the symbol included", () => {
+    const cards = [
+      { cardId: "a", file: "src/foo.ts", symbol: "Foo.#bar", label: "Method", qualifiedName: "p.src.foo.Foo.#bar" },
+      { cardId: "b", file: "src/foo.ts", symbol: "Foo.baz", label: "Method", qualifiedName: "p.src.foo.Foo.baz" },
+    ];
+    expect(cardsNamed(cards, "src/foo.ts#Foo.#bar").map((c) => c.cardId)).toEqual(["a"]);
+    expect(cardsNamed(cards, "./src/foo.ts#Foo.#bar").map((c) => c.cardId)).toEqual(["a"]);
+    expect(cardsNamed(cards, "Foo.baz").map((c) => c.cardId)).toEqual(["b"]);
+  });
+
+  it("states a candidate list cards share once, and groups a view's page by file (#1298)", async () => {
+    const shared = sharedCandidateLists([
+      { cardId: "a", candidates: ["data-model.objectschema", "application.dataobject"] },
+      { cardId: "b", candidates: ["data-model.objectschema", "application.dataobject"] },
+      { cardId: "c", candidates: ["api.operation"] },
+      { cardId: "d", candidates: ["api.operation"] },
+    ]);
+    expect(shared.candidateLists).toEqual({ L1: ["data-model.objectschema", "application.dataobject"] });
+    expect(shared.items).toEqual([
+      { cardId: "a", candidateList: "L1" },
+      { cardId: "b", candidateList: "L1" },
+      { cardId: "c", candidates: ["api.operation"] },
+      { cardId: "d", candidates: ["api.operation"] },
+    ]);
+
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    const byFile = ok(await handler({ view: { files: "src/**" }, groupBy: "file", pageSize: 50, rootPath }));
+    expect(byFile.undecided.items).toBeUndefined();
+    expect(byFile.undecided.byFile.map((g: any) => [g.path, g.items.length])).toEqual([
+      ["src/app/plan.ts", 5],
+      ["src/app/report.ts", 3],
+    ]);
+    expect(byFile.undecided.byFile[0].items[0].file).toBeUndefined();
+  }, SLOW);
+
+  it("decide with view answers with that view's page of the cards left (#1350)", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    const run = ok(await handler({ decide: [NOT_PRODUCT], view: { files: "src/**" }, pageSize: 3, rootPath }));
+    expect(run.decide.counts).toEqual({ applied: 1 });
+    expect(run.undecided).toMatchObject({ total: 8, page: 1, pages: 3, ofAll: 8 });
+    expect(run.undecided.items).toHaveLength(3);
+    expect(run.undecided.more).toContain('view: {"files":"src/**"}, page: 2');
+    // The next page is a read of what the run left.
+    const next = ok(await handler({ view: { files: "src/**" }, page: 2, pageSize: 3, rootPath }));
+    expect(next.undecided.items).toHaveLength(3);
+  }, SLOW);
+});
+
+describe("codebase_extract reject, keep and the files path (PR 1453 review)", () => {
+  const ADR = { qualified_name: "proj.docs.adr.0001-use-sqlite", file_path: "docs/adr/0001-use-sqlite.md", adr_id: "ADR-1", title: "Use SQLite", status: "accepted" };
+
+  it("records a decision record's card in the checkout when a kept reject names it, and says why (#1332)", async () => {
+    const h = harness();
+    h.project.adrs = [ADR];
+    const handler = createCodebaseExtractHandler(h.deps);
+    const run = ok(await handler({ rootPath }));
+    expect(run.documentation?.decisionRecords?.cards ?? 0).toBeGreaterThan(0);
+    const kept = ok(await handler({ reject: [{ files: "docs/**", reason: "decisions are modelled by hand", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results[0]).toMatchObject({ status: "recorded", recorded: 1, recordedLocally: 1 });
+    expect(kept.reject.results[0].notKept).toContain("a decision record's card");
+    // No rule that would hold nothing; the card is recorded, so the next run leaves it out.
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toEqual(["docs/adr/0001-use-sqlite.md#ADR-1"]);
+    const again = ok(await handler({ changeset: "again", rootPath }));
+    expect(again.documentation?.decisionRecords?.cards ?? 0).toBe(0);
+  }, SLOW);
+
+  it("keeps a card on a path with glob characters as a rule that names that path, and the rule holds in another checkout", async () => {
+    const h = harness();
+    h.project.nodes.push(fn("app/users/[id]/page.tsx", "UserPage", 1));
+    const handler = createCodebaseExtractHandler(h.deps);
+    ok(await handler({ rootPath }));
+    const kept = ok(await handler({ reject: [{ card: "app/users/[id]/page.tsx#UserPage", reason: "a route page, modelled as a UX view", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results[0].status).toBe("kept");
+    // The file exactly, not as a glob: [id] doesn't stand for i or d.
+    expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("file: app/users/[id]/page.tsx");
+    await rm(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true, force: true });
+    const later = ok(await handler({ changeset: "later", view: {}, decide: [NOT_PRODUCT], pageSize: 50, rootPath }));
+    expect(later.undecided.items.map((c: any) => c.symbol)).not.toContain("UserPage");
+    expect(later.rules.decided.items.find((r: any) => r.rule === kept.reject.results[0].rule)).toMatchObject({ notElements: 1 });
+  }, SLOW);
+
+  it("a kept card reject holds on the next run: what Tier 0 staged is not staged again", async () => {
+    const handler = createCodebaseExtractHandler(harness(springProject()).deps);
+    const first = ok(await handler({ rootPath }));
+    expect(first.staged.byLayer.testing).toMatchObject({ adds: 1 });
+    const kept = ok(await handler({ reject: [{ card: "OwnerTests.testShowOwner", reason: "a smoke test, not a case", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results[0].status).toBe("kept");
+    expect(kept.unstaged.items).toHaveLength(1);
+    const rules = await readFile(projectRulesPath(rootPath), "utf-8");
+    expect(rules).toContain("overrideTier0: true");
+    await rm(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true, force: true });
+    const later = ok(await handler({ changeset: "later", rootPath }));
+    expect(later.staged.byLayer.testing).toBeUndefined();
+    expect(later.ruleWarnings[0]).toContain("says overrideTier0, so it takes 1 symbol(s)");
+  }, SLOW);
+
+  it("refuses keep for a card with no file, and records it in the checkout with why", async () => {
+    const h = harness();
+    h.project.nodes.push({ label: "Route", name: "__route__GET__/api/x", qualified_name: "__route__GET__/api/x", file_path: "", method: "GET" } as FakeNode);
+    const handler = createCodebaseExtractHandler(h.deps);
+    ok(await handler({ rootPath }));
+    const routes = ok(await handler({ view: { kind: "unhandled-route" }, rootPath })).undecided.items;
+    expect(routes).toHaveLength(1);
+    const kept = ok(await handler({ reject: [{ card: routes[0].cardId, reason: "a URL tests call", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results[0]).toMatchObject({ status: "recorded", recordedLocally: 1 });
+    expect(kept.reject.results[0].notKept).toContain("no file");
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+  }, SLOW);
+
+  it("a files reject leaves out the cards this call's decide items decided but couldn't stage, and a typo in except records nothing", async () => {
+    const h = harness();
+    h.project.nodes.push(fn("src/ui/save.tsx", "SaveButton", 1), local("src/ui/save.tsx", "noop", 10));
+    const handler = createCodebaseExtractHandler(h.deps);
+    ok(await handler({ rootPath }));
+    const BUTTONS = { name: "buttons", where: { name: "Button$" }, as: "ux.actioncomponent", reason: "a button" };
+    const run = ok(await handler({ decide: [BUTTONS], reject: [{ files: "src/ui/save.tsx", reason: "helpers" }], verbose: true, rootPath }));
+    expect(run.reject.results[0]).toMatchObject({ status: "recorded", recorded: 1, decided: 1 });
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toEqual(["src/ui/save.tsx#noop"]);
+    // Sent again with attributes, the card is still a card, and stages.
+    const retry = ok(await handler({ decide: [{ ...BUTTONS, attributes: { type: "button" } }], verbose: true, rootPath }));
+    expect(retry.decide.results[0]).toMatchObject({ status: "applied", staged: 1 });
+
+    // Kept, the same files item writes no rule: a none rule on the file would beat the typed item sent again.
+    const h2 = harness();
+    h2.project.nodes.push(fn("src/ui/save.tsx", "SaveButton", 1), local("src/ui/save.tsx", "noop", 10));
+    await rm(join(rootPath, ".dr", "analyzers", "extract"), { recursive: true, force: true });
+    const handler2 = createCodebaseExtractHandler(h2.deps);
+    ok(await handler2({ changeset: "keep-try", rootPath }));
+    const keptRun = ok(await handler2({ changeset: "keep-try", decide: [BUTTONS], reject: [{ files: "src/ui/save.tsx", reason: "helpers", keep: true }], verbose: true, rootPath }));
+    expect(keptRun.reject.results[0]).toMatchObject({ status: "recorded", recorded: 1, decided: 1, recordedLocally: 1 });
+    expect(keptRun.reject.results[0].notKept).toContain("this call's decide items decided");
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+    const keptRetry = ok(await handler2({ changeset: "keep-try", decide: [{ ...BUTTONS, attributes: { type: "button" } }], verbose: true, rootPath }));
+    expect(keptRetry.decide.results[0]).toMatchObject({ status: "applied", staged: 1 });
+
+    // A typo in except: the item records nothing and says which entry named no card.
+    const typo = ok(await handler({ reject: [{ files: "src/app/report.ts", except: ["renderReprot"], reason: "x" }, { card: "pad", reason: "a helper" }], verbose: true, rootPath }));
+    expect(typo.reject.results[0]).toMatchObject({ status: "no-match" });
+    expect(typo.reject.results[0].reason).toContain("renderReprot");
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).not.toContain("src/app/report.ts#renderReport");
+  }, SLOW);
+
+  it("marks the cards the plan's elements name, lists them by view, and a files reject leaves them to the plan (#1394)", async () => {
+    const h = harness();
+    h.changes.value = { base: "abc123", changed: new Set(["src/app/plan.ts"]), deleted: new Map(), hunks: new Map([["src/app/plan.ts", "all"]]) };
+    ok(await changesetCreateHandler({ name: "plan-step-2", description: "Step 2.", rootPath }));
+    ok(await modelAddHandler({ elements: [{ layer: "application", type: "applicationfunction", name: "buildPlan", sourceFile: "src/app/plan.ts", sourceSymbol: "buildPlan" }], rootPath } as any));
+    clearModelCache();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const run = ok(await handler({ since: "main", changeset: "plan-step-2-as-built", rootPath }));
+    expect(run.undecided.planned).toBe(1);
+    expect(run.next.some((s: string) => s.includes("are code an element of the plan names (card.planned"))).toBe(true);
+    const planned = ok(await handler({ view: { planned: true }, rootPath })).undecided.items;
+    expect(planned.map((c: any) => [c.symbol, c.planned])).toEqual([["buildPlan", "application.applicationfunction.build-plan"]]);
+    // Kept, the item would write a rule on the file that takes the planned card from the next run on:
+    // no rule is written, the other cards are recorded here, and the item says why.
+    const kept = ok(await handler({ reject: [{ files: "src/app/plan.ts", reason: "helpers", keep: true }], verbose: true, rootPath }));
+    expect(kept.reject.results[0]).toMatchObject({ status: "recorded", recorded: 4, planned: 1, recordedLocally: 4 });
+    expect(kept.reject.results[0].notKept).toContain("1 card(s) the plan names");
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toHaveLength(4);
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).not.toContain("src/app/plan.ts#buildPlan");
+    ok(await handler({ clearRejected: true, rootPath }));
+    const rejected = ok(await handler({ reject: [{ files: "src/app/plan.ts", reason: "helpers" }], verbose: true, rootPath }));
+    expect(rejected.reject.results[0]).toMatchObject({ status: "recorded", recorded: 4, planned: 1 });
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).not.toContain("src/app/plan.ts#buildPlan");
+  }, SLOW);
+
+  it("a preview writes no rule and retires no record; clearRejected with preview says wouldClear", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ card: "tally", reason: "a helper" }], rootPath }));
+    const preview = ok(await handler({ preview: true, decide: [{ ...LOCAL_FUNCTIONS, keep: true }], verbose: true, rootPath }));
+    expect(preview.decide.results[0]).toMatchObject({ status: "would-apply", retired: 1 });
+    const keepPreview = ok(await handler({ preview: true, reject: [{ files: "design/**", reason: "x", keep: true }], verbose: true, rootPath }));
+    expect(keepPreview.reject.results[0].status).toBe("would-keep");
+    expect(existsSync(projectRulesPath(rootPath))).toBe(false);
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toEqual(["src/app/plan.ts#tally"]);
+    // What the preview would record is not reported as recorded.
+    expect(preview.notElements.total).toBe(1);
+    const clear = ok(await handler({ preview: true, clearRejected: true, rootPath }));
+    expect(clear.wouldClear).toEqual({ elements: 1, relationships: 0 });
+    expect(Object.keys(JSON.parse(await readFile(decisionsFile(), "utf-8")).notElements)).toEqual(["src/app/plan.ts#tally"]);
+  }, SLOW);
+
+  it("groups a view page by folder, and decide with view reads page 2", async () => {
+    const handler = createCodebaseExtractHandler(harness().deps);
+    ok(await handler({ rootPath }));
+    const byFolder = ok(await handler({ view: {}, groupBy: "folder", groupDepth: 1, pageSize: 50, rootPath }));
+    // Groups in the cards' order, each folder's cards together, the file kept on each card.
+    expect(byFolder.undecided.byFolder.map((g: any) => [g.path, g.items.length])).toEqual([
+      ["src/", 8],
+      ["design/", 30],
+    ]);
+    expect(byFolder.undecided.byFolder[0].items[0].file).toBeDefined();
+    const second = ok(await handler({ decide: [NOT_PRODUCT], view: { files: "src/**" }, page: 2, pageSize: 3, rootPath }));
+    expect(second.undecided).toMatchObject({ page: 2, pages: 3 });
+    expect(second.undecided.items).toHaveLength(3);
+    expect(second.undecided.more).toContain("page: 3");
+  }, SLOW);
+
+  it("lists the checkout's recorded decisions after a commit, without a fresh index", async () => {
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    ok(await handler({ rootPath }));
+    ok(await handler({ reject: [{ card: "tally", reason: "a helper" }], rootPath }));
+    h.deps.gitHead = () => "2222222222222222222222222222222222222222";
+    const listed = ok(await handler({ list: "notElements", rootPath }));
+    expect(listed).toMatchObject({ list: "notElements", total: 1 });
+    expect(listed.items[0]).toMatchObject({ symbol: "tally" });
+    expect(fail(await handler({ view: {}, rootPath })).error).toBeDefined();
   }, SLOW);
 });
