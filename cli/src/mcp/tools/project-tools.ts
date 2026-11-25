@@ -13,7 +13,8 @@
  * `apply: true` runs the migration, then reloads and validates the model with the warnings
  * `dr validate` reports, and lists every file it wrote, the model's apart from the rest. Values
  * derived for required attributes are staged in a changeset for review, never written to the base
- * model. Per-project integration files are left alone (the dr plugin replaces them). Files git
+ * model. Per-project integration files (.claude/, .github/) are reported, with what the dr plugin
+ * carries of them, and upgraded only with `upgradeIntegrations` (integrationsReport). Files git
  * tracks under .dr/ are the caller's decision to put to the user (`gitignore`).
  *
  * Both write outside a changeset, so changeset-only mode refuses them (mcp/changeset-only.ts),
@@ -37,7 +38,8 @@ import {
 } from "../../core/dot-dr-ignore.js";
 import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles } from "../../core/prettier-ignore.js";
 import { commitHookNotes } from "../../core/commit-hooks.js";
-import { scanOutsideModel } from "../../core/upgrade-outside-model.js";
+import { scanOutsideModel, type OutsideModel } from "../../core/upgrade-outside-model.js";
+import { retireLegacyActiveMarker, retiredMarkerClause } from "../../core/active-changeset-marker.js";
 import {
   countFiles,
   diffFiles,
@@ -81,13 +83,16 @@ import type { Model } from "../../core/model.js";
 import { installSpecReference } from "../../utils/spec-installer.js";
 import { findProjectRoot } from "../../utils/project-paths.js";
 import { getCliVersion } from "../../utils/spec-version.js";
+import { ClaudeIntegrationManager } from "../../integrations/claude-manager.js";
+import { CopilotIntegrationManager } from "../../integrations/copilot-manager.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { relayoutModelFiles } from "../../core/model-relayout.js";
 import { isDebug, isVerbose } from "../../utils/globals.js";
 import { unfilledRequired, validationSummary, type UnfilledRequired } from "../../core/upgrade-validation.js";
-import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 import { clearModelCache, jsonResult, reloadModel, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
+import { withRunningCodeChecked } from "../../utils/running-code.js";
 
 /** The MCP server's stdout carries the protocol: progress lines go to stderr. */
 const logToStderr = (message: string): void => {
@@ -325,6 +330,24 @@ const upgradeInputSchema = {
     .describe(
       "Only with apply: true. Upgrade the model and the per-checkout spec reference and nothing else: no layer reports, no .gitignore or .prettierignore lines."
     ),
+  upgradeIntegrations: z
+    .boolean()
+    .optional()
+    .describe(
+      "With apply: true, also bring the project's per-project integration files up to this dr, as dr upgrade does " +
+        "(.claude/ from dr claude install, .github/ from dr copilot install; files edited in the project are replaced), " +
+        "even when the model is already on this spec. Without apply, the answer's integrations section previews it. " +
+        "Pass it only when the user approves."
+    ),
+  relayout: z
+    .boolean()
+    .optional()
+    .describe(
+      "Also lay out every model element file an earlier dr wrote (long strings folded at 80 columns) or prettier " +
+        "laid out, as this dr writes them, data unchanged: a step of its own, previewed, on a model already on this " +
+        "spec too. The preview's relayout counts those files when it is not passed. Commit it on its own, so later " +
+        "landings carry only their own changes."
+    ),
   rootPath: z
     .string()
     .optional()
@@ -335,23 +358,193 @@ const upgradeInputSchema = {
 
 export type ProjectUpgradeArgs = z.infer<z.ZodObject<typeof upgradeInputSchema>>;
 
+/** How many paths each list of an integration report shows by default; detail: "full" shows all. */
+const INTEGRATION_PATHS_SHOWN = 10;
+
+/** One per-project integration in project_upgrade's answer (#1252). */
+interface IntegrationReport {
+  /** The integration's folder: .claude (dr claude install) or .github (dr copilot install). */
+  folder: string;
+  installedVersion?: string;
+  /**
+   * As dr upgrade decides it: an upgrade is pending only when the installed version differs from
+   * this dr's and isn't newer. up-to-date: the same version; nothing to do. upgrade-available: an
+   * older version; its upgrade would change the files counted. upgraded: upgradeIntegrations (with
+   * apply) changed them. newer: a newer dr installed it, and it is left alone (dr upgrade --force
+   * would put this dr's older files in).
+   */
+  state: "up-to-date" | "upgrade-available" | "upgraded" | "newer";
+  /** With an upgrade pending or done: its files by action. */
+  files?: Record<"add" | "update" | "overwrite" | "remove", number>;
+  /** "<action> <path>" for those files: the first ones, with pathsShown/pathsOmitted/more when cut. */
+  paths?: string[];
+  /** Files edited in the project that the upgrade would replace (it runs with force, as dr upgrade does). */
+  wouldReplace?: string[];
+  /** With nothing pending: files edited in the project since they were installed, which nothing touches. */
+  kept?: string[];
+  /** Leftovers of older layouts the upgrade doesn't touch (dr upgrade offers to remove them). */
+  stale?: string[];
+  /** For Claude Code: which installed entries the dr plugin also carries and which it doesn't. */
+  plugin?: { inPlugin: string[]; notInPlugin: string[]; inPluginCount: number; notInPluginCount: number; more?: string };
+  [key: string]: unknown;
+}
+
+/** How many names of each kind a sentence spells out. */
+const NAMES_SPELLED = 3;
+
 /**
- * What to say about per-project integration files, which the dr plugin replaces: nothing when
- * there are none, which is the usual case.
+ * Integration paths (".claude/<folder>/<entry>") in words, grouped by folder, from the paths
+ * themselves: "skills dr_01_motivation_layer, dr_02_business_layer, dr_03_product_layer and 14
+ * more; commands /dr-plan; agents dr-advisor, dr-architect".
  */
-async function integrationsNote(projectRoot: string): Promise<{ integrations?: string }> {
+function describeEntries(paths: string[]): string {
+  const byFolder = new Map<string, string[]>();
+  for (const path of paths) {
+    const [, folder = "", entry = ""] = path.replace(/\/$/, "").split("/");
+    const name = entry.replace(/\.md$/, "");
+    byFolder.set(folder, [...(byFolder.get(folder) ?? []), folder === "commands" ? `/${name}` : name]);
+  }
+  return [...byFolder.entries()]
+    .map(([folder, names]) => {
+      const rest = names.length - NAMES_SPELLED;
+      return `${folder} ${names.slice(0, NAMES_SPELLED).join(", ")}${rest > 0 ? ` and ${rest} more` : ""}`;
+    })
+    .join("; ");
+}
+
+/** "a, b, c and 4 more" of a list of paths. */
+function someOf(paths: string[]): string {
+  const rest = paths.length - NAMES_SPELLED;
+  return `${paths.slice(0, NAMES_SPELLED).join(", ")}${rest > 0 ? ` and ${rest} more` : ""}`;
+}
+
+/**
+ * The per-project integration files a project has from `dr claude install` (.claude/) and
+ * `dr copilot install` (.github/): for each, whether an upgrade is pending by dr upgrade's rule
+ * (the installed version differs from this dr's and isn't newer) and what it would change, or
+ * changed when `upgrade` is set (upgradeIntegrations with apply), and for Claude Code which
+ * installed entries the dr plugin carries, so the advice is to keep and upgrade the files, or that
+ * removing them is safe (#1252). With no version change nothing is pending and nothing is
+ * written: files edited in the project are listed as kept. Nothing when there are none, which is
+ * the usual case.
+ */
+async function integrationsReport(
+  projectRoot: string,
+  options: { upgrade: boolean }
+): Promise<{ integrations?: Record<string, unknown> }> {
+  const cliVersion = await getCliVersion();
+  const reports: Record<string, IntegrationReport | { folder: string; error: string }> = {};
   const notes: string[] = [];
-  if (await fileExists(join(projectRoot, ".claude", ".dr-version"))) {
+  const managers = [
+    { name: "claude", folder: ".claude", manager: new ClaudeIntegrationManager({ projectRoot }) },
+    { name: "copilot", folder: ".github", manager: new CopilotIntegrationManager({ projectRoot }) },
+  ] as const;
+
+  for (const { name, folder, manager } of managers) {
+    try {
+      const installed = await manager.loadVersionFile();
+      if (!installed) continue;
+      // dr upgrade's rule (upgrade.ts): upgrade when the version differs, unless a newer dr installed it.
+      const newer = compareVersions(installed.version, cliVersion) > 0;
+      const pending = installed.version !== cliVersion && !newer;
+      // A pending upgrade runs with force, as dr upgrade runs it: files edited in the project are
+      // replaced. With none pending, the plan without force says which edited files stay as they are.
+      const plan = await manager.planUpgrade({ force: pending });
+      if (!plan) continue;
+      const upgrade = options.upgrade && pending;
+      if (upgrade) await manager.applyUpgrade({ force: true });
+
+      const report: IntegrationReport = {
+        folder,
+        installedVersion: installed.version,
+        state: newer ? "newer" : upgrade ? "upgraded" : pending ? "upgrade-available" : "up-to-date",
+        ...(plan.stale.length > 0 ? { stale: plan.stale } : {}),
+      };
+      if (pending) {
+        const files = { add: 0, update: 0, overwrite: 0, remove: 0 };
+        for (const file of plan.files) files[file.action]++;
+        const { items: paths, rest } = capped(
+          plan.files.map((file) => `${file.action} ${file.path}`),
+          INTEGRATION_PATHS_SHOWN
+        );
+        const replaced = plan.files.filter((file) => file.action === "overwrite").map((file) => file.path);
+        Object.assign(report, {
+          files,
+          paths,
+          ...(Object.keys(rest).length > 0 ? { pathsShown: rest.shown, pathsOmitted: rest.omitted, more: rest.more } : {}),
+          ...(replaced.length > 0 ? { wouldReplace: replaced } : {}),
+        });
+        if (replaced.length > 0) {
+          notes.push(
+            `${replaced.length} file${replaced.length === 1 ? "" : "s"} edited here ${upgrade ? "were" : "would be"} ` +
+              `replaced in ${folder}: ${someOf(replaced)}.`
+          );
+        }
+      } else if (plan.kept.length > 0) {
+        report.kept = plan.kept;
+      }
+
+      if (manager instanceof ClaudeIntegrationManager) {
+        const coverage = await manager.pluginCoverage();
+        if (coverage) {
+          const inPlugin = capped(coverage.inPlugin, INTEGRATION_PATHS_SHOWN);
+          const notInPlugin = capped(coverage.notInPlugin, INTEGRATION_PATHS_SHOWN);
+          const more = inPlugin.rest.more ?? notInPlugin.rest.more;
+          report.plugin = {
+            inPlugin: inPlugin.items,
+            notInPlugin: notInPlugin.items,
+            inPluginCount: coverage.inPlugin.length,
+            notInPluginCount: coverage.notInPlugin.length,
+            ...(more ? { more } : {}),
+          };
+          const carried =
+            coverage.inPlugin.length > 0
+              ? `The dr plugin carries ${coverage.inPlugin.length} of them ` +
+                `(${describeEntries(coverage.inPlugin)}), which load twice while both are installed`
+              : "The dr plugin carries none of them";
+          notes.push(
+            `This project has per-project Claude Code files from \`dr claude install\` (.claude/). ${carried}` +
+              (coverage.notInPlugin.length > 0
+                ? `; it doesn't carry the other ${coverage.notInPlugin.length} ` +
+                  `(${describeEntries(coverage.notInPlugin)}), so removing .claude/ would drop them. Keep the files ` +
+                  "and keep them current, or remove them once the user no longer wants what only they carry."
+                : ", and it carries everything they hold, so the user can remove them.")
+          );
+        }
+      } else {
+        notes.push("This project has per-project GitHub Copilot files from `dr copilot install` (.github/).");
+      }
+      reports[name] = report;
+    } catch (error) {
+      reports[name] = { folder, error: getErrorMessage(error) };
+    }
+  }
+
+  const found = Object.values(reports);
+  if (found.length === 0) return {};
+  const states = found.filter((report): report is IntegrationReport => "state" in report);
+  const behind = states.filter((report) => report.state === "upgrade-available").map((report) => report.folder);
+  const upgraded = states.filter((report) => report.state === "upgraded").map((report) => report.folder);
+  if (upgraded.length > 0) {
     notes.push(
-      "This project still has per-project integration files from `dr claude install` (.claude/). The dr Claude Code plugin replaces them and project_upgrade leaves them alone; the user can remove them."
+      `Upgraded ${upgraded.join(" and ")} to this dr (${cliVersion}), as dr upgrade does (paths lists every file), ` +
+        "so show the user the diff before committing."
     );
   }
-  if (await fileExists(join(projectRoot, ".github", ".dr-copilot-version"))) {
+  if (behind.length > 0) {
     notes.push(
-      "This project has per-project GitHub Copilot integration files from `dr copilot install` (.github/), which project_upgrade leaves alone. To bring them up to this dr's version, the user runs `dr copilot upgrade` in a terminal (there is no tool for it)."
+      `${behind.join(" and ")} ${behind.length === 1 ? "is" : "are"} from an older dr: ` +
+        `project_upgrade with apply: true and upgradeIntegrations: true brings ${behind.length === 1 ? "it" : "them"} ` +
+        `to ${cliVersion}, as dr upgrade does (paths lists every file it writes), once the user approves.`
     );
   }
-  return notes.length > 0 ? { integrations: notes.join(" ") } : {};
+  if (states.some((report) => report.state === "newer")) {
+    notes.push("A newer dr installed some of these files; they are left alone.");
+  }
+  if (states.some((report) => report.kept)) {
+    notes.push("Files edited here since they were installed (kept) stay as they are: no upgrade is pending.");
+  }
+  return { integrations: { ...reports, note: notes.join(" ") } };
 }
 
 const MODEL_PREFIX = "documentation-robotics/model/";
@@ -493,6 +686,7 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
     const { result, modelFiles, otherFiles } = await rehearseModelUpgrade(projectRoot, modelUpgradeOptions(action, force));
     const errors = result.validationErrors;
     return {
+      migration: migrationKindReport(scan, modelFiles, otherFiles),
       wouldWrite: {
         note: "From running the migration on a copy of documentation-robotics/. The project was not written.",
         modelFiles: { count: countFiles(modelFiles), ...cappedFiles(modelFiles) },
@@ -508,6 +702,71 @@ async function rehearsalReport(projectRoot: string, scan: UpgradeScan, force: bo
   } catch (error) {
     return { wouldWrite: { error: `Could not rehearse the migration on a copy: ${getErrorMessage(error)}` } };
   }
+}
+
+/** How many files the relayout step names before counting the rest. */
+const RELAYOUT_FILES_SHOWN = 10;
+
+/**
+ * The model files not in dr's layout when the call did not ask to lay them out (#1439): their
+ * count, the first of them and the call that does it. Empty when there are none or it was asked.
+ */
+function relayoutReport(scan: UpgradeScan): { relayout?: Record<string, unknown> & { note: string } } {
+  if (scan.relayoutCheckError) {
+    return {
+      relayout: {
+        error: scan.relayoutCheckError,
+        note: "The model's files could not be read for the relayout check; the rest of the upgrade is unaffected.",
+      },
+    };
+  }
+  const pending = scan.relayout;
+  if (!pending || pending.files.length === 0) return {};
+  const planned = scan.actions.some((action) => action.type === "relayout");
+  const { items, rest } = capped(pending.files, RELAYOUT_FILES_SHOWN);
+  return {
+    relayout: {
+      count: pending.files.length,
+      of: pending.total,
+      files: items,
+      ...rest,
+      ...(pending.skipped.length > 0 ? { leftAlone: pending.skipped } : {}),
+      dataUnchanged: true,
+      note: planned
+        ? `The relayout step lays out these ${pending.files.length} file(s) as this dr writes them, data unchanged ` +
+          "as YAML reads it: each file is written only when its new text parses to the same data. Comments are " +
+          "dropped, and a value YAML reads as a number is written as that number (1.10 becomes 1.1). Commit them " +
+          "on their own, apart from any plan, so later landings carry only their own changes."
+        : `${pending.files.length} model file(s) are in an earlier dr's layout (long strings folded at 80 columns): ` +
+          "the next landing that writes to one lays it out anew, so its diff shows every line. project_upgrade with " +
+          "relayout: true (and apply: true, once the user approves) lays them all out now, data unchanged, to commit " +
+          "on its own, apart from any plan.",
+    },
+  };
+}
+
+/**
+ * What the migration changes in this model, from the rehearsal (#1435): manifest-only when it
+ * writes manifest.yaml and nothing else under documentation-robotics/, so the user can be told
+ * plainly that nothing in their model changes but the spec version; else model.
+ */
+function migrationKindReport(scan: UpgradeScan, modelFiles: FilesChanged, otherFiles: FilesChanged) {
+  const manifest = "documentation-robotics/model/manifest.yaml";
+  const manifestOnly =
+    modelFiles.added.length === 0 &&
+    modelFiles.removed.length === 0 &&
+    modelFiles.modified.every((file) => file === manifest) &&
+    countFiles(otherFiles) === 0;
+  const relayout = scan.actions.find((action) => action.type === "relayout");
+  return manifestOnly
+    ? {
+        kind: "manifest-only" as const,
+        note:
+          "Nothing in the model changes but spec_version in manifest.yaml: no element, relationship or attribute " +
+          "is renamed, rewritten, dropped or filled. Tell the user that plainly when asking to apply it." +
+          (relayout ? " The relayout step is separate: it lays out files an earlier dr wrote, data unchanged." : ""),
+      }
+    : { kind: "model" as const, note: "The migration changes model files: wouldWrite names them." };
 }
 
 /** The choices for files git tracks under .dr/, as the preview and an apply without a choice return them. */
@@ -569,6 +828,11 @@ async function upgradeRoot(rootPath: string | undefined): Promise<string> {
     ]);
   }
   return root;
+}
+
+/** Whether this call upgrades the per-project integration files: upgradeIntegrations with apply. */
+function upgradesIntegrations(args: ProjectUpgradeArgs): boolean {
+  return args.apply === true && args.upgradeIntegrations === true && args.modelOnly !== true;
 }
 
 function compareVersions(a: string, b: string): number {
@@ -814,7 +1078,18 @@ function versions(scan: UpgradeScan) {
   return {
     cliVersion: getCliVersion(),
     cliSpecVersion: scan.bundledSpecVersion,
-    model: { specVersion: model?.specVersion ?? null, targetSpecVersion: model?.targetSpecVersion ?? null },
+    model: {
+      specVersion: model?.specVersion ?? null,
+      targetSpecVersion: model?.targetSpecVersion ?? null,
+      ...(model?.assumed
+        ? {
+            assumed: true,
+            note:
+              `manifest.yaml has no spec_version: read as ${model.specVersion}, as Model.load and project_status ` +
+              "read it. The upgrade stamps the version it migrates to.",
+          }
+        : {}),
+    },
     specReference: { installed: scan.installedSpecVersion },
   };
 }
@@ -848,6 +1123,35 @@ function catalogCheckErrors(scan: UpgradeScan): string[] {
  * layer reports, the ignore files (or the decision about files git tracks under .dr/) and what a
  * large-file commit hook would do. Empty when it touches nothing there.
  */
+/**
+ * The active-changeset marker in its old place (#1273): named, with what applying does, in a
+ * preview (from the scan); removed by an apply, its changeset moved to .dr/ when the checkout has
+ * no marker there (the apply looks for the file itself).
+ */
+async function legacyMarkerReport(
+  projectRoot: string,
+  outside: Pick<OutsideModel, "legacyMarker">,
+  apply: boolean
+): Promise<{ legacyMarker?: Record<string, unknown> }> {
+  if (!apply) {
+    return outside.legacyMarker
+      ? { legacyMarker: { remove: outside.legacyMarker.path, note: outside.legacyMarker.note } }
+      : {};
+  }
+  const retired = await retireLegacyActiveMarker(projectRoot);
+  if (!retired) return {};
+  return {
+    legacyMarker: {
+      removed: retired.path,
+      ...(retired.movedTo ? { movedTo: retired.movedTo } : {}),
+      ...(retired.stale ? { stale: retired.stale } : {}),
+      note:
+        `Removed: ${retiredMarkerClause(retired)}. The marker is per checkout now, in .dr/active-changeset. ` +
+        "git tracked the old file: commit its deletion.",
+    },
+  };
+}
+
 async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
   const outside = await scanOutsideModel(projectRoot, scan);
   let decision: ReturnType<typeof gitignoreDecision> | undefined;
@@ -879,6 +1183,8 @@ async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
       : {}),
   };
   return {
+    // Top level, where the up-to-date answer and the applied result put it too
+    ...(await legacyMarkerReport(projectRoot, outside, false)),
     ...(Object.keys(groups).length > 0
       ? {
           outsideModel: {
@@ -913,15 +1219,25 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         "Preview without force first, then call project_upgrade with apply: true and force: true when the user approves",
       ]);
     }
+    if (args.modelOnly && args.upgradeIntegrations) {
+      throw new CLIError(
+        "modelOnly writes nothing outside the model, and upgradeIntegrations writes .claude/ and .github/",
+        ErrorCategory.USER,
+        ["Pass one of them"]
+      );
+    }
     const projectRoot = await upgradeRoot(args.rootPath);
     const force = args.force === true;
-    const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force });
+    const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force, relayout: args.relayout === true });
+    const relayoutPending = relayoutReport(scan);
 
+    // A manifest with no spec_version is read as 0.6.0 (scan.model.assumed), so only a project
+    // with no model at all stops here
     if (scan.model.state !== "found") {
       throw new CLIError(
-        "The model's manifest has no spec version, so the upgrade can't tell which migrations it needs.",
+        "The project has no model to upgrade (no documentation-robotics/model/manifest.yaml).",
         ErrorCategory.USER,
-        ["Check spec_version in documentation-robotics/model/manifest.yaml"]
+        ["project_init creates one"]
       );
     }
 
@@ -963,6 +1279,14 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...versions(scan),
           message: `The model is at spec v${specVersion}, but it could not be checked against the catalog, so it may still need catalog changes. Nothing was changed.`,
           errors: checkErrors,
+          // Nothing is written while the model can't be checked: an asked-for integration upgrade included.
+          ...(upgradesIntegrations(args)
+            ? {
+                upgradeIntegrations:
+                  "Not applied: nothing is written while the model can't be checked. Fix the errors, then call again.",
+              }
+            : {}),
+          ...(await integrationsReport(projectRoot, { upgrade: false })),
         });
       }
       // A model already on this spec still gets what dr upgrade gives it outside the model: the
@@ -1001,6 +1325,8 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         if (ignore.decision) gitignore = { gitignore: gitignoreDecision(ignore, projectRoot) };
       }
       const decisionOpen = Boolean((gitignore.gitignore as { options?: unknown } | undefined)?.options);
+      const legacyMarker = args.modelOnly ? {} : await legacyMarkerReport(projectRoot, outside, args.apply === true);
+      const markerPending = !args.apply && "legacyMarker" in legacyMarker;
       return jsonResult({
         status: "up-to-date",
         rootPath: projectRoot,
@@ -1008,17 +1334,27 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
         ...gitignore,
         ...prettierignore,
+        ...legacyMarker,
+        ...relayoutPending,
+        ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
         ...(outside.commitHooks && !args.modelOnly ? { commitHooks: outside.commitHooks } : {}),
         ...(warnings.length > 0 ? { warnings } : {}),
-        ...(pending.length > 0 || decisionOpen
+        ...(pending.length > 0 || decisionOpen || markerPending || relayoutPending.relayout
           ? {
               next: [
                 ...(pending.length > 0
                   ? [`${pending.join("; ")}. Calling project_upgrade with apply: true adds the missing lines, once the user approves.`]
                   : []),
+                ...(markerPending
+                  ? [
+                      "The old active-changeset marker (legacyMarker) is still here: project_upgrade with apply: true " +
+                        "removes it, once the user approves.",
+                    ]
+                  : []),
                 ...(decisionOpen
                   ? ['git tracks files under .dr/: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.']
                   : []),
+                ...(relayoutPending.relayout ? [relayoutPending.relayout.note] : []),
               ].join(" "),
             }
           : {}),
@@ -1027,6 +1363,8 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 
     if (!args.apply) {
       const catalog = await previewCatalog(projectRoot, scan);
+      const rehearsal: Awaited<ReturnType<typeof rehearsalReport>> & { migration?: { kind: string } } =
+        await rehearsalReport(projectRoot, scan, force);
       const errors = [...new Set([...checkErrors, ...catalog.errors])];
       return jsonResult(
         {
@@ -1038,10 +1376,15 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...catalogReport(catalog.details, errors),
           ...dropRecordReport(await previewDropRecord(projectRoot, scan, catalog.details).catch(() => undefined), false),
           ...(await wouldOrphan(projectRoot, catalog.details)),
-          ...(await rehearsalReport(projectRoot, scan, force)),
+          ...rehearsal,
+          ...relayoutPending,
           ...(await outsideModelReport(projectRoot, scan)),
-          ...(await integrationsNote(projectRoot)),
-          next: "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
+          ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
+          next:
+            rehearsal.migration?.kind === "manifest-only"
+              ? "Nothing has changed. Tell the user the migration changes nothing in their model but its spec version, " +
+                "then call project_upgrade with apply: true when they approve."
+              : "Nothing has changed. Show this to the user; call project_upgrade with apply: true when they approve.",
         },
         { compact: true }
       );
@@ -1057,37 +1400,44 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
     let modelResult: ModelUpgradeResult | undefined;
     try {
       // One tracked write: the server's other calls don't read the model while it is half migrated.
-      await trackModelWrite(projectRoot, undefined, async () => {
-        for (const action of scan.actions) {
-          if (action.type === "spec") {
-            await installSpecReference(projectRoot, true);
-            applied.push(actionSummary(action));
-          } else if (action.type === "model") {
-            const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, force));
-            modelResult = result;
-            changesets = result.changesets;
-            dropRecord = result.dropRecord;
-            if (action.versionBumpOnly) {
+      // Checked once against the installed CLI before anything is written, and never during it, so a
+      // CLI change partway through can't leave the migration half applied (#1427).
+      await withRunningCodeChecked(() =>
+        trackModelWrite(projectRoot, undefined, async () => {
+          for (const action of scan.actions) {
+            if (action.type === "spec") {
+              await installSpecReference(projectRoot, true);
               applied.push(actionSummary(action));
-            }
-            for (const step of result.migration?.applied ?? []) {
-              // No per-step file count: the migrations count only some of the files they write.
-              applied.push({
-                type: "model",
-                from: step.from,
-                to: step.to,
-                description: step.changes?.description ?? step.description,
-              });
-              const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
-              details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
-              details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
-              details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
-              details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
-              details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+            } else if (action.type === "relayout") {
+              const relayout = await relayoutModelFiles(projectRoot);
+              applied.push({ ...actionSummary(action), files: relayout.files.length });
+            } else if (action.type === "model") {
+              const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, force));
+              modelResult = result;
+              changesets = result.changesets;
+              dropRecord = result.dropRecord;
+              if (action.versionBumpOnly) {
+                applied.push(actionSummary(action));
+              }
+              for (const step of result.migration?.applied ?? []) {
+                // No per-step file count: the migrations count only some of the files they write.
+                applied.push({
+                  type: "model",
+                  from: step.from,
+                  to: step.to,
+                  description: step.changes?.description ?? step.description,
+                });
+                const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
+                details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
+                details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
+                details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
+                details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
+                details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+              }
             }
           }
-        }
-      });
+        })
+      );
     } catch (error) {
       if (applied.length === 0) throw error;
       // Part of the plan is already on disk: say what, then what failed.
@@ -1127,8 +1477,14 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
     // choice, #1185) and prettier kept off the files dr writes (#1155, #1246). Not with modelOnly.
     let gitignore: Record<string, unknown> = {};
     let prettierignoreAdded: { path: string; added: string[] } | undefined;
+    let legacyMarker: { legacyMarker?: Record<string, unknown> } = {};
     if (!args.modelOnly) {
       gitignore = await applyGitignore(projectRoot, args.gitignore, warnings);
+      try {
+        legacyMarker = await legacyMarkerReport(projectRoot, {}, true);
+      } catch (error) {
+        warnings.push(`The old active-changeset marker was not removed: ${getErrorMessage(error)}`);
+      }
       try {
         const ignore = await ensurePrettierIgnoresDrFiles(projectRoot);
         if (ignore.status === "added") prettierignoreAdded = { path: ignore.path!, added: ignore.entries! };
@@ -1170,10 +1526,11 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           validation,
           ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
+          ...legacyMarker,
           ...reports,
           ...(commitHooks.length > 0 ? { commitHooks } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
-          ...(await integrationsNote(projectRoot)),
+          ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
           ...(decisionOpen
             ? {
                 next: 'The model is upgraded. git tracks files under .dr/, so .gitignore was left alone: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.',
@@ -1190,8 +1547,9 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
           ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
+          ...legacyMarker,
           ...(warnings.length > 0 ? { warnings } : {}),
-          ...(await integrationsNote(projectRoot)),
+          ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
           next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",
         },
         { compact: true }
@@ -1203,7 +1561,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines), the active-changeset marker left in its old place (legacyMarker: documentation-robotics/changesets/.active, which apply removes, making the changeset it names active in .dr/ only when that is still staged; even when the model is current), the per-project integration files a project still has from dr claude install or dr copilot install (integrations: for each, whether an older dr installed it and what its upgrade would change, and for .claude/ which installed files the dr plugin also carries, inPlugin, and which only the files carry, notInPlugin; upgradeIntegrations: true with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is current) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. migration.kind is manifest-only when the migration writes nothing in the model but spec_version in the manifest: tell the user so. relayout: true also lays out the element files an earlier dr wrote, data unchanged, as a step of its own; without it the result only counts them (relayout). Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

@@ -8,13 +8,14 @@ import { readActiveMarker } from "./active-changeset-marker.js";
 import { Relationships, type Relationship } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import type { StagedChange } from "./changeset.js";
-import { ensureDir, writeFile } from "../utils/file-io.js";
-import { getCliVersion } from "../utils/spec-version.js";
+import { ensureDir, fileExists, writeFile } from "../utils/file-io.js";
+import { getCliBundledSpecVersion, getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
+import { assertRunningCodeInstalled } from "../utils/running-code.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import { stringifyDrYaml } from "./dr-yaml.js";
 import { getNodeType } from "../generated/node-types.js";
@@ -274,6 +275,11 @@ export class Model {
    * from disk.
    */
   private layerFiles: Map<string, Map<string, LayerFileRecord>> = new Map();
+  /**
+   * While a landing writes (StagingAreaManager.commit), every file and folder the saves create
+   * where nothing was, as absolute paths: what the landing's rollback removes, and nothing else.
+   */
+  createdPaths?: Set<string>;
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath;
@@ -628,12 +634,22 @@ export class Model {
   /**
    * Save a layer to disk (model/XX_layername/*.yaml)
    */
+  /**
+   * Notes, for a landing that records them (`createdPaths`), that the write about to happen
+   * creates `target`: nothing is there yet, asked of the filesystem, so on a filesystem that
+   * ignores letter case `goal.yaml` exists when `Goal.yaml` does.
+   */
+  private async noteCreation(target: string): Promise<void> {
+    if (this.createdPaths && !(await fileExists(target))) this.createdPaths.add(path.resolve(target));
+  }
+
   async saveLayer(name: string): Promise<void> {
     return trackModelWrite(this.rootPath, this, () => this.writeLayer(name));
   }
 
   private async writeLayer(name: string): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     const layer = this.layers.get(name);
     if (!layer) {
       throw new Error(`Layer ${name} not found`);
@@ -693,6 +709,7 @@ export class Model {
       if (index >= 0) {
         const orderNum = String(index + 1).padStart(2, "0");
         layerPath = `${this.rootPath}/documentation-robotics/model/${orderNum}_${layerNameWithoutPrefix}`;
+        await this.noteCreation(layerPath);
         await ensureDir(layerPath);
       } else {
         throw new Error(`Unknown layer ${name} and no path configured in manifest`);
@@ -837,6 +854,8 @@ export class Model {
     }
 
     for (const [from, to] of renames) {
+      // Where letter case matters, the new name is a new file
+      await this.noteCreation(`${layerPath}/${to}`);
       await fs.rename(`${layerPath}/${from}`, `${layerPath}/${to}`);
       existingFiles.set(to, existingFiles.get(from)!);
       existingFiles.delete(from);
@@ -852,6 +871,7 @@ export class Model {
           `Warning: ${filePath(layerPath, filename)} held only comments; dr writes the layer's elements into it and does not keep them.`
         );
       }
+      if (onDisk === undefined) await this.noteCreation(`${layerPath}/${filename}`);
       await writeFile(`${layerPath}/${filename}`, text);
     }
 
@@ -937,6 +957,7 @@ export class Model {
 
   private async writeManifest(): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     this.manifest.updateModified();
     const yaml = await import("yaml");
     const manifestPath = `${this.rootPath}/documentation-robotics/model/manifest.yaml`;
@@ -946,7 +967,8 @@ export class Model {
       version: this.manifest.version,
       schema: "documentation-robotics-v1",
       cli_version: getCliVersion(),
-      spec_version: this.manifest.specVersion,
+      // A version Model.load assumed for a manifest without one is not stamped by a save
+      spec_version: this.manifest.specVersionAssumed ? undefined : this.manifest.specVersion,
       created: this.manifest.created,
       updated: this.manifest.modified,
       project: {
@@ -1084,6 +1106,7 @@ export class Model {
 
   private async writeRelationships(options: { preserveHeader?: boolean }): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     const fs = await import("fs/promises");
     const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`;
 
@@ -1112,6 +1135,7 @@ export class Model {
     }
     const yamlContent = header + stringifyDrYaml(data);
 
+    await this.noteCreation(relationshipsPath);
     await fs.writeFile(relationshipsPath, yamlContent, "utf-8");
     this.relationships.markClean();
   }
@@ -1421,6 +1445,8 @@ export class Model {
         version: manifestYaml.project?.version || manifestYaml.version || "0.1.0",
         cliVersion: manifestYaml.cli_version,
         specVersion: manifestYaml.spec_version || "0.6.0",
+        // Nothing declared: checks against it warn rather than refuse (declared-spec.ts)
+        ...(manifestYaml.spec_version ? {} : { specVersionAssumed: true }),
         created: manifestYaml.created || new Date().toISOString(),
         modified: manifestYaml.updated || new Date().toISOString(),
       };
@@ -1644,7 +1670,9 @@ export class Model {
       await ensureDir(`${rootPath}/documentation-robotics/model/${orderNum}_${layerName}`);
     }
 
-    const manifest = new Manifest(manifestData);
+    // A model this CLI creates is on its spec unless the caller says otherwise. With no spec_version
+    // it would be read back as 0.6.0 and checked against that spec (#1411).
+    const manifest = new Manifest({ ...manifestData, specVersion: manifestData.specVersion ?? getCliBundledSpecVersion() });
 
     // Resolve codebaseRoot with priority: options > CLI flag > manifest > default
     let codebaseRoot = rootPath;
@@ -1810,6 +1838,7 @@ export class Model {
 
   private async writeDirtyLayersAtomic(): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     // First, save all layers to temporary files
     const tempLayerWrites: Array<{ layer: Layer; tempPath: string }> = [];
 

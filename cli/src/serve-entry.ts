@@ -9,7 +9,19 @@
  *   DR_SERVE_WITH_DANGER   "1": DrBot may also land and delete
  *   DR_SERVE_READ_ONLY     "1": DrBot reads only (the default is changeset staging)
  *   DR_SERVE_LAUNCHER_PID  the `dr serve` process that started this one
+ *   DR_SERVE_EXACT_PORT    "1": listen on DR_SERVE_PORT itself or fail (an isolated process)
+ *   DR_SERVE_TOKEN_FILE    a file whose first line is the token to use instead of a new one
+ *   DR_SERVE_NO_SWEEP      "1": no start-up sweep of per-project viewers
+ *   DR_SERVE_READY_JSON    "1": print one JSON line on stdout once it serves (pid, port, url, farmRoot,
+ *                          projects with their checkout keys); everything else it logs goes to stderr
+ *   DR_SERVE_FOREGROUND    "1": attached to a terminal, so it never restarts itself
+ *   DR_STATE_DIR           where its record, token and log go (an isolated process's own folder)
  *   DR_FARM_PATH, ...      the farm, as `resolveFarm` reads it (from this process's cwd)
+ *
+ * It turns on the running-code guard (utils/running-code.ts): once the CLI installed where it was
+ * loaded from changes since it started, it refuses to write the model. Started detached with the
+ * default options, it also stops for a restart as soon as nothing a restart would cut is using it;
+ * otherwise it keeps running and says to restart it by hand (#1427).
  *
  * For tests only:
  *   DR_SERVE_TEST_STARTER  path of a module whose `startCentralServer` replaces the real one,
@@ -24,11 +36,12 @@ import {
   SERVE_TEST_STARTER_ENV,
   type CentralProcess,
 } from "./server/central-lifetime.js";
-import { resolveFarm } from "./core/project-registry.js";
-import { startOptionsFromEnv } from "./commands/serve.js";
+import { loadFarm, ProjectRegistry, resolveFarm } from "./core/project-registry.js";
+import { entryRunOptionsFromEnv, readTokenFile, restartsItselfWhenStale, startOptionsFromEnv } from "./commands/serve.js";
 import { resolveChatMode } from "./commands/visualize.js";
 import { getErrorMessage } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
+import { describeRunningCodeDrift, enableRunningCodeGuard, watchRunningCode } from "./utils/running-code.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -73,7 +86,32 @@ async function shutdown(exitCode: number): Promise<void> {
   }
 }
 
+/** One line a script reads on stdout once the process serves (`--foreground --json`), as JSON. */
+function printReady(ready: Record<string, unknown>): void {
+  process.stdout.write(`${JSON.stringify(ready)}\n`);
+}
+
+/** The farm's projects and their present checkouts' keys, for the ready line. */
+async function readyProjects(farm: Awaited<ReturnType<typeof resolveFarm>>): Promise<Array<{ project: string; checkouts: string[] }>> {
+  try {
+    const registry = ProjectRegistry.fromManifest(farm, await loadFarm(farm, { create: false }));
+    return (await registry.listProjects()).map((entry) => ({
+      project: entry.name,
+      checkouts: entry.checkouts.filter((checkout) => checkout.state === "present").map((checkout) => checkout.key),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 async function main(): Promise<void> {
+  const run = entryRunOptionsFromEnv(process.env);
+  // With --json, stdout carries the ready line alone: everything else this process logs goes to stderr.
+  if (run.readyJson) {
+    console.log = console.error;
+    console.info = console.error;
+  }
+
   process.on("SIGINT", () => {
     console.log("[serve] SIGINT: stopping");
     void shutdown(0);
@@ -103,18 +141,42 @@ async function main(): Promise<void> {
   try {
     const farm = await resolveFarm();
     const start = startOptionsFromEnv(process.env);
+    // What is installed now is this process's baseline: only a change since then is refused or
+    // restarted on. Drift already there (a checkout bumped without a rebuild) is said, once (#1427).
+    const code = await watchRunningCode();
+    if (code.driftAtStart) {
+      console.log(`[serve] Note: ${describeRunningCodeDrift(code.driftAtStart)}. That was so when this process started, so it is not refused or restarted on.`);
+    }
+    enableRunningCodeGuard(true, code.check);
     running = await runCentralProcess({
       farm,
       startServer: await loadStartCentralServer(),
       port: start.port,
+      exactPort: run.exactPort,
+      sweep: run.sweep,
+      ...(run.tokenFile ? { token: readTokenFile(run.tokenFile) } : {}),
       serverOptions: {
         ...(start.viewerPath ? { viewerPath: start.viewerPath } : {}),
         ...resolveChatMode(start),
       },
       launcherPid: positiveInt(process.env.DR_SERVE_LAUNCHER_PID),
       cliVersion: getCliVersion(),
+      staleCheck: code.check,
+      restartWhenStale: restartsItselfWhenStale(start, run),
       onIdleExit: () => void shutdown(0),
     });
+    if (run.readyJson) {
+      const { record } = running;
+      printReady({
+        ready: true,
+        pid: record.pid,
+        port: record.port,
+        url: `http://127.0.0.1:${record.port}/`,
+        farmRoot: record.farmRoot,
+        cliVersion: record.cliVersion,
+        projects: await readyProjects(farm),
+      });
+    }
   } catch (error) {
     if (error instanceof CentralProcessRunningError) {
       console.error(`[serve] ${error.message}`);

@@ -85,12 +85,18 @@ npx tsx scripts/release-versions.ts --set --cli <cli-version> [--spec <spec-vers
   `cli/src/core/migration-registry.ts`. Follow the existing entries:
   - Call `applyCatalogMigrations(model)` when relationship types or predicates were retired or
     renamed.
-  - Otherwise the step only stamps the version.
+  - Otherwise the step only stamps the version: mark it `stampsOnly: true`. Without the flag,
+    `project_status` and `project_upgrade` call the migration `model` instead of `manifest-only`
+    (#1435).
   - If a development CLI already stamped real models with the new version, they will skip this step.
     In that case, make the step safe to run again (0.11.0 re-ran the catalog migration for exactly
     this reason).
 - **Rewrite table.** In `cli/`, regenerate the relationship rewrite table if a new `applied-*.json`
   record landed: `bun scripts/generate-relationship-migration.ts`, then confirm it with `--check`.
+- **Spec catalog history.** After `spec/VERSION` moves to the new version, regenerate the table the
+  declared-spec check reads (#1411), in `cli/`: `bun scripts/generate-spec-catalog-history.ts`,
+  then confirm it with `--check`. It adds the previous version's released catalog. The
+  `declared-spec.test.ts` unit test fails until it is regenerated.
 - **Upgrade tests.** Update the expected latest version in
   `cli/tests/integration/upgrade-command.test.ts` (search for the previous spec version).
 - **Rebuild.** Run `npm run build:spec` at the root, then `npm run build` in `cli/`.

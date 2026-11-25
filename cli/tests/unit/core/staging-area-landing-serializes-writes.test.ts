@@ -86,13 +86,14 @@ describe("landing a changeset while writes stage into it (#1437)", () => {
       // Writers going through getWriteTarget and MutationHandler, as dr add and model_add do. Not
       // timed: the landing starts once a write has succeeded, and each writer goes on until it has
       // written twice after the landing ended, so both outcomes happen whatever the machine's load.
+      // A landing that throws ends them too, and none writes forever.
       let landingDone = false;
       let firstWrite!: () => void;
       const someWritten = new Promise<void>((resolve) => (firstWrite = resolve));
       const outcomes: PromiseSettledResult<string>[] = [];
       const writer = async (w: number) => {
         let after = 0;
-        for (let i = 0; after < 2; i++) {
+        for (let i = 0; after < 2 && i < 500; i++) {
           if (landingDone) after++;
           const name = `racing-${w}-${i}`;
           try {
@@ -105,10 +106,14 @@ describe("landing a changeset while writes stage into it (#1437)", () => {
         }
       };
       const writers = Promise.all([0, 1, 2].map(writer));
-      await someWritten;
-      const result = await manager.commit(model, plan.id!, { validate: false });
-      landingDone = true;
-      await writers;
+      await Promise.race([someWritten, writers]);
+      let result;
+      try {
+        result = await manager.commit(model, plan.id!, { validate: false });
+      } finally {
+        landingDone = true;
+        await writers;
+      }
       const settled = outcomes;
 
       const succeeded = settled.flatMap((w) => (w.status === "fulfilled" ? [w.value] : []));

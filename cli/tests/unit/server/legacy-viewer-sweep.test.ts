@@ -57,6 +57,36 @@ function survey(viewers: RunningViewer[], overrides: Partial<ViewerSurvey> = {})
   };
 }
 
+describe("sweepDecision within a farm (#1369)", () => {
+  it("stops only a viewer whose project is in one of the farm's folders", () => {
+    const farmRoots = ["/projects/a", "/worktrees/a-feature"];
+    expect(sweepDecision(viewer({ projectRoot: "/projects/a" }), new Set(), farmRoots)).toBe("stop");
+    expect(sweepDecision(viewer({ projectRoot: "/projects/a/sub" }), new Set(), farmRoots)).toBe("stop");
+    expect(sweepDecision(viewer({ projectRoot: "/worktrees/a-feature" }), new Set(), farmRoots)).toBe("stop");
+    expect(sweepDecision(viewer({ projectRoot: "/projects/ab" }), new Set(), farmRoots)).toBe("outside-farm");
+    expect(sweepDecision(viewer({ projectRoot: null }), new Set(), farmRoots)).toBe("outside-farm");
+    // An empty farm sweeps nothing; no farm given keeps the old rule.
+    expect(sweepDecision(viewer(), new Set(), [])).toBe("outside-farm");
+    expect(sweepDecision(viewer(), new Set())).toBe("stop");
+  });
+
+  it("keeps another farm's viewers and reports why", async () => {
+    const stopped: RunningViewer[] = [];
+    const ours = viewer({ projectRoot: "/projects/a" });
+    const theirs = viewer({ projectRoot: "/elsewhere/b", pid: 200, serverPid: 201 });
+    const result = await sweepPerProjectViewers({
+      farmRoots: ["/projects/a"],
+      surveyViewers: async () => survey([ours, theirs]),
+      stopViewer: async (v) => {
+        stopped.push(v);
+        return "stopped";
+      },
+    });
+    expect(stopped).toEqual([ours]);
+    expect(result.kept).toEqual([{ viewer: theirs, reason: "outside-farm" }]);
+  });
+});
+
 describe("sweepDecision", () => {
   it("stops an answering review_open viewer with no tab open and confirmed pids", () => {
     expect(sweepDecision(viewer())).toBe("stop");

@@ -23,7 +23,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { stagedRelationshipChangesAtEnds, stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { changesetArg, changesetArgFields, resolveChangeset } from "./changeset-shared.js";
+import { changesetArg, changesetArgFields, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
 import { unstageDetailField, unstagedNotListedNote, unstagedReport } from "./unstage-report.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
@@ -53,10 +53,7 @@ async function asUserError<T>(fn: () => Promise<T>, suggestions: string[]): Prom
 const updateInputSchema = {
   ...changesetFields,
   name: z.string().min(1).optional().describe("New name. Must not be another changeset's name."),
-  description: z
-    .string()
-    .optional()
-    .describe("New description: the change's intent and what done looks like. An empty string clears it."),
+  ...intentFields("The new intent: what the change is for and what done looks like. An empty string clears it."),
   rebaseline: z
     .union([z.boolean(), z.literal("preview")])
     .optional()
@@ -166,10 +163,11 @@ async function rebaseline(
 
 export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise<CallToolResult> {
   return runTool(async () => {
-    const rename = args.name !== undefined || args.description !== undefined;
+    const intent = intentArg(args);
+    const rename = args.name !== undefined || intent !== undefined;
     const rebaselining = args.rebaseline === true || args.rebaseline === "preview";
     if (!rename && !rebaselining) {
-      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name", "description" or "rebaseline: true"']);
+      throw new CLIError("Nothing to update", ErrorCategory.USER, ['Pass "name", "intent" or "rebaseline: true"']);
     }
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -177,7 +175,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
 
     const updated = rename
       ? await asUserError(
-          () => manager.update(changeset.id!, { name: args.name, description: args.description }),
+          () => manager.update(changeset.id!, { name: args.name, description: intent }),
           ['Use "changeset_list" to see the names already taken']
         )
       : changeset;
@@ -205,7 +203,7 @@ export async function changesetUpdateHandler(args: ChangesetUpdateArgs): Promise
 export const changesetUpdateTool: McpToolDefinition<typeof updateInputSchema> = {
   name: "changeset_update",
   description:
-    "Rename a changeset or change its description (the change's intent), or re-baseline it (rebaseline: true): " +
+    "Rename a changeset or change its intent (markdown, stored as its description), or re-baseline it (rebaseline: true): " +
     "take the base model as it is now as its base and get back what moved under it. rebaseline: \"preview\" returns " +
     `the same and writes nothing. What moved is listed ${DRIFT_LIST_LIMIT} entries per list by default (limit, offset; ` +
     "moved.page has the true totals). Staged changes are untouched. Defaults to the active changeset.",

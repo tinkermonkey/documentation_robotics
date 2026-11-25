@@ -95,6 +95,7 @@ import type { McpSession } from "./mcp-session.js";
 import { runWithSessionEnv, sessionEnv } from "../core/session-env.js";
 import type { McpResultCheckout } from "../server/central-mcp-contract.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { countToolCall } from "./tool-calls-in-flight.js";
 
 const MODEL_TOOLS: McpToolDefinition[] = [
   modelListTool,
@@ -277,8 +278,10 @@ export class McpToolRegistry {
           // Every write the call makes is this session's (changeset-write-activity.ts). A server
           // without sessions serves one client from its own process: the process is the writer.
           const writer = session?.writer ?? currentWriter();
-          return runAsWriter(writer, () =>
-            session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, call)) : call()
+          return countToolCall(() =>
+            runAsWriter(writer, () =>
+              session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, call)) : call()
+            )
           );
         }
       );

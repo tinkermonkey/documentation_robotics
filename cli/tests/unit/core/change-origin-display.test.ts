@@ -142,14 +142,14 @@ describe("changeset views of a changeset codebase_extract staged", () => {
     const table = spyOn(console, "table").mockImplementation((data: any) => void tables.push(data));
     const log = spyOn(console, "log").mockImplementation((...args: any[]) => void logs.push(args.join(" ")));
     try {
-      await changesetStagedCommand({ model: rootPath });
+      await changesetStagedCommand(undefined, { model: rootPath });
       const rows = tables[0] as Array<Record<string, string>>;
       expect(rows.find((r) => r["Element ID"] === SERVICE)!.Origin).toBe("tier1 clef p=0.82/0.71 confirmed=agent");
       expect(rows.find((r) => r["Element ID"] === COMPONENT)!.Origin).toBe("");
 
       setJsonMode(true);
       logs.length = 0;
-      await changesetStagedCommand({ model: rootPath });
+      await changesetStagedCommand(undefined, { model: rootPath });
       const json = JSON.parse(logs.find((l) => l.trim().startsWith("{"))!);
       const changes = json.changes ?? json.data?.changes;
       const service = changes.find((c: any) => c.elementId === SERVICE);

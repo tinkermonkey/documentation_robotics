@@ -21,8 +21,8 @@
  */
 
 import { randomUUID } from "crypto";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { delimiter, isAbsolute, join } from "node:path";
 import { jest } from "bun:test";
 import { GoldenCopyCacheManager } from "../dist/core/golden-copy-cache.js";
 
@@ -73,6 +73,23 @@ process.env.NODE_ENV = "test";
 // children) out of the developer's real ~/.local/state/dr/viewers. Tests that need their own
 // state dir set DR_STATE_DIR themselves.
 process.env.DR_STATE_DIR = join(tmpdir(), `dr-test-state-${globalThis.__TEST_ID__}`);
+
+// Keep every test out of the developer's real user farm (~/.config/dr/farm.yaml), which a test once
+// filled with its scratch project (#1438). The user farm of this run, and of every dr process a test
+// starts, is a scratch one, and no farm.yaml write in this process or its children may reach the
+// real one: FarmManifest.save refuses the files DR_PROTECTED_FARM_FILES names, so a test that
+// resolves the farm from an env without XDG_CONFIG_HOME (`env: {}`) fails instead of writing there.
+// A DR_FARM_PATH from the developer's shell would point tests at a real farm, so it goes too.
+{
+  const configHome = process.env.XDG_CONFIG_HOME;
+  const realUserFarms = new Set([
+    join(configHome && isAbsolute(configHome) ? configHome : join(process.env.HOME || homedir(), ".config"), "dr", "farm.yaml"),
+    join(homedir(), ".config", "dr", "farm.yaml"),
+  ]);
+  process.env.DR_PROTECTED_FARM_FILES = [...realUserFarms].join(delimiter);
+  process.env.XDG_CONFIG_HOME = join(tmpdir(), `dr-test-config-${globalThis.__TEST_ID__}`);
+  delete process.env.DR_FARM_PATH;
+}
 
 // Work around broken .gitconfig directory at system level by pointing git to /dev/null
 // This prevents "unable to read configuration files (.gitconfig is a directory)" errors

@@ -1,0 +1,564 @@
+id: changeset-1795622836738-pmvhejsyx
+name: cli09-status-changeset-cli
+description: |-
+  CLI 0.9.0, "Status and the changeset CLI": the changeset CLI reads any changeset by name, a changeset's intent is markdown and called the same everywhere, and project_status and project_upgrade say what a session needs and no more.
+
+  **In scope**
+  - `dr changeset show <name>` (new), and `staged`, `diff`, `preview` take a changeset name (#1219); `dr upgrade` points at `show` for its record.
+  - `changeset_create` and `changeset_update` take `intent` (keeping `description`); the description is documented as markdown in the tools, the CLI and the viewer API, and the CLI prints it with its line breaks (#1433, #1210).
+  - `project_status`: changed source files counted per folder and per layer, with fewer listed (#1251); a `task` parameter (plan, review, reconcile) so code drift is information, not the next step, while planning or reviewing (#1301); it reports a leftover `documentation-robotics/changesets/.active` and whether git still tracks it, and the legacy file no longer wins once `.dr/` has a marker (#1273).
+  - `project_upgrade` reports what each per-project integration's upgrade would change and which installed files the dr plugin carries, and upgrades them on request (`upgradeIntegrations` with `apply`) (#1252).
+
+  **Done when** each issue's behaviour has a unit test (and an integration test where it is end to end), the skills and server instructions say the same, and verify finds the build matches this plan.
+created: 2026-11-25T16:07:16.780Z
+modified: 2026-11-25T17:53:20.524Z
+status: staged
+baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 79
+  modifications: 18
+  deletions: 0
+lastSequence: 122
+unstaged:
+  - sequence: 9
+    removedAt: 79
+    change:
+      type: add
+      elementId: application.applicationfunction.base-integration-manager-apply-upgrade
+      layerName: application
+      after:
+        id: 1d22c8a3-015e-4be9-b797-0ce54d3387a2
+        path: application.applicationfunction.base-integration-manager-apply-upgrade
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: BaseIntegrationManager applyUpgrade
+        description: "Upgrade the installed integration without prompts or console output: the files planUpgrade lists are written or removed and the version file rewritten. Returns the plan it applied, or null when the integration isn't installed. For project_upgrade over MCP."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 80
+    change:
+      type: add
+      elementId: application.applicationfunction.changeset-for-command
+      layerName: application
+      after:
+        id: 1d8e59f6-0f2f-4510-87fe-bb7e4e2e7ca5
+        path: application.applicationfunction.changeset-for-command
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: changesetForCommand
+        description: The changeset a read command (show, staged, diff, preview) names, by name or id and in any state, or the active one when it names none; null with the reason when there is neither.
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 10
+    removedAt: 81
+    change:
+      type: add
+      elementId: application.applicationfunction.claude-integration-manager-plugin-coverage
+      layerName: application
+      after:
+        id: 18e4ccae-57d4-4241-b305-be95329bad5c
+        path: application.applicationfunction.claude-integration-manager-plugin-coverage
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: ClaudeIntegrationManager pluginCoverage
+        description: Which installed per-project Claude Code files (.claude/) the dr plugin also carries (its skills, /dr-plan, dr-architect and dr-advisor, which then load twice) and which it doesn't (the other commands and agents), read from the plugin manifest shipped with this dr.
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 82
+    change:
+      type: add
+      elementId: application.applicationfunction.collect-legacy-marker
+      layerName: application
+      after:
+        id: 68b0fc1e-f991-42e2-b333-dc79320ceba5
+        path: application.applicationfunction.collect-legacy-marker
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: collectLegacyMarker
+        description: "The pre-#1218 active-changeset marker, documentation-robotics/changesets/.active: whether it is on disk, whether git still tracks it, whether it is the marker in use (no .dr/active-changeset), the changeset it names, and what to do (commit its deletion)."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 83
+    change:
+      type: add
+      elementId: application.applicationfunction.description-excerpt
+      layerName: application
+      after:
+        id: c9d2a590-279d-49c6-88db-827e703412d5
+        path: application.applicationfunction.description-excerpt
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: descriptionExcerpt
+        description: "The first line of a changeset description (markdown), cut to a width, with a mark when the rest is left out: what dr changeset list shows."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 84
+    change:
+      type: add
+      elementId: application.applicationfunction.description-lines
+      layerName: application
+      after:
+        id: 1cd22f90-a661-4df4-927f-9862b53878b5
+        path: application.applicationfunction.description-lines
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: descriptionLines
+        description: "A changeset description (markdown) as terminal lines: as written, line breaks and blank lines kept, each indented, so lists and headings stay readable."
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 8
+    removedAt: 85
+    change:
+      type: add
+      elementId: application.applicationfunction.drift-as-information
+      layerName: application
+      after:
+        id: ff475a14-e90d-4a2f-a0be-d950eaca82df
+        path: application.applicationfunction.drift-as-information
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: driftAsInformation
+        description: "Code drift and index state said as information for a session that is planning or reviewing (task: plan or review): what drifted, and that reconciling is a session of its own (task: reconcile)."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 86
+    change:
+      type: add
+      elementId: application.applicationfunction.integrations-report
+      layerName: application
+      after:
+        id: f522695f-4e59-4788-a4e8-813baa386fef
+        path: application.applicationfunction.integrations-report
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: integrationsReport
+        description: "project_upgrade's integrations section: for each per-project integration installed (.claude/ from dr claude install, .github/ from dr copilot install), its version, what its upgrade would change (or changed), and for Claude Code which installed files the dr plugin carries; with a note on what removing them would drop and how to upgrade them (upgradeIntegrations with apply)."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 74
+    removedAt: 87
+    change:
+      type: add
+      elementId: application.applicationfunction.intent-arg
+      layerName: application
+      after:
+        id: 011822fa-4460-494a-a9d1-e5a0b3424458
+        path: application.applicationfunction.intent-arg
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: intentArg
+        description: The intent a call gives under either name, intent or description; a call that gives both with different values is refused.
+        metadata:
+          created_at: 2026-11-25T16:29:36.405Z
+          updated_at: 2026-11-25T16:29:36.405Z
+          version: 1
+      timestamp: 2026-11-25T16:29:36.544Z
+    rewritten: true
+  - sequence: 73
+    removedAt: 88
+    change:
+      type: add
+      elementId: application.applicationfunction.intent-fields
+      layerName: application
+      after:
+        id: 165be09c-b83a-445a-8f8a-a7e85f33e17d
+        path: application.applicationfunction.intent-fields
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: intentFields
+        description: "The schema fields for a changeset's intent: intent, the name the server instructions and skills use, and description, the name the changeset stores it under; both say the intent is markdown and the shape to write."
+        metadata:
+          created_at: 2026-11-25T16:29:36.404Z
+          updated_at: 2026-11-25T16:29:36.404Z
+          version: 1
+      timestamp: 2026-11-25T16:29:36.544Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 89
+    change:
+      type: add
+      elementId: application.applicationfunction.review-step
+      layerName: application
+      after:
+        id: 244cd0e7-b590-4697-9835-48451edca8f5
+        path: application.applicationfunction.review-step
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: reviewStep
+        description: "The next step for a session reviewing a change (task: review): the active changeset's brief, else the one staged plan to read with changeset_brief and show with review_open, else the staged plans to pick from; code drift and the index are information, never the step."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 90
+    change:
+      type: add
+      elementId: application.applicationfunction.source-file-summary
+      layerName: application
+      after:
+        id: 3092d6ca-277a-480e-abde-96e739271043
+        path: application.applicationfunction.source-file-summary
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: sourceFileSummary
+        description: "Changed source files counted per folder (the first few folders by file count, with the folder total) and the elements that reference them counted per layer, over the whole list: what project_status shows beside the first few files."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 91
+    change:
+      type: add
+      elementId: application.applicationfunction.with-legacy-marker-note
+      layerName: application
+      after:
+        id: 6bff4831-5b06-4a68-9b1b-895ce5c8643e
+        path: application.applicationfunction.with-legacy-marker-note
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: withLegacyMarkerNote
+        description: A next step that also says, whatever the step, when the old tracked active-changeset marker is still in git or still decides the active changeset, and that its deletion should be committed.
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 92
+    change:
+      type: add
+      elementId: application.applicationservice.changeset-show-command
+      layerName: application
+      after:
+        id: 61a44d2c-462a-43b1-b7cf-b699f871a993
+        path: application.applicationservice.changeset-show-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: changesetShowCommand
+        description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change, as changeset_show with detail summary returns them (--json returns that object)."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+      timestamp: 2026-11-25T16:08:10.406Z
+    rewritten: true
+  - sequence: 48
+    removedAt: 93
+    change:
+      type: add
+      elementId: data-model.objectschema.integration-report
+      layerName: data-model
+      after:
+        id: 526d6948-3af3-4e39-829f-8384b692751b
+        path: data-model.objectschema.integration-report
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IntegrationReport
+        description: "One per-project integration in project_upgrade's answer: folder, installedVersion, the upgrade's file counts by action with the first paths, kept and stale entries, and for Claude Code the plugin coverage."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:08:17.266Z
+          updated_at: 2026-11-25T16:08:17.266Z
+          version: 1
+      timestamp: 2026-11-25T16:08:17.278Z
+    rewritten: true
+  - sequence: 46
+    removedAt: 94
+    change:
+      type: add
+      elementId: data-model.objectschema.legacy-marker-state
+      layerName: data-model
+      after:
+        id: 33f855e2-c119-4253-989f-e4dbedc7f2f0
+        path: data-model.objectschema.legacy-marker-state
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: LegacyMarkerState
+        description: "The old active-changeset marker: path, onDisk, tracked (by git), inUse, names, note."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:08:17.266Z
+          updated_at: 2026-11-25T16:08:17.266Z
+          version: 1
+      timestamp: 2026-11-25T16:08:17.278Z
+    rewritten: true
+  - sequence: 47
+    removedAt: 95
+    change:
+      type: add
+      elementId: data-model.objectschema.plugin-coverage
+      layerName: data-model
+      after:
+        id: faaecce8-0226-41ad-84de-9cd3647efde7
+        path: data-model.objectschema.plugin-coverage
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: PluginCoverage
+        description: Installed per-project Claude Code entries the dr plugin carries (inPlugin) and the ones it doesn't (notInPlugin), paths relative to the project root.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:08:17.266Z
+          updated_at: 2026-11-25T16:08:17.266Z
+          version: 1
+      timestamp: 2026-11-25T16:08:17.278Z
+    rewritten: true
+  - sequence: 45
+    removedAt: 96
+    change:
+      type: add
+      elementId: data-model.objectschema.source-file-summary
+      layerName: data-model
+      after:
+        id: 2a198ac7-7a8b-4509-a1a3-5ceadf2c686e
+        path: data-model.objectschema.source-file-summary
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SourceFileSummary
+        description: "Changed source files per folder and their elements per layer: folders (first few, by file count), folderCount, elementsByLayer."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:08:17.266Z
+          updated_at: 2026-11-25T16:08:17.266Z
+          version: 1
+      timestamp: 2026-11-25T16:08:17.278Z
+    rewritten: true
+  - sequence: 69
+    removedAt: 97
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.integrations-report::depends-on::application.applicationfunction.base-integration-manager-is-installed
+      layerName: application
+      after:
+        source: application.applicationfunction.integrations-report
+        target: application.applicationfunction.base-integration-manager-is-installed
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:44.141Z
+  - sequence: 48
+    removedAt: 98
+    change:
+      type: add
+      elementId: data-model.objectschema.integration-report
+      layerName: data-model
+      after:
+        id: 526d6948-3af3-4e39-829f-8384b692751b
+        path: data-model.objectschema.integration-report
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IntegrationReport
+        description: "One per-project integration in project_upgrade's answer: folder, installedVersion, the upgrade's file counts by action with the first paths, kept and stale entries, and for Claude Code the plugin coverage."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:08:17.266Z
+          updated_at: 2026-11-25T16:08:17.266Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/project-tools.ts
+              symbol: IntegrationReport
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 99
+    change:
+      type: add
+      elementId: application.applicationfunction.integrations-report
+      layerName: application
+      after:
+        id: f522695f-4e59-4788-a4e8-813baa386fef
+        path: application.applicationfunction.integrations-report
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: integrationsReport
+        description: "project_upgrade's integrations section: for each per-project integration installed (.claude/ from dr claude install, .github/ from dr copilot install), its version, what its upgrade would change (or changed), and for Claude Code which installed files the dr plugin carries; with a note on what removing them would drop and how to upgrade them (upgradeIntegrations with apply)."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/project-tools.ts
+              symbol: integrationsReport
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 102
+    change:
+      type: add
+      elementId: application.applicationservice.changeset-show-command
+      layerName: application
+      after:
+        id: 61a44d2c-462a-43b1-b7cf-b699f871a993
+        path: application.applicationservice.changeset-show-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: changesetShowCommand
+        description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change, as changeset_show with detail summary returns them (--json returns that object)."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/changeset.ts
+              symbol: changesetShowCommand
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 103
+    change:
+      type: add
+      elementId: application.applicationfunction.changeset-for-command
+      layerName: application
+      after:
+        id: 1d8e59f6-0f2f-4510-87fe-bb7e4e2e7ca5
+        path: application.applicationfunction.changeset-for-command
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: changesetForCommand
+        description: The changeset a read command (show, staged, diff, preview) names, by name or id and in any state, or the active one when it names none; null with the reason when there is neither.
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/changeset.ts
+              symbol: changesetForCommand
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 116
+    change:
+      type: add
+      elementId: application.applicationservice.changeset-show-command
+      layerName: application
+      after:
+        id: 61a44d2c-462a-43b1-b7cf-b699f871a993
+        path: application.applicationservice.changeset-show-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: changesetShowCommand
+        description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change. --json returns its metadata, purpose, allowed actions, whether it is active, and the per-change summary changeset_show gives with detail summary."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/changeset.ts
+              symbol: changesetShowCommand
+      timestamp: 2026-11-25T17:12:40.988Z
+    rewritten: true
+  - sequence: 106
+    removedAt: 121
+    change:
+      type: add
+      elementId: application.applicationfunction.retire-legacy-active-marker
+      layerName: application
+      after:
+        id: 63f3cd40-5b69-442d-b098-c60ddc559073
+        path: application.applicationfunction.retire-legacy-active-marker
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: retireLegacyActiveMarker
+        description: "The upgrade's step for the active-changeset marker left in its old place (documentation-robotics/changesets/.active): when .dr/ has no marker the changeset it names moves there, and the old file is removed; committing the deletion is the user's. Null when there is no old file."
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/active-changeset-marker.ts
+              symbol: retireLegacyActiveMarker
+        metadata:
+          created_at: 2026-11-25T17:12:51.188Z
+          updated_at: 2026-11-25T17:12:51.188Z
+          version: 1
+      timestamp: 2026-11-25T17:12:51.215Z
+    rewritten: true

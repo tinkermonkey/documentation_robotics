@@ -494,7 +494,14 @@ describe("project_status over MCP", () => {
     const status = result.body;
 
     // This server is the CLI on disk.
-    expect(status.server).toEqual({ status: "current", version: getCliVersion(), comparedWith: process.cwd() });
+    expect(status.server).toEqual({
+      status: "current",
+      version: getCliVersion(),
+      comparedWith: process.cwd(),
+      // The process that answered (#1362, #1456)
+      pid: expect.any(Number),
+      startedAt: expect.any(String),
+    });
 
     // The plan, set aside: that it drifted, what a landing does about it and the call for the detail.
     expect(status.changesets.staged).toHaveLength(1);

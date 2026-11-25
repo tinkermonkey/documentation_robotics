@@ -686,11 +686,11 @@ describe("JSON Output on Mutating Commands", () => {
       expect(shown.exitCode).toBe(0);
       expect(shown.stdout).toContain("Written After Landing");
 
-      // Deactivating removes the leftover marker
+      // Deactivating clears the leftover marker: the file is left empty, which means none (#1452)
       const deactivated = await runCLICommand(workdir.path, ["changeset", "deactivate"]);
       expect(deactivated.exitCode).toBe(0);
       expect(`${deactivated.stdout}${deactivated.stderr}`).toContain("cleared a marker");
-      expect(await fs.access(markerPath).then(() => true, () => false)).toBe(false);
+      expect((await fs.readFile(markerPath, "utf-8")).trim()).toBe("");
     });
 
     it("dr changeset apply --json should output valid JSON", async () => {

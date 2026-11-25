@@ -1192,6 +1192,12 @@ describe("upgrade command - unified flow", () => {
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(result.exitCode).toBe(0);
       assertOutputContains(result, `Recorded 1 dropped relationship(s) in the staged changeset 'upgrade-drops-${version}'`);
+      // It is read with dr changeset show, not by opening its changes.yaml (#1219)
+      assertOutputContains(result, `Review it: dr changeset show upgrade-drops-${version} lists each one`);
+      const shown = await runDr(["changeset", "show", `upgrade-drops-${version}`], { cwd: tempDir.path });
+      expect(shown.exitCode).toBe(0);
+      assertOutputContains(shown, "Purpose: upgrade-record");
+      assertOutputContains(shown, "api.operation.list-orders --delivers--> api.response.ok");
 
       // The three rewritten, each with source and target swapped; the fourth gone from the model
       const rels = yaml.parse(await readFile(join(tempDir.path, "documentation-robotics/model/relationships.yaml"), "utf-8"));

@@ -17,9 +17,26 @@ import { ComponentConfig } from "./types.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { confirm, spinner, isCancel } from "@clack/prompts";
 import ansis from "ansis";
-import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
+import { basename, join } from "node:path";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+
+/**
+ * Which installed per-project Claude Code entries the dr plugin also carries, and which it
+ * doesn't (#1252). Paths are relative to the project root; folders end in a slash.
+ */
+export interface PluginCoverage {
+  /** Entries the plugin carries under the same name: they load twice while both are installed. */
+  inPlugin: string[];
+  /** Entries the plugin doesn't carry: removing .claude/ drops them. */
+  notInPlugin: string[];
+}
+
+/** The parts of the dr plugin's manifest (.claude-plugin/plugin.json) that say what it carries. */
+interface PluginManifest {
+  commands?: string[];
+  agents?: string[];
+}
 
 /**
  * Claude Code Integration Manager
@@ -86,6 +103,49 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       tracked: false,
     },
   };
+
+  /**
+   * Which installed entries (.claude/) the dr Claude Code plugin also carries and which it doesn't,
+   * from the plugin manifest shipped with this dr: the plugin carries its skills folder whole, and
+   * the commands and agents its manifest lists, matched by file name. Only entries dr installed
+   * here (the version file records them) and that are still on disk are listed. Null when the
+   * integration isn't installed or the manifest can't be read.
+   */
+  public async pluginCoverage(): Promise<PluginCoverage | null> {
+    const versionData = await this.loadVersionFile();
+    if (!versionData) return null;
+    const sourceRoot = this.getSourceRoot();
+    let manifest: PluginManifest;
+    try {
+      manifest = JSON.parse(await readFile(join(sourceRoot, ".claude-plugin", "plugin.json"), "utf-8"));
+    } catch {
+      return null;
+    }
+    const names = (paths: string[] = []) => new Set(paths.map((entry) => basename(entry)));
+    const skills = existsSync(join(sourceRoot, "skills")) ? await readdir(join(sourceRoot, "skills")) : [];
+    // By target folder: what the plugin carries there
+    const carried: Record<string, Set<string>> = {
+      commands: names(manifest.commands),
+      agents: names(manifest.agents),
+      skills: new Set(skills),
+    };
+
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+    const folder = basename(absoluteTargetDir);
+    const inPlugin: string[] = [];
+    const notInPlugin: string[] = [];
+    for (const [componentName, files] of Object.entries(versionData.components || {})) {
+      const config = this.components[componentName];
+      if (!config || !this.isTrackedComponent(componentName)) continue;
+      const entries = new Set(Object.keys(files || {}).map((file) => file.split(/[\\/]/)[0]));
+      for (const entry of [...entries].sort()) {
+        if (!existsSync(join(absoluteTargetDir, config.target, entry))) continue;
+        const path = `${folder}/${config.target}/${entry}${config.type === "dirs" ? "/" : ""}`;
+        (carried[config.target]?.has(entry) ? inPlugin : notInPlugin).push(path);
+      }
+    }
+    return { inPlugin, notInPlugin };
+  }
 
   /**
    * Install Claude integration files
@@ -515,7 +575,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
    * @throws Error if no project found
    */
   private async getProjectRoot(): Promise<string> {
-    const root = await findProjectRoot();
+    const root = this.projectRoot ?? (await findProjectRoot());
     if (!root) {
       throw new Error('No DR project found. Run "dr init" to create a new project');
     }

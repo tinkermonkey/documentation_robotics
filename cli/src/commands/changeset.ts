@@ -7,7 +7,10 @@ import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { overlapKinds, type OverlapKind } from "../core/changeset-base-index.js";
 import type { Changeset } from "../core/changeset.js";
-import { VerificationRecordLandingError, type RecordLandingError } from "../core/changeset-purpose.js";
+import { VerificationRecordLandingError, allowedActions, type RecordLandingError } from "../core/changeset-purpose.js";
+import { changeLine, summarizeChangeset } from "../core/changeset-summary.js";
+import { changesetShowView } from "../core/changeset-show-view.js";
+import { descriptionExcerpt, descriptionLines } from "../core/changeset-description.js";
 import { resolveOrigin } from "../core/changeset-review.js";
 import { originLabel } from "../core/changeset.js";
 import { ChangesetExporter } from "../core/changeset-exporter.js";
@@ -36,13 +39,15 @@ export async function changesetCreateCommand(
   name: string,
   options: {
     model?: string;
+    /** The change's intent, as markdown (#1433); `description` is its older name. */
+    intent?: string;
     description?: string;
   }
 ): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.create", {
         "changeset.name": name,
-        "changeset.hasDescription": !!options.description,
+        "changeset.hasDescription": !!(options.intent ?? options.description),
       })
     : null;
 
@@ -67,8 +72,11 @@ export async function changesetCreateCommand(
       process.exit(1);
     }
 
-    // Get description if not provided
-    let description = options.description;
+    // The intent, under either name; two different ones can't both be meant
+    if (options.intent !== undefined && options.description !== undefined && options.intent !== options.description) {
+      throw new Error("--intent and --description name the same thing, and they differ: pass one of them");
+    }
+    let description = options.intent ?? options.description;
     if (!description) {
       const isInteractive = process.stdin.isTTY;
       if (isTelemetryEnabled && span) {
@@ -76,7 +84,7 @@ export async function changesetCreateCommand(
       }
       if (isInteractive) {
         const result = await prompts.text({
-          message: "Changeset description (optional)",
+          message: "The change's intent (optional; markdown)",
         });
 
         if (typeof result === "string") {
@@ -170,8 +178,10 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
         `${statusColor(changeset.status.toUpperCase())} ${ansis.bold(changeset.name)} ${ansis.dim(`(${purpose})`)}`
       );
 
-      if (changeset.description) {
-        console.log(ansis.dim(`  ${changeset.description}`));
+      // The description is markdown and can run to many lines: its first line here, all of it in show.
+      const excerpt = descriptionExcerpt(changeset.description);
+      if (excerpt) {
+        console.log(ansis.dim(`  ${excerpt}`));
       }
 
       console.log(
@@ -199,6 +209,8 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
 
       console.log();
     }
+    console.log(ansis.dim("dr changeset show <name> prints one in full: its whole description and each change."));
+    console.log();
 
     if (isTelemetryEnabled && span) {
       (span as any).setStatus({ code: 0 });
@@ -954,9 +966,152 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
 }
 
 /**
- * List all staged changes in the active changeset
+ * The changeset a read command (show, staged, diff, preview) names, by name or id and in any
+ * state (an upgrade record or a committed changeset too), or the active one when it names none.
+ * When there is neither, what to say instead: `noActive` when nothing was named and none is
+ * active, so the caller keeps its own wording for that case.
  */
-export async function changesetStagedCommand(options: { model?: string; layer?: string }): Promise<void> {
+export async function changesetForCommand(
+  manager: StagingAreaManager,
+  named: string | undefined
+): Promise<{ changeset: Changeset } | { error: string; noActive?: true }> {
+  if (named) {
+    const changeset = await manager.load(named);
+    return changeset
+      ? { changeset }
+      : { error: `Changeset '${named}' not found. dr changeset list shows every changeset by name.` };
+  }
+  const activeId = await manager.getActiveId();
+  const changeset = activeId ? await manager.load(activeId) : null;
+  return changeset ? { changeset } : { error: "No active changeset", noActive: true };
+}
+
+/** Print a read command's refusal, as JSON or text, and exit 1. */
+function failRead(error: string, span: unknown): never {
+  if (isJson()) {
+    console.log(JSON.stringify({ status: "error", code: 1, message: error }));
+  } else {
+    console.error(ansis.red(`Error: ${error}`));
+  }
+  if (isTelemetryEnabled && span) {
+    (span as any).setStatus({ code: 2, message: error });
+  }
+  endSpan(span as any);
+  process.exit(1);
+}
+
+/**
+ * Say why a read command has no changeset to read, then the caller stops: a name no changeset has
+ * fails (exit 1); nothing named and none active is said and, as before #1219, is not a failure.
+ */
+function sayNoChangeset(found: { error: string; noActive?: true }, span: unknown): void {
+  if (!found.noActive) failRead(found.error, span);
+  if (isJson()) {
+    console.log(JSON.stringify({ status: "error", code: 1, message: "No active changeset" }));
+  } else {
+    console.error(ansis.red("Error: No active changeset"));
+  }
+  if (isTelemetryEnabled && span) {
+    (span as any).setStatus({ code: 2, message: "No active changeset" });
+  }
+  endSpan(span as any);
+}
+
+/** How a read command names a changeset's changes: staged, or those of a committed or discarded one. */
+function changesWord(changeset: Changeset): string {
+  return changeset.status === "staged" ? "Staged Changes" : `Changes (${changeset.status})`;
+}
+
+/**
+ * Show one changeset, whatever its state or purpose (the active one when none is named): its
+ * status, purpose and the actions its state allows, its description as written (markdown, line
+ * breaks kept), and one line per change as changeset_show lists them (changeLine) (#1219). --json
+ * returns what changeset_show returns with detail "summary", every change on one page: the same
+ * object, built by the same code (changesetShowView).
+ */
+export async function changesetShowCommand(name: string | undefined, options: { model?: string } = {}): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan("changeset.show", { "changeset.named": !!name }) : null;
+
+  try {
+    const model = await Model.load(options.model, { lazyLoad: true });
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const found = await changesetForCommand(manager, name);
+    if ("error" in found) {
+      failRead(found.noActive ? "No active changeset: name one (dr changeset list shows them)" : found.error, span);
+    }
+    const { changeset } = found;
+    const { purpose, verifies } = await manager.purposeOf(changeset);
+    const actions = allowedActions(purpose, changeset.status);
+    const summary = summarizeChangeset(changeset.changes);
+    const active = (await manager.getActiveId()) === changeset.id;
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
+      (span as any).setAttribute("changeset.purpose", purpose);
+      (span as any).setStatus({ code: 0 });
+    }
+
+    if (isJson()) {
+      // changeset_show's answer, every change on one page
+      const limit = Math.max(1, changeset.changes.length);
+      console.log(JSON.stringify(await changesetShowView(manager, changeset, { detail: "summary", limit })));
+      return;
+    }
+
+    console.log(ansis.bold(`\nChangeset ${ansis.cyan(changeset.name)}${active ? ansis.green(" (active)") : ""}`));
+    console.log(ansis.dim(`  Id: ${changeset.id}`));
+    const verifying = verifies ? ` (verifies ${verifies})` : "";
+    console.log(ansis.dim(`  Status: ${changeset.status} | Purpose: ${purpose}${verifying}`));
+    console.log(ansis.dim(`  Actions: ${actions.length > 0 ? actions.join(", ") : "none"}`));
+    const created = new Date(changeset.created).toLocaleString();
+    console.log(ansis.dim(`  Created: ${created} | Modified: ${new Date(changeset.modified).toLocaleString()}`));
+    if (changeset.origin) {
+      const { kind, detail } = changeset.origin;
+      console.log(ansis.dim(`  Origin: ${kind}${detail ? ` (${detail})` : ""}`));
+    }
+
+    const description = descriptionLines(changeset.description);
+    if (description.length > 0) {
+      console.log(ansis.bold("\nDescription\n"));
+      for (const line of description) console.log(line);
+    }
+
+    // Every operation with changes, relationship ones included
+    const { total, ...byOperation } = summary.totals;
+    const counts = Object.entries(byOperation)
+      .filter(([, count]) => count > 0)
+      .map(([operation, count]) => `${operation} ${count}`)
+      .join(", ");
+    console.log(ansis.bold(`\nChanges (${total})`) + ansis.dim(counts ? `  ${counts}\n` : "\n"));
+    for (const change of summary.changes) {
+      console.log(`  ${changeLine(change)}`);
+    }
+    console.log();
+  } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: getErrorMessage(error) });
+    }
+    if (isJson()) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
+    endSpan(span);
+    process.exit(1);
+  } finally {
+    endSpan(span);
+  }
+}
+
+/**
+ * List the staged changes of the changeset named (by name or id, in any state), or of the active
+ * one when none is named.
+ */
+export async function changesetStagedCommand(
+  name: string | undefined,
+  options: { model?: string; layer?: string }
+): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.staged", {
         "staged.layer": options.layer,
@@ -966,35 +1121,15 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
   try {
     const model = await Model.load(options.model, { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
-    const activeChangeset = await manager.getActiveId();
+    const found = await changesetForCommand(manager, name);
 
-    if (!activeChangeset) {
-      if (isJson()) {
-        console.log(JSON.stringify({ status: "error", code: 1, message: "No active changeset" }));
-      } else {
-        console.error(ansis.red("Error: No active changeset"));
-      }
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "No active changeset" });
-      }
-      endSpan(span);
+    if ("error" in found) {
+      sayNoChangeset(found, span);
       return;
     }
 
-    const changeset = await manager.load(activeChangeset);
-
-    if (!changeset) {
-      if (isJson()) {
-        console.log(JSON.stringify({ status: "error", code: 2, message: `Changeset '${activeChangeset}' not found` }));
-      } else {
-        console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
-      }
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "Changeset not found" });
-      }
-      endSpan(span);
-      process.exit(1);
-    }
+    const { changeset } = found;
+    const changesetId = changeset.id;
 
     let changes = changeset.changes;
 
@@ -1008,8 +1143,8 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
     }
 
     if (changes.length === 0) {
-      handleSuccess("No staged changes", {
-        changesetId: activeChangeset,
+      handleSuccess(`No ${changesWord(changeset).toLowerCase()}`, {
+        changesetId,
         changeCount: 0,
         changes: [],
       }, { verbose: true });
@@ -1021,7 +1156,7 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
     }
 
     if (!isJson()) {
-      console.log(ansis.bold(`\nStaged Changes (${changes.length}):\n`));
+      console.log(ansis.bold(`\n${changesWord(changeset)} (${changes.length}):`) + ansis.dim(` ${changeset.name}\n`));
       // The Origin column (who decided each change) only when codebase_extract staged some.
       const withOrigin = changes.some((c) => !!c.origin);
       const tableData = changes.map((c: any) => ({
@@ -1034,8 +1169,9 @@ export async function changesetStagedCommand(options: { model?: string; layer?: 
       console.table(tableData);
     }
 
-    handleSuccess(`Listed ${changes.length} staged change(s)`, {
-      changesetId: activeChangeset,
+    handleSuccess(`Listed ${changes.length} change(s) of ${changeset.name} (${changeset.status})`, {
+      changesetId,
+      changesetName: changeset.name,
       changeCount: changes.length,
       changes: changes.map((c: any) => ({
         elementId: c.elementId,
@@ -1401,9 +1537,13 @@ export async function changesetDiscardCommand(elementId?: string, options: { mod
 }
 
 /**
- * Preview the merged model state with staged changes applied
+ * Preview the merged model state with the staged changes of the changeset named (by name or id,
+ * in any state), or of the active one when none is named.
  */
-export async function changesetPreviewCommand(options: { model?: string; layer?: string }): Promise<void> {
+export async function changesetPreviewCommand(
+  name: string | undefined,
+  options: { model?: string; layer?: string }
+): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.preview", {
         "preview.layer": options.layer,
@@ -1413,29 +1553,17 @@ export async function changesetPreviewCommand(options: { model?: string; layer?:
   try {
     const model = await Model.load(options.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
-    const activeChangesetId = await manager.getActiveId();
+    const found = await changesetForCommand(manager, name);
 
-    if (!activeChangesetId) {
-      console.error(ansis.red("Error: No active changeset"));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "No active changeset" });
-      }
-      endSpan(span);
+    if ("error" in found) {
+      sayNoChangeset(found, span);
       return;
     }
 
-    const changeset = await manager.load(activeChangesetId);
+    const { changeset } = found;
 
-    if (!changeset) {
-      console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "Changeset not found" });
-      }
-      endSpan(span);
-      process.exit(1);
-    }
-
-    console.log(ansis.bold(`\nPreview: Merged Model State (${ansis.cyan("with staged changes")})`));
+    const merged = ansis.cyan(`with ${changesWord(changeset).toLowerCase()}`);
+    console.log(ansis.bold(`\nPreview: Merged Model State (${merged})`));
     console.log(ansis.dim(`Changeset: ${changeset.name}`));
     console.log();
 
@@ -1468,7 +1596,7 @@ export async function changesetPreviewCommand(options: { model?: string; layer?:
       const layerChanges = changeset.changes.filter((c: any) => c.layerName === options.layer);
 
       if (layerChanges.length === 0) {
-        console.log(ansis.dim(`No staged changes in layer '${options.layer}'`));
+        console.log(ansis.dim(`No ${changesWord(changeset).toLowerCase()} in layer '${options.layer}'`));
         return;
       }
 
@@ -1524,9 +1652,13 @@ export async function changesetPreviewCommand(options: { model?: string; layer?:
 }
 
 /**
- * Show delta between base model and staged changes
+ * Show the delta between the base model and the staged changes of the changeset named (by name or
+ * id, in any state), or of the active one when none is named.
  */
-export async function changesetDiffCommand(options: { model?: string; layer?: string }): Promise<void> {
+export async function changesetDiffCommand(
+  name: string | undefined,
+  options: { model?: string; layer?: string }
+): Promise<void> {
   const span = isTelemetryEnabled
     ? startSpan("changeset.diff", {
         "diff.layer": options.layer,
@@ -1536,29 +1668,17 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
   try {
     const model = await Model.load(options.model, { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
-    const activeChangesetId = await manager.getActiveId();
+    const found = await changesetForCommand(manager, name);
 
-    if (!activeChangesetId) {
-      console.error(ansis.red("Error: No active changeset"));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "No active changeset" });
-      }
-      endSpan(span);
+    if ("error" in found) {
+      sayNoChangeset(found, span);
       return;
     }
 
-    const changeset = await manager.load(activeChangesetId);
+    const { changeset } = found;
 
-    if (!changeset) {
-      console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
-      if (isTelemetryEnabled && span) {
-        (span as any).setStatus({ code: 2, message: "Changeset not found" });
-      }
-      endSpan(span);
-      process.exit(1);
-    }
-
-    console.log(ansis.bold("\nDiff: Base Model vs Staged Changes\n"));
+    console.log(ansis.bold(`\nDiff: Base Model vs ${changesWord(changeset)}`));
+    console.log(ansis.dim(`Changeset: ${changeset.name}\n`));
 
     // Group changes by layer
     const layerMap = new Map<string, any[]>();
@@ -1577,7 +1697,7 @@ export async function changesetDiffCommand(options: { model?: string; layer?: st
 
     if (layerMap.size === 0) {
       console.log(
-        ansis.dim(options.layer ? `No changes in layer '${options.layer}'` : "No staged changes")
+        ansis.dim(options.layer ? `No changes in layer '${options.layer}'` : `No ${changesWord(changeset).toLowerCase()}`)
       );
       if (isTelemetryEnabled && span) {
         (span as any).setStatus({ code: 0 });
@@ -2143,15 +2263,21 @@ export function changesetCommands(program: Command): void {
 
   changesetGroup
     .command("create <name>")
-    .description("Create a new changeset")
+    .description("Create a new changeset and activate it")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
-    .option("--description <desc>", "Changeset description")
+    .option(
+      "--intent <markdown>",
+      "The change's intent, as markdown: what it is for, what it covers, what done looks like"
+    )
+    .option("--description <desc>", "Older name for --intent")
     .addHelpText(
       "after",
       `
 Examples:
   $ dr changeset create "v1.1 migration"
-  $ dr changeset create "api-refactoring" --description "Refactor API layer endpoints"`
+  $ dr changeset create api-refactoring --intent "Refactor the API layer's endpoints.
+
+**Done when** every endpoint has an operationId."`
     )
     .action(async (name, options) => {
       await changesetCreateCommand(name, options);
@@ -2246,28 +2372,23 @@ Examples:
     });
 
   changesetGroup
-    .command("show [name]")
-    .description("Show changeset details (use: status, staged, diff, or preview)")
+    .command("show [changeset]")
+    .description(
+      "Show one changeset by name or id, whatever its state or purpose (the active one when none is named): " +
+        "status, purpose, allowed actions, its description and one line per change"
+    )
+    .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .addHelpText(
       "after",
       `
-To inspect a changeset, use one of:
-  $ dr changeset status              # Show the active changeset
-  $ dr changeset staged              # List all staged changes
-  $ dr changeset diff [name]         # Show a diff of staged changes
-  $ dr changeset preview [name]      # Preview what will be committed`
+Examples:
+  $ dr changeset show                        # The active changeset
+  $ dr changeset show add-order-export       # Any changeset, by name or id
+  $ dr changeset show upgrade-drops-0.15.0   # An upgrade record, which can't be activated
+  $ dr changeset show add-order-export --json`
     )
-    .action(async (name?: string) => {
-      const nameHint = name ? ` '${name}'` : "";
-      console.error(
-        `error: 'dr changeset show${nameHint}' is not a valid subcommand.\n\n` +
-        `To inspect a changeset, use one of:\n` +
-        `  dr changeset status        — show the active changeset\n` +
-        `  dr changeset staged        — list all staged changes\n` +
-        `  dr changeset diff          — show a diff of staged changes\n` +
-        `  dr changeset preview       — preview what will be committed`
-      );
-      process.exit(1);
+    .action(async (name: string | undefined, options) => {
+      await changesetShowCommand(name, options);
     });
 
   changesetGroup
@@ -2288,8 +2409,8 @@ Examples:
 
   // Staging operation commands
   changesetGroup
-    .command("staged")
-    .description("List all staged changes in the active changeset")
+    .command("staged [changeset]")
+    .description("List the staged changes of a changeset by name or id (the active one when none is named)")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-l, --layer <layer>", "Filter by layer name")
     .addHelpText(
@@ -2297,10 +2418,11 @@ Examples:
       `
 Examples:
   $ dr changeset staged
+  $ dr changeset staged add-order-export
   $ dr changeset staged --layer api`
     )
-    .action(async (options) => {
-      await changesetStagedCommand(options);
+    .action(async (name: string | undefined, options) => {
+      await changesetStagedCommand(name, options);
     });
 
   changesetGroup
@@ -2348,8 +2470,8 @@ Examples:
     });
 
   changesetGroup
-    .command("preview")
-    .description("Preview the merged model state with staged changes applied")
+    .command("preview [changeset]")
+    .description("Preview the model with a changeset's staged changes applied (the active one when none is named)")
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-l, --layer <layer>", "Preview specific layer only")
     .addHelpText(
@@ -2357,15 +2479,18 @@ Examples:
       `
 Examples:
   $ dr changeset preview
+  $ dr changeset preview add-order-export
   $ dr changeset preview --layer application`
     )
-    .action(async (options) => {
-      await changesetPreviewCommand(options);
+    .action(async (name: string | undefined, options) => {
+      await changesetPreviewCommand(name, options);
     });
 
   changesetGroup
-    .command("diff")
-    .description("Show delta between base model and staged changes")
+    .command("diff [changeset]")
+    .description(
+      "Show the delta between the base model and a changeset's staged changes (the active one when none is named)"
+    )
     .option("--model <path>", "Path to model root (contains model/manifest.yaml)")
     .option("-l, --layer <layer>", "Show diff for specific layer only")
     .addHelpText(
@@ -2373,10 +2498,11 @@ Examples:
       `
 Examples:
   $ dr changeset diff
+  $ dr changeset diff add-order-export
   $ dr changeset diff --layer api`
     )
-    .action(async (options) => {
-      await changesetDiffCommand(options);
+    .action(async (name: string | undefined, options) => {
+      await changesetDiffCommand(name, options);
     });
 
   changesetGroup

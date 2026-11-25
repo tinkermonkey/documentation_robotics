@@ -152,6 +152,11 @@ export interface ManifestData {
   modified?: string;
   cliVersion?: string;
   specVersion?: string;
+  /**
+   * True when the manifest on disk has no spec_version and specVersion is the 0.6.0 Model.load
+   * assumes for it. Never written: a save keeps the manifest without spec_version.
+   */
+  specVersionAssumed?: boolean;
   /** Changeset history for the model */
   changeset_history?: ChangesetHistoryEntry[];
   /** External model declarations: model name to declaration metadata */

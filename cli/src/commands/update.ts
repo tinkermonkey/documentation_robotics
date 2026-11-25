@@ -12,6 +12,7 @@ import { changedFields as snapshotChangedFields } from "../core/changeset-summar
 import { findElementLayer } from "../utils/element-utils.js";
 import { CLIError, handleError, handleSuccess, handleInfo, handleWarning, findSimilar, formatValidOptions } from "../utils/errors.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
+import { typeNotInDeclaredSpec } from "../core/declared-spec.js";
 import { Element } from "../core/element.js";
 import { Layer } from "../core/layer.js";
 import { SchemaValidator, suggestNodeTypes } from "../validators/schema-validator.js";
@@ -82,6 +83,21 @@ function validateUpdateSourceReferenceOptions(options: UpdateOptions): void {
   // reference once it is found.
   if (hasSourceOptions) {
     precheckUpdateSourceReferenceOptions(options);
+  }
+}
+
+/**
+ * Refuses a type the spec the model declares lacks, or warns about it when the manifest has no
+ * spec_version (#1411), as model_update does.
+ */
+function checkDeclaredType(model: Model, layer: string, type: string): void {
+  const gap = typeNotInDeclaredSpec(model.manifest, `${layer}.${type}`);
+  if (gap?.assumed) {
+    handleWarning(gap.message);
+  } else if (gap) {
+    throw new CLIError(gap.message, 1, [
+      `dr upgrade moves the model from spec ${gap.modelVersion} to ${gap.bundled}; run it, then change the type again`,
+    ]);
   }
 }
 
@@ -166,6 +182,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
                 throw new CLIError(`Invalid element type "${options.type}" for layer "${stagedLayerName}"`, 1, suggestions);
               }
               const resolvedNewType = normalizeNodeType(stagedLayerName, options.type);
+              checkDeclaredType(model, stagedLayerName, resolvedNewType);
               after.type = resolvedNewType;
               after.spec_node_id = `${stagedLayerName}.${resolvedNewType}`;
             }
@@ -305,6 +322,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
           throw new CLIError(`Invalid element type "${options.type}" for layer "${layerName}"`, 1, suggestions);
         }
         resolvedNewType = normalizeNodeType(layerName, options.type);
+        checkDeclaredType(model, layerName, resolvedNewType);
       }
 
       // Parse attributes (don't mutate yet)

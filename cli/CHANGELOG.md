@@ -7,8 +7,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`dr changeset show [changeset]` (#1219):** shows one changeset by name or id, whatever its state
+  or purpose (a staged plan that isn't active, an upgrade record, a committed changeset; the active
+  one when none is named): status, purpose, allowed actions, its description as written and one line
+  per change, as `changeset_show` lists them. `--json` returns what `changeset_show` returns with
+  `detail: "summary"`, every change on one page: both are built by `changesetShowView`. `dr upgrade`
+  points at it for its drop record instead of a `changes.yaml` path.
+- **`project_status` `task` (#1301):** `plan`, `review` or `reconcile` says what the session is for.
+  While planning or reviewing, code drift and the code index are said in `nextStep.info`, not made
+  the step: a review goes to the staged plan (`changeset_brief`, then `review_open`). Without a
+  task, a drift step says how to ask for the other.
+- **`project_upgrade` `upgradeIntegrations` (#1252):** with `apply`, brings the per-project
+  integration files (`.claude/` from `dr claude install`, `.github/` from `dr copilot install`) up to
+  this dr when an older dr installed them, as `dr upgrade` does, even when the model is current.
+  Files at this dr's version are left alone, edits and all.
+- **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
+  on a farm of its own (the user farm is refused): its record, token and log in `<dir>`, no viewer
+  sweep, `--port` exact. `--token-file <path>`, taken only with `--state-dir`, gives it the token
+  the suite chose, from a file the user owns that no one else can read (mode 600), so every call
+  stays authenticated. `--no-sweep` skips the start-up sweep. `--foreground --json` prints one
+  ready line on stdout (pid, port, url, farm, and each project with its checkout keys) and sends
+  the log to stderr. `--status` and `--stop` take `--state-dir` too. `dr visualize --no-auth` and
+  `--token` stay refused, and now say where to go instead.
+- **project_status** names the dr server process that answered (`server.pid`, `server.startedAt`),
+  so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
+  instructions say to call project_status again after a reconnect.
+- **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
+- **`migration.kind` (#1435).** `project_status` (`spec.migration.kind`) and `project_upgrade`'s
+  preview (`migration.kind`) say `manifest-only` when the pending migration changes nothing in the
+  model but `spec_version` in `manifest.yaml`, as an additive spec release does, so the agent can
+  tell the user that plainly instead of asking them to judge a preview. The preview reads it off
+  its rehearsal of this model, `project_status` off the migration steps.
+- **Lay out an earlier dr's model files on their own (#1439).** `project_upgrade` with
+  `relayout: true` and `dr upgrade --relayout` lay out every element file an earlier dr wrote (long
+  strings folded at 80 columns) or prettier laid out, as this dr writes them, data unchanged: a
+  previewed step of its own, on a model already on this spec too, to commit apart from any plan.
+  Without it, an upgrade only counts those files (`relayout` in the result, a line in
+  `dr upgrade`'s output), since it writes no model file whose data does not change.
+  `changeset_commit_preview` names the files a landing would lay out anew and says to run the
+  relayout first, on its own, and commit it apart from the plan, so the plan's pull request shows
+  only its own changes.
+  `cli/scripts/relayout-model-files.ts` now runs the same code.
+- **Retry a list (#1296):** an element or relationship sent again as it is there comes back
+  `unchanged`, counted and never listed, so a list can be sent again after a partial failure. One
+  sent with other content is refused, naming what differs. A repeat within one list is a
+  `duplicate`. The single form of `model_add` answers `unchanged` too, and so does `model_update`
+  when the element already matches (nothing is staged). A delete sent again after the changeset
+  removed the element or relationship, or unstaged its own add of it, is `unchanged` too.
+- **`relationship_delete` takes a list (#1372):** `relationships: [{source, target, predicate?}]`,
+  or a `file`. The removals are staged, and adds this changeset made unstaged, in one write; the
+  result is counts with failures grouped by cause.
+- **`model_delete` takes a list (#1426):** `ids: [...]`, or a `file`, with the call's `cascade`,
+  `force` and `dryRun`. Ids in the list never block one another as dependents.
+- **Insert a workflow step (#1396):** `model_add`'s single form takes `after` and/or `before` for a
+  `product.workflowstep`. It gets its place's sequence, joins the workflow, takes over the `flows-to`
+  hand-offs it splits, and the later steps are renumbered where they collide.
+- **One source location at a time (#1260):** `model_update` takes `addSourceLocation` and
+  `removeSourceLocation` (`{file, symbol?}`), keeping the element's other locations and provenance.
+- **Allowed predicates in a refusal (#1354):** a relationship the catalog refuses names, first, the
+  predicates it allows between the two types in both directions.
+
 ### Changed
 
+- **A changeset's intent is markdown, and called `intent` (#1210, #1433):** `changeset_create` and
+  `changeset_update` take `intent`, the name the server instructions and skills use; `description`
+  still works, and a call giving both with different values is refused. `dr changeset create` takes
+  `--intent` (`--description` still works). The tool schemas, the CLI and the viewer API
+  (`docs/api-spec.yaml`) say the description is markdown, and the planning skill, `/dr-plan`,
+  `/dr-changeset` and `docs/CHANGE_MODELING.md` show the shape to write (intent, **In scope**,
+  **Done when**). `dr changeset list` shows its first line.
+- **`dr changeset staged`, `diff` and `preview` take a changeset name (#1219):** they read the
+  changeset named, in any state, instead of ignoring the argument; unnamed, they read the active
+  one as before. An unknown name fails.
+- **`project_status` lists 5 changed source files, not 15 (#1251):** `changedSourceSummary` and
+  `uncommittedSourceSummary` count every changed file per folder (the first five folders, with
+  `folderCount`) and the elements that reference them per layer; `list` still returns every file.
+- **`project_upgrade` reports the per-project integration files (#1252):** for each, what its
+  upgrade would change, and for `.claude/` which installed files the dr plugin also carries (its
+  skills, `/dr-plan`, two agents: they load twice) and which only the project's files carry (the
+  other commands, `dr-extractor`), so removing `.claude/` is no longer called safe when it isn't.
+  An upgrade is pending only when the installed version is older, as `dr upgrade` decides, and the
+  files edited here that it would replace are named. The note no longer says there is no tool for
+  the Copilot files. `integrations` in the answer is now an object, one entry per integration and a
+  `note`, where it was a string.
+- **The old active-changeset marker (#1273):** clearing the active changeset leaves an empty
+  `.dr/active-changeset` instead of none, so `documentation-robotics/changesets/.active` restored
+  from git never makes its changeset active again. `project_status` reports an old marker still on
+  disk or in git (`changesets.legacyMarker`: whether git tracks it, whether it decides the active
+  changeset) and says to commit its deletion. `dr upgrade` and `project_upgrade` name the old file
+  in their plan and remove it when applied, saying to commit the deletion. When the checkout has no
+  marker in `.dr/`, the changeset it names becomes active only if it is still staged; one that
+  landed or is gone is reported (`stale`) and nothing is made active. The planning skill and `/dr-plan` say the active
+  changeset is per checkout, so a reviewer opens a PR's plan by name.
 - **Behaviour change, codebase_extract rules and Tier 0 (#1424):** a project rule that says `none`
   no longer takes a symbol Tier 0 decided as an element. Such symbols stay Tier 0's and are staged,
   unless the rule says `overrideTier0: true`, a new key on `decide` items and on rules in
@@ -119,27 +211,6 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   same way, so every checkout indexes the same files; the server instructions and skills no longer
   say to commit DR's own file.
 
-### Added
-
-- **Retry a list (#1296):** an element or relationship sent again as it is there comes back
-  `unchanged`, counted and never listed, so a list can be sent again after a partial failure. One
-  sent with other content is refused, naming what differs. A repeat within one list is a
-  `duplicate`. The single form of `model_add` answers `unchanged` too, and so does `model_update`
-  when the element already matches (nothing is staged). A delete sent again after the changeset
-  removed the element or relationship, or unstaged its own add of it, is `unchanged` too.
-- **`relationship_delete` takes a list (#1372):** `relationships: [{source, target, predicate?}]`,
-  or a `file`. The removals are staged, and adds this changeset made unstaged, in one write; the
-  result is counts with failures grouped by cause.
-- **`model_delete` takes a list (#1426):** `ids: [...]`, or a `file`, with the call's `cascade`,
-  `force` and `dryRun`. Ids in the list never block one another as dependents.
-- **Insert a workflow step (#1396):** `model_add`'s single form takes `after` and/or `before` for a
-  `product.workflowstep`. It gets its place's sequence, joins the workflow, takes over the `flows-to`
-  hand-offs it splits, and the later steps are renumbered where they collide.
-- **One source location at a time (#1260):** `model_update` takes `addSourceLocation` and
-  `removeSourceLocation` (`{file, symbol?}`), keeping the element's other locations and provenance.
-- **Allowed predicates in a refusal (#1354):** a relationship the catalog refuses names, first, the
-  predicates it allows between the two types in both directions.
-
 ### Fixed
 
 - **A landing never loses a write (#1437):** landing a changeset holds its lock from the read it
@@ -156,7 +227,9 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   still reads as no active changeset (#1218). Activating a landed or discarded changeset is refused:
   it used to mark it staged again, reopening it.
 - **A rolled-back landing leaves nothing behind:** when a landing fails and rolls back, the files
-  and folders it created (a type's first file, a layer's first folder) are removed,
+  and folders it created where nothing was (a type's first file, a layer's first folder) are
+  removed, and nothing else: a base file the save renamed for letter case (`Goal.yaml` to
+  `goal.yaml`) gets its name and content back, and a file something else wrote meanwhile stays.
   `relationships.yaml` is put back as it was (it was not backed up), and a changeset the landing had
   already marked committed is staged again. Before, the model kept the created files and the
   landing's relationship rows, and the changeset read as landed though its changes were not.
@@ -182,6 +255,88 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   `codebase_extract`) and the background run's own check call an index that records 0 nodes stale
   ("it holds no code"), and one recorded as `joined`, so it is re-indexed instead of skipped.
   `codebase_index`'s `next` for a stale index now gives the reason.
+- **`codebase_extract` outside a git repository:** indexing first no longer starts a run that
+  can't succeed. With no git HEAD (no repository, or no commit yet) it starts nothing, writes
+  nothing, and says the code can't be indexed there, why (an index records the commit it was
+  taken at) and what to do (commit the code, or point the project at its repository with
+  `--codebase-path`). With no analyzer installed, the error names the index-first step and keeps
+  the install steps.
+- **The central viewer no longer stalls on farm listings** (#1436). Listing projects counted each
+  checkout's staged changesets by YAML-parsing every changeset in the farm, `changes.yaml` and
+  all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
+  It now reads `metadata.yaml`'s status alone, cached by file mtime; concurrent listings share one
+  scan; the single-project routes scan that project only; and a checkout's changeset list re-reads
+  only the changesets whose files changed (an empty metadata.yaml, as read mid-write, is skipped by
+  both). A project folder that is not a git repository costs no git call per listing while it has
+  no `.git`. On a farm the size of the report (9 projects, 264
+  changeset folders, 108 MB), `GET /api/projects/{project}/checkouts` went from 22–25 s to 0.06 s
+  (4 ms warm), `GET /api/projects` from 24 s to 0.4 s, six concurrent requests from 112 s to
+  0.03 s, and a repeat `…/changesets` from 2.5 s to 0.02 s.
+- **A DR process never lands with code older than the installed CLI** (#1427). Once the CLI
+  installed where the central process was loaded from changes after it started, every write to the
+  base model refuses with both versions and the restart (`dr serve --stop`; the dr MCP server
+  reconnects to the installed CLI's process). changeset_commit, its preview and the viewer's Apply
+  refuse before anything is asked or written, and a commit is checked once at its start, so a
+  change partway through never half-lands it. Drift already there at start (a checkout bumped
+  without a rebuild) is logged, not acted on. A process started detached with the default options
+  also restarts itself once no browser tab, DrBot turn, request or directly connected MCP client is
+  using it (`dr mcp` bridge sessions reconnect on their own); any other keeps running and says to
+  restart it by hand. project_status's server section compares with the same start baseline, so
+  it says stale only when a restart would help (a build bumped without a rebuild gets a rebuild
+  note instead), and words the restart for an in-process dr MCP server (`DR_MCP_IN_PROCESS`) too.
+  project_upgrade's apply is checked once before it writes, as a commit is.
+- **Tests can't write the real user farm** (#1438). The test preload points the user farm at a
+  scratch folder, drops a `DR_FARM_PATH` from the shell, and names the real farm in
+  `DR_PROTECTED_FARM_FILES`, which `FarmManifest.save` refuses to write.
+- **A farm project whose repository is gone is flagged** (#1438): `project_list`, `GET
+  /api/projects` and `dr farm status` mark it `missing` with the `dr farm remove <name>` call that
+  drops it. A repository deleted while the central process runs no longer fails the whole listing,
+  and one restored (or a folder that becomes a repository later) is seen again without a restart.
+- **dr serve's start-up sweep stops only its own farm's viewers** (#1369): a per-project viewer
+  whose project is not in the process's farm is kept (`outside-farm`), so a CLI run from source with
+  a farm of its own leaves the installed CLI's viewers alone.
+- **review_open never says a serving viewer is still starting** (#1282). `ensureCentralServer`
+  returns a recorded process once its `/health` answers; one that doesn't is returned with a notice
+  naming its log, and a timed-out wait for another start names the log too.
+- **A rebuilt `--viewer-path` bundle shows without a restart** (#1308): viewer files carry an ETag
+  and `index.html` (and every file without a content hash) is `Cache-Control: no-cache`, so the
+  browser revalidates each load; hashed assets are cached for good.
+- **Validation follows the spec the model declares (#1411).** dr checked a model only against its
+  own catalog, so a model on spec 0.13.0 took relationships that only 0.14.0 defines, and a
+  consumer that reads the model against its declared spec could not resolve them. Now
+  `relationship_add`, `model_add`, `model_update` (a type change), `dr add`, `dr update --type`
+  and `dr relationship add` refuse a type or relationship type the model's spec lacks,
+  `codebase_extract` does not stage such a relationship (it lists them under `declaredSpec`), and
+  `model_validate`, `dr validate` and `changeset_commit_preview` report it as an error, so a
+  landing is refused too. The message names both versions and the fix: "application.applicationservice
+  --[accesses]--> data-model.objectschema is not in spec 0.13.0, the model's version; it exists
+  from spec 0.14.0. Run project_upgrade first". What each released spec had comes from a table
+  generated from the released catalogs in git (`cli/scripts/generate-spec-catalog-history.ts`,
+  0.8.0 on); a unit test fails when a spec release leaves it behind, naming the command that
+  regenerates it. A model that already holds such a relationship still loads, reads and exports,
+  and takes unrelated changes: `model_validate` names the element ids so it can be found and
+  removed, and a landing counts it with the errors already in the base. A model on a spec newer
+  than dr's is refused nothing extra, and a type or relationship dr doesn't know is reported as
+  unknown here, with the update to make, rather than as a mistake in the model. A legacy short
+  type id (`business.service`) is checked as the type it names, and a type the catalog doesn't
+  have is left to the schema check. A spec release regenerates the table, and release preflight's
+  `bun scripts/generate-spec-catalog-history.ts --release-check` fails while `spec/dist` differs
+  from the catalog tagged for `spec/VERSION`, so a changed catalog always ships under a new spec
+  version.
+- **A manifest with no `spec_version` is no longer a dead end.** It is read as 0.6.0, as before,
+  but declares nothing: a type or relationship that 0.6.0 lacks is a warning naming
+  `project_upgrade`, not a refusal, and a write no longer stamps 0.6.0 into the manifest.
+  `project_upgrade` and `dr upgrade` read it as 0.6.0 and preview the migration from there
+  (`model.assumed` in the result), where `project_upgrade` refused it.
+- **`model_validate` with `layers` no longer reports links into other layers as not found
+  (#1259).** A relationship that names its ends by UUID was placed in a layer by its id, which a
+  UUID doesn't have, so every such link leaving the scope was an error (33 on the viewer's model).
+  An end's layer now comes from the layers the relationship row records. An end that exists
+  nowhere is still reported.
+- **`spec_type` takes a dotted type id (#1280).** `type: "product.feature"` works without `layer`,
+  as every other tool names a type, and so does `element` alone. A `layer` that disagrees with the
+  dotted id is refused, and a call with neither says how to name the type. Carries #1288 by
+  jiangyuer018.
 
 ### Fixed
 

@@ -17,6 +17,7 @@ import { Layer } from "../../core/layer.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
 import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
+import { specAheadNote, typeNotInDeclaredSpec } from "../../core/declared-spec.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import {
   buildSourceReference,
@@ -371,9 +372,20 @@ export async function updateElement(model: Model, args: UpdateSpec): Promise<Upd
         const similar = findSimilar(args.type!, typeNames, 3);
         const suggestions: string[] = [`Valid types for ${layerName}: ${formatValidOptions(typeNames)}`];
         if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+        // A model on a newer spec may use a type this dr doesn't know yet
+        const ahead = specAheadNote(model.manifest);
+        if (ahead) suggestions.unshift(ahead);
         throw new CLIError(`Invalid element type "${args.type}" for layer "${layerName}"`, ErrorCategory.USER, suggestions);
       }
       resolvedNewType = normalizeNodeType(layerName, args.type);
+      const notDeclared = typeNotInDeclaredSpec(model.manifest, `${layerName}.${resolvedNewType}`);
+      if (notDeclared?.assumed) warnings.push(notDeclared.message);
+      else if (notDeclared) {
+        throw new CLIError(notDeclared.message, ErrorCategory.USER, [
+          `project_upgrade (dr upgrade) moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
+            "preview it, then change the type again",
+        ]);
+      }
     }
 
     // The element is the projected one, so a patch merges over attributes the changeset already staged.

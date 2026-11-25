@@ -187,58 +187,36 @@ export interface CommitResult {
  */
 const LANDING_LOCK_TIMEOUT_MS = 30_000;
 
-/** In a landing's backup: the model's files and folders before it, relative to the model folder. */
-const PREEXISTING_FILE = ".preexisting.json";
-
-/** Every file and folder under `dir`, relative to it, folders ending in "/". Empty when it is missing. */
-async function modelEntries(dir: string): Promise<string[]> {
+/**
+ * Removes what a rolled-back landing created where nothing was (`Model.createdPaths`): a layer's
+ * first folder, a type's first file, relationships.yaml. Nothing else: never a file the restore
+ * just put back (where letter case is ignored, a created `goal.yaml` is the restored `Goal.yaml`),
+ * nor a created folder something else wrote into meanwhile. Deepest first, so a created folder is
+ * empty when it goes.
+ */
+async function removeCreated(created: Iterable<string>, restored: Iterable<string>): Promise<string[]> {
   const fs = await import("fs/promises");
-  const entries: string[] = [];
-  const walk = async (relative: string): Promise<void> => {
-    let listing: import("fs").Dirent[];
-    try {
-      listing = await fs.readdir(path.join(dir, relative), { withFileTypes: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-      throw error;
-    }
-    for (const entry of listing) {
-      const name = relative ? `${relative}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        entries.push(`${name}/`);
-        await walk(name);
-      } else {
-        entries.push(name);
+  const putBack = new Set([...restored].map((file) => path.resolve(file).toLowerCase()));
+  const entries = [...created].filter((entry) => !putBack.has(entry.toLowerCase()));
+  entries.sort((a, b) => b.split(path.sep).length - a.split(path.sep).length || b.localeCompare(a));
+  const removed: string[] = [];
+  for (const entry of entries) {
+    const stat = await fs.lstat(entry).catch(() => null);
+    if (!stat) continue;
+    if (!stat.isDirectory()) {
+      await fs.rm(entry, { force: true });
+    } else {
+      try {
+        await fs.rmdir(entry);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOTEMPTY") throw error;
+        console.warn(`Warning: kept ${entry}: the landing created it, but it holds files the landing did not write.`);
+        continue;
       }
     }
-  };
-  await walk("");
-  return entries.sort();
-}
-
-/** The backup's record of the model before the landing, or null for a backup made before it existed. */
-async function readPreexisting(backupDir: string): Promise<Set<string> | null> {
-  const fs = await import("fs/promises");
-  try {
-    return new Set(JSON.parse(await fs.readFile(path.join(backupDir, PREEXISTING_FILE), "utf-8")) as string[]);
-  } catch {
-    return null;
+    removed.push(entry);
   }
-}
-
-/**
- * Removes from the model folder every file and folder not in `preexisting`: what a rolled-back
- * landing created (a layer's first folder, a type's first file, relationships.yaml). Deepest first,
- * so a created folder is empty when it goes.
- */
-async function removeCreated(modelDir: string, preexisting: Set<string>): Promise<string[]> {
-  const fs = await import("fs/promises");
-  const created = (await modelEntries(modelDir)).filter((entry) => !preexisting.has(entry));
-  created.sort((a, b) => b.split("/").length - a.split("/").length || b.localeCompare(a));
-  for (const entry of created) {
-    await fs.rm(path.join(modelDir, entry), { recursive: true, force: true });
-  }
-  return created;
+  return removed;
 }
 
 /**
@@ -405,6 +383,8 @@ export class StagingAreaManager {
     }
 
     await this.storage.delete(changeset.id);
+    // Its last writer is forgotten with it (#1437)
+    await clearChangesetWrites(this.rootPath, changeset.id);
   }
 
   /**
@@ -1220,6 +1200,9 @@ export class StagingAreaManager {
             `${backupError instanceof Error ? backupError.message : String(backupError)}`
         );
       }
+      // What the saves create where nothing was: a rollback removes these, and only these.
+      const created = new Set<string>();
+      model.createdPaths = created;
 
       // Step 5: Apply all changes sequentially by sequence number (numbers may have gaps where
       // changes were unstaged; unstage tombstones are never applied)
@@ -1589,6 +1572,7 @@ export class StagingAreaManager {
 
         // Step 10: Clean up backup directory after successful commit
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
+        model.createdPaths = undefined;
         await this.cleanupBackup(backup);
         // Its last writer is forgotten: a landed changeset takes no writes (#1437).
         await clearChangesetWrites(this.rootPath, changeset.id!);
@@ -1602,6 +1586,7 @@ export class StagingAreaManager {
 
         return result;
       } catch (commitError) {
+        model.createdPaths = undefined;
         // Attempt rollback on any failure - restore from backup
         let rollbackSucceeded = false;
         let rollbackError: Error | null = null;
@@ -1614,7 +1599,7 @@ export class StagingAreaManager {
               commitError instanceof Error ? commitError.message : String(commitError),
           });
 
-          await this.restoreModel(model, backup);
+          await this.restoreModel(model, backup, created);
           rollbackSucceeded = true;
 
           if (isTelemetryEnabled && rollbackSpan) {
@@ -2130,13 +2115,6 @@ export class StagingAreaManager {
         });
       }
 
-      // Every file and folder of the model as it is before the landing, so a rollback removes what
-      // the landing created (a layer's first folder, a type's first file, relationships.yaml).
-      await atomicWrite(
-        path.join(backupDir, PREEXISTING_FILE),
-        JSON.stringify(await modelEntries(path.join(model.rootPath, "documentation-robotics", "model")))
-      );
-
       // Create the final immutable BackupManifest
       const backupManifest: BackupManifest = {
         files: backupFiles as ReadonlyArray<(typeof backupFiles)[0]>,
@@ -2486,6 +2464,7 @@ export class StagingAreaManager {
    *
    * @param model - The model to restore
    * @param backupDir - Path to the backup directory
+   * @param created - What the landing created where nothing was (`Model.createdPaths`): removed
    * @throws Error with detailed restoration summary if restoration fails
    *
    * @remarks
@@ -2496,10 +2475,12 @@ export class StagingAreaManager {
    * 4. Throw detailed error if critical files fail to restore
    * Both manifest and layer restoration failures are critical and will throw errors.
    */
-  private async restoreModel(model: Model, backupDir: string): Promise<void> {
+  private async restoreModel(model: Model, backupDir: string, created: ReadonlySet<string> = new Set()): Promise<void> {
     const { readFile, fileExists, atomicWrite } = await import("../utils/file-io.js");
 
     const restoredFiles: string[] = [];
+    // The same files as absolute paths: never removed as created
+    const restoredPaths: string[] = [];
     const failedFiles: Array<{ path: string; error: string; isCritical: boolean }> = [];
     const criticalLayers = new Set<string>(); // Track critical layer failures
 
@@ -2526,6 +2507,7 @@ export class StagingAreaManager {
         const manifestContent = await readFile(backupManifestFile);
         await atomicWrite(manifestDestPath, manifestContent);
         restoredFiles.push(path.basename(backupManifestFile));
+        restoredPaths.push(manifestDestPath);
       } catch (error) {
         failedFiles.push({
           path: path.basename(backupManifestFile),
@@ -2542,11 +2524,10 @@ export class StagingAreaManager {
       const backupRelationships = path.join(backupDir, "relationships.yaml");
       if (await fileExists(backupRelationships)) {
         try {
-          await atomicWrite(
-            path.join(model.rootPath, "documentation-robotics", "model", "relationships.yaml"),
-            await readFile(backupRelationships)
-          );
+          const relationshipsPath = path.join(model.rootPath, "documentation-robotics", "model", "relationships.yaml");
+          await atomicWrite(relationshipsPath, await readFile(backupRelationships));
           restoredFiles.push("relationships.yaml");
+          restoredPaths.push(relationshipsPath);
         } catch (error) {
           failedFiles.push({ path: "relationships.yaml", error: getErrorMessage(error), isCritical: true });
           throw new Error(`Failed to restore relationships.yaml: ${getErrorMessage(error)}`);
@@ -2556,17 +2537,16 @@ export class StagingAreaManager {
       // Restore all layer files with defensive error handling
       const backupLayersDir = path.join(backupDir, "layers");
       const fs = await import("fs/promises");
-      const preexisting = await readPreexisting(backupDir);
 
       for (const layer of model.layers.values()) {
         const backupLayerDir = path.join(backupLayersDir, layer.name);
 
         try {
-          if (!(await fileExists(backupLayerDir)) && preexisting) {
-            // A layer the landing added (its folder was not there before) has no backup: nothing
-            // to put back, and its files go below. A layer that was there is a corrupt backup.
+          if (!(await fileExists(backupLayerDir))) {
+            // A layer the landing added (it created the folder) has no backup: nothing to put
+            // back, and its files go below. A layer that was there is a corrupt backup.
             const folder = await this.findLayerDirectory(model.rootPath, layer.name);
-            if (!folder || !preexisting.has(`${path.basename(folder)}/`)) continue;
+            if (!folder || created.has(path.resolve(folder))) continue;
           }
           if (!(await fileExists(backupLayerDir))) {
             // CRITICAL: Layer directory missing in backup - this is a data loss scenario
@@ -2597,6 +2577,7 @@ export class StagingAreaManager {
 
           // Restore all YAML files from backup
           const backupFiles = await fs.readdir(backupLayerDir);
+          const onDisk = await fs.readdir(layerDirPath);
           let filesRestoredInLayer = 0;
 
           for (const file of backupFiles) {
@@ -2604,9 +2585,15 @@ export class StagingAreaManager {
               const backupFilePath = path.join(backupLayerDir, file);
               const destFilePath = path.join(layerDirPath, file);
               try {
+                // The save renamed `Goal.yaml` to `goal.yaml` (planLayerFiles): name it as it was
+                const renamed = onDisk.includes(file)
+                  ? undefined
+                  : onDisk.find((name) => name.toLowerCase() === file.toLowerCase() && !backupFiles.includes(name));
+                if (renamed) await fs.rename(path.join(layerDirPath, renamed), destFilePath);
                 const fileContent = await readFile(backupFilePath);
                 await atomicWrite(destFilePath, fileContent);
                 restoredFiles.push(`layers/${layer.name}/${file}`);
+                restoredPaths.push(destFilePath);
                 filesRestoredInLayer++;
               } catch (fileError) {
                 // Individual file restoration failure - still critical for data integrity
@@ -2636,15 +2623,12 @@ export class StagingAreaManager {
         }
       }
 
-      // Remove what the landing created: files and folders the model did not have before it.
-      if (preexisting) {
-        const modelDir = path.join(model.rootPath, "documentation-robotics", "model");
-        try {
-          await removeCreated(modelDir, preexisting);
-        } catch (error) {
-          failedFiles.push({ path: "model/", error: `Could not remove files the landing created: ${getErrorMessage(error)}`, isCritical: true });
-          throw new Error(`Failed to remove files the landing created: ${getErrorMessage(error)}`);
-        }
+      // Remove what the landing created where nothing was, and nothing else.
+      try {
+        await removeCreated(created, restoredPaths);
+      } catch (error) {
+        failedFiles.push({ path: "model/", error: `Could not remove files the landing created: ${getErrorMessage(error)}`, isCritical: true });
+        throw new Error(`Failed to remove files the landing created: ${getErrorMessage(error)}`);
       }
 
       // Reload model layers to reflect restored state

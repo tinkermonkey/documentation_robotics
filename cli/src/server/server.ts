@@ -48,6 +48,9 @@ import {
 } from "../core/checkout-types.js";
 import type { ProjectRegistry } from "../core/project-registry.js";
 import { CheckoutContext, checkoutKey, type CheckoutSubscriber } from "./checkout-context.js";
+import type { CentralActivity } from "./central-server-contract.js";
+import { toolCallsInFlight } from "../mcp/tool-calls-in-flight.js";
+import { assertRunningCodeInstalled, RunningCodeChangedError, withRunningCodeChecked } from "../utils/running-code.js";
 import { CheckoutContextPool } from "./checkout-context-pool.js";
 import { DrBotLauncher, JSONRPC_ERRORS } from "./dr-bot-launcher.js";
 import { CHECKOUT_CONTEXT_KEY, telemetryMiddleware } from "./telemetry-middleware.js";
@@ -189,6 +192,21 @@ export interface CentralModeOptions {
 
 /** The first segments of every checkout-scoped route. */
 const SCOPED_PREFIX = "/api/projects/:project/checkouts/:checkout";
+
+/** A viewer file's ETag: its size and modification time, so a rebuild in place changes it. */
+export function viewerFileEtag(info: { size: number; mtimeMs: number }): string {
+  return `W/"${info.size}-${Math.round(info.mtimeMs)}"`;
+}
+
+/**
+ * Whether a viewer file's name carries a content hash (Vite's `assets/index-B3x9kQ2a.js`), so its
+ * content never changes under that name: an 8-character base64url segment before the extension,
+ * in assets/, that is not a plain lowercase word (`assets/app-settings.js` is not hashed).
+ */
+export function isHashedViewerAsset(filePath: string): boolean {
+  const match = /(?:^|\/)assets\/.+[-.]([A-Za-z0-9_-]{8})\.[A-Za-z0-9]+$/.exec(filePath);
+  return match !== null && !/^[a-z]+$/.test(match[1]);
+}
 
 /**
  * A websocket's subscription to one checkout's feed on the central server. The checkout's
@@ -421,6 +439,8 @@ export class VisualizationServer {
   private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
   /** When the viewer was last used (see getActivity); the idle exit is measured from it. */
   private lastActivityAt = Date.now();
+  /** Authenticated API requests being answered now: the central process never restarts under one. */
+  private apiRequestsInFlight = 0;
   private launcherPid?: number;
   private authToken: string;
   private viewerPath?: string; // Optional custom viewer path
@@ -659,7 +679,12 @@ export class VisualizationServer {
     // retired unscoped route (410) do not: those would keep an unused process alive, and a stale
     // custom viewer polling a retired route gets nothing from it.
     this.app.use("/api/*", async (c, next) => {
-      await next();
+      this.apiRequestsInFlight++;
+      try {
+        await next();
+      } finally {
+        this.apiRequestsInFlight--;
+      }
       if (c.res.status !== 410) this.lastActivityAt = Date.now();
     });
 
@@ -808,7 +833,7 @@ export class VisualizationServer {
     this.app.get("/", (c) => {
       if (this.viewerPath) {
         // Serve custom viewer index.html
-        return this.serveCustomViewer("index.html");
+        return this.serveCustomViewer("index.html", c.req.header("if-none-match"));
       }
       return c.html(this.getViewerHTML());
     });
@@ -835,10 +860,12 @@ export class VisualizationServer {
         }
         // The viewer's deep links (/p/<project>/c/<checkout>/...) are its page: a link opened
         // without its hash still loads the viewer, which routes from there.
-        if (requestPath === "/p" || requestPath.startsWith("/p/")) return this.serveCustomViewer("index.html");
+        if (requestPath === "/p" || requestPath.startsWith("/p/")) {
+          return this.serveCustomViewer("index.html", c.req.header("if-none-match"));
+        }
 
         if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
-        return this.serveCustomViewer(requestPath.substring(1));
+        return this.serveCustomViewer(requestPath.substring(1), c.req.header("if-none-match"));
       });
     }
 
@@ -3500,9 +3527,14 @@ export class VisualizationServer {
   }
 
   /**
-   * Serve a file from the custom viewer path
+   * Serve a file of the viewer build (the bundled one, or --viewer-path) from disk, read on every
+   * request (`application.applicationfunction.visualization-server-serve-custom-viewer`). Every file
+   * carries an ETag (its size and mtime), answered with 304 when the browser's copy is current.
+   * index.html and any file without a content hash in its name are `no-cache`, so the browser
+   * checks each load and a rebuilt bundle shows without restarting the server (#1308); a hashed
+   * asset never changes under its name, so it is cached for good.
    */
-  private async serveCustomViewer(filePath: string): Promise<Response> {
+  private async serveCustomViewer(filePath: string, ifNoneMatch?: string): Promise<Response> {
     if (process.env.VERBOSE) console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
 
     if (!this.viewerPath) {
@@ -3522,6 +3554,16 @@ export class VisualizationServer {
       if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
         console.error(`[VIEWER] Security check failed - path outside viewer directory`);
         return new Response("Forbidden", { status: 403 });
+      }
+
+      const info = await fs.stat(fullPath);
+      const etag = viewerFileEtag(info);
+      const caching = {
+        ETag: etag,
+        "Cache-Control": isHashedViewerAsset(filePath) ? "public, max-age=31536000, immutable" : "no-cache",
+      };
+      if (ifNoneMatch && ifNoneMatch.split(",").some((tag) => tag.trim() === etag)) {
+        return new Response(null, { status: 304, headers: caching });
       }
 
       // Read file
@@ -3555,6 +3597,7 @@ export class VisualizationServer {
         status: 200,
         headers: {
           "Content-Type": contentType,
+          ...caching,
         },
       });
     } catch (error) {
@@ -3639,6 +3682,16 @@ export class VisualizationServer {
       // A record (verification or upgrade) never lands (commit refuses it too); refused before any review drop.
       const refusal = await manager.landingRefusal(changeset);
       if (refusal) return c.json({ error: refusal.fullText }, 409);
+      // A process whose installed CLI changed under it would land with the old code (#1427): refused
+      // before anything is written, the review's drops included.
+      try {
+        await assertRunningCodeInstalled();
+      } catch (error) {
+        if (error instanceof RunningCodeChangedError) {
+          return c.json({ error: error.message, restart: error.suggestions?.[0] }, 409);
+        }
+        throw error;
+      }
     }
 
     // A commit with the reviewer's verdicts: leave the dropped changes (and what depends on them)
@@ -3680,10 +3733,13 @@ export class VisualizationServer {
       }
       if (action === "commit") {
         // Only errors the changeset introduces block; the base model's own are counted.
-        const commit = await manager.commit(model, changesetId, {
-          validate: true,
-          ...(progress ? { onProgress: progress.onProgress } : {}),
-        });
+        // Checked once for the whole commit: a CLI change partway through never half-lands it.
+        const commit = await withRunningCodeChecked(() =>
+          manager.commit(model, changesetId, {
+            validate: true,
+            ...(progress ? { onProgress: progress.onProgress } : {}),
+          })
+        );
         result = {
           committed: commit.committed,
           skipped: commit.skipped ?? 0,
@@ -4125,7 +4181,7 @@ export class VisualizationServer {
   }
 
   /** What the central process reports for its idle exit (`CentralActivity` in central-server-contract.ts). */
-  centralActivity(): { clients: number; mcpSessions: number; drBotTurns: number; lastActivityAt: number } {
+  centralActivity(): CentralActivity {
     // Running turns, across every checkout (the launcher's cap counts the same ones).
     const drBotTurns = this.drBot.runningTurns;
     return {
@@ -4133,6 +4189,8 @@ export class VisualizationServer {
       mcpSessions: this.central.mcpEndpoint?.sessionCount ?? 0,
       drBotTurns,
       lastActivityAt: this.lastActivityAt,
+      requestsInFlight: this.apiRequestsInFlight + toolCallsInFlight(),
+      directMcpSessions: this.central.mcpEndpoint?.directSessionCount ?? 0,
     };
   }
 
@@ -4377,10 +4435,16 @@ export class VisualizationServer {
     central.sockets.delete(ws);
   }
 
-  /** The farm's projects, the registry re-read first. */
+  /** The farm's projects, the registry re-read first. Concurrent calls share one scan (#1436). */
   private async farmProjects() {
     await this.reloadRegistry();
     return this.central.options.registry.listProjects();
+  }
+
+  /** One project of the farm, the registry re-read first: scans that project only (#1436). */
+  private async farmProject(name: string) {
+    await this.reloadRegistry();
+    return this.central.options.registry.listProject(name);
   }
 
   /** `GET /api/projects`, `/api/projects/{project}` and `/api/projects/{project}/checkouts` (central only). */
@@ -4425,7 +4489,7 @@ export class VisualizationServer {
     });
     this.app.openapi(getProjectRoute, (async (c: any) => {
       const { project } = c.req.valid("param");
-      const entry = (await this.farmProjects()).find((p) => p.name === project);
+      const entry = await this.farmProject(project);
       if (!entry) return c.json({ error: `Unknown project: ${project}` }, 404);
       return c.json(entry);
     }) as any);
@@ -4445,7 +4509,7 @@ export class VisualizationServer {
     });
     this.app.openapi(getProjectCheckoutsRoute, (async (c: any) => {
       const { project } = c.req.valid("param");
-      const entry = (await this.farmProjects()).find((p) => p.name === project);
+      const entry = await this.farmProject(project);
       if (!entry) return c.json({ error: `Unknown project: ${project}` }, 404);
       return c.json({ project: entry.name, checkouts: entry.checkouts });
     }) as any);

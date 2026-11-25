@@ -64,8 +64,10 @@ import {
   type StagedRetiredAttributeChange,
 } from "../core/attribute-migration.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
+import { LEGACY_ACTIVE_MARKER_PATH, retireLegacyActiveMarker, retiredMarkerClause } from "../core/active-changeset-marker.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { relayoutModelFiles } from "../core/model-relayout.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { hasLayerReports, regenerateLayerReports } from "./reports.js";
 import { errorsByElement } from "../core/upgrade-validation.js";
@@ -96,6 +98,11 @@ export interface UpgradeOptions {
    * the full list would not name.
    */
   full?: boolean;
+  /**
+   * Also lay out the model's element files an earlier dr wrote (or prettier laid out) as this dr
+   * writes them, data unchanged, as a step of its own (#1439). Without it the plan only counts them.
+   */
+  relayout?: boolean;
 }
 
 /** -1, 0 or 1 as version a is older than, the same as, or newer than b (numeric dotted parts) */
@@ -264,7 +271,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     try {
       // Target the spec this dr carries, so the model moves in the same run as a stale or
       // missing spec reference rather than on the next one
-      scan = await scanUpgrades(projectRoot, { force: options.force, targetBundledSpec: true });
+      scan = await scanUpgrades(projectRoot, { force: options.force, targetBundledSpec: true, relayout: options.relayout });
     } catch (error) {
       // The spec reference or model manifest exists but is corrupted or unreadable
       if (error instanceof UpgradeScanError) {
@@ -333,6 +340,23 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
     if (scan.catalogCheckError !== undefined) {
       console.log(ansis.yellow(`⚠ Could not check the model against the catalog: ${scan.catalogCheckError}`));
+    }
+    if (scan.model.state === "found" && scan.model.assumed) {
+      console.log(
+        ansis.dim(`ℹ manifest.yaml has no spec_version: read as ${scan.model.specVersion}; the upgrade stamps the version it migrates to.\n`)
+      );
+    }
+    if (scan.relayoutCheckError !== undefined) {
+      console.log(ansis.yellow(`⚠ Could not check the model's files for the relayout: ${scan.relayoutCheckError}`));
+    }
+    if (scan.relayout && !options.relayout) {
+      console.log(
+        ansis.dim(
+          `ℹ ${scan.relayout.files.length} model file(s) are in an earlier dr's layout (long strings folded at 80 ` +
+            "columns): the next change to one lays it out anew, so its diff shows every line. dr upgrade --relayout " +
+            "lays them all out now, data unchanged; commit that on its own.\n"
+        )
+      );
     }
 
     // ============================================================================
@@ -427,12 +451,24 @@ async function handleUpgrade(
         ? `${action.fromVersion} → ${action.toVersion}`
         : `v${action.toVersion}`;
 
-      const icon = action.type === "spec" ? "📦" : action.type === "integration" ? "🔌" : "🔄";
+      const icon =
+        action.type === "spec"
+          ? "📦"
+          : action.type === "integration"
+            ? "🔌"
+            : action.type === "relayout"
+              ? "📐"
+              : "🔄";
       console.log(ansis.yellow(`${icon} ${action.description}`));
       console.log(ansis.dim(`   Version: ${versionChange}`));
 
-      if (action.details && action.details.length > 0) {
-        for (const detail of action.details) {
+      // --full lists every file the relayout step lays out, not only the first
+      const details =
+        action.type === "relayout" && options.full && scan?.relayout
+          ? [action.details?.[0] ?? "", ...scan.relayout.files]
+          : action.details;
+      if (details && details.length > 0) {
+        for (const detail of details) {
           console.log(ansis.dim(`   • ${detail}`));
         }
       }
@@ -512,6 +548,11 @@ async function handleUpgrade(
       const before = await hashFiles(projectRoot, DR_FOLDER);
       modelResult = await executeModelMigration(projectRoot, action, options);
       printFilesWritten(diffFiles(before, await hashFiles(projectRoot, DR_FOLDER)), options);
+    } else if (action.type === "relayout") {
+      const relayout = await relayoutModelFiles(projectRoot);
+      console.log(ansis.green(`✓ Laid out ${relayout.files.length} model file(s) as this dr writes them (data unchanged)`));
+      for (const { file, reason } of relayout.skipped) console.log(ansis.yellow(`  ⚠ Left ${file} alone: ${reason}`));
+      console.log();
     } else if (action.type === "integration") {
       await executeIntegrationUpdate(action.description, async () => {
         const manager = INTEGRATIONS.find((integration) => integration.name === action.integrationName)!.create();
@@ -629,6 +670,15 @@ async function applyOutsideModel(
 ): Promise<void> {
   await keepDotDrOutOfGit(projectRoot, options);
   await keepPrettierOffDrFiles(projectRoot);
+  // The active-changeset marker in its old place, which git tracked (#1273)
+  const retired = await retireLegacyActiveMarker(projectRoot).catch((error) => {
+    console.log(ansis.yellow(`⚠ Could not remove ${LEGACY_ACTIVE_MARKER_PATH}: ${getErrorMessage(error)}`));
+    return null;
+  });
+  if (retired) {
+    console.log(ansis.green(`✓ Removed ${retired.path}: ${retiredMarkerClause(retired)}.`));
+    console.log(ansis.dim("  The marker is per checkout now, in .dr/active-changeset. git tracked the old file: commit the deletion."));
+  }
   await offerStaleRemoval(options, context.integrations);
   // No readable model: there is nothing to report on
   if (hasModel) {
@@ -1255,7 +1305,7 @@ function printDropRecord(record: UpgradeDropRecord | undefined): void {
   );
   console.log(
     ansis.dim(
-      `   Review it: documentation-robotics/changesets/${record.id}/changes.yaml lists each one (also in dr changeset list and the viewer's changesets view)`
+      `   Review it: dr changeset show ${record.name} lists each one (also the viewer's changesets view)`
     )
   );
   printDropRoutes(record);

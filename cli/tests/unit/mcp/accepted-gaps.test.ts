@@ -365,6 +365,8 @@ describe("gap_accept and gap_reopen", () => {
     const marked = spec.incoming.find((r: any) => r.source === "api.operation" && r.predicate === "realizes");
     expect(marked.accepted.reason).toBe("A nightly job: no API exposes it");
     expect(spec.element.acceptedGaps).toHaveLength(1);
+    // The element's id names its layer, so layer may be left out (#1280)
+    expect(parse(await specTypeHandler({ element: FUNCTION, rootPath })).specNodeId).toBe("application.applicationfunction");
 
     // Accepting it again with the same reason is a no-op.
     expect(parse(await accept({ decidedBy: "alice" })).status).toBe("already-accepted");

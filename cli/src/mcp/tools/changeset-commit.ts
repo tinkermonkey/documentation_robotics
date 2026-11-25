@@ -59,6 +59,8 @@ import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js
 import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { assertRunningCodeInstalled, withRunningCodeChecked } from "../../utils/running-code.js";
+import { getCliVersion } from "../../utils/spec-version.js";
 import { changesetLinkIfRunning } from "./central-viewer.js";
 import {
   jsonResult,
@@ -73,6 +75,7 @@ import {
 import { resolveChangeset } from "./changeset-shared.js";
 import { alreadyLandedResult } from "./changeset-landed.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
+import { landingRelayoutNote } from "../../core/model-relayout.js";
 
 /** How long the person has to answer the confirmation dialog before the commit is refused. */
 export const CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
@@ -555,12 +558,22 @@ async function describeDriftSafely(target: LandingTarget, toolName: string): Pro
 
 /**
  * What the person should know before landing: an as-built changeset landing while the plan is
- * staged (the plan should land instead), and evidence that something is still writing into it.
+ * staged (the plan should land instead), the files the landing would re-lay out, and evidence that
+ * something is still writing into it.
  */
 async function landingWarnings(target: LandingTarget): Promise<string[]> {
   const asBuiltFirst = await asBuiltFirstWarning(target.manager, target.rootPath, target.changeset);
+  // Files an earlier dr laid out, which the landing lays out anew (#1439): never refuses it
+  const relayout = await landingRelayoutNote(target.rootPath, target.changeset.changes).catch((error) => {
+    console.error(`[mcp] could not check the layout of the files the landing writes: ${getErrorMessage(error)}`);
+    return null;
+  });
   const stillWriting = await target.manager.writeActivityWarning(target.changeset);
-  return [...(asBuiltFirst ? [asBuiltFirst] : []), ...(stillWriting ? [stillWriting] : [])];
+  return [
+    ...(asBuiltFirst ? [asBuiltFirst] : []),
+    ...(relayout ? [relayout] : []),
+    ...(stillWriting ? [stillWriting] : []),
+  ];
 }
 
 /**
@@ -570,6 +583,9 @@ async function landingWarnings(target: LandingTarget): Promise<string[]> {
 async function prepareLanding(
   args: { changeset: string; rootPath?: string }
 ): Promise<{ landing: LandingTarget } | { result: CallToolResult }> {
+  // A process whose installed CLI changed under it would land with the old code: refuse before the
+  // person is asked anything (#1427). Only the central process has the guard on.
+  await assertRunningCodeInstalled();
   // The cached model names the project; the commit runs on a fresh read, like the viewer's.
   const rootPath = (await loadModel(args.rootPath)).rootPath;
   const model = await Model.load(rootPath, { lazyLoad: false });
@@ -743,7 +759,10 @@ export async function changesetCommitHandler(
       const progress = createCommitProgressReporter(model.rootPath, changeset.id);
       let landed;
       try {
-        landed = await manager.commit(model, changeset.id, { validate: true, onProgress: progress.onProgress });
+        // Checked once for the whole commit: a CLI change partway through never half-lands it (#1427).
+        landed = await withRunningCodeChecked(() =>
+          manager.commit(model, changeset.id, { validate: true, onProgress: progress.onProgress })
+        );
       } catch (error) {
         progress.fail();
         throw commitError(error, changeset.name);
@@ -868,6 +887,8 @@ export async function changesetCommitPreviewHandler(
       name: changeset.name,
       status: "ready-to-commit",
       ...(stillWriting ? { stillWriting } : {}),
+      // The CLI that lands it, stamped as the manifest's cli_version (#1427).
+      cliVersion: getCliVersion(),
       // Drift is in the summary; it does not stop the landing.
       drifted: hash.isDrifted,
       summary: message,

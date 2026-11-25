@@ -12,6 +12,7 @@ import {
   deriveProjectName,
   DEFAULT_MODEL_FOLDER,
   loadFarm,
+  removeProjectCall,
   resolveFarm,
   resolveRepository,
   type FarmLocation,
@@ -61,6 +62,10 @@ interface ProjectStatus {
   sync_state_error?: string;
   /** Set when the project's codebase directory is missing or its HEAD cannot be read */
   codebase_error?: string;
+  /** Set when the repository folder is gone: the project stays in the farm until it is removed (#1438) */
+  repository_missing?: true;
+  /** With repository_missing: the call that drops the project from the farm */
+  remove?: string;
 }
 
 /**
@@ -816,6 +821,12 @@ export async function farmStatusCommand(options: {
           has_pending_changes: undefined,
         };
 
+        // A project whose repository folder was deleted is listed until removed: say so, and how (#1438).
+        if (!(await fileExists(resolveFarmPath(farmRoot, p.repository)))) {
+          result.repository_missing = true;
+          result.remove = removeProjectCall(p.name);
+        }
+
         // Step 1: sync state. A missing .farm-sync.yaml means the project has never been
         // synced (loadOrCreate returns an empty state); anything else is a real error.
         let lastSyncCommit: string | undefined;
@@ -846,6 +857,9 @@ export async function farmStatusCommand(options: {
           result.has_pending_changes = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
         } catch (error) {
           result.codebase_error = getErrorMessage(error);
+          if (result.repository_missing) {
+            result.codebase_error += `; its repository folder is gone: ${result.remove} drops the project from the farm`;
+          }
           if (!useJson) {
             handleWarning(`${p.name}: ${result.codebase_error}`);
           }
@@ -900,6 +914,7 @@ export async function farmStatusCommand(options: {
           } else if (project.codebase_error) {
             console.log(`    Status:   ${ansis.red("✗ Codebase unavailable")}`);
             console.log(`    Error:    ${project.codebase_error}`);
+            if (project.remove) console.log(`    Remove:   ${project.remove}`);
           } else if (project.has_pending_changes) {
             console.log(`    Status:   ${ansis.yellow("⚠ Pending changes")}`);
           } else if (project.last_sync_commit) {

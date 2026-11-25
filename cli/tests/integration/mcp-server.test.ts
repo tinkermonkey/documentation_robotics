@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "bun:test";
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 import { mkdir, readdir, realpath, rm, symlink, writeFile, access, constants as fsConstants } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import path from "node:path";
@@ -402,8 +403,22 @@ describe("dr mcp", () => {
     const extract = await waitForResponse(state, 4, 15000);
     expect(extract.result.isError).toBe(true);
     const extractBody = JSON.parse(extract.result.content[0].text);
-    expect(extractBody.error).toBe("The code is not indexed");
-    expect(extractBody.suggestions.join(" ")).toContain("codebase_index");
+    // codebase_extract indexes first (#1347), but this project isn't in a git repository, so no index
+    // run could succeed: it says so, and why, instead of starting one.
+    expect(extractBody.error).toContain("The code was not indexed, and it can't be indexed here");
+    expect(extractBody.error).toContain("has no git HEAD");
+    expect(extractBody.suggestions.join(" ")).toContain("git init");
+
+    // No run was started, and nothing was written into the project.
+    sendRequest(state.proc, {
+      jsonrpc: "2.0",
+      id: 5,
+      method: "tools/call",
+      params: { name: "codebase_index", arguments: { status: true } },
+    });
+    const after = JSON.parse((await waitForResponse(state, 5, 15000)).result.content[0].text);
+    expect(after.job).toBeNull();
+    expect(existsSync(join(projectDir, ".cbmignore"))).toBe(false);
   }, 30000);
 
   it("project_status reports a folder without a model, found through MCP roots, and points at project_init", async () => {

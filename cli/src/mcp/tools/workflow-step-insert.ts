@@ -199,7 +199,7 @@ export async function insertWorkflowStep(
   // Check everything before writing anything: the step against its schema, and every link it
   // gets against the catalog and the projection (#1396 review): a refusal leaves the workflow as it was.
   const step = { ...spec, attributes: { ...(spec.attributes ?? {}), sequence } };
-  const prepared = await prepareElement(step);
+  const prepared = await prepareElement(step, model.manifest);
   const links = [
     ...added.map((rel) => ({ ...rel, predicate: "flows-to" })),
     ...(workflow ? [{ source: workflow, predicate: "composes", target: newId }] : []),
@@ -207,6 +207,7 @@ export async function insertWorkflowStep(
   const plan = await planRelationshipBatch(graph, active ?? previewChangeset(), links, {
     pending: new Map([[newId, { id: newId, layer: "product", type: STEP, name: spec.name }]]),
     addStatus: active ? "staged" : "added",
+    specVersion: model.manifest,
   });
   const refused = plan.results.filter((r) => r.status === "invalid");
   if (refused.length > 0) {

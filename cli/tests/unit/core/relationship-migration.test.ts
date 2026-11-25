@@ -19,6 +19,7 @@ import {
 } from "../../../src/core/relationship-migration.js";
 import { RELATIONSHIP_REWRITE_TABLE } from "../../../src/core/relationship-migration-table.js";
 import { RelationshipValidator } from "../../../src/validators/relationship-schema-validator.js";
+import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 import {
   buildRewriteTable,
   loadCatalogTriples,
@@ -199,9 +200,17 @@ describe("relationship catalog migration (0.9.0 -> 0.10.0)", () => {
       const validator = new RelationshipValidator();
       await validator.initialize();
 
+      // The table rewrites to the current catalog's triples, so the model is checked as the whole
+      // path to the bundled spec leaves it: against the declared 0.9.0 or 0.10.0, the declared-spec
+      // check (#1411) would also name the triples those versions lack.
+      const asBundled = (model: Model) => {
+        model.manifest.specVersion = getCliBundledSpecVersion();
+        return model;
+      };
+
       // The fixture really is affected: the retired triples do not validate before the upgrade
       const before = await Model.load(root, { lazyLoad: false });
-      const beforeResult = await validator.validateModel(before);
+      const beforeResult = await validator.validateModel(asBundled(await Model.load(root, { lazyLoad: false })));
       expect(beforeResult.errors.length).toBe(9);
       expect(beforeResult.errors.every((e) => e.message.startsWith("No schema found"))).toBe(true);
 
@@ -215,7 +224,7 @@ describe("relationship catalog migration (0.9.0 -> 0.10.0)", () => {
       expect(result.applied[0].changes?.filesModified).toBe(1);
 
       const after = await Model.load(root, { lazyLoad: false });
-      const afterResult = await validator.validateModel(after);
+      const afterResult = await validator.validateModel(asBundled(await Model.load(root, { lazyLoad: false })));
       expect(afterResult.errors).toEqual([]);
 
       const migrated = after.relationships.getAll();

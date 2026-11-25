@@ -21,6 +21,7 @@ import { Element } from "../../../src/core/element.js";
 import { MutationHandler } from "../../../src/core/mutation-handler.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
+import { retireLegacyActiveMarker } from "../../../src/core/active-changeset-marker.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
@@ -179,7 +180,8 @@ describe("a .active marker that names a changeset that is no longer staged", () 
         deactivated: null,
         clearedLeftoverMarker: { changeset: "landed-earlier", status: "committed" },
       });
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
       expect(JSON.parse(text(await changesetDeactivateHandler({ rootPath: root })))).toEqual({ deactivated: null });
     }));
 
@@ -188,7 +190,8 @@ describe("a .active marker that names a changeset that is no longer staged", () 
       const id = await leaveMarkerBehind(root, "committed");
       const { manager } = await managerFor(root);
       await manager.delete(id);
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
     }));
 });
 
@@ -234,7 +237,8 @@ describe("where the marker lives", () => {
       expect(await exists(legacyMarkerPath(root))).toBe(false);
 
       await manager.clearActive();
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
       expect(await manager.getActiveId()).toBeNull();
     }));
 
@@ -274,7 +278,88 @@ describe("where the marker lives", () => {
 
       await manager.clearActive();
       expect(await exists(legacyMarkerPath(root))).toBe(false);
-      expect(await exists(markerPath(root))).toBe(false);
+      // Left empty, which means none and keeps the old place from being read again (#1273)
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
       expect(await manager.getActiveId()).toBeNull();
+    }));
+
+  it("doesn't let an old marker restored from git make its changeset active after a deactivate (#1273)", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const shared = await manager.create("committed-in-the-old-marker");
+      const mine = await manager.create("this-checkouts-plan");
+      await manager.setActive(mine.id!);
+      await manager.clearActive();
+
+      // As `git checkout -- documentation-robotics/changesets/.active` does in a repository that tracked it
+      await writeFile(legacyMarkerPath(root), `${shared.id}\n`);
+
+      expect(await manager.getActiveId()).toBeNull();
+      expect((await Model.load(root, { lazyLoad: false })).getActiveChangesetId()).toBeFalsy();
+
+      // Activating still works, and the next deactivate leaves the old file gone again
+      await manager.setActive(mine.id!);
+      expect(await manager.getActiveId()).toBe(mine.id!);
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
+    }));
+});
+
+describe("retireLegacyActiveMarker, the upgrade's step for the old marker (#1273)", () => {
+  it("moves the changeset the old file names to .dr/ when there is no marker there, and removes it", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const changeset = await manager.create("mid-change-before-the-move");
+      await writeFile(legacyMarkerPath(root), `${changeset.id}\n`);
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({
+        path: "documentation-robotics/changesets/.active",
+        movedTo: changeset.id!,
+      });
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
+      expect(await manager.getActiveId()).toBe(changeset.id!);
+    }));
+
+  it("keeps the checkout's own marker, and is null when there is no old file", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const mine = await manager.create("mine");
+      await manager.setActive(mine.id!);
+      await writeFile(legacyMarkerPath(root), "changeset-someone-elses\n");
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({ path: "documentation-robotics/changesets/.active" });
+      expect(await manager.getActiveId()).toBe(mine.id!);
+      expect(await retireLegacyActiveMarker(root)).toBeNull();
+    }));
+
+  it("makes nothing active when the old file names a committed changeset, and leaves .dr/ empty", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const landed = await manager.create("landed-long-ago");
+      const metadataFile = join(root, "documentation-robotics", "changesets", landed.id!, "metadata.yaml");
+      const metadata = YAML.parse(await readFile(metadataFile, "utf-8"));
+      await writeFile(metadataFile, YAML.stringify({ ...metadata, status: "committed" }));
+      await writeFile(legacyMarkerPath(root), `${landed.id}\n`);
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({
+        path: "documentation-robotics/changesets/.active",
+        stale: { id: landed.id!, status: "committed" },
+      });
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
+      expect(await manager.getActiveId()).toBeNull();
+      // The empty marker keeps a restored old file from being read
+      await writeFile(legacyMarkerPath(root), `${landed.id}\n`);
+      expect(await manager.getActiveId()).toBeNull();
+    }));
+
+  it("makes nothing active when the old file names a changeset that is gone", () =>
+    withModel(async (root) => {
+      await mkdir(join(root, "documentation-robotics", "changesets"), { recursive: true });
+      await writeFile(legacyMarkerPath(root), "changeset-1700000000000-gone00000\n");
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({
+        path: "documentation-robotics/changesets/.active",
+        stale: { id: "changeset-1700000000000-gone00000", status: "missing" },
+      });
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
     }));
 });

@@ -6,25 +6,42 @@
  * Nothing here touches the network or starts the code analyzer.
  */
 
-import { readdir, realpath, stat } from "node:fs/promises";
+import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
 import type { BaseRead } from "../../core/changeset-base-index.js";
 import { driftDetail, driftStatus, type DriftDetail } from "../../core/changeset-drift-status.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { MigrationRegistry } from "../../core/migration-registry.js";
+import { MigrationRegistry, type MigrationKind } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
-import { getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
+import { compareSpecVersions, getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
-import { readActiveMarker } from "../../core/active-changeset-marker.js";
+import { existsSync } from "node:fs";
+import {
+  activeMarkerPath,
+  ACTIVE_MARKER_RELATIVE,
+  LEGACY_ACTIVE_MARKER_RELATIVE,
+  legacyActiveMarkerPath,
+  readActiveMarker,
+} from "../../core/active-changeset-marker.js";
 import type { ProjectListCheckout } from "../../core/checkout-types.js";
 import { DEFAULT_CENTRAL_DEPS, runningCentralLink, type CentralDeps, type SessionCheckout } from "./central-viewer.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
+import {
+  describeRunningCodeDrift,
+  PACKAGE_ROOT,
+  readInstalledCli,
+  RESTART_DR_PROCESS,
+  installedChangedSince,
+  restartAdvice,
+  runningCodeBaseline,
+  runningCodeDrift,
+  type InstalledCli,
+} from "../../utils/running-code.js";
 import { indexProbe, isIndexedSource, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
@@ -54,6 +71,8 @@ export interface StatusContext {
   tier1?: Tier1StatusOptions;
   /** The CLI on disk where this process was loaded from (default: its package.json, read now). */
   installedCli?: () => Promise<InstalledCli | null>;
+  /** What was installed when this process started (default: runningCodeBaseline); tests pass their own. */
+  runningCodeBaseline?: () => Promise<InstalledCli | null>;
   /**
    * Which staged changesets get their base drift described in full (what changed in the base and
    * what overlaps). Describing costs a pass over the model per changeset, and the status opens
@@ -147,8 +166,12 @@ export type SpecSection = {
   model: string | null;
   cli: string;
   upgradeNeeded: boolean;
-  /** When behind: whether the CLI has a migration path to its spec, and its steps. */
-  migration?: { available: boolean; steps: string[] };
+  /**
+   * When behind: whether the CLI has a migration path to its spec, and its steps. kind is
+   * manifest-only when every step only stamps the version: nothing in the model changes but
+   * spec_version in manifest.yaml (#1435); project_upgrade's preview confirms it for this model.
+   */
+  migration?: { available: boolean; steps: string[]; kind?: MigrationKind };
   reason?: string;
   /** Set when the manifest names no spec version and `model` is the assumed one. */
   assumed?: true;
@@ -180,14 +203,16 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
       upgradeNeeded: false,
       reason: restart
         ? `the model is on spec ${modelVersion}, newer than the ${cli} this dr server is running, but the dr CLI installed ` +
-          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the session's dr server; the CLI needs no update`
-        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the session's dr server`,
+          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the DR process (dr serve --stop); the CLI needs no update`
+        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the DR process (dr serve --stop)`,
       ...assumed,
     };
   }
 
-  const steps = new MigrationRegistry().getMigrationPath(modelVersion, cli);
+  const registry = new MigrationRegistry();
+  const steps = registry.getMigrationPath(modelVersion, cli);
   const reaches = steps.length > 0 && steps[steps.length - 1].toVersion === cli;
+  const kind = reaches ? registry.migrationKind(modelVersion, cli) : null;
   return {
     status: "behind",
     model: modelVersion,
@@ -196,6 +221,7 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
     migration: {
       available: reaches,
       steps: steps.map((step) => `${step.fromVersion} → ${step.toVersion}`),
+      ...(kind ? { kind } : {}),
     },
     ...(reaches ? {} : { reason: `no migration path from ${modelVersion} to ${cli}` }),
     ...assumed,
@@ -205,155 +231,116 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
 /** The spec version Model.load and dr upgrade read when the manifest names none. */
 const ASSUMED_SPEC_VERSION = "0.6.0";
 
-/** -1, 0 or 1, comparing dotted numeric versions part by part. */
-export function compareVersions(a: string, b: string): number {
-  const pa = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const pb = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const x = pa[i] ?? 0;
-    const y = pb[i] ?? 0;
-    if (x !== y) return x < y ? -1 : 1;
-  }
-  return 0;
-}
+/** -1, 0 or 1, comparing dotted numeric versions part by part (utils/spec-version.ts). */
+export const compareVersions = compareSpecVersions;
 
 // ---------------------------------------------------------------------------------------------
 // the dr server answering this call
 
 /** The CLI found on disk: its version, the spec version it bundles (null when that can't be read) and when its files last changed. */
-export interface InstalledCli {
-  version: string;
-  spec: string | null;
-  /** When the installed files were last written (ms since the epoch); undefined when that can't be read. */
-  modifiedAt?: number;
+export type { InstalledCli } from "../../utils/running-code.js";
+export { readInstalledCli };
+
+/** The dr server process that answered: after the dr tools reconnect, a new pid means it restarted (#1362). */
+interface ServerProcessInfo {
+  pid: number;
+  /** When the process started (ISO). */
+  startedAt: string;
 }
 
-export type ServerSection =
-  | {
-      /**
-       * The process answering is the CLI found in `comparedWith`, the package folder it was loaded
-       * from. A newer dr installed somewhere else (another node version's global folder, say) is
-       * not looked for, so this does not mean nothing newer is installed.
-       */
-      status: "current";
-      version: string;
-      comparedWith: string;
-    }
-  | {
-      /**
-       * The CLI on disk changed after this server process started (another version, or the same
-       * version installed or built again), so the session is still talking to the old code. Fixed
-       * by restarting the session's dr server, not by updating the CLI.
-       */
-      status: "stale";
-      version: string;
-      /** The package folder this process was loaded from, where the installed CLI was read. */
-      comparedWith: string;
-      installed: { version: string; spec: string | null };
-      /** When the installed files changed, when that is what gave it away. */
-      changedAt?: string;
-      /** What happened and what to do, in a sentence: shown as it is. */
-      note: string;
-    }
-  | { status: "unknown"; version: string; comparedWith: string; reason: string };
-
-/** How a session gets the installed CLI's server: nothing the agent can call. */
-export const RESTART_SERVER = "Restart the session's dr server (reconnect the dr MCP server, or restart the session)";
-
-/** This module's file, and the package it was loaded from: `<package>/{src,dist}/mcp/tools/` → `<package>`. */
-const THIS_FILE = fileURLToPath(import.meta.url);
-const PACKAGE_ROOT = path.resolve(path.dirname(THIS_FILE), "..", "..", "..");
-
-/** A file's modification time in ms, or undefined when it can't be read. */
-async function modifiedAt(file: string): Promise<number | undefined> {
-  try {
-    return (await stat(file)).mtimeMs;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * The CLI installed where this process was loaded from, read from disk now. A long-lived `dr mcp`
- * process keeps the code it started with, so after an upgrade in place this differs from
- * getCliVersion(), and after any install or build its files are newer than the process. Null when
- * the package can't be read (its folder was removed or moved).
- */
-export async function readInstalledCli(packageRoot: string = PACKAGE_ROOT): Promise<InstalledCli | null> {
-  let version: unknown;
-  try {
-    version = (JSON.parse(await readFile(path.join(packageRoot, "package.json"))) as { version?: unknown }).version;
-  } catch {
-    return null;
-  }
-  if (typeof version !== "string" || !version) return null;
-  let spec: string | null = null;
-  // The tree this process runs from first (dist when built, src under a dev runner), then the other.
-  const running = path.relative(PACKAGE_ROOT, THIS_FILE).split(path.sep)[0] === "src" ? "src" : "dist";
-  for (const dir of [running, running === "src" ? "dist" : "src"]) {
-    try {
-      const manifest = JSON.parse(await readFile(path.join(packageRoot, dir, "schemas", "bundled", "manifest.json"))) as {
-        specVersion?: unknown;
-      };
-      if (typeof manifest.specVersion === "string" && manifest.specVersion) {
-        spec = manifest.specVersion;
-        break;
+export type ServerSection = ServerProcessInfo &
+  (
+    | {
+        /**
+         * The process answering is the CLI found in `comparedWith`, the package folder it was loaded
+         * from. A newer dr installed somewhere else (another node version's global folder, say) is
+         * not looked for, so this does not mean nothing newer is installed.
+         */
+        status: "current";
+        version: string;
+        comparedWith: string;
+        /** When the build differs from the package.json it was loaded with (bumped without a rebuild): what to do. */
+        note?: string;
       }
-    } catch {
-      // Not built there; try the next.
-    }
-  }
-  // An install rewrites package.json; a build rewrites this module's file.
-  const times = (
-    await Promise.all([modifiedAt(path.join(packageRoot, "package.json")), modifiedAt(path.join(packageRoot, path.relative(PACKAGE_ROOT, THIS_FILE)))])
-  ).filter((time): time is number => time !== undefined);
-  return { version, spec, ...(times.length > 0 ? { modifiedAt: Math.max(...times) } : {}) };
+    | {
+        /**
+         * The CLI on disk changed after this server process started (another version, or the same
+         * version installed or built again), so the session is still talking to the old code. Fixed
+         * by restarting the DR process (dr serve --stop), not by updating the CLI.
+         */
+        status: "stale";
+        version: string;
+        /** The package folder this process was loaded from, where the installed CLI was read. */
+        comparedWith: string;
+        installed: { version: string; spec: string | null };
+        /** When the installed files changed, when that is what gave it away. */
+        changedAt?: string;
+        /** What happened and what to do, in a sentence: shown as it is. */
+        note: string;
+      }
+    | { status: "unknown"; version: string; comparedWith: string; reason: string }
+  );
+
+/** How a session gets the installed CLI's server (no tool does it), for the process answering: read at call time. */
+export function restartServer(): string {
+  return restartAdvice();
 }
 
-/** Files written this long after the process started are a new install, not this process's own start-up. */
-const STARTUP_MARGIN_MS = 5_000;
+/** The central process's wording, kept for callers that name it. */
+export const RESTART_SERVER = RESTART_DR_PROCESS;
 
 /**
- * Whether this server process is the CLI that is installed. Two signs that it is not: the version
- * on disk where it was loaded from differs from the one it was built with, or the installed files
- * were written after it started (the same version installed or built again). Either way a `dr mcp`
- * process started before the change answers with the old code, and the old bundled spec, until it
- * is restarted.
+ * Whether this server process is the CLI that is installed (utils/running-code.ts): the version on
+ * disk where it was loaded from differs from the one it was built with, or the installed files were
+ * written after it started. Either way the process answers with the old code, and the old bundled
+ * spec, until it is restarted. Also names the process (pid, start time), so an agent can tell after
+ * the dr tools reconnect whether it is still the same one (#1362).
  */
 export async function collectServer(ctx: StatusContext): Promise<ServerSection> {
   const version = getCliVersion();
   const installed = await (ctx.installedCli ?? readInstalledCli)();
   const comparedWith = PACKAGE_ROOT;
-  if (!installed) {
-    return { status: "unknown", version, comparedWith, reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}` };
-  }
-  const found = { version: installed.version, spec: installed.spec };
-  if (installed.version !== version) {
-    return {
-      status: "stale",
-      version,
-      comparedWith,
-      installed: found,
-      note:
-        `This dr server process is CLI ${version}, and ${installed.version} is installed now: it started before the CLI ` +
-        `changed and still runs the old code. ${RESTART_SERVER} to use the installed one.`,
-    };
-  }
   const startedAt = Date.now() - process.uptime() * 1000;
-  if (installed.modifiedAt !== undefined && installed.modifiedAt > startedAt + STARTUP_MARGIN_MS) {
-    const changedAt = new Date(installed.modifiedAt).toISOString();
+  const processInfo = { pid: process.pid, startedAt: new Date(startedAt).toISOString() };
+  if (!installed) {
     return {
-      status: "stale",
+      status: "unknown",
       version,
       comparedWith,
-      installed: found,
-      changedAt,
-      note:
-        `The dr CLI's files on disk changed at ${changedAt}, after this dr server process started (the version is still ` +
-        `${version}): the process runs the code it started with. ${RESTART_SERVER} to use what is installed.`,
+      ...processInfo,
+      reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}`,
     };
   }
-  return { status: "current", version, comparedWith };
+  // Against what was installed when this process started, as the write guard compares (#1427):
+  // drift already there then (a checkout bumped without a rebuild) is a rebuild to do, not a
+  // restart, and the guard lets writes through.
+  const baseline = await (ctx.runningCodeBaseline ?? runningCodeBaseline)();
+  const drift = installedChangedSince(baseline, installed, version);
+  if (!drift) {
+    const atStart = await runningCodeDrift({ installed: baseline, running: version, startedAt });
+    return {
+      status: "current",
+      version,
+      comparedWith,
+      ...processInfo,
+      ...(atStart?.reason === "version"
+        ? {
+            note:
+              `This build of the dr CLI is ${version}, but its package.json said ${atStart.installed.version} when this ` +
+              "process started: rebuild the CLI (a restart runs the same build).",
+          }
+        : {}),
+    };
+  }
+  return {
+    status: "stale",
+    version,
+    comparedWith,
+    ...processInfo,
+    installed: { version: installed.version, spec: installed.spec },
+    ...(drift.reason === "rewritten" ? { changedAt: drift.changedAt } : {}),
+    note: `${describeRunningCodeDrift(drift)}. ${restartServer()} to use the installed one.`,
+  };
 }
 
 /** The section when it says the server is stale, else undefined. */
@@ -498,7 +485,88 @@ export type ChangesetsSection =
       discarded: number;
       /** Set when base drift could not be checked. */
       driftUnknown?: string;
+      /** The pre-#1218 marker, documentation-robotics/changesets/.active, when it is still on disk or in git. */
+      legacyMarker?: LegacyMarkerState;
     };
+
+/**
+ * The active-changeset marker from before #1218, documentation-robotics/changesets/.active, which
+ * git tracked: every clone shared it. The marker is per checkout now, in .dr/active-changeset,
+ * which git ignores. Reported while the old file is on disk or git still tracks it (#1273).
+ */
+export interface LegacyMarkerState {
+  /** The old marker, relative to the project root. */
+  path: string;
+  /** Whether the file is in the working tree. */
+  onDisk: boolean;
+  /** Whether git tracks it (in the index or in HEAD); null when git can't say. */
+  tracked: boolean | null;
+  /**
+   * Whether it decides the active changeset here: it does only while .dr/active-changeset doesn't
+   * exist. Once .dr/ has a marker (an empty one means none), the old file is never read.
+   */
+  inUse: boolean;
+  /** The changeset it names, by name when there is one with its id. */
+  names?: string;
+  /** What it means and what to do, in a sentence or two. */
+  note: string;
+}
+
+/** The old marker's state, or null when it is neither on disk nor in git (the usual case). */
+export async function collectLegacyMarker(
+  ctx: Pick<StatusContext, "projectRoot" | "git">,
+  nameOf: (id: string) => string | undefined = () => undefined
+): Promise<LegacyMarkerState | null> {
+  if (!ctx.projectRoot) return null;
+  const file = legacyActiveMarkerPath(ctx.projectRoot);
+  const onDisk = existsSync(file);
+  // The index (a file not yet deleted there) or HEAD (a deletion not yet committed).
+  const listed = async (args: string[]): Promise<boolean | null> => {
+    const result = await ctx.git(args, ctx.projectRoot!);
+    return result.ok ? result.stdout.trim() !== "" : null;
+  };
+  const inIndex = await listed(["ls-files", "--", LEGACY_ACTIVE_MARKER_RELATIVE]);
+  const inHead =
+    inIndex === null ? null : await listed(["ls-tree", "--name-only", "HEAD", "--", LEGACY_ACTIVE_MARKER_RELATIVE]);
+  const tracked = inIndex === null ? null : inIndex || inHead === true;
+  if (!onDisk && !tracked) return null;
+
+  const inUse = onDisk && !existsSync(activeMarkerPath(ctx.projectRoot));
+  let id: string | undefined;
+  if (onDisk) {
+    try {
+      id = (await readFile(file)).trim() || undefined;
+    } catch {
+      // Unreadable: said as on disk, naming nothing.
+    }
+  }
+  const names = id ? nameOf(id) ?? id : undefined;
+  const where =
+    `${LEGACY_ACTIVE_MARKER_RELATIVE} is the active-changeset marker from before the marker moved to ` +
+    `${ACTIVE_MARKER_RELATIVE} (per checkout; git ignores .dr/)`;
+  const reads = inUse
+    ? ` This checkout has no ${ACTIVE_MARKER_RELATIVE}, so dr still reads the old file` +
+      `${names ? `: "${names}" is active because of it` : ""}, and every clone shares it.`
+    : onDisk
+      ? ` dr no longer reads it here: ${ACTIVE_MARKER_RELATIVE} decides.`
+      : "";
+  const todo = tracked
+    ? onDisk
+      ? ` git still tracks it: remove it with git rm ${LEGACY_ACTIVE_MARKER_RELATIVE} and commit the deletion.`
+      : " It is gone from this checkout but git still tracks it: commit its deletion " +
+        `(git rm ${LEGACY_ACTIVE_MARKER_RELATIVE}).`
+    : tracked === null
+      ? " git couldn't say whether it tracks it: delete it, and if git tracks it, commit the deletion."
+      : " git doesn't track it: delete it.";
+  return {
+    path: LEGACY_ACTIVE_MARKER_RELATIVE,
+    onDisk,
+    tracked,
+    inUse,
+    ...(names ? { names } : {}),
+    note: `${where}.${reads}${todo}`,
+  };
+}
 
 export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsSection> {
   if (!ctx.projectRoot || !ctx.modelDir) return { status: "no-model" };
@@ -567,6 +635,8 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
 
   const stagedEntries = await Promise.all(staged.map(entry));
   const active = activeId ? changesets.find((changeset) => changeset.id === activeId) : undefined;
+  const nameOf = (id: string) => changesets.find((changeset) => changeset.id === id)?.name;
+  const legacyMarker = await collectLegacyMarker(ctx, nameOf);
   return {
     status: "ok",
     active: active && active.status === "staged" ? stagedEntries.find((e) => e.id === active.id) ?? null : null,
@@ -575,6 +645,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     committed: changesets.filter((changeset) => changeset.status === "committed").length,
     discarded: changesets.filter((changeset) => changeset.status === "discarded").length,
     ...(driftUnknown ? { driftUnknown } : {}),
+    ...(legacyMarker ? { legacyMarker } : {}),
   };
 }
 
@@ -761,8 +832,9 @@ async function codebaseRootOf(ctx: StatusContext): Promise<string> {
  */
 export const LIST_DEFAULTS = {
   stagedChangesets: 10,
-  changedSourceFiles: 15,
-  uncommittedSourceFiles: 15,
+  /** The first changed files; changedSourceSummary counts them all per folder and layer (#1251). */
+  changedSourceFiles: 5,
+  uncommittedSourceFiles: 5,
   /** Element ids per changed file; `elementCount` is the whole count. */
   elementsPerFile: 3,
   unreferencedFiles: 5,
@@ -815,6 +887,52 @@ export interface ChangedSourceFile {
   /** Elements whose source reference names the file (the first few). */
   elements: string[];
   elementCount: number;
+}
+
+/** How many folders a changed-files summary names; `folderCount` is the whole count. */
+const SUMMARY_FOLDERS = 5;
+
+/**
+ * A list of changed source files in counts, over the whole list, so the status can show its first
+ * few files and still say where the change is (#1251).
+ */
+export interface SourceFileSummary {
+  /** The folders with the most changed files, most first: the first few (`folderCount` is the whole count). */
+  folders: Array<{ folder: string; files: number }>;
+  folderCount: number;
+  /** When `folders` shows fewer than `folderCount`: how many, and the call that lists every file. */
+  more?: string;
+  /** The elements that reference the changed files, counted per layer, each element once. */
+  elementsByLayer: Record<string, number>;
+}
+
+/**
+ * {@link SourceFileSummary} of a whole list of changed files (with every element of each).
+ * `listCall` is the call that returns the whole list, named in `more` when folders are left out.
+ */
+export function sourceFileSummary(entries: readonly ChangedSourceFile[], listCall?: string): SourceFileSummary {
+  const folders = new Map<string, number>();
+  const elements = new Set<string>();
+  for (const entry of entries) {
+    const folder = path.posix.dirname(entry.file);
+    folders.set(folder, (folders.get(folder) ?? 0) + 1);
+    for (const id of entry.elements) elements.add(id);
+  }
+  const elementsByLayer: Record<string, number> = {};
+  for (const id of elements) {
+    const layer = id.split(".")[0];
+    elementsByLayer[layer] = (elementsByLayer[layer] ?? 0) + 1;
+  }
+  const most = [...folders.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const shown = most.slice(0, SUMMARY_FOLDERS);
+  return {
+    folders: shown.map(([folder, files]) => ({ folder, files })),
+    folderCount: folders.size,
+    ...(listCall && folders.size > shown.length
+      ? { more: `folders shows ${shown.length} of ${folders.size}: ${listCall} returns every file.` }
+      : {}),
+    elementsByLayer,
+  };
 }
 
 /**
@@ -930,12 +1048,16 @@ export type CodeDriftSection =
       referencedFilesChanged: number;
       /** Referenced source files that changed, with the elements that reference each. */
       changedSourceFiles: ChangedSourceFile[];
+      /** The whole of `changedSourceFiles` counted per folder and per layer; absent when it is empty. */
+      changedSourceSummary?: SourceFileSummary;
       /** The rest: changed files no element references. Absent when there are none. */
       unreferenced?: UnreferencedChanges;
       /** How many referenced source files have uncommitted changes; `uncommittedSourceFiles` lists the first. */
       referencedFilesUncommitted: number;
       /** Referenced source files with uncommitted changes. */
       uncommittedSourceFiles: ChangedSourceFile[];
+      /** The whole of `uncommittedSourceFiles` counted per folder and per layer; absent when it is empty. */
+      uncommittedSourceSummary?: SourceFileSummary;
       /** Whether documentation-robotics/model/ itself has uncommitted changes. */
       modelUncommitted: boolean;
       /** How many distinct source files the model references. */
@@ -1574,6 +1696,20 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
         elementsCut = true;
         return { ...entry, elements: entry.elements.slice(0, LIST_DEFAULTS.elementsPerFile) };
       });
+    // Counted over the whole lists before they are cut, so the folders and layers are all of them.
+    const summaries = {
+      ...(drift.changedSourceFiles.length > 0
+        ? { changedSourceSummary: sourceFileSummary(drift.changedSourceFiles, listCall("changedSourceFiles", 0, rootPath)) }
+        : {}),
+      ...(drift.uncommittedSourceFiles.length > 0
+        ? {
+            uncommittedSourceSummary: sourceFileSummary(
+              drift.uncommittedSourceFiles,
+              listCall("uncommittedSourceFiles", 0, rootPath)
+            ),
+          }
+        : {}),
+    };
     const changedSourceFiles = cutFiles("changedSourceFiles");
     const uncommittedSourceFiles = cutFiles("uncommittedSourceFiles");
     if (elementsCut) {
@@ -1598,6 +1734,7 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     out.codeDrift = {
       ...drift,
       changedSourceFiles,
+      ...summaries,
       uncommittedSourceFiles,
       ...(unreferenced ? { unreferenced } : {}),
       ...(landedSince ? { landedSince } : {}),

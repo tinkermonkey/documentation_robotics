@@ -29,6 +29,7 @@ import {
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
+import { specAheadNote, typeNotInDeclaredSpec, type DeclaredSpec } from "../../core/declared-spec.js";
 import { requiredAttributesLine, requiredAttributesOf } from "../../utils/required-attributes.js";
 import {
   compactId,
@@ -171,8 +172,12 @@ class AttributeRefusal extends CLIError {
   }
 }
 
-/** Validates one element and builds it; throws a CLIError saying what is wrong. */
-export async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
+/**
+ * Validates one element and builds it; throws a CLIError saying what is wrong. `specVersion`, the
+ * spec the model declares (its manifest), refuses a type only a later spec has, or warns about it
+ * when the manifest has no spec_version (#1411).
+ */
+export async function prepareElement(spec: ElementSpec, specVersion?: DeclaredSpec): Promise<PreparedElement> {
   if (!isValidLayer(spec.layer)) {
     const validLayers = getAllLayerIds();
     const similar = findSimilar(spec.layer, validLayers, 3);
@@ -187,10 +192,20 @@ export async function prepareElement(spec: ElementSpec): Promise<PreparedElement
     const similar = findSimilar(spec.type, typeNames, 3);
     const suggestions: string[] = [`Valid types for ${spec.layer}: ${formatValidOptions(typeNames)}`];
     if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+    // A model on a newer spec may use a type this dr doesn't know yet
+    const ahead = specAheadNote(specVersion);
+    if (ahead) suggestions.unshift(ahead);
     throw new CLIError(`Invalid element type "${spec.type}" for layer "${spec.layer}"`, ErrorCategory.USER, suggestions);
   }
 
   const resolvedType = normalizeNodeType(spec.layer, spec.type);
+  const notDeclared = typeNotInDeclaredSpec(specVersion, `${spec.layer}.${resolvedType}`);
+  if (notDeclared && !notDeclared.assumed) {
+    throw new CLIError(notDeclared.message, ErrorCategory.USER, [
+      `project_upgrade (dr upgrade) moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
+        "preview it, then add the element again",
+    ]);
+  }
   const derived = deriveElementId(spec.layer, resolvedType, spec.name);
   const elementPath = derived.id;
 
@@ -201,6 +216,7 @@ export async function prepareElement(spec: ElementSpec): Promise<PreparedElement
   }
 
   const { options: sourceOptions, warnings } = resolveSourceReferenceOptions(spec, "mcp");
+  if (notDeclared?.assumed) warnings.push(notDeclared.message);
 
   const now = new Date().toISOString();
   const element = new Element({
@@ -330,7 +346,7 @@ export async function addOneElement(spec: ElementSpec, rootPath: string | undefi
   const model = await loadModel(rootPath);
   let prepared: PreparedElement;
   try {
-    prepared = await prepareElement(spec);
+    prepared = await prepareElement(spec, model.manifest);
   } catch (error) {
     // What the type requires and what each takes, so one retry fixes it (#1153).
     const required = error instanceof AttributeRefusal ? requiredAttributesLine(error.specNodeId) : undefined;
@@ -545,7 +561,7 @@ async function addElementBatch(
     const asSent = { index, name: spec.name };
     let item: PreparedElement;
     try {
-      item = await prepareElement(spec);
+      item = await prepareElement(spec, model.manifest);
     } catch (error) {
       const id = idFor(spec);
       const reason = getErrorMessage(error);
@@ -656,6 +672,7 @@ async function addElementBatch(
     rejected,
     collisions: idCollisions(refusedIds, graph, pending, pendingAt),
     addStatus: active ? "staged" : "added",
+    specVersion: model.manifest,
   });
 
   if (active) {

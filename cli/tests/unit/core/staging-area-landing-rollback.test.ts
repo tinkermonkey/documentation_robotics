@@ -1,12 +1,13 @@
 /**
  * A landing that fails and rolls back leaves the model and the changeset as they were (found in the
- * review of PR 1455, fixed there): the files and folders the landing created are removed (a type's
- * first file, a layer's first folder), relationships.yaml is put back, and a changeset the landing
- * had already saved as committed is staged again, still active, so it can land after all.
+ * review of PR 1455, fixed there): the files and folders the landing created where nothing was are
+ * removed (a type's first file, a layer's first folder), and nothing else; relationships.yaml is put
+ * back, and a changeset the landing had already saved as committed is staged again, still active,
+ * so it can land after all.
  */
 
 import { describe, it, expect, spyOn } from "bun:test";
-import { mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { Model } from "../../../src/core/model.js";
@@ -112,6 +113,47 @@ describe("a landing that rolls back", () => {
       expect(created(final).length).toBe(2);
       expect(Object.keys(final)).toContain("01_motivation/");
       expect(final["relationships.yaml"]).toContain("application.applicationfunction.save");
+    } finally {
+      clearModelCache();
+      await changesetDeactivateHandler({ rootPath }).catch(() => undefined);
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  it.serial("keeps a base file named in another letter case, and what it didn't create (review of PR 1455)", async () => {
+    const rootPath = await newProject();
+    try {
+      // A base goal in Goal.yaml: the landing's save renames it goal.yaml (planLayerFiles). Where
+      // letter case is ignored (macOS), the restored Goal.yaml is that same file, and a rollback
+      // that removed whatever a list of names lacked deleted it.
+      await modelAddHandler({ layer: "motivation", type: "goal", name: "base", attributes: { priority: "high" }, rootPath });
+      const modelDir = join(rootPath, "documentation-robotics", "model");
+      await rename(join(modelDir, "01_motivation", "goal.yaml"), join(modelDir, "01_motivation", "Goal.yaml"));
+      clearModelCache();
+      await changesetCreateHandler({ name: "plan", rootPath });
+      await modelAddHandler({ layer: "motivation", type: "goal", name: "planned", attributes: { priority: "low" }, rootPath });
+      clearModelCache();
+      const before = await modelSnapshot(rootPath);
+      expect(before["01_motivation/Goal.yaml"]).toContain("motivation.goal.base");
+
+      const model = await Model.load(rootPath, { lazyLoad: false });
+      const manager = new StagingAreaManager(rootPath, model);
+      const plan = (await manager.load("plan"))!;
+      // Something else writes into the model folder while the landing runs, then the landing fails.
+      const saveManifest = spyOn(model, "saveManifest").mockImplementation(async () => {
+        await writeFile(join(modelDir, "01_motivation", "notes.md"), "not the landing's\n");
+        throw new Error("EIO: manifest");
+      });
+      const error = await manager.commit(model, plan.id!, { validate: false }).catch((e) => e);
+      saveManifest.mockRestore();
+      expect(String(error.message)).toContain("rollback succeeded");
+
+      // The base goal is where it was, under its own name, and the other writer's file is kept.
+      const after = await modelSnapshot(rootPath);
+      expect(after["01_motivation/notes.md"]).toBe("not the landing's\n");
+      delete after["01_motivation/notes.md"];
+      expect(after).toEqual(before);
+      expect((await manager.load("plan"))!.status).toBe("staged");
     } finally {
       clearModelCache();
       await changesetDeactivateHandler({ rootPath }).catch(() => undefined);
