@@ -193,7 +193,12 @@
       created_at: 2026-11-25T16:08:23.361Z
       updated_at: 2026-11-25T16:08:23.361Z
       version: 1
-  timestamp: 2026-11-25T16:08:23.372Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/paging.ts
+          symbol: nextPageCall
+  timestamp: 2026-11-25T16:32:16.790Z
   sequenceNumber: 5
 - type: add
   elementId: application.applicationfunction.element-filter
@@ -210,7 +215,12 @@
       created_at: 2026-11-25T16:08:23.361Z
       updated_at: 2026-11-25T16:08:23.361Z
       version: 1
-  timestamp: 2026-11-25T16:08:23.372Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/element-filter.ts
+          symbol: elementFilter
+  timestamp: 2026-11-25T16:32:16.790Z
   sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.change-line
@@ -227,7 +237,12 @@
       created_at: 2026-11-25T16:08:23.361Z
       updated_at: 2026-11-25T16:08:23.361Z
       version: 1
-  timestamp: 2026-11-25T16:08:23.372Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-summary.ts
+          symbol: changeLine
+  timestamp: 2026-11-25T16:32:16.790Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.element-card
@@ -244,7 +259,12 @@
       created_at: 2026-11-25T16:08:23.361Z
       updated_at: 2026-11-25T16:08:23.361Z
       version: 1
-  timestamp: 2026-11-25T16:08:23.372Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/element-card.ts
+          symbol: elementCard
+  timestamp: 2026-11-25T16:32:16.790Z
   sequenceNumber: 8
 - type: relationship-add
   elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-show-handler
@@ -324,17 +344,6 @@
   timestamp: 2026-11-25T16:08:23.372Z
   sequenceNumber: 15
 - type: relationship-add
-  elementId: application.applicationfunction.element-filter::realizes::application.applicationservice.changeset-brief-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.element-filter
-    target: application.applicationservice.changeset-brief-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 16
-- type: relationship-add
   elementId: application.applicationfunction.change-line::realizes::application.applicationservice.changeset-show-handler
   layerName: application
   after:
@@ -346,17 +355,6 @@
   timestamp: 2026-11-25T16:08:23.372Z
   sequenceNumber: 17
 - type: relationship-add
-  elementId: application.applicationfunction.change-line::realizes::application.applicationservice.changeset-unstage-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.change-line
-    target: application.applicationservice.changeset-unstage-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 18
-- type: relationship-add
   elementId: application.applicationfunction.element-card::realizes::application.applicationservice.model-show-handler
   layerName: application
   after:
@@ -367,17 +365,6 @@
     category: structural
   timestamp: 2026-11-25T16:08:23.372Z
   sequenceNumber: 19
-- type: relationship-add
-  elementId: application.applicationfunction.element-card::realizes::application.applicationservice.changeset-brief-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.element-card
-    target: application.applicationservice.changeset-brief-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 20
 - type: relationship-add
   elementId: application.applicationfunction.change-line::depends-on::application.applicationfunction.summarize-change
   layerName: application
@@ -400,3 +387,14 @@
     category: structural
   timestamp: 2026-11-25T16:08:36.594Z
   sequenceNumber: 22
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.element-filter
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: application.applicationfunction.element-filter
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:32:06.648Z
+  sequenceNumber: 24
