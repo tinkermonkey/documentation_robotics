@@ -18,8 +18,8 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { changeLine, summarizeChange, summarizeChangeset, type ChangeSummaryEntry } from "../../core/changeset-summary.js";
 import { reviewForAgent, reviewRevision } from "../../core/changeset-review.js";
 import { allowedActions } from "../../core/changeset-purpose.js";
-import { elementFilter, unknownLayersNote } from "../../core/element-filter.js";
-import { nextPageCall, nextPageHint, pageOf } from "../../core/paging.js";
+import { elementFilter, unknownFilterNote } from "../../core/element-filter.js";
+import { nextPageHint, pageOf } from "../../core/paging.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { changesetArg, changesetArgFields } from "./changeset-shared.js";
@@ -97,7 +97,7 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
 
     if (!changeset) {
       throw new CLIError(`Changeset ${named} not found`, ErrorCategory.NOT_FOUND, [
-        'Use "changeset_list" to see all available changesets',
+        'Use "changeset_list" to see the staged changesets (status: "all" lists every one)',
       ]);
     }
 
@@ -139,10 +139,10 @@ export async function changesetShowHandler(args: ChangesetShowArgs): Promise<Cal
 
     const { items, page } = pageOf(kept, { limit: args.limit, offset: args.offset }, SHOW_LIMITS[detail]);
     const notes: string[] = [];
-    const unknown = unknownLayersNote(filter);
+    const unknown = unknownFilterNote(filter);
     if (unknown) notes.push(unknown);
-    const next = nextPageHint("changeset_show", narrowed ? "matching changes" : "changes", page);
-    if (next) notes.push(`${next} Next page: ${nextPageCall("changeset_show", { ...args }, page.nextOffset!)}.`);
+    const next = nextPageHint("changeset_show", narrowed ? "matching changes" : "changes", page, { ...args });
+    if (next) notes.push(next);
     if (detail === "compact") {
       notes.push(
         'One line per change. detail: "summary" gives each as an object, detail: "full" with its before and after ' +

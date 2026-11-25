@@ -13,12 +13,12 @@ import { acceptedGapsWithEvidence } from "../../core/accepted-gaps.js";
 import type { Changeset } from "../../core/changeset.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import type { Model } from "../../core/model.js";
-import { nextPageCall, nextPageHint, pageOf } from "../../core/paging.js";
+import { nextPageHint, pageOf } from "../../core/paging.js";
 import { normalizeNodeType } from "../../generated/node-types.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
-import { elementCard, CARD_CONNECTIONS, type CardConnection } from "./element-card.js";
+import { elementCard, graphConnections, CARD_CONNECTIONS, type CardConnection } from "./element-card.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
@@ -165,9 +165,7 @@ async function cardOf(view: ShowView, id: string, maxConnections?: number) {
   let status: string | undefined;
   if (view.graph) {
     status = view.graph.getElement(elementId)?.status ?? "unchanged";
-    connections = view.graph
-      .neighbors(elementId, { includeDeleted: true })
-      .map((n) => ({ direction: n.direction, predicate: n.relationship.predicate, other: n.other, status: n.relationship.status }));
+    connections = graphConnections(view.graph, elementId);
   } else {
     const { outgoing, incoming } = view.model.relationships.getForElement(elementId);
     connections = [
@@ -210,8 +208,8 @@ export async function modelShowHandler(args: ModelShowArgs): Promise<CallToolRes
     }
 
     const notes: string[] = [];
-    const next = nextPageHint("model_show", "ids", page);
-    if (next) notes.push(`${next} Next page: ${nextPageCall("model_show", { ...args }, page.nextOffset!)}.`);
+    const next = nextPageHint("model_show", "ids", page, { ...args });
+    if (next) notes.push(next);
     if (notFound.length > 0) notes.push(`Not in the model: ${notFound.join(", ")} (model_search finds similar elements).`);
     if (detail === "compact") {
       notes.push(

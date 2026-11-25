@@ -13,7 +13,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Changeset } from "../../core/changeset.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { allowedActions, type ChangesetAction, type ChangesetPurpose } from "../../core/changeset-purpose.js";
-import { nextPageCall, nextPageHint, pageOf, pagingFields } from "../../core/paging.js";
+import { nextPageHint, pageOf, pagingFields } from "../../core/paging.js";
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 
 /** Changesets listed in one call by default. */
@@ -80,8 +80,8 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
     }
 
     const notes: string[] = [];
-    const next = nextPageHint("changeset_list", `${status === "all" ? "" : `${status} `}changesets`, page);
-    if (next) notes.push(`${next} Next page: ${nextPageCall("changeset_list", { ...args }, page.nextOffset!)}.`);
+    const next = nextPageHint("changeset_list", `${status === "all" ? "" : `${status} `}changesets`, page, { ...args });
+    if (next) notes.push(next);
     const others = STATUSES.filter((s) => status !== "all" && s !== status && counts[s] > 0);
     if (others.length > 0) {
       notes.push(

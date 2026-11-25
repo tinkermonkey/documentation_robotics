@@ -28,7 +28,7 @@ import { getErrorMessage } from "../../utils/errors.js";
 import { reviewForAgent } from "../../core/changeset-review.js";
 import { nextPageCall } from "../../core/paging.js";
 import { compactJson, jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
-import { elementCard } from "./element-card.js";
+import { elementCard, graphConnections } from "./element-card.js";
 import { changesetArg, changesetArgFields, loadChangesetGraph } from "./changeset-shared.js";
 
 const changesetFields = changesetArgFields("Changeset ID or name. Defaults to the active changeset.");
@@ -428,10 +428,7 @@ export async function changesetBriefHandler(args: ChangesetBriefArgs): Promise<C
               missing.push(id);
               continue;
             }
-            const connections = graph
-              .neighbors(element.id, { includeDeleted: true })
-              .map((n) => ({ direction: n.direction, predicate: n.relationship.predicate, other: n.other, status: n.relationship.status }));
-            cards.push(elementCard(element, connections, { status: element.status }));
+            cards.push(elementCard(element, graphConnections(graph, element.id), { status: element.status }));
           }
           return { cards, missing };
         },
@@ -477,7 +474,9 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     "sections: [...] returns only the sections named, with a small header, in compact forms. Long lists come a " +
     "page at a time, sized to fit one tool result: page gives each list's true total and how many items the " +
     "answer holds, with nextOffset while any has more, and more names the exact next call (offset, limit), so no " +
-    "answer reads as complete when it is not. Narrow with layers or ids. detail: \"full\" returns the whole brief (attributes, connection names, the unwired listing, code per " +
+    "answer reads as complete when it is not. Narrow with layers, types or ids (ids the plan does not change " +
+    'come back in unchanged, a card each). detail: "full" returns the whole brief (attributes, connection names, ' +
+    "the unwired listing, code per " +
     "element), or with sections those sections in full. It returns a revision and a revisionToken: pass the token back as since on the " +
     "next pass to get what changed. Use it to pressure-test a plan and, at the start of a build, as its spec. When the " +
     "reviewer has given verdicts in the viewer, review lists them (keep / drop / ask per change sequence, with notes).",

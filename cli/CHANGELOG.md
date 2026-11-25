@@ -20,8 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   function.
 - **Compact changeset reads (CLI 0.9.0 milestone):** the reads below are compact by default, narrow
   by layer and type, and page with `limit` and `offset`: `page` gives the true total and `more`
-  names the exact call for the next page (`nextPageCall` in `core/paging.ts`, `elementFilter` in
-  `core/element-filter.ts`). A read never stops short without saying so.
+  names the exact call for the next page (`nextPageHint` with the caller's arguments in
+  `core/paging.ts`, `elementFilter` in `core/element-filter.ts`). A read never stops short without
+  saying so: a layer or type that is not one is named (it keeps nothing), and a part cut outside the
+  pages names the call that lists it whole.
 - **`changeset_list`** lists the staged changesets by default, newest first, and counts every
   changeset by status; `status: "committed"`, `"discarded"` or `"all"` lists the others. 50 a page.
   (#1250)
@@ -35,25 +37,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reached and its files, 50 a page. `limit` is the page size's name, as on the other reads;
   `maxElements` still works. (#1284)
 - **`changeset_unstage`** reports what it removed as counts per operation and one line per change,
-  the first 25 of each unstage, the rest counted with where to read them; `detail: "full"` returns
-  each removed change as an object, as before. (#1299)
+  the first 25 of each unstage, the rest counted. Past 25 it names the exact `changeset_brief` call
+  (the delta since the revision before the write) that lists every removed change; `detail: "full"`
+  returns each removed change as an object, as before. (#1299)
 - **`changeset_brief`:** every top-level block of the compact brief is a section: `summary`,
   `byLayer`, `reach`, `changesByType` and `neighborFiles` join the others (#1281). `types` narrows
   the sections like `layers`, both together when given (#1294). With `ids`, an element lists the
   staged relationships into it from changed elements the answer leaves out (#1258), and ids the
-  plan does not change come back in `unchanged`, a card each, as the plan leaves them (#1395). The
-  drift is named once: the `changeset` section leaves it out when `drift` is asked for, and keeps
-  it compact otherwise; the drift section's base-change lists page with the answer's other lists
-  (`driftLimit` and `driftOffset` still page them apart) (#1373). `limit` is now the most a page
-  holds: the page also stays near `targetBytes`, and says when it holds fewer than the limit, so
-  `limit: 40` on a large unwired listing no longer returns 73 KB (#1334).
+  plan does not change come back in `unchanged`, a card each, as the plan leaves them, paged with
+  the other lists (#1395). The drift is named once: the `changeset` section leaves it out when
+  `drift` is asked for, and keeps it compact otherwise, saying `sections: ["drift"]` lists what the
+  compact form leaves out; the drift section's base-change lists page with the answer's other lists
+  (`driftLimit` and `driftOffset` still page them apart) (#1373). `changesByType` names the call that
+  lists a type's every id when it shows only the first. `limit` is now the most a page holds: the
+  page also stays near `targetBytes`, and says when it holds fewer than the limit, so `limit: 40` on
+  a large unwired listing no longer returns 73 KB (#1334).
 - **`model_search`:** `excludeLayers` and `excludeTypes` leave layers and types out (#1283);
   `fields` adds descriptions and attribute values to what is searched, staged elements included,
   and `match: "all"` or `"any"` matches the query's words apart (#1390). The closest results come
   first (an exact id or name, more words, then name and id hits before description hits), as
   compact entries 50 a page with the true count and counts by layer and type; `detail: "full"`
-  gives the whole description. When the query is only in a field not searched, the answer says
-  how many and which `fields` finds them.
+  gives the whole description. When the query matches only with a field not searched (its words
+  split between name and description, say), the answer says how many and which `fields` finds them.
 - **`model_show`** takes `ids: [...]` to read several elements in one call: a compact card each
   (name, first sentence of the description, change status, connections as `predicate → id` lines,
   five per predicate and direction with the rest counted), or with `detail: "full"` each as `id`

@@ -18,7 +18,8 @@
  */
 
 import { getAllLayerIds } from "../generated/layer-registry.js";
-import { elementFilter } from "./element-filter.js";
+import { elementFilter, unknownFilterNote } from "./element-filter.js";
+import { nextPageCall } from "./paging.js";
 import type { BriefDelta } from "./changeset-brief-delta.js";
 import type { BriefAcceptedGap, BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./changeset-analysis.js";
 
@@ -490,6 +491,21 @@ function compactDrift(drift: BriefDrift): CompactDrift {
   };
 }
 
+/**
+ * What the compact drift leaves out: it counts every base change but lists only the elements changed
+ * and removed (cut where describeDrift cut them). Undefined when it lists everything there is.
+ */
+export function driftListsNote(drift: BriefDrift): string | undefined {
+  const base = drift.baseChanges;
+  if (!base) return undefined;
+  const unlisted = base.counts.elementsAdded + base.counts.relationshipsAdded + base.counts.relationshipsRemoved;
+  if (unlisted === 0 && !base.truncated) return undefined;
+  return (
+    "The drift counts every base change (baseChanges.counts) and lists only some of them here: " +
+    'changeset_brief with sections: ["drift"] lists them all, a page at a time.'
+  );
+}
+
 /** The delta's lists that page, by the name `page.totals` and `delta.counts` give them. */
 export function deltaLists(delta: BriefDelta): Record<string, unknown[]> {
   return {
@@ -694,6 +710,7 @@ export function compactBrief(
         : "Each changed element is listed with a short description, its files and its connections; attributes are in the full brief. ") +
     (brief.gaps.length > limit ? 'Gaps that say the same thing share a line, every gap counted (sections: ["gaps"] lists each, a page at a time). ' : "") +
     (intent.more ? "intent.more says which intent lists are not whole. " : "") +
+    (brief.changeset.drift && driftListsNote(brief.changeset.drift) ? `${driftListsNote(brief.changeset.drift)} ` : "") +
     `Pass ${sectionNames}, or detail: "full" for the whole brief.`;
 
   const out: CompactBrief = {
@@ -1040,12 +1057,13 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
     more: "",
   };
   const notes: string[] = [];
-  // A layer name that is not one keeps nothing: say so, or an empty answer reads as "no changes there".
-  const knownLayers = new Set(getAllLayerIds());
-  const unknownLayers = [...(options.filter?.layers ?? []), ...(options.filter?.otherLayers ?? [])].filter((l) => !knownLayers.has(l));
-  if (unknownLayers.length > 0) {
-    notes.push(`Not a layer: ${[...new Set(unknownLayers)].join(", ")} (it keeps nothing). The layers are ${[...knownLayers].join(", ")}.`);
-  }
+  /** Parts of the answer that are cut outside the paged lists (each named in a note): the answer is then never "whole". */
+  const cutApart: string[] = [];
+  // A layer or type that is not one keeps nothing: say so, or an empty answer reads as "no changes there".
+  const unknownNote = unknownFilterNote(
+    elementFilter({ layers: [...(given?.layers ?? []), ...(given?.otherLayers ?? [])], types: given?.types })
+  );
+  if (unknownNote) notes.push(unknownNote);
   const intent: ChangesetBrief["intent"] = filter
     ? {
         traced: brief.intent.traced.filter((t) => keep(t.element)),
@@ -1083,6 +1101,11 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           ...(description ? { description } : {}),
           ...(drift ? { drift: full ? drift : compactDrift(drift) } : {}),
         };
+        const dropped = drift && !full ? driftListsNote(drift) : undefined;
+        if (dropped) {
+          notes.push(dropped);
+          cutApart.push("changeset.drift");
+        }
         break;
       }
       case "drift": {
@@ -1156,6 +1179,17 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
       case "changesByType": {
         const kept = { ...brief, layers: brief.layers.map((l) => ({ ...l, changes: l.changes.filter((c) => keep(c.id)) })) };
         out.changesByType = changesByType(kept, full ? Number.MAX_SAFE_INTEGER : IDS_PER_TYPE);
+        // Each type lists its first ids and counts the rest: say where every id of a type is listed.
+        const cut = out.changesByType.filter((g) => g.more);
+        if (cut.length > 0) {
+          notes.push(
+            `changesByType lists the first ${IDS_PER_TYPE} ids of each type and counts the rest in more ` +
+              `(${cut.map((g) => `${g.type}: ${g.more} more`).join(", ")}). Every one is listed by ` +
+              `changeset_brief ${JSON.stringify({ ...options.callArgs, sections: ["changes"], types: [cut[0].type] })}, ` +
+              "one type at a time, a page at a time."
+          );
+          cutApart.push("changesByType");
+        }
         break;
       }
       case "neighborFiles": {
@@ -1299,11 +1333,18 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
     const known = new Set(brief.layers.flatMap((l) => l.changes.map((c) => c.id)));
     const unknown = [...ids].filter((id) => !known.has(id));
     if (unknown.length > 0 && options.cardsFor) {
-      // What the plan links to but does not change, read in the same call (#1395).
+      // What the plan links to but does not change, read in the same call (#1395): a list of this
+      // answer like the others, paged with them.
       const { cards, missing } = options.cardsFor(unknown);
       if (cards.length > 0) {
-        out.unchanged = cards;
         notes.push(`Not changed by this changeset, so in unchanged as the plan leaves them: ${cards.length} of the ids.`);
+        if (full) out.unchanged = cards;
+        else {
+          lists.push({ key: "unchanged", section: "changes", total: cards.length });
+          renderers.push((n) => {
+            out.unchanged = cards.slice(offset, offset + n);
+          });
+        }
       }
       if (missing.length > 0) notes.push(`Not in the model or the plan: ${missing.join(", ")}.`);
     } else if (unknown.length > 0) {
@@ -1359,15 +1400,17 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
         (!page
           ? ""
           : short.length === 0
-            ? " Every list is whole (page.totals)."
+            ? cutApart.length === 0
+              ? " Every list is whole (page.totals)."
+              : ` The paged lists are whole (page.totals); ${cutApart.join(" and ")} ${cutApart.length === 1 ? "is" : "are"} not, as said above.`
             : page.nextOffset === undefined
               ? ` This is the last page (from ${offset}); page.totals has each list's length, and counts and summaries are over the whole lists.`
               : ` Not everything is here: ${short.map((l) => `${l.key} holds ${page.returned[l.key]} of ${l.total}`).join("; ")}` +
                 `${offset > 0 ? ` (from ${offset})` : ""}; counts and summaries are over the whole lists.` +
-                ` Next page: changeset_brief ${JSON.stringify({ ...options.callArgs, sections: names, offset: page.nextOffset })}.` +
+                ` Next page: ${nextPageCall("changeset_brief", { ...options.callArgs, sections: names }, page.nextOffset)}.` +
                 (options.limit === undefined
-                  ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass limit for a fixed page size, ` +
-                    "targetBytes for another target, or narrow with layers or ids."
+                  ? ` The page is sized to keep the answer near ${Math.round(target / 1024)} KB: pass targetBytes for larger or ` +
+                    "smaller pages, limit for at most that many items, or narrow with layers, types or ids."
                   : "")) +
         ` Add detail: "full" for these sections in full at once, or call without sections for the compact brief.`,
     ].join(" ");

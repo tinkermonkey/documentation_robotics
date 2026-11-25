@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { elementFilter, unknownLayersNote } from "../../../src/core/element-filter.js";
+import { elementFilter, isKnownType, unknownFilterNote } from "../../../src/core/element-filter.js";
 import { changeLine } from "../../../src/core/changeset-summary.js";
 
 const SERVICE = "application.applicationservice.orders";
@@ -45,8 +45,20 @@ describe("elementFilter", () => {
   it("names a layer that is not one", () => {
     const filter = elementFilter({ layers: ["aplication"], excludeLayers: ["testing", "nope"] });
     expect(filter.unknownLayers).toEqual(["aplication", "nope"]);
-    expect(unknownLayersNote(filter)).toContain("Not a layer: aplication, nope");
-    expect(unknownLayersNote(elementFilter({ layers: ["api"] }))).toBeUndefined();
+    expect(unknownFilterNote(filter)).toContain("Not a layer: aplication, nope");
+    expect(unknownFilterNote(elementFilter({ layers: ["api"] }))).toBeUndefined();
+  });
+
+  it("names a type the spec does not have, bare or with its layer, with the closest real one", () => {
+    expect(isKnownType("applicationfunction")).toBe(true);
+    expect(isKnownType("application.applicationfunction")).toBe(true);
+    expect(isKnownType("business.applicationfunction")).toBe(false);
+    const filter = elementFilter({ types: ["aplicationfunction", "goal"], excludeTypes: ["business.applicationfunction"] });
+    expect(filter.unknownTypes).toEqual(["aplicationfunction", "business.applicationfunction"]);
+    const note = unknownFilterNote(filter)!;
+    expect(note).toContain("Not an element type: aplicationfunction (did you mean applicationfunction?)");
+    expect(note).toContain("it keeps nothing");
+    expect(unknownFilterNote(elementFilter({ types: ["goal", "motivation.goal"] }))).toBeUndefined();
   });
 });
 

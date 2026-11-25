@@ -210,7 +210,7 @@
     type: applicationfunction
     layer_id: application
     name: elementFilter
-    description: "Which element ids a read keeps, from layers, types, excludeLayers and excludeTypes (a type as `type` or `layer.type`): layers and types narrow together, excludes take away. Names the layers that are not layers, so an empty answer never reads as nothing there."
+    description: "Which element ids a read keeps, from layers, types, excludeLayers and excludeTypes (a type as `type` or `layer.type`): layers and types narrow together, excludes take away. Names the layers and the types that are not ones (checked against the spec's node types), so an empty answer never reads as nothing there."
     metadata:
       created_at: 2026-11-25T16:08:23.361Z
       updated_at: 2026-11-25T16:08:23.361Z
@@ -220,7 +220,7 @@
       locations:
         - file: cli/src/core/element-filter.ts
           symbol: elementFilter
-  timestamp: 2026-11-25T16:32:16.790Z
+  timestamp: 2026-11-25T17:04:19.620Z
   sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.change-line
@@ -398,3 +398,160 @@
     category: structural
   timestamp: 2026-11-25T16:32:06.648Z
   sequenceNumber: 24
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them). layers, types and ids narrow the element sections; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged, with their connections as the plan leaves them. The drift is named once (the changeset section keeps a one-line state when drift is asked for) and its base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: &a16
+      priority: critical
+      status: delivered
+      documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    source_reference: &a17
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a18
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: *a16
+    source_reference: *a17
+    metadata: *a18
+  timestamp: 2026-11-25T17:04:18.317Z
+  sequenceNumber: 29
+- type: update
+  elementId: application.applicationfunction.next-page-hint
+  layerName: application
+  before:
+    id: f7a7ead7-d673-45d8-9871-087d50187e91
+    path: application.applicationfunction.next-page-hint
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: nextPageHint
+    description: One line naming the call that returns the next page of a list, or nothing when the page is the last.
+    source_reference: &a19
+      provenance: extracted
+      locations:
+        - file: cli/src/core/paging.ts
+          symbol: nextPageHint
+    metadata: &a20
+      created_at: 2026-11-20T17:02:56.267Z
+      updated_at: 2026-11-20T17:02:56.267Z
+      version: 1
+  after:
+    id: f7a7ead7-d673-45d8-9871-087d50187e91
+    path: application.applicationfunction.next-page-hint
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: nextPageHint
+    description: One line naming the call that returns the next page, or nothing on the last page. Given the caller's arguments it names that call exactly (nextPageCall); without them it says to repeat the call with the next offset.
+    source_reference: *a19
+    metadata: *a20
+  timestamp: 2026-11-25T17:04:20.952Z
+  sequenceNumber: 31
+- type: add
+  elementId: application.applicationfunction.unstaged-report
+  layerName: application
+  after:
+    id: baa107dc-b7b7-4b82-9b08-67edb3308dce
+    path: application.applicationfunction.unstaged-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: unstagedReport
+    description: 'What changeset_unstage says it removed: the count, the count per operation and one line per change for the first 25, the rest counted, or each change whole with detail "full". With unstagedNotListedNote, the exact changeset_brief call (the delta since the revision before the write) that lists the changes not shown.'
+    metadata:
+      created_at: 2026-11-25T17:04:27.721Z
+      updated_at: 2026-11-25T17:04:27.721Z
+      version: 1
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 32
+- type: add
+  elementId: application.applicationfunction.graph-connections
+  layerName: application
+  after:
+    id: 54396ec3-e007-48c3-9ad4-6f78e6e84520
+    path: application.applicationfunction.graph-connections
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: graphConnections
+    description: "An element's connections in a changeset's projection as a card lists them: every relationship at either end, staged deletes included, each with its standing. The one place model_show's cards and changeset_brief's unchanged cards read an element's links."
+    metadata:
+      created_at: 2026-11-25T17:04:27.721Z
+      updated_at: 2026-11-25T17:04:27.721Z
+      version: 1
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 33
+- type: relationship-add
+  elementId: application.applicationfunction.unstaged-report::realizes::application.applicationservice.changeset-unstage-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.unstaged-report
+    target: application.applicationservice.changeset-unstage-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 34
+- type: relationship-add
+  elementId: application.applicationfunction.unstaged-report::depends-on::application.applicationfunction.change-line
+  layerName: application
+  after:
+    source: application.applicationfunction.unstaged-report
+    target: application.applicationfunction.change-line
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 35
+- type: relationship-add
+  elementId: application.applicationfunction.graph-connections::realizes::application.applicationservice.model-show-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.graph-connections
+    target: application.applicationservice.model-show-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 36
+- type: relationship-add
+  elementId: application.applicationfunction.graph-connections::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.graph-connections
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 37
+- type: relationship-add
+  elementId: application.applicationfunction.element-card::realizes::application.applicationservice.changeset-brief-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.element-card
+    target: application.applicationservice.changeset-brief-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:04:27.735Z
+  sequenceNumber: 38

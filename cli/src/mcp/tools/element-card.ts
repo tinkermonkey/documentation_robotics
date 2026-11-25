@@ -9,6 +9,7 @@
  * `predicate → layer` in `connectionCounts`, so the lines and the counts together are all of them.
  */
 
+import type { ChangesetGraph } from "../../core/changeset-graph.js";
 import { shortDescription } from "./model-list.js";
 
 /** Connections listed per predicate and direction on a card by default; the rest are counted. */
@@ -37,6 +38,16 @@ export interface ElementCard {
 }
 
 const STAGED = new Set(["added", "deleted"]);
+
+/**
+ * An element's connections in a changeset's projection, as a card lists them: every relationship
+ * at either end, the ones the changeset deletes included, each with its standing.
+ */
+export function graphConnections(graph: ChangesetGraph, id: string): CardConnection[] {
+  return graph
+    .neighbors(id, { includeDeleted: true })
+    .map((n) => ({ direction: n.direction, predicate: n.relationship.predicate, other: n.other, status: n.relationship.status }));
+}
 
 export function elementCard(
   element: { id: string; name: string; description?: string },

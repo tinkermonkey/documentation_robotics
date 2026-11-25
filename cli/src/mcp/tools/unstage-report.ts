@@ -4,14 +4,17 @@
  * counted, never dropped silently. One item that takes 80 relationship changes is a count and 25
  * lines, not 25 KB of objects. `detail: "full"` returns each removed change as an object.
  *
- * An unstage cannot be repeated for a second page, so the lines not listed are named where they can
- * still be read: changeset_brief with `since` lists every change unstaged since that revision.
+ * An unstage cannot be repeated for a second page, so the result names the exact call that lists
+ * the rest: changeset_brief with the delta since the revision the changeset was at before the write,
+ * which lists every change unstaged since from its tombstones (the changeset keeps the newest
+ * MAX_UNSTAGED_TOMBSTONES of them).
  */
 
 import { z } from "zod";
 import type { StagedChange } from "../../core/changeset.js";
 import { changeLine } from "../../core/changeset-summary.js";
 import { stagedRelationshipTriple } from "../../core/relationship-staging.js";
+import { MAX_UNSTAGED_TOMBSTONES } from "../../core/staged-changeset-storage.js";
 
 /** Removed changes listed as lines per unstage (or per item of a list); the rest are counted. */
 export const UNSTAGE_LINES = 25;
@@ -59,12 +62,25 @@ export function unstagedReport(removed: readonly StagedChange[], detail: "compac
   };
 }
 
-/** The sentence a result adds when some removed changes are counted, not listed. */
-export function unstagedNotListedNote(notListed: number): string | undefined {
+/**
+ * The sentence a result adds when some removed changes are counted, not listed: the exact call that
+ * lists every one of them. `revision` is the changeset's revision before the write, `removed` how
+ * many changes the write removed in all.
+ */
+export function unstagedNotListedNote(
+  notListed: number,
+  recovery: { changesetId: string; revision: number; removed: number }
+): string | undefined {
   if (notListed <= 0) return undefined;
+  const call = { changeset: recovery.changesetId, sections: ["delta"], since: recovery.revision };
+  const kept =
+    recovery.removed > MAX_UNSTAGED_TOMBSTONES
+      ? ` The changeset keeps the newest ${MAX_UNSTAGED_TOMBSTONES} unstaged changes, so that lists the last ` +
+        `${MAX_UNSTAGED_TOMBSTONES} of these ${recovery.removed}; byOperation counts them all.`
+      : "";
   return (
-    `${notListed} removed change(s) are counted in byOperation, not listed (the first ${UNSTAGE_LINES} of each ` +
-    'unstage are). changeset_brief with since (an earlier revisionToken) lists every unstaged change; detail: "full" ' +
-    "on an unstage lists them all."
+    `${notListed} removed change(s) are counted in byOperation, not listed here (the first ${UNSTAGE_LINES} of each ` +
+    `unstage are). changeset_brief ${JSON.stringify(call)} lists every change this unstage removed, in delta.unstaged.` +
+    `${kept} detail: "full" on a later unstage lists what it removes as objects.`
   );
 }

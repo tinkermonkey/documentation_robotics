@@ -204,7 +204,7 @@ describe("changeset_unstage: counts and lines, not every change in full (#1299)"
       expect(one.unstaged).toHaveLength(UNSTAGE_LINES);
       expect(one.unstaged[0]).toMatch(/^#\d+ relationship-add application\.applicationfunction\.step-0 --realizes--> /);
       expect(one.unstagedNotListed).toBe(30 - UNSTAGE_LINES);
-      expect(one.notes.join(" ")).toContain("changeset_brief with since");
+      expect(one.notes.join(" ")).toContain("lists every change this unstage removed");
       // A few kilobytes, where the objects were about 300 bytes each.
       expect(JSON.stringify(one).length).toBeLessThan(5_000);
 
@@ -419,6 +419,148 @@ describe("model_trace honours limit on every list (#1299)", () => {
       expect(trace.page.totals.changedEdges).toBe(6);
       expect(trace.page.nextOffset).toBe(2);
       expect(trace.more).toContain("offset: 2");
+    });
+  });
+});
+
+describe("review of PR 1451: no answer reads as complete when it is not", () => {
+  it("names a type that is not one in changeset_show and in the brief, instead of an empty list read as whole", async () => {
+    await withProject(async (rootPath) => {
+      parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      await addFunctions(rootPath, 2);
+      const shown = parse(await changesetShowHandler({ changeset: "plan", types: ["aplicationfunction"], rootPath }));
+      expect(shown.changes).toEqual([]);
+      expect(shown.more).toContain("Not an element type: aplicationfunction (did you mean applicationfunction?)");
+      const brief = parse(await changesetBriefHandler({ sections: ["changes"], types: ["aplicationfunction"], rootPath }));
+      expect(brief.changes).toEqual([]);
+      expect(brief.more).toContain("Not an element type: aplicationfunction");
+      // The brief's unknown layers go through the same note, otherLayers included.
+      const layers = parse(await changesetBriefHandler({ sections: ["layers"], otherLayers: ["prodct"], rootPath }));
+      expect(layers.more).toContain("Not a layer: prodct");
+    });
+  });
+
+  it("says changesByType is cut, and names the call that lists a type whole", async () => {
+    await withProject(async (rootPath) => {
+      parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      await addFunctions(rootPath, 8);
+      const result = parse(await changesetBriefHandler({ sections: ["changesByType"], rootPath }));
+      expect(result.changesByType).toEqual([expect.objectContaining({ type: "application.applicationfunction", added: 8, more: 3 })]);
+      expect(result.more).toContain("application.applicationfunction: 3 more");
+      expect(result.more).toContain(
+        `changeset_brief ${JSON.stringify({ rootPath, sections: ["changes"], types: ["application.applicationfunction"] })}`
+      );
+      expect(result.more).not.toContain("Every list is whole");
+      // The call it names lists all eight.
+      const all = parse(await changesetBriefHandler({ sections: ["changes"], types: ["application.applicationfunction"], rootPath }));
+      expect(all.changes).toHaveLength(8);
+    });
+  });
+
+  it("names the call that lists every change an unstage removed past the lines it shows", async () => {
+    await withProject(async (rootPath) => {
+      const plan = parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      const added = await addFunctions(rootPath, 30);
+      const result = parse(await changesetUnstageHandler({ target: SERVICE, rootPath }));
+      expect(result.unstagedNotListed).toBe(5);
+      const named = /changeset_brief (\{.*?\}) lists every change/.exec(result.notes.join(" "))![1];
+      const call = JSON.parse(named);
+      expect(call).toEqual({ changeset: plan.id, sections: ["delta"], since: expect.any(Number) });
+      // That call lists all 30, the 5 not shown included.
+      const brief = parse(await changesetBriefHandler({ ...call, rootPath }));
+      expect(brief.delta.unstaged).toHaveLength(30);
+      for (const id of added) expect(brief.delta.unstaged.some((line: string) => line.includes(`${id} --realizes-->`))).toBe(true);
+    });
+  });
+
+  it("lists changesets newest first", async () => {
+    await withProject(async (rootPath) => {
+      const storage = new StagedChangesetStorage(rootPath);
+      for (const [name, created] of [
+        ["middle", "2026-11-02T00:00:00.000Z"],
+        ["oldest", "2026-11-01T00:00:00.000Z"],
+        ["newest", "2026-11-03T00:00:00.000Z"],
+      ]) {
+        const made = parse(await changesetCreateHandler({ name, activate: false, rootPath } as any));
+        const record = (await storage.load(made.id))!;
+        record.created = created;
+        await storage.save(record);
+      }
+      const list = parse(await changesetListHandler({ rootPath }));
+      expect(Object.values(list.changesets).map((c: any) => c.name)).toEqual(["newest", "middle", "oldest"]);
+    });
+  });
+
+  it("keeps a limited unwired page near targetBytes through the tool, and says it holds fewer (#1334)", async () => {
+    await withProject(async (rootPath) => {
+      parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      await addFunctions(rootPath, 20);
+      // One function's unwired listing is about 4 KB: room for a few, not all 20.
+      const targetBytes = 16_000;
+      const result = await changesetBriefHandler({ sections: ["unwired"], limit: 20, targetBytes, rootPath });
+      const json = parse(result);
+      expect(json.page.totals.unwired).toBe(20);
+      expect(json.page.returned.unwired).toBeGreaterThan(1);
+      expect(json.page.returned.unwired).toBeLessThan(20);
+      expect(json.page.nextOffset).toBe(json.page.returned.unwired);
+      expect(json.more).toContain("limit 20 would take this answer past the 16 KB target");
+      expect(Buffer.byteLength(result.content[0].text as string)).toBeLessThanOrEqual(targetBytes);
+    });
+  });
+
+  it("pages the unchanged cards with the answer's other lists (#1395)", async () => {
+    await withProject(async (rootPath) => {
+      const base = await addFunctions(rootPath, 3, "base");
+      parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      await addFunctions(rootPath, 1, "planned");
+      const ids = ["application.applicationfunction.planned-0", ...base, LEDGER];
+      const first = parse(await changesetBriefHandler({ sections: ["changes"], ids, limit: 2, rootPath }));
+      expect(first.changes).toHaveLength(1);
+      expect(first.unchanged.map((c: any) => c.id)).toEqual(base.slice(0, 2));
+      expect(first.page.totals).toMatchObject({ changes: 1, unchanged: 4 });
+      expect(first.page.nextOffset).toBe(2);
+      const second = parse(await changesetBriefHandler({ sections: ["changes"], ids, limit: 2, offset: 2, rootPath }));
+      expect(second.unchanged.map((c: any) => c.id)).toEqual([base[2], LEDGER]);
+      expect(second.page.nextOffset).toBeUndefined();
+    });
+  });
+
+  it("says the changeset section's drift lists only some base changes, and where the rest are", async () => {
+    await withProject(async (rootPath) => {
+      parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      await addFunctions(rootPath, 1, "planned");
+      parse(await changesetDeactivateHandler({ rootPath }));
+      await addFunctions(rootPath, 2, "landed");
+      parse(await changesetActivateHandler({ changeset: "plan", rootPath }));
+      const result = parse(await changesetBriefHandler({ sections: ["changeset"], rootPath }));
+      expect(result.changeset.drift.baseChanges.counts.elementsAdded).toBe(2);
+      expect(result.more).toContain('sections: ["drift"] lists them all');
+      expect(result.more).not.toContain("Every list is whole");
+      // The default compact brief says it too.
+      expect(parse(await changesetBriefHandler({ rootPath })).more).toContain('sections: ["drift"] lists them all');
+    });
+  });
+
+  it("model_search: the hint counts words split between a searched field and one that is not; all fields at once; full detail", async () => {
+    await withProject(async (rootPath) => {
+      // "ledger" is in the name, "export" only in the description.
+      const split = parse(await modelSearchHandler({ query: "ledger export", match: "all", rootPath }));
+      expect(split.count).toBe(0);
+      expect(split.more).toContain("1 in description");
+      const every = parse(
+        await modelSearchHandler({ query: "ledger export", match: "all", fields: ["id", "name", "description", "attributes"], rootPath })
+      );
+      expect(every.results.map((r: any) => r.id)).toEqual([LEDGER]);
+      // Attribute values are searched too.
+      const attribute = parse(await modelSearchHandler({ query: "batch", fields: ["attributes"], rootPath }));
+      expect(attribute.results).toEqual([expect.objectContaining({ id: SERVICE, matchedIn: ["attributes"] })]);
+
+      const long = `Exports orders. ${"It writes every row the finance team asks for, in order. ".repeat(5)}`;
+      parse(await modelAddHandler({ layer: "business", type: "businessservice", name: "long-export", description: long, rootPath }));
+      const compact = parse(await modelSearchHandler({ query: "long-export", rootPath }));
+      expect(compact.results[0].description).toBe("Exports orders. …");
+      const full = parse(await modelSearchHandler({ query: "long-export", detail: "full", rootPath }));
+      expect(full.results[0].description).toBe(long);
     });
   });
 });

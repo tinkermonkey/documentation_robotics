@@ -20,7 +20,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Element } from "../../core/element.js";
 import { ChangesetGraph } from "../../core/changeset-graph.js";
 import { elementFilter } from "../../core/element-filter.js";
-import { nextPageCall, nextPageHint, pageOf, pagingFields } from "../../core/paging.js";
+import { nextPageHint, pageOf, pagingFields } from "../../core/paging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { activeStagedChangeset } from "./changeset-shared.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
@@ -212,7 +212,8 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
       excludeLayers: args.excludeLayers,
       excludeTypes: args.excludeTypes,
     });
-    // Words found only in the fields not searched, so an empty or short answer says where else they are.
+    // Elements the query matches only with fields not searched, counted per such field, so an empty or
+    // short answer says where else they are.
     const otherFields = FIELDS.filter((f) => !fields.includes(f));
     const elsewhere: Record<string, number> = {};
 
@@ -232,8 +233,12 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
           const texts = fieldTexts(element);
           hit = hitOf(texts, fields, args.query, match);
           if (!hit) {
-            const other = otherFields.length > 0 ? hitOf(texts, otherFields, args.query, match) : undefined;
-            for (const field of other?.matchedIn ?? []) elsewhere[field] = (elsewhere[field] ?? 0) + 1;
+            // Would it match with every field searched? Then name the fields not searched that it needs:
+            // with match "all" the words may be split between a searched field and one that is not.
+            const wide = otherFields.length > 0 ? hitOf(texts, FIELDS, args.query, match) : undefined;
+            for (const field of wide?.matchedIn ?? []) {
+              if (!fields.includes(field)) elsewhere[field] = (elsewhere[field] ?? 0) + 1;
+            }
             continue;
           }
         }
@@ -277,8 +282,8 @@ export async function modelSearchHandler(args: ModelSearchArgs): Promise<CallToo
     }
 
     const notes: string[] = [];
-    const next = nextPageHint("model_search", "results", page);
-    if (next) notes.push(`${next} Next page: ${nextPageCall("model_search", { ...args }, page.nextOffset!)}.`);
+    const next = nextPageHint("model_search", "results", page, { ...args });
+    if (next) notes.push(next);
     if (Object.keys(elsewhere).length > 0) {
       const where = Object.entries(elsewhere).map(([field, n]) => `${n} in ${field}`);
       notes.push(

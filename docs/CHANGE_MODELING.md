@@ -768,11 +768,20 @@ items. The 30 is `limit` and the 5 ids per type is `idsPerType`: both are the ca
 
 `detail: "full"` returns the full brief described below, unchanged. `sections: [...]` returns only
 the sections named, under a small header: the revision and its token, the changeset's
-id, name and status, and the summary counts. The sections are `changes`, `changeset` (the
-description and the drift in full), `drift`, `layers`, `unwired`, `intent`, `gaps`, `acceptedGaps`, `codeTouched`,
-`feedback`, `relationshipChanges`, `alreadyInBase` and `delta`. With `since`, the delta comes too,
-compact; `unwired` or `unwiredLayers` count as naming `unwired`. With
-`since` and no sections, the compact brief leaves out `changes`, since the delta says what changed.
+id, name and status, and the summary counts. Every top-level block of the compact brief is a
+section: `summary` and `byLayer` (the counts alone), `reach`, `changes`, `changesByType`,
+`changeset` (the description, and the drift in its compact form unless `drift` is named too, so the
+drift is named once), `drift`, `layers`, `unwired`, `intent`, `gaps`, `acceptedGaps`, `codeTouched`,
+`neighborFiles`, `feedback`, `relationshipChanges`, `alreadyInBase` and `delta`. With `since`, the
+delta comes too, compact; `unwired` or `unwiredLayers` count as naming `unwired`. With `since` and
+no sections, the compact brief leaves out `changes`, since the delta says what changed.
+
+`layers`, `types` and `ids` narrow the element sections: `layers` and `types` together (one
+layer's services: `layers: ["application"], types: ["applicationservice"]`), `ids` by themselves.
+A layer or type that is not one is named in `more`, since it keeps nothing. With `ids`, an element
+lists the staged relationships into it from changed elements the answer leaves out, and ids the plan
+does not change come back in `unchanged`, a card each (name, first sentence of the description,
+change status, connections as the plan leaves them), paged with the answer's other lists.
 
 Each section comes in a compact form:
 
@@ -788,6 +797,10 @@ Each section comes in a compact form:
   counts together are all of them. `otherLayers: [...]` lists only the connections into those layers.
 - `unwired`: each element's unwired connections.
 - `codeTouched`: each file with its changed ids and a count of the neighbors in it.
+- `drift`: the drift, its base-change lists paged with the answer's other lists (`drift.elementsAdded`
+  and so on in `page.totals`); `driftLimit` and `driftOffset` page them apart instead.
+- `changesByType`: per type, the counts and the first 5 ids; when a type has more, `more` names the
+  `sections: ["changes"], types: [...]` call that lists them all.
 - `changes`: the build view, below.
 
 **Long lists page; nothing is dropped.** A limit here is a default, never a cut-off that leaves an
@@ -806,8 +819,9 @@ paged together:
 Repeating the same call with `offset` set to `nextOffset` continues every list, and the pages
 together are every item, once; `more` names that call with its arguments. With no `limit`, the page
 is as long as keeps the answer near `targetBytes` (default 40 KB, `SECTIONS_TARGET_BYTES`, which
-fits one tool result), every list whole when they fit, and never shorter than one item. With a
-`limit`, the page is that many items whatever they weigh. Counts are always over the whole list: the
+fits one tool result), every list whole when they fit, and never shorter than one item. A `limit` is
+the most a page holds: the page still stays near `targetBytes`, and `more` says when it holds fewer
+than the limit; pass a larger `targetBytes` for a larger page. Counts are always over the whole list: the
 intent section's `counts` and `untracedByType`, a section's entry in `summaries`, the header's
 `summary`.
 

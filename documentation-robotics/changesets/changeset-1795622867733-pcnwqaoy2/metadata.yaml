@@ -2,17 +2,17 @@ id: changeset-1795622867733-pcnwqaoy2
 name: cli09-compact-changeset-reads
 description: 'CLI 0.9.0 tranche "Compact changeset reads" (#1250 #1257 #1258 #1281 #1283 #1284 #1294 #1299 #1334 #1373 #1390 #1395): changeset reads are compact by default and page. One approach everywhere: a compact default, layer and type filters, limit/offset paging with true totals and the exact next call (core/paging.ts). changeset_list lists staged changesets by default and counts the rest; changeset_show is one line per change, filtered by layer, type and operation, and paged; changeset_impact lists ids per layer by default; changeset_unstage returns counts and change lines; changeset_brief gains summary/byLayer/reach/changesByType/neighborFiles sections, a types filter, incoming staged links and unchanged elements for ids, drift named once and paged with the answer, and pages that stay near targetBytes even with limit; model_search excludes layers and types, searches descriptions and attributes, ranks name hits first and pages; model_show takes ids.'
 created: 2026-11-25T16:07:47.770Z
-modified: 2026-11-25T16:32:16.792Z
+modified: 2026-11-25T17:04:27.745Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 16
-  modifications: 5
+  additions: 23
+  modifications: 7
   deletions: 0
-lastSequence: 28
+lastSequence: 38
 unstaged:
   - sequence: 16
     removedAt: 23
@@ -132,4 +132,29 @@ unstaged:
           updated_at: 2026-11-25T16:08:23.361Z
           version: 1
       timestamp: 2026-11-25T16:08:23.372Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 30
+    change:
+      type: add
+      elementId: application.applicationfunction.element-filter
+      layerName: application
+      after:
+        id: cb35efd0-3b45-4734-a65f-c06b41494b6b
+        path: application.applicationfunction.element-filter
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: elementFilter
+        description: "Which element ids a read keeps, from layers, types, excludeLayers and excludeTypes (a type as `type` or `layer.type`): layers and types narrow together, excludes take away. Names the layers that are not layers, so an empty answer never reads as nothing there."
+        metadata:
+          created_at: 2026-11-25T16:08:23.361Z
+          updated_at: 2026-11-25T16:08:23.361Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/element-filter.ts
+              symbol: elementFilter
+      timestamp: 2026-11-25T16:32:16.790Z
     rewritten: true

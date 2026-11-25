@@ -16,7 +16,7 @@ import { z } from "zod";
 import { strictItem } from "../strict-schema.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { DRIFT_LIST_LIMIT, type ChangesetDrift } from "../../core/changeset-base-index.js";
-import { ChangesetGraph } from "../../core/changeset-graph.js";
+import { ChangesetGraph, changesetRevision } from "../../core/changeset-graph.js";
 import { Model } from "../../core/model.js";
 import type { Changeset, StagedChange } from "../../core/changeset.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
@@ -449,6 +449,8 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
       });
     }
 
+    // The revision before the write: the delta since it lists every change this unstage removes.
+    const revisionBefore = changesetRevision(changeset);
     // Each key is a revision of its own, as before the list form: briefs count unstages by revision.
     for (const key of keys) {
       await manager.unstage(changeset.id!, key);
@@ -456,7 +458,11 @@ export async function changesetUnstageHandler(args: ChangesetUnstageArgs): Promi
     await reloadModel(args.rootPath);
 
     const report = unstagedReport(removed, args.detail);
-    const notListed = unstagedNotListedNote(report.unstagedNotListed ?? 0);
+    const notListed = unstagedNotListedNote(report.unstagedNotListed ?? 0, {
+      changesetId: changeset.id!,
+      revision: revisionBefore,
+      removed: removed.length,
+    });
     return jsonResult({
       status: "unstaged",
       changeset: changeset.name,
@@ -542,6 +548,7 @@ async function unstageBatch(
     });
   }
 
+  const revisionBefore = changesetRevision(changeset);
   if (claimed.size > 0) {
     await manager.unstageMany(changeset.id!, [...claimed]);
     await reloadModel(rootPath);
@@ -550,7 +557,11 @@ async function unstageBatch(
   const counts: Record<string, number> = {};
   for (const result of results) counts[result.status] = (counts[result.status] ?? 0) + 1;
   const removedCount = changes.filter((c) => claimed.has(c.elementId)).length;
-  const notListed = unstagedNotListedNote(results.reduce((sum, r) => sum + (r.unstagedNotListed ?? 0), 0));
+  const notListed = unstagedNotListedNote(results.reduce((sum, r) => sum + (r.unstagedNotListed ?? 0), 0), {
+    changesetId: changeset.id!,
+    revision: revisionBefore,
+    removed: removedCount,
+  });
   return jsonResult({
     changeset: changeset.name,
     counts,
