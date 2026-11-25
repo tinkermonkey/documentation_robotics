@@ -55,6 +55,11 @@ export interface ApiVerifyContext {
    * among them is not in the code only.
    */
   notElements?: ReadonlySet<string>;
+  /**
+   * The reason a project rule (documentation-robotics/extraction-rules.yaml) keeps a route out of
+   * "in the code only", as codebase_extract applies it; null when none does (#1414).
+   */
+  ruleExcluded?: (route: DiscoveredRoute) => string | null;
 }
 
 /** Why an operation with no source reference can't be checked, and what would make it checkable. */
@@ -377,6 +382,8 @@ export class VerifyEngine {
         matchedRouteIds.add(matchedElement.id);
       } else if (rejected(route)) {
         ignored.push({ id: route.id, entry_type: "route", reason: REJECTED_REASON });
+      } else if (context.ruleExcluded?.(route)) {
+        ignored.push({ id: route.id, entry_type: "route", reason: context.ruleExcluded(route)! });
       } else {
         inGraphOnly.push({
           id: route.id,
@@ -413,6 +420,8 @@ export class VerifyEngine {
         ignored.push({ id: route.id, entry_type: "route", reason: ignoreReason });
       } else if (rejected(route)) {
         ignored.push({ id: route.id, entry_type: "route", reason: REJECTED_REASON });
+      } else if (context.ruleExcluded?.(route)) {
+        ignored.push({ id: route.id, entry_type: "route", reason: context.ruleExcluded(route)! });
       } else {
         inGraphOnly.push({ id: route.id, http_method: route.http_method, http_path: route.http_path, source_file: file, source_symbol: symbol, declared_in: file });
       }

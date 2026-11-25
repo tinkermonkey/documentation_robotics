@@ -40,7 +40,18 @@ const whereSchema = strictItem("A decide[] item's where", {
     .optional()
     .describe("exported or local (a top-level declaration); public, private or protected (a member); or a list."),
   nested: z.boolean().optional().describe("true: declared inside another function. false: not."),
-  name: z.string().min(1).optional().describe("A regular expression on the symbol's name (Error$)."),
+  name: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("A regular expression on the symbol's bare name, without its class: _copy_grooves, not Assembly._copy_grooves (Error$)."),
+  symbol: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "A regular expression on the card's symbol as cards show it: Class.method for a method (^Assembly\\._copy_grooves$), METHOD /path for a route, else the name."
+    ),
   declaration: z.string().min(1).optional().describe("A regular expression on the declaration (\\bextends\\s+\\w*Error\\b)."),
   ownerType: z
     .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
@@ -51,7 +62,11 @@ const whereSchema = strictItem("A decide[] item's where", {
 export const decideItemSchema = strictItem("A decide[] item", {
   name: z.string().min(1).optional().describe("A name for the rule (kebab-case). Default: derived from what it decides."),
   where: whereSchema.optional().describe("Which cards: every condition given must hold. At least one condition."),
-  card: z.string().min(1).optional().describe("One card instead of where: its cardId, or a symbol (or file#symbol) only one card has."),
+  card: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("One card instead of where: its cardId, or a symbol (or file#symbol) only one card has, among the last run's cards or this run's symbols."),
   relationship: strictItem("A decide[] item's relationship", {
     source: z.string().min(1).optional().describe("The source element id."),
     predicate: z.string().min(1).describe("The predicate, e.g. realizes."),
@@ -61,6 +76,18 @@ export const decideItemSchema = strictItem("A decide[] item", {
     .describe("Relationships instead of cards (as: none only): the predicate and a source, a target or both."),
   as: z.string().min(1).describe("What they are: a layer.type (application.applicationfunction), or none (not a model element; not a relationship)."),
   reason: z.string().min(1).describe("Why, in a few words. Kept with the rule."),
+  attributes: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      "With a layer.type: attributes for the elements it stages, what the type requires and the code can't give ({type: \"button\"}; spec_type lists them). The code's own facts win. Kept with the rule."
+    ),
+  overrideTier0: z
+    .boolean()
+    .optional()
+    .describe(
+      "With as: none on a where item: also take the symbols Tier 0 decided as elements (it would stage them). Default false: those stay Tier 0's and ruleWarnings says how many the item matched."
+    ),
   keep: z
     .boolean()
     .optional()
@@ -86,23 +113,58 @@ export interface DecideResult extends BatchItemResult {
   sample?: string[];
   /** Whether it was written to the project's rules file. */
   kept?: boolean;
+  /** A none item: symbols it matched that Tier 0 decided as elements and kept, since the item doesn't say overrideTier0. */
+  tier0Kept?: number;
+  /** A none item with overrideTier0: symbols Tier 0 decided as elements that it took. */
+  tier0Overridden?: number;
+  /** A kept none item: recorded rejections it covers, removed from decisions.json because the rule now holds them. */
+  retired?: number;
 }
 
 export interface CompiledDecide {
   /** The where and relationship items as rules, in the order sent, each with its place in the call. */
   rules: Array<{ index: number; compiled: CompiledRule; keep: boolean }>;
   /** Card decisions, by cardId: planned under a rule name of their own ({@link cardRuleName}). */
-  byCard: Map<string, { index: number; decision: CompiledRule["decision"]; rule: string; reason: string; card: UndecidedCard }>;
+  byCard: Map<
+    string,
+    { index: number; decision: CompiledRule["decision"]; rule: string; reason: string; card: CardRef; attributes?: Record<string, unknown> }
+  >;
   /** Items that can't be applied as sent. */
   problems: DecideResult[];
 }
 
+/** What a card item resolves to: a card of the last run, or a symbol of this run. */
+export type CardRef = Pick<UndecidedCard, "cardId" | "file" | "symbol" | "label" | "qualifiedName"> & Partial<UndecidedCard>;
+
+function normFile(file: string | null | undefined): string {
+  return (file ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/** The cards a card item names: by cardId, else by symbol, file#symbol (a ./ prefix or backslashes allowed) or qualified name. */
+export function cardsNamed<T extends CardRef>(cards: readonly T[], ref: string): T[] {
+  const byId = cards.filter((c) => c.cardId === ref);
+  if (byId.length) return byId;
+  const hash = ref.lastIndexOf("#");
+  const refFile = hash > 0 ? normFile(ref.slice(0, hash)) : null;
+  const refSymbol = hash > 0 ? ref.slice(hash + 1) : null;
+  return cards.filter(
+    (c) => c.symbol === ref || c.qualifiedName === ref || (refFile !== null && normFile(c.file) === refFile && c.symbol === refSymbol)
+  );
+}
+
 /**
  * Check the decide items and turn them into rules. A card item is resolved against the last run's
- * cards (`cards`); a card nothing has, or that several have, is a problem. An item that names none
- * or several of where, card and relationship is a problem; the other items still apply.
+ * cards (`cards`), then against this run's symbols (`runCards`, #1394), so a symbol or file#symbol
+ * the run has is found though the last run's record doesn't list it; a card nothing has, or that
+ * several have, is a problem. An item that names none or several of where, card and relationship is
+ * a problem; the other items still apply.
  */
-export function compileDecide(items: readonly DecideItem[], cards: readonly UndecidedCard[], takenNames: ReadonlySet<string>): CompiledDecide {
+export function compileDecide(
+  items: readonly DecideItem[],
+  cards: readonly CardRef[],
+  takenNames: ReadonlySet<string>,
+  runCards: readonly CardRef[] = []
+): CompiledDecide {
   const out: CompiledDecide = { rules: [], byCard: new Map(), problems: [] };
   const taken = new Set(takenNames);
   items.forEach((item, index) => {
@@ -119,19 +181,29 @@ export function compileDecide(items: readonly DecideItem[], cards: readonly Unde
         return;
       }
       const ref = item.card;
-      const hits = cards.filter((c) => c.cardId === ref);
-      const matches = hits.length ? hits : cards.filter((c) => c.symbol === ref || `${c.file ?? ""}#${c.symbol}` === ref || c.qualifiedName === ref);
+      const fromLast = cardsNamed(cards, ref);
+      const matches = fromLast.length ? fromLast : cardsNamed(runCards, ref);
       if (matches.length !== 1) {
         problem(
           matches.length ? "ambiguous" : "no-match",
-          matches.length ? `'${ref}' names more than one card: ${matches.map((c) => c.cardId).join(", ")}` : `'${ref}' is not a card of the last run (or the last preview, when no run has been made)`,
-          ["Pass the card's cardId, as the cards list it"]
+          matches.length
+            ? `'${ref}' names more than one card: ${matches.map((c) => c.cardId).join(", ")}`
+            : `'${ref}' is not a card of the last run (or the last preview, when no run has been made), nor a symbol this run read`,
+          ["Pass the card's cardId, as the cards list it, or file#symbol with the card's file and symbol"]
         );
         return;
       }
       try {
         const decision = parseDecision(`card ${ref}`, item.as);
-        out.byCard.set(matches[0].cardId, { index, decision, rule: `${PROJECT_RULE_PREFIX}${cardRuleName(index)}`, reason: item.reason, card: matches[0] });
+        if (item.attributes && decision.kind !== "type") throw new Error(`card ${ref}: attributes go with a layer.type, not with as: none`);
+        out.byCard.set(matches[0].cardId, {
+          index,
+          decision,
+          rule: `${PROJECT_RULE_PREFIX}${cardRuleName(index)}`,
+          reason: item.reason,
+          card: matches[0],
+          ...(item.attributes ? { attributes: item.attributes } : {}),
+        });
       } catch (error) {
         problem("invalid", error instanceof Error ? error.message : String(error), ["spec_type lists a layer's types"]);
       }
@@ -144,7 +216,13 @@ export function compileDecide(items: readonly DecideItem[], cards: readonly Unde
     };
     const name = item.name ?? ruleNameFor(base, taken);
     try {
-      const compiled = compileRule({ name, ...base, reason: item.reason });
+      const compiled = compileRule({
+        name,
+        ...base,
+        reason: item.reason,
+        ...(item.attributes !== undefined ? { attributes: item.attributes } : {}),
+        ...(item.overrideTier0 !== undefined ? { overrideTier0: item.overrideTier0 } : {}),
+      });
       taken.add(name);
       out.rules.push({ index, compiled, keep: item.keep === true });
     } catch (error) {
@@ -170,7 +248,14 @@ export function withCardDecisions(extraction: ExtractionGraph, byCard: CompiledD
       const tier0: Tier0Outcome =
         d.decision.kind === "none"
           ? { kind: "reject", rule: d.rule, confidence: "high" }
-          : { kind: "decide", layer: d.decision.layer, type: d.decision.type, rule: d.rule, confidence: "high" };
+          : {
+              kind: "decide",
+              layer: d.decision.layer,
+              type: d.decision.type,
+              ...(d.attributes ? { attributes: d.attributes } : {}),
+              rule: d.rule,
+              confidence: "high",
+            };
       return { ...s, tier0 };
     }),
   };
@@ -192,7 +277,9 @@ export interface RuleReport {
   /** With a since run: symbols a typed rule covers that the range did not change. */
   untouched?: number;
   /** Of its notElements, symbols Tier 0 (or the node mapping) had decided as elements, or rejected, that this rule overrode. */
-  overrodeTier0?: { decided: number; rejected: number };
+  overrodeTier0?: { decided: number; rejected: number; types?: Record<string, number> };
+  /** A none rule without overrideTier0: symbols it matched that Tier 0 decided as elements and staged (#1424). */
+  tier0Kept?: number;
   /** The first few it decided: symbols as file#symbol, staged elements as ids. */
   sample: string[];
   /** How many the sample is taken from. */
@@ -206,7 +293,8 @@ export function ruleReport(
   untouched: ReadonlyMap<string, number>,
   relationships: ReadonlyMap<string, string[]>,
   sampleSize = SAMPLE_SIZE,
-  overrode?: ReadonlyMap<string, { decided: number; rejected: number }>
+  overrode?: ReadonlyMap<string, { decided: number; rejected: number; types?: Record<string, number> }>,
+  tier0Kept?: ReadonlyMap<string, number>
 ): RuleReport {
   const decided = plan.byRule.get(rule.name);
   const rels = relationships.get(rule.name) ?? [];
@@ -223,7 +311,42 @@ export function ruleReport(
     ...(rels.length ? { relationships: rels.length } : {}),
     ...(left ? { untouched: left } : {}),
     ...(overrode?.get(rule.name) ? { overrodeTier0: overrode.get(rule.name)! } : {}),
+    ...(tier0Kept?.get(rule.name) ? { tier0Kept: tier0Kept.get(rule.name)! } : {}),
     sample: all.slice(0, sampleSize),
     sampleOf: all.length,
   };
+}
+
+/** `type: n` for the first few types, largest first, and how many more. */
+function typeCounts(types: Record<string, number> | undefined): string {
+  const entries = Object.entries(types ?? {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const shown = entries.slice(0, 3).map(([t, n]) => `${t}: ${n}`);
+  return entries.length > 3 ? `${shown.join(", ")}, and ${entries.length - 3} more type(s)` : shown.join(", ");
+}
+
+/**
+ * The run's top-level warnings about rules and Tier 0 (#1424), one per rule: a `none` rule that
+ * matched symbols Tier 0 decided as elements and left them to Tier 0 (they are staged), and one that
+ * took them because it says `overrideTier0` (they are not). Never only a nested count: a rule that
+ * removes Tier 0's deterministic results, or is kept from it, is said where the answer starts.
+ * `keptTypes` gives, per rule, the types Tier 0 staged the kept symbols as.
+ */
+export function ruleWarnings(reports: readonly RuleReport[], keptTypes: ReadonlyMap<string, Record<string, number>>, preview: boolean): string[] {
+  const out: string[] = [];
+  for (const r of reports) {
+    if (r.tier0Kept) {
+      out.push(
+        `Rule '${r.rule}' says none, but ${r.tier0Kept} symbol(s) it matches were decided by Tier 0 as elements (${typeCounts(keptTypes.get(r.rule))}): ` +
+          `they stay Tier 0's and ${preview ? "would be" : "are"} staged. If the rule should take them, add overrideTier0: true to it (preview: true first shows what that removes); ` +
+          "otherwise narrow its where so it covers only what Tier 0 left open."
+      );
+    }
+    if (r.overrodeTier0?.decided) {
+      out.push(
+        `Rule '${r.rule}' says overrideTier0, so it takes ${r.overrodeTier0.decided} symbol(s) Tier 0 decided as elements (${typeCounts(r.overrodeTier0.types)}): ` +
+          `they ${preview ? "would not be" : "are not"} staged.`
+      );
+    }
+  }
+  return out;
 }

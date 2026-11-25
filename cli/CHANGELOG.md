@@ -19,6 +19,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
 
+### Extract output and decide (CLI 0.9.0, Tool ergonomics)
+
+- **codebase_extract, rules and Tier 0 (#1424):** a project rule that says `none` no longer takes a
+  symbol Tier 0 decided as an element. Those stay Tier 0's (staged) unless the rule says
+  `overrideTier0: true` (a new key on `decide` items and in `extraction-rules.yaml`). A Tier 0
+  decision that can't be staged (a needs-attributes or ambiguous card) is still the rule's. Every run
+  and preview leads with `ruleWarnings`: per rule, how many such symbols it matched or took, by type.
+  This applies to rules already kept in a project's file: one that relied on overriding Tier 0 (a
+  fixture folder's routes) needs `overrideTier0: true` added, and the warning names it.
+- **codebase_verify (#1414):** applies the project's kept rules as codebase_extract does, on every
+  layer (routes too). What a rule says is not an element is listed under the layer's `ignored` with
+  the rule, and a new `rules` block says how many rules were read and applied (or why none could be).
+- **codebase_extract reject (#1254, #1394):** a `files` item leaves out cards an element now names
+  (counted as `modelled`), and takes `except` for cards to keep. With `decide` in the same call, the
+  decide items apply first and a `files` item covers only the cards they left; a `card` item naming a
+  card a decide item names is reported as `decided` and records nothing.
+- **codebase_extract decide (#1394):** a `card` item is resolved against this run's symbols when the
+  last run's record doesn't list it, and `file#symbol` accepts a `./` prefix and backslashes.
+- **codebase_extract preview (#1322):** `preview: true` with `reject` or `clearRejected` records,
+  clears and unstages nothing, and each item says `would-record` (with `wouldUnstage` for what a real
+  call would unstage). A preview with `decide` and `reject` no longer unstages anything, and its
+  answer now includes the reject results.
+- **codebase_extract kept decisions (#1332):** `reject` items take `keep: true`, which writes a rule
+  to `extraction-rules.yaml` instead of the checkout's `.dr/` (a card becomes a rule on its file and
+  `symbol`, with `overrideTier0`). A reject answer says when its decisions are local. A kept `none`
+  decide rule that covers recorded rejections retires them (`retired`) instead of matching nothing.
+  `list: "notElements"` works before any run.
+- **codebase_extract where.symbol (#1333):** a new `where.symbol` condition matches the card's
+  symbol (`Assembly._copy_grooves`, `GET /owners/{ownerId}`); `where.name` is documented as the bare
+  name.
+- **codebase_extract attributes (#1380):** a typed `decide` item (or kept rule) takes `attributes`
+  for what its type requires and the code can't give, such as `{type: "button"}`; the code's own
+  facts win. An item whose cards still lack attributes says so with the type's `requiredAttributes`.
+- **codebase_extract verify mode (#1394):** a card whose symbol an element of the plan names says
+  `planned` with that element's id; `view: {planned: true}` lists them and `next` names the decide
+  call that stages them.
+- **codebase_extract output (#1298, #1350):** a page of cards states each candidate list two or more
+  cards share once (`undecided.candidateLists`, named on the card as `candidateList`). `groupBy` now
+  applies to `view` pages (`byFile`, or `byFolder` at `groupDepth`). `decide` with `view` is a run
+  that answers with that view's page of the cards left. The `impacted` list comes in full only when
+  it changed since the last run; otherwise its count and the `list: "impacted"` call.
+- **changeset_verify (#1350):** without `limit`, a page holds fewer entries per list than the default
+  when the default would make the answer larger than about 40 KB, and `sized` says so; `page.totals`
+  and `nextOffset` still give every list's length and the next page.
+- **Skills:** the change-planning skill (all copies) covers `overrideTier0` and `ruleWarnings`,
+  `where.symbol`, `attributes`, decide with `view`, `reject` with `keep`, `except` and `preview`,
+  and `planned` cards.
+
 ## [0.8.0] - 2026-11-24
 
 **Specification Support:** v0.15.0

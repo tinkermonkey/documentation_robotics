@@ -61,6 +61,8 @@ export interface CardFilter {
   nested?: boolean;
   /** With a since run: true for the symbols the range changed, false for the ones it did not touch. */
   changed?: boolean;
+  /** With a plan active before a since run: true for cards an element of the plan names (`planned`), false for the rest. */
+  planned?: boolean;
 }
 
 function asList(v: string | string[] | undefined): string[] | undefined {
@@ -79,6 +81,7 @@ export function filterCards<T extends UndecidedCard>(cards: readonly T[], filter
     if (kinds && !kinds.includes(c.kind)) return false;
     if (filter.nested !== undefined && !!c.nested !== filter.nested) return false;
     if (filter.changed !== undefined && !!c.changedInRange !== filter.changed) return false;
+    if (filter.planned !== undefined && !!c.planned !== filter.planned) return false;
     return true;
   });
 }
@@ -129,7 +132,7 @@ function normFile(file: string): string {
   return file.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
-function groupPath(file: string | null, depth: number, byFile = false): string {
+export function groupPath(file: string | null, depth: number, byFile = false): string {
   if (!file) return "(no file)";
   if (byFile) return normFile(file);
   const parts = normFile(file).split("/");

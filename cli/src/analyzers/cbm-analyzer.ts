@@ -39,8 +39,10 @@ import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
-import { VerifyEngine, apiLayerReport } from "./verify-engine.js";
-import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, verifyLayers, type RecordedDecisions } from "./layer-verify.js";
+import { VerifyEngine, apiLayerReport, type DiscoveredRoute } from "./verify-engine.js";
+import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, rulesApplied, verifyLayers, type RecordedDecisions } from "./layer-verify.js";
+import { loadProjectRules, type CompiledRule } from "./project-rules.js";
+import { RULE_REASON } from "./verify-status.js";
 import { IgnoreFileLoader } from "./verify-ignore.js";
 import { Model } from "../core/model.js";
 import { Changeset } from "../core/changeset.js";
@@ -2552,9 +2554,32 @@ export class CbmAnalyzer implements AnalyzerBackend {
           error: `could not read the recorded rejections: ${error instanceof Error ? error.message : String(error)}`,
         };
       }
+      // The project's kept extraction rules hold here as they do for codebase_extract (#1414). A file
+      // that can't be used is said with the result, and no rule is applied.
+      let projectRules: CompiledRule[] = [];
+      let rulesError: string | undefined;
+      try {
+        projectRules = await loadProjectRules(projectRoot);
+      } catch (error) {
+        rulesError = error instanceof Error ? error.message : String(error);
+      }
+      // A served route is Tier 0's (the node mapping decides it): a none rule takes it only with overrideTier0.
+      const routeRules = projectRules.filter((r) => r.rule.where && r.decision.kind === "none" && r.rule.overrideTier0);
+      const ruleExcluded = (route: DiscoveredRoute): string | null => {
+        if (!routeRules.length || !route.http_method || !route.http_path) return null;
+        const subject = {
+          file: route.source_file || null,
+          label: "Route",
+          name: `__route__${route.http_method}__${route.http_path}`,
+          symbol: `${route.http_method} ${route.http_path}`,
+        };
+        const rule = routeRules.find((r) => r.matches(subject));
+        return rule ? `${RULE_REASON} (${rule.rule.name}: ${rule.rule.reason})` : null;
+      };
       const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed, {
         declaredRoutes,
         notElements: recorded.notElements,
+        ruleExcluded,
       });
 
       // The other layers: what extraction makes of the code's tables, infrastructure and test
@@ -2598,6 +2623,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
             notElements: decisions.notElements,
             notRelationships: decisions.notRelationships,
             ignoreRules,
+            rules: projectRules,
           });
           layers.push(...result.reports);
           layersNotVerified = result.notVerified;
@@ -2620,6 +2646,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         layers,
         ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}),
         rejections: rejectionsApplied(recorded, layers),
+        rules: rulesApplied(projectRules.length, layers, rulesError),
       };
     } finally {
       client.close();

@@ -32,7 +32,11 @@ export interface Tier0Target {
 }
 
 export type Tier0Action =
-  | { kind: "decide"; layer: string; type: string }
+  /**
+   * `attributes`: what the agent gave for the element, on a decision a project rule or a decide
+   * item made (codebase_extract decide); a Tier-0 rule never sets it.
+   */
+  | { kind: "decide"; layer: string; type: string; attributes?: Record<string, unknown> }
   | { kind: "reject" }
   | { kind: "narrow"; candidates: Tier0Target[] };
 

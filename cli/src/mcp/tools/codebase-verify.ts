@@ -352,7 +352,9 @@ export const codebaseVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "page.totals gives every list's true length (and each layer's page its own), page.nextOffset is the next offset (absent on the last page), and more " +
     "names the call for the next page. Symbols " +
     "codebase_extract recorded as not elements (reject) are left out of in_graph_only and listed under ignored; rejections " +
-    "says where those decisions were read from, how many, and how many each layer applied (they are local to a checkout). It doesn't check other layers. Needs a fresh index: if there is none, " +
+    "says where those decisions were read from, how many, and how many each layer applied (they are local to a checkout). " +
+    "The project's kept rules (documentation-robotics/extraction-rules.yaml) are applied as codebase_extract applies them: what a rule " +
+    "says is not an element is listed under ignored with the rule, and rules says how many rules were read and applied. It doesn't check other layers. Needs a fresh index: if there is none, " +
     "a run is in flight, or source files changed since, it says so; run codebase_index first. Read-only.",
   inputSchema,
   handler: codebaseVerifyHandler,

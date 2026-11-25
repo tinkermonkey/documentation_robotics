@@ -1,0 +1,423 @@
+- type: add
+  elementId: motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided
+  layerName: motivation
+  after:
+    id: 4dd2d678-8c89-4784-9301-8bcd979dbf5b
+    path: motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A rule never silently overrides what Tier 0 decided
+    description: A project rule that says a symbol is not an element leaves a symbol Tier 0 decided as an element to Tier 0, unless the rule says it overrides Tier 0. Either way the run says, at its top level, which rule matched how many such symbols.
+    attributes:
+      requirementType: functional
+      priority: high
+      documentation: "Verified when a none rule over a folder of test cases Tier 0 staged leaves them staged and the run's ruleWarnings name the rule and the count, and the same rule with overrideTier0: true takes them and says so. A Tier 0 decision that can't be staged (a needs-attributes or ambiguous card) is still decided by the rule."
+    metadata:
+      created_at: 2026-11-25T16:10:29.153Z
+      updated_at: 2026-11-25T16:10:29.153Z
+      version: 1
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.release-held-cards
+  layerName: application
+  after:
+    id: 3b1239ce-4f96-4396-8d26-8713e43071a3
+    path: application.applicationfunction.release-held-cards
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: releaseHeldCards
+    description: After validation, decides by its none rule each symbol a rule held back from Tier 0 that ended up a card (needs-attributes or ambiguous) instead of being staged, and counts per rule what Tier 0 kept.
+    metadata:
+      created_at: 2026-11-25T16:10:29.153Z
+      updated_at: 2026-11-25T16:10:29.153Z
+      version: 1
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.rule-warnings
+  layerName: application
+  after:
+    id: 0a15a31d-bd21-483d-8153-a4b08370dac0
+    path: application.applicationfunction.rule-warnings
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ruleWarnings
+    description: "The run's top-level warnings about rules and Tier 0: per rule, how many symbols Tier 0 decided that the rule left to Tier 0, or took with overrideTier0, by type."
+    metadata:
+      created_at: 2026-11-25T16:10:29.154Z
+      updated_at: 2026-11-25T16:10:29.154Z
+      version: 1
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.shared-candidate-lists
+  layerName: application
+  after:
+    id: bf6c6020-8a19-4103-9e5a-9db8cf79ad37
+    path: application.applicationfunction.shared-candidate-lists
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sharedCandidateLists
+    description: A page of cards with each candidate list two or more cards share stated once (candidateLists) and named on those cards, and the cards grouped by file when groupBy asks.
+    metadata:
+      created_at: 2026-11-25T16:10:29.154Z
+      updated_at: 2026-11-25T16:10:29.154Z
+      version: 1
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.fit-verify-report
+  layerName: application
+  after:
+    id: 52abaa68-055a-426b-9013-c0f1d7759374
+    path: application.applicationfunction.fit-verify-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: fitVerifyReport
+    description: changeset_verify's compact or sections answer at the most entries per list that keep it near 40 KB when no limit is given, with page.totals and the call for the next page.
+    metadata:
+      created_at: 2026-11-25T16:10:29.154Z
+      updated_at: 2026-11-25T16:10:29.154Z
+      version: 1
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: product.feature.extraction-triage-by-rule::satisfies::motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided
+  layerName: product
+  after:
+    source: product.feature.extraction-triage-by-rule
+    target: motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided
+    predicate: satisfies
+    layer: product
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided::realizes::motivation.outcome.every-mvp-project-has-an-as-built-model
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-rule-never-silently-overrides-what-tier-0-decided
+    target: motivation.outcome.every-mvp-project-has-an-as-built-model
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: application.applicationfunction.release-held-cards::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.release-held-cards
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.rule-warnings::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.rule-warnings
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.shared-candidate-lists::realizes::application.applicationservice.create-codebase-extract-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.shared-candidate-lists
+    target: application.applicationservice.create-codebase-extract-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.fit-verify-report::realizes::application.applicationservice.changeset-verify-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.fit-verify-report
+    target: application.applicationservice.changeset-verify-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.fit-verify-report::depends-on::application.applicationfunction.compact-verify-report
+  layerName: application
+  after:
+    source: application.applicationfunction.fit-verify-report
+    target: application.applicationfunction.compact-verify-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.release-held-cards::accesses::data-model.objectschema.element-plan
+  layerName: application
+  after:
+    source: application.applicationfunction.release-held-cards
+    target: data-model.objectschema.element-plan
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationfunction.release-held-cards::accesses::data-model.objectschema.undecided-card
+  layerName: application
+  after:
+    source: application.applicationfunction.release-held-cards
+    target: data-model.objectschema.undecided-card
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: application.applicationfunction.rule-warnings::accesses::data-model.objectschema.applied-rules
+  layerName: application
+  after:
+    source: application.applicationfunction.rule-warnings
+    target: data-model.objectschema.applied-rules
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationfunction.shared-candidate-lists::accesses::data-model.objectschema.undecided-card
+  layerName: application
+  after:
+    source: application.applicationfunction.shared-candidate-lists
+    target: data-model.objectschema.undecided-card
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T16:10:29.174Z
+  sequenceNumber: 15
+- type: update
+  elementId: product.feature.extraction-triage-by-rule
+  layerName: product
+  before:
+    id: 2c5c136e-48cf-4365-b756-9b1089dd00a1
+    path: product.feature.extraction-triage-by-rule
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction triage by rule
+    description: "MCP: codebase_extract. A run returns its undecided cards as groups with a decision count; decide takes decisions in bulk by a stated rule (previewed with a sample), stages or rejects what it covers, and keep: true records the rule in documentation-robotics/extraction-rules.yaml for every later run and checkout."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Each card carries facts read from the code: visibility, whether it is nested in another function, and the element its class or file already has. A run with more cards than a page answers with groups (folder and file, kind and visibility, folders no element names, functions many services share) and the number of decisions needed; view filters and pages the cards. decide: [{where | card, as: layer.type | none, reason, keep}] decides cards by rule; with preview: true it returns each rule's count and a sample and changes nothing. Kept rules are applied before cards are made, in this order: an element that names the symbol, a decision on that one card, a rule that says none, Tier 0, a rule that names a type. A since run lists the symbols its range changed and counts the rest; with a plan active it lists planned elements with no as-built candidate. reject and decide take their items from a JSON file (file) and answer with counts and the items that need attention."
+    metadata: &a1
+      created_at: 2026-11-20T16:56:25.762Z
+      updated_at: 2026-11-20T16:56:25.762Z
+      version: 1
+  after:
+    id: 2c5c136e-48cf-4365-b756-9b1089dd00a1
+    path: product.feature.extraction-triage-by-rule
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction triage by rule
+    description: "MCP: codebase_extract. A run returns its undecided cards as groups with a decision count; decide takes decisions in bulk by a stated rule (previewed with a sample), stages or rejects what it covers, and keep: true records the rule in documentation-robotics/extraction-rules.yaml for every later run and checkout."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Each card carries facts read from the code: visibility, whether it is nested in another function, and the element its class or file already has. A run with more cards than a page answers with groups (folder and file, kind and visibility, folders no element names, functions many services share) and the number of decisions needed; view filters and pages the cards, states a candidate list several cards share once (candidateLists), and groups them by file with groupBy. decide: [{where | card, as: layer.type | none, reason, keep, attributes, overrideTier0}] decides cards by rule; where.name matches the bare name and where.symbol the card's symbol (Class.method); a card item takes a cardId, a symbol or file#symbol of this run; attributes supply what a type requires; with preview: true it returns each rule's count and a sample and changes nothing; with view it answers with that view's page after applying. A none rule leaves a symbol Tier 0 decided as an element to Tier 0 unless it says overrideTier0, and ruleWarnings says so at the top with counts. Kept rules are applied before cards are made, in this order: an element that names the symbol, a decision on that one card, a rule that says none, Tier 0, a rule that names a type. A since run lists the symbols its range changed and counts the rest; with a plan active it lists planned elements with no as-built candidate and marks cards the plan's elements name (planned). reject records what is not an element locally (it says so), skips cards an element now names, applies after the call's decide items, takes except on a files item, and with keep: true writes a rule instead; a kept decide rule that covers recorded rejections retires them; a preview of reject or clearRejected records nothing and says would-record. reject and decide take their items from a JSON file (file) and answer with counts and the items that need attention. The impacted list comes in full only when it changed since the last run."
+    metadata: *a1
+  timestamp: 2026-11-25T16:10:43.742Z
+  sequenceNumber: 16
+- type: update
+  elementId: product.feature.code-to-model-verification
+  layerName: product
+  before:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer (api, data-store, technology, testing) states its status first: checked and in step, checked and drifted, or not checked with why and what would make it checkable. API operations are compared with served routes and with the routes an OpenAPI file declares; recorded rejections are applied and reported; every list is a page with its true total."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads with status (in_step, drifted, not_checked) and coverage; a layer that compared nothing is never in step. API: served routes, and the routes an OpenAPI file declares against operations sourced to it. Testing: test functions and methods, and JS/TS it()/test() cases. Technology: infrastructure, and system software sourced to a dependency manifest against what it lists. Elements that could not be compared are listed by reason under not_checked. Recorded codebase_extract rejections leave entries out of in_graph_only, listed under ignored, and rejections says how many were read and applied. Lists page with limit and offset (default 50, lowered near 40 KB); page.totals gives true lengths. An element sourced at a whole file is checked by its file alone."
+    source_reference: &a2
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/verify-engine.ts
+    metadata: &a3
+      created_at: 2026-11-09T21:54:58.119Z
+      updated_at: 2026-11-09T21:54:58.119Z
+      version: 1
+  after:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer (api, data-store, technology, testing) states its status first: checked and in step, checked and drifted, or not checked with why and what would make it checkable. API operations are compared with served routes and with the routes an OpenAPI file declares; recorded rejections are applied and reported; every list is a page with its true total."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads with status (in_step, drifted, not_checked) and coverage; a layer that compared nothing is never in step. API: served routes, and the routes an OpenAPI file declares against operations sourced to it. Testing: test functions and methods, and JS/TS it()/test() cases. Technology: infrastructure, and system software sourced to a dependency manifest against what it lists. Elements that could not be compared are listed by reason under not_checked. Recorded codebase_extract rejections and the project's kept rules (documentation-robotics/extraction-rules.yaml, applied as codebase_extract applies them) leave entries out of in_graph_only, listed under ignored with the rule or rejection; rejections and rules say how many were read and applied. Lists page with limit and offset (default 50, lowered near 40 KB); page.totals gives true lengths. An element sourced at a whole file is checked by its file alone."
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-25T16:10:43.785Z
+  sequenceNumber: 17
+- type: update
+  elementId: product.feature.changeset-verify
+  layerName: product
+  before:
+    id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+    path: product.feature.changeset-verify
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset verify
+    description: "MCP: changeset_verify against an as-built changeset or the base, and changeset_adopt_source_references. CLI: dr changeset verify. What extraction can't see is unverifiable with its reason, never missing; a service or operation the build may register by a name string is named in the verdict, which is never a clean match while one is unconfirmed. Planned adds with no source reference come with candidate files, and adopt takes the references the agent confirmed. Every list is a page with its true total."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_verify (limit and offset page every list; page.totals gives true lengths) and changeset_adopt_source_references (references: {id, sourceFile, sourceSymbol} for elements with no as-built match, stored root-relative with provenance manual; result counts over everything, items past limit still accounted for). CLI: dr changeset verify. Unverifiable: intent, re-exports, planned JS/TS test cases, relationships no code edge maps to, and a planned service, interface, function, event, process or operation a code file names only as a call argument or name property (reason gives file and line; verdict at best probable-match)."
+    source_reference: &a4
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+    metadata: &a5
+      created_at: 2026-11-09T21:54:57.790Z
+      updated_at: 2026-11-09T21:54:57.790Z
+      version: 1
+  after:
+    id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+    path: product.feature.changeset-verify
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset verify
+    description: "MCP: changeset_verify against an as-built changeset or the base, and changeset_adopt_source_references. CLI: dr changeset verify. What extraction can't see is unverifiable with its reason, never missing; a service or operation the build may register by a name string is named in the verdict, which is never a clean match while one is unconfirmed. Planned adds with no source reference come with candidate files, and adopt takes the references the agent confirmed. Every list is a page with its true total."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_verify (limit and offset page every list; without limit the page is as long as keeps the answer near 40 KB; page.totals gives true lengths) and changeset_adopt_source_references (references: {id, sourceFile, sourceSymbol} for elements with no as-built match, stored root-relative with provenance manual; result counts over everything, items past limit still accounted for). CLI: dr changeset verify. Unverifiable: intent, re-exports, planned JS/TS test cases, relationships no code edge maps to, and a planned service, interface, function, event, process or operation a code file names only as a call argument or name property (reason gives file and line; verdict at best probable-match)."
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-25T16:10:43.824Z
+  sequenceNumber: 18
+- type: update
+  elementId: application.applicationfunction.apply-project-rules
+  layerName: application
+  before:
+    id: 5304abce-c958-4dc6-8fa9-76b66f6e5a24
+    path: application.applicationfunction.apply-project-rules
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: applyProjectRules
+    description: "Applies a project's rules to the extracted symbols before cards are made: a rule that says none first, then Tier 0, then a rule that names a type for what Tier 0 left open. Reports what each rule decided."
+    source_reference: &a6
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/project-rules.ts
+          symbol: applyProjectRules
+    metadata: &a7
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+  after:
+    id: 5304abce-c958-4dc6-8fa9-76b66f6e5a24
+    path: application.applicationfunction.apply-project-rules
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: applyProjectRules
+    description: "Applies a project's rules to the extracted symbols before cards are made: a rule that says none first (a symbol Tier 0 decided as an element only with overrideTier0; otherwise held for Tier 0 and counted), then Tier 0, then a rule that names a type, with its attributes, for what Tier 0 left open. Reports what each rule decided, overrode and held."
+    source_reference: *a6
+    metadata: *a7
+  timestamp: 2026-11-25T16:10:43.868Z
+  sequenceNumber: 19
+- type: update
+  elementId: application.applicationfunction.plan-decisions
+  layerName: application
+  before:
+    id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+    path: application.applicationfunction.plan-decisions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compileDecide
+    description: Resolves decide items to the cards they cover and to what staging or rejecting them would do, with a count and a sample per item for a preview.
+    source_reference: &a8
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: compileDecide
+    metadata: &a9
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+  after:
+    id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+    path: application.applicationfunction.plan-decisions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compileDecide
+    description: Resolves decide items to the cards they cover (a card item by cardId, symbol or file#symbol, among the last run's cards and then this run's symbols) and to what staging or rejecting them would do, with a count and a sample per item for a preview.
+    source_reference: *a8
+    metadata: *a9
+  timestamp: 2026-11-25T16:10:43.922Z
+  sequenceNumber: 20
+- type: update
+  elementId: application.applicationfunction.verify-layers
+  layerName: application
+  before:
+    id: e2c2c3c9-eeed-44b8-94dd-9d976ec9f7f0
+    path: application.applicationfunction.verify-layers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: verifyLayers
+    description: Verify each requested layer that has a check, in the order asked.
+    source_reference: &a10
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/layer-verify.ts
+          symbol: verifyLayers
+    metadata: &a11
+      created_at: 2026-11-20T15:04:45.124Z
+      updated_at: 2026-11-20T15:04:45.124Z
+      version: 1
+  after:
+    id: e2c2c3c9-eeed-44b8-94dd-9d976ec9f7f0
+    path: application.applicationfunction.verify-layers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: verifyLayers
+    description: Verifies each requested layer that has a check, in the order asked, with the project's kept rules applied to what extraction makes of the code as codebase_extract applies them.
+    source_reference: *a10
+    metadata: *a11
+  timestamp: 2026-11-25T16:10:43.945Z
+  sequenceNumber: 21

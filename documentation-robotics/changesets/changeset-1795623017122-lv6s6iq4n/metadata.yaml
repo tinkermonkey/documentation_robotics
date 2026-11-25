@@ -1,0 +1,15 @@
+id: changeset-1795623017122-lv6s6iq4n
+name: cli09-extract-decide
+description: "CLI 0.9.0, extract output and decide (#1424, #1254, #1414, #1332, #1333, #1322, #1380, #1394, #1298, #1350). A none rule no longer takes what Tier 0 decided unless it says overrideTier0, and the run warns at the top with counts; codebase_verify applies the project's rules as extraction does; decide takes required attributes, matches the Class.method symbol, and resolves file#symbol against the run; reject skips modelled symbols, applies after decide, can keep a rule, and a preview of it records nothing; views state candidate lists once and group by file; the impacted list comes once; decide can return a view; changeset_verify pages sized to about 40 KB. Done when each issue's behaviour is in the code with tests."
+created: 2026-11-25T16:10:17.165Z
+modified: 2026-11-25T16:10:43.950Z
+status: staged
+baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 16
+  modifications: 6
+  deletions: 0
+lastSequence: 21

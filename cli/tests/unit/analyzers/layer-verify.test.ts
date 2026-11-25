@@ -19,7 +19,8 @@ import { extractionConfigFrom } from "../../../src/analyzers/cards/extract.js";
 import type { CardGraph, GraphNode } from "../../../src/analyzers/cards/types.js";
 import { tier0RulesFrom } from "../../../src/analyzers/tier0-rules.js";
 import type { AnalyzerHeuristic } from "../../../src/analyzers/types.js";
-import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
+import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, rulesApplied, verifyLayers, type LayerVerifyInput } from "../../../src/analyzers/layer-verify.js";
+import { compileRules } from "../../../src/analyzers/project-rules.js";
 import { getValidRelationships } from "../../../src/generated/relationship-index.js";
 import { normalizeIndexCoverage } from "../../../src/analyzers/cbm-responses.js";
 import { VERIFIABLE_LAYERS } from "../../../src/analyzers/active-analyzer.js";
@@ -40,8 +41,8 @@ interface FakeNode extends GraphNode {
   source?: string;
 }
 
-/** The graph: a SQL table, compose and Kubernetes objects, an image, and a JUnit test class. */
-function fakeGraph(): CardGraph {
+/** The graph: a SQL table, compose and Kubernetes objects, an image, and a JUnit test class (and `extra` nodes). */
+function fakeGraph(extra: FakeNode[] = []): CardGraph {
   const testQn = (m: string) => `${P}.src.test.OwnerTests.OwnerTests.${m}`;
   const nodes: FakeNode[] = [
     { label: "Table", name: "owners", qualified_name: `${P}.db.h2.schema.owners`, file_path: "db/h2/schema.sql", start_line: 1, end_line: 5 },
@@ -81,6 +82,7 @@ function fakeGraph(): CardGraph {
       end_line: 40,
     },
   ];
+  nodes.push(...extra);
   const edges = [{ type: "TESTS", from: testQn("testShowOwner"), to: `${P}.src.owner.OwnerController.OwnerController.showOwner` }];
   const byQn = new Map(nodes.map((n) => [n.qualified_name, n]));
   return {
@@ -268,6 +270,45 @@ describe("layer-verify (#1082)", () => {
     expect(applied).toMatchObject({ found: true, recorded: { elements: 1, relationships: 0 }, applied: { technology: 1 } });
     expect(applied.note).toContain("1 recorded rejection(s) were read and 1 kept an entry out");
     expect(applied.note).toContain("is not in git");
+  });
+
+  it("applies the project's kept rules as codebase_extract does, listing what they leave out under ignored (#1414)", async () => {
+    // A program the code launches: Tier 0 decides it system software, whose softwareType the code can't give.
+    const graph = fakeGraph([{ label: "Process", name: "git", qualified_name: "__process__git", file_path: "scripts/release.sh" } as FakeNode]);
+    const plain = await verify(["technology"], new Map(), { graph });
+    const inCode = (r: (typeof plain)[number]) => r.buckets.in_graph_only.map((e) => e.id).sort();
+    const before = inCode(plain[0]);
+    expect(before).toEqual(expect.arrayContaining(["technology.systemsoftware.git", "technology.technologyservice.service-web", "technology.artifact.secret-creds"]));
+
+    // A kept rule over the launched programs (as #1414's), and one over the Kubernetes folder.
+    const rules = compileRules([
+      { name: "launched-processes-modelled-by-hand", where: { label: "Process" }, as: "none", reason: "modelled by hand" },
+      { name: "k8s-not-ours", where: { files: "k8s/" }, as: "none", reason: "another team's manifests" },
+    ]);
+    const [technology] = await verify(["technology"], new Map(), { graph, rules });
+    const ignored = (technology.buckets.ignored ?? []).map((e) => [e.id, e.reason]);
+    const ruleReason = (rule: string, why: string) => `a kept rule in documentation-robotics/extraction-rules.yaml says it is not an element (${rule}: ${why})`;
+    // What Tier 0 decided and can stage (the Secret, a configuration artifact) stays in the code only without overrideTier0.
+    expect(inCode(technology)).toContain("technology.artifact.secret-creds");
+    // What Tier 0 decided but can't stage (system software and a technology service need attributes the
+    // code doesn't give: needs-attributes cards to codebase_extract) is the rule's, as extraction decides it.
+    expect(inCode(technology)).not.toContain("technology.systemsoftware.git");
+    expect(inCode(technology)).not.toContain("technology.technologyservice.service-web");
+    expect(ignored).toContainEqual(["scripts/release.sh#git", ruleReason("launched-processes-modelled-by-hand", "modelled by hand")]);
+    expect(ignored).toContainEqual(["k8s/web.yml#Service/web", ruleReason("k8s-not-ours", "another team's manifests")]);
+
+    // With overrideTier0 the k8s rule takes what Tier 0 decided and can stage there too.
+    const overriding = compileRules([{ name: "k8s-not-ours", where: { files: "k8s/" }, as: "none", reason: "another team's manifests", overrideTier0: true }]);
+    const [taken] = await verify(["technology"], new Map(), { graph, rules: overriding });
+    expect(inCode(taken)).not.toContain("technology.artifact.secret-creds");
+    expect((taken.buckets.ignored ?? []).map((e) => e.reason)).toContain(
+      "a kept rule in documentation-robotics/extraction-rules.yaml says it is not an element (k8s-not-ours: another team's manifests)"
+    );
+    // The report says how many rules it read and how many entries each layer left out because of one.
+    const applied = rulesApplied(1, [taken]);
+    expect(applied.applied.technology).toBeGreaterThan(0);
+    expect(applied.note).toContain("1 kept rule(s) were applied");
+    expect(rulesApplied(0, [], "the file is not valid YAML").note).toContain("No kept rule was applied");
   });
 
   it("reports a layer whose check fails as not verified, and keeps the other layers' results", async () => {

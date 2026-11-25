@@ -11,6 +11,13 @@ import type { LayerVerifyCoverage, LayerVerifyStatus, NotCheckedGroup } from "./
 /** The reason on an entry a recorded rejection covers, in every layer's `ignored` bucket. */
 export const REJECTED_REASON = "recorded as not an element (codebase_extract reject)";
 
+/**
+ * Why an entry a project rule keeps out of "in the code only" is ignored: a rule in
+ * documentation-robotics/extraction-rules.yaml says it is not an element, as codebase_extract
+ * applies it (#1414). The entry's reason adds the rule's name and reason.
+ */
+export const RULE_REASON = "a kept rule in documentation-robotics/extraction-rules.yaml says it is not an element";
+
 /** A model element a check could not compare, with why and what would make it checkable. */
 export interface NotCheckedElement {
   id: string;

@@ -36,6 +36,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   `byKind`), not listed. Decide by group first: `decide: [{where, as, reason}]` with `preview: true`
   returns each item's count and a sample; show the developer the rules you propose, then apply them.
   `keep: true` records a rule in `documentation-robotics/extraction-rules.yaml`: commit that file.
+  A `none` rule leaves what Tier 0 decided as an element to Tier 0 unless it says
+  `overrideTier0: true`; `ruleWarnings`, at the top of the answer, names each rule and how many such
+  symbols it matched, so read it before applying. `where.name` matches the bare name, `where.symbol`
+  the card's `symbol` (`Class.method`). A typed item takes `attributes` for what its type requires
+  and the code can't give. Add `view` to the call to get the cards it leaves.
   Read what is left with `view`.
 - When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
   the ones you can't place with confidence: whether a card is a model element at all, which type it
@@ -43,7 +48,11 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   your best guess, the question), then stage or reject from the answers. `reject` takes `{card}`,
   `{files: "docs/**"}` for every card in a folder that isn't product code, or
   `{relationship: {source, predicate, target}}` for a relationship extraction staged that the code
-  doesn't have; each needs a `reason`, and later runs leave them out. When the checkout opted in to
+  doesn't have; each needs a `reason`, and later runs leave them out. Recorded rejections are this
+  checkout's (`.dr/` is not in git); `keep: true` on an item writes it as a rule in the rules file
+  instead. A `files` item skips cards an element names and those its `except` lists, and with
+  `decide` in the same call it covers only the cards the decide items leave. `preview: true` with
+  `reject` says what it would record and records nothing. When the checkout opted in to
   Tier 1, cards carry its suggestion (`tier1`: band, layer, type, p), accept band first: show the
   developer those layers and types, and once they agree call `codebase_extract` with `acceptTier1: true`
   to stage the accept band (reject the ones they disagree with first). Tell them what `tier1.notice`
@@ -179,7 +188,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    several elements in different layers (an application component and a UX sub-view), and staging
    one doesn't cover the other;
    `planCoverage` lists the planned elements that have no as-built element yet, with the cards that
-   could be them: stage a card that is the planned element with `decide: [{card, as, reason}]`;
+   could be them, and a card whose symbol a planned element names says `planned` (`view: {planned: true}`):
+   stage a card that is the planned element with `decide: [{card, as, reason}]` (`card` takes the
+   cardId or `file#symbol`);
    then call `codebase_extract` again to stage their relationships, and `model_delete` the
    `candidateDeletes` that are really gone. Then `changeset_verify` with `changeset: <name>` and
    `against: {"changeset": "<name>-as-built"}`. It returns a compact report: the verdict and

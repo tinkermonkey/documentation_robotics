@@ -12,9 +12,13 @@
  * Order (src/analyzers/extraction-plan.ts and docs/analyzers/CASCADE_DESIGN.md):
  * 1. an element that already names the symbol wins: rules never touch it;
  * 2. a decision recorded for that one card (codebase_extract `reject`);
- * 3. a project rule that says `none`, whatever Tier 0 says (a fixture folder's routes included);
+ * 3. a project rule that says `none`: for a symbol Tier 0 decided as an element only when the rule
+ *    says `overrideTier0: true` (a fixture folder's routes). Without it the symbol is held for Tier 0
+ *    (#1424): staged when its add validates, and decided by the rule when it ends up a card instead
+ *    (a needs-attributes or ambiguous card, {@link releaseHeldCards}). Either way the run counts it;
  * 4. Tier 0;
- * 5. a project rule that names a type, only for a symbol Tier 0 left open or narrowed.
+ * 5. a project rule that names a type, only for a symbol Tier 0 left open or narrowed, with the
+ *    attributes the rule gives for what the code can't.
  * Every rule that says `none` is applied before any rule that names a type, whatever their order
  * and wherever they come from (the call's `decide` or the file): a typed rule never stages a symbol
  * some `none` rule excludes. Among `none` rules, and among typed rules, the first that matches wins
@@ -30,7 +34,7 @@ import { isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType } from "../generated/node-types.js";
 import { RELATIONSHIPS_BY_PREDICATE } from "../generated/relationship-index.js";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
-import type { ExtractedSymbol, ExtractionGraph } from "./cards/extract.js";
+import { extractedSymbolOf, type ExtractedSymbol, type ExtractionGraph } from "./cards/extract.js";
 import type { Visibility } from "./cards/visibility.js";
 import { declarationOf, type Tier0Outcome } from "./tier0-rules.js";
 
@@ -49,8 +53,13 @@ export interface RuleWhere {
   visibility?: Visibility | Visibility[];
   /** true: only symbols declared inside another function; false: only those that are not. */
   nested?: boolean;
-  /** A regular expression on the symbol's name. */
+  /** A regular expression on the symbol's bare name, without its class (`_copy_grooves`). */
   name?: string;
+  /**
+   * A regular expression on the symbol as cards show it (`Assembly._copy_grooves` for a method,
+   * `GET /owners/{ownerId}` for a route, else the name): codebase_extract's card `symbol` (#1333).
+   */
+  symbol?: string;
   /** A regular expression on the symbol's declaration (its first statement, without decorators). */
   declaration?: string;
   /**
@@ -75,6 +84,16 @@ export interface ProjectRule {
   /** A `layer.type`, or `none`: not a model element (not a relationship). */
   as: string;
   reason: string;
+  /**
+   * For a rule that names a type: attributes for the elements it stages, what the type requires and
+   * the code can't give (`{type: "button"}`). The code's own facts win over them.
+   */
+  attributes?: Record<string, unknown>;
+  /**
+   * For a rule that says `none`: also take symbols Tier 0 decided as elements (it would stage them).
+   * Without it those stay Tier 0's, and the run says how many the rule matched.
+   */
+  overrideTier0?: boolean;
   /** When it was decided, and in which changeset. */
   decided?: { at?: string; changeset?: string };
 }
@@ -89,6 +108,8 @@ export interface RuleSubject {
   file: string | null;
   label: string;
   name: string;
+  /** The symbol as cards show it (`Class.method`, `GET /path`); see {@link RuleWhere.symbol}. */
+  symbol?: string;
   visibility?: Visibility;
   nested?: boolean;
   declaration?: string | null;
@@ -166,8 +187,8 @@ export const RULE_LABELS: readonly string[] = [
 export const PROJECT_RULES_VERSION = 1;
 const FILE_KEYS = ["version", "rules"] as const;
 
-const WHERE_KEYS = ["files", "label", "visibility", "nested", "name", "declaration", "ownerType"] as const;
-const RULE_KEYS = ["name", "where", "relationship", "as", "reason", "decided"] as const;
+const WHERE_KEYS = ["files", "label", "visibility", "nested", "name", "symbol", "declaration", "ownerType"] as const;
+const RULE_KEYS = ["name", "where", "relationship", "as", "reason", "attributes", "overrideTier0", "decided"] as const;
 const RELATIONSHIP_KEYS = ["source", "predicate", "target"] as const;
 
 function strings(ruleName: string, key: string, v: unknown): string[] | undefined {
@@ -201,6 +222,18 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
   if (typeof r.reason !== "string" || !r.reason.trim()) throw new Error(`rule '${name}': reason is required (why this code is, or is not, that element)`);
   const decision = parseDecision(name, r.as);
   if ((r.where === undefined) === (r.relationship === undefined)) throw new Error(`rule '${name}': give exactly one of where (symbols) and relationship`);
+  if (r.attributes !== undefined) {
+    if (!r.attributes || typeof r.attributes !== "object" || Array.isArray(r.attributes)) {
+      throw new Error(`rule '${name}': attributes must be an object ({type: "button"})`);
+    }
+    if (decision.kind !== "type") throw new Error(`rule '${name}': attributes go with a rule that names a type, not with as: none`);
+  }
+  if (r.overrideTier0 !== undefined) {
+    if (typeof r.overrideTier0 !== "boolean") throw new Error(`rule '${name}': overrideTier0 must be true or false`);
+    if (decision.kind !== "none" || r.relationship !== undefined) {
+      throw new Error(`rule '${name}': overrideTier0 goes with a symbol rule that says none (a rule that names a type decides only what Tier 0 left open)`);
+    }
+  }
 
   let matches: CompiledRule["matches"] = () => false;
   let matchesRelationship: CompiledRule["matchesRelationship"] = () => false;
@@ -245,10 +278,11 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
       if (!(VISIBILITIES as readonly string[]).includes(v)) throw new Error(`rule '${name}': where.visibility '${v}' is not one of ${VISIBILITIES.join(", ")}`);
     }
     if (w.nested !== undefined && typeof w.nested !== "boolean") throw new Error(`rule '${name}': where.nested must be true or false`);
-    for (const k of ["name", "declaration"] as const) {
+    for (const k of ["name", "symbol", "declaration"] as const) {
       if (w[k] !== undefined && (typeof w[k] !== "string" || !w[k])) throw new Error(`rule '${name}': where.${k} must be a regular expression string`);
     }
     const nameRe = w.name !== undefined ? regex(name, "name", w.name as string) : null;
+    const symbolRe = w.symbol !== undefined ? regex(name, "symbol", w.symbol as string) : null;
     const declarationRe = w.declaration !== undefined ? regex(name, "declaration", w.declaration as string) : null;
     const fileMatchers = files?.map(filesMatcher);
     const nested = w.nested as boolean | undefined;
@@ -258,6 +292,7 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
       ...(w.visibility !== undefined ? { visibility: w.visibility as Visibility | Visibility[] } : {}),
       ...(nested !== undefined ? { nested } : {}),
       ...(w.name !== undefined ? { name: w.name as string } : {}),
+      ...(w.symbol !== undefined ? { symbol: w.symbol as string } : {}),
       ...(w.declaration !== undefined ? { declaration: w.declaration as string } : {}),
       ...(w.ownerType !== undefined ? { ownerType: w.ownerType as string | string[] } : {}),
     };
@@ -267,6 +302,7 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
       if (visibility && !(s.visibility && visibility.includes(s.visibility))) return false;
       if (nested !== undefined && !!s.nested !== nested) return false;
       if (nameRe && !nameRe.test(s.name)) return false;
+      if (symbolRe && !symbolRe.test(s.symbol ?? s.name)) return false;
       if (declarationRe && !(s.declaration && declarationRe.test(s.declaration))) return false;
       if (ownerType && !(s.ownerType && ownerType.includes(s.ownerType))) return false;
       return true;
@@ -279,6 +315,8 @@ export function compileRule(raw: unknown, position?: number): CompiledRule {
     ...(relationship ? { relationship } : {}),
     as: r.as as string,
     reason: (r.reason as string).trim(),
+    ...(r.attributes !== undefined ? { attributes: structuredClone(r.attributes as Record<string, unknown>) } : {}),
+    ...(r.overrideTier0 !== undefined ? { overrideTier0: r.overrideTier0 as boolean } : {}),
     ...(decided
       ? {
           decided: {
@@ -343,8 +381,9 @@ export async function loadProjectRules(projectRoot: string): Promise<CompiledRul
 
 const FILE_HEADER =
   "# Extraction rules for this project, applied by codebase_extract before it makes cards.\n" +
-  "# Each rule: name, where (files, label, visibility, nested, name, declaration, ownerType) or\n" +
-  "# relationship (source, predicate, target), as (a layer.type, or none) and reason.\n" +
+  "# Each rule: name, where (files, label, visibility, nested, name, symbol, declaration, ownerType) or\n" +
+  "# relationship (source, predicate, target), as (a layer.type, or none) and reason; attributes for a\n" +
+  "# typed rule; overrideTier0: true for a none rule that also takes what Tier 0 decided as elements.\n" +
   "# The first rule that matches a symbol wins. Written by codebase_extract (decide with keep: true);\n" +
   "# edit by hand as you like.\n";
 
@@ -375,6 +414,7 @@ export function ruleNameFor(rule: Pick<ProjectRule, "where" | "relationship" | "
     for (const l of list(w.label) ?? []) parts.push(l);
     if (w.ownerType) parts.push("of", ...(list(w.ownerType) ?? []).map((o) => o.split(".").pop()!));
     if (w.name) parts.push("named", w.name);
+    if (w.symbol) parts.push("symbol", w.symbol);
     const files = list(w.files);
     if (files?.length) parts.push("in", files[0].replace(/\*+/g, ""), ...(files.length > 1 ? [`and-${files.length - 1}-more`] : []));
   } else if (rule.relationship) {
@@ -417,8 +457,18 @@ export interface AppliedRules {
   extraction: ExtractionGraph;
   /** Per rule: symbols it matched that a typed rule left alone because the range didn't change them. */
   untouched: Map<string, number>;
-  /** Per `none` rule: symbols Tier 0 (or the node mapping) had decided as an element, or rejected, that the rule overrode. */
-  overrode: Map<string, { decided: number; rejected: number }>;
+  /**
+   * Per `none` rule: symbols Tier 0 (or the node mapping) had decided as an element (with
+   * `overrideTier0`), or rejected, that the rule overrode; `types` counts the decided ones by the
+   * `layer.type` Tier 0 gave them.
+   */
+  overrode: Map<string, { decided: number; rejected: number; types?: Record<string, number> }>;
+  /**
+   * Symbols a `none` rule matched that Tier 0 decided as elements, held for Tier 0 because the rule
+   * doesn't say `overrideTier0` (#1424): by card id, the rule's name and the type Tier 0 gave. Tier
+   * 0 stages them; one that ends up a card is the rule's ({@link releaseHeldCards}).
+   */
+  held: Map<string, { rule: string; type: string }>;
 }
 
 /** What a rule is asked about a symbol. */
@@ -427,6 +477,7 @@ export function subjectOf(s: ExtractedSymbol, ownerType?: string): RuleSubject {
     file: s.card.file_path,
     label: s.card.label,
     name: s.card.name,
+    symbol: extractedSymbolOf(s),
     ...(s.triage?.visibility ? { visibility: s.triage.visibility } : {}),
     nested: !!s.triage?.nested,
     declaration: declarationOf(s.card.source, s.card.signature),
@@ -436,18 +487,20 @@ export function subjectOf(s: ExtractedSymbol, ownerType?: string): RuleSubject {
 
 /**
  * The extraction with the project's rules applied to its symbols' outcomes, for planning: a rule
- * that says `none` replaces whatever Tier 0 said; a rule that names a type decides a symbol Tier 0
- * left open or narrowed. Planning then treats them as it treats Tier 0's (an element that already
- * names a symbol still wins, and so does a decision recorded for that one card). The outcome's
- * rule is `project:<name>`.
+ * that says `none` replaces what Tier 0 said, except that a symbol Tier 0 decided as an element is
+ * held for Tier 0 unless the rule says `overrideTier0` (`held`); a rule that names a type decides a
+ * symbol Tier 0 left open or narrowed, with the rule's attributes. Planning then treats them as it
+ * treats Tier 0's (an element that already names a symbol still wins, and so does a decision
+ * recorded for that one card). The outcome's rule is `project:<name>`.
  */
 export function applyProjectRules(extraction: ExtractionGraph, rules: readonly CompiledRule[], context: ApplyRulesContext = {}): AppliedRules {
   const symbolRules = rules.filter((r) => r.rule.where);
   const noneRules = symbolRules.filter((r) => r.decision.kind === "none");
   const typedRules = symbolRules.filter((r) => r.decision.kind === "type");
   const untouched = new Map<string, number>();
-  const overrode = new Map<string, { decided: number; rejected: number }>();
-  if (!symbolRules.length) return { extraction, untouched, overrode };
+  const overrode = new Map<string, { decided: number; rejected: number; types?: Record<string, number> }>();
+  const held = new Map<string, { rule: string; type: string }>();
+  if (!symbolRules.length) return { extraction, untouched, overrode, held };
   const symbols = extraction.symbols.map((s) => {
     // A decision on this one card wins over every rule.
     if (context.decidedCards?.has(s.card.id)) return s;
@@ -455,10 +508,18 @@ export function applyProjectRules(extraction: ExtractionGraph, rules: readonly C
     // Any none rule, ahead of Tier 0 and of every typed rule.
     const none = noneRules.find((r) => r.matches(subject));
     if (none) {
+      // Tier 0 decided it is an element: the rule takes it only when it says so; else Tier 0 keeps it, counted.
+      if (s.tier0?.kind === "decide" && !none.rule.overrideTier0) {
+        held.set(s.card.id, { rule: none.rule.name, type: `${s.tier0.layer}.${s.tier0.type}` });
+        return s;
+      }
       if (s.tier0?.kind === "decide" || s.tier0?.kind === "reject") {
         const o = overrode.get(none.rule.name) ?? overrode.set(none.rule.name, { decided: 0, rejected: 0 }).get(none.rule.name)!;
-        if (s.tier0.kind === "decide") o.decided++;
-        else o.rejected++;
+        if (s.tier0.kind === "decide") {
+          o.decided++;
+          const type = `${s.tier0.layer}.${s.tier0.type}`;
+          o.types = { ...o.types, [type]: (o.types?.[type] ?? 0) + 1 };
+        } else o.rejected++;
       }
       return { ...s, tier0: { kind: "reject", rule: `${PROJECT_RULE_PREFIX}${none.rule.name}`, confidence: "high" } satisfies Tier0Outcome };
     }
@@ -472,10 +533,38 @@ export function applyProjectRules(extraction: ExtractionGraph, rules: readonly C
     }
     return {
       ...s,
-      tier0: { kind: "decide", layer: typed.decision.layer, type: typed.decision.type, rule: `${PROJECT_RULE_PREFIX}${typed.rule.name}`, confidence: "high" } satisfies Tier0Outcome,
+      tier0: {
+        kind: "decide",
+        layer: typed.decision.layer,
+        type: typed.decision.type,
+        ...(typed.rule.attributes ? { attributes: typed.rule.attributes } : {}),
+        rule: `${PROJECT_RULE_PREFIX}${typed.rule.name}`,
+        confidence: "high",
+      } satisfies Tier0Outcome,
     };
   });
-  return { extraction: { ...extraction, symbols }, untouched, overrode };
+  return { extraction: { ...extraction, symbols }, untouched, overrode, held };
+}
+
+/**
+ * Cards whose symbol a `none` rule held for Tier 0 ({@link AppliedRules.held}) and that Tier 0
+ * could not stage after all (a needs-attributes or ambiguous card): those are decided by the rule,
+ * as a card no Tier-0 rule covers would be. Returns the cards left, and the ones the rules took
+ * with the rule's name.
+ */
+export function releaseHeldCards<T extends { cardId: string }>(
+  cards: readonly T[],
+  held: ReadonlyMap<string, { rule: string }>
+): { cards: T[]; released: Array<{ rule: string; card: T }> } {
+  if (!held.size) return { cards: [...cards], released: [] };
+  const kept: T[] = [];
+  const released: Array<{ rule: string; card: T }> = [];
+  for (const card of cards) {
+    const h = held.get(card.cardId);
+    if (h) released.push({ rule: h.rule, card });
+    else kept.push(card);
+  }
+  return { cards: kept, released };
 }
 
 /** The first relationship rule that covers a relationship, when one does. */

@@ -74,6 +74,7 @@ import type { ClusterReport } from "../../analyzers/cards/clusters.js";
 import {
   attributeChangedLines,
   decisionKey,
+  ownerTypeResolver,
   impactedElements,
   isTier1Rule,
   tier1Askable,
@@ -84,8 +85,6 @@ import {
   planElements,
   planRelationships,
   INFERRED_TEST_EDGE,
-  findBySymbol,
-  indexExisting,
   sortUndecided,
   sourceSymbolOf,
   symbolChangedInRange,
@@ -102,18 +101,16 @@ import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
 import { normalizeNodeType } from "../../generated/node-types.js";
 import { stagedRelationshipTriple } from "../../core/relationship-staging.js";
 import { Element } from "../../core/element.js";
-import { Layer } from "../../core/layer.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { extractionPurpose, type ChangesetPurpose } from "../../core/changeset-purpose.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
+import { validatePlannedAdds } from "../../analyzers/validate-planned.js";
 import { getValidRelationships } from "../../generated/relationship-index.js";
 import type { SourceReference } from "../../types/source-reference.js";
-import { generateUUID } from "../../utils/id-generator.js";
 import { CLIError, ErrorCategory, formatValidOptions } from "../../utils/errors.js";
 import { FileLock } from "../../utils/file-lock.js";
-import { SchemaValidator } from "../../validators/schema-validator.js";
 import { acquireProjectWriteLock, compactJson, jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolContext, type McpToolDefinition } from "./shared.js";
 import { changesetUnstageHandler } from "./changeset-editing.js";
 import {
@@ -148,14 +145,19 @@ import {
   isProjectRule,
   loadProjectRules,
   relationshipRuleFor,
+  releaseHeldCards,
+  ruleNameFor,
   saveProjectRule,
+  subjectOf,
   type CompiledRule,
+  type ProjectRule,
 } from "../../analyzers/project-rules.js";
 import {
   DEFAULT_GROUP_DEPTH,
   DEFAULT_SHARED_BY,
   filterCards,
   groupCards,
+  groupPath,
   kindRows,
   pageOf,
   planCoverage,
@@ -165,15 +167,17 @@ import {
   type PlannedElementRef,
   type SharedHelpers,
 } from "../../analyzers/triage.js";
-import { symbolSpellings } from "../../analyzers/cards/extract.js";
 import { BATCH_FILE_DESCRIPTION, readBatchFile } from "../batch-file.js";
 import { batchReport, verboseSchema, type BatchItemResult } from "./batch-result.js";
 import {
+  cardsNamed,
   compileDecide,
   decideItemSchema,
   ruleReport,
+  ruleWarnings,
   cardRuleName,
   withCardDecisions,
+  type CardRef,
   type DecideResult,
   type RuleReport,
 } from "./codebase-extract-decide.js";
@@ -221,6 +225,17 @@ const rejectItemSchema = strictItem("A reject[] item", {
         })
           .optional()
           .describe("A relationship extraction staged (or would stage) that the code doesn't have."),
+        except: z
+          .array(z.string().min(1))
+          .optional()
+          .describe("With files: cards to leave out of it (cardId, symbol or file#symbol), such as the ones you will model."),
+        keep: z
+          .boolean()
+          .optional()
+          .describe(
+            "true: write it as a rule to documentation-robotics/extraction-rules.yaml (commit that file) instead of recording it in this checkout's .dr/, " +
+              "so other checkouts leave it out too. A card becomes a rule on its file and symbol; files a rule on the pattern (not with except); a relationship a relationship rule."
+          ),
         reason: z.string().min(1).describe("Why it is not a model element (or relationship), in a few words."),
       });
 
@@ -267,11 +282,13 @@ const inputSchema = {
       "What is not in the model, each item with one of card, files or relationship, and a reason. card: a card of this " +
         "extraction (cardId, or a symbol only one card has), a symbol it staged (Tier 0 decided it), or the id of an element " +
         "staged from it. files: every undecided card in matching files (a path or glob from the codebase root; * stays in one folder, so use **/*.md for any depth), " +
-        "instead of one call per card. " +
+        "instead of one call per card; a card whose symbol an element now names is left out and counted (modelled), as is one except names. " +
+        "With decide in the same call, decide is applied first and files covers only the cards it leaves undecided; a card a decide item names is decide's. " +
         "relationship: {source, predicate, target} of a wrong relationship. Recorded for the project until cleared, so " +
         "later runs leave them out; what is still staged for them in the changeset is unstaged (an element with its relationships). " +
         "An item that names nothing (a pattern no card is in, an unknown card) is listed in reject.attention and the others are still recorded; " +
-        "the call is refused only when no item applies. A call with only reject or clearRejected records and runs nothing."
+        "the call is refused only when no item applies. A call with only reject or clearRejected records and runs nothing. " +
+        "Recorded decisions are this checkout's (.dr/ is not in git); keep: true writes a rule instead. With preview: true nothing is recorded or unstaged and each item says would-record."
     ),
   clearRejected: z
     .union([z.literal(true), z.array(z.string().min(1))])
@@ -286,7 +303,8 @@ const inputSchema = {
     .describe(
       "Count what a run with these arguments would stage and how many cards it would leave, with the range's commits and narrower " +
         "since refs, without staging or recording anything. Use it before a since run that may reach far back. It asks Tier 1 nothing, so its counts are Tier 0's: " +
-        "in stage mode a real run also stages Tier 1's accept band and hides its not-element band, which the preview doesn't count."
+        "in stage mode a real run also stages Tier 1's accept band and hides its not-element band, which the preview doesn't count. " +
+        "With reject or clearRejected it records, clears and unstages nothing: each reject item says would-record, with its count."
     ),
   clusters: z
     .boolean()
@@ -318,9 +336,13 @@ const inputSchema = {
       "Decide cards in bulk, by a stated rule: each item names where (files, label, visibility, nested, name, declaration, ownerType), " +
         "or one card, or a relationship, and says as (a layer.type, or none) with a reason. The run applies them ahead of the project's " +
         "rules file: a typed item stages every card it covers as that type, named from the card as Tier 0 names them (in a since run, only " +
-        "the symbols the range changed); none records them as not elements. With preview: true nothing is written and each item's count " +
+        "the symbols the range changed, with the item's attributes for what the type requires and the code can't give); none records them as not elements. " +
+        "A none item leaves a symbol Tier 0 decided as an element to Tier 0 unless it says overrideTier0: true; ruleWarnings, at the top of the answer, says how many it matched. " +
+        "where.name matches the bare name (_copy_grooves), where.symbol the card's symbol (Assembly._copy_grooves). " +
+        "With preview: true nothing is written and each item's count " +
         "and a sample come back, which is the step to review before applying. keep: true also writes the item to " +
-        `documentation-robotics/${PROJECT_RULES_FILE}, so later runs and other checkouts apply it. The result (decide) gives counts and the items that need attention.`
+        `documentation-robotics/${PROJECT_RULES_FILE}, so later runs and other checkouts apply it (and retires the recorded rejections it covers). ` +
+        "With view, the answer is that view's first page (page for another) of the cards left once the items apply. The result (decide) gives counts and the items that need attention."
     ),
   file: z
     .string()
@@ -343,18 +365,21 @@ const inputSchema = {
     kind: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional().describe("no-rule, narrowed, ambiguous, needs-attributes, unhandled-route, decision-record."),
     nested: z.boolean().optional().describe("Declared inside another function."),
     changed: z.boolean().optional().describe("With a since run: true for symbols the range changed (the default pile), false for the ones it did not touch."),
+    planned: z.boolean().optional().describe("With a plan active before a since run: true for cards whose symbol an element of the plan names (card.planned)."),
   })
     .optional()
     .describe(
       "Read the last run's cards by filter, a page at a time (page, pageSize): nothing is extracted or staged. {} lists every card. " +
-        "Its groups are those of the filtered cards, so a folder can be opened a level at a time (with groupDepth)."
+        "Its groups are those of the filtered cards, so a folder can be opened a level at a time (with groupDepth). " +
+        'A candidate list several cards share is given once (undecided.candidateLists) and named on each card (candidateList); groupBy: "file" groups the page by file. ' +
+        "With decide, the call is a run: the items apply first and the answer is this view's page of the cards left."
     ),
   list: z
     .enum(["groups", "candidateDeletes", "updated", "retyped", "impacted", "ruleDecided", "sharedHelpers", "planCoverage", "unwiredTests", "notElements"])
     .optional()
     .describe(
       "Read one list of the last run in full, a page at a time (limit, offset): nothing is extracted or staged. Each list a run shortens says " +
-        "which name to pass here. ruleDecided needs rule (the rule's name)."
+        "which name to pass here. ruleDecided needs rule (the rule's name). notElements reads this checkout's recorded decisions, run or no run."
     ),
   rule: z.string().min(1).optional().describe("With list: \"ruleDecided\": the project rule whose decisions to list."),
   limit: z
@@ -374,7 +399,10 @@ const inputSchema = {
     .max(12)
     .optional()
     .describe(`How many leading folders name a group of cards (default ${DEFAULT_GROUP_DEPTH}, e.g. src/ui/). Raise it, with view.files, to open a folder; groupBy: "file" goes to its files.`),
-  groupBy: z.enum(["folder", "file"]).optional().describe('With list: "groups": "file" gives one group per file (default "folder").'),
+  groupBy: z
+    .enum(["folder", "file"])
+    .optional()
+    .describe('With list: "groups": "file" gives one group per file (default "folder"). With view (or a page): the page\'s cards grouped by file, or by folder at groupDepth.'),
   sharedBy: z
     .number()
     .int()
@@ -777,8 +805,58 @@ function fitNotes(fit: PageFit): Record<string, unknown> {
   };
 }
 
+/** How a page of cards is laid out: by file, or by folder at a depth (groupBy), or a flat list. */
+interface PageLayout {
+  groupBy?: "file" | "folder";
+  depth?: number;
+}
+
+/** The order a page grouped by file or folder needs: the cards of one group together, each group's cards in their own order. */
+function inLayoutOrder<T extends UndecidedCard>(cards: T[], layout: PageLayout): T[] {
+  if (!layout.groupBy) return cards;
+  const key = (c: T) => groupPath(c.file, layout.depth ?? DEFAULT_GROUP_DEPTH, layout.groupBy === "file");
+  const first = new Map<string, number>();
+  cards.forEach((c, i) => {
+    if (!first.has(key(c))) first.set(key(c), i);
+  });
+  return cards.map((c, i) => ({ c, i })).sort((a, b) => first.get(key(a.c))! - first.get(key(b.c))! || a.i - b.i).map((x) => x.c);
+}
+
+/**
+ * A page of cards with each candidate list that two or more of them share stated once (#1298): the
+ * page's `candidateLists` holds it under a short name and each such card names it (`candidateList`)
+ * instead of repeating it. A list of one type, or one only one card has, stays on its card.
+ */
+export function sharedCandidateLists(items: Array<Partial<UndecidedCard>>): {
+  items: Array<Partial<UndecidedCard> & { candidateList?: string }>;
+  candidateLists?: Record<string, string[]>;
+} {
+  const counts = new Map<string, number>();
+  for (const c of items) if ((c.candidates?.length ?? 0) > 1) counts.set(JSON.stringify(c.candidates), (counts.get(JSON.stringify(c.candidates)) ?? 0) + 1);
+  const shared = [...counts].filter(([, n]) => n > 1).map(([k]) => k);
+  if (!shared.length) return { items };
+  const names = new Map(shared.map((k, i) => [k, `L${i + 1}`] as const));
+  const candidateLists = Object.fromEntries(shared.map((k) => [names.get(k)!, JSON.parse(k) as string[]]));
+  return {
+    candidateLists,
+    items: items.map((c) => {
+      const name = c.candidates ? names.get(JSON.stringify(c.candidates)) : undefined;
+      if (!name) return c;
+      const { candidates: _candidates, ...rest } = c;
+      return { ...rest, candidateList: name };
+    }),
+  };
+}
+
 /** The undecided section of a response: the page, how it was fitted, and how to read on. */
-function undecidedSection(p: CardPage, items: Array<Partial<UndecidedCard>>, fit: PageFit, requestedPageSize: number, extra: Record<string, unknown> = {}): Record<string, unknown> {
+function undecidedSection(
+  p: CardPage,
+  items: Array<Partial<UndecidedCard>>,
+  fit: PageFit,
+  requestedPageSize: number,
+  extra: Record<string, unknown> = {},
+  layout: PageLayout = {}
+): Record<string, unknown> {
   // What each type the page's cards name (candidates, hint, Tier 1's type) requires, once per
   // type, so the first model_add from these cards sends valid attributes (#1153).
   const requiredAttributes = requiredAttributesFor(
@@ -788,9 +866,23 @@ function undecidedSection(p: CardPage, items: Array<Partial<UndecidedCard>>, fit
       ...(c.tier1?.layer && c.tier1.type ? [`${c.tier1.layer}.${c.tier1.type}`] : []),
     ])
   );
+  const shared = sharedCandidateLists(items);
+  // Grouped by file (or folder): the file is said once per group, not on every card.
+  let groups: Array<{ path: string; items: Array<Partial<UndecidedCard>> }> | undefined;
+  if (layout.groupBy) {
+    const byPath = new Map<string, Array<Partial<UndecidedCard>>>();
+    for (const c of shared.items) {
+      const key = groupPath(c.file ?? null, layout.depth ?? DEFAULT_GROUP_DEPTH, layout.groupBy === "file");
+      const { file: _file, ...rest } = c;
+      (byPath.get(key) ?? byPath.set(key, []).get(key)!).push(layout.groupBy === "file" ? rest : c);
+    }
+    groups = [...byPath].map(([path, cards]) => ({ path, items: cards }));
+  }
   return {
     ...p,
-    items,
+    items: groups ? undefined : shared.items,
+    ...(groups ? { [layout.groupBy === "file" ? "byFile" : "byFolder"]: groups } : {}),
+    ...(shared.candidateLists ? { candidateLists: shared.candidateLists } : {}),
     ...(Object.keys(requiredAttributes).length > 0 ? { requiredAttributes } : {}),
     ...extra,
     ...(requestedPageSize > p.pageSize ? { pageSizeCapped: `pageSize ${requestedPageSize} was capped at ${p.pageSize}; use page: 2 and on for more.` } : {}),
@@ -805,23 +897,6 @@ function undecidedSection(p: CardPage, items: Array<Partial<UndecidedCard>>, fit
 // Staging
 // ---------------------------------------------------------------------------
 
-function elementOfAdd(add: PlannedElement, now: string): Element {
-  const element = new Element({
-    id: generateUUID(),
-    path: add.id,
-    spec_node_id: `${add.layer}.${add.type}`,
-    layer_id: add.layer,
-    type: add.type,
-    name: add.name,
-    description: add.description,
-    attributes: add.attributes,
-    metadata: { created_at: now, updated_at: now, version: 1 },
-    layer: add.layer,
-  });
-  if (add.sourceReference) element.setSourceReference(add.sourceReference);
-  return element;
-}
-
 /** Adds whose attributes validate, and the rest as cards with what they lack. */
 async function validateAdds(
   adds: PlannedElement[],
@@ -831,26 +906,9 @@ async function validateAdds(
 ) {
   const valid: Array<{ add: PlannedElement; element: Element }> = [];
   const invalid: UndecidedCard[] = [];
-  const validator = new SchemaValidator();
-  const byLayer = new Map<string, Array<{ add: PlannedElement; element: Element }>>();
-  for (const add of adds) {
-    const list = byLayer.get(add.layer) ?? byLayer.set(add.layer, []).get(add.layer)!;
-    list.push({ add, element: elementOfAdd(add, now) });
-  }
-  for (const [layerName, items] of byLayer) {
-    const layer = new Layer(layerName);
-    for (const item of items) layer.addElement(item.element);
-    const result = await validator.validateLayer(layer);
-    const errors = new Map<string, string[]>();
-    for (const e of result.errors) {
-      if (!e.elementId) continue;
-      (errors.get(e.elementId) ?? errors.set(e.elementId, []).get(e.elementId)!).push(e.message);
-    }
-    for (const item of items) {
-      const errs = errors.get(item.add.id);
-      if (errs?.length) invalid.push(needsAttributesCard(item.add, errs, hunks, seeds));
-      else valid.push(item);
-    }
+  for (const { add, element, errors } of await validatePlannedAdds(adds, now)) {
+    if (errors.length) invalid.push(needsAttributesCard(add, errors, hunks, seeds));
+    else valid.push({ add, element });
   }
   return { valid, invalid };
 }
@@ -1314,6 +1372,15 @@ function coverageStep(c: { total: number; staged: number; candidates: number; no
     `Of the ${c.total} element(s) the plan adds that code can show, the as-built side has ${c.staged}: ${c.candidates} have candidate cards and ${c.none} have none (planCoverage). ` +
     "Stage the candidates that are those elements before verifying, at the plan's granularity (one element per module, not one symbol picked to stand for a file); " +
     "a thin as-built makes verify report planned elements and their relationships as missing when they were built."
+  );
+}
+
+/** Verify mode: cards whose symbol an element of the plan names, and how to stage them as built. */
+function plannedStep(cards: number): string {
+  return (
+    `${cards} card(s) are code an element of the plan names (card.planned; view: {planned: true} lists them): they are those elements as built. ` +
+    "Stage each with decide: [{card: <cardId>, as: <the planned element's layer.type>, reason}] (one call for all of them), named after the card, " +
+    "so changeset_verify matches them; reject only those the build dropped."
   );
 }
 
@@ -1797,14 +1864,14 @@ function cardsToReject(
   fromChangeset: Rejectable[],
   changesetName: string,
   refs: Array<{ card: string; reason: string; index: number }>
-): { found: Array<{ file: string | null; symbol: string; label?: string; reason: string }>; problems: RejectProblem[] } {
+): { found: Array<{ file: string | null; symbol: string; label?: string; reason: string; index: number }>; problems: RejectProblem[] } {
   const known: Rejectable[] = [
     ...(stored?.cards ?? []).map((c) => ({ file: c.file, symbol: c.symbol, label: c.label, cardId: c.cardId, qualifiedName: c.qualifiedName })),
     ...(stored?.earlierCards ?? []).map((c) => ({ file: c.file, symbol: c.symbol, label: c.label, cardId: c.cardId, qualifiedName: c.qualifiedName })),
     ...(stored?.staged ?? []).map((s) => ({ file: s.file, symbol: s.symbol, label: s.label, elementId: s.id })),
     ...fromChangeset,
   ];
-  const found: Array<{ file: string | null; symbol: string; label?: string; reason: string }> = [];
+  const found: Array<{ file: string | null; symbol: string; label?: string; reason: string; index: number }> = [];
   const problems: RejectProblem[] = [];
   // The same symbol can be known several ways (a card, then the element staged for it).
   const distinctSymbols = (matches: Rejectable[]): Rejectable[] => {
@@ -1824,7 +1891,7 @@ function cardsToReject(
     // An element id names the element: every symbol it names (one per source location).
     const ofElement = known.filter((k) => k.elementId === ref.card);
     if (ofElement.length) {
-      for (const d of distinctSymbols(ofElement)) found.push({ file: d.file, symbol: d.symbol, label: d.label, reason: ref.reason });
+      for (const d of distinctSymbols(ofElement)) found.push({ file: d.file, symbol: d.symbol, label: d.label, reason: ref.reason, index: ref.index });
       continue;
     }
     const byCard = known.filter((k) => k.cardId === ref.card);
@@ -1832,7 +1899,7 @@ function cardsToReject(
       ? byCard
       : known.filter((k) => k.symbol === ref.card || `${k.file ?? ""}#${k.symbol}` === ref.card || k.qualifiedName === ref.card);
     const distinct = distinctSymbols(matches);
-    if (distinct.length === 1) found.push({ file: distinct[0].file, symbol: distinct[0].symbol, label: distinct[0].label, reason: ref.reason });
+    if (distinct.length === 1) found.push({ file: distinct[0].file, symbol: distinct[0].symbol, label: distinct[0].label, reason: ref.reason, index: ref.index });
     else if (distinct.length > 1) {
       problems.push({
         index: ref.index,
@@ -1881,14 +1948,14 @@ interface RejectProblem {
   index: number;
   /** What the item named, as sent (`files: docs/**`). */
   item: string;
-  status: "malformed" | "no-match" | "unknown" | "ambiguous";
+  status: "malformed" | "no-match" | "unknown" | "ambiguous" | "decided";
   message: string;
 }
 
 /** A reject's items by what they name; an item that doesn't name exactly one of card, files and relationship is a problem. */
 function splitRejects(items: RejectItem[]) {
   const cards: Array<{ card: string; reason: string; index: number }> = [];
-  const files: Array<{ files: string; reason: string; index: number }> = [];
+  const files: FilesRef[] = [];
   const relationships: Array<{ relationship: RelationshipRef; reason: string; index: number }> = [];
   const problems: RejectProblem[] = [];
   items.forEach((item, index) => {
@@ -1900,26 +1967,51 @@ function splitRejects(items: RejectItem[]) {
         status: "malformed",
         message: `names ${named.length ? named.join(" and ") : "none of card, files and relationship"}: each item names exactly one of them`,
       });
+    } else if (item.except !== undefined && item.files === undefined) {
+      problems.push({
+        index,
+        item: "card or relationship with except",
+        status: "malformed",
+        message: "except goes with files: it leaves cards out of a files item",
+      });
+    } else if (item.keep && item.except?.length) {
+      problems.push({
+        index,
+        item: `files: ${item.files}`,
+        status: "malformed",
+        message: "keep can't carry except: a kept rule covers its whole pattern. Keep a narrower pattern, or decide with a where",
+      });
     } else if (item.card !== undefined) cards.push({ card: item.card, reason: item.reason, index });
-    else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason, index });
+    else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason, index, ...(item.except ? { except: item.except } : {}) });
     else relationships.push({ relationship: item.relationship!, reason: item.reason, index });
   });
   return { cards, files, relationships, problems };
 }
 
+/** A `files` reject item: the pattern, and the cards it must leave out (`except`). */
+type FilesRef = { files: string; reason: string; index: number; except?: string[] };
+
 /**
- * The cards a `files` reject names: every undecided card of the last run in matching files, as
- * card refs (the first reason wins for a card two patterns match). A pattern that matches no card
+ * The cards a `files` reject names: every undecided card in matching files (the last run's, or the
+ * cards a run's decide items left), as card refs (the first reason wins for a card two patterns
+ * match). A card whose symbol an element names now (`modelled`: the agent modelled it since the run,
+ * #1254) or that the item's `except` names is left out and counted. A pattern that matches no card
  * is a problem: it records nothing, and the other items still apply.
  */
 function cardsInFiles(
-  stored: StoredCards | null,
-  refs: Array<{ files: string; reason: string; index: number }>,
-  changesetName: string
-): { refs: Array<{ card: string; reason: string; index: number }>; problems: RejectProblem[] } {
-  const cards = stored?.cards ?? [];
+  cards: readonly UndecidedCard[],
+  refs: FilesRef[],
+  changesetName: string,
+  modelled: (key: string) => boolean = () => false
+): {
+  refs: Array<{ card: string; reason: string; index: number }>;
+  problems: RejectProblem[];
+  /** Per item: cards left out because an element names them, and because except names them. */
+  skipped: Map<number, { modelled: number; excepted: number }>;
+} {
   const out = new Map<string, { reason: string; index: number }>();
   const problems: RejectProblem[] = [];
+  const skipped = new Map<number, { modelled: number; excepted: number }>();
   for (const ref of refs) {
     const match = filesMatcher(ref.files);
     const hits = cards.filter((c) => {
@@ -1929,9 +2021,49 @@ function cardsInFiles(
     if (!hits.length) {
       problems.push({ index: ref.index, item: `files: ${ref.files}`, status: "no-match", message: `no undecided card of '${changesetName}' is in '${ref.files}'` });
     }
-    for (const c of hits) if (!out.has(c.cardId)) out.set(c.cardId, { reason: ref.reason, index: ref.index });
+    const excepted = new Set((ref.except ?? []).flatMap((x) => cardsNamed(hits, x).map((c) => c.cardId)));
+    const counts = { modelled: 0, excepted: 0 };
+    for (const c of hits) {
+      if (excepted.has(c.cardId)) counts.excepted++;
+      else if (modelled(decisionKey(normFile(c.file), c.symbol))) counts.modelled++;
+      else if (!out.has(c.cardId)) out.set(c.cardId, { reason: ref.reason, index: ref.index });
+    }
+    if (counts.modelled || counts.excepted) skipped.set(ref.index, counts);
   }
-  return { refs: [...out].map(([card, { reason, index }]) => ({ card, reason, index })), problems };
+  return { refs: [...out].map(([card, { reason, index }]) => ({ card, reason, index })), problems, skipped };
+}
+
+/** The `file#symbol` keys ({@link decisionKey}) the live elements of a graph name: code an element models. */
+function modelledKeys(graph: ChangesetGraph, into = new Set<string>()): Set<string> {
+  for (const e of graph.elements.values()) {
+    if (e.status === "deleted") continue;
+    for (const l of e.sourceReference?.locations ?? []) if (l.symbol) into.add(decisionKey(normFile(l.file), l.symbol));
+  }
+  return into;
+}
+
+/**
+ * The code a plan's elements name, by {@link decisionKey}, with the planned element's id: the
+ * source references of the elements it adds or updates.
+ */
+function plannedKeys(plan: Changeset | null): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const c of (plan?.changes ?? []) as StagedChange[]) {
+    if ((c.type !== "add" && c.type !== "update") || !c.after) continue;
+    const after = c.after as Record<string, unknown>;
+    const id = typeof after.path === "string" && after.path ? after.path : c.elementId;
+    for (const l of stagedSourceReference(after)?.locations ?? []) {
+      if (!l.symbol || !l.file) continue;
+      const key = decisionKey(normFile(l.file), l.symbol);
+      if (!out.has(key)) out.set(key, id);
+    }
+  }
+  return out;
+}
+
+/** A regular expression that matches exactly this text. */
+function exactly(text: string): string {
+  return `^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`;
 }
 
 /** A relationship with both ends as the graph names them (a UUID becomes its dotted id). */
@@ -1963,7 +2095,7 @@ function relationshipsToReject(
   graph: ChangesetGraph,
   decisions: Decisions,
   changesetName: string
-): { found: Array<RelationshipRef & { key: string; reason: string }>; problems: RejectProblem[] } {
+): { found: Array<RelationshipRef & { key: string; reason: string; index: number }>; problems: RejectProblem[] } {
   const known = new Set([
     ...(stored?.stagedRelationships ?? []).map((k) => {
       const [source, predicate, target] = k.split("::");
@@ -1976,13 +2108,13 @@ function relationshipsToReject(
     const triple = stagedRelationshipTriple(t.change as StagedChange);
     if (triple) known.add(relationshipKey(resolvedTriple(triple, graph)));
   }
-  const found: Array<RelationshipRef & { key: string; reason: string }> = [];
+  const found: Array<RelationshipRef & { key: string; reason: string; index: number }> = [];
   const problems: RejectProblem[] = [];
   for (const { relationship: given, reason, index } of refs) {
     const r = resolvedTriple(given, graph);
     const key = relationshipKey(r);
     if (known.has(key) || graph.getRelationship(r.source, r.predicate, r.target) || decisions.notRelationships[key]) {
-      found.push({ source: r.source, predicate: r.predicate, target: r.target, key, reason });
+      found.push({ source: r.source, predicate: r.predicate, target: r.target, key, reason, index });
     } else {
       problems.push({
         index,
@@ -2168,25 +2300,23 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         rejectItems = fromFile.reject ?? [];
         decideItems = fromFile.decide ?? [];
       }
+      // decide with view is a run that answers with that view's page of the cards left (#1350).
+      const viewAfterRun = decideItems.length > 0 && args.view !== undefined && args.list === undefined;
       // A view or a list reads the last run's record, as a later page does: nothing is extracted or staged.
-      const reading = args.view !== undefined || args.list !== undefined;
-      const paging = (args.page ?? 1) > 1 || reading;
+      const reading = !viewAfterRun && (args.view !== undefined || args.list !== undefined);
+      const paging = !viewAfterRun && ((args.page ?? 1) > 1 || reading);
       if (paging && decideItems.length) {
-        throw new CLIError("decide is applied in a run; it can't be combined with page, view or list", ErrorCategory.USER, [
-          "Call codebase_extract with decide and the run's own arguments (changeset, or since and layers)",
+        throw new CLIError("decide is applied in a run; it can't be combined with list, or with page without view", ErrorCategory.USER, [
+          "Call codebase_extract with decide and the run's own arguments (changeset, or since and layers); add view: {} (and page) to get the cards left",
         ]);
       }
       // A call that only rejects cards or clears decisions records them and runs nothing.
       const decisionsOnly = !paging && !decideItems.length && (rejectItems.length > 0 || args.clearRejected !== undefined);
-      // A preview counts what a run would do, and stages and records nothing.
+      // A preview counts what a run would do, and stages and records nothing: with reject or
+      // clearRejected only, it says what they would record or clear (#1322).
       const preview = args.preview === true;
-      // preview with page, view or list reads the last preview's record; with reject or clearRejected it is refused.
+      // preview with page, view or list reads the last preview's record.
       const previewRead = preview && paging;
-      if (preview && decisionsOnly) {
-        throw new CLIError("preview counts a run; it can't be combined with reject or clearRejected", ErrorCategory.USER, [
-          "Call codebase_extract with preview: true and the run's own arguments (since, layers, changeset)",
-        ]);
-      }
       // acceptTier1 is a run: it stages Tier 1's accept band, so it needs Tier 1 and a run to stage in.
       let acceptTier1 = args.acceptTier1 === true;
       // acceptTier1 in stage mode: run as a normal run (which stages the accept band) and say so.
@@ -2198,7 +2328,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
       }
       const rejects = rejectItems.length ? splitRejects(rejectItems) : null;
       // The project's own rules (documentation-robotics/extraction-rules.yaml), for a run.
-      const fileRules = paging || decisionsOnly ? [] : await loadProjectRules(projectRoot);
+      let fileRules = paging || decisionsOnly ? [] : await loadProjectRules(projectRoot);
 
       // The changeset: the one named; else, for a page or decisions call, the active extraction
       // changeset (it has a cards file); else the default name for this commit (and range).
@@ -2400,6 +2530,24 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const rejectProblems: RejectProblem[] = [];
         /** Cards a files item covered, by the item's index. */
         const rejectedPerItem = new Map<number, number>();
+        /** Cards a files item left out: an element names them now, or except names them (#1254). */
+        let skippedPerItem = new Map<number, { modelled: number; excepted: number }>();
+        /** Items written as rules (keep: true), by index, with the rule's name (#1332). */
+        const keptRejects = new Map<number, string>();
+        /** Rules the kept reject items write, once the call's checks pass (none in a preview). */
+        const rulesToKeep: ProjectRule[] = [];
+        // A files item in a call with decide waits for the run: decide applies first, and the item
+        // covers only the cards it left undecided (#1394).
+        const deferredFiles: FilesRef[] = decideItems.length && rejects ? rejects.files : [];
+        // Names a kept rule may not take: the rules file's (a rule of the same name would be replaced).
+        const keepsRules = rejectItems.some((r) => r.keep);
+        const takenRuleNames = new Set(keepsRules ? (await loadProjectRules(projectRoot)).map((r) => r.rule.name) : []);
+        const keptRuleFor = (index: number, rule: Omit<ProjectRule, "name">): void => {
+          const ruleName = ruleNameFor(rule, takenRuleNames);
+          takenRuleNames.add(ruleName);
+          rulesToKeep.push({ name: ruleName, ...rule });
+          keptRejects.set(index, keptRejects.has(index) ? `${keptRejects.get(index)}, ${ruleName}` : ruleName);
+        };
         if (rejects) {
           const now = new Date().toISOString();
           const changesetLabel = changeset?.name ?? stored?.changesetName ?? name;
@@ -2410,16 +2558,51 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const fromRelationships = relationshipGraph
             ? relationshipsToReject(rejects.relationships, stored, changeset, relationshipGraph, decisions, changesetLabel)
             : { found: [], problems: [] };
-          const inFiles = cardsInFiles(stored, rejects.files, changesetLabel);
+          // The code an element names now, in the extraction changeset (or the base) and in the
+          // active changeset when it is another (a plan): a files item leaves those cards out.
+          const filesNow = deferredFiles.length ? [] : rejects.files;
+          let modelled: Set<string> | null = null;
+          if (filesNow.length) {
+            modelled = modelledKeys(graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset())));
+            const activeId = await manager.getActiveId();
+            const active = activeId && activeId !== changeset?.id ? await manager.load(activeId) : null;
+            if (active?.status === "staged") modelledKeys(await ChangesetGraph.build(model, active), modelled);
+          }
+          const inFiles = cardsInFiles(stored?.cards ?? [], filesNow, changesetLabel, (key) => !!modelled?.has(key));
+          skippedPerItem = inFiles.skipped;
+          // A card a decide item of this call names is decide's: the reject item says so and records nothing.
+          const decideKeys = new Set<string>();
+          for (const d of decideItems) {
+            if (d.card === undefined) continue;
+            const known = [...(stored?.cards ?? []), ...((stored?.earlierCards ?? []) as CardRef[])];
+            for (const c of cardsNamed(known, d.card)) decideKeys.add(decisionKey(normFile(c.file), c.symbol));
+            decideKeys.add(d.card);
+          }
           const cardRefs = [...rejects.cards, ...inFiles.refs];
           const fromCards = cardRefs.length
             ? cardsToReject(stored, changesetRejectables(extractionChangeset, graph), changesetLabel, cardRefs)
             : { found: [], problems: [] };
+          const decidedHere: RejectProblem[] = [];
+          if (decideKeys.size) {
+            const decidedItems = new Set(rejects.cards.filter((c) => decideKeys.has(c.card)).map((c) => c.index));
+            fromCards.found = fromCards.found.filter((f) => {
+              const decided = decidedItems.has(f.index) || decideKeys.has(decisionKey(normFile(f.file), f.symbol));
+              if (decided && !decidedHere.some((p) => p.index === f.index)) {
+                decidedHere.push({
+                  index: f.index,
+                  item: `card: ${f.symbol}`,
+                  status: "decided",
+                  message: "a decide item of this call names the same card, and decide wins: nothing recorded for it",
+                });
+              }
+              return !decided;
+            });
+          }
           // An item that names nothing is reported and the rest are recorded (#1213); a call in
           // which no item applies is refused, as a mistyped single reject was before.
-          rejectProblems.push(...rejects.problems, ...fromRelationships.problems, ...inFiles.problems, ...fromCards.problems);
+          rejectProblems.push(...rejects.problems, ...fromRelationships.problems, ...inFiles.problems, ...fromCards.problems, ...decidedHere);
           rejectProblems.sort((a, b) => a.index - b.index);
-          if (rejectProblems.length && !fromRelationships.found.length && !fromCards.found.length) {
+          if (rejectProblems.length && !fromRelationships.found.length && !fromCards.found.length && !deferredFiles.length && !decidedHere.length) {
             throw new CLIError(
               `Can't reject: ${rejectProblems.map((p) => `${p.item} (${p.message})`).join("; ")}. Nothing was recorded`,
               ErrorCategory.USER,
@@ -2430,32 +2613,63 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ]
             );
           }
+          const keepAt = (index: number) => rejectItems[index]?.keep === true;
           const rejectedRelationships = fromRelationships.found;
           const rejected = fromCards.found;
           for (const ref of inFiles.refs) rejectedPerItem.set(ref.index, (rejectedPerItem.get(ref.index) ?? 0) + 1);
+          // A kept files item is a rule on its pattern; the cards it covers now are that rule's.
+          for (const f of filesNow) {
+            if (keepAt(f.index) && !rejectProblems.some((p) => p.index === f.index)) {
+              keptRuleFor(f.index, { where: { files: f.files }, as: "none", reason: f.reason, decided: { at: now, changeset: changesetLabel } });
+            }
+          }
           // A relationship still staged in the extraction changeset is unstaged; one the base model
           // has stays (rejecting is about what extraction stages).
           const stagedNow = stagedRelationshipAdds(extractionChangeset, relationshipGraph);
           for (const r of rejectedRelationships) {
-            decisions.notRelationships[r.key] = {
-              source: r.source,
-              predicate: r.predicate,
-              target: r.target,
-              reason: r.reason,
-              how: "rejected",
-              changeset: changesetLabel,
-              ...(changeset ? { changesetId: changeset.id! } : {}),
-              at: now,
-            };
-            recordedRelationshipsNow.push({ source: r.source, predicate: r.predicate, target: r.target, how: "rejected" });
+            if (keepAt(r.index)) {
+              keptRuleFor(r.index, {
+                relationship: { source: r.source, predicate: r.predicate, target: r.target },
+                as: "none",
+                reason: r.reason,
+                decided: { at: now, changeset: changesetLabel },
+              });
+            } else {
+              decisions.notRelationships[r.key] = {
+                source: r.source,
+                predicate: r.predicate,
+                target: r.target,
+                reason: r.reason,
+                how: "rejected",
+                changeset: changesetLabel,
+                ...(changeset ? { changesetId: changeset.id! } : {}),
+                at: now,
+              };
+              recordedRelationshipsNow.push({ source: r.source, predicate: r.predicate, target: r.target, how: "rejected" });
+            }
             const inGraph = relationshipGraph!.getRelationship(r.source, r.predicate, r.target);
             if (stagedNow.has(r.key)) relationshipsToUnstage.push(r);
             else if (inGraph && (inGraph.status === "unchanged" || inGraph.alreadyInBase)) relationshipsInBase.push(r.key);
           }
           const rejectedKeys = new Map<string, string>();
+          const filesItems = new Set(filesNow.map((f) => f.index));
           for (const card of rejected) {
             const key = decisionKey(card.file, card.symbol);
             rejectedKeys.set(key, card.symbol);
+            if (keepAt(card.index)) {
+              // A card kept is a rule on its file and symbol. It was named one at a time, as a recorded
+              // decision is, so it holds over Tier 0 as that decision did (overrideTier0).
+              if (!filesItems.has(card.index)) {
+                keptRuleFor(card.index, {
+                  where: { ...(card.file ? { files: card.file } : {}), symbol: exactly(card.symbol) },
+                  as: "none",
+                  reason: card.reason,
+                  overrideTier0: true,
+                  decided: { at: now, changeset: changesetLabel },
+                });
+              }
+              continue;
+            }
             decisions.notElements[key] = {
               file: card.file,
               symbol: card.symbol,
@@ -2494,23 +2708,28 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             else toUnstage.set(e.id, rejectedKeys.get(hit)!);
           }
         }
+        // Kept reject items go in the project's rules file (a preview writes nothing), and a run applies them.
+        if (!preview && rulesToKeep.length) {
+          for (const rule of rulesToKeep) await saveProjectRule(projectRoot, rule);
+          if (!paging && !decisionsOnly) fileRules = await loadProjectRules(projectRoot);
+        }
         if (!preview && (pruned || cleared || clearedRelationships || recordedNow.length || recordedRelationshipsNow.length)) {
           await writeDecisions(projectRoot, decisions);
         }
         const notElementKeys = new Set(Object.keys(decisions.notElements));
 
         // Unstage what was rejected while staged, with the relationships staged for it, so the
-        // decision holds now and not only once the changeset lands.
+        // decision holds now and not only once the changeset lands. A preview unstages nothing.
         const unstaged: Array<{ id: string; symbol: string; changes: number }> = [];
         const unstageFailed: Array<{ id: string; error: string }> = [];
-        for (const [id, symbol] of toUnstage) {
+        for (const [id, symbol] of preview ? [] : toUnstage) {
           const result = await changesetUnstageHandler({ elementId: id, changeset: changeset!.id!, rootPath: args.rootPath });
           const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
           if (result.isError) unstageFailed.push({ id, error: body.error ?? body.message ?? "unstage failed" });
           else if (body.unstaged?.length) unstaged.push({ id, symbol, changes: body.unstaged.length });
         }
         const unstagedRels: string[] = [];
-        for (const r of relationshipsToUnstage) {
+        for (const r of preview ? [] : relationshipsToUnstage) {
           const result = await changesetUnstageHandler({
             source: r.source,
             predicate: r.predicate,
@@ -2543,67 +2762,123 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         if (unstaged.length || unstagedRels.length) await reloadModel(args.rootPath);
         // Each reject item's result, in the shape of the other batch writes (batch-result.ts): counts
-        // over the whole call, and in full only the items that did nothing.
+        // over the whole call, and in full only the items that did nothing. A preview's say what a
+        // call without preview would do (#1322). A files item deferred until the run's decide items
+        // applied gets its result once they have.
         const problemAt = new Map(rejectProblems.map((p) => [p.index, p] as const));
-        const rejectResults: Array<BatchItemResult & { item?: string; recorded?: number }> = rejectItems.map((item, index) => {
+        type RejectResult = BatchItemResult & { item?: string; recorded?: number; modelled?: number; excepted?: number; rule?: string };
+        const rejectItemResult = (index: number): RejectResult => {
+          const item = rejectItems[index];
           const problem = problemAt.get(index);
           if (problem) return { index, status: problem.status, item: problem.item, reason: problem.message };
-          return { index, status: "recorded", ...(item.files !== undefined ? { recorded: rejectedPerItem.get(index) ?? 0 } : {}) };
-        });
-        const rejectResult = {
-          ...(rejectItems.length ? { reject: batchReport(rejectResults, { verbose: args.verbose, limit: args.limit, written: ["recorded"] }) } : {}),
-          ...(unstaged.length
-            ? {
-                unstaged: {
-                  items: unstaged,
-                  note: `Rejected while staged: unstaged from '${changeset!.name}', with the relationships staged for them (changes counts both).`,
-                },
-              }
-            : {}),
-          ...(unstagedRels.length
-            ? { unstagedRelationships: { items: unstagedRels, note: `Rejected while staged: unstaged from '${changeset!.name}'.` } }
-            : {}),
-          ...(unstageFailed.length ? { unstageFailed } : {}),
-          ...(inBase.length
-            ? { inModel: { ids: [...new Set(inBase)], note: "Already in the base model: rejecting doesn't remove them. model_delete them if they should go." } }
-            : {}),
-          ...(relationshipsInBase.length
-            ? {
-                relationshipsInModel: {
-                  items: relationshipsInBase,
-                  note: "Already in the base model: rejecting doesn't remove them. relationship_delete them if they should go.",
-                },
-              }
-            : {}),
-          ...(keptElements.length
-            ? {
-                kept: {
-                  items: keptElements,
-                  note: "Still staged: each also names code that wasn't rejected (alsoNames). Unstage it with changeset_unstage, or drop the rejected location with model_update, if it should change.",
-                },
-              }
-            : {}),
+          const kept = keptRejects.get(index);
+          const skipped = skippedPerItem.get(index);
+          return {
+            index,
+            status: kept ? (preview ? "would-keep" : "kept") : preview ? "would-record" : "recorded",
+            ...(kept ? { rule: kept } : {}),
+            ...(item.files !== undefined ? { recorded: rejectedPerItem.get(index) ?? 0 } : {}),
+            ...(skipped?.modelled ? { modelled: skipped.modelled } : {}),
+            ...(skipped?.excepted ? { excepted: skipped.excepted } : {}),
+          };
+        };
+        const rejectSection = () => {
+          const results = rejectItems.map((_, index) => rejectItemResult(index));
+          const recordedLocally = !preview && results.some((r) => r.status === "recorded");
+          const skippedModelled = results.reduce((n, r) => n + (r.modelled ?? 0), 0);
+          return {
+            ...(rejectItems.length
+              ? {
+                  reject: {
+                    ...batchReport(results, { verbose: args.verbose, limit: args.limit, written: ["recorded", "kept", "would-record", "would-keep"] }),
+                    ...(preview ? { preview: "Nothing was recorded, kept or unstaged: each item says what it would do." } : {}),
+                    ...(skippedModelled
+                      ? { modelled: `${skippedModelled} card(s) in the files named were left out: an element names their symbol now (counted per item as modelled).` }
+                      : {}),
+                    ...(recordedLocally
+                      ? {
+                          local:
+                            "Recorded in .dr/analyzers/extract/decisions.json, which git ignores: only this checkout leaves them out. keep: true on an item writes it " +
+                            `as a rule to documentation-robotics/${PROJECT_RULES_FILE} instead (commit that file), and decide with keep: true retires the recorded decisions its rule covers.`,
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(unstaged.length
+              ? {
+                  unstaged: {
+                    items: unstaged,
+                    note: `Rejected while staged: unstaged from '${changeset!.name}', with the relationships staged for them (changes counts both).`,
+                  },
+                }
+              : {}),
+            ...(preview && (toUnstage.size || relationshipsToUnstage.length)
+              ? {
+                  wouldUnstage: {
+                    elements: [...toUnstage.keys()],
+                    relationships: relationshipsToUnstage.map((r) => r.key),
+                    note: `Staged in '${changeset?.name ?? name}' now: a call without preview unstages them.`,
+                  },
+                }
+              : {}),
+            ...(unstagedRels.length
+              ? { unstagedRelationships: { items: unstagedRels, note: `Rejected while staged: unstaged from '${changeset!.name}'.` } }
+              : {}),
+            ...(unstageFailed.length ? { unstageFailed } : {}),
+            ...(inBase.length
+              ? { inModel: { ids: [...new Set(inBase)], note: "Already in the base model: rejecting doesn't remove them. model_delete them if they should go." } }
+              : {}),
+            ...(relationshipsInBase.length
+              ? {
+                  relationshipsInModel: {
+                    items: relationshipsInBase,
+                    note: "Already in the base model: rejecting doesn't remove them. relationship_delete them if they should go.",
+                  },
+                }
+              : {}),
+            ...(keptElements.length
+              ? {
+                  kept: {
+                    items: keptElements,
+                    note: "Still staged: each also names code that wasn't rejected (alsoNames). Unstage it with changeset_unstage, or drop the rejected location with model_update, if it should change.",
+                  },
+                }
+              : {}),
+          };
         };
 
         if (decisionsOnly) {
           const rerunName = changeset?.name ?? stored?.changesetName;
           const rerun = rerunName ? `changeset: "${rerunName}"` : "the arguments of the last run";
+          const applied = rejectItems.length - problemAt.size;
+          // A preview's totals are what the checkout holds, not what it would hold.
+          const held = preview ? await readDecisions(projectRoot) : decisions;
           return jsonResult(
             {
               changeset: changeset ? { id: changeset.id, name: changeset.name } : null,
-              ...notElementsResult(decisions, 0, recordedNow, cleared, MAX_LISTED, args.verbose),
-              ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships, MAX_LISTED, args.verbose),
-              ...rejectResult,
-              message:
-                unstaged.length || unstagedRels.length
+              ...(preview ? { preview: true } : {}),
+              ...notElementsResult(held, 0, preview ? [] : recordedNow, preview ? 0 : cleared, MAX_LISTED, args.verbose),
+              ...notRelationshipsResult(held, 0, preview ? [] : recordedRelationshipsNow, preview ? 0 : clearedRelationships, MAX_LISTED, args.verbose),
+              ...(preview && (cleared || clearedRelationships) ? { wouldClear: { elements: cleared, relationships: clearedRelationships } } : {}),
+              ...rejectSection(),
+              message: preview
+                ? `Preview: nothing was recorded, cleared, kept or unstaged. ${applied} of ${rejectItems.length} reject item(s) would apply` +
+                  `${cleared || clearedRelationships ? `, and ${cleared + clearedRelationships} decision(s) would be cleared` : ""}.`
+                : unstaged.length || unstagedRels.length
                   ? `Recorded, and unstaged ${[
                       ...(unstaged.length ? [`${unstaged.length} element(s)`] : []),
                       ...(unstagedRels.length ? [`${unstagedRels.length} relationship(s)`] : []),
                     ].join(" and ")} it had staged; nothing was extracted.`
                   : rejectProblems.length
-                    ? `Recorded ${rejectItems.length - problemAt.size} of ${rejectItems.length} reject item(s); ${problemAt.size} named nothing (reject.attention). Nothing was extracted or staged.`
+                    ? `Recorded ${applied} of ${rejectItems.length} reject item(s); ${problemAt.size} named nothing (reject.attention). Nothing was extracted or staged.`
                     : "Recorded; nothing was extracted or staged.",
-              next: [`Call codebase_extract with ${rerun} to refresh the cards: it leaves out what is recorded, and says how many.`],
+              next: preview
+                ? ["To record them, call codebase_extract with the same arguments and no preview."]
+                : [
+                    `Call codebase_extract with ${rerun} to refresh the cards: it leaves out what is recorded, and says how many.`,
+                    ...(keptRejects.size ? [`This call kept rule(s) in documentation-robotics/${PROJECT_RULES_FILE}: commit that file with the model, so other checkouts apply them.`] : []),
+                  ],
             },
             { compact: true }
           );
@@ -2619,6 +2894,19 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 "Call codebase_extract with preview: true and the run's arguments first",
               ]);
             }
+          }
+          // The recorded decisions are the checkout's, not a run's: listed with or without one (#1332).
+          if (!stored && args.list === "notElements" && !previewRead) {
+            const limit = args.limit ?? MAX_LISTED;
+            const items = Object.entries(decisions.notElements).map(([key, d]) => ({ key, symbol: d.symbol, file: d.file, how: d.how, reason: d.reason }));
+            return jsonResult(
+              {
+                list: "notElements",
+                note: "This checkout's recorded not-an-element decisions (.dr/analyzers/extract/decisions.json; git ignores it). decide with keep: true turns them into rules other checkouts apply.",
+                ...pageOf(items, limit, args.offset ?? 0, (next) => `Call codebase_extract with list: "notElements", limit: ${limit} and offset: ${next} for the next ones.`),
+              },
+              { compact: true }
+            );
           }
           if (!stored) {
             throw new CLIError(
@@ -2710,21 +2998,31 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             );
           }
           const pageNumber = args.page ?? 1;
-          const p = page(cards, pageNumber, effectivePageSize);
-          const viewArg = args.view ? `view: ${JSON.stringify(args.view)}, ` : "";
+          const layout: PageLayout = args.groupBy ? { groupBy: args.groupBy, ...(args.groupDepth ? { depth: args.groupDepth } : {}) } : {};
+          const p = page(inLayoutOrder(cards, layout), pageNumber, effectivePageSize);
+          const viewArg =
+            `${args.view ? `view: ${JSON.stringify(args.view)}, ` : ""}${args.groupBy ? `groupBy: "${args.groupBy}", ` : ""}` +
+            `${args.groupBy && args.groupDepth ? `groupDepth: ${args.groupDepth}, ` : ""}`;
           return jsonResult(
             asPreviewReads(previewRead, fitCards(p.items, p, (items, fit) => ({
               ...readHeader,
               ...fitNotes(fit),
               ...filtered,
-              undecided: undecidedSection(p, items, fit, pageSize, {
-                ...(untouched
-                  ? { untouched: { total: untouched, more: `Symbols in the changed files that the range did not touch: call codebase_extract with view: ${JSON.stringify({ ...(args.view ?? {}), changed: false })} to list them.` } }
-                  : {}),
-              }),
+              undecided: undecidedSection(
+                p,
+                items,
+                fit,
+                pageSize,
+                {
+                  ...(untouched
+                    ? { untouched: { total: untouched, more: `Symbols in the changed files that the range did not touch: call codebase_extract with view: ${JSON.stringify({ ...(args.view ?? {}), changed: false })} to list them.` } }
+                    : {}),
+                },
+                layout
+              ),
               ...notElementsResult(decisions, stored!.cards.length - live.length, recordedNow, cleared, fit.listLimit, args.verbose),
               ...notRelationshipsResult(decisions, 0, recordedRelationshipsNow, clearedRelationships, fit.listLimit, args.verbose),
-              ...rejectResult,
+              ...rejectSection(),
               ...(fit.readOn
                 ? { next: `This page was cut to keep the response small: for the cards after it, ${fit.readOn}.` }
                 : pageNumber < p.pages
@@ -2903,23 +3201,32 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ? await readJson<StoredCards>(path.join(extractDir(projectRoot), PREVIEW_FILE))
           : null;
         const previewCards = lastPreview && lastPreview.gitHead === head ? [...lastPreview.cards, ...((lastPreview.earlierCards ?? []) as UndecidedCard[])] : [];
-        const decided = compileDecide(decideItems, storedBefore?.cards ?? pendingFor(name)?.cards ?? previewCards, new Set(fileRules.map((r) => r.rule.name)));
+        // A card item not among those is looked for among this run's symbols (#1394): its cardId, symbol or file#symbol.
+        const runCards: CardRef[] = decideItems.some((d) => d.card !== undefined)
+          ? extraction.symbols.map((s) => ({
+              cardId: s.card.id,
+              file: s.card.file_path,
+              symbol: sourceSymbolOf(s),
+              label: s.card.label,
+              qualifiedName: s.card.qualified_name,
+            }))
+          : [];
+        const decided = compileDecide(
+          decideItems,
+          storedBefore?.cards ?? pendingFor(name)?.cards ?? previewCards,
+          new Set(fileRules.map((r) => r.rule.name)),
+          runCards
+        );
         const rules: CompiledRule[] = [...decided.rules.map((r) => r.compiled), ...fileRules];
         // A member's owner for ownerType: the element the model (or this changeset) has for its class.
-        const existingIndex = indexExisting(before);
-        const ownerTypeOf = (s: ExtractionGraph["symbols"][number]): string | undefined => {
-          if (s.card.label !== "Method") return undefined;
-          const cut = s.qualifiedName.lastIndexOf(".");
-          if (cut <= 0) return "none";
-          const parent = s.qualifiedName.slice(0, cut);
-          const owner = findBySymbol(existingIndex, s.card.file_path, symbolSpellings(parent, parent.slice(parent.lastIndexOf(".") + 1), extraction.project));
-          return owner ? `${owner.layer}.${owner.type}` : "none";
-        };
+        const ownerTypeOf = ownerTypeResolver(before, extraction.project);
         // With a range whose changed lines are known, a rule that names a type stages only what the range changed.
         // Without the changed lines (git couldn't give them) nothing says which symbols the range touched: every card is listed.
         const rangeChanged = changes && changes.hunks && !changes.hunksError ? changes : null;
         let ruleUntouched = new Map<string, number>();
-        let ruleOverrode = new Map<string, { decided: number; rejected: number }>();
+        let ruleOverrode = new Map<string, { decided: number; rejected: number; types?: Record<string, number> }>();
+        // Symbols a none rule matched that Tier 0 decided as elements: Tier 0's unless they end up cards (#1424).
+        let ruleHeld = new Map<string, { rule: string; type: string }>();
         const planFrom = (graph: ExtractionGraph) => {
           const applied = applyProjectRules(withCardDecisions(graph, decided.byCard), rules, {
             decidedCards: new Set(decided.byCard.keys()),
@@ -2928,6 +3235,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           });
           ruleUntouched = applied.untouched;
           ruleOverrode = applied.overrode;
+          ruleHeld = applied.held;
           return planWith(applied.extraction);
         };
         const planWith = (graph: ExtractionGraph) =>
@@ -3027,8 +3335,32 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
 
         const now = new Date().toISOString();
-        const { valid, invalid } = await validateAdds(plan.adds, now, changes?.hunks, changes ?? undefined);
+        const { valid, invalid: invalidAll } = await validateAdds(plan.adds, now, changes?.hunks, changes ?? undefined);
         const adds = valid.map((v) => v.add);
+        // A symbol a none rule held for Tier 0 that Tier 0 could not stage after all (a needs-attributes
+        // or ambiguous card) is the rule's, as a card no Tier-0 rule covers would be (#1424).
+        const heldInvalid = releaseHeldCards(invalidAll, ruleHeld);
+        const heldOpen = releaseHeldCards(plan.undecided, ruleHeld);
+        const invalid = heldInvalid.cards;
+        plan.undecided = heldOpen.cards;
+        for (const { rule, card } of [...heldInvalid.released, ...heldOpen.released]) {
+          const byRule = plan.byRule.get(rule) ?? plan.byRule.set(rule, { none: [], staged: [] }).get(rule)!;
+          byRule.none.push({ symbol: card.symbol, file: card.file, label: card.label });
+          plan.rejected++;
+          plan.tally.ruleNone++;
+        }
+        plan.tally.tier0Staged -= heldInvalid.released.length;
+        plan.tally.open -= heldOpen.released.length;
+        // What Tier 0 staged that a none rule matched and left to it, per rule and type: said at the top of the answer.
+        const tier0Kept = new Map<string, number>();
+        const tier0KeptTypes = new Map<string, Record<string, number>>();
+        for (const a of adds) {
+          const h = ruleHeld.get(a.symbol.card.id);
+          if (!h) continue;
+          tier0Kept.set(h.rule, (tier0Kept.get(h.rule) ?? 0) + 1);
+          const types = tier0KeptTypes.get(h.rule) ?? tier0KeptTypes.set(h.rule, {}).get(h.rule)!;
+          types[h.type] = (types[h.type] ?? 0) + 1;
+        }
         // An add a rule decided whose attributes don't validate is a needs-attributes card, not something the rule staged.
         const validAddIds = new Set(adds.map((a) => a.id));
         const needsAttributesByRule = new Map<string, number>();
@@ -3043,8 +3375,50 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // and not recorded as a decision, so it is asked (from the cache) and hidden again next run.
         const hiddenByTier1 = new Set(tier1Run?.hidden ?? []);
         const hinted = withTier1Hints(sortUndecided(attributeChangedLines([...plan.undecided, ...invalid], changes?.hunks)), tier1Run?.hints ?? new Map());
-        const undecided = hiddenByTier1.size ? hinted.filter((c) => !(hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element")) : hinted;
+        let undecided = hiddenByTier1.size ? hinted.filter((c) => !(hiddenByTier1.has(c.cardId) && c.tier1?.band === "not-element")) : hinted;
         const tier1NotElement = hinted.length - undecided.length;
+        // A since run with a plan active (verify mode): a card whose symbol an element of the plan
+        // names is that planned element as built, and says so (#1394).
+        const activeNow = await manager.getActiveId();
+        const planForCards = since ? (activeNow && activeNow !== changeset?.id ? activeNow : storedBefore?.previousActive?.id) : undefined;
+        const plannedAt = planForCards ? plannedKeys(await manager.load(planForCards)) : new Map<string, string>();
+        if (plannedAt.size) {
+          undecided = undecided.map((c) => {
+            const planned = plannedAt.get(decisionKey(normFile(c.file), c.symbol));
+            return planned ? { ...c, planned } : c;
+          });
+        }
+        // A files reject in this call covers the cards its decide items left undecided (#1394): those
+        // cards are recorded (or kept as a rule) once the run is staged, and are not cards of this run.
+        let deferredTaken: Array<{ card: UndecidedCard; reason: string; index: number }> = [];
+        const keptBeforeDeferred = rulesToKeep.length;
+        if (deferredFiles.length) {
+          if (heldForWarming) {
+            for (const f of deferredFiles) {
+              problemAt.set(f.index, {
+                index: f.index,
+                item: `files: ${f.files}`,
+                status: "no-match",
+                message: "the run was held while Tier 1 warms, so its decide items didn't apply and this item recorded nothing: send it again with the run",
+              });
+            }
+          } else {
+            const inFiles = cardsInFiles(undecided, deferredFiles, changeset?.name ?? name);
+            for (const p of inFiles.problems) problemAt.set(p.index, { ...p, message: `${p.message} once this call's decide items applied` });
+            for (const [index, counts] of inFiles.skipped) skippedPerItem.set(index, counts);
+            const byId = new Map(undecided.map((c) => [c.cardId, c] as const));
+            deferredTaken = inFiles.refs.map((r) => ({ card: byId.get(r.card)!, reason: r.reason, index: r.index }));
+            for (const r of inFiles.refs) rejectedPerItem.set(r.index, (rejectedPerItem.get(r.index) ?? 0) + 1);
+            for (const f of deferredFiles) {
+              if (rejectItems[f.index]?.keep && !problemAt.has(f.index)) {
+                keptRuleFor(f.index, { where: { files: f.files }, as: "none", reason: f.reason, decided: { at: now, changeset: changeset?.name ?? name } });
+              }
+            }
+            const taken = new Set(inFiles.refs.map((r) => r.card));
+            undecided = undecided.filter((c) => !taken.has(c.cardId));
+            plan.tally.recorded += taken.size;
+          }
+        }
         // A since run's pile is what the range changed. Symbols it did not touch in the same files
         // are counted and kept in the record (view: {changed: false} lists them), not listed.
         const rangeOnly = !!rangeChanged;
@@ -3112,16 +3486,39 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
 
         // What each rule decided, and how each decide item of this call fared.
         // Every rule, one that decided nothing included: a rule that matches nothing may be mistyped.
-        const ruleReports: RuleReport[] = rules.map((r) => ruleReport(r.rule, plan, ruleUntouched, relationshipsByRule, undefined, ruleOverrode));
+        const ruleReports: RuleReport[] = rules.map((r) => ruleReport(r.rule, plan, ruleUntouched, relationshipsByRule, undefined, ruleOverrode, tier0Kept));
         const reportedSomething = (r: RuleReport) => r.notElements + r.staged + (r.relationships ?? 0) + (r.untouched ?? 0) > 0;
+        // A kept none item covers symbols already recorded as not elements: the rule holds them now,
+        // so those records are retired (#1332). Not one Tier 0 decided, unless the rule overrides it.
+        const retiredByRule = new Map<string, string[]>();
+        for (const d of decided.rules) {
+          const r = d.compiled;
+          if (!d.keep || r.decision.kind !== "none" || !r.rule.where) continue;
+          const keys: string[] = [];
+          for (const s of extraction.symbols) {
+            const key = decisionKey(s.card.file_path, sourceSymbolOf(s));
+            if (decisions.notElements[key]?.how !== "rejected" || keys.includes(key)) continue;
+            if (s.tier0?.kind === "decide" && !r.rule.overrideTier0) continue;
+            if (r.matches(subjectOf(s, ownerTypeOf(s)))) keys.push(key);
+          }
+          if (keys.length) retiredByRule.set(r.rule.name, keys);
+        }
         const decideResults: DecideResult[] = [...decided.problems];
-        const NEEDS = (n: number) => `${n} card(s) it covers need attributes the code can't give: they are needs-attributes cards, not staged`;
+        // What a type requires, and the item's attributes: what a needs-attributes card lacks (#1380).
+        const NEEDS = (n: number, as: string) =>
+          `${n} card(s) it covers need attributes the code can't give for ${as}: they are needs-attributes cards, not staged. ` +
+          "Send the item again with attributes (requiredAttributes says what the type requires and the values each takes).";
+        const required = (as: string) => {
+          const attrs = requiredAttributesFor([as]);
+          return Object.keys(attrs).length ? { requiredAttributes: attrs } : {};
+        };
         for (const d of decided.rules) {
           const r = d.compiled.rule;
           const found = ruleReports.find((x) => x.rule === r.name);
           const report = found && reportedSomething(found) ? found : undefined;
           const needs = needsAttributesByRule.get(r.name) ?? 0;
-          if (!report && !needs) {
+          const retired = retiredByRule.get(r.name)?.length ?? 0;
+          if (!report && !needs && !retired) {
             decideResults.push({
               index: d.index,
               status: "no-match",
@@ -3129,7 +3526,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               as: r.as,
               reason: r.relationship
                 ? "covers no relationship this run would stage or has staged"
-                : "covers no undecided card (a symbol that already has an element is never touched by a rule)",
+                : found?.tier0Kept
+                  ? `covers no undecided card: the ${found.tier0Kept} symbol(s) it matches were decided by Tier 0 as elements and stay Tier 0's (overrideTier0: true takes them)`
+                  : "covers no undecided card (a symbol that already has an element is never touched by a rule)",
+              ...(found?.tier0Kept ? { tier0Kept: found.tier0Kept } : {}),
               ...(d.keep ? { notes: ["Not kept: a rule that matches nothing now may be mistyped. Add it to the rules file by hand if it is meant for code to come."] } : {}),
             });
             continue;
@@ -3144,8 +3544,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             notElements: report?.notElements ?? 0,
             ...(report?.relationships ? { relationships: report.relationships } : {}),
             ...(report?.untouched ? { untouched: report.untouched } : {}),
+            ...(found?.tier0Kept ? { tier0Kept: found.tier0Kept } : {}),
+            ...(found?.overrodeTier0?.decided ? { tier0Overridden: found.overrodeTier0.decided } : {}),
+            ...(retired ? { retired } : {}),
             sample: report?.sample ?? [],
-            ...(needs ? { warnings: [NEEDS(needs)] } : {}),
+            ...(needs ? { warnings: [NEEDS(needs, r.as)], ...required(r.as) } : {}),
             ...(d.keep && !preview ? { kept: true } : {}),
           });
         }
@@ -3163,8 +3566,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ? {}
               : {
                   reason: needs
-                    ? `${d.card.symbol} needs attributes the code can't give for that type: it is a needs-attributes card (spec_type says what the type requires; stage it with model_add)`
+                    ? `${d.card.symbol} needs attributes the code can't give for that type: it is a needs-attributes card. Send the item again with attributes ` +
+                      "(requiredAttributes says what the type requires and the values each takes)"
                     : `${d.card.symbol} is no longer an undecided card of this run (it has an element, or a recorded decision)`,
+                  ...(needs && d.decision.kind === "type" ? required(`${d.decision.layer}.${d.decision.type}`) : {}),
                 }),
           });
         }
@@ -3320,6 +3725,11 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             if (decideResults.find((x) => x.index === d.index)?.status === "no-match") continue;
             if (d.keep) {
               await saveProjectRule(projectRoot, { ...r, decided: { at: now, changeset: decidedIn } });
+              // The records the kept rule now holds go: the rule decides those symbols on every checkout.
+              for (const key of retiredByRule.get(r.name) ?? []) {
+                delete decisions.notElements[key];
+                wrote = true;
+              }
               continue;
             }
             recordNone(r.name, r.reason);
@@ -3343,6 +3753,30 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           for (const d of decided.byCard.values()) if (d.decision.kind === "none") recordNone(cardRuleName(d.index), d.reason);
           if (wrote) await writeDecisions(projectRoot, decisions);
         }
+        // The files rejects that waited for this call's decide items: recorded now, or kept as rules.
+        if (!preview && !heldForWarming && deferredTaken.length) {
+          const decidedIn = changeset?.name ?? name;
+          let wrote = false;
+          for (const { card, reason, index } of deferredTaken) {
+            if (rejectItems[index]?.keep) continue;
+            const key = decisionKey(card.file, card.symbol);
+            if (decisions.notElements[key]) continue;
+            decisions.notElements[key] = {
+              file: card.file,
+              symbol: card.symbol,
+              label: card.label,
+              reason,
+              how: "rejected",
+              changeset: decidedIn,
+              ...(changeset ? { changesetId: changeset.id! } : {}),
+              at: now,
+            };
+            recordedNow.push({ symbol: card.symbol, file: card.file, how: "rejected" });
+            wrote = true;
+          }
+          if (wrote) await writeDecisions(projectRoot, decisions);
+        }
+        if (!preview && !heldForWarming) for (const rule of rulesToKeep.slice(keptBeforeDeferred)) await saveProjectRule(projectRoot, rule);
 
         // How far a since range reaches (git can't say: just the counts), and the few folders that
         // hold most of the cards when no element names a file in them.
@@ -3452,6 +3886,8 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const decideSection = decideItems.length
           ? { decide: batchReport(decideResults, { verbose: args.verbose, limit: args.limit, written: ["applied", "kept", "would-apply"] }) }
           : {};
+        // What a none rule did to Tier 0's decisions, where the answer starts, never only as a nested count (#1424).
+        const warnings = ruleWarnings(ruleReports, tier0KeptTypes, preview || heldForWarming);
         const helpersSection = (listLimit?: number) =>
           helpers.helpers.length
             ? {
@@ -3521,6 +3957,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             `and ${summary.relationships} relationship(s) into '${target}', and leave ${summary.cards} card(s) and ${summary.candidateDeletes} candidate delete(s).`;
           return jsonResult(
             asPreviewReads(preview, {
+              ...(warnings.length ? { ruleWarnings: warnings } : {}),
               ...(preview
                 ? { preview: true, message: `Preview: nothing was staged or recorded. ${would}` }
                 : {
@@ -3568,6 +4005,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               ...budgetSection,
               ...rulesSection(),
               ...decideSection,
+              ...rejectSection(),
               ...helpersSection(),
               ...(ignore ? { ignoreCandidates: ignore } : {}),
               ...notElementsResult(decisions, plan.skipped, [], 0),
@@ -3822,11 +4260,24 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           await reloadModel(args.rootPath);
         }
 
-        const cards = page(shown, 1, effectivePageSize);
+        // decide with view: the answer is that view's page of the cards left (#1350); a later page is a read.
+        const layout: PageLayout = args.groupBy ? { groupBy: args.groupBy, ...(args.groupDepth ? { depth: args.groupDepth } : {}) } : {};
+        const viewFilter: CardFilter = { ...(args.view ?? {}) };
+        if (rangeOnly && viewFilter.changed === undefined) viewFilter.changed = true;
+        const viewed = viewAfterRun ? inLayoutOrder(filterCards(undecided, viewFilter), layout) : shown;
+        const viewArg = viewAfterRun
+          ? `view: ${JSON.stringify(args.view)}, ${args.groupBy ? `groupBy: "${args.groupBy}", ` : ""}${args.groupBy && args.groupDepth ? `groupDepth: ${args.groupDepth}, ` : ""}`
+          : "";
+        const cards = page(viewed, viewAfterRun ? (args.page ?? 1) : 1, effectivePageSize);
         // More cards than a page: the answer is the groups, and the cards are read by view and page.
-        const grouped = shown.length > effectivePageSize;
+        const grouped = !viewAfterRun && shown.length > effectivePageSize;
+        // Cards the plan's elements name (verify mode): stage them as the planned type, by card.
+        const plannedCards = shown.filter((c) => c.planned).length;
         const changedCards = rangeOnly ? 0 : shown.filter((c) => c.changedInRange).length;
         const changesetRef = changeset ? { id: changeset.id!, name: changeset.name } : null;
+        // The impacted list in full once per extraction: a later run with the same list gives its count (#1350).
+        const impactedRepeated =
+          impactedList.length > 0 && !!storedBefore?.lists?.impacted && JSON.stringify(storedBefore.lists.impacted) === JSON.stringify(impactedList);
         const verifyMode = !!since && !!recordedPrevious;
         // Relationships held back because an accepted gap says they are absent: the model and the
         // code disagree, so a run that stages nothing else must not say they agree.
@@ -3864,6 +4315,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             changeset: changesetRef ? { ...changesetRef, created, active, ...(changeset?.purpose ? { purpose: changeset.purpose } : {}) } : null,
             previousActive,
             ...(message ? { message } : {}),
+            ...(warnings.length ? { ruleWarnings: warnings } : {}),
             ...fitNotes(fit),
             ...(edited.length
               ? {
@@ -3892,10 +4344,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             },
             ...(detection?.method === "detect_changes"
               ? {
-                  impacted: {
-                    ...capped(impactedList, fit.listLimit, "impacted"),
-                    note: IMPACT_NOTE,
-                  },
+                  impacted: impactedRepeated
+                    ? {
+                        total: impactedList.length,
+                        unchanged: `The same ${impactedList.length} element(s) as the last run of '${changesetRef?.name ?? name}': list: "impacted" lists them.`,
+                      }
+                    : { ...capped(impactedList, fit.listLimit, "impacted"), note: IMPACT_NOTE },
                 }
               : {}),
             cards: {
@@ -3980,7 +4434,27 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                     `${shown.length} cards are more than a page (${cards.pageSize}), so they are grouped here and not listed. ` +
                     'Call codebase_extract with view: {} for the cards a page at a time, or view: {files: "<a group\'s path>"} (with label, visibility or kind) for some of them.',
                 }
-              : undecidedSection(cards, items, fit, pageSize, { ...(changes && !rangeOnly ? { changedInRange: changedCards } : {}), ...untouchedSection }),
+              : undecidedSection(
+                  cards,
+                  items,
+                  fit,
+                  pageSize,
+                  {
+                    ...(changes && !rangeOnly ? { changedInRange: changedCards } : {}),
+                    ...untouchedSection,
+                    ...(plannedCards ? { planned: plannedCards } : {}),
+                    ...(viewAfterRun
+                      ? {
+                          view: args.view,
+                          ofAll: shown.length,
+                          ...(cards.page < cards.pages && !fit.readOn
+                            ? { more: `Call codebase_extract with ${viewArg}page: ${cards.page + 1} for the next cards (a read: nothing is extracted).` }
+                            : {}),
+                        }
+                      : {}),
+                  },
+                  layout
+                ),
             ...(planned.unwiredTests.length || planned.inferredTests
               ? {
                   testLinks: {
@@ -3996,7 +4470,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   },
                 }
               : {}),
-            ...rejectResult,
+            ...rejectSection(),
             ...budgetSection,
             ...rulesSection(fit.listLimit),
             ...decideSection,
@@ -4041,6 +4515,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                       ...(grouped ? [triageStep(shown.length, allGroups.some((g) => g.noElement))] : []),
                       ...(untouchedCards ? [untouchedStep(untouchedCards)] : []),
                       ...(coverageCounts.candidates || coverageCounts.none ? [coverageStep(coverageCounts)] : []),
+                      ...(plannedCards ? [plannedStep(plannedCards)] : []),
                       ...(helpers.helpers.length ? [helpersStep(helpers)] : []),
                       ...(decided.rules.some((r) => r.keep) && decideResults.some((r) => r.status === "kept")
                         ? [`This call kept rule(s) in documentation-robotics/${PROJECT_RULES_FILE}: commit that file with the model, so other checkouts apply them.`]
@@ -4048,7 +4523,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                       ...(ignore ? [ignoreStep(ignore)] : []),
                     ]
                   )),
-              ...impactStep(impactHints),
+              ...(impactedRepeated ? [] : impactStep(impactHints)),
               ...tier1Steps(tier1Block, {
                 acceptTier1,
                 accept: undecided.filter((c) => c.tier1?.band === "accept").length,
@@ -4058,7 +4533,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                 acceptTier1Ignored,
               }),
             ],
-          })),
+          }), viewArg),
           { compact: true }
         );
       } finally {

@@ -721,6 +721,25 @@ export interface VerifyReport {
   layers_not_verified?: Array<{ layer: string; reason: string }>;
   /** The recorded rejections this report applied, and where they were read from. */
   rejections?: VerifyRejections;
+  /** The project's kept extraction rules this report applied (documentation-robotics/extraction-rules.yaml). */
+  rules?: VerifyRules;
+}
+
+/**
+ * The project's kept extraction rules, as a verification applied them (#1414): committed with the
+ * model, so every checkout applies the same ones, as codebase_extract does.
+ */
+export interface VerifyRules {
+  /** The rules file, relative to the project root. */
+  file: string;
+  /** Rules read from it. */
+  read: number;
+  /** Per verified layer, how many entries a rule kept out of "in the code only" (listed under that layer's `ignored`). */
+  applied: Record<string, number>;
+  /** Set when the file exists and could not be used: no rule was applied. */
+  error?: string;
+  /** What this means for the reader, in a sentence. */
+  note: string;
 }
 
 /**
