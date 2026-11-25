@@ -96,6 +96,7 @@ import {
   type UndecidedCard,
   type UndecidedKind,
 } from "../../analyzers/extraction-plan.js";
+import { relationshipNotInDeclaredSpec } from "../../core/declared-spec.js";
 import { Changeset, type ChangeOrigin, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph, changesetRevisionToken } from "../../core/changeset-graph.js";
 import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
@@ -3101,14 +3102,29 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         // A relationship an accepted gap says is deliberately absent is not staged: it is reported
         // as contradicted (#1026).
-        const { kept: relationships, contradicted: contradictedGaps } = splitByAcceptedGaps(
+        const specOfEnd = (id: string) => {
+          const e = elements.get(id);
+          return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
+        };
+        const { kept: keptByGaps, contradicted: contradictedGaps } = splitByAcceptedGaps(
           notRejected,
-          (id) => {
-            const e = elements.get(id);
-            return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
-          },
+          specOfEnd,
           (id) => before.getElement(id)?.acceptedGaps
         );
+        // A relationship type the spec the model declares lacks is not staged: a landing would
+        // refuse it (#1411). One the version assumed for a manifest with no spec_version lacks is
+        // staged, as model_add stages it, with the warning.
+        const notInDeclaredSpec: Array<{ relationship: string; message: string }> = [];
+        const assumedSpecWarnings: string[] = [];
+        const relationships = keptByGaps.filter((r) => {
+          const source = specOfEnd(r.source);
+          const target = specOfEnd(r.target);
+          const gap = source && target ? relationshipNotInDeclaredSpec(model.manifest, source, r.predicate, target) : null;
+          if (gap?.assumed) assumedSpecWarnings.push(gap.message);
+          if (!gap || gap.assumed) return true;
+          notInDeclaredSpec.push({ relationship: `${r.source} --[${r.predicate}]--> ${r.target}`, message: gap.message });
+          return false;
+        });
 
         // What each rule decided, and how each decide item of this call fared.
         // Every rule, one that decided nothing included: a rule that matches nothing may be mistyped.
@@ -3949,6 +3965,22 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.
               ...(tier1NotElement ? { tier1NotElement, tier1NotElementCards: capped(tier1NotElementCards, fit.listLimit, "tier1NotElementCards") } : {}),
             },
+            ...(notInDeclaredSpec.length || assumedSpecWarnings.length
+              ? {
+                  declaredSpec: {
+                    ...(notInDeclaredSpec.length
+                      ? {
+                          notStaged: notInDeclaredSpec,
+                          note:
+                            "Not staged: the code shows these relationships, but the spec the model declares has no " +
+                            "such relationship type, so a landing would refuse them. project_upgrade moves the model " +
+                            "to a spec that has them; extract again after it.",
+                        }
+                      : {}),
+                    ...(assumedSpecWarnings.length ? { warnings: [...new Set(assumedSpecWarnings)] } : {}),
+                  },
+                }
+              : {}),
             ...(contradictedGaps.length
               ? {
                   acceptedGaps: {

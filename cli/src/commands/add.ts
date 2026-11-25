@@ -134,8 +134,9 @@ export async function addCommand(
     }
 
     // A type this CLI has but the spec the model declares does not (#1411)
-    const notDeclared = typeNotInDeclaredSpec(model.manifest?.specVersion, `${layer}.${resolvedType}`);
-    if (notDeclared) {
+    const notDeclared = typeNotInDeclaredSpec(model.manifest, `${layer}.${resolvedType}`);
+    if (notDeclared?.assumed) console.warn(ansis.yellow(`Warning: ${notDeclared.message}`));
+    else if (notDeclared) {
       throw new CLIError(notDeclared.message, ErrorCategory.USER, [
         `dr upgrade moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
           "run it, then add the element again",

@@ -18,6 +18,14 @@ import { readFile } from "../utils/file-io.js";
 import { existsSync } from "fs";
 import { startActiveSpan } from "../telemetry/index.js";
 
+/** What validating one relationship found; warning marks one reported as a warning, not an error. */
+interface RelationshipIssue {
+  layer: string;
+  message: string;
+  elementId?: string;
+  warning?: true;
+}
+
 interface ManifestDistFile {
   layers: Array<{ id: string }>;
 }
@@ -182,8 +190,9 @@ export class RelationshipValidator {
           );
 
           if (relErrors.length > 0) {
-            for (const error of relErrors) {
-              result.addError(error);
+            for (const { warning, ...issue } of relErrors) {
+              if (warning) result.addWarning(issue);
+              else result.addError(issue);
             }
           }
         }
@@ -208,8 +217,8 @@ export class RelationshipValidator {
     model: Model,
     relationshipsBySource: Map<string, Relationship[]>,
     relationshipsByTarget: Map<string, Relationship[]>
-  ): Promise<Array<{ layer: string; message: string; elementId?: string }>> {
-    const errors: Array<{ layer: string; message: string; elementId?: string }> = [];
+  ): Promise<RelationshipIssue[]> {
+    const errors: RelationshipIssue[] = [];
 
     // Variables to cache found elements and avoid redundant lookups
     let sourceElement: any = null;
@@ -344,17 +353,14 @@ export class RelationshipValidator {
     }
 
     // In this CLI's catalog, but maybe not in the spec the model declares (#1411)
-    const notDeclared = relationshipNotInDeclaredSpec(
-      model.manifest?.specVersion,
-      sourceSpecId,
-      relationship.predicate,
-      targetSpecId
-    );
+    const notDeclared = relationshipNotInDeclaredSpec(model.manifest, sourceSpecId, relationship.predicate, targetSpecId);
     if (notDeclared) {
       errors.push({
         layer: relationship.layer,
         elementId: relationship.source,
         message: `${relationship.source} --[${relationship.predicate}]--> ${relationship.target}: ${notDeclared.message}`,
+        // A manifest with no spec_version declares nothing: warn
+        ...(notDeclared.assumed ? { warning: true } : {}),
       });
       return errors;
     }

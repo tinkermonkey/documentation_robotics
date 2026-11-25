@@ -254,7 +254,7 @@
     type: objectschema
     layer_id: data-model
     name: SpecCatalogHistory
-    description: "Generated table: for every node type and relationship triple of the bundled catalog that a released spec before it lacked, the spec version it exists from, and the released versions it was built from (cli/scripts/generate-spec-catalog-history.ts reads spec/dist at each version's last commit)."
+    description: "Generated table of the released spec versions before the bundled one (0.8.0 on), oldest first, with a mask per node type and per relationship type: one character per version, 1 where that version's catalog has it. Built by cli/scripts/generate-spec-catalog-history.ts from each version's release tag, or its last main-line commit when untagged."
     attributes:
       type: object
     metadata:
@@ -266,7 +266,7 @@
       locations:
         - file: cli/src/core/declared-spec.ts
           symbol: SpecCatalogHistory
-  timestamp: 2026-11-25T16:42:54.365Z
+  timestamp: 2026-11-25T17:29:18.567Z
   sequenceNumber: 27
 - type: relationship-add
   elementId: product.feature.declared-spec-check::satisfies::motivation.requirement.a-model-holds-only-what-its-declared-spec-defines

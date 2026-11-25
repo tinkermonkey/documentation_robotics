@@ -258,13 +258,14 @@ async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutc
         const suggestions: string[] = [`Valid types for ${layerName}: ${formatValidOptions(typeNames)}`];
         if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
         // A model on a newer spec may use a type this dr doesn't know yet
-        const ahead = specAheadNote(model.manifest?.specVersion);
+        const ahead = specAheadNote(model.manifest);
         if (ahead) suggestions.unshift(ahead);
         throw new CLIError(`Invalid element type "${args.type}" for layer "${layerName}"`, ErrorCategory.USER, suggestions);
       }
       resolvedNewType = normalizeNodeType(layerName, args.type);
-      const notDeclared = typeNotInDeclaredSpec(model.manifest?.specVersion, `${layerName}.${resolvedNewType}`);
-      if (notDeclared) {
+      const notDeclared = typeNotInDeclaredSpec(model.manifest, `${layerName}.${resolvedNewType}`);
+      if (notDeclared?.assumed) warnings.push(notDeclared.message);
+      else if (notDeclared) {
         throw new CLIError(notDeclared.message, ErrorCategory.USER, [
           `project_upgrade (dr upgrade) moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
             "preview it, then change the type again",

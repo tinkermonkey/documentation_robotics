@@ -43,7 +43,13 @@ export interface UpgradeStep {
 export type UpgradeModelState =
   | { state: "missing" }
   | { state: "no-spec-version" }
-  | { state: "found"; specVersion: string; targetSpecVersion: string };
+  | {
+      state: "found";
+      specVersion: string;
+      targetSpecVersion: string;
+      /** manifest.yaml has no spec_version: specVersion is the 0.6.0 Model.load reads it as */
+      assumed?: true;
+    };
 
 export interface UpgradeScan {
   projectRoot: string;
@@ -69,6 +75,8 @@ export interface UpgradeScan {
    * prettier): a relayout action lays them out when the scan was asked for one (#1439)
    */
   relayout?: RelayoutResult;
+  /** The model's files could not be read for the relayout check; the scan goes on without it */
+  relayoutCheckError?: string;
 }
 
 export interface UpgradeScanOptions {
@@ -172,15 +180,15 @@ export async function scanUpgrades(projectRoot: string, options: UpgradeScanOpti
     throw new UpgradeScanError(getErrorMessage(error));
   }
 
-  if (!modelSpecVersion) {
-    scan.model = { state: "no-spec-version" };
-    return scan;
-  }
+  // A manifest with no spec_version is read as 0.6.0, as Model.load and project_status read it,
+  // so the upgrade that stamps a version can run (#1411)
+  const assumed = !modelSpecVersion;
+  if (!modelSpecVersion) modelSpecVersion = ASSUMED_SPEC_VERSION;
 
   const targetSpecVersion = options.targetBundledSpec
     ? bundledSpecVersion
     : currentSpecVersion || bundledSpecVersion;
-  scan.model = { state: "found", specVersion: modelSpecVersion, targetSpecVersion };
+  scan.model = { state: "found", specVersion: modelSpecVersion, targetSpecVersion, ...(assumed ? { assumed: true as const } : {}) };
 
   if (modelSpecVersion !== targetSpecVersion) {
     const registry = new MigrationRegistry();
@@ -205,18 +213,18 @@ export async function scanUpgrades(projectRoot: string, options: UpgradeScanOpti
           to: targetSpecVersion,
           available: registry.getMigrationSummary("0.5.0").migrations,
         };
+        return scan;
       }
-      return scan;
+    } else {
+      scan.steps = summary.migrations;
+      actions.push({
+        type: "model",
+        description: "Migrate model data",
+        fromVersion: modelSpecVersion,
+        toVersion: targetSpecVersion,
+        details: summary.migrations.map((m) => `${m.from} → ${m.to}: ${m.description}`),
+      });
     }
-
-    scan.steps = summary.migrations;
-    actions.push({
-      type: "model",
-      description: "Migrate model data",
-      fromVersion: modelSpecVersion,
-      toVersion: targetSpecVersion,
-      details: summary.migrations.map((m) => `${m.from} → ${m.to}: ${m.description}`),
-    });
   } else {
     // Same spec version, but the relationship catalog can change between version bumps: a
     // model stamped with the current version before a catalog change still needs it
@@ -234,14 +242,22 @@ export async function scanUpgrades(projectRoot: string, options: UpgradeScanOpti
   // Model files an earlier dr laid out (long strings folded at 80 columns): counted, and with the
   // relayout option laid out as a step of their own, so the next landing that touches one carries
   // only its own changes (#1439)
-  const relayout = await relayoutModelFiles(projectRoot, { dryRun: true });
-  if (relayout.files.length > 0) {
-    scan.relayout = relayout;
-    if (options.relayout) actions.push(relayoutAction(relayout, targetSpecVersion));
+  // A file that can't be read is the relayout's to report, not a reason to stop the upgrade.
+  try {
+    const relayout = await relayoutModelFiles(projectRoot, { dryRun: true });
+    if (relayout.files.length > 0) {
+      scan.relayout = relayout;
+      if (options.relayout) actions.push(relayoutAction(relayout, targetSpecVersion));
+    }
+  } catch (error) {
+    scan.relayoutCheckError = getErrorMessage(error);
   }
 
   return scan;
 }
+
+/** The spec version Model.load and project_status read a manifest with no spec_version as. */
+const ASSUMED_SPEC_VERSION = "0.6.0";
 
 /** How many files the relayout action names in its details before counting the rest. */
 const RELAYOUT_FILES_NAMED = 10;
@@ -254,8 +270,9 @@ function relayoutAction(relayout: RelayoutResult, toVersion: string): UpgradeAct
     toVersion,
     details: [
       `${files.length} of ${relayout.total} element files are in an earlier dr's layout (long strings folded at 80 ` +
-        "columns). Data unchanged: each is written only when its new text parses to the same data. Commit it on " +
-        "its own, apart from any plan, so later landings carry only their own changes.",
+        "columns). Data unchanged as YAML reads it: each is written only when its new text parses to the same " +
+        "data; comments are dropped, and a value YAML reads as a number is written as that number (1.10 becomes " +
+        "1.1). Commit it on its own, apart from any plan, so later landings carry only their own changes.",
       ...files.slice(0, RELAYOUT_FILES_NAMED),
       ...(files.length > RELAYOUT_FILES_NAMED
         ? [

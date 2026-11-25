@@ -340,6 +340,14 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     if (scan.catalogCheckError !== undefined) {
       console.log(ansis.yellow(`⚠ Could not check the model against the catalog: ${scan.catalogCheckError}`));
     }
+    if (scan.model.state === "found" && scan.model.assumed) {
+      console.log(
+        ansis.dim(`ℹ manifest.yaml has no spec_version: read as ${scan.model.specVersion}; the upgrade stamps the version it migrates to.\n`)
+      );
+    }
+    if (scan.relayoutCheckError !== undefined) {
+      console.log(ansis.yellow(`⚠ Could not check the model's files for the relayout: ${scan.relayoutCheckError}`));
+    }
     if (scan.relayout && !options.relayout) {
       console.log(
         ansis.dim(

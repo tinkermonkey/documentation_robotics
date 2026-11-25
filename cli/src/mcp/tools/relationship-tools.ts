@@ -148,9 +148,11 @@ async function addSingleRelationship(
   targetId = exact(targetId, "Target");
   const read = notes.length > 0 ? { notes } : {};
 
+  const warnings: string[] = [];
+  const warned = () => (warnings.length > 0 ? { warnings } : {});
   if (!active) {
-    const outcome = await addRelationship(model, sourceId, targetId, predicate, properties);
-    return jsonResult({ status: outcome, source: sourceId, predicate, target: targetId, ...read });
+    const outcome = await addRelationship(model, sourceId, targetId, predicate, properties, undefined, warnings);
+    return jsonResult({ status: outcome, source: sourceId, predicate, target: targetId, ...read, ...warned() });
   }
 
   // Resolve the ends in the projection first, for a clear error when the changeset deletes one.
@@ -162,16 +164,21 @@ async function addSingleRelationship(
 
   // Hand addRelationship the projection's resolution: its own lookup reads the cached model's
   // layers, which need not know a layer only this changeset adds elements to.
-  const outcome = await addRelationship(model, source, target, predicate, properties, {
-    source: preResolved(sourceElement),
-    target: preResolved(targetElement),
-  });
+  const outcome = await addRelationship(
+    model,
+    source,
+    target,
+    predicate,
+    properties,
+    { source: preResolved(sourceElement), target: preResolved(targetElement) },
+    warnings
+  );
   // Model.load merges the active changeset's relationships into model.relationships, and other tools
   // (model_validate, model_export, model_delete's cascade) read that merged view: reload after any staging.
   if (outcome !== "duplicate") {
     await reloadModel(rootPath);
   }
-  return jsonResult({ status: outcome, changeset: active.name, ...triple, ...read });
+  return jsonResult({ status: outcome, changeset: active.name, ...triple, ...read, ...warned() });
 }
 
 /** What a batch did, for the tool result: counts, and the items that need attention (or all, with verbose). */
@@ -197,8 +204,9 @@ export function relationshipBatchReport(
   const report = batchReport(results, {
     ...options,
     written,
-    // A written relationship's only notes say how an end was read: that is in readByName.
-    writtenNeedsAttention: () => false,
+    // A written relationship's notes say how an end was read: that is in readByName. A warning
+    // (a type the version assumed for the model lacks) needs attention.
+    writtenNeedsAttention: (result) => (result.warnings?.length ?? 0) > 0,
   });
   const readByName: Record<string, string> = {};
   for (const result of results) {
@@ -220,7 +228,7 @@ export async function addRelationshipBatch(
   const graph = await ChangesetGraph.build(model, changeset);
   const plan = await planRelationshipBatch(graph, changeset, items, {
     addStatus: active ? "staged" : "added",
-    specVersion: model.manifest?.specVersion,
+    specVersion: model.manifest,
   });
   await applyRelationshipPlan(model, manager, active, plan, []);
   if (plan.changes.length > 0 || plan.unstageKeys.length > 0) {

@@ -17,7 +17,12 @@ import type { ChangesetGraph, GraphRelationship } from "./changeset-graph.js";
 import type { Changeset, StagedChange } from "./changeset.js";
 import type { StagingAreaManager } from "./staging-area.js";
 import { RelationshipCatalog } from "./relationship-catalog.js";
-import { relationshipNotInDeclaredSpec, specAheadNote, type DeclaredSpecGap } from "./declared-spec.js";
+import {
+  relationshipNotInDeclaredSpec,
+  specAheadNote,
+  type DeclaredSpec,
+  type DeclaredSpecGap,
+} from "./declared-spec.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
@@ -190,15 +195,20 @@ export function validateRelationshipCombination(
   sourceSpecNodeId: string,
   predicate: string,
   destSpecNodeId: string,
-  /** The spec version the model declares: a relationship type only a later spec has is refused (#1411) */
-  modelSpecVersion?: string
-): { valid: boolean; suggestions?: string[]; declaredSpec?: DeclaredSpecGap } {
+  /**
+   * The spec the model declares (its version, or the manifest): a relationship type only a later
+   * spec has is refused, or, when a manifest with no spec_version was read as 0.6.0, warned about
+   * (`warning`) and allowed (#1411)
+   */
+  modelSpecVersion?: DeclaredSpec
+): { valid: boolean; suggestions?: string[]; declaredSpec?: DeclaredSpecGap; warning?: string } {
   const valid =
     getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId).length >
     0;
 
   if (valid) {
     const declaredSpec = relationshipNotInDeclaredSpec(modelSpecVersion, sourceSpecNodeId, predicate, destSpecNodeId);
+    if (declaredSpec?.assumed) return { valid: true, warning: declaredSpec.message };
     if (declaredSpec) {
       return {
         valid: false,
@@ -379,6 +389,8 @@ export interface RelationshipBatchResult {
   notes?: string[];
   /** The same as data: each end as sent that was not an exact id, and the id it was read as. */
   readAs?: Record<string, string>;
+  /** Written, with something to know: a relationship type the version assumed for the model lacks (#1411). */
+  warnings?: string[];
 }
 
 export interface RelationshipBatchPlan {
@@ -410,8 +422,8 @@ export async function planRelationshipBatch(
     collisions?: IdCollision[];
     /** The status for an add: "staged" into the changeset (default), or "added" to the model. */
     addStatus?: "staged" | "added";
-    /** The spec version the model declares: a relationship type only a later spec has is refused (#1411). */
-    specVersion?: string;
+    /** The spec the model declares (its manifest): a relationship type only a later spec has is refused (#1411). */
+    specVersion?: DeclaredSpec;
   } = {}
 ): Promise<RelationshipBatchPlan> {
   const addStatus = options.addStatus ?? "staged";
@@ -589,7 +601,12 @@ export async function planRelationshipBatch(
     const key = `${triple.source}::${triple.predicate}::${triple.target}`;
     const notes = [source, target].flatMap((end) => ("note" in end && end.note ? [end.note] : []));
     const readAs = Object.fromEntries([source, target].flatMap((end) => (end.readFrom ? [[end.readFrom, end.id]] : [])));
-    const resolved = { ...asSent, ...triple, ...(notes.length ? { notes, readAs } : {}) };
+    const resolved = {
+      ...asSent,
+      ...triple,
+      ...(notes.length ? { notes, readAs } : {}),
+      ...(validation.warning ? { warnings: [validation.warning] } : {}),
+    };
     if (seen.has(key)) {
       results.push({ ...resolved, status: "duplicate", reason: "Repeated earlier in this batch" });
       return;

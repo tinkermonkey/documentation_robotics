@@ -560,6 +560,7 @@ export class MigrationRegistry {
           // Only update model's spec version if migration succeeded (no error field)
           if (!result.error) {
             model.manifest.specVersion = migration.toVersion;
+            model.manifest.specVersionAssumed = false;
           } else {
             // If migration has errors, throw to prevent partial success state
             throw new Error(result.error);

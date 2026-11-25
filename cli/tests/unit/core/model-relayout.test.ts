@@ -4,7 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import yaml from "yaml";
 import { stringifyDrYaml } from "../../../src/core/dr-yaml.js";
-import { filesALandingRelaysOut, landingRelayoutNote, relayoutModelFiles } from "../../../src/core/model-relayout.js";
+import {
+  filesALandingRelaysOut,
+  landingRelayoutNote,
+  relaidOut,
+  relayoutModelFiles,
+} from "../../../src/core/model-relayout.js";
 import type { Change } from "../../../src/core/changeset.js";
 
 const LONG = "A description long enough that yaml's default writer folds it at eighty columns, as dr 0.7 did";
@@ -57,6 +62,16 @@ describe("relayoutModelFiles (#1439)", () => {
     expect(result.skipped[0].file).toBe("documentation-robotics/model/01_motivation/goal.yaml");
     expect(result.skipped[0].reason).toContain("does not parse");
   }));
+
+  it("leaves a file alone when its new text would read back as other data, and says so", () => {
+    const text = yaml.stringify({ "motivation.goal.a": element("motivation.goal.a", "goal", "motivation") });
+    // A writer that loses a value: the check catches it before anything is written
+    const lossy = (value: unknown) => stringifyDrYaml(JSON.parse(JSON.stringify(value).replace(LONG, "")));
+    expect(relaidOut(text, lossy)).toEqual({ skip: "re-laying it out would change its data" });
+    // dr's own writer keeps the data
+    expect(relaidOut(text)).toMatchObject({ text: stringifyDrYaml(yaml.parse(text)) });
+    expect(relaidOut(stringifyDrYaml(yaml.parse(text)))).toBeNull();
+  });
 
   it("does nothing for a project with no model", () => withProject(async (root) => {
     await rm(join(root, "documentation-robotics"), { recursive: true });

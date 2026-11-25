@@ -529,6 +529,14 @@ const RELAYOUT_FILES_SHOWN = 10;
  * count, the first of them and the call that does it. Empty when there are none or it was asked.
  */
 function relayoutReport(scan: UpgradeScan): { relayout?: Record<string, unknown> & { note: string } } {
+  if (scan.relayoutCheckError) {
+    return {
+      relayout: {
+        error: scan.relayoutCheckError,
+        note: "The model's files could not be read for the relayout check; the rest of the upgrade is unaffected.",
+      },
+    };
+  }
   const pending = scan.relayout;
   if (!pending || pending.files.length === 0) return {};
   const planned = scan.actions.some((action) => action.type === "relayout");
@@ -542,9 +550,10 @@ function relayoutReport(scan: UpgradeScan): { relayout?: Record<string, unknown>
       ...(pending.skipped.length > 0 ? { leftAlone: pending.skipped } : {}),
       dataUnchanged: true,
       note: planned
-        ? `The relayout step lays out these ${pending.files.length} file(s) as this dr writes them, data unchanged: ` +
-          "each file is written only when its new text parses to the same data. Commit them on their own, apart " +
-          "from any plan, so later landings carry only their own changes."
+        ? `The relayout step lays out these ${pending.files.length} file(s) as this dr writes them, data unchanged ` +
+          "as YAML reads it: each file is written only when its new text parses to the same data. Comments are " +
+          "dropped, and a value YAML reads as a number is written as that number (1.10 becomes 1.1). Commit them " +
+          "on their own, apart from any plan, so later landings carry only their own changes."
         : `${pending.files.length} model file(s) are in an earlier dr's layout (long strings folded at 80 columns): ` +
           "the next landing that writes to one lays it out anew, so its diff shows every line. project_upgrade with " +
           "relayout: true (and apply: true, once the user approves) lays them all out now, data unchanged, to commit " +
@@ -881,7 +890,18 @@ function versions(scan: UpgradeScan) {
   return {
     cliVersion: getCliVersion(),
     cliSpecVersion: scan.bundledSpecVersion,
-    model: { specVersion: model?.specVersion ?? null, targetSpecVersion: model?.targetSpecVersion ?? null },
+    model: {
+      specVersion: model?.specVersion ?? null,
+      targetSpecVersion: model?.targetSpecVersion ?? null,
+      ...(model?.assumed
+        ? {
+            assumed: true,
+            note:
+              `manifest.yaml has no spec_version: read as ${model.specVersion}, as Model.load and project_status ` +
+              "read it. The upgrade stamps the version it migrates to.",
+          }
+        : {}),
+    },
     specReference: { installed: scan.installedSpecVersion },
   };
 }
@@ -985,11 +1005,13 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
     const scan = await scanUpgrades(projectRoot, { targetBundledSpec: true, force, relayout: args.relayout === true });
     const relayoutPending = relayoutReport(scan);
 
+    // A manifest with no spec_version is read as 0.6.0 (scan.model.assumed), so only a project
+    // with no model at all stops here
     if (scan.model.state !== "found") {
       throw new CLIError(
-        "The model's manifest has no spec version, so the upgrade can't tell which migrations it needs.",
+        "The project has no model to upgrade (no documentation-robotics/model/manifest.yaml).",
         ErrorCategory.USER,
-        ["Check spec_version in documentation-robotics/model/manifest.yaml"]
+        ["project_init creates one"]
       );
     }
 

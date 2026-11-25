@@ -6,9 +6,12 @@
  *
  *   bun scripts/generate-spec-catalog-history.ts           (from cli/) write the table
  *   bun scripts/generate-spec-catalog-history.ts --check   exit 1 if the committed table is stale
+ *   bun scripts/generate-spec-catalog-history.ts --release-check
+ *       exit 1 if spec/dist differs from the catalog tagged spec-v<spec/VERSION>: the spec changed
+ *       since that version was released, so a release must bump it first (release preflight)
  *
  * Inputs: git history. For every spec version before the one in spec/VERSION whose compiled
- * catalog (spec/dist) is in git (0.8.1 on), its released state: the tag spec-v<version> when there
+ * catalog (spec/dist) is in git (0.8.0 on), its released state: the tag spec-v<version> when there
  * is one, else the main-line commit just before spec/VERSION moved past it. The current version is
  * not in the table: its catalog is the one the CLI bundles.
  *
@@ -24,6 +27,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { compareSpecVersions } from "../src/utils/spec-version.js";
 
 const cliDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(cliDir, "..");
@@ -46,16 +50,6 @@ function gitOrNull(...args: string[]): string | null {
   }
 }
 
-function compareVersions(a: string, b: string): number {
-  const pa = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const pb = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (d !== 0) return d < 0 ? -1 : 1;
-  }
-  return 0;
-}
-
 /** The commit holding each released version's catalog, oldest version first. */
 function releasedStates(current: string): Array<{ version: string; rev: string }> {
   // Main-line commits that moved spec/VERSION, newest first
@@ -68,7 +62,7 @@ function releasedStates(current: string): Array<{ version: string; rev: string }
   const states = new Map<string, string>();
   bumps.forEach((bump, index) => {
     const { version } = bump;
-    if (states.has(version) || compareVersions(version, current) >= 0) return;
+    if (states.has(version) || compareSpecVersions(version, current) >= 0) return;
     const tag = `spec-v${version}`;
     let rev: string | null = gitOrNull("rev-parse", "--verify", "--quiet", `refs/tags/${tag}^{commit}`)?.trim() || null;
     if (!rev) {
@@ -82,7 +76,7 @@ function releasedStates(current: string): Array<{ version: string; rev: string }
   });
   return [...states]
     .map(([version, rev]) => ({ version, rev }))
-    .sort((a, b) => compareVersions(a.version, b.version));
+    .sort((a, b) => compareSpecVersions(a.version, b.version));
 }
 
 interface Catalog {
@@ -90,12 +84,15 @@ interface Catalog {
   relationships: Set<string>;
 }
 
-function catalogAt(rev: string): Catalog {
-  const manifest = JSON.parse(git("show", `${rev}:spec/dist/manifest.json`)) as { layers: Array<{ id: string }> };
+/** The catalog in spec/dist at a commit, or on disk with rev null. */
+function catalogAt(rev: string | null): Catalog {
+  const read = (file: string) =>
+    rev === null ? readFileSync(path.join(repoRoot, "spec", "dist", file), "utf-8") : git("show", `${rev}:spec/dist/${file}`);
+  const manifest = JSON.parse(read("manifest.json")) as { layers: Array<{ id: string }> };
   const types = new Set<string>();
   const relationships = new Set<string>();
   for (const { id: layer } of manifest.layers) {
-    const data = JSON.parse(git("show", `${rev}:spec/dist/${layer}.json`)) as {
+    const data = JSON.parse(read(`${layer}.json`)) as {
       nodeSchemas?: Record<string, unknown>;
       relationshipSchemas?: Record<
         string,
@@ -145,7 +142,42 @@ import type { SpecCatalogHistory } from "./declared-spec.js";
 export const SPEC_CATALOG_HISTORY: SpecCatalogHistory = ${JSON.stringify(table, null, 2)};
 `;
 
-if (process.argv.includes("--check")) {
+/** What one catalog has that the other lacks, a few named and the rest counted. */
+function difference(label: string, from: Set<string>, without: Set<string>): string[] {
+  const ids = [...from].filter((id) => !without.has(id)).sort();
+  if (ids.length === 0) return [];
+  return [`${ids.length} ${label}:`, ...ids.slice(0, 20).map((id) => `  ${id}`), ...(ids.length > 20 ? [`  and ${ids.length - 20} more`] : [])];
+}
+
+if (process.argv.includes("--release-check")) {
+  // A release ships spec/dist under spec/VERSION. When that version was already released (its
+  // tag exists) with another catalog, a model stamped with it by an earlier CLI would take what
+  // changed since unchecked: the spec version has to move first (#1411).
+  const tag = `spec-v${current}`;
+  const tagged = gitOrNull("rev-parse", "--verify", "--quiet", `refs/tags/${tag}^{commit}`)?.trim();
+  if (!tagged) {
+    console.log(`spec ${current} has no ${tag} tag yet: a new spec version, nothing to compare`);
+  } else {
+    const released = catalogAt(tagged);
+    const now = catalogAt(null);
+    const lines = [
+      ...difference("type(s) added since the tag", now.types, released.types),
+      ...difference("type(s) removed since the tag", released.types, now.types),
+      ...difference("relationship type(s) added since the tag", now.relationships, released.relationships),
+      ...difference("relationship type(s) removed since the tag", released.relationships, now.relationships),
+    ];
+    if (lines.length > 0) {
+      console.error(`spec/dist differs from the catalog released as ${tag}:`);
+      for (const line of lines) console.error(line);
+      console.error(
+        `A model stamped ${current} by an earlier CLI would take these unchecked. Bump the spec version ` +
+          "(spec/VERSION and the release steps for a spec bump) before releasing the CLI."
+      );
+      process.exit(1);
+    }
+    console.log(`spec/dist is the catalog released as ${tag}`);
+  }
+} else if (process.argv.includes("--check")) {
   const committed = readFileSync(outputPath, "utf-8");
   if (committed !== text) {
     console.error(`${path.relative(repoRoot, outputPath)} is stale: run bun scripts/generate-spec-catalog-history.ts`);

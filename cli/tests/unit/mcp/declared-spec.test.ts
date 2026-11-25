@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Model } from "../../../src/core/model.js";
@@ -21,6 +21,8 @@ import { changesetCommitPreviewHandler } from "../../../src/mcp/tools/changeset-
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
+import { stringifyDrYaml } from "../../../src/core/dr-yaml.js";
+import { projectUpgradeHandler } from "../../../src/mcp/tools/project-tools.js";
 
 const SERVICE = "application.applicationservice.proposal-service";
 const COMPONENT = "application.applicationcomponent.proposal-repository";
@@ -152,6 +154,73 @@ describe("a model on a spec newer than this dr's (#1411)", () => {
       await relationshipAddHandler({ relationships: [{ source: SCHEMA, predicate: "serves", target: SERVICE }], rootPath })
     );
     expect(relationship.attention[0].suggestions[0]).toContain("unknown here, not invalid");
+  });
+});
+
+const manifestFile = () => join(rootPath, "documentation-robotics/model/manifest.yaml");
+
+describe("types the check leaves to the other validators (#1411)", () => {
+  it("checks a legacy short type id as the type it names, and never names an unknown type", async () => {
+    await Model.init(rootPath, { name: "Legacy", version: "0.1.0", specVersion: "0.8.4" });
+    // business.service is the short id of business.businessservice; application.widget is no type
+    const element = (path: string, type: string, layer: string) => ({
+      [path]: { id: `${path}-id`, path, spec_node_id: `${layer}.${type}`, type, layer_id: layer, name: path },
+    });
+    await writeFile(
+      join(rootPath, "documentation-robotics/model/02_business/business_service.yaml"),
+      stringifyDrYaml(element("business.service.payments", "service", "business"))
+    );
+    await writeFile(
+      join(rootPath, "documentation-robotics/model/05_application/widget.yaml"),
+      stringifyDrYaml(element("application.widget.thing", "widget", "application"))
+    );
+    clearModelCache();
+
+    const data = parse(await modelValidateHandler({ rootPath, detail: "full" }));
+    const all = [...data.errors, ...(data.warnings ?? [])].map((issue: any) => issue.message);
+    expect(all.filter((message: string) => message.includes("is not in spec"))).toEqual([]);
+    // The unknown type is still reported, as an unknown type
+    expect(all.some((message: string) => message.includes("application.widget.thing"))).toBe(true);
+  });
+});
+
+describe("a manifest with no spec_version (#1411)", () => {
+  async function versionless(): Promise<void> {
+    await setUp(getCliBundledSpecVersion());
+    await writeFile(manifestFile(), (await readFile(manifestFile(), "utf-8")).replace(/^spec_version:.*\n/m, ""));
+    clearModelCache();
+  }
+
+  it("warns rather than refuses, names project_upgrade, and a write doesn't stamp the assumed version", async () => {
+    await versionless();
+    const added = await modelAddHandler({
+      layer: "application",
+      type: "message",
+      name: "operation-submitted",
+      attributes: { messageType: "document" },
+      rootPath,
+    });
+    expect(added.isError).toBeFalsy();
+    const warning = parse(added).warnings.join(" ");
+    expect(warning).toContain("the version a manifest with no spec_version is read as");
+    expect(warning).toContain("project_upgrade");
+    expect(await readFile(manifestFile(), "utf-8")).not.toMatch(/^spec_version:/m);
+
+    const related = parse(await relationshipAddHandler({ source: SERVICE, predicate: "accesses", target: SCHEMA, rootPath }));
+    expect(related.status).toBe("added");
+    expect(related.warnings.join(" ")).toContain("is not in spec 0.6.0");
+
+    const data = parse(await modelValidateHandler({ rootPath, detail: "full" }));
+    expect(data.errors.filter((e: any) => e.message.includes("is not in spec"))).toEqual([]);
+    expect(data.warnings.some((w: any) => w.message.includes("is not in spec 0.6.0"))).toBe(true);
+  });
+
+  it("project_upgrade reads it as 0.6.0 and previews the migration, instead of refusing", async () => {
+    await versionless();
+    const preview = parse(await projectUpgradeHandler({ rootPath }));
+    expect(preview.status).toBe("preview");
+    expect(preview.model).toMatchObject({ specVersion: "0.6.0", assumed: true });
+    expect(preview.model.note).toContain("no spec_version");
   });
 });
 

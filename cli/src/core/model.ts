@@ -946,7 +946,8 @@ export class Model {
       version: this.manifest.version,
       schema: "documentation-robotics-v1",
       cli_version: getCliVersion(),
-      spec_version: this.manifest.specVersion,
+      // A version Model.load assumed for a manifest without one is not stamped by a save
+      spec_version: this.manifest.specVersionAssumed ? undefined : this.manifest.specVersion,
       created: this.manifest.created,
       updated: this.manifest.modified,
       project: {
@@ -1421,6 +1422,8 @@ export class Model {
         version: manifestYaml.project?.version || manifestYaml.version || "0.1.0",
         cliVersion: manifestYaml.cli_version,
         specVersion: manifestYaml.spec_version || "0.6.0",
+        // Nothing declared: checks against it warn rather than refuse (declared-spec.ts)
+        ...(manifestYaml.spec_version ? {} : { specVersionAssumed: true }),
         created: manifestYaml.created || new Date().toISOString(),
         modified: manifestYaml.updated || new Date().toISOString(),
       };

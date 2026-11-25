@@ -2,7 +2,7 @@ id: changeset-1795622899198-6991iqwka
 name: cli09-validate-upgrades
 description: 'CLI 0.9.0, Tool ergonomics, "Validation and upgrades": a model is checked against the spec it declares, not only the CLI''s catalog, so staging, model_validate and changeset_commit_preview refuse a type or relationship that exists only in a newer spec, naming both versions and project_upgrade (#1411). model_validate with layers places a link end named by UUID through the relationship''s recorded layers instead of calling it not found (#1259). spec_type takes a dotted layer.type id (#1280, carries fork PR #1288). project_status and project_upgrade''s preview say when a pending migration changes nothing but the manifest (#1435). project_upgrade and dr upgrade re-lay out model files written by an earlier dr as a previewed step of their own, and changeset_commit_preview says how many files a landing would re-lay out (#1439). Done: each behaviour has a unit test, and the end-to-end ones an integration test.'
 created: 2026-11-25T16:08:19.240Z
-modified: 2026-11-25T16:53:01.447Z
+modified: 2026-11-25T17:29:18.586Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
@@ -12,7 +12,7 @@ stats:
   additions: 52
   modifications: 7
   deletions: 0
-lastSequence: 87
+lastSequence: 88
 unstaged:
   - sequence: 41
     removedAt: 42
@@ -484,4 +484,31 @@ unstaged:
           locations:
             - file: cli/src/core/declared-spec.ts
       timestamp: 2026-11-25T16:42:54.404Z
+    rewritten: true
+  - sequence: 27
+    removedAt: 88
+    change:
+      type: add
+      elementId: data-model.objectschema.spec-catalog-history
+      layerName: data-model
+      after:
+        id: 3f6b58e7-e501-4a95-b26b-bda93c210c6b
+        path: data-model.objectschema.spec-catalog-history
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SpecCatalogHistory
+        description: "Generated table: for every node type and relationship triple of the bundled catalog that a released spec before it lacked, the spec version it exists from, and the released versions it was built from (cli/scripts/generate-spec-catalog-history.ts reads spec/dist at each version's last commit)."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:09:15.076Z
+          updated_at: 2026-11-25T16:09:15.076Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/core/declared-spec.ts
+              symbol: SpecCatalogHistory
+      timestamp: 2026-11-25T16:42:54.365Z
     rewritten: true

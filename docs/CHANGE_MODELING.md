@@ -150,7 +150,10 @@ catalog dr carries (#1411). Staging (`relationship_add`, `model_add`, `model_upd
 an error, naming the model's version, the version that has it and `project_upgrade`. What each
 released spec had is in `cli/src/core/spec-catalog-history.ts`, generated from the released
 catalogs in git by `cli/scripts/generate-spec-catalog-history.ts` (run it after a spec release; a
-unit test fails until it is).
+unit test fails until it is). Release preflight runs it with `--release-check`, which fails while
+`spec/dist` differs from the catalog tagged for `spec/VERSION`: a changed catalog ships under a new
+spec version. A manifest with no `spec_version` is read as 0.6.0 but declares nothing, so a gap
+against it is a warning naming `project_upgrade`, and `project_upgrade` migrates it from 0.6.0.
 
 When the model is behind, `project_status` (`spec.migration.kind`) and `project_upgrade`'s preview
 (`migration.kind`) say `manifest-only` when the migration writes nothing in the model but

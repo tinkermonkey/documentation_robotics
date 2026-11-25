@@ -71,6 +71,13 @@ describe("a model on an older spec refuses what only a newer spec has (#1411)", 
     assertOutputContains(refused, "Type application.message is not in spec 0.13.0");
   });
 
+  it("dr update --type refuses a type only a newer spec has", async () => {
+    expect((await dr(["add", "application", "dataobject", "draft-payload"])).exitCode).toBe(0);
+    const refused = await dr(["update", "application.dataobject.draft-payload", "--type", "message"]);
+    expect(refused.exitCode).not.toBe(0);
+    assertOutputContains(refused, "Type application.message is not in spec 0.13.0");
+  });
+
   it("dr validate reports one already in the model as an error", async () => {
     const relationships = join(tempDir.path, "documentation-robotics/model/relationships.yaml");
     const rows = (yaml.parse(await readFile(relationships, "utf-8")) as unknown[] | null) ?? [];

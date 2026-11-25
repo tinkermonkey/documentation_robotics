@@ -17,7 +17,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { MigrationRegistry, type MigrationKind } from "../../core/migration-registry.js";
 import { StagedChangesetStorage } from "../../core/staged-changeset-storage.js";
 import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
-import { getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
+import { compareSpecVersions, getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
 import { readActiveMarker } from "../../core/active-changeset-marker.js";
 import type { ProjectListCheckout } from "../../core/checkout-types.js";
@@ -212,17 +212,8 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
 /** The spec version Model.load and dr upgrade read when the manifest names none. */
 const ASSUMED_SPEC_VERSION = "0.6.0";
 
-/** -1, 0 or 1, comparing dotted numeric versions part by part. */
-export function compareVersions(a: string, b: string): number {
-  const pa = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const pb = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const x = pa[i] ?? 0;
-    const y = pb[i] ?? 0;
-    if (x !== y) return x < y ? -1 : 1;
-  }
-  return 0;
-}
+/** -1, 0 or 1, comparing dotted numeric versions part by part (utils/spec-version.ts). */
+export const compareVersions = compareSpecVersions;
 
 // ---------------------------------------------------------------------------------------------
 // the dr server answering this call

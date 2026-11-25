@@ -161,7 +161,9 @@ export async function addRelationship(
   target: string,
   predicate: string,
   properties?: Record<string, unknown>,
-  preResolved?: PreResolvedElements
+  preResolved?: PreResolvedElements,
+  /** Receives what the caller should pass on: a relationship type the version assumed for the model lacks (#1411) */
+  warnings?: string[]
 ): Promise<AddRelationshipOutcome> {
   // Use pre-resolved elements if provided, otherwise resolve them
   let resolvedSourceLayerName = preResolved?.source?.layerName;
@@ -231,8 +233,12 @@ export async function addRelationship(
     sourceSpecNodeId,
     predicate,
     targetSpecNodeId,
-    model.manifest?.specVersion
+    model.manifest
   );
+  if (validation.warning) {
+    if (warnings) warnings.push(validation.warning);
+    else console.warn(`Warning: ${validation.warning}`);
+  }
 
   if (validation.declaredSpec) {
     throw new CLIError(validation.declaredSpec.message, ErrorCategory.USER, validation.suggestions);

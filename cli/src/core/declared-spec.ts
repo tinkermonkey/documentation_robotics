@@ -9,11 +9,19 @@
  * version, the version that has it and project_upgrade.
  *
  * What each released spec had comes from spec-catalog-history.ts, generated from the released
- * catalogs in git (0.8.1 on). A model on a version between two released ones is only refused what
+ * catalogs in git (0.8.0 on). A model on a version between two released ones is only refused what
  * neither of them has; a model on a version older than the first is checked as if it were on it.
+ * Only what the bundled catalog has is checked: an unknown type or relationship is the other
+ * validators' to report.
+ *
+ * A manifest with no spec_version is read as 0.6.0 (Model.load, dr upgrade). It declares nothing,
+ * so a gap against that assumed version is a warning with the call that stamps the version, never a
+ * refusal (`assumed` on the gap).
  */
 
-import { getCliBundledSpecVersion } from "../utils/spec-version.js";
+import { compareSpecVersions, getCliBundledSpecVersion } from "../utils/spec-version.js";
+import { getNodeType, type SpecNodeId } from "../generated/node-types.js";
+import { getValidRelationships } from "../generated/relationship-index.js";
 import { SPEC_CATALOG_HISTORY } from "./spec-catalog-history.js";
 
 /** The released spec versions before the bundled one, and what each had (see the generator). */
@@ -26,27 +34,40 @@ export interface SpecCatalogHistory {
   relationships: Record<string, string>;
 }
 
+/**
+ * The spec a model declares: a version, or the manifest (whose specVersionAssumed says Model.load
+ * read a missing spec_version as 0.6.0).
+ */
+export type DeclaredSpec = string | { specVersion?: string; specVersionAssumed?: boolean } | null | undefined;
+
 /** A type or relationship the model's declared spec lacks. */
 export interface DeclaredSpecGap {
-  /** The model's declared spec version */
+  /** The model's declared spec version (or the one assumed for it) */
   modelVersion: string;
   /** The first spec version after it that has it */
   since: string;
   /** The spec version this CLI carries, which project_upgrade moves the model to */
   bundled: string;
+  /**
+   * The manifest has no spec_version and modelVersion is the one assumed for it: warn, don't
+   * refuse, since the model declares nothing
+   */
+  assumed?: true;
   /** One line saying so, with the fix */
   message: string;
 }
 
-/** -1, 0 or 1, comparing dotted numeric versions part by part. */
-export function compareSpecVersions(a: string, b: string): number {
-  const pa = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const pb = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (d !== 0) return d < 0 ? -1 : 1;
-  }
-  return 0;
+/** For tests: the history to read, and whether the bundled catalog has the id. */
+export interface DeclaredSpecOptions {
+  history?: SpecCatalogHistory;
+  bundledHas?: boolean;
+}
+
+/** The declared version and whether it was assumed. */
+function declaredVersion(declared: DeclaredSpec): { version?: string; assumed: boolean } {
+  if (!declared) return { assumed: false };
+  if (typeof declared === "string") return { version: declared, assumed: false };
+  return { version: declared.specVersion, assumed: declared.specVersionAssumed === true };
 }
 
 /**
@@ -78,14 +99,30 @@ function missingSince(
 
 function gap(
   what: string,
-  modelVersion: string | null | undefined,
+  declared: DeclaredSpec,
   mask: string | undefined,
-  history: SpecCatalogHistory
+  history: SpecCatalogHistory,
+  bundledHas: boolean
 ): DeclaredSpecGap | null {
   const bundled = getCliBundledSpecVersion();
+  const { version: modelVersion, assumed } = declaredVersion(declared);
+  // Not in the bundled catalog: unknown to this dr, not a version gap, and reported elsewhere
+  if (!bundledHas) return null;
   if (!modelVersion || compareSpecVersions(modelVersion, bundled) >= 0 || history.versions.length === 0) return null;
   const since = missingSince(modelVersion, mask, history, bundled);
   if (!since) return null;
+  if (assumed) {
+    return {
+      modelVersion,
+      since,
+      bundled,
+      assumed: true,
+      message:
+        `${what} is not in spec ${modelVersion}, the version a manifest with no spec_version is read as; it exists ` +
+        `from spec ${since}. project_upgrade stamps the model's spec version (preview it first; dr upgrade in a ` +
+        "terminal), after which this is checked against it.",
+    };
+  }
   return {
     modelVersion,
     since,
@@ -97,16 +134,18 @@ function gap(
 }
 
 /**
- * Whether the spec the model declares lacks this node type (`layer.type`, as the bundled catalog
- * names it). Null when it has it, when the model declares no version, or when the model is on the
- * bundled spec or a newer one.
+ * Whether the spec the model declares lacks this node type (`layer.type`, canonical, as the bundled
+ * catalog names it). Null when it has it, when the bundled catalog doesn't, when the model declares
+ * no version, or when the model is on the bundled spec or a newer one.
  */
 export function typeNotInDeclaredSpec(
-  modelVersion: string | null | undefined,
+  declared: DeclaredSpec,
   specNodeId: string,
-  history: SpecCatalogHistory = SPEC_CATALOG_HISTORY
+  options: DeclaredSpecOptions = {}
 ): DeclaredSpecGap | null {
-  return gap(`Type ${specNodeId}`, modelVersion, history.types[specNodeId], history);
+  const history = options.history ?? SPEC_CATALOG_HISTORY;
+  const bundledHas = options.bundledHas ?? getNodeType(specNodeId as SpecNodeId) !== undefined;
+  return gap(`Type ${specNodeId}`, declared, history.types[specNodeId], history, bundledHas);
 }
 
 /**
@@ -114,17 +153,21 @@ export function typeNotInDeclaredSpec(
  * destination type, as the bundled catalog names them). Null as for typeNotInDeclaredSpec.
  */
 export function relationshipNotInDeclaredSpec(
-  modelVersion: string | null | undefined,
+  declared: DeclaredSpec,
   sourceSpecNodeId: string,
   predicate: string,
   destinationSpecNodeId: string,
-  history: SpecCatalogHistory = SPEC_CATALOG_HISTORY
+  options: DeclaredSpecOptions = {}
 ): DeclaredSpecGap | null {
+  const history = options.history ?? SPEC_CATALOG_HISTORY;
+  const bundledHas =
+    options.bundledHas ?? getValidRelationships(sourceSpecNodeId, predicate, destinationSpecNodeId).length > 0;
   return gap(
     `${sourceSpecNodeId} --[${predicate}]--> ${destinationSpecNodeId}`,
-    modelVersion,
+    declared,
     history.relationships[`${sourceSpecNodeId}.${predicate}.${destinationSpecNodeId}`],
-    history
+    history,
+    bundledHas
   );
 }
 
@@ -133,8 +176,9 @@ export function relationshipNotInDeclaredSpec(
  * added is unknown here, not invalid. Staging adds it to a refusal that would otherwise read as a
  * mistake in the model; nothing else is refused for it. Null when the model is not ahead.
  */
-export function specAheadNote(modelVersion: string | null | undefined): string | null {
+export function specAheadNote(declared: DeclaredSpec): string | null {
   const bundled = getCliBundledSpecVersion();
+  const { version: modelVersion } = declaredVersion(declared);
   if (!modelVersion || compareSpecVersions(modelVersion, bundled) <= 0) return null;
   return (
     `The model is on spec ${modelVersion}, newer than the ${bundled} this dr carries: a type or relationship ` +

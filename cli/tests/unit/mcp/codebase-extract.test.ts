@@ -200,6 +200,26 @@ const INFERRED_TEST = `${TEST_SKETCH}::tests::data-model.objectschema.owner`;
 // ---------------------------------------------------------------------------
 
 describe("codebase_extract", () => {
+  it("does not stage a relationship type the spec the model declares lacks, and says so (#1411)", async () => {
+    await indexed();
+    // A test case tests an object schema only from spec 0.12.0
+    const manifestPath = join(rootPath, "documentation-robotics/model/manifest.yaml");
+    await writeFile(manifestPath, (await readFile(manifestPath, "utf-8")).replace(/^spec_version:.*$/m, "spec_version: 0.11.0"));
+    clearModelCache();
+    const h = harness();
+
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+
+    expect(result.staged.relationships).toBe(2);
+    expect(result.declaredSpec.notStaged).toEqual([
+      expect.objectContaining({ relationship: `${TEST_SKETCH} --[tests]--> ${SCHEMA}` }),
+    ]);
+    expect(result.declaredSpec.notStaged[0].message).toContain("is not in spec 0.11.0, the model's version; it exists from spec 0.12.0");
+    expect(result.declaredSpec.note).toContain("project_upgrade");
+    const changeset = await changesetOf(result.changeset.id);
+    expect(changeset.changes.some((c) => c.elementId === INFERRED_TEST)).toBe(false);
+  });
+
   it("bootstraps an empty model into a new changeset, never the base model", async () => {
     await indexed();
     const h = harness();

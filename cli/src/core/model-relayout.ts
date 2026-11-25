@@ -13,7 +13,8 @@
  *
  * Only the element files (`documentation-robotics/model/NN_layer/*.yaml`) are rewritten: dr writes
  * the manifest and relationships.yaml whole on every change. A file is only rewritten when its
- * new text parses to the same data.
+ * new text parses to the same data, as YAML reads it: comments are dropped (as any dr write of the
+ * file drops them), and a value YAML reads as a number is written as that number.
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
@@ -36,8 +37,15 @@ export interface RelayoutResult {
   skipped: Array<{ file: string; reason: string }>;
 }
 
-/** The text dr would write for a file, or why it can't say; null when the file is already in dr's layout. */
-function laidOut(text: string): { text: string } | { skip: string } | null {
+/**
+ * The text dr would write for a file, with the data it holds; why it is left alone; or null when it
+ * is already in dr's layout. Data is as YAML reads it: comments are not data, and a value YAML reads
+ * as a number is written as that number (`1.10` becomes `1.1`). `stringify` is dr's writer.
+ */
+export function relaidOut(
+  text: string,
+  stringify: (value: unknown) => string = stringifyDrYaml
+): { text: string; data: unknown } | { skip: string } | null {
   let data: unknown;
   try {
     data = yaml.parse(text);
@@ -46,10 +54,10 @@ function laidOut(text: string): { text: string } | { skip: string } | null {
   }
   // An empty or comment-only file has nothing to lay out
   if (data === null || data === undefined) return null;
-  const next = stringifyDrYaml(data);
+  const next = stringify(data);
   if (next === text) return null;
   if (!isDeepStrictEqual(yaml.parse(next), data)) return { skip: "re-laying it out would change its data" };
-  return { text: next };
+  return { text: next, data };
 }
 
 async function layerFolders(modelDir: string): Promise<string[]> {
@@ -75,7 +83,7 @@ export async function relayoutModelFiles(projectRoot: string, options: { dryRun?
       const file = join(modelDir, folder, name);
       const shown = relative(projectRoot, file);
       result.total++;
-      const outcome = laidOut(await readFile(file, "utf-8"));
+      const outcome = relaidOut(await readFile(file, "utf-8"));
       if (!outcome) continue;
       if ("skip" in outcome) {
         result.skipped.push({ file: shown, reason: outcome.skip });
@@ -119,18 +127,16 @@ export async function filesALandingRelaysOut(projectRoot: string, changes: reado
     for (const name of (await readdir(join(modelDir, folder))).sort()) {
       if (!YAML_FILE.test(name)) continue;
       const file = join(modelDir, folder, name);
-      const text = await readFile(file, "utf-8");
-      const outcome = laidOut(text);
+      const outcome = relaidOut(await readFile(file, "utf-8"));
       if (!outcome || "skip" in outcome) continue;
-      if (layer.files.has(name) || holdsAny(text, layer.ids)) out.push(relative(projectRoot, file));
+      if (layer.files.has(name) || holdsAny(outcome.data, layer.ids)) out.push(relative(projectRoot, file));
     }
   }
   return out;
 }
 
-/** Whether a layer file holds an element named by any of these ids (its key, id or path). */
-function holdsAny(text: string, ids: Set<string>): boolean {
-  const data = yaml.parse(text) as Record<string, unknown> | null;
+/** Whether a layer file's data holds an element named by any of these ids (its key, id or path). */
+function holdsAny(data: unknown, ids: Set<string>): boolean {
   if (!data || typeof data !== "object" || Array.isArray(data)) return false;
   return Object.entries(data).some(([key, value]) => {
     if (ids.has(key)) return true;

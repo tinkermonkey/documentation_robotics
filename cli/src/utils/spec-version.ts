@@ -106,6 +106,17 @@ export async function getModelSpecVersion(modelPath: string): Promise<string | n
  * Where a model's spec version stands against the spec this CLI carries: "behind" (an upgrade
  * migrates it), "ahead" (it needs a newer CLI), or null when they match or the model has none.
  */
+/** -1, 0 or 1, comparing dotted numeric versions part by part ("0.9.0" before "0.10.0"). */
+export function compareSpecVersions(a: string, b: string): number {
+  const pa = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const pb = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d < 0 ? -1 : 1;
+  }
+  return 0;
+}
+
 export function modelSpecStanding(modelSpecVersion: string | null | undefined): "behind" | "ahead" | null {
   if (!modelSpecVersion || modelSpecVersion === BUNDLED_SPEC_VERSION) {
     return null;
