@@ -1,0 +1,372 @@
+id: changeset-1795622900294-3bfodc7bu
+name: cli09-index-freshness
+description: "CLI 0.9.0 (Tool ergonomics), index tranche: #1345, #1347, #1300. An index that holds no code, or whose run could not read its counts, never reads as fresh: the CBM run fails instead of recording 0 nodes, and the freshness rule calls a 0-node index stale. codebase_extract indexes first when the index is missing or stale (or a run is in flight), within its time budget, reports that it did and how long it took, and says how to wait when the run outlasts the budget; autoIndex: false keeps the old refusal. codebase_index keeps .cbmignore out of git's view (the repository's local info/exclude) and never edits a .cbmignore the developer tracks, so a read-only run leaves the tree as git saw it. Done: unit tests beside each change, integration test for the job, skills and CHANGELOG updated."
+created: 2026-11-25T16:08:20.333Z
+modified: 2026-11-25T17:18:32.281Z
+status: staged
+baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 33
+  modifications: 14
+  deletions: 0
+lastSequence: 65
+unstaged:
+  - sequence: 1
+    removedAt: 25
+    change:
+      type: add
+      elementId: application.applicationfunction.exclude-from-git
+      layerName: application
+      after:
+        id: 1938986a-c66a-4583-a48f-9d6e70999d0a
+        path: application.applicationfunction.exclude-from-git
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: excludeFromGit
+        description: Adds a path to the repository's local exclude file (git rev-parse --git-path info/exclude, shared by every worktree), under DR's heading, unless git already ignores it. Never touches a tracked file or the working tree's .gitignore. Returns the exclude file's path, or null when the code is not in a git work tree (#1300).
+        attributes:
+          documentation: cli/src/analyzers/cbm-analyzer.ts, used by ensureCbmIgnore.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+      timestamp: 2026-11-25T16:08:53.905Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 26
+    change:
+      type: add
+      elementId: application.applicationfunction.index-first
+      layerName: application
+      after:
+        id: 1bf98bdc-5e9a-422f-a090-a30caca228ef
+        path: application.applicationfunction.index-first
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: indexFirst
+        description: "Before codebase_extract judges the index (#1347): waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks for at most half the call's budget (50 s cap). Returns what it did, why and how long it took, for the result's index.indexedFirst; throws a CLIError with the job's error when the run fails, and one that says how to wait (codebase_index with status: true, wait: 30) when the run outlasts the wait. Skipped with autoIndex: false."
+        attributes:
+          documentation: cli/src/mcp/tools/codebase-index.ts. Reuses the handler's own start path (analyzer selection, the .cbmignore check, the worktree snapshot, startIndexJob) so a run it starts is the same run codebase_index would start.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+      timestamp: 2026-11-25T16:08:53.905Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 27
+    change:
+      type: add
+      elementId: application.applicationfunction.index-holds-no-code
+      layerName: application
+      after:
+        id: e16b62a4-1008-4084-a801-3e0f372885b9
+        path: application.applicationfunction.index-holds-no-code
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: indexHoldsNoCode
+        description: "Whether recorded index metadata describes an index with no code in it (0 nodes): such an index is never fresh, whatever its commit (#1345)."
+        attributes:
+          documentation: cli/src/analyzers/session-state.ts, beside IndexMeta. Used by judgeIndex and CbmAnalyzer.status, so the MCP tools and the background child agree.
+        metadata:
+          created_at: 2026-11-25T16:08:53.897Z
+          updated_at: 2026-11-25T16:08:53.897Z
+          version: 1
+      timestamp: 2026-11-25T16:08:53.905Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 28
+    change:
+      type: add
+      elementId: application.applicationfunction.settle-index-counts
+      layerName: application
+      after:
+        id: 38eca707-526d-4fdb-a204-b742c1bb8955
+        path: application.applicationfunction.settle-index-counts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: settleIndexCounts
+        description: "The node and edge counts of an index_repository call (#1345). When CBM answered without them (status indexing, busy or pending: another process is indexing the same code), waits for that run through index_status within the run's timeout and reads the counts there. Throws when CBM reports failed, when the counts stay unreadable, or when the index holds no nodes, so the run fails and no index metadata reads as fresh."
+        attributes:
+          documentation: cli/src/analyzers/cbm-analyzer.ts, used by CbmAnalyzer.index.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+      timestamp: 2026-11-25T16:08:53.905Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 31
+    change:
+      type: add
+      elementId: application.applicationfunction.index-first
+      layerName: application
+      after:
+        id: 1bf98bdc-5e9a-422f-a090-a30caca228ef
+        path: application.applicationfunction.index-first
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: indexFirst
+        description: "Before codebase_extract judges the index (#1347): waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks for at most half the call's budget (50 s cap). Returns what it did, why and how long it took, for the result's index.indexedFirst; throws a CLIError with the job's error when the run fails, and one that says how to wait (codebase_index with status: true, wait: 30) when the run outlasts the wait. Skipped with autoIndex: false."
+        attributes:
+          documentation: cli/src/mcp/tools/codebase-index.ts. Reuses the handler's own start path (analyzer selection, the .cbmignore check, the worktree snapshot, startIndexJob) so a run it starts is the same run codebase_index would start.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/codebase-index.ts
+              symbol: indexFirst
+      timestamp: 2026-11-25T16:28:22.188Z
+    rewritten: true
+  - sequence: 34
+    removedAt: 49
+    change:
+      type: add
+      elementId: application.applicationfunction.assess-selected-index
+      layerName: application
+      after:
+        id: 366bef0d-d385-4cf1-9511-f4d2ea7fa09e
+        path: application.applicationfunction.assess-selected-index
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: assessSelectedIndex
+        description: assessIndex for the analyzer the session selected; not indexed when none is. indexFirst and requireFreshIndex judge the index through it.
+        metadata:
+          created_at: 2026-11-25T17:00:03.724Z
+          updated_at: 2026-11-25T17:00:03.724Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 35
+    removedAt: 50
+    change:
+      type: add
+      elementId: application.applicationfunction.index-first-deadline
+      layerName: application
+      after:
+        id: 5525227d-e779-42f8-a934-b36c8880fbdb
+        path: application.applicationfunction.index-first-deadline
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: indexFirstDeadline
+        description: "How long indexFirst may wait for the index: half the call's time, and never past codebase_index's longest wait (48 s)."
+        metadata:
+          created_at: 2026-11-25T17:00:03.724Z
+          updated_at: 2026-11-25T17:00:03.724Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 33
+    removedAt: 51
+    change:
+      type: add
+      elementId: application.applicationfunction.remove-index-meta
+      layerName: application
+      after:
+        id: 4d9078d9-34a4-4ac7-8314-deaedf97cfbd
+        path: application.applicationfunction.remove-index-meta
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: removeIndexMeta
+        description: "Removes an analyzer's index-meta.json, so the code reads as not indexed: a run that replaced the analyzer's graph and then failed calls it (#1345)."
+        metadata:
+          created_at: 2026-11-25T17:00:03.724Z
+          updated_at: 2026-11-25T17:00:03.724Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 38
+    removedAt: 52
+    change:
+      type: add
+      elementId: data-model.objectschema.cbm-ignore-result
+      layerName: data-model
+      after:
+        id: ce012998-97ce-41f9-abb3-c46b5184ae1a
+        path: data-model.objectschema.cbm-ignore-result
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: CbmIgnoreResult
+        description: "What ensureCbmIgnore did to the codebase's .cbmignore: path, added, created, missing (a developer's file's lacking lines), excludedBy, notInGit."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T17:00:03.724Z
+          updated_at: 2026-11-25T17:00:03.724Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 37
+    removedAt: 53
+    change:
+      type: add
+      elementId: data-model.objectschema.index-assessment
+      layerName: data-model
+      after:
+        id: 7b1ac24f-c15b-49a1-b64f-d61456b2d40f
+        path: data-model.objectschema.index-assessment
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IndexAssessment
+        description: The selected analyzer and its index judged by the rule (analyzer, freshness, judgement), passed from indexFirst to requireFreshIndex so the index is judged once per call.
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T17:00:03.724Z
+          updated_at: 2026-11-25T17:00:03.724Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 39
+    removedAt: 54
+    change:
+      type: add
+      elementId: data-model.objectschema.index-count-tools
+      layerName: data-model
+      after:
+        id: 2e3ee934-1014-4382-b180-116bbad2979b
+        path: data-model.objectschema.index-count-tools
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IndexCountTools
+        description: "The codebase-memory-mcp calls settleIndexCounts makes: list_projects and index_status."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T17:00:03.725Z
+          updated_at: 2026-11-25T17:00:03.725Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 36
+    removedAt: 55
+    change:
+      type: add
+      elementId: data-model.objectschema.indexed-first
+      layerName: data-model
+      after:
+        id: 1da2586c-e27f-47a0-9b69-2c204e179353
+        path: data-model.objectschema.indexed-first
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IndexedFirst
+        description: "What indexFirst did before a tool judged the index, as index.indexedFirst: why, jobId, started, seconds, ignoreFile."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T17:00:03.724Z
+          updated_at: 2026-11-25T17:00:03.724Z
+          version: 1
+      timestamp: 2026-11-25T17:00:03.738Z
+    rewritten: true
+  - sequence: 6
+    removedAt: 56
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.index-first::depends-on::application.applicationfunction.assess-index
+      layerName: application
+      after:
+        source: application.applicationfunction.index-first
+        target: application.applicationfunction.assess-index
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:53.905Z
+  - sequence: 0
+    removedAt: 57
+    change:
+      type: add
+      elementId: application.applicationfunction.index-first
+      layerName: application
+      after:
+        id: 1bf98bdc-5e9a-422f-a090-a30caca228ef
+        path: application.applicationfunction.index-first
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: indexFirst
+        description: "Before codebase_extract judges the index (#1347), for a run or preview only (not a page, view, list or reject-only call): waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks until the caller's deadline (indexFirstDeadline: half the call's time, at most 48 s). Returns the index as judged at the end (IndexAssessment, so requireFreshIndex doesn't judge it again) and what it did (IndexedFirst); throws a CLIError with the job's error when the run fails, and one that says how to wait when the run outlasts the wait. Skipped with autoIndex: false."
+        attributes:
+          documentation: cli/src/mcp/tools/codebase-index.ts. Reuses the handler's own start path (analyzer selection, the .cbmignore check, the worktree snapshot, startIndexJob) so a run it starts is the same run codebase_index would start.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/codebase-index.ts
+              symbol: indexFirst
+      timestamp: 2026-11-25T17:00:02.383Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 58
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.judge-index::depends-on::application.applicationfunction.index-holds-no-code
+      layerName: application
+      after:
+        source: application.applicationfunction.judge-index
+        target: application.applicationfunction.index-holds-no-code
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:53.905Z
+  - sequence: 12
+    removedAt: 58
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.cbm-analyzer-status::depends-on::application.applicationfunction.index-holds-no-code
+      layerName: application
+      after:
+        source: application.applicationfunction.cbm-analyzer-status
+        target: application.applicationfunction.index-holds-no-code
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:53.905Z
+  - sequence: 2
+    removedAt: 63
+    change:
+      type: add
+      elementId: application.applicationfunction.settle-index-counts
+      layerName: application
+      after:
+        id: 38eca707-526d-4fdb-a204-b742c1bb8955
+        path: application.applicationfunction.settle-index-counts
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: settleIndexCounts
+        description: "The node and edge counts of an index_repository call (#1345). When CBM answered without them (status indexing, busy or pending: another process is indexing the same code), waits for that run through index_status within the run's timeout and reads the counts there. Throws when CBM reports failed, when the counts stay unreadable, or when the index holds no nodes, so the run fails and no index metadata reads as fresh."
+        attributes:
+          documentation: cli/src/analyzers/cbm-analyzer.ts, used by CbmAnalyzer.index.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/analyzers/cbm-analyzer.ts
+              symbol: settleIndexCounts
+      timestamp: 2026-11-25T16:28:22.188Z
+    rewritten: true

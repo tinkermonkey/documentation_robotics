@@ -590,6 +590,23 @@ describe("dr mcp model tools and resources", () => {
     expect(data.results.some((r: any) => r.id === "business.businessservice.test-service")).toBe(true);
   });
 
+  it("model_search leaves out layers and searches descriptions; model_show reads several ids (#1283, #1390, #1395)", async () => {
+    const all = parseToolJSON(await callTool("model_search", { query: "test-service" }));
+    expect(all.page).toMatchObject({ offset: 0 });
+    const none = parseToolJSON(await callTool("model_search", { query: "test-service", excludeLayers: ["business"] }));
+    expect(none.results.some((r: any) => r.id === "business.businessservice.test-service")).toBe(false);
+    expect(none.filter).toEqual({ excludeLayers: ["business"] });
+    const described = parseToolJSON(await callTool("model_search", { query: "added via mcp", fields: ["description"] }));
+    expect(described.results).toEqual([expect.objectContaining({ id: "business.businessservice.test-service", matchedIn: ["description"] })]);
+
+    const shown = parseToolJSON(
+      await callTool("model_show", { ids: ["business.businessservice.test-service", "business.businessservice.nope"] })
+    );
+    expect(shown.detail).toBe("compact");
+    expect(shown.elements.map((e: any) => e.id)).toEqual(["business.businessservice.test-service"]);
+    expect(shown.notFound).toEqual(["business.businessservice.nope"]);
+  });
+
   it("model_trace reports no dependents or dependencies for an isolated element", async () => {
     const result = await callTool("model_trace", { id: "business.businessservice.test-service" });
     const data = parseToolJSON(result);
@@ -849,7 +866,7 @@ describe("dr mcp changeset tools", () => {
   });
 
   it("changeset_show returns the full changeset detail", async () => {
-    const result = await callTool("changeset_show", { changesetId });
+    const result = await callTool("changeset_show", { changesetId, detail: "full" });
     const data = parseToolJSON(result);
 
     expect(data.id).toBe(changesetId);
@@ -857,6 +874,16 @@ describe("dr mcp changeset tools", () => {
     expect(data.description).toBe("Test changeset");
     expect(data.stats).toEqual({ additions: 0, modifications: 0, deletions: 0 });
     expect(data.changes).toEqual([]);
+  });
+
+  it("changeset_show and changeset_list are compact and paged by default (#1250, #1257)", async () => {
+    const shown = parseToolJSON(await callTool("changeset_show", { changesetId }));
+    expect(shown).toMatchObject({ detail: "compact", changes: [], page: { total: 0, returned: 0, offset: 0 } });
+    expect(shown.totals.total).toBe(0);
+    expect(shown.stats).toBeUndefined();
+
+    const listed = parseToolJSON(await callTool("changeset_list", { status: "all", limit: 10 }));
+    expect(listed).toMatchObject({ status: "all", counts: { staged: 1, committed: 0, discarded: 0 }, page: { total: 1, returned: 1 } });
   });
 
   it("changeset_show reports a structured not-found error for a missing changeset", async () => {
