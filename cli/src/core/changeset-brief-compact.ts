@@ -518,6 +518,8 @@ export function deltaLists(delta: BriefDelta): Record<string, unknown[]> {
     "acceptedGaps.reopened": delta.acceptedGaps.reopened,
     "intent.newlyTraced": delta.intent.newlyTraced,
     "intent.newlyUntraced": delta.intent.newlyUntraced,
+    // What was unstaged since: up to MAX_UNSTAGED_TOMBSTONES, paged like the rest (an unstage's recovery call reads it).
+    unstaged: delta.unstaged,
   };
 }
 
@@ -547,7 +549,7 @@ export function compactDelta(delta: BriefDelta, options: { limit?: number; offse
       added: capped(delta.relationships.added, "relationships.added").map(rel),
       removed: capped(delta.relationships.removed, "relationships.removed").map(rel),
     },
-    unstaged: delta.unstaged.map(
+    unstaged: capped(delta.unstaged, "unstaged").map(
       (u) =>
         `#${u.sequence} ${u.operation} ${u.source ? rel({ source: u.source, predicate: u.predicate ?? "?", target: u.target ?? "?" }) : (u.elementId ?? "")} (unstaged at ${u.removedAt})`
     ),

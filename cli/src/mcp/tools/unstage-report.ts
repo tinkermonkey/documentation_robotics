@@ -80,7 +80,8 @@ export function unstagedNotListedNote(
       : "";
   return (
     `${notListed} removed change(s) are counted in byOperation, not listed here (the first ${UNSTAGE_LINES} of each ` +
-    `unstage are). changeset_brief ${JSON.stringify(call)} lists every change this unstage removed, in delta.unstaged.` +
+    `unstage are). changeset_brief ${JSON.stringify(call)} lists every change this unstage removed, in delta.unstaged ` +
+    "(a page at a time, like the delta's other lists)." +
     `${kept} detail: "full" on a later unstage lists what it removes as objects.`
   );
 }

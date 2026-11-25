@@ -38,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `maxElements` still works. (#1284)
 - **`changeset_unstage`** reports what it removed as counts per operation and one line per change,
   the first 25 of each unstage, the rest counted. Past 25 it names the exact `changeset_brief` call
-  (the delta since the revision before the write) that lists every removed change; `detail: "full"`
+  (the delta since the revision before the write) that lists every removed change, a page at a time
+  (the delta's `unstaged` list now pages with its other lists); `detail: "full"`
   returns each removed change as an object, as before. (#1299)
 - **`changeset_brief`:** every top-level block of the compact brief is a section: `summary`,
   `byLayer`, `reach`, `changesByType` and `neighborFiles` join the others (#1281). `types` narrows

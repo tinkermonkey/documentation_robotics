@@ -466,9 +466,38 @@ describe("review of PR 1451: no answer reads as complete when it is not", () => 
       const named = /changeset_brief (\{.*?\}) lists every change/.exec(result.notes.join(" "))![1];
       const call = JSON.parse(named);
       expect(call).toEqual({ changeset: plan.id, sections: ["delta"], since: expect.any(Number) });
-      // That call lists all 30, the 5 not shown included.
+      // That call lists all 30, the 5 not shown included, as a paged list of the answer.
       const brief = parse(await changesetBriefHandler({ ...call, rootPath }));
       expect(brief.delta.unstaged).toHaveLength(30);
+      expect(brief.page.totals["delta.unstaged"]).toBe(30);
+      for (const id of added) expect(brief.delta.unstaged.some((line: string) => line.includes(`${id} --realizes-->`))).toBe(true);
+      // Paged like the delta's other lists, so a long one cannot run past the target.
+      const lines: string[] = [];
+      for (let offset: number | undefined = 0; offset !== undefined; ) {
+        const part = parse(await changesetBriefHandler({ ...call, limit: 7, offset, rootPath }));
+        expect(part.page.totals["delta.unstaged"]).toBe(30);
+        lines.push(...part.delta.unstaged);
+        offset = part.page.nextOffset;
+      }
+      expect(lines).toEqual(brief.delta.unstaged);
+    });
+  });
+
+  it("names the same recovery call for the list form of unstage past 25 lines", async () => {
+    await withProject(async (rootPath) => {
+      const plan = parse(await changesetCreateHandler({ name: "plan", rootPath }));
+      const added = await addFunctions(rootPath, 30);
+      const result = parse(
+        await changesetUnstageHandler({ changes: [{ target: SERVICE }, { elementId: "application.applicationfunction.nope" }], rootPath })
+      );
+      expect(result.results[0]).toMatchObject({ status: "unstaged", unstagedCount: 30, unstagedNotListed: 5 });
+      expect(result.results[0].unstaged).toHaveLength(25);
+      expect(result.results[1].status).toBe("not-staged");
+      const named = /changeset_brief (\{.*?\}) lists every change/.exec(result.more)![1];
+      const call = JSON.parse(named);
+      expect(call).toEqual({ changeset: plan.id, sections: ["delta"], since: expect.any(Number) });
+      const brief = parse(await changesetBriefHandler({ ...call, rootPath }));
+      expect(brief.page.totals["delta.unstaged"]).toBe(30);
       for (const id of added) expect(brief.delta.unstaged.some((line: string) => line.includes(`${id} --realizes-->`))).toBe(true);
     });
   });

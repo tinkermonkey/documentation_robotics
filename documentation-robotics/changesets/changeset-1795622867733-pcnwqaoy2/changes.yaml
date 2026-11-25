@@ -35,42 +35,6 @@
   timestamp: 2026-11-25T16:08:01.553Z
   sequenceNumber: 0
 - type: update
-  elementId: product.feature.changeset-brief
-  layerName: product
-  before:
-    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
-    path: product.feature.changeset-brief
-    spec_node_id: product.feature
-    type: feature
-    layer_id: product
-    name: Changeset brief
-    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
-    attributes: &a4
-      priority: critical
-      status: delivered
-      documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
-    source_reference: &a5
-      provenance: manual
-      locations:
-        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
-    metadata: &a6
-      created_at: 2026-11-09T21:54:57.359Z
-      updated_at: 2026-11-09T21:54:57.359Z
-      version: 1
-  after:
-    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
-    path: product.feature.changeset-brief
-    spec_node_id: product.feature
-    type: feature
-    layer_id: product
-    name: Changeset brief
-    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them). layers, types and ids narrow the element sections; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged, with their connections as the plan leaves them. The drift is named once (the changeset section keeps a one-line state when drift is asked for) and its base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
-    attributes: *a4
-    source_reference: *a5
-    metadata: *a6
-  timestamp: 2026-11-25T16:08:02.697Z
-  sequenceNumber: 1
-- type: update
   elementId: product.feature.changeset-impact
   layerName: product
   before:
@@ -81,15 +45,15 @@
     layer_id: product
     name: Changeset impact
     description: "MCP: changeset_impact (projected graph walk, focused 'from', hub collapsing)."
-    attributes: &a7
+    attributes: &a4
       priority: high
       status: delivered
       documentation: "MCP: changeset_impact (projected graph walk, focused 'from', hub collapsing)."
-    source_reference: &a8
+    source_reference: &a5
       provenance: manual
       locations:
         - file: cli/src/core/changeset-analysis.ts
-    metadata: &a9
+    metadata: &a6
       created_at: 2026-11-09T21:54:57.281Z
       updated_at: 2026-11-09T21:54:57.281Z
       version: 1
@@ -101,9 +65,9 @@
     layer_id: product
     name: Changeset impact
     description: 'MCP: changeset_impact (projected graph walk, focused ''from'', hub collapsing). Compact by default: the reached elements'' ids by layer, nearest first, with counts per layer and type over everything reached; detail: "full" lists each with how it was reached and its files. A page at a time (limit or maxElements, offset) with the true total and the next call.'
-    attributes: *a7
-    source_reference: *a8
-    metadata: *a9
+    attributes: *a4
+    source_reference: *a5
+    metadata: *a6
   timestamp: 2026-11-25T16:08:03.717Z
   sequenceNumber: 2
 - type: update
@@ -117,15 +81,15 @@
     layer_id: product
     name: Model search and read
     description: "MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info."
-    attributes: &a10
+    attributes: &a7
       priority: high
       status: delivered
       documentation: "MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info."
-    source_reference: &a11
+    source_reference: &a8
       provenance: manual
       locations:
         - file: cli/src/mcp/tools/model-search.ts
-    metadata: &a12
+    metadata: &a9
       created_at: 2026-11-09T21:54:57.535Z
       updated_at: 2026-11-09T21:54:57.535Z
       version: 1
@@ -137,9 +101,9 @@
     layer_id: product
     name: Model search and read
     description: 'MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_show takes ids: [...] for several elements at once, one compact card each (name, short description, change status, connections as lines), paged; detail: "full" gives each as the one-element form does. model_search matches id and name by default, and descriptions and attribute values with fields; match: "all" or "any" matches the query''s words apart; name hits rank first; excludeLayers and excludeTypes leave layers and types out; results are compact entries a page at a time, with the true count and counts by layer and type. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info.'
-    attributes: *a10
-    source_reference: *a11
-    metadata: *a12
+    attributes: *a7
+    source_reference: *a8
+    metadata: *a9
   timestamp: 2026-11-25T16:08:04.746Z
   sequenceNumber: 3
 - type: update
@@ -153,15 +117,15 @@
     layer_id: product
     name: Unstage and discard changes
     description: "MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete."
-    attributes: &a13
+    attributes: &a10
       priority: medium
       status: delivered
       documentation: "MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete."
-    source_reference: &a14
+    source_reference: &a11
       provenance: manual
       locations:
         - file: cli/src/mcp/tools/changeset-editing.ts
-    metadata: &a15
+    metadata: &a12
       created_at: 2026-11-09T21:54:57.176Z
       updated_at: 2026-11-09T21:54:57.176Z
       version: 1
@@ -173,9 +137,9 @@
     layer_id: product
     name: Unstage and discard changes
     description: 'MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete. changeset_unstage reports what it removed compactly: the count per operation and one line per change (the first 25 of each item, the rest counted); detail: "full" returns each removed change whole.'
-    attributes: *a13
-    source_reference: *a14
-    metadata: *a15
+    attributes: *a10
+    source_reference: *a11
+    metadata: *a12
   timestamp: 2026-11-25T16:08:05.795Z
   sequenceNumber: 4
 - type: add
@@ -355,42 +319,6 @@
   timestamp: 2026-11-25T16:32:06.648Z
   sequenceNumber: 24
 - type: update
-  elementId: product.feature.changeset-brief
-  layerName: product
-  before:
-    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
-    path: product.feature.changeset-brief
-    spec_node_id: product.feature
-    type: feature
-    layer_id: product
-    name: Changeset brief
-    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them). layers, types and ids narrow the element sections; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged, with their connections as the plan leaves them. The drift is named once (the changeset section keeps a one-line state when drift is asked for) and its base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
-    attributes: &a16
-      priority: critical
-      status: delivered
-      documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
-    source_reference: &a17
-      provenance: manual
-      locations:
-        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
-    metadata: &a18
-      created_at: 2026-11-09T21:54:57.359Z
-      updated_at: 2026-11-09T21:54:57.359Z
-      version: 1
-  after:
-    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
-    path: product.feature.changeset-brief
-    spec_node_id: product.feature
-    type: feature
-    layer_id: product
-    name: Changeset brief
-    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
-    attributes: *a16
-    source_reference: *a17
-    metadata: *a18
-  timestamp: 2026-11-25T17:04:18.317Z
-  sequenceNumber: 29
-- type: update
   elementId: application.applicationfunction.next-page-hint
   layerName: application
   before:
@@ -401,12 +329,12 @@
     layer_id: application
     name: nextPageHint
     description: One line naming the call that returns the next page of a list, or nothing when the page is the last.
-    source_reference: &a19
+    source_reference: &a13
       provenance: extracted
       locations:
         - file: cli/src/core/paging.ts
           symbol: nextPageHint
-    metadata: &a20
+    metadata: &a14
       created_at: 2026-11-20T17:02:56.267Z
       updated_at: 2026-11-20T17:02:56.267Z
       version: 1
@@ -418,8 +346,8 @@
     layer_id: application
     name: nextPageHint
     description: One line naming the call that returns the next page, or nothing on the last page. Given the caller's arguments it names that call exactly (nextPageCall); without them it says to repeat the call with the next offset.
-    source_reference: *a19
-    metadata: *a20
+    source_reference: *a13
+    metadata: *a14
   timestamp: 2026-11-25T17:04:20.952Z
   sequenceNumber: 31
 - type: add
@@ -543,3 +471,39 @@
     category: structural
   timestamp: 2026-11-25T17:12:23.880Z
   sequenceNumber: 41
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: &a15
+      priority: critical
+      status: delivered
+      documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    source_reference: &a16
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a17
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. With since, the delta''s lists page with the rest, the changes unstaged since included. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: *a15
+    source_reference: *a16
+    metadata: *a17
+  timestamp: 2026-11-25T17:20:45.228Z
+  sequenceNumber: 45

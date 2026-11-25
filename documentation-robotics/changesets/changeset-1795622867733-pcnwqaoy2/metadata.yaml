@@ -2,7 +2,7 @@ id: changeset-1795622867733-pcnwqaoy2
 name: cli09-compact-changeset-reads
 description: 'CLI 0.9.0 tranche "Compact changeset reads" (#1250 #1257 #1258 #1281 #1283 #1284 #1294 #1299 #1334 #1373 #1390 #1395): changeset reads are compact by default and page. One approach everywhere: a compact default, layer and type filters, limit/offset paging with true totals and the exact next call (core/paging.ts). changeset_list lists staged changesets by default and counts the rest; changeset_show is one line per change, filtered by layer, type and operation, and paged; changeset_impact lists ids per layer by default; changeset_unstage returns counts and change lines; changeset_brief gains summary/byLayer/reach/changesByType/neighborFiles sections, a types filter, incoming staged links and unchanged elements for ids, drift named once and paged with the answer, and pages that stay near targetBytes even with limit; model_search excludes layers and types, searches descriptions and attributes, ranks name hits first and pages; model_show takes ids.'
 created: 2026-11-25T16:07:47.770Z
-modified: 2026-11-25T17:12:36.160Z
+modified: 2026-11-25T17:20:45.306Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
@@ -10,9 +10,9 @@ origin:
 purpose: plan
 stats:
   additions: 21
-  modifications: 7
+  modifications: 6
   deletions: 0
-lastSequence: 43
+lastSequence: 45
 unstaged:
   - sequence: 16
     removedAt: 23
@@ -250,3 +250,79 @@ unstaged:
           version: 1
       timestamp: 2026-11-25T17:04:27.735Z
     rewritten: true
+  - sequence: 1
+    removedAt: 44
+    change:
+      type: update
+      elementId: product.feature.changeset-brief
+      layerName: product
+      before:
+        id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+        path: product.feature.changeset-brief
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Changeset brief
+        description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+        attributes: &a1
+          priority: critical
+          status: delivered
+          documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+        source_reference: &a2
+          provenance: manual
+          locations:
+            - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+        metadata: &a3
+          created_at: 2026-11-09T21:54:57.359Z
+          updated_at: 2026-11-09T21:54:57.359Z
+          version: 1
+      after:
+        id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+        path: product.feature.changeset-brief
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Changeset brief
+        description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them). layers, types and ids narrow the element sections; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged, with their connections as the plan leaves them. The drift is named once (the changeset section keeps a one-line state when drift is asked for) and its base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+        attributes: *a1
+        source_reference: *a2
+        metadata: *a3
+      timestamp: 2026-11-25T16:08:02.697Z
+  - sequence: 29
+    removedAt: 44
+    change:
+      type: update
+      elementId: product.feature.changeset-brief
+      layerName: product
+      before:
+        id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+        path: product.feature.changeset-brief
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Changeset brief
+        description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them). layers, types and ids narrow the element sections; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged, with their connections as the plan leaves them. The drift is named once (the changeset section keeps a one-line state when drift is asked for) and its base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+        attributes: &a4
+          priority: critical
+          status: delivered
+          documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+        source_reference: &a5
+          provenance: manual
+          locations:
+            - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+        metadata: &a6
+          created_at: 2026-11-09T21:54:57.359Z
+          updated_at: 2026-11-09T21:54:57.359Z
+          version: 1
+      after:
+        id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+        path: product.feature.changeset-brief
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Changeset brief
+        description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+        attributes: *a4
+        source_reference: *a5
+        metadata: *a6
+      timestamp: 2026-11-25T17:04:18.317Z
