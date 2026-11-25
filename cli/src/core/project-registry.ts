@@ -417,6 +417,8 @@ export class ProjectRegistry {
   readonly farm: FarmLocation;
   private manifest: FarmManifest;
   private readonly repositories = new Map<string, Repository>();
+  /** Projects whose folder git said is no repository, and which still has no `.git`: not asked again. */
+  private readonly notRepositories = new Set<string>();
   private readonly checkoutCache = new Map<string, CheckoutCache>();
   private readonly removedAnnounced = new Map<string, Set<string>>();
   private readonly listeners = new Set<CheckoutRemovedListener>();
@@ -462,6 +464,7 @@ export class ProjectRegistry {
     this.manifest = await loadFarm(this.farm, { create: false });
     this.manifestText = text;
     this.repositories.clear();
+    this.notRepositories.clear();
   }
 
   /** Listen for `checkout-removed`. Returns the call that stops listening. */
@@ -481,16 +484,27 @@ export class ProjectRegistry {
   }
 
   /**
-   * The repository of a project, from git; null when its folder is not a git working tree. Only a
-   * repository found is cached: a null is asked again next time, so a repository cloned again, a
-   * `git init` after registering or one failed git call doesn't stick for the life of the process.
+   * The repository of a project, from git; null when its folder is not a git working tree. A
+   * repository found is cached. "Not a repository" is cached only while the folder exists with no
+   * `.git` in it, so a folder that stays a plain folder costs no git call per listing, while a
+   * `git init` or a clone there, or a repository whose git call failed once, is asked again.
    */
   async repositoryOf(project: FarmProject): Promise<Repository | null> {
     const key = project.name;
     const cached = this.repositories.get(key);
     if (cached) return cached;
-    const repository = await resolveRepository(this.repositoryPath(project));
-    if (repository) this.repositories.set(key, repository);
+    const folder = this.repositoryPath(project);
+    const plainFolder = () => existsSync(folder) && !existsSync(path.join(folder, ".git"));
+    if (this.notRepositories.has(key) && plainFolder()) return null;
+    const repository = await resolveRepository(folder);
+    if (repository) {
+      this.repositories.set(key, repository);
+      this.notRepositories.delete(key);
+    } else if (plainFolder()) {
+      this.notRepositories.add(key);
+    } else {
+      this.notRepositories.delete(key);
+    }
     return repository;
   }
 

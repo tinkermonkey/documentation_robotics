@@ -150,13 +150,30 @@ export interface RunningCodeWatch {
   check: () => Promise<RunningCodeDrift | null>;
 }
 
-/** Records what is installed now as this process's baseline; `check` compares later reads with it. */
+let startupBaseline: Promise<InstalledCli | null> | undefined;
+
+/**
+ * What was installed when this process first loaded this module (read then, once): the baseline
+ * the write guard and project_status's server section both compare with, so they always agree.
+ */
+export function runningCodeBaseline(): Promise<InstalledCli | null> {
+  startupBaseline ??= readInstalledCli().catch(() => null);
+  return startupBaseline;
+}
+
+// Read as the process starts, before anything could be installed over it.
+void runningCodeBaseline();
+
+/**
+ * This process's baseline (`runningCodeBaseline`, or `read` once, in tests); `check` compares later
+ * reads with it.
+ */
 export async function watchRunningCode(
   options: { read?: () => Promise<InstalledCli | null>; running?: string } = {}
 ): Promise<RunningCodeWatch> {
   const read = options.read ?? (() => readInstalledCli());
   const running = options.running ?? getCliVersion();
-  const baseline = await read();
+  const baseline = options.read ? await options.read() : await runningCodeBaseline();
   const driftAtStart = await runningCodeDrift({ installed: baseline, running });
   return { baseline, driftAtStart, check: async () => installedChangedSince(baseline, await read(), running) };
 }

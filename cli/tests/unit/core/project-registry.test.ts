@@ -399,6 +399,8 @@ describe("resolving checkouts", () => {
     await rm(path.join(dir, ".git"), { recursive: true, force: true });
     await registry.reload();
     expect((await registry.listProject("later-repo"))?.checkouts[0]).toMatchObject({ branch: null });
+    // A plain folder is remembered as one while it has no .git: later listings ask git nothing.
+    expect((registry as unknown as { notRepositories: Set<string> }).notRepositories.has("later-repo")).toBe(true);
     await createRepo(dir);
     expect((await registry.listProject("later-repo"))?.checkouts[0]).toMatchObject({ branch: "main" });
   });

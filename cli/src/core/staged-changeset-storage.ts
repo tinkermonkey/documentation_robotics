@@ -95,8 +95,9 @@ const STATUS_LINE = /^status:[ \t]*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s#'"][^\s#]*))
 /**
  * The `status` of a changeset's metadata.yaml text, as loading it reads it: a top-level `status:`
  * line is read directly; with no single such line (an unusual layout) the whole file is parsed.
- * Metadata without a status is `staged`, as Changeset.fromJSON takes it; null only when the text
- * is not YAML.
+ * Metadata without a status is `staged`, as Changeset.fromJSON takes it. Null, a changeset not
+ * counted, where load() skips it too: text that is not YAML, or not a mapping (an empty file, say,
+ * read mid-write).
  */
 export function readMetadataStatus(text: string): string | null {
   const matches = [...text.matchAll(STATUS_LINE)];
@@ -105,8 +106,10 @@ export function readMetadataStatus(text: string): string | null {
     return double ?? single ?? plain;
   }
   try {
-    const parsed = yaml.parse(text) as { status?: unknown } | null;
-    return typeof parsed?.status === "string" && parsed.status ? parsed.status : "staged";
+    const parsed = yaml.parse(text) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const status = (parsed as { status?: unknown }).status;
+    return typeof status === "string" && status ? status : "staged";
   } catch {
     return null;
   }
@@ -280,6 +283,10 @@ export class StagedChangesetStorage {
       // Load metadata
       const metadataContent = await readFile(metadataPath, "utf-8");
       const metadata = yaml.parse(metadataContent);
+      // An empty file (one read mid-write, say) is no changeset yet: skipped, as listStatuses skips it.
+      if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        throw new Error("metadata.yaml is empty or not a mapping");
+      }
 
       // Load changes
       const changesContent = await readFile(changesPath, "utf-8");

@@ -328,6 +328,22 @@ describe("project_status", () => {
       expect(asStarted.server).toMatchObject({ status: "current", version: getCliVersion() });
     });
 
+    it("compares with what was installed when the process started, as the write guard does", async () => {
+      await initModel(rootPath);
+      const at = (version: string) => async () => ({ version, spec: getCliBundledSpecVersion(), modifiedAt: 1_000 });
+
+      // A checkout bumped without a rebuild: drift there at start is a rebuild, not a restart.
+      const bumped = await projectStatus({ rootPath }, { installedCli: at("99.2.0"), runningCodeBaseline: at("99.2.0") });
+      expect(bumped.server).toMatchObject({ status: "current", version: getCliVersion() });
+      expect((bumped.server as any).note).toContain(`This build of the dr CLI is ${getCliVersion()}, but its package.json said 99.2.0`);
+      expect(bumped.nextStep.summary).not.toContain("Restart the DR process");
+
+      // Installed over after the start: stale, and the restart.
+      const upgraded = await projectStatus({ rootPath }, { installedCli: at("99.3.0"), runningCodeBaseline: at("99.2.0") });
+      expect(upgraded.server).toMatchObject({ status: "stale", installed: { version: "99.3.0" } });
+      expect(upgraded.nextStep.summary).toContain("Restart the DR process");
+    });
+
     it("says so when the installed CLI can't be read, and reports this server's version", async () => {
       await initModel(rootPath);
 

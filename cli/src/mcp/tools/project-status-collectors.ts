@@ -29,7 +29,9 @@ import {
   PACKAGE_ROOT,
   readInstalledCli,
   RESTART_DR_PROCESS,
+  installedChangedSince,
   restartAdvice,
+  runningCodeBaseline,
   runningCodeDrift,
   type InstalledCli,
 } from "../../utils/running-code.js";
@@ -62,6 +64,8 @@ export interface StatusContext {
   tier1?: Tier1StatusOptions;
   /** The CLI on disk where this process was loaded from (default: its package.json, read now). */
   installedCli?: () => Promise<InstalledCli | null>;
+  /** What was installed when this process started (default: runningCodeBaseline); tests pass their own. */
+  runningCodeBaseline?: () => Promise<InstalledCli | null>;
   /**
    * Which staged changesets get their base drift described in full (what changed in the base and
    * what overlaps). Describing costs a pass over the model per changeset, and the status opens
@@ -250,6 +254,8 @@ export type ServerSection = ServerProcessInfo &
         status: "current";
         version: string;
         comparedWith: string;
+        /** When the build differs from the package.json it was loaded with (bumped without a rebuild): what to do. */
+        note?: string;
       }
     | {
         /**
@@ -300,8 +306,27 @@ export async function collectServer(ctx: StatusContext): Promise<ServerSection> 
       reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}`,
     };
   }
-  const drift = await runningCodeDrift({ installed, running: version, startedAt });
-  if (!drift) return { status: "current", version, comparedWith, ...processInfo };
+  // Against what was installed when this process started, as the write guard compares (#1427):
+  // drift already there then (a checkout bumped without a rebuild) is a rebuild to do, not a
+  // restart, and the guard lets writes through.
+  const baseline = await (ctx.runningCodeBaseline ?? runningCodeBaseline)();
+  const drift = installedChangedSince(baseline, installed, version);
+  if (!drift) {
+    const atStart = await runningCodeDrift({ installed: baseline, running: version, startedAt });
+    return {
+      status: "current",
+      version,
+      comparedWith,
+      ...processInfo,
+      ...(atStart?.reason === "version"
+        ? {
+            note:
+              `This build of the dr CLI is ${version}, but its package.json said ${atStart.installed.version} when this ` +
+              "process started: rebuild the CLI (a restart runs the same build).",
+          }
+        : {}),
+    };
+  }
   return {
     status: "stale",
     version,

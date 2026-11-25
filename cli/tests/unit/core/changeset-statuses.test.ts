@@ -47,6 +47,17 @@ describe("readMetadataStatus", () => {
     expect(readMetadataStatus("status: staged\nstatus: committed\n")).toBeNull();
   });
 
+  it("skips an empty metadata.yaml (one read mid-write), as load() does", async () => {
+    expect(readMetadataStatus("")).toBeNull();
+    expect(readMetadataStatus("\n  \n")).toBeNull();
+    expect(readMetadataStatus("- a list\n")).toBeNull();
+    const root = await scratch();
+    await changeset(root, "half", "");
+    const storage = new StagedChangesetStorage(root);
+    expect(await storage.listStatuses()).toEqual([{ id: "half", status: null }]);
+    await expect(storage.load("half")).rejects.toThrow("metadata.yaml is empty or not a mapping");
+  });
+
   it("reads metadata with no status as staged, as loading the changeset does", () => {
     expect(readMetadataStatus("description: |\n  status: committed\nname: x\n")).toBe("staged");
     expect(readMetadataStatus("id: a\nname: a\n")).toBe("staged");

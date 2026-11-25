@@ -122,6 +122,7 @@ interface StatusOptions {
   git?: GitRunner;
   tier1?: StatusContext["tier1"];
   installedCli?: StatusContext["installedCli"];
+  runningCodeBaseline?: StatusContext["runningCodeBaseline"];
   /** How the farm and the server record are read (tests pass their own). */
   central?: Partial<CentralDeps>;
 }
@@ -164,6 +165,7 @@ async function statusContext(args: ProjectStatusArgs, options: StatusOptions): P
     git: options.git ?? runGit,
     ...(options.tier1 ? { tier1: options.tier1 } : {}),
     ...(options.installedCli ? { installedCli: options.installedCli } : {}),
+    ...(options.runningCodeBaseline ? { runningCodeBaseline: options.runningCodeBaseline } : {}),
     session,
     central,
   };
