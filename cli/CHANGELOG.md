@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
+  on a farm of its own (the user farm is refused): its record, token and log in `<dir>`, no viewer
+  sweep, `--port` exact. `--token-file <path>`, taken only with `--state-dir`, gives it the token
+  the suite chose, from a file the user owns that no one else can read (mode 600), so every call
+  stays authenticated. `--no-sweep` skips the start-up sweep. `--foreground --json` prints one
+  ready line on stdout (pid, port, url, farm, and each project with its checkout keys) and sends
+  the log to stderr. `--status` and `--stop` take `--state-dir` too. `dr visualize --no-auth` and
+  `--token` stay refused, and now say where to go instead.
+- **project_status** names the dr server process that answered (`server.pid`, `server.startedAt`),
+  so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
+  instructions say to call project_status again after a reconnect.
+- **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
+
 ### Changed
 
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
@@ -105,24 +120,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `codebase_extract`) and the background run's own check call an index that records 0 nodes stale
   ("it holds no code"), and one recorded as `joined`, so it is re-indexed instead of skipped.
   `codebase_index`'s `next` for a stale index now gives the reason.
-
-### Added
-
-- **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
-  on a farm of its own (the user farm is refused): its record, token and log in `<dir>`, no viewer
-  sweep, `--port` exact. `--token-file <path>`, taken only with `--state-dir`, gives it the token
-  the suite chose, from a file the user owns that no one else can read (mode 600), so every call
-  stays authenticated. `--no-sweep` skips the start-up sweep. `--foreground --json` prints one
-  ready line on stdout (pid, port, url, farm, and each project with its checkout keys) and sends
-  the log to stderr. `--status` and `--stop` take `--state-dir` too. `dr visualize --no-auth` and
-  `--token` stay refused, and now say where to go instead.
-- **project_status** names the dr server process that answered (`server.pid`, `server.startedAt`),
-  so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
-  instructions say to call project_status again after a reconnect.
-- **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
-
-### Fixed
-
 - **The central viewer no longer stalls on farm listings** (#1436). Listing projects counted each
   checkout's staged changesets by YAML-parsing every changeset in the farm, `changes.yaml` and
   all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
