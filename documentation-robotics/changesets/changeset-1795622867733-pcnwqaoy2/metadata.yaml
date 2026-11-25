@@ -2,17 +2,17 @@ id: changeset-1795622867733-pcnwqaoy2
 name: cli09-compact-changeset-reads
 description: 'CLI 0.9.0 tranche "Compact changeset reads" (#1250 #1257 #1258 #1281 #1283 #1284 #1294 #1299 #1334 #1373 #1390 #1395): changeset reads are compact by default and page. One approach everywhere: a compact default, layer and type filters, limit/offset paging with true totals and the exact next call (core/paging.ts). changeset_list lists staged changesets by default and counts the rest; changeset_show is one line per change, filtered by layer, type and operation, and paged; changeset_impact lists ids per layer by default; changeset_unstage returns counts and change lines; changeset_brief gains summary/byLayer/reach/changesByType/neighborFiles sections, a types filter, incoming staged links and unchanged elements for ids, drift named once and paged with the answer, and pages that stay near targetBytes even with limit; model_search excludes layers and types, searches descriptions and attributes, ranks name hits first and pages; model_show takes ids.'
 created: 2026-11-25T16:07:47.770Z
-modified: 2026-11-25T17:04:27.745Z
+modified: 2026-11-25T17:12:36.160Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 23
+  additions: 21
   modifications: 7
   deletions: 0
-lastSequence: 38
+lastSequence: 43
 unstaged:
   - sequence: 16
     removedAt: 23
@@ -157,4 +157,96 @@ unstaged:
             - file: cli/src/core/element-filter.ts
               symbol: elementFilter
       timestamp: 2026-11-25T16:32:16.790Z
+    rewritten: true
+  - sequence: 9
+    removedAt: 39
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-show-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.next-page-call
+        target: application.applicationservice.changeset-show-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:23.372Z
+  - sequence: 10
+    removedAt: 39
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-list-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.next-page-call
+        target: application.applicationservice.changeset-list-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:23.372Z
+  - sequence: 11
+    removedAt: 39
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.model-search-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.next-page-call
+        target: application.applicationservice.model-search-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:23.372Z
+  - sequence: 12
+    removedAt: 39
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.model-show-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.next-page-call
+        target: application.applicationservice.model-show-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:23.372Z
+  - sequence: 33
+    removedAt: 42
+    change:
+      type: add
+      elementId: application.applicationfunction.graph-connections
+      layerName: application
+      after:
+        id: 54396ec3-e007-48c3-9ad4-6f78e6e84520
+        path: application.applicationfunction.graph-connections
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: graphConnections
+        description: "An element's connections in a changeset's projection as a card lists them: every relationship at either end, staged deletes included, each with its standing. The one place model_show's cards and changeset_brief's unchanged cards read an element's links."
+        metadata:
+          created_at: 2026-11-25T17:04:27.721Z
+          updated_at: 2026-11-25T17:04:27.721Z
+          version: 1
+      timestamp: 2026-11-25T17:04:27.735Z
+    rewritten: true
+  - sequence: 32
+    removedAt: 43
+    change:
+      type: add
+      elementId: application.applicationfunction.unstaged-report
+      layerName: application
+      after:
+        id: baa107dc-b7b7-4b82-9b08-67edb3308dce
+        path: application.applicationfunction.unstaged-report
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: unstagedReport
+        description: 'What changeset_unstage says it removed: the count, the count per operation and one line per change for the first 25, the rest counted, or each change whole with detail "full". With unstagedNotListedNote, the exact changeset_brief call (the delta since the revision before the write) that lists the changes not shown.'
+        metadata:
+          created_at: 2026-11-25T17:04:27.721Z
+          updated_at: 2026-11-25T17:04:27.721Z
+          version: 1
+      timestamp: 2026-11-25T17:04:27.735Z
     rewritten: true

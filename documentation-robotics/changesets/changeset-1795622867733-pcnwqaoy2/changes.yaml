@@ -267,50 +267,6 @@
   timestamp: 2026-11-25T16:32:16.790Z
   sequenceNumber: 8
 - type: relationship-add
-  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-show-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.next-page-call
-    target: application.applicationservice.changeset-show-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 9
-- type: relationship-add
-  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-list-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.next-page-call
-    target: application.applicationservice.changeset-list-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 10
-- type: relationship-add
-  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.model-search-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.next-page-call
-    target: application.applicationservice.model-search-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 11
-- type: relationship-add
-  elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.model-show-handler
-  layerName: application
-  after:
-    source: application.applicationfunction.next-page-call
-    target: application.applicationservice.model-show-handler
-    predicate: realizes
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:23.372Z
-  sequenceNumber: 12
-- type: relationship-add
   elementId: application.applicationfunction.next-page-call::realizes::application.applicationservice.changeset-impact-handler
   layerName: application
   after:
@@ -481,7 +437,12 @@
       created_at: 2026-11-25T17:04:27.721Z
       updated_at: 2026-11-25T17:04:27.721Z
       version: 1
-  timestamp: 2026-11-25T17:04:27.735Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/unstage-report.ts
+          symbol: unstagedReport
+  timestamp: 2026-11-25T17:12:36.154Z
   sequenceNumber: 32
 - type: add
   elementId: application.applicationfunction.graph-connections
@@ -498,7 +459,12 @@
       created_at: 2026-11-25T17:04:27.721Z
       updated_at: 2026-11-25T17:04:27.721Z
       version: 1
-  timestamp: 2026-11-25T17:04:27.735Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/element-card.ts
+          symbol: graphConnections
+  timestamp: 2026-11-25T17:12:36.154Z
   sequenceNumber: 33
 - type: relationship-add
   elementId: application.applicationfunction.unstaged-report::realizes::application.applicationservice.changeset-unstage-handler
@@ -555,3 +521,25 @@
     category: structural
   timestamp: 2026-11-25T17:04:27.735Z
   sequenceNumber: 38
+- type: relationship-add
+  elementId: application.applicationfunction.next-page-hint::depends-on::application.applicationfunction.next-page-call
+  layerName: application
+  after:
+    source: application.applicationfunction.next-page-hint
+    target: application.applicationfunction.next-page-call
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:23.880Z
+  sequenceNumber: 40
+- type: relationship-add
+  elementId: application.applicationfunction.brief-sections::depends-on::application.applicationfunction.next-page-call
+  layerName: application
+  after:
+    source: application.applicationfunction.brief-sections
+    target: application.applicationfunction.next-page-call
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:23.880Z
+  sequenceNumber: 41
