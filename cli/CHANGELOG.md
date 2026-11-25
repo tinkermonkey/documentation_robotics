@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ruleWarnings` ("To keep rejecting these N symbol(s), add overrideTier0: true to rule '<name>' in
   documentation-robotics/extraction-rules.yaml"). Add the key to
   that rule and commit the file, or narrow the rule's `where` if it was never meant to cover them.
+
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.
@@ -154,6 +155,11 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   failure to record it fails the landing. A marker naming a committed changeset in a fresh clone
   still reads as no active changeset (#1218). Activating a landed or discarded changeset is refused:
   it used to mark it staged again, reopening it.
+- **A rolled-back landing leaves nothing behind:** when a landing fails and rolls back, the files
+  and folders it created (a type's first file, a layer's first folder) are removed,
+  `relationships.yaml` is put back as it was (it was not backed up), and a changeset the landing had
+  already marked committed is staged again. Before, the model kept the created files and the
+  landing's relationship rows, and the changeset read as landed though its changes were not.
 - **Still writing? (#1437):** the landing summary (`changeset_commit_preview`, with `stillWriting`,
   and `changeset_commit`'s dialog), the `dr changeset commit` prompt and the viewer's changeset read
   say when something writes into the changeset now, or another process staged into it in the last

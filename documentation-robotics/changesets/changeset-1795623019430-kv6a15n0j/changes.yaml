@@ -1483,3 +1483,35 @@
     metadata: *a46
   timestamp: 2026-11-25T17:21:49.038Z
   sequenceNumber: 95
+- type: update
+  elementId: application.applicationfunction.staging-area-manager-commit
+  layerName: application
+  before:
+    id: 8e7efe93-6aca-4142-8784-7e33f1a3750e
+    path: application.applicationfunction.staging-area-manager-commit
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager commit
+    description: Commit a changeset to the base model with atomic guarantee, holding the changeset's lock from its read to its status save so no write staged meanwhile is lost. When it lands the active changeset it writes the landed note and clears the marker before the status save (a failed note write fails the landing; a rollback undoes both).
+    source_reference: &a47
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.commit
+    metadata: &a48
+      created_at: 2026-11-20T15:05:20.101Z
+      updated_at: 2026-11-20T15:05:20.101Z
+      version: 1
+  after:
+    id: 8e7efe93-6aca-4142-8784-7e33f1a3750e
+    path: application.applicationfunction.staging-area-manager-commit
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager commit
+    description: Commit a changeset to the base model with atomic guarantee, holding the changeset's lock from its read to its status save so no write staged meanwhile is lost. When it lands the active changeset it writes the landed note and clears the marker before the status save (a failed note write fails the landing). A rollback puts the model back as it was, removing files and folders the landing created and restoring relationships.yaml, and undoes the status, the note and the marker.
+    source_reference: *a47
+    metadata: *a48
+  timestamp: 2026-11-25T17:57:27.710Z
+  sequenceNumber: 103
