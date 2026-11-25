@@ -18,6 +18,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Skills:** the application layer skill writes interfaces with `interfaceType` and the new
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
+- **Write results, summary first (#1295):** `model_add`, `relationship_add` and `model_update`
+  lists answer with `total`, `counts` and `attentionTotal`, then `causes`: every item that needs
+  attention grouped by what is wrong, each with its true count. One missing target named by 123
+  relationships is one cause of 123, not 123 entries. Items are listed by position up to `limit`
+  across the causes (one of every cause first), and `notListed` counts the rest. This replaces
+  `attention` and `attentionNotListed` in these tools; `codebase_extract`'s decide and reject lists
+  keep them.
+- **Id notes once (#1302, #1415):** a list's id-derivation notes (dots and slashes as word breaks,
+  a digit prefix, a shortened id) are no longer attention items. `idNotes` says each rule once with
+  a count and five sample ids; `verbose: true` keeps the note on each item.
+- **A hand-set source file is manual (#1260):** `model_update` with a `sourceFile` the element
+  doesn't reference and no `sourceProvenance` gives it `manual`, where it kept `extracted`. The same
+  file keeps the element's provenance. `sourceFile`'s description says it replaces the locations.
+
+### Added
+
+- **Retry a list (#1296):** an element or relationship sent again as it is there comes back
+  `unchanged`, counted and never listed, so a list can be sent again after a partial failure. One
+  sent with other content is refused, naming what differs. A repeat within one list is a
+  `duplicate`. The single form of `model_add` answers `unchanged` too.
+- **`relationship_delete` takes a list (#1372):** `relationships: [{source, target, predicate?}]`,
+  or a `file`. The removals stage in one write, adds this changeset made are unstaged in one more,
+  and the result is counts with failures grouped by cause.
+- **`model_delete` takes a list (#1426):** `ids: [...]`, or a `file`, with the call's `cascade`,
+  `force` and `dryRun`. Ids in the list never block one another as dependents.
+- **Insert a workflow step (#1396):** `model_add`'s single form takes `after` and/or `before` for a
+  `product.workflowstep`. It gets its place's sequence, joins the workflow, takes over the `flows-to`
+  hand-offs it splits, and the later steps are renumbered where they collide.
+- **One source location at a time (#1260):** `model_update` takes `addSourceLocation` and
+  `removeSourceLocation` (`{file, symbol?}`), keeping the element's other locations and provenance.
+- **Allowed predicates in a refusal (#1354):** a relationship the catalog refuses names, first, the
+  predicates it allows between the two types in both directions.
+
+### Fixed
+
+- **A landing never loses a write (#1437):** landing a changeset holds its lock from the read it
+  lands to the save that marks it committed. A write staging into it either lands with it or is
+  refused, naming the changeset: at once while it lands, and as landed after. Writes were saved over
+  before, and reported success.
+- **No fall-through after a landing (#1437):** after the active changeset lands (by
+  `changeset_commit`, `dr changeset commit` or the viewer's Apply), writes are refused, naming it,
+  until a changeset is created or activated, or `changeset_deactivate` (`dr changeset deactivate`)
+  says writes go to the base model. They used to go to the base model silently. A marker naming a
+  committed changeset in a fresh clone still reads as no active changeset (#1218).
+  `changeset_commit_preview` warns (`stillWriting`) when changes were staged into the changeset
+  moments ago.
+- **An already-landed changeset (#1441):** `changeset_commit_preview` (and `changeset_commit`) on a
+  committed changeset answers `already-landed`, with when it landed, its files and whether git has
+  them, instead of an error that read as if the wrong changeset was named.
 
 ## [0.8.0] - 2026-11-24
 
