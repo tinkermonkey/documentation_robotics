@@ -434,13 +434,14 @@ computed over the whole lists before anything is shortened.
 ### What `codebase_extract` stages
 
 The extraction cascade, run on the code the analyzer indexed (`cli/src/analyzers/cards/extract.ts`
-reads it, `cli/src/analyzers/extraction-plan.ts` plans the changes). A run or preview whose index
-is missing or stale (an index of 0 nodes included), or whose index run is in flight, indexes first:
+reads it, `cli/src/analyzers/extraction-plan.ts` plans the changes). A run whose index is missing
+or stale (an index of 0 nodes included), or whose index run is in flight, indexes first:
 it starts or joins the run and waits for it, for at most half its budget and never past 48 s, and
 `index.indexedFirst` says why, the job and the seconds it took. A run that outlasts that wait is
 left running, and the error says how to wait for it (`codebase_index` with `status: true, wait: 30`).
-A page, view, list or reject-only call reads the last run's record and never indexes; with no
-usable index it points at `codebase_index`, as does `autoIndex: false`. Freshness is the shared
+A preview never indexes, since it changes nothing (an index run writes `.dr/` and may write
+`.cbmignore`); nor does a page, view, list or reject-only call, which reads the last run's record.
+With no usable index they point at `codebase_index`, as does `autoIndex: false`. Freshness is the shared
 rule above. It runs inline, in a few seconds (this
 repository: 4,769 symbols, 25,000 mapped edges, about 8 s), one run per project at a time. A run
 that passes 100 s stops before staging anything and says to narrow it with `layers` or `since`;

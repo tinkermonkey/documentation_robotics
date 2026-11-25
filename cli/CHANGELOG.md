@@ -19,12 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
 - **`codebase_extract` indexes first (#1347):** when the code is not indexed, the index is stale
-  (or holds no code), or an index run is in flight, a run or preview starts or joins the run and
-  waits for it within its own time budget (at most half of it, and never past 48 seconds), then
-  extracts. `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts
+  (or holds no code), or an index run is in flight, a run starts or joins the index run and waits
+  for it within its own time budget (at most half of it, and never past 48 seconds), then extracts. `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts
   the wait is left running, and the error says how to wait for it (`codebase_index` with
-  `status: true, wait: 30`) before calling again. A page, view, list or reject-only call never
-  indexes. The index is judged once per call. The new `autoIndex: false` keeps the old refusal.
+  `status: true, wait: 30`) before calling again. A preview never indexes (it changes nothing),
+  nor does a page, view, list or reject-only call. The index is judged once per call. The new `autoIndex: false` keeps the old refusal.
 - **`.cbmignore` stays out of the working tree's git view (#1300):** with no `.cbmignore` at the
   codebase root, `codebase_index` and `dr analyzer index` write DR's own and hide it from git
   through the repository's local exclude (`.git/info/exclude`, in no commit, shared by every

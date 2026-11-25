@@ -8,7 +8,7 @@
     type: applicationfunction
     layer_id: application
     name: indexFirst
-    description: "Before codebase_extract judges the index (#1347), for a run or preview only (not a page, view, list or reject-only call): waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks until the caller's deadline (indexFirstDeadline: half the call's time, at most 48 s). Returns the index as judged at the end (IndexAssessment, so requireFreshIndex doesn't judge it again) and what it did (IndexedFirst); throws a CLIError with the job's error when the run fails, and one that says how to wait when the run outlasts the wait. Skipped with autoIndex: false."
+    description: "Before codebase_extract judges the index (#1347), for a run only: never a preview (it changes nothing, and an index run writes .dr/ and may write .cbmignore), a page, view, list or reject-only call, nor with autoIndex: false (codebase_extract's indexesFirst decides it in one place). It waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks until the caller's deadline (indexFirstDeadline: half the call's time, at most 48 s). Returns the index as judged at the end (IndexAssessment, so requireFreshIndex doesn't judge it again) and what it did (IndexedFirst); throws a CLIError with the job's error when the run fails, and one that says how to wait when the run outlasts the wait."
     attributes:
       documentation: cli/src/mcp/tools/codebase-index.ts. Reuses the handler's own start path (analyzer selection, the .cbmignore check, the worktree snapshot, startIndexJob) so a run it starts is the same run codebase_index would start.
     metadata:
@@ -20,7 +20,7 @@
       locations:
         - file: cli/src/mcp/tools/codebase-index.ts
           symbol: indexFirst
-  timestamp: 2026-11-25T17:00:02.383Z
+  timestamp: 2026-11-25T17:08:28.652Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.exclude-from-git

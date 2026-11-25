@@ -214,12 +214,15 @@ describe("codebase_extract indexes first (#1347)", () => {
 });
 
 describe("codebase_extract calls that don't extract never index first (review)", () => {
-  it("a page, view, list or reject-only call starts no run and waits for none: it is refused as before", async () => {
+  it("a preview, page, view, list or reject-only call starts no run and waits for none: it is refused as before", async () => {
     const h = harness();
     const calls = [
+      { preview: true as const },
+      { preview: true as const, since: "main" },
       { page: 2 },
       { view: {} },
       { list: "groups" as const },
+      { list: "notElements" as const },
       { reject: [{ card: "OwnerController", reason: "not code" }] },
       { clearRejected: true as const },
     ];
@@ -228,6 +231,18 @@ describe("codebase_extract calls that don't extract never index first (review)",
       expect(error.error).toBe("The code is not indexed");
     }
     expect(h.spawns).toHaveLength(0);
+  });
+
+  it("a preview on a stale index starts no run, since a run writes .dr/ and may write .cbmignore", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    h.head.value = NEW_HEAD;
+    const error = fail(await createCodebaseExtractHandler(h.deps)({ rootPath, preview: true }));
+    expect(error.error).toContain("The index is stale");
+    expect(error.suggestions[0]).toContain("codebase_index");
+    expect(h.spawns).toHaveLength(0);
+    expect(await Bun.file(join(rootPath, ".cbmignore")).exists()).toBe(false);
   });
 
   it("uncommitted edits alone start no run: the index is used, with a warning", async () => {

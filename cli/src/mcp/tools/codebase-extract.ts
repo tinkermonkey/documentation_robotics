@@ -307,8 +307,8 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe(
-      "Default true: when the code is not indexed, the index is stale or an index run is in flight, index first (within this call's time budget) " +
-        "and say so in index.indexedFirst. false refuses instead, pointing at codebase_index."
+      "Default true: when the code is not indexed, the index is stale or an index run is in flight, a run indexes first (within this call's time budget) " +
+        "and says so in index.indexedFirst. false refuses instead, pointing at codebase_index. A preview, page, view, list or reject-only call never indexes."
     ),
   acceptTier1: z
     .literal(true)
@@ -2136,11 +2136,14 @@ function rangeStep(r: RangeReport, since: string): string {
 }
 
 /**
- * Whether a call extracts (a run or a preview), and so indexes first. A page, view or list reads the
- * last run's record, and a call that only rejects or clears decisions records them: none reads the
- * index. A batch file may hold decide items, so a call with one counts as a run.
+ * Whether a call indexes first (#1347), the one place that decides it: only a run does, unless
+ * autoIndex is false. A preview never does, since it changes nothing and an index run writes .dr/
+ * (and may write .cbmignore); a page, view or list reads the last run's record; a call that only
+ * rejects or clears decisions records them. Those are refused on a stale index, as before. A batch
+ * file may hold decide items, so a call with one counts as a run.
  */
-function extractsCode(args: CodebaseExtractArgs): boolean {
+function indexesFirst(args: CodebaseExtractArgs): boolean {
+  if (args.autoIndex === false || args.preview === true) return false;
   if ((args.page ?? 1) > 1 || args.view !== undefined || args.list !== undefined) return false;
   return !(!args.decide?.length && !args.file && (!!args.reject?.length || args.clearRejected !== undefined));
 }
@@ -2161,16 +2164,15 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
 
-      // A call that extracts builds a missing or stale index first, within its budget (#1347); autoIndex: false refuses as before.
-      const indexing =
-        args.autoIndex === false || !extractsCode(args)
-          ? null
-          : await indexFirst({ projectRoot, codebaseRoot }, deps, {
-              tool: "codebase_extract",
-              deadline: indexFirstDeadline(startedAt, deadline),
-              uncommittedEdits: true,
-              signal: context?.signal,
-            });
+      // A run builds a missing or stale index first, within its budget (#1347); other calls refuse as before.
+      const indexing = indexesFirst(args)
+        ? await indexFirst({ projectRoot, codebaseRoot }, deps, {
+            tool: "codebase_extract",
+            deadline: indexFirstDeadline(startedAt, deadline),
+            uncommittedEdits: true,
+            signal: context?.signal,
+          })
+        : null;
       const { analyzer, freshness, index: indexJudgement } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract", {
         uncommittedEdits: true,
         ...(indexing ? { assessment: indexing.assessment, indexedFirst: indexing.indexedFirst } : {}),
@@ -4131,7 +4133,7 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "A run or page into an extraction changeset keeps that run's since and layers. " +
     "The changeset (default extract-<sha>) is created and made active when the run stages something, or when intent is given (the confirmed purpose, used as its description); " +
     "a run that only leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
-    "active before the first run. Indexes first when the code is not indexed or the index is stale (index.indexedFirst says why and how long it took; " +
+    "active before the first run. A run indexes first when the code is not indexed or the index is stale (index.indexedFirst says why and how long it took; " +
     "a run that outlasts this call's budget is left running and the error says how to wait; autoIndex: false refuses instead). Never writes the base model or commits. " +
     "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
