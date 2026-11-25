@@ -15,7 +15,12 @@
       created_at: 2026-11-25T16:08:10.392Z
       updated_at: 2026-11-25T16:08:10.392Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/changeset.ts
+          symbol: changesetShowCommand
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.changeset-for-command
@@ -32,7 +37,12 @@
       created_at: 2026-11-25T16:08:10.392Z
       updated_at: 2026-11-25T16:08:10.392Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/changeset.ts
+          symbol: changesetForCommand
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.description-lines
@@ -49,7 +59,12 @@
       created_at: 2026-11-25T16:08:10.392Z
       updated_at: 2026-11-25T16:08:10.392Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-description.ts
+          symbol: descriptionLines
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.description-excerpt
@@ -66,7 +81,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-description.ts
+          symbol: descriptionExcerpt
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.source-file-summary
@@ -83,7 +103,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: sourceFileSummary
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 4
 - type: add
   elementId: application.applicationfunction.collect-legacy-marker
@@ -100,7 +125,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: collectLegacyMarker
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 5
 - type: add
   elementId: application.applicationfunction.with-legacy-marker-note
@@ -117,7 +147,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status.ts
+          symbol: withLegacyMarkerNote
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 6
 - type: add
   elementId: application.applicationfunction.review-step
@@ -134,7 +169,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status.ts
+          symbol: reviewStep
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 7
 - type: add
   elementId: application.applicationfunction.drift-as-information
@@ -151,7 +191,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status.ts
+          symbol: driftAsInformation
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 8
 - type: add
   elementId: application.applicationfunction.base-integration-manager-apply-upgrade
@@ -168,7 +213,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/base-manager.ts
+          symbol: BaseIntegrationManager.applyUpgrade
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 9
 - type: add
   elementId: application.applicationfunction.claude-integration-manager-plugin-coverage
@@ -185,7 +235,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/claude-manager.ts
+          symbol: ClaudeIntegrationManager.pluginCoverage
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 10
 - type: add
   elementId: application.applicationfunction.integrations-report
@@ -202,7 +257,12 @@
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
       version: 1
-  timestamp: 2026-11-25T16:08:10.406Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-tools.ts
+          symbol: integrationsReport
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 11
 - type: relationship-add
   elementId: application.applicationservice.changeset-show-command::serves::application.applicationfunction.changeset-commands
@@ -589,7 +649,12 @@
       created_at: 2026-11-25T16:08:17.266Z
       updated_at: 2026-11-25T16:08:17.266Z
       version: 1
-  timestamp: 2026-11-25T16:08:17.278Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: SourceFileSummary
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 45
 - type: add
   elementId: data-model.objectschema.legacy-marker-state
@@ -608,7 +673,12 @@
       created_at: 2026-11-25T16:08:17.266Z
       updated_at: 2026-11-25T16:08:17.266Z
       version: 1
-  timestamp: 2026-11-25T16:08:17.278Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: LegacyMarkerState
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 46
 - type: add
   elementId: data-model.objectschema.plugin-coverage
@@ -627,7 +697,12 @@
       created_at: 2026-11-25T16:08:17.266Z
       updated_at: 2026-11-25T16:08:17.266Z
       version: 1
-  timestamp: 2026-11-25T16:08:17.278Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/integrations/claude-manager.ts
+          symbol: PluginCoverage
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 47
 - type: add
   elementId: data-model.objectschema.integration-report
@@ -646,7 +721,12 @@
       created_at: 2026-11-25T16:08:17.266Z
       updated_at: 2026-11-25T16:08:17.266Z
       version: 1
-  timestamp: 2026-11-25T16:08:17.278Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-tools.ts
+          symbol: IntegrationReport
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 48
 - type: relationship-add
   elementId: application.applicationfunction.source-file-summary::accesses::data-model.objectschema.source-file-summary
@@ -1240,7 +1320,12 @@
       created_at: 2026-11-25T16:29:36.404Z
       updated_at: 2026-11-25T16:29:36.404Z
       version: 1
-  timestamp: 2026-11-25T16:29:36.544Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-shared.ts
+          symbol: intentFields
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 73
 - type: add
   elementId: application.applicationfunction.intent-arg
@@ -1257,7 +1342,12 @@
       created_at: 2026-11-25T16:29:36.405Z
       updated_at: 2026-11-25T16:29:36.405Z
       version: 1
-  timestamp: 2026-11-25T16:29:36.544Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-shared.ts
+          symbol: intentArg
+  timestamp: 2026-11-25T16:36:02.108Z
   sequenceNumber: 74
 - type: relationship-add
   elementId: application.applicationfunction.intent-fields::realizes::application.applicationservice.changeset-create-handler
