@@ -150,7 +150,7 @@ describe("tools take changeset", () => {
   });
 
   it("changeset_show", async () => {
-    const shown = parse(await changesetShowHandler({ changeset: "plan-b", rootPath }));
+    const shown = parse(await changesetShowHandler({ changeset: "plan-b", rootPath, detail: "summary" }));
     expect(shown.name).toBe("plan-b");
     expect(shown.changes.map((c: any) => c.elementId)).toEqual([SERVICE, BILLING]);
     expect(errorText(await changesetShowHandler({ rootPath }))).toContain('"changeset" is required');

@@ -135,6 +135,26 @@ export function summarizeChange(change: Change | StagedChange, index: number): C
   return entry;
 }
 
+/**
+ * One change as one line, the compact form of changeset_show and changeset_unstage:
+ * `#12 add application.applicationservice.orders`, `#13 update api.operation.list (attributes.summary)`,
+ * `#14 relationship-add a --serves--> b`, with `[tier1 clef p=0.82/0.71]` when codebase_extract
+ * decided it. The sequence is left out when `sequence: false` (a change no longer in the changeset).
+ */
+export function changeLine(
+  change: Change | StagedChange | ChangeSummaryEntry,
+  index = 0,
+  options: { sequence?: boolean } = {}
+): string {
+  const entry = "operation" in change ? change : summarizeChange(change, index);
+  const what =
+    entry.source !== undefined
+      ? `${entry.source} --${entry.predicate}--> ${entry.target}`
+      : `${entry.elementId ?? "?"}${entry.changedFields?.length ? ` (${entry.changedFields.join(", ")})` : ""}`;
+  const head = options.sequence === false ? entry.operation : `#${entry.sequence} ${entry.operation}`;
+  return `${head} ${what}${entry.origin ? ` [${entry.origin}]` : ""}`;
+}
+
 export function summarizeChangeset(changes: ReadonlyArray<Change | StagedChange>): ChangesetSummary {
   const totals = {
     add: 0,

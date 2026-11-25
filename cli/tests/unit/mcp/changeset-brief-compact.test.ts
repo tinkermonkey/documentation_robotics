@@ -250,7 +250,24 @@ describe("changeset_brief compact (D2)", () => {
 
     const one = (await brief({ sections: ["changes"], ids: [SCHEMA, "api.operation.nope"] })).json;
     expect(one.changes.map((c: any) => c.id)).toEqual([SCHEMA]);
-    expect(one.more).toContain("Not changed by this changeset: api.operation.nope");
+    expect(one.more).toContain("Not in the model or the plan: api.operation.nope");
+
+    // An element named alone lists the staged relationships into it from changed elements the answer
+    // leaves out, which the full listing puts on their source (#1258).
+    const fn = (await brief({ sections: ["changes"], ids: [FUNCTION] })).json;
+    expect(fn.changes[0].connections).toEqual([`realizes → ${SERVICE}`, `realizes ← ${OPERATION}`]);
+    // An id the plan links to but does not change comes back as a card, as the plan leaves it (#1395).
+    const linked = (await brief({ sections: ["changes"], ids: [FUNCTION, GOAL] })).json;
+    expect(linked.changes.map((c: any) => c.id)).toEqual([FUNCTION]);
+    expect(linked.unchanged).toEqual([expect.objectContaining({ id: GOAL, status: "unchanged", connections: expect.any(Array) })]);
+    expect(linked.more).toContain("in unchanged as the plan leaves them");
+
+    // types narrows like layers, and with layers both apply (#1294).
+    const fnsOnly = (await brief({ sections: ["changes"], types: ["applicationfunction"] })).json;
+    expect(fnsOnly.changes.map((c: any) => c.id)).toEqual([FUNCTION]);
+    expect(fnsOnly.filter).toEqual({ types: ["applicationfunction"] });
+    const apiFns = (await brief({ sections: ["changes"], layers: ["api"], types: ["application.applicationfunction"] })).json;
+    expect(apiFns.changes).toEqual([]);
 
     // Without sections they narrow nothing, and the result says so.
     const unnarrowed = (await brief({ layers: ["api"] })).json;

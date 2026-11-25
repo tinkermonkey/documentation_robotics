@@ -79,9 +79,9 @@ describe("SERVER_INSTRUCTIONS", () => {
     expect(SERVER_INSTRUCTIONS).toContain("changeset_unstage (changes: [...] for several)");
   });
 
-  it("follows nextStep.also and asks for the index's ignore file to be committed (track A)", () => {
+  it("follows nextStep.also, and asks for missing .cbmignore lines only on a file the developer owns (track A, #1300)", () => {
     expect(SERVER_INSTRUCTIONS).toContain("nextStep.also");
-    expect(SERVER_INSTRUCTIONS).toContain("If it reports ignoreFile, tell the user to commit it");
+    expect(SERVER_INSTRUCTIONS).toContain("ignoreFile.missing: lines for the user to add.");
   });
 
   it("says how to get a changeset for an extract that stages nothing, and to decide grouped cards by rule (track B, #1154)", () => {

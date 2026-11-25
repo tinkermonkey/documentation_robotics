@@ -164,6 +164,12 @@ export interface IndexMeta {
    * metadata written before DR recorded it, and when the version could not be read.
    */
   analyzer_version?: string;
+  /**
+   * True when the counts came from another process's index run that this run waited for, and a
+   * run of its own could not follow it: the commit and time that run read the code at are unknown,
+   * so the index is never fresh (#1345).
+   */
+  joined?: boolean;
 }
 
 /** A symbol a git range changed, as the analyzer's index places it (CBM `detect_changes` seeds). */

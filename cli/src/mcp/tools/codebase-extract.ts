@@ -188,6 +188,7 @@ import {
   requireFreshIndex,
   type CodebaseToolDeps,
 } from "./codebase-shared.js";
+import { indexFirst, indexFirstDeadline } from "./codebase-index.js";
 
 const DEFAULT_PAGE_SIZE = 25;
 /**
@@ -301,6 +302,13 @@ const inputSchema = {
     .optional()
     .describe(
       "false skips Tier 1 for this run: Tier 0 only, nothing sent, whatever the checkout's tier1.json says. Default: Tier 1 runs when the checkout opted in."
+    ),
+  autoIndex: z
+    .boolean()
+    .optional()
+    .describe(
+      "Default true: when the code is not indexed, the index is stale or an index run is in flight, a run indexes first (within this call's time budget) " +
+        "and says so in index.indexedFirst. false refuses instead, pointing at codebase_index. A preview, page, view, list or reject-only call never indexes."
     ),
   acceptTier1: z
     .literal(true)
@@ -2070,8 +2078,9 @@ function ignoreStep(c: IgnoreCandidates): string {
   const lines = c.folders.map((f) => `/${f.folder}`).join(", ");
   return (
     `${c.cards} of the ${c.of} undecided cards are in folders no model element names: ${list}. If they aren't product code (ask the user when unsure), ` +
-    `add them to .cbmignore at the codebase root (${lines}; gitignore syntax) so they aren't indexed, re-index with codebase_index and call ` +
-    `codebase_extract again; or record their cards with reject: [{files: "${c.folders[0].folder}**", reason}].`
+    `add them to .cbmignore at the codebase root (${lines}; gitignore syntax) so they aren't indexed, and have the user commit it ` +
+    "(git add -f .cbmignore: DR's local exclude hides it until it is tracked, and an uncommitted line reaches no other checkout or clone), " +
+    `re-index with codebase_index and call codebase_extract again; or record their cards with reject: [{files: "${c.folders[0].folder}**", reason}].`
   );
 }
 
@@ -2126,6 +2135,19 @@ function rangeStep(r: RangeReport, since: string): string {
   );
 }
 
+/**
+ * Whether a call indexes first (#1347), the one place that decides it: only a run does, unless
+ * autoIndex is false. A preview never does, since it changes nothing and an index run writes .dr/
+ * (and may write .cbmignore); a page, view or list reads the last run's record; a call that only
+ * rejects or clears decisions records them. Those are refused on a stale index, as before. A batch
+ * file may hold decide items, so a call with one counts as a run.
+ */
+function indexesFirst(args: CodebaseExtractArgs): boolean {
+  if (args.autoIndex === false || args.preview === true) return false;
+  if ((args.page ?? 1) > 1 || args.view !== undefined || args.list !== undefined) return false;
+  return !(!args.decide?.length && !args.file && (!!args.reject?.length || args.clearRejected !== undefined));
+}
+
 export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
   return async function codebaseExtractHandler(args: CodebaseExtractArgs, context?: McpToolContext): Promise<CallToolResult> {
     return runTool(async () => {
@@ -2142,8 +2164,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
 
+      // A run builds a missing or stale index first, within its budget (#1347); other calls refuse as before.
+      const indexing = indexesFirst(args)
+        ? await indexFirst({ projectRoot, codebaseRoot }, deps, {
+            tool: "codebase_extract",
+            deadline: indexFirstDeadline(startedAt, deadline),
+            uncommittedEdits: true,
+            signal: context?.signal,
+          })
+        : null;
       const { analyzer, freshness, index: indexJudgement } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract", {
         uncommittedEdits: true,
+        ...(indexing ? { assessment: indexing.assessment, indexedFirst: indexing.indexedFirst } : {}),
       });
       const head = freshness.currentGitHead;
 
@@ -2505,9 +2537,16 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const unstageFailed: Array<{ id: string; error: string }> = [];
         for (const [id, symbol] of toUnstage) {
           const result = await changesetUnstageHandler({ elementId: id, changeset: changeset!.id!, rootPath: args.rootPath });
-          const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
+          const body = JSON.parse((result.content[0] as { text: string }).text) as {
+            unstaged?: unknown[];
+            unstagedCount?: number;
+            error?: string;
+            message?: string;
+          };
+          // unstagedCount is every change removed; unstaged lists only the first of them.
+          const removed = body.unstagedCount ?? body.unstaged?.length ?? 0;
           if (result.isError) unstageFailed.push({ id, error: body.error ?? body.message ?? "unstage failed" });
-          else if (body.unstaged?.length) unstaged.push({ id, symbol, changes: body.unstaged.length });
+          else if (removed > 0) unstaged.push({ id, symbol, changes: removed });
         }
         const unstagedRels: string[] = [];
         for (const r of relationshipsToUnstage) {
@@ -2518,9 +2557,13 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             changeset: changeset!.id!,
             rootPath: args.rootPath,
           });
-          const body = JSON.parse((result.content[0] as { text: string }).text) as { unstaged?: unknown[]; error?: string; message?: string };
+          const body = JSON.parse((result.content[0] as { text: string }).text) as {
+            unstagedCount?: number;
+            error?: string;
+            message?: string;
+          };
           if (result.isError) unstageFailed.push({ id: r.key, error: body.error ?? body.message ?? "unstage failed" });
-          else if (body.unstaged?.length) unstagedRels.push(r.key);
+          else if ((body.unstagedCount ?? 0) > 0) unstagedRels.push(r.key);
         }
         if ((unstaged.length || unstagedRels.length) && stored && changeset) {
           // The record of what extraction staged no longer holds what was unstaged. Waiting cards
@@ -4101,7 +4144,8 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "A run or page into an extraction changeset keeps that run's since and layers. " +
     "The changeset (default extract-<sha>) is created and made active when the run stages something, or when intent is given (the confirmed purpose, used as its description); " +
     "a run that only leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
-    "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits. " +
+    "active before the first run. A run indexes first when the code is not indexed or the index is stale (index.indexedFirst says why and how long it took; " +
+    "a run that outlasts this call's budget is left running and the error says how to wait; autoIndex: false refuses instead). Never writes the base model or commits. " +
     "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
     "spend (tell the user its notice). In suggest mode (tier1.mode) Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +

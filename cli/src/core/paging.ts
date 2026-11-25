@@ -115,14 +115,33 @@ export function wholePage<T>(all: readonly T[]): { items: T[]; page: Page } {
   return { items: [...all], page: { total: all.length, returned: all.length, offset: 0 } };
 }
 
-/** One line naming the call that returns the next page, or undefined when this page is the last. */
-export function nextPageHint(tool: string, noun: string, page: Page): string | undefined {
+/**
+ * One line naming the call that returns the next page, or undefined when this page is the last.
+ * Given the caller's arguments, it names that call exactly (`nextPageCall`); without them, it says
+ * to repeat the call with the next offset.
+ */
+export function nextPageHint(tool: string, noun: string, page: Page, args?: Record<string, unknown>): string | undefined {
   if (page.nextOffset === undefined) return undefined;
   const left = page.total - page.nextOffset;
-  return (
-    `${page.returned} of ${page.total} ${noun} returned (from ${page.offset}); ${left} more: call ${tool} again with ` +
-    `the same arguments and offset: ${page.nextOffset}.`
-  );
+  const head = `${page.returned} of ${page.total} ${noun} returned (from ${page.offset}); ${left} more: `;
+  return args
+    ? `${head}next page: ${nextPageCall(tool, args, page.nextOffset)}.`
+    : `${head}call ${tool} again with the same arguments and offset: ${page.nextOffset}.`;
+}
+
+/**
+ * The exact call that returns the next page: `tool {"…the caller's arguments…","offset":n}`. The
+ * arguments are the caller's own, so filters and page size carry over; undefined ones and those
+ * named in `omit` (an older offset name, say) are left out, and `offset` is set to `nextOffset`.
+ */
+export function nextPageCall(
+  tool: string,
+  args: Record<string, unknown>,
+  nextOffset: number,
+  omit: readonly string[] = []
+): string {
+  const kept = Object.entries(args).filter(([key, value]) => value !== undefined && key !== "offset" && !omit.includes(key));
+  return `${tool} ${JSON.stringify({ ...Object.fromEntries(kept), offset: nextOffset })}`;
 }
 
 /** Where a page sits in several lists paged together. `nextOffset` is absent when none has more. */
