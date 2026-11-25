@@ -182,6 +182,29 @@ export async function stageRelationshipDeletes(
 }
 
 /**
+ * The predicates the catalog allows from `source` to `target` (`forward`), and from `target` back
+ * to `source` (`reverse`), each sorted. Type ids are spec node ids (`application.applicationservice`).
+ */
+export function predicatesBetween(source: string, target: string): { forward: string[]; reverse: string[] } {
+  const between = (from: string, to: string) =>
+    [...new Set(getValidRelationships(from, undefined, to).map((r) => r.predicate))].sort();
+  return { forward: between(source, target), reverse: source === target ? [] : between(target, source) };
+}
+
+/** {@link predicatesBetween} as one suggestion line. */
+export function predicatesBetweenLine(source: string, target: string): string {
+  const { forward, reverse } = predicatesBetween(source, target);
+  if (forward.length === 0 && reverse.length === 0) {
+    return `The catalog allows no relationship between ${source} and ${target}, in either direction`;
+  }
+  const parts = [
+    ...(forward.length ? [`${source} --[${forward.join(" | ")}]--> ${target}`] : []),
+    ...(reverse.length ? [`${target} --[${reverse.join(" | ")}]--> ${source}`] : []),
+  ];
+  return `Between these types the catalog allows: ${parts.join("; ")}`;
+}
+
+/**
  * Validate a relationship combination using schema-driven registry
  * @returns {valid, suggestions} where suggestions are provided if invalid
  */
@@ -198,8 +221,9 @@ export function validateRelationshipCombination(
     return { valid: true };
   }
 
-  // Generate helpful suggestions
-  const suggestions: string[] = [];
+  // Generate helpful suggestions. First what the catalog allows between these two types, in
+  // either direction, so the agent can pick a predicate in the same turn (#1354).
+  const suggestions: string[] = [predicatesBetweenLine(sourceSpecNodeId, destSpecNodeId)];
   const validPredicates = getValidPredicatesForSource(sourceSpecNodeId);
 
   if (validPredicates.length > 0) {
