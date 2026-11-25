@@ -609,7 +609,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         }
         if (ignore.missing?.length) {
           handleWarning(`${ignore.path} is yours, so DR left it alone; codebase-memory-mcp will index DR's own files`, [
-            `Add these lines to it and commit it: ${ignore.missing.join(", ")}`,
+            `Add these lines to it and commit it (git add -f .cbmignore while it is untracked): ${ignore.missing.join(", ")}`,
           ]);
         }
       } catch (error) {
@@ -627,7 +627,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
 
       const analyzerName = this.mapper.getAnalyzerName();
       // The counts, or a failed run (#1345): never an index recorded with 0 nodes that reads fresh.
-      let counts: { nodes: number; edges: number };
+      let counts: { nodes: number; edges: number; indexedAt?: string };
       try {
         counts = await settleIndexCounts(tools, indexResponse, effectiveCodebaseRoot, {
           timeoutMs: Math.min(options?.timeoutMs ?? 120_000, MAX_SETTLE_MS),
@@ -639,11 +639,15 @@ export class CbmAnalyzer implements AnalyzerBackend {
       }
       const nodeCount = counts.nodes;
       const edgeCount = counts.edges;
+      // A joined run may have read the code before this one started: record the older time, so an
+      // edit between the two reads as newer than the index.
+      const joinedAt = counts.indexedAt ? Date.parse(counts.indexedAt) : NaN;
+      const indexedAt = joinedAt < Date.parse(timestamp) ? new Date(joinedAt).toISOString() : timestamp;
 
       // Write index metadata
       const meta: IndexMeta = {
         git_head: gitHead,
-        timestamp,
+        timestamp: indexedAt,
         node_count: nodeCount,
         edge_count: edgeCount,
         ...(detection.version ? { analyzer_version: detection.version } : {}),
@@ -665,7 +669,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         node_count: nodeCount,
         edge_count: edgeCount,
         git_head: gitHead,
-        timestamp,
+        timestamp: indexedAt,
       };
     } finally {
       client.close();
@@ -2666,7 +2670,9 @@ function gitView(cwd: string, file: string): { tracked: boolean; ignored: boolea
  * file or a .gitignore. Returns the exclude file's path, or null when `cwd` is not in a git work tree.
  */
 export async function excludeFromGit(cwd: string, file: string): Promise<string | null> {
-  const where = gitIn(cwd, ["rev-parse", "--path-format=absolute", "--git-path", "info/exclude"]);
+  // Relative to cwd, or absolute (a worktree's common dir); resolved below. No --path-format=absolute,
+  // which git before 2.31 doesn't know.
+  const where = gitIn(cwd, ["rev-parse", "--git-path", "info/exclude"]);
   const prefix = gitIn(cwd, ["rev-parse", "--show-prefix"]);
   if (where?.status !== 0 || prefix?.status !== 0) return null;
   const excludePath = path.resolve(cwd, where.stdout.trim());
@@ -2698,6 +2704,8 @@ export interface CbmIgnoreResult {
   missing?: string[];
   /** The local exclude file that now hides DR's .cbmignore from git (it added the entry). */
   excludedBy?: string;
+  /** True when the codebase is not in a git work tree, so nothing hides the file (and nothing commits it). */
+  notInGit?: boolean;
 }
 
 /**
@@ -2712,13 +2720,17 @@ export interface CbmIgnoreResult {
  *
  * It needs a line for each DR folder inside the codebase root that the file doesn't already list; a
  * folder outside the codebase root isn't indexed anyway, and a folder the file negates
- * (`!/documentation-robotics/`) is the developer's choice. Who owns the file decides the rest:
- * - No .cbmignore, or DR's own (written under DR's heading, or one git ignores): it writes the
- *   lines and hides the file from git through the local exclude ({@link excludeFromGit}), so a
- *   read-only run leaves the tree as git saw it and nothing needs committing (`excludedBy`).
- * - The developer's (tracked by git, or untracked without DR's heading): it never edits it, and
- *   returns the lines it lacks as `missing`, for the developer to add and commit.
- * - Not in a git work tree: it writes the lines, as there is no tree to keep clean.
+ * (`!/documentation-robotics/`) is the developer's choice. Whose file it is decides the rest, by DR's
+ * heading alone, never by whether git ignores it: the exclude entry lives in the repository's shared
+ * info/exclude, so in another worktree a developer's untracked .cbmignore reads as ignored too.
+ * - No .cbmignore, or DR's own (untracked, under DR's heading): it hides the file from git through the
+ *   local exclude first ({@link excludeFromGit}), then writes the lines, so a read-only run leaves the
+ *   tree as git saw it and nothing needs committing (`excludedBy`). If hiding fails, nothing is written.
+ * - The developer's (tracked by git, or without DR's heading): it never edits it, and returns the lines
+ *   it lacks as `missing`, for the developer to add and commit (`git add -f`, since the exclude entry
+ *   hides an untracked .cbmignore in every worktree).
+ * - Not in a git work tree: the same ownership rule; DR's own file is written with nothing to hide it
+ *   from (`notInGit`).
  */
 export async function ensureCbmIgnore(codebaseRoot: string, projectRoot: string): Promise<CbmIgnoreResult> {
   const name = ".cbmignore";
@@ -2751,17 +2763,30 @@ export async function ensureCbmIgnore(codebaseRoot: string, projectRoot: string)
   if (needed.length === 0 && !drWrote) return { path: file, added: [], created: false };
 
   const git = gitView(codebaseRoot, name);
-  if (git && (git.tracked || (exists && !drWrote && !git.ignored))) {
+  // DR's own file, complete, with no git to hide it from: nothing to do.
+  if (needed.length === 0 && !git) return { path: file, added: [], created: false };
+  if ((exists && !drWrote) || git?.tracked) {
     // The developer's file: never edited here.
     return { path: file, added: [], created: false, ...(needed.length ? { missing: needed } : {}) };
+  }
+  // Hidden from git before it is written, so a failure leaves no new untracked file behind.
+  let excludedBy: string | null = null;
+  if (git && !git.ignored) {
+    excludedBy = await excludeFromGit(codebaseRoot, name);
+    if (!excludedBy) throw new Error("git did not name the repository's exclude file (git rev-parse --git-path info/exclude)");
   }
   if (needed.length > 0) {
     const separator = text.length === 0 ? "" : text.endsWith("\n") ? "\n" : "\n\n";
     const heading = drWrote ? "" : `${CBM_IGNORE_HEADING}\n`;
     await writeFile(file, `${text}${separator}${heading}${needed.join("\n")}\n`);
   }
-  const excludedBy = git && !git.ignored ? await excludeFromGit(codebaseRoot, name) : null;
-  return { path: file, added: needed, created: !exists && needed.length > 0, ...(excludedBy ? { excludedBy } : {}) };
+  return {
+    path: file,
+    added: needed,
+    created: !exists && needed.length > 0,
+    ...(excludedBy ? { excludedBy } : {}),
+    ...(git || needed.length === 0 ? {} : { notInGit: true }),
+  };
 }
 
 /** The longest a run waits for another process's index of the same code before it gives up. */
@@ -2799,7 +2824,8 @@ function describeAnswer(answer: Record<string, unknown>): string {
  * - `status: "failed"`: codebase-memory-mcp says the index failed; the error carries its reason.
  * - No counts (`status` indexing, busy or pending: another process, such as a watcher or a second
  *   DR session, is indexing the same code): waits for that run through index_status, up to
- *   `timeoutMs`, and reads the counts there once it is ready.
+ *   `timeoutMs`, and reads the counts there once it is ready, with that run's `indexed_at`
+ *   (`indexedAt`), so the caller can record the older of the two index times.
  * - Counts that stay unreadable, or an index of 0 nodes: an error. Nothing that reads as fresh is
  *   recorded; the caller removes the old metadata.
  *
@@ -2810,7 +2836,7 @@ export async function settleIndexCounts(
   response: Record<string, unknown>,
   codebaseRoot: string,
   options: { timeoutMs?: number; pollMs?: number; sleep?: (ms: number) => Promise<void> } = {}
-): Promise<{ nodes: number; edges: number }> {
+): Promise<{ nodes: number; edges: number; indexedAt?: string }> {
   const retry = "Call codebase_index again (or run `dr analyzer index`); see the job log for the analyzer's output";
   const failed = (answer: Record<string, unknown>) =>
     new CLIError(
@@ -2820,7 +2846,7 @@ export async function settleIndexCounts(
     );
   if (response.status === "failed") throw failed(response);
 
-  let counts = countsIn(response);
+  let counts: { nodes: number; edges: number; indexedAt?: string } | null = countsIn(response);
   let last = response;
   if (!counts) {
     // CBM's own record of the project has the counts once the run in flight is over.
@@ -2837,7 +2863,9 @@ export async function settleIndexCounts(
           last = status;
           if (status.status === "failed") throw failed(status);
           const underWay = typeof status.status === "string" && CBM_INDEX_UNDER_WAY.has(status.status);
-          counts = underWay ? null : countsIn(status);
+          const joined = underWay ? null : countsIn(status);
+          // The joined run's own index time: it may have read the code before this run started.
+          counts = joined && typeof status.indexed_at === "string" ? { ...joined, indexedAt: status.indexed_at } : joined;
           if (counts || !underWay) break;
         }
         if (Date.now() >= deadline) break;

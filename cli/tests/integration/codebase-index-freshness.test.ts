@@ -23,7 +23,7 @@ import type { SpawnFn } from "../../src/analyzers/index-job.js";
 import { readIndexMeta, writeIndexMeta, writeSession } from "../../src/analyzers/session-state.js";
 import type { AnalyzerBackend } from "../../src/analyzers/base-analyzer.js";
 import { clearModelCache } from "../../src/mcp/tools/shared.js";
-import { createCodebaseIndexHandler, indexFirst } from "../../src/mcp/tools/codebase-index.js";
+import { createCodebaseIndexHandler, indexFirst, indexFirstDeadline } from "../../src/mcp/tools/codebase-index.js";
 import type { CodebaseToolDeps } from "../../src/mcp/tools/codebase-shared.js";
 import { currentGitHead } from "../../src/analyzers/active-analyzer.js";
 
@@ -106,6 +106,8 @@ describe("the index path end to end", () => {
     const body = JSON.parse(result.content[0].text);
     expect(body.job.state).toBe("done");
     expect(body.index).toMatchObject({ fresh: true, nodeCount: 6, edgeCount: 8 });
+    // The joined run read the code earlier than this one started: its time is the one recorded.
+    expect(body.index.lastIndexed).toBe("2026-01-01T00:00:00.000Z");
   }, 60000);
 
   it("fails a run that indexed no code, and leaves no metadata that reads fresh (#1345)", async () => {
@@ -122,17 +124,19 @@ describe("the index path end to end", () => {
   }, 60000);
 
   it("indexFirst runs the real child and reports what it did (#1347)", async () => {
-    const indexed = await indexFirst({ projectRoot: project, codebaseRoot: project }, deps(), {
+    const startedAt = Date.now();
+    const { assessment, indexedFirst } = await indexFirst({ projectRoot: project, codebaseRoot: project }, deps(), {
       tool: "codebase_extract",
-      startedAt: Date.now(),
-      budgetMs: 100_000,
+      deadline: indexFirstDeadline(startedAt, startedAt + 100_000),
     });
-    expect(indexed).toMatchObject({ why: "the code was not indexed", started: true });
-    expect(indexed!.seconds).toBeLessThan(50);
+    expect(indexedFirst).toMatchObject({ why: "the code was not indexed", started: true });
+    expect(indexedFirst!.seconds).toBeLessThan(50);
+    expect(assessment.judgement?.state).toBe("fresh");
     expect((await readIndexMeta(project, "cbm"))?.node_count).toBe(5);
     expect(status()).toBe("");
 
     // Fresh now: the next call does nothing.
-    expect(await indexFirst({ projectRoot: project, codebaseRoot: project }, deps(), { tool: "codebase_extract", startedAt: Date.now(), budgetMs: 100_000 })).toBeNull();
+    const again = await indexFirst({ projectRoot: project, codebaseRoot: project }, deps(), { tool: "codebase_extract", deadline: Date.now() + 48_000 });
+    expect(again.indexedFirst).toBeNull();
   }, 60000);
 });

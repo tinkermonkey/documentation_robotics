@@ -8,7 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ensureCbmIgnore, excludeFromGit } from "../../../src/analyzers/cbm-analyzer.js";
@@ -27,7 +27,7 @@ afterEach(async () => {
 describe("ensureCbmIgnore outside a git work tree", () => {
   it("creates the file with DR's folders when there is none", async () => {
     const result = await ensureCbmIgnore(root, root);
-    expect(result).toEqual({ path: join(root, ".cbmignore"), added: ["/documentation-robotics/", "/.dr/"], created: true });
+    expect(result).toEqual({ path: join(root, ".cbmignore"), added: ["/documentation-robotics/", "/.dr/"], created: true, notInGit: true });
     const text = await readFile(join(root, ".cbmignore"), "utf-8");
     expect(text).toMatch(/^# Added by Documentation Robotics/);
     expect(text.endsWith("/documentation-robotics/\n/.dr/\n")).toBe(true);
@@ -40,22 +40,27 @@ describe("ensureCbmIgnore outside a git work tree", () => {
     expect(await readFile(join(root, ".cbmignore"), "utf-8")).toBe(before);
   });
 
-  it("keeps the developer's lines, and adds only the folders they don't list in any spelling", async () => {
+  it("never edits the developer's file: it lists only the folders they don't list in any spelling (#1300 review)", async () => {
     await writeFile(join(root, ".cbmignore"), "fixtures/\ndocumentation-robotics");
     const result = await ensureCbmIgnore(root, root);
-    expect(result.added).toEqual(["/.dr/"]);
-    const text = await readFile(join(root, ".cbmignore"), "utf-8");
-    expect(text.startsWith("fixtures/\ndocumentation-robotics\n\n# Added by Documentation Robotics")).toBe(true);
-    expect(text.endsWith("/.dr/\n")).toBe(true);
+    expect(result).toEqual({ path: join(root, ".cbmignore"), added: [], created: false, missing: ["/.dr/"] });
+    expect(await readFile(join(root, ".cbmignore"), "utf-8")).toBe("fixtures/\ndocumentation-robotics");
   });
 
   it("leaves alone a folder the developer negates (review)", async () => {
     await writeFile(join(root, ".cbmignore"), "!/documentation-robotics/\n");
     const result = await ensureCbmIgnore(root, root);
+    expect(result.missing).toEqual(["/.dr/"]);
+    expect(await readFile(join(root, ".cbmignore"), "utf-8")).toBe("!/documentation-robotics/\n");
+  });
+
+  it("adds a missing line to DR's own file", async () => {
+    await writeFile(join(root, ".cbmignore"), "# Added by Documentation Robotics: its model, changesets and analyzer state are not code.\n/documentation-robotics/\n");
+    const result = await ensureCbmIgnore(root, root);
     expect(result.added).toEqual(["/.dr/"]);
-    const text = await readFile(join(root, ".cbmignore"), "utf-8");
-    expect(text).not.toContain("\n/documentation-robotics/");
-    expect(text.startsWith("!/documentation-robotics/\n")).toBe(true);
+    expect(await readFile(join(root, ".cbmignore"), "utf-8")).toBe(
+      "# Added by Documentation Robotics: its model, changesets and analyzer state are not code.\n/documentation-robotics/\n\n/.dr/\n"
+    );
   });
 
   it("names the folders relative to a codebase root above the project", async () => {
@@ -155,18 +160,60 @@ describe("ensureCbmIgnore in a git work tree (#1300)", () => {
     expect(status(root)).toBe("");
   });
 
-  it("adds to DR's own file once git ignores it, without touching the exclude file again", async () => {
+  it("adds to DR's own file that the developer's .gitignore covers, without touching the exclude file", async () => {
     await repo();
     await ensureCbmIgnore(join(root, "src"), root); // nothing inside src: no file
     expect(await Bun.file(join(root, "src", ".cbmignore")).exists()).toBe(false);
     await writeFile(join(root, ".gitignore"), ".cbmignore\n");
     git(root, "add", ".gitignore");
     git(root, "commit", "-qm", "ignore it");
-    await writeFile(join(root, ".cbmignore"), "/documentation-robotics/\n");
+    await writeFile(join(root, ".cbmignore"), "# Added by Documentation Robotics: its model, changesets and analyzer state are not code.\n/documentation-robotics/\n");
     const result = await ensureCbmIgnore(root, root);
     expect(result.added).toEqual(["/.dr/"]);
     expect(result.excludedBy).toBeUndefined();
     expect(status(root)).toBe("");
+    expect(await Bun.file(join(root, ".git", "info", "exclude")).text()).not.toContain("/.cbmignore");
+  });
+
+  it("never edits a developer's .cbmignore in another worktree that DR's shared exclude entry hides (review)", async () => {
+    await repo();
+    // DR runs in worktree A (here, the main one): its exclude entry is shared by every worktree.
+    await ensureCbmIgnore(root, root);
+    const b = join(root, "..", `${root.split("/").pop()}-b`);
+    git(root, "worktree", "add", "-q", b, "-b", "b");
+    try {
+      // The developer writes their own .cbmignore in worktree B; git now reads it as ignored.
+      await writeFile(join(b, ".cbmignore"), "build/\n");
+      expect(spawnSync("git", ["check-ignore", "-q", ".cbmignore"], { cwd: b }).status).toBe(0);
+      const result = await ensureCbmIgnore(b, b);
+      expect(result).toEqual({ path: join(b, ".cbmignore"), added: [], created: false, missing: ["/documentation-robotics/", "/.dr/"] });
+      expect(await readFile(join(b, ".cbmignore"), "utf-8")).toBe("build/\n");
+      // The developer commits it with -f; once tracked, it stays theirs.
+      spawnSync("git", ["add", "-f", ".cbmignore"], { cwd: b });
+      expect(git(b, "ls-files", ".cbmignore")).toBe(".cbmignore");
+      expect((await ensureCbmIgnore(b, b)).missing).toEqual(["/documentation-robotics/", "/.dr/"]);
+      expect(await readFile(join(b, ".cbmignore"), "utf-8")).toBe("build/\n");
+    } finally {
+      await rm(b, { recursive: true, force: true });
+    }
+  });
+
+  // Root ignores file modes, so the write can't be made to fail there.
+  it.skipIf(process.getuid?.() === 0)("writes nothing when the exclude file can't be written, so no untracked .cbmignore is left (review)", async () => {
+    await repo();
+    const info = join(root, ".git", "info");
+    await mkdir(info, { recursive: true });
+    await writeFile(join(info, "exclude"), "");
+    await chmod(join(info, "exclude"), 0o444);
+    await chmod(info, 0o555);
+    try {
+      await expect(ensureCbmIgnore(root, root)).rejects.toThrow();
+      expect(await Bun.file(join(root, ".cbmignore")).exists()).toBe(false);
+      expect(status(root)).toBe("");
+    } finally {
+      await chmod(info, 0o755);
+      await chmod(join(info, "exclude"), 0o644);
+    }
   });
 
   it("names the exclude entry from the repository's top for a codebase root below it, and in a worktree", async () => {

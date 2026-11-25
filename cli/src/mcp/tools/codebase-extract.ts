@@ -188,7 +188,7 @@ import {
   requireFreshIndex,
   type CodebaseToolDeps,
 } from "./codebase-shared.js";
-import { indexFirst } from "./codebase-index.js";
+import { indexFirst, indexFirstDeadline } from "./codebase-index.js";
 
 const DEFAULT_PAGE_SIZE = 25;
 /**
@@ -2078,8 +2078,9 @@ function ignoreStep(c: IgnoreCandidates): string {
   const lines = c.folders.map((f) => `/${f.folder}`).join(", ");
   return (
     `${c.cards} of the ${c.of} undecided cards are in folders no model element names: ${list}. If they aren't product code (ask the user when unsure), ` +
-    `add them to .cbmignore at the codebase root (${lines}; gitignore syntax) so they aren't indexed, re-index with codebase_index and call ` +
-    `codebase_extract again; or record their cards with reject: [{files: "${c.folders[0].folder}**", reason}].`
+    `add them to .cbmignore at the codebase root (${lines}; gitignore syntax) so they aren't indexed, and have the user commit it ` +
+    "(git add -f .cbmignore: DR's local exclude hides it until it is tracked, and an uncommitted line reaches no other checkout or clone), " +
+    `re-index with codebase_index and call codebase_extract again; or record their cards with reject: [{files: "${c.folders[0].folder}**", reason}].`
   );
 }
 
@@ -2134,6 +2135,16 @@ function rangeStep(r: RangeReport, since: string): string {
   );
 }
 
+/**
+ * Whether a call extracts (a run or a preview), and so indexes first. A page, view or list reads the
+ * last run's record, and a call that only rejects or clears decisions records them: none reads the
+ * index. A batch file may hold decide items, so a call with one counts as a run.
+ */
+function extractsCode(args: CodebaseExtractArgs): boolean {
+  if ((args.page ?? 1) > 1 || args.view !== undefined || args.list !== undefined) return false;
+  return !(!args.decide?.length && !args.file && (!!args.reject?.length || args.clearRejected !== undefined));
+}
+
 export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCodebaseToolDeps) {
   return async function codebaseExtractHandler(args: CodebaseExtractArgs, context?: McpToolContext): Promise<CallToolResult> {
     return runTool(async () => {
@@ -2150,19 +2161,19 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
 
-      // A missing or stale index is built first, within the budget (#1347); autoIndex: false refuses as before.
-      const indexedFirst =
-        args.autoIndex === false
+      // A call that extracts builds a missing or stale index first, within its budget (#1347); autoIndex: false refuses as before.
+      const indexing =
+        args.autoIndex === false || !extractsCode(args)
           ? null
           : await indexFirst({ projectRoot, codebaseRoot }, deps, {
               tool: "codebase_extract",
-              startedAt,
-              budgetMs: deps.budgetMs ?? DEFAULT_BUDGET_MS,
+              deadline: indexFirstDeadline(startedAt, deadline),
+              uncommittedEdits: true,
               signal: context?.signal,
             });
       const { analyzer, freshness, index: indexJudgement } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract", {
         uncommittedEdits: true,
-        indexedFirst,
+        ...(indexing ? { assessment: indexing.assessment, indexedFirst: indexing.indexedFirst } : {}),
       });
       const head = freshness.currentGitHead;
 

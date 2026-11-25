@@ -37,10 +37,15 @@ describe("settleIndexCounts", () => {
   });
 
   it("waits for another process's run through index_status, then reads its counts", async () => {
-    const { fake, asked } = tools([{ status: "indexing" }, { status: "indexing" }, { status: "ready", nodes: 8, edges: 9 }]);
+    const { fake, asked } = tools([
+      { status: "indexing" },
+      { status: "indexing" },
+      { status: "ready", nodes: 8, edges: 9, indexed_at: "2026-11-25T16:04:42Z" },
+    ]);
     // CBM's answer while a run of the same code is in flight carries no counts and no project.
     const counts = await settleIndexCounts(fake, { status: "indexing", slot: 1, path: ROOT }, ROOT, { sleep: noSleep });
-    expect(counts).toEqual({ nodes: 8, edges: 9 });
+    // With the joined run's own index time, which the caller records when it is the older one.
+    expect(counts).toEqual({ nodes: 8, edges: 9, indexedAt: "2026-11-25T16:04:42Z" });
     // The project came from list_projects, by root path.
     expect(asked).toEqual(["work-app", "work-app", "work-app"]);
   });

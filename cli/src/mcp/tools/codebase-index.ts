@@ -36,6 +36,7 @@ import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolContext, ty
 import {
   analyzerNotFoundError,
   assessIndex,
+  assessSelectedIndex,
   canonicalRoots,
   defaultCodebaseToolDeps,
   describeIndex,
@@ -45,6 +46,7 @@ import {
   WAIT_FOR_INDEX,
   writeWorktreeSnapshot,
   type CodebaseToolDeps,
+  type IndexAssessment,
   type IndexedFirst,
   type IndexJudgement,
 } from "./codebase-shared.js";
@@ -397,14 +399,24 @@ async function launchIndexRun(
 export const INDEX_FIRST_SHARE = 0.5;
 
 /**
+ * How long indexFirst may wait for the index, for a call that started at `startedAt` and must end
+ * by `callDeadline`: INDEX_FIRST_SHARE of that time, and never past codebase_index's own longest
+ * wait (MAX_WAIT_SECONDS, less the time kept for the last read).
+ */
+export function indexFirstDeadline(startedAt: number, callDeadline: number): number {
+  return startedAt + Math.min((callDeadline - startedAt) * INDEX_FIRST_SHARE, MAX_WAIT_SECONDS * 1000 - REPORT_RESERVE_MS);
+}
+
+/**
  * Before a codebase tool judges the index (codebase_extract, #1347): when the code is not indexed,
  * the index is stale by the rule (judgeIndex, which also calls an index with no code stale), or an
  * index run is in flight, it starts a run (selecting an analyzer when none is) or joins the one in
- * flight, and blocks until it ends, for at most INDEX_FIRST_SHARE of the tool's budget (and never
- * past MAX_WAIT_SECONDS). Uncommitted edits never start a run: they don't make the index stale.
+ * flight, and blocks until it ends or `deadline` passes (indexFirstDeadline). Uncommitted edits
+ * never start a run: they don't make the index stale.
  *
- * Returns null when the index was usable as it was, and what it did otherwise. The caller then
- * judges the index as before (requireFreshIndex), so an index still stale after the run is refused.
+ * Returns the index as judged at the end (`assessment`, with `uncommittedEdits` as the caller asks,
+ * for requireFreshIndex to use rather than judge again), and what it did (`indexedFirst`, null when
+ * the index was usable as it was). requireFreshIndex then refuses an index still stale after a run.
  *
  * @throws CLIError when the run fails (its error and log), when it is still running at the end of
  *   the wait (how to wait for it, then call `tool` again), or when no analyzer can be selected
@@ -412,11 +424,11 @@ export const INDEX_FIRST_SHARE = 0.5;
 export async function indexFirst(
   roots: { projectRoot: string; codebaseRoot: string },
   deps: CodebaseToolDeps,
-  options: { tool: string; startedAt: number; budgetMs: number; signal?: AbortSignal }
-): Promise<IndexedFirst | null> {
+  options: { tool: string; deadline: number; uncommittedEdits?: boolean; signal?: AbortSignal }
+): Promise<{ assessment: IndexAssessment; indexedFirst: IndexedFirst | null }> {
   const { projectRoot, codebaseRoot } = roots;
   const began = Date.now();
-  const deadline = options.startedAt + Math.min(options.budgetMs * INDEX_FIRST_SHARE, MAX_WAIT_SECONDS * 1000 - REPORT_RESERVE_MS);
+  const judge = () => assessSelectedIndex(projectRoot, codebaseRoot, deps, { uncommittedEdits: options.uncommittedEdits === true });
   let job = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
   let why: string;
   let started = false;
@@ -424,13 +436,11 @@ export async function indexFirst(
   if (job?.state === "running") {
     why = `an index run was in flight (started ${job.startedAt})`;
   } else {
-    const selected = (await readSession(projectRoot))?.active_analyzer;
-    const { freshness, judgement } = selected
-      ? await assessIndex(projectRoot, selected, codebaseRoot, deps, { uncommittedEdits: false })
-      : { freshness: { indexed: false, fresh: false } as const, judgement: null };
-    if (selected && freshness.indexed && judgement && judgement.state !== "stale") return null;
-    why = !selected || !freshness.indexed || !judgement ? "the code was not indexed" : `the index was stale: ${judgement.reason ?? "by the freshness rule"}`;
-    const { analyzer } = await selectAnalyzer(projectRoot, selected, deps);
+    const before = await judge();
+    const { freshness, judgement } = before;
+    if (before.analyzer && freshness.indexed && judgement && judgement.state !== "stale") return { assessment: before, indexedFirst: null };
+    why = !before.analyzer || !freshness.indexed || !judgement ? "the code was not indexed" : `the index was stale: ${judgement.reason ?? "by the freshness rule"}`;
+    const { analyzer } = await selectAnalyzer(projectRoot, before.analyzer ?? undefined, deps);
     // Not forced: the run's own check re-indexes a stale index (another commit, another analyzer
     // version, no code) and skips one another call has just made fresh.
     const run = await launchIndexRun(projectRoot, codebaseRoot, analyzer, deps, {});
@@ -438,7 +448,7 @@ export async function indexFirst(
     started = run.started;
     ignoreFile = run.ignoreFile;
   }
-  const settled = await waitForJob(projectRoot, job, deadline, deps, options.signal);
+  const settled = await waitForJob(projectRoot, job, options.deadline, deps, options.signal);
   const seconds = Math.round((Date.now() - began) / 1000);
   const what = started ? `${options.tool} started an index run` : `${options.tool} waited for the run`;
   if (settled?.state === "running") {
@@ -458,7 +468,10 @@ export async function indexFirst(
       ]
     );
   }
-  return { why, jobId: settled.jobId, started, seconds, ...(ignoreFile ? { ignoreFile } : {}) };
+  return {
+    assessment: await judge(),
+    indexedFirst: { why, jobId: settled.jobId, started, seconds, ...(ignoreFile ? { ignoreFile } : {}) },
+  };
 }
 
 const capitalized = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
@@ -510,7 +523,8 @@ async function cbmIgnoreFile(codebaseRoot: string, projectRoot: string): Promise
         missing: result.missing,
         note:
           "This .cbmignore is the developer's (tracked by git, or not written by DR), so DR left it alone, and codebase-memory-mcp " +
-          `indexes DR's model, changesets and analyzer state. Ask the developer to add these lines to it and commit it: ${result.missing.join(", ")}.`,
+          `indexes DR's model, changesets and analyzer state. Ask the developer to add these lines to it and commit it: ${result.missing.join(", ")} ` +
+          "(git add -f .cbmignore while it is untracked: DR's local exclude hides an untracked .cbmignore in every worktree).",
       };
     }
     if (result.added.length === 0 && !result.excludedBy) return undefined;
@@ -519,10 +533,13 @@ async function cbmIgnoreFile(codebaseRoot: string, projectRoot: string): Promise
       created: result.created,
       added: result.added,
       ...(result.excludedBy ? { excludedBy: result.excludedBy } : {}),
-      note: result.excludedBy
-        ? "DR's .cbmignore keeps its model, changesets and analyzer state out of codebase-memory-mcp's index. It is hidden from git " +
-          `through ${result.excludedBy} (the repository's local exclude, in no commit), so the working tree is unchanged: nothing to commit.`
-        : "DR's .cbmignore keeps its model, changesets and analyzer state out of codebase-memory-mcp's index; git ignores it already, so there is nothing to commit.",
+      note:
+        "DR's .cbmignore keeps its model, changesets and analyzer state out of codebase-memory-mcp's index. " +
+        (result.excludedBy
+          ? `It is hidden from git through ${result.excludedBy} (the repository's local exclude, in no commit), so the tree is unchanged as git sees it: nothing to commit.`
+          : result.notInGit
+            ? "The codebase is not in a git work tree, so nothing hides the file, and there is no commit to make."
+            : "git already ignores it, so the tree is unchanged as git sees it: nothing to commit."),
     };
   } catch (error) {
     return { error: `Could not check .cbmignore, so DR's own files may be indexed: ${error instanceof Error ? error.message : String(error)}` };

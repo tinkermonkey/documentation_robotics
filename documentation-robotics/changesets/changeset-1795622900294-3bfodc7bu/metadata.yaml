@@ -2,17 +2,17 @@ id: changeset-1795622900294-3bfodc7bu
 name: cli09-index-freshness
 description: "CLI 0.9.0 (Tool ergonomics), index tranche: #1345, #1347, #1300. An index that holds no code, or whose run could not read its counts, never reads as fresh: the CBM run fails instead of recording 0 nodes, and the freshness rule calls a 0-node index stale. codebase_extract indexes first when the index is missing or stale (or a run is in flight), within its time budget, reports that it did and how long it took, and says how to wait when the run outlasts the budget; autoIndex: false keeps the old refusal. codebase_index keeps .cbmignore out of git's view (the repository's local info/exclude) and never edits a .cbmignore the developer tracks, so a read-only run leaves the tree as git saw it. Done: unit tests beside each change, integration test for the job, skills and CHANGELOG updated."
 created: 2026-11-25T16:08:20.333Z
-modified: 2026-11-25T16:28:22.191Z
+modified: 2026-11-25T17:00:03.747Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 16
-  modifications: 9
+  additions: 32
+  modifications: 12
   deletions: 0
-lastSequence: 28
+lastSequence: 48
 unstaged:
   - sequence: 1
     removedAt: 25
@@ -101,4 +101,31 @@ unstaged:
           updated_at: 2026-11-25T16:08:53.896Z
           version: 1
       timestamp: 2026-11-25T16:08:53.905Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 31
+    change:
+      type: add
+      elementId: application.applicationfunction.index-first
+      layerName: application
+      after:
+        id: 1bf98bdc-5e9a-422f-a090-a30caca228ef
+        path: application.applicationfunction.index-first
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: indexFirst
+        description: "Before codebase_extract judges the index (#1347): waits for an index run in flight, or starts one (selecting an analyzer when none is) when the code is not indexed or the index is stale or holds no code, and blocks for at most half the call's budget (50 s cap). Returns what it did, why and how long it took, for the result's index.indexedFirst; throws a CLIError with the job's error when the run fails, and one that says how to wait (codebase_index with status: true, wait: 30) when the run outlasts the wait. Skipped with autoIndex: false."
+        attributes:
+          documentation: cli/src/mcp/tools/codebase-index.ts. Reuses the handler's own start path (analyzer selection, the .cbmignore check, the worktree snapshot, startIndexJob) so a run it starts is the same run codebase_index would start.
+        metadata:
+          created_at: 2026-11-25T16:08:53.896Z
+          updated_at: 2026-11-25T16:08:53.896Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/codebase-index.ts
+              symbol: indexFirst
+      timestamp: 2026-11-25T16:28:22.188Z
     rewritten: true

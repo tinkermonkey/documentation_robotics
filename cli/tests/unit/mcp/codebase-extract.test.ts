@@ -2393,6 +2393,8 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     const hint = result.next.find((s: string) => s.includes(".cbmignore"));
     expect(hint).toContain("docs/ (25)");
     expect(hint).toContain('reject: [{files: "docs/**", reason}]');
+    // The developer's lines are committed, so every checkout indexes the same files (#1300 review).
+    expect(hint).toContain("git add -f .cbmignore");
     // Right after the step that says which changeset is active, before the cards are decided.
     expect(result.next.indexOf(hint)).toBe(1);
 

@@ -17,7 +17,7 @@ import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
 import { createCodebaseExtractHandler } from "../../../src/mcp/tools/codebase-extract.js";
-import { createCodebaseIndexHandler, indexFirst } from "../../../src/mcp/tools/codebase-index.js";
+import { MAX_WAIT_SECONDS, createCodebaseIndexHandler, indexFirst, indexFirstDeadline } from "../../../src/mcp/tools/codebase-index.js";
 import type { CodebaseToolDeps } from "../../../src/mcp/tools/codebase-shared.js";
 import { finishIndexJob, type SpawnFn } from "../../../src/analyzers/index-job.js";
 import { readIndexMeta, writeIndexMeta, writeSession } from "../../../src/analyzers/session-state.js";
@@ -213,19 +213,82 @@ describe("codebase_extract indexes first (#1347)", () => {
   });
 });
 
+describe("codebase_extract calls that don't extract never index first (review)", () => {
+  it("a page, view, list or reject-only call starts no run and waits for none: it is refused as before", async () => {
+    const h = harness();
+    const calls = [
+      { page: 2 },
+      { view: {} },
+      { list: "groups" as const },
+      { reject: [{ card: "OwnerController", reason: "not code" }] },
+      { clearRejected: true as const },
+    ];
+    for (const call of calls) {
+      const error = fail(await createCodebaseExtractHandler(h.deps)({ rootPath, ...call }));
+      expect(error.error).toBe("The code is not indexed");
+    }
+    expect(h.spawns).toHaveLength(0);
+  });
+
+  it("uncommitted edits alone start no run: the index is used, with a warning", async () => {
+    await selectCbm();
+    await writeIndexMeta(META, rootPath, "cbm");
+    const h = harness();
+    h.deps.sourceEdits = async () => ["src/main/java/OwnerController.java"];
+    const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(h.spawns).toHaveLength(0);
+    expect(result.index).toMatchObject({ state: "fresh-with-uncommitted-edits" });
+    expect(result.index.indexedFirst).toBeUndefined();
+  });
+
+  it("judges the index once per call (one analyzer --version, not two)", async () => {
+    await selectCbm();
+    await writeIndexMeta({ ...META, analyzer_version: "0.12.1" }, rootPath, "cbm");
+    const h = harness();
+    let versions = 0;
+    h.deps.analyzerVersion = async () => {
+      versions++;
+      return "0.12.1";
+    };
+    ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(versions).toBe(1);
+  });
+});
+
 describe("indexFirst", () => {
-  it("never waits past half the budget, or past codebase_index's longest wait", async () => {
+  it("waits half the call's time, and never past codebase_index's longest wait", () => {
+    expect(indexFirstDeadline(1000, 1300)).toBe(1150);
+    // A 100 s budget: capped at 48 s (codebase_index's 50 s less the 2 s kept for the last read).
+    expect(indexFirstDeadline(0, 100_000)).toBe(MAX_WAIT_SECONDS * 1000 - 2000);
+    expect(indexFirstDeadline(0, 100_000)).toBe(48_000);
+  });
+
+  it("stops waiting at its deadline and says the run is still going", async () => {
     const h = harness();
     h.outcome.value = "hang";
     const startedAt = Date.now();
     const error = await indexFirst({ projectRoot: rootPath, codebaseRoot: rootPath }, h.deps, {
       tool: "codebase_extract",
-      startedAt,
-      budgetMs: 300,
+      deadline: indexFirstDeadline(startedAt, startedAt + 300),
     }).catch((e) => e);
     expect(error.message).toContain("still running");
     const waited = Date.now() - startedAt;
     expect(waited).toBeGreaterThanOrEqual(140);
     expect(waited).toBeLessThan(2000);
+  });
+
+  it("returns the index as judged at the end, for requireFreshIndex to use", async () => {
+    const h = harness();
+    const { assessment, indexedFirst } = await indexFirst({ projectRoot: rootPath, codebaseRoot: rootPath }, h.deps, {
+      tool: "codebase_extract",
+      deadline: Date.now() + 2000,
+    });
+    expect(indexedFirst?.started).toBe(true);
+    expect(assessment).toMatchObject({ analyzer: "cbm", freshness: { indexed: true }, judgement: { state: "fresh" } });
+
+    const again = await indexFirst({ projectRoot: rootPath, codebaseRoot: rootPath }, h.deps, { tool: "codebase_extract", deadline: Date.now() + 2000 });
+    expect(again.indexedFirst).toBeNull();
+    expect(again.assessment.judgement?.state).toBe("fresh");
+    expect(h.spawns).toHaveLength(1);
   });
 });

@@ -1233,16 +1233,6 @@ describe("an index that holds no code (#1345)", () => {
     await writeIndexMeta({ ...META, git_head: head }, rootPath, "cbm");
     expect((await analyzer.status(rootPath)).fresh).toBe(true);
   });
-
-  it("CbmAnalyzer.index takes its counts from settleIndexCounts and removes the metadata when that fails", async () => {
-    // The run itself needs codebase-memory-mcp; this pins the wiring that keeps a failed count read
-    // from leaving metadata that reads fresh.
-    const source = await readFile(join(import.meta.dir, "../../../src/analyzers/cbm-analyzer.ts"), "utf-8");
-    const run = source.slice(source.indexOf("await tools.indexRepository("), source.indexOf("await writeIndexMeta(meta, projectRoot, analyzerName);"));
-    expect(run).toContain("await settleIndexCounts(tools, indexResponse");
-    expect(run).toContain("await removeIndexMeta(projectRoot, analyzerName)");
-    expect(run).not.toContain("Defaulting to 0");
-  });
 });
 
 describe(".cbmignore stays out of the tree (#1300)", () => {

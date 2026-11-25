@@ -43,7 +43,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   `{files: "docs/**"}` for every card in a folder that isn't product code, or
   `{relationship: {source, predicate, target}}` for a relationship extraction staged that the code
   doesn't have; each needs a `reason`, and later runs leave them out. When `next` suggests folders
-  for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
+  for `.cbmignore`, ask the developer before adding them, and have them commit the file
+  (`git add -f .cbmignore`: DR's local exclude hides it until it is tracked), so every checkout
+  and clone indexes the same files; DR never edits a tracked `.cbmignore`. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.
 - `codebase_extract` cards come from the declarations the code index reports (classes, interfaces,

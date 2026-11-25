@@ -81,7 +81,7 @@ describe("SERVER_INSTRUCTIONS", () => {
 
   it("follows nextStep.also, and asks for missing .cbmignore lines only on a file the developer owns (track A, #1300)", () => {
     expect(SERVER_INSTRUCTIONS).toContain("nextStep.also");
-    expect(SERVER_INSTRUCTIONS).toContain("If it reports ignoreFile.missing, the user adds those lines.");
+    expect(SERVER_INSTRUCTIONS).toContain("ignoreFile.missing: lines for the user to add.");
   });
 
   it("says how to get a changeset for an extract that stages nothing, and to decide grouped cards by rule (track B, #1154)", () => {

@@ -19,20 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
 - **`codebase_extract` indexes first (#1347):** when the code is not indexed, the index is stale
-  (or holds no code), or an index run is in flight, the call starts or joins the run and waits for
-  it within its own time budget (at most half of it, and never past 50 seconds), then extracts.
-  `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts the wait
-  is left running, and the error says how to wait for it (`codebase_index` with `status: true,
-  wait: 30`) before calling again. The new `autoIndex: false` keeps the old refusal.
+  (or holds no code), or an index run is in flight, a run or preview starts or joins the run and
+  waits for it within its own time budget (at most half of it, and never past 48 seconds), then
+  extracts. `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts
+  the wait is left running, and the error says how to wait for it (`codebase_index` with
+  `status: true, wait: 30`) before calling again. A page, view, list or reject-only call never
+  indexes. The index is judged once per call. The new `autoIndex: false` keeps the old refusal.
 - **`.cbmignore` stays out of the working tree's git view (#1300):** with no `.cbmignore` at the
   codebase root, `codebase_index` and `dr analyzer index` write DR's own and hide it from git
   through the repository's local exclude (`.git/info/exclude`, in no commit, shared by every
   worktree), so a read-only run leaves the tree as git saw it and a frozen review tag never has to
-  move. `ignoreFile` says nothing needs committing (`excludedBy`). A `.cbmignore` the developer
-  tracks, or wrote, is never edited: `ignoreFile.missing` lists the lines it lacks for the
-  developer to add, and `dr analyzer index` warns with them. An untracked `.cbmignore` an older DR
-  wrote is hidden the same way. The MCP server instructions and the planning skills no longer say
-  to commit the file.
+  move. The exclude entry is written first, so a failure to write it leaves no untracked file.
+  `ignoreFile` says nothing needs committing (`excludedBy`). Whose file it is goes by DR's heading
+  alone: a `.cbmignore` the developer tracks, or wrote, is never edited, in any worktree, and
+  `ignoreFile.missing` lists the lines it lacks for the developer to add and commit (`git add -f
+  .cbmignore` while untracked, since the shared exclude entry hides it); `dr analyzer index` warns
+  with them. An untracked `.cbmignore` an older DR wrote is hidden the same way. `codebase_extract`'s
+  folder suggestion and the planning skills ask for lines the developer adds to be committed the
+  same way, so every checkout indexes the same files; the server instructions and skills no longer
+  say to commit DR's own file.
 
 ### Fixed
 
@@ -40,9 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without node and edge counts used to be recorded as 0 nodes with a warning in the log, and
   `codebase_index` then reported the index `done` and `fresh`, so `codebase_extract` staged
   nothing for changed files. The run now waits for another process's index of the same code
-  (`status: indexing`) through `index_status` and records that run's counts; a failed answer,
-  counts that stay unreadable, or an index of 0 nodes fail the run, and the old index metadata is
-  removed, since the analyzer's graph may have been replaced. The freshness rule (`project_status`,
+  (`status: indexing`) through `index_status` and records that run's counts, with the older of the
+  two index times. A failed answer, counts that stay unreadable, or an index of 0 nodes fail the
+  run, and the old index metadata is removed, since the analyzer's graph may have been replaced. The freshness rule (`project_status`,
   `codebase_index`, `codebase_verify`, `codebase_extract`) and the background run's own check call
   an index that records 0 nodes stale, with the reason "it holds no code", so it is re-indexed
   instead of skipped. `codebase_index`'s `next` for a stale index now gives the reason.

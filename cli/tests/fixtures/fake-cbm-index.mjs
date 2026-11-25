@@ -7,7 +7,8 @@
  * FAKE_CBM_MODE picks how index_repository answers (the shapes codebase-memory-mcp 0.12.1 sends):
  * - "ok": `{ project, status: "indexed", nodes: 5, edges: 7 }`
  * - "indexing": `{ status: "indexing", slot, path }`, as when another process is indexing the same
- *   code; index_status then answers `indexing` twice and `ready` with the counts
+ *   code; index_status then answers `indexing` twice and `ready` with the counts and an older
+ *   `indexed_at` (that run read the code before this one started)
  * - "empty": `{ project, status: "indexed", nodes: 0, edges: 0 }`
  * It reads no code and keeps no state between processes beyond a counter file in FAKE_CBM_STATE.
  */
@@ -50,7 +51,7 @@ function callTool(name, args) {
   if (name === "index_status") {
     return statusTurn() < 2
       ? { project: args.project, status: "indexing" }
-      : { project: args.project, status: "ready", nodes: 6, edges: 8, root_path: root };
+      : { project: args.project, status: "ready", nodes: 6, edges: 8, root_path: root, indexed_at: "2026-01-01T00:00:00Z" };
   }
   return { error: `fake-cbm-index does not implement ${name}` };
 }

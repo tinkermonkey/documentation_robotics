@@ -54,7 +54,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   them review the staged elements (`changeset_unstage` the ones they disagree with). To see the
   hidden cards, call the run again with `tier1: false`; the developer can switch stage mode off
   with `dr analyzer tier1 set mode suggest`. Don't pass `acceptTier1` then: it is ignored. When `next` suggests folders
-  for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
+  for `.cbmignore`, ask the developer before adding them, and have them commit the file
+  (`git add -f .cbmignore`: DR's local exclude hides it until it is tracked), so every checkout
+  and clone indexes the same files; DR never edits a tracked `.cbmignore`. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.
 - `codebase_extract` cards come from the declarations the code index reports (classes, interfaces,

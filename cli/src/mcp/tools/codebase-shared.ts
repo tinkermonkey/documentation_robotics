@@ -518,6 +518,25 @@ export async function assessIndex(
   return { freshness, judgement };
 }
 
+/** The selected analyzer and its index, judged by the rule (assessSelectedIndex). */
+export interface IndexAssessment {
+  analyzer: string | null;
+  freshness: IndexFreshness;
+  judgement: IndexJudgement | null;
+}
+
+/** assessIndex for the analyzer the session selected; not indexed when none is selected. */
+export async function assessSelectedIndex(
+  projectRoot: string,
+  codebaseRoot: string,
+  deps: CodebaseToolDeps,
+  options: { uncommittedEdits?: boolean } = {}
+): Promise<IndexAssessment> {
+  const analyzer = (await readSession(projectRoot))?.active_analyzer ?? null;
+  if (!analyzer) return { analyzer: null, freshness: { indexed: false, fresh: false }, judgement: null };
+  return { analyzer, ...(await assessIndex(projectRoot, analyzer, codebaseRoot, deps, options)) };
+}
+
 /**
  * The index part of a codebase tool result. `fresh` is true only for the `fresh` state. Without a
  * judgement it never judges by HEAD equality: it reports the freshness it was given, which
@@ -555,7 +574,8 @@ export const WAIT_FOR_INDEX = "Call codebase_index with status: true and wait: 3
  * no index run in flight. Otherwise a CLIError that points at codebase_index, then `tool` again.
  *
  * With `indexedFirst` (what indexFirst did just before), the returned judgement carries it, so the
- * tool's describeIndex says the call indexed first and how long it took.
+ * tool's describeIndex says the call indexed first and how long it took. With `assessment` (the one
+ * indexFirst made, with the same `uncommittedEdits`), the index isn't judged a second time.
  *
  * Uncommitted edits never block. With `uncommittedEdits: true`, `index.state` is
  * `fresh-with-uncommitted-edits` when uncommitted source edits are newer than the index, and
@@ -566,7 +586,7 @@ export async function requireFreshIndex(
   codebaseRoot: string,
   deps: CodebaseToolDeps,
   tool: string,
-  options: { uncommittedEdits?: boolean; indexedFirst?: IndexedFirst | null } = {}
+  options: { uncommittedEdits?: boolean; indexedFirst?: IndexedFirst | null; assessment?: IndexAssessment } = {}
 ): Promise<{
   analyzer: string;
   freshness: Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string };
@@ -579,10 +599,8 @@ export async function requireFreshIndex(
       `${WAIT_FOR_INDEX}, then call ${tool} again`,
     ]);
   }
-  const analyzer = (await readSession(projectRoot))?.active_analyzer;
-  const { freshness, judgement } = analyzer
-    ? await assessIndex(projectRoot, analyzer, codebaseRoot, deps, { uncommittedEdits: options.uncommittedEdits === true })
-    : { freshness: { indexed: false, fresh: false } as const, judgement: null };
+  const { analyzer, freshness, judgement } =
+    options.assessment ?? (await assessSelectedIndex(projectRoot, codebaseRoot, deps, { uncommittedEdits: options.uncommittedEdits === true }));
   if (!analyzer || !freshness.indexed || !judgement) {
     throw new CLIError("The code is not indexed", ErrorCategory.USER, [reindex]);
   }
