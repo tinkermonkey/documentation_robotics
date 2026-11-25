@@ -2,17 +2,17 @@ id: changeset-1795622899198-6991iqwka
 name: cli09-validate-upgrades
 description: 'CLI 0.9.0, Tool ergonomics, "Validation and upgrades": a model is checked against the spec it declares, not only the CLI''s catalog, so staging, model_validate and changeset_commit_preview refuse a type or relationship that exists only in a newer spec, naming both versions and project_upgrade (#1411). model_validate with layers places a link end named by UUID through the relationship''s recorded layers instead of calling it not found (#1259). spec_type takes a dotted layer.type id (#1280, carries fork PR #1288). project_status and project_upgrade''s preview say when a pending migration changes nothing but the manifest (#1435). project_upgrade and dr upgrade re-lay out model files written by an earlier dr as a previewed step of their own, and changeset_commit_preview says how many files a landing would re-lay out (#1439). Done: each behaviour has a unit test, and the end-to-end ones an integration test.'
 created: 2026-11-25T16:08:19.240Z
-modified: 2026-11-25T16:09:48.866Z
+modified: 2026-11-25T16:42:54.415Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 36
-  modifications: 5
+  additions: 48
+  modifications: 7
   deletions: 0
-lastSequence: 42
+lastSequence: 82
 unstaged:
   - sequence: 41
     removedAt: 42
@@ -27,3 +27,434 @@ unstaged:
         layer: application
         category: structural
       timestamp: 2026-11-25T16:09:42.377Z
+  - sequence: 1
+    removedAt: 43
+    change:
+      type: add
+      elementId: application.applicationfunction.declared-spec-gap
+      layerName: application
+      after:
+        id: 67adb8f6-7643-4fb5-9858-267916ab3ab6
+        path: application.applicationfunction.declared-spec-gap
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: declaredSpecGap
+        description: "Whether a node type or relationship triple of the bundled catalog is missing from the spec version a model declares, and from which version it exists: the check staging, validation and the landing preview share (#1411)."
+        metadata:
+          created_at: 2026-11-25T16:09:06.301Z
+          updated_at: 2026-11-25T16:09:06.301Z
+          version: 1
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 3
+    removedAt: 43
+    change:
+      type: add
+      elementId: application.applicationfunction.migration-kind
+      layerName: application
+      after:
+        id: 6a675a72-2596-4e2f-a4d7-809453ac1d7d
+        path: application.applicationfunction.migration-kind
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: migrationKind
+        description: "What a pending spec migration changes: manifest-only when every step on the path only stamps the version, so nothing in the model changes but manifest.yaml (#1435). project_status and project_upgrade's preview report it."
+        metadata:
+          created_at: 2026-11-25T16:09:06.301Z
+          updated_at: 2026-11-25T16:09:06.301Z
+          version: 1
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 17
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.declared-spec-gap::realizes::application.applicationservice.relationship-add-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.declared-spec-gap
+        target: application.applicationservice.relationship-add-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 18
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.declared-spec-gap::realizes::application.applicationservice.model-validate-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.declared-spec-gap
+        target: application.applicationservice.model-validate-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 19
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.relayout-model-files::realizes::application.applicationservice.project-upgrade-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.relayout-model-files
+        target: application.applicationservice.project-upgrade-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 21
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.relayout-model-files::realizes::application.applicationservice.changeset-commit-preview-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.relayout-model-files
+        target: application.applicationservice.changeset-commit-preview-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 22
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.migration-kind::realizes::application.applicationservice.project-upgrade-handler
+      layerName: application
+      after:
+        source: application.applicationfunction.migration-kind
+        target: application.applicationservice.project-upgrade-handler
+        predicate: realizes
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 23
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationcomponent.migration-registry::assigned-to::application.applicationfunction.migration-kind
+      layerName: application
+      after:
+        source: application.applicationcomponent.migration-registry
+        target: application.applicationfunction.migration-kind
+        predicate: assigned-to
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 25
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationcomponent.relationship-validator::assigned-to::application.applicationfunction.relationship-end-layer
+      layerName: application
+      after:
+        source: application.applicationcomponent.relationship-validator
+        target: application.applicationfunction.relationship-end-layer
+        predicate: assigned-to
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:06.862Z
+  - sequence: 29
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.declared-spec-gap::accesses::data-model.objectschema.spec-catalog-history
+      layerName: application
+      after:
+        source: application.applicationfunction.declared-spec-gap
+        target: data-model.objectschema.spec-catalog-history
+        predicate: accesses
+        layer: application
+        targetLayer: data-model
+        category: structural
+      timestamp: 2026-11-25T16:09:15.220Z
+  - sequence: 38
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.relayout-model-files::depends-on::application.applicationfunction.stringify-dr-yaml
+      layerName: application
+      after:
+        source: application.applicationfunction.relayout-model-files
+        target: application.applicationfunction.stringify-dr-yaml
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:42.377Z
+  - sequence: 39
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.migration-kind::depends-on::application.applicationfunction.migration-registry-get-migration-path
+      layerName: application
+      after:
+        source: application.applicationfunction.migration-kind
+        target: application.applicationfunction.migration-registry-get-migration-path
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:42.377Z
+  - sequence: 40
+    removedAt: 43
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.relationship-validator-validate-model::depends-on::application.applicationfunction.relationship-end-layer
+      layerName: application
+      after:
+        source: application.applicationfunction.relationship-validator-validate-model
+        target: application.applicationfunction.relationship-end-layer
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:09:42.377Z
+  - sequence: 2
+    removedAt: 69
+    change:
+      type: add
+      elementId: application.applicationfunction.relayout-model-files
+      layerName: application
+      after:
+        id: 7171dd33-c11c-4046-b9ad-beaee4bdd7c6
+        path: application.applicationfunction.relayout-model-files
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: relayoutModelFiles
+        description: Lays a model's element files out as dr writes them, data unchanged, or with dryRun lists the files not in dr's layout. project_upgrade and dr upgrade run it as a previewed step of their own; changeset_commit_preview counts the files a landing would re-lay out. Moved from cli/scripts/relayout-model-files.ts, which now calls it (#1439).
+        metadata:
+          created_at: 2026-11-25T16:09:06.301Z
+          updated_at: 2026-11-25T16:09:06.301Z
+          version: 1
+      timestamp: 2026-11-25T16:09:06.862Z
+    rewritten: true
+  - sequence: 48
+    removedAt: 72
+    change:
+      type: add
+      elementId: application.applicationfunction.files-a-landing-relays-out
+      layerName: application
+      after:
+        id: d7cdd876-3b1b-450d-af9c-95512ef7eee0
+        path: application.applicationfunction.files-a-landing-relays-out
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: filesALandingRelaysOut
+        description: "The element files a landing of a changeset's changes would write that are not in dr's layout: each file holding an element it adds, updates or deletes, and the file of each type it adds to (#1439)."
+        metadata:
+          created_at: 2026-11-25T16:42:35.476Z
+          updated_at: 2026-11-25T16:42:35.476Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 49
+    removedAt: 73
+    change:
+      type: add
+      elementId: application.applicationfunction.landing-relayout-note
+      layerName: application
+      after:
+        id: 60efb39d-ca69-4eb4-b48c-d910e09275d5
+        path: application.applicationfunction.landing-relayout-note
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: landingRelayoutNote
+        description: "The landing summary's line naming the files a landing would lay out anew, with project_upgrade relayout: true as the way to do it first in a commit of its own (#1439)."
+        metadata:
+          created_at: 2026-11-25T16:42:35.476Z
+          updated_at: 2026-11-25T16:42:35.476Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 47
+    removedAt: 74
+    change:
+      type: add
+      elementId: application.applicationfunction.migration-registry-migration-kind
+      layerName: application
+      after:
+        id: 1330d43e-e554-459b-9331-0f10b39842c5
+        path: application.applicationfunction.migration-registry-migration-kind
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: MigrationRegistry migrationKind
+        description: "What a pending spec migration changes: manifest-only when every step on the path only stamps the version (stampsOnly), so nothing in the model changes but spec_version in manifest.yaml; model otherwise. project_status reports it (#1435)."
+        metadata:
+          created_at: 2026-11-25T16:42:35.476Z
+          updated_at: 2026-11-25T16:42:35.476Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 75
+    change:
+      type: add
+      elementId: application.applicationfunction.relationship-end-layer
+      layerName: application
+      after:
+        id: f6fa8264-1f76-4f51-a591-5ff3497b09e1
+        path: application.applicationfunction.relationship-end-layer
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: relationshipEndLayer
+        description: "The layer a relationship's source or target is in: the id's first segment for a dotted id, else the layer the relationship row records (layer for the source, targetLayer or layer for the target). Lets a layer-scoped validation place an end named by UUID without loading other layers (#1259)."
+        metadata:
+          created_at: 2026-11-25T16:09:06.301Z
+          updated_at: 2026-11-25T16:09:06.301Z
+          version: 1
+      timestamp: 2026-11-25T16:09:06.862Z
+    rewritten: true
+  - sequence: 45
+    removedAt: 76
+    change:
+      type: add
+      elementId: application.applicationfunction.relationship-not-in-declared-spec
+      layerName: application
+      after:
+        id: 053032f5-6cfb-48e8-a857-2a4a89f76655
+        path: application.applicationfunction.relationship-not-in-declared-spec
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: relationshipNotInDeclaredSpec
+        description: Whether the spec the model's manifest declares lacks a relationship type (source type, predicate, destination type) of the bundled catalog, and from which spec version it exists. relationship_add and dr relationship add (through validateRelationshipCombination) and the relationship validator refuse such a relationship (#1411).
+        metadata:
+          created_at: 2026-11-25T16:42:35.476Z
+          updated_at: 2026-11-25T16:42:35.476Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 77
+    change:
+      type: add
+      elementId: application.applicationfunction.relayout-model-files
+      layerName: application
+      after:
+        id: 7171dd33-c11c-4046-b9ad-beaee4bdd7c6
+        path: application.applicationfunction.relayout-model-files
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: relayoutModelFiles
+        description: "Lays a model's element files out as dr writes them, data unchanged, or with dryRun lists the files not in dr's layout. The upgrade scan counts them, and plans it as a step of its own with project_upgrade relayout: true or dr upgrade --relayout. Moved from cli/scripts/relayout-model-files.ts, which now calls it (#1439)."
+        metadata:
+          created_at: 2026-11-25T16:09:06.301Z
+          updated_at: 2026-11-25T16:09:06.301Z
+          version: 1
+      timestamp: 2026-11-25T16:42:37.117Z
+    rewritten: true
+  - sequence: 44
+    removedAt: 78
+    change:
+      type: add
+      elementId: application.applicationfunction.type-not-in-declared-spec
+      layerName: application
+      after:
+        id: 6eb4d87d-7778-4468-9e6d-033681b610ed
+        path: application.applicationfunction.type-not-in-declared-spec
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: typeNotInDeclaredSpec
+        description: Whether the spec the model's manifest declares lacks a node type of the bundled catalog, and from which spec version it exists, read from the spec catalog history. model_add, model_update, dr add and the validator's schema stage refuse such a type (#1411).
+        metadata:
+          created_at: 2026-11-25T16:42:35.475Z
+          updated_at: 2026-11-25T16:42:35.475Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 46
+    removedAt: 79
+    change:
+      type: add
+      elementId: data-model.objectschema.declared-spec-gap
+      layerName: data-model
+      after:
+        id: f5a6822e-7e09-4f4e-a2f8-c4d8c55bb5f8
+        path: data-model.objectschema.declared-spec-gap
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: DeclaredSpecGap
+        description: "A type or relationship the model's declared spec lacks: the model's version, the first version that has it, the bundled version, and the one-line message naming them and project_upgrade."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:42:35.476Z
+          updated_at: 2026-11-25T16:42:35.476Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 50
+    removedAt: 80
+    change:
+      type: add
+      elementId: data-model.objectschema.relayout-result
+      layerName: data-model
+      after:
+        id: d3d3ce2e-1cc1-4dd0-89d6-99571460be0b
+        path: data-model.objectschema.relayout-result
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: RelayoutResult
+        description: "What a relayout found: the element files looked at, the ones not in dr's layout, and the ones left alone with why."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:42:35.476Z
+          updated_at: 2026-11-25T16:42:35.476Z
+          version: 1
+      timestamp: 2026-11-25T16:42:35.701Z
+    rewritten: true
+  - sequence: 27
+    removedAt: 81
+    change:
+      type: add
+      elementId: data-model.objectschema.spec-catalog-history
+      layerName: data-model
+      after:
+        id: 3f6b58e7-e501-4a95-b26b-bda93c210c6b
+        path: data-model.objectschema.spec-catalog-history
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: SpecCatalogHistory
+        description: "Generated table: for every node type and relationship triple of the bundled catalog that a released spec before it lacked, the spec version it exists from, and the released versions it was built from (cli/scripts/generate-spec-catalog-history.ts reads spec/dist at each version's last commit)."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:09:15.076Z
+          updated_at: 2026-11-25T16:09:15.076Z
+          version: 1
+      timestamp: 2026-11-25T16:09:15.220Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 82
+    change:
+      type: add
+      elementId: product.feature.declared-spec-check
+      layerName: product
+      after:
+        id: 0866f6c4-2665-498b-8b6b-3c1dd995ce99
+        path: product.feature.declared-spec-check
+        spec_node_id: product.feature
+        type: feature
+        layer_id: product
+        name: Declared-spec check
+        description: 'relationship_add, model_add, model_update, model_validate and changeset_commit_preview check a type or relationship against the spec the model''s manifest declares, not only the CLI''s own catalog. One that exists only in a newer spec is refused: "<type or triple> is not in spec 0.13.0, the model''s version; it exists from 0.14.0. Run project_upgrade first." The versions come from a table generated from the released spec catalogs (0.8.1 on) and committed with the CLI (#1411).'
+        attributes:
+          priority: high
+          status: developing
+        metadata:
+          created_at: 2026-11-25T16:09:06.301Z
+          updated_at: 2026-11-25T16:09:06.301Z
+          version: 1
+      timestamp: 2026-11-25T16:09:06.862Z
+    rewritten: true
