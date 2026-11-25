@@ -2,14 +2,128 @@ id: changeset-1795622887596-sj2wvbxgf
 name: cli09-server-viewer-processes
 description: 'CLI 0.9.0 tranche "Dependable server and viewer processes" (#1436 #1427 #1438 #1369 #1282 #1308 #1362 #1376). Done looks like: farm listings count staged changesets from metadata.yaml alone (cached by mtime, concurrent listings share one run) and single-project routes scan one project; a long-lived DR process refuses base-model writes once the installed CLI changed under it, and restarts itself when nothing but MCP sessions use it; the test preload cannot write the real user farm, and farm listings flag a project whose repository is gone; dr serve sweeps only its own farm''s per-project viewers and has an isolated, authenticated test mode (--state-dir, --token-file, --no-sweep, a JSON ready line); ensureCentralServer reports a process that is not answering /health with its log path; viewer files are served with no-cache for index.html so a rebuilt --viewer-path bundle shows; the server instructions and project_status say what survived a reconnect.'
 created: 2026-11-25T16:08:07.642Z
-modified: 2026-11-25T16:09:36.235Z
+modified: 2026-11-25T16:46:19.480Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 17
-  modifications: 7
+  additions: 16
+  modifications: 8
   deletions: 0
-lastSequence: 23
+lastSequence: 30
+unstaged:
+  - sequence: 10
+    removedAt: 24
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.central-stale-reason::depends-on::application.applicationfunction.running-code-drift
+      layerName: application
+      after:
+        source: application.applicationfunction.central-stale-reason
+        target: application.applicationfunction.running-code-drift
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:59.402Z
+  - sequence: 2
+    removedAt: 26
+    change:
+      type: add
+      elementId: application.applicationfunction.assert-running-code-installed
+      layerName: application
+      after:
+        id: dd3408c1-f5e9-4dc9-ae18-aa2352715d7e
+        path: application.applicationfunction.assert-running-code-installed
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: assertRunningCodeInstalled
+        description: "In a long-lived DR process (the central process enables it), refuses a write to the base model once runningCodeDrift finds the installed CLI changed under it: nothing is written, and the error names both versions and the restart (dr serve --stop; the dr MCP server reconnects to a process running the installed CLI). Short-lived dr commands never trip it (#1427)."
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+      timestamp: 2026-11-25T16:08:59.402Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 27
+    change:
+      type: add
+      elementId: application.applicationfunction.central-stale-reason
+      layerName: application
+      after:
+        id: 3f45a542-7ff1-4f76-9d3a-b81cfcd9c1d9
+        path: application.applicationfunction.central-stale-reason
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: centralStaleReason
+        description: "Why the central process should restart, or null: the installed CLI changed under it (runningCodeDrift) and no browser tab or DrBot turn is connected. MCP sessions do not hold it, because the dr mcp bridge reconnects and replays them on the installed CLI's process. Checked on the idle watch's interval (#1427)."
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+      timestamp: 2026-11-25T16:08:59.402Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 28
+    change:
+      type: add
+      elementId: application.applicationfunction.running-code-drift
+      layerName: application
+      after:
+        id: c9c1c309-a537-4892-a1d2-126ae1f2f06a
+        path: application.applicationfunction.running-code-drift
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: runningCodeDrift
+        description: "How the CLI installed where this process was loaded from differs from the code it runs: another version on disk, or its files written after the process started. Null when they agree. What project_status's server section and the write guard read (#1427)."
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+      timestamp: 2026-11-25T16:08:59.402Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 29
+    change:
+      type: add
+      elementId: application.applicationfunction.staged-changeset-storage-list-statuses
+      layerName: application
+      after:
+        id: fa1a5a84-5f5e-4ea4-a6b1-ab134be7f833
+        path: application.applicationfunction.staged-changeset-storage-list-statuses
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: StagedChangesetStorage listStatuses
+        description: Each changeset folder's id and status, read from its metadata.yaml alone (never changes.yaml), with a status kept until the file's mtime or size changes. What a farm listing counts a checkout's staged changesets with, so listing projects no longer YAML-parses every changeset in the farm (#1436).
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+      timestamp: 2026-11-25T16:08:59.402Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 30
+    change:
+      type: add
+      elementId: application.applicationfunction.visualization-server-serve-custom-viewer
+      layerName: application
+      after:
+        id: 309be28e-4b18-44af-b0ef-07e145e85906
+        path: application.applicationfunction.visualization-server-serve-custom-viewer
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: VisualizationServer serveCustomViewer
+        description: "Serves a file of the viewer build (the bundled one, or --viewer-path) from disk on every request. index.html and every file without a content hash in its name go out with Cache-Control: no-cache and an ETag (a 304 when unchanged), so a rebuilt bundle shows on the next load; hashed assets are immutable (#1308)."
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+      timestamp: 2026-11-25T16:08:59.402Z
+    rewritten: true

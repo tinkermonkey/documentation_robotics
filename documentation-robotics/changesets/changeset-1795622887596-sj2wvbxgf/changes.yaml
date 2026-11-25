@@ -13,7 +13,12 @@
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
       version: 1
-  timestamp: 2026-11-25T16:08:59.402Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staged-changeset-storage.ts
+          symbol: StagedChangesetStorage.listStatuses
+  timestamp: 2026-11-25T16:46:19.477Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.running-code-drift
@@ -30,7 +35,12 @@
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
       version: 1
-  timestamp: 2026-11-25T16:08:59.402Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/running-code.ts
+          symbol: runningCodeDrift
+  timestamp: 2026-11-25T16:46:19.477Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.assert-running-code-installed
@@ -47,7 +57,12 @@
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
       version: 1
-  timestamp: 2026-11-25T16:08:59.402Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/running-code.ts
+          symbol: assertRunningCodeInstalled
+  timestamp: 2026-11-25T16:46:19.477Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.central-stale-reason
@@ -64,7 +79,12 @@
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
       version: 1
-  timestamp: 2026-11-25T16:08:59.402Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/central-lifetime.ts
+          symbol: centralStaleReason
+  timestamp: 2026-11-25T16:46:19.477Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.visualization-server-serve-custom-viewer
@@ -81,7 +101,12 @@
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
       version: 1
-  timestamp: 2026-11-25T16:08:59.402Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: VisualizationServer.serveCustomViewer
+  timestamp: 2026-11-25T16:46:19.477Z
   sequenceNumber: 4
 - type: relationship-add
   elementId: application.applicationcomponent.staged-changeset-storage::assigned-to::application.applicationfunction.staged-changeset-storage-list-statuses
@@ -138,17 +163,6 @@
     category: structural
   timestamp: 2026-11-25T16:08:59.402Z
   sequenceNumber: 9
-- type: relationship-add
-  elementId: application.applicationfunction.central-stale-reason::depends-on::application.applicationfunction.running-code-drift
-  layerName: application
-  after:
-    source: application.applicationfunction.central-stale-reason
-    target: application.applicationfunction.running-code-drift
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:59.402Z
-  sequenceNumber: 10
 - type: relationship-add
   elementId: application.applicationfunction.watch-central-idle::depends-on::application.applicationfunction.central-stale-reason
   layerName: application
@@ -459,3 +473,39 @@
     category: structural
   timestamp: 2026-11-25T16:09:36.231Z
   sequenceNumber: 23
+- type: update
+  elementId: application.applicationfunction.read-installed-cli
+  layerName: application
+  before:
+    id: 2bc80867-6a6a-493f-a6f7-195fbb39c7b6
+    path: application.applicationfunction.read-installed-cli
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readInstalledCli
+    description: "The CLI installed where this process was loaded from, read from disk now: its version, the spec version it bundles and when its files last changed."
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: readInstalledCli
+    metadata: &a18
+      created_at: 2026-11-20T16:39:29.295Z
+      updated_at: 2026-11-20T16:39:29.295Z
+      version: 1
+  after:
+    id: 2bc80867-6a6a-493f-a6f7-195fbb39c7b6
+    path: application.applicationfunction.read-installed-cli
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readInstalledCli
+    description: "The CLI installed where this process was loaded from, read from disk now: its version, the spec it bundles and when its files last changed. Moved from project-status-collectors to utils/running-code.ts, so the write guard reads it too (#1427)."
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/utils/running-code.ts
+          symbol: readInstalledCli
+    metadata: *a18
+  timestamp: 2026-11-25T16:45:39.675Z
+  sequenceNumber: 25
