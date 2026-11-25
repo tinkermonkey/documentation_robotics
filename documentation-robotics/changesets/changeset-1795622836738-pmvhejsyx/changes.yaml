@@ -1530,7 +1530,7 @@
     type: applicationfunction
     layer_id: application
     name: retireLegacyActiveMarker
-    description: "The upgrade's step for the active-changeset marker left in its old place (documentation-robotics/changesets/.active): when .dr/ has no marker the changeset it names moves there, and the old file is removed; committing the deletion is the user's. Null when there is no old file."
+    description: "The upgrade's step for the active-changeset marker left in its old place (documentation-robotics/changesets/.active): when .dr/ has no marker, the changeset it names becomes active there only if it is still staged; one that is committed, discarded or gone is reported as stale and .dr/active-changeset is left empty. The old file is removed either way; committing the deletion is the user's. Null when there is no old file."
     source_reference:
       provenance: manual
       locations:
@@ -1540,7 +1540,7 @@
       created_at: 2026-11-25T17:12:51.188Z
       updated_at: 2026-11-25T17:12:51.188Z
       version: 1
-  timestamp: 2026-11-25T17:12:51.215Z
+  timestamp: 2026-11-25T17:53:20.434Z
   sequenceNumber: 106
 - type: add
   elementId: application.applicationfunction.legacy-marker-report
@@ -1708,3 +1708,39 @@
     category: structural
   timestamp: 2026-11-25T17:31:11.456Z
   sequenceNumber: 120
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan, and remove it when applied, moving its changeset to .dr/ when the checkout has no marker there. A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes: &a50
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts), previews the migration unless apply is set; leaves installed integrations alone and says when a project still has them. CLI: dr upgrade (cli/src/commands/upgrade.ts), which also brings installed integration files up to date. Model writes skip unchanged files (writeLayer, cli/src/core/model.ts). Issues #1246, #1165, #1168."
+    source_reference: &a51
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a52
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan (project_upgrade at the top level, legacyMarker, with a next line), and remove it when applied: when the checkout has no marker in .dr/, the changeset it names becomes active only if it is still staged, else nothing is made active and the stale id is said. A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes: *a50
+    source_reference: *a51
+    metadata: *a52
+  timestamp: 2026-11-25T17:53:20.498Z
+  sequenceNumber: 122

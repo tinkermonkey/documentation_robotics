@@ -11,7 +11,7 @@ description: |-
 
   **Done when** each issue's behaviour has a unit test (and an integration test where it is end to end), the skills and server instructions say the same, and verify finds the build matches this plan.
 created: 2026-11-25T16:07:16.780Z
-modified: 2026-11-25T17:31:11.470Z
+modified: 2026-11-25T17:53:20.524Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
@@ -19,9 +19,9 @@ origin:
 purpose: plan
 stats:
   additions: 79
-  modifications: 17
+  modifications: 18
   deletions: 0
-lastSequence: 120
+lastSequence: 122
 unstaged:
   - sequence: 9
     removedAt: 79
@@ -536,4 +536,29 @@ unstaged:
             - file: cli/src/commands/changeset.ts
               symbol: changesetShowCommand
       timestamp: 2026-11-25T17:12:40.988Z
+    rewritten: true
+  - sequence: 106
+    removedAt: 121
+    change:
+      type: add
+      elementId: application.applicationfunction.retire-legacy-active-marker
+      layerName: application
+      after:
+        id: 63f3cd40-5b69-442d-b098-c60ddc559073
+        path: application.applicationfunction.retire-legacy-active-marker
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: retireLegacyActiveMarker
+        description: "The upgrade's step for the active-changeset marker left in its old place (documentation-robotics/changesets/.active): when .dr/ has no marker the changeset it names moves there, and the old file is removed; committing the deletion is the user's. Null when there is no old file."
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/active-changeset-marker.ts
+              symbol: retireLegacyActiveMarker
+        metadata:
+          created_at: 2026-11-25T17:12:51.188Z
+          updated_at: 2026-11-25T17:12:51.188Z
+          version: 1
+      timestamp: 2026-11-25T17:12:51.215Z
     rewritten: true
