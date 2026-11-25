@@ -35,7 +35,7 @@ import { schemaLookupHint } from "../../utils/error-hints.js";
 import { SchemaValidator } from "../../validators/schema-validator.js";
 import { CLIError, ErrorCategory, findSimilar, formatValidOptions, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { activeStagedChangeset } from "./changeset-shared.js";
+import { writeTargetChangeset } from "./changeset-shared.js";
 import { applyRelationshipPlan, previewChangeset, relationshipBatchReport, relationshipItemSchema } from "./relationship-tools.js";
 import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchItemResult } from "./batch-result.js";
 
@@ -388,7 +388,7 @@ async function addElementBatch(
 ) {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await activeStagedChangeset(manager);
+  const active = await writeTargetChangeset(manager);
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
 

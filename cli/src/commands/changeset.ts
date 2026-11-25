@@ -685,14 +685,18 @@ export async function changesetDeactivateCommand(options: { model?: string } = {
 
     if (!active) {
       // A marker left behind by a changeset that is no longer staged: it is not the active
-      // changeset, but deactivating is the moment to remove it.
+      // changeset, but deactivating is the moment to remove it. So is a landed note (#1437):
+      // deactivating says writes go to the base model now.
       const stale = await manager.staleActiveMarker();
-      if (stale) await manager.clearActive();
+      const landed = await manager.landedNote();
+      if (stale || landed) await manager.clearActive();
       handleInfo(
         ansis.yellow(
-          stale
-            ? `No active changeset (cleared a marker left by ${staleMarkerLabel(stale)})`
-            : "No active changeset"
+          landed
+            ? `No active changeset: '${landed.name}' was landed; writes go to the base model now`
+            : stale
+              ? `No active changeset (cleared a marker left by ${staleMarkerLabel(stale)})`
+              : "No active changeset"
         )
       );
       if (isTelemetryEnabled && span) {
@@ -870,6 +874,15 @@ export async function changesetStatusCommand(options: { model?: string } = {}): 
 
     if (!active) {
       console.log(ansis.dim("No active changeset"));
+      const landed = await manager.landedNote();
+      if (landed) {
+        console.log(
+          ansis.yellow(
+            `  '${landed.name}' was landed${landed.landedAt ? ` at ${landed.landedAt}` : ""} while it was active: writes are refused ` +
+              "until you activate or create a changeset, or run dr changeset deactivate to write the base model"
+          )
+        );
+      }
       const stale = await manager.staleActiveMarker();
       if (stale) {
         console.log(

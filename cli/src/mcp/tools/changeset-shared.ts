@@ -93,6 +93,15 @@ export async function activeStagedChangeset(manager: StagingAreaManager): Promis
   return active && active.status === "staged" ? active : null;
 }
 
+/**
+ * Where a write tool writes: the active changeset, or null for the base model. Refuses when the
+ * active changeset was landed and nothing was activated or deactivated since (#1437), so a write
+ * aimed at it never goes to the base model in its place. Reads use activeStagedChangeset.
+ */
+export async function writeTargetChangeset(manager: StagingAreaManager): Promise<Changeset | null> {
+  return manager.getWriteTarget();
+}
+
 /** Builds the projected graph for a changeset (by id/name, or the active one). */
 export async function loadChangesetGraph(
   model: Model,

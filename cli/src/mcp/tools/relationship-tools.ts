@@ -38,7 +38,7 @@ import { ModelReportOrchestrator } from "../../reports/model-report-orchestrator
 import { emitLog, SeverityNumber } from "../../telemetry/index.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
-import { activeStagedChangeset } from "./changeset-shared.js";
+import { writeTargetChangeset } from "./changeset-shared.js";
 import { BATCH_RESULT_LINE_WIDTH, batchReport, limitSchema, verboseSchema, type BatchReport } from "./batch-result.js";
 
 // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ async function addSingleRelationship(
 ): Promise<CallToolResult> {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await activeStagedChangeset(manager);
+  const active = await writeTargetChangeset(manager);
   const graph = await ChangesetGraph.build(model, active ?? previewChangeset());
 
   // An end that is not an exact id is read as the one element it names by name or by id without
@@ -215,7 +215,7 @@ export async function addRelationshipBatch(
 ): Promise<RelationshipBatchSummary> {
   const model = await loadModel(rootPath);
   const manager = new StagingAreaManager(model.rootPath, model);
-  const active = await activeStagedChangeset(manager);
+  const active = await writeTargetChangeset(manager);
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
   const plan = await planRelationshipBatch(graph, changeset, items, { addStatus: active ? "staged" : "added" });
@@ -323,7 +323,7 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
   return runTool(() => withProjectWriteLock(args.rootPath, async () => {
     const model = await loadModel(args.rootPath);
     const manager = new StagingAreaManager(model.rootPath, model);
-    const active = await activeStagedChangeset(manager);
+    const active = await writeTargetChangeset(manager);
 
     if (!active) {
       const { deletedCount } = await deleteRelationshipHandler(

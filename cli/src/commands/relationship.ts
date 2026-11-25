@@ -144,10 +144,12 @@ export async function addRelationshipHandler(
  */
 export type AddRelationshipOutcome = "added" | "staged" | "restored" | "duplicate";
 
-/** The active changeset when one is set and can accept changes, else null. */
+/**
+ * Where a relationship write goes: the active changeset, or null for the base model. Refuses when
+ * the active changeset was landed and nothing was activated or deactivated since (#1437).
+ */
 async function activeStagedChangeset(manager: StagingAreaManager): Promise<Changeset | null> {
-  const active = await manager.getActive();
-  return active && active.status === "staged" ? active : null;
+  return manager.getWriteTarget();
 }
 
 /**
@@ -255,8 +257,8 @@ export async function addRelationship(
 
   // Check for active changeset — stage relationship instead of writing directly
   const stagingManager = new StagingAreaManager(model.rootPath, model);
-  const activeChangesetId = await stagingManager.getActiveId();
-  const activeChangeset = activeChangesetId ? await activeStagedChangeset(stagingManager) : null;
+  const activeChangeset = await activeStagedChangeset(stagingManager);
+  const activeChangesetId = activeChangeset?.id ?? null;
 
   // Guard against duplicate relationships before staging or writing. Inside a changeset the
   // projected graph is the reference: it holds what this changeset already staged, and drops
@@ -418,9 +420,7 @@ export async function deleteRelationshipHandler(
   // Inside a changeset, match against its projected graph: a relationship this changeset added is
   // unstaged (not deleted on top of itself), and one it already deletes is not matched again.
   const changesetManager = new StagingAreaManager(model.rootPath, model);
-  const changeset = (await changesetManager.getActiveId())
-    ? await activeStagedChangeset(changesetManager)
-    : null;
+  const changeset = await activeStagedChangeset(changesetManager);
   if (changeset) {
     const graph = await ChangesetGraph.build(model, changeset);
     const matches = liveRelationshipsBetween(graph, source, target, predicate);
@@ -458,7 +458,7 @@ export async function deleteRelationshipHandler(
 
   // Check for active changeset — stage deletion instead of writing directly
   const stagingManager = new StagingAreaManager(model.rootPath, model);
-  const activeChangesetId = await stagingManager.getActiveId();
+  const activeChangesetId = (await stagingManager.getWriteTarget())?.id ?? null;
 
   if (activeChangesetId) {
     // Stage each relationship deletion in the active changeset
@@ -603,7 +603,7 @@ export async function pruneRelationshipsCommand(
   const analysis = findDanglingRelationships(model.relationships.getAll(), known, { layers });
 
   const stagingManager = new StagingAreaManager(model.rootPath, model);
-  const activeChangeset = await stagingManager.getActive();
+  const activeChangeset = await stagingManager.getWriteTarget();
   const staging = !!activeChangeset && activeChangeset.status === "staged";
 
   const result: PruneRelationshipsResult = {

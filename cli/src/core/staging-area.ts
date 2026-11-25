@@ -11,7 +11,8 @@
 import path from "path";
 import ansis from "ansis";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
-import { clearActiveMarker, readActiveMarker, writeActiveMarker } from "./active-changeset-marker.js";
+import { clearActiveMarker, readActiveMarker, readLandedNote, writeActiveMarker, writeLandedNote } from "./active-changeset-marker.js";
+import { changesetNotStagedError, landedActiveChangesetError, landingLockOwner } from "./changeset-write-refusal.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
 import { Changeset, StagedChange, withSequenceNumbers, type ChangesetStatus } from "./changeset.js";
 import { ChangesetValidator } from "./changeset-validator.js";
@@ -166,6 +167,12 @@ export interface CommitResult {
    */
   reconciled?: ReconciledStamp;
 }
+
+/**
+ * How long a landing waits for a write in progress to finish before it gives up (a write holds the
+ * changeset's lock for one load and save).
+ */
+const LANDING_LOCK_TIMEOUT_MS = 30_000;
 
 /**
  * StagingAreaManager provides changeset and staging operations
@@ -422,10 +429,7 @@ export class StagingAreaManager {
 
     // Only allow staging when status is 'staged' (not 'committed' or 'discarded')
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot stage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged' to accept new changes.`
-      );
+      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
     }
 
     const stagedChange: Omit<StagedChange, "sequenceNumber"> = {
@@ -462,10 +466,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot stage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged' to accept new changes.`
-      );
+      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
     }
     const now = new Date().toISOString();
     await this.storage.addChanges(
@@ -503,10 +504,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot change staged changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
     }
 
     await this.storage.updateChange(changesetId, elementId, {
@@ -536,10 +534,7 @@ export class StagingAreaManager {
     }
 
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
     }
 
     // Remove the element's changes and resequence remaining changes
@@ -568,10 +563,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
     }
 
     await this.storage.removeChanges(changesetId, elementIds);
@@ -596,10 +588,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw new Error(
-        `Cannot unstage changes on changeset with status '${changeset.status}'. ` +
-          `Changeset must have status 'staged'.`
-      );
+      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
     }
     const removedAt = await this.storage.removeChangesBySequence(changeset.id, sequences);
     const engine = await this.getProjectionEngine();
@@ -942,7 +931,26 @@ export class StagingAreaManager {
     // The whole landing is one tracked write: a reader in this process doesn't read the model while
     // it is half landed (or being restored from the backup). A dry run writes nothing.
     if (options.dryRun === true) return this.commitUntracked(model, changesetId, options);
-    return trackModelWrite(this.rootPath, undefined, () => this.commitUntracked(model, changesetId, options));
+    return trackModelWrite(this.rootPath, undefined, () => this.commitLocked(model, changesetId, options));
+  }
+
+  /**
+   * A real landing, under the changeset's file lock from the read of what it lands to the save that
+   * marks it committed (#1437). Every stage, restage and unstage takes the same lock, so a write
+   * either goes in before the landing reads the changeset, and lands with it, or is refused: at
+   * once while the landing holds the lock (its owner says so), and as no longer staged after. None
+   * is saved over. The lock is kept fresh for as long as the landing takes.
+   */
+  private async commitLocked(model: Model, changesetId: string, options: CommitOptions): Promise<CommitResult> {
+    this.validateChangesetId(changesetId);
+    const changeset = await this.load(changesetId);
+    if (!changeset?.id) {
+      throw new Error(`Changeset '${changesetId}' not found`);
+    }
+    return new FileLock(this.storage.getChangesetPath(changeset.id)).withLock(
+      () => this.commitUntracked(model, changeset.id!, options),
+      { owner: landingLockOwner(changeset), heartbeat: true, timeout: LANDING_LOCK_TIMEOUT_MS }
+    );
   }
 
   private async commitUntracked(
@@ -960,6 +968,11 @@ export class StagingAreaManager {
 
       (span as any).setAttribute("changeset.name", changeset.name);
       (span as any).setAttribute("changeset.changeCount", changeset.changes.length);
+
+      // Landed (or discarded) meanwhile, by another landing that held the lock first: never twice.
+      if (changeset.status !== "staged") {
+        throw new Error(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can be committed`);
+      }
 
       // Step 0: A record never lands, dry run or not.
       const refusal = await this.landingRefusal(changeset);
@@ -1461,6 +1474,14 @@ export class StagingAreaManager {
           if ((await this.readActiveMarker()) === changeset.id) {
             await this.clearActive();
             result.deactivated = true;
+            // A write still aimed at it refuses, naming it, instead of going to the base model.
+            await writeLandedNote(this.rootPath, { id: changeset.id!, name: changeset.name, landedAt: committedAt }).catch(
+              (error) =>
+                emitLog(SeverityNumber.WARN, "Could not record the landed changeset for later writes", {
+                  "changeset.id": changesetId,
+                  "error.message": getErrorMessage(error),
+                })
+            );
           }
         } catch (error) {
           result.deactivationError = getErrorMessage(error);
@@ -1731,6 +1752,27 @@ export class StagingAreaManager {
 
     const changeset = await this.storage.load(id);
     return changeset && changeset.status === "staged" ? changeset : null;
+  }
+
+  /**
+   * Where a write goes: the active changeset, or null for the base model. Refuses, naming the
+   * changeset, when the checkout's active changeset was landed and nothing was activated, created
+   * or deactivated since (the landed note, #1437): a write aimed at it is never made in the base
+   * model in its place. Every write path asks this instead of getActive.
+   *
+   * @throws ChangesetClosedToWritesError when the active changeset was landed
+   */
+  async getWriteTarget(): Promise<Changeset | null> {
+    const active = await this.getActive();
+    if (active) return active;
+    const landed = await readLandedNote(this.rootPath);
+    if (landed) throw landedActiveChangesetError(landed);
+    return null;
+  }
+
+  /** The landed note (see getWriteTarget), for status output and changeset_deactivate. */
+  async landedNote() {
+    return readLandedNote(this.rootPath);
   }
 
   /**

@@ -13,6 +13,13 @@
  *
  * Whether the changeset a marker names is still the active one is not decided here: a marker
  * counts only while it names a staged changeset (StagingAreaManager.getActive, Model.load).
+ *
+ * Beside it, the landed note (`.dr/landed-changeset`): written when a landing clears the marker of
+ * the changeset it landed, so a write that was aimed at that changeset refuses, naming it, instead
+ * of going to the base model (#1437). Naming another changeset active, or clearing the marker
+ * (deactivate), removes it. Like the marker it is per-checkout state that git ignores, so a fresh
+ * clone never has one: a marker left naming a committed changeset still reads as no active
+ * changeset there, and writes go to the base (#1218).
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -21,6 +28,9 @@ import path from "node:path";
 
 /** The marker, relative to the project root. */
 export const ACTIVE_MARKER_RELATIVE = path.join(".dr", "active-changeset");
+
+/** The landed note, relative to the project root. */
+export const LANDED_NOTE_RELATIVE = path.join(".dr", "landed-changeset");
 
 /** Where the marker was before it moved to `.dr/`, relative to the project root. */
 export const LEGACY_ACTIVE_MARKER_RELATIVE = path.join("documentation-robotics", "changesets", ".active");
@@ -71,16 +81,65 @@ export function readActiveMarkerSync(projectRoot: string): string | null {
   return null;
 }
 
-/** Name `changesetId` as the active changeset, in `.dr/`, and remove a marker left in the old place. */
+/**
+ * Name `changesetId` as the active changeset, in `.dr/`, and remove a marker left in the old place
+ * and any landed note: writes go to this changeset now.
+ */
 export async function writeActiveMarker(projectRoot: string, changesetId: string): Promise<void> {
   const file = activeMarkerPath(projectRoot);
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, `${changesetId}\n`, "utf-8");
   await rm(legacyActiveMarkerPath(projectRoot), { force: true });
+  await rm(landedNotePath(projectRoot), { force: true });
 }
 
-/** Remove the marker, from `.dr/` and from the old place. No active changeset afterwards. */
+/**
+ * Remove the marker, from `.dr/` and from the old place, and any landed note. No active changeset
+ * afterwards, and writes go to the base model.
+ */
 export async function clearActiveMarker(projectRoot: string): Promise<void> {
   await rm(activeMarkerPath(projectRoot), { force: true });
   await rm(legacyActiveMarkerPath(projectRoot), { force: true });
+  await rm(landedNotePath(projectRoot), { force: true });
+}
+
+/** The changeset a checkout was writing into when it was landed (the landed note). */
+export interface LandedNote {
+  id: string;
+  name: string;
+  /** When it landed (ISO 8601). */
+  landedAt: string;
+}
+
+export function landedNotePath(projectRoot: string): string {
+  return path.join(projectRoot, LANDED_NOTE_RELATIVE);
+}
+
+/**
+ * Record that the active changeset was landed. Written by a landing after it clears the marker,
+ * so the next write aimed at the changeset refuses instead of writing the base model.
+ */
+export async function writeLandedNote(projectRoot: string, note: LandedNote): Promise<void> {
+  const file = landedNotePath(projectRoot);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, `${JSON.stringify(note)}\n`, "utf-8");
+}
+
+/** The landed note, or null when there is none (or it can't be read as one). */
+export async function readLandedNote(projectRoot: string): Promise<LandedNote | null> {
+  let text: string;
+  try {
+    text = await readFile(landedNotePath(projectRoot), "utf-8");
+  } catch (error) {
+    if (isMissing(error)) return null;
+    throw error;
+  }
+  try {
+    const note = JSON.parse(text) as Partial<LandedNote>;
+    return typeof note.id === "string" && note.id
+      ? { id: note.id, name: typeof note.name === "string" ? note.name : note.id, landedAt: String(note.landedAt ?? "") }
+      : null;
+  } catch {
+    return null;
+  }
 }

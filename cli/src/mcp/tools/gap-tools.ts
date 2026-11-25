@@ -32,7 +32,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { normalizeNodeType } from "../../generated/node-types.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { findElementLayer } from "../../utils/element-utils.js";
-import { activeStagedChangeset } from "./changeset-shared.js";
+import { writeTargetChangeset } from "./changeset-shared.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
 
 const tripleSchema = {
@@ -85,7 +85,7 @@ function indexOfGap(gaps: AcceptedGap[], key: string): number {
 /** The active changeset and the element as it leaves it; refuses without an active changeset. */
 async function resolveTarget(elementRef: string, rootPath: string | undefined, toolName: string): Promise<Target> {
   const model = await loadModel(rootPath);
-  const changeset = await activeStagedChangeset(new StagingAreaManager(model.rootPath, model));
+  const changeset = await writeTargetChangeset(new StagingAreaManager(model.rootPath, model));
   if (!changeset) {
     throw new CLIError(
       `${toolName} stages into the active changeset, and none is active. An accepted gap is a decision the human approves when the changeset lands.`,
