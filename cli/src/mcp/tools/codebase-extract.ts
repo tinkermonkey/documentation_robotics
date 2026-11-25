@@ -95,6 +95,8 @@ import {
   type UndecidedCard,
   type UndecidedKind,
 } from "../../analyzers/extraction-plan.js";
+import { relationshipNotInDeclaredSpec, typeNotInDeclaredSpec } from "../../core/declared-spec.js";
+import { getCliBundledSpecVersion } from "../../utils/spec-version.js";
 import { Changeset, type ChangeOrigin, type StagedChange } from "../../core/changeset.js";
 import { ChangesetGraph, changesetRevisionToken } from "../../core/changeset-graph.js";
 import { splitByAcceptedGaps } from "../../core/accepted-gaps-verify.js";
@@ -386,7 +388,19 @@ const inputSchema = {
         "With decide, the call is a run: the items apply first and the answer is this view's page of the cards left."
     ),
   list: z
-    .enum(["groups", "candidateDeletes", "updated", "retyped", "impacted", "ruleDecided", "sharedHelpers", "planCoverage", "unwiredTests", "notElements"])
+    .enum([
+      "groups",
+      "candidateDeletes",
+      "updated",
+      "retyped",
+      "impacted",
+      "ruleDecided",
+      "sharedHelpers",
+      "planCoverage",
+      "unwiredTests",
+      "notElements",
+      "declaredSpecNotStaged",
+    ])
     .optional()
     .describe(
       "Read one list of the last run in full, a page at a time (limit, offset): nothing is extracted or staged. Each list a run shortens says " +
@@ -3489,7 +3503,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
 
         const now = new Date().toISOString();
-        const { valid, invalid: invalidAll } = await validateAdds(plan.adds, now, changes?.hunks, changes ?? undefined);
+        const { valid: validAll, invalid: invalidAll } = await validateAdds(plan.adds, now, changes?.hunks, changes ?? undefined);
+        // A type or relationship type the spec the model declares lacks is not staged: a landing
+        // would refuse it (#1411). Against the version assumed for a manifest with no spec_version
+        // it is staged, as model_add stages it, with the warning. Leaving an element out also
+        // leaves out its relationships: they are planned from the staged elements only.
+        const notInDeclaredSpec: Array<{ kind: "element" | "relationship"; id: string; type: string; since: string }> = [];
+        const assumedSpecWarnings: string[] = [];
+        const valid = validAll.filter(({ add }) => {
+          const type = `${add.layer}.${normalizeNodeType(add.layer, add.type)}`;
+          const gap = typeNotInDeclaredSpec(model.manifest, type);
+          if (gap?.assumed) assumedSpecWarnings.push(gap.message);
+          if (!gap || gap.assumed) return true;
+          notInDeclaredSpec.push({ kind: "element", id: add.id, type, since: gap.since });
+          return false;
+        });
         const adds = valid.map((v) => v.add);
         // A symbol a none rule held for Tier 0 that Tier 0 could not stage after all (a needs-attributes
         // or ambiguous card) is the rule's, as a card no Tier-0 rule covers would be (#1424).
@@ -3643,14 +3671,30 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         // A relationship an accepted gap says is deliberately absent is not staged: it is reported
         // as contradicted (#1026).
-        const { kept: relationships, contradicted: contradictedGaps } = splitByAcceptedGaps(
+        const specOfEnd = (id: string) => {
+          const e = elements.get(id);
+          return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
+        };
+        const { kept: keptByGaps, contradicted: contradictedGaps } = splitByAcceptedGaps(
           notRejected,
-          (id) => {
-            const e = elements.get(id);
-            return e ? `${e.layer}.${normalizeNodeType(e.layer, e.type)}` : undefined;
-          },
+          specOfEnd,
           (id) => before.getElement(id)?.acceptedGaps
         );
+        // Likewise a relationship type the declared spec lacks (#1411)
+        const relationships = keptByGaps.filter((r) => {
+          const source = specOfEnd(r.source);
+          const target = specOfEnd(r.target);
+          const gap = source && target ? relationshipNotInDeclaredSpec(model.manifest, source, r.predicate, target) : null;
+          if (gap?.assumed) assumedSpecWarnings.push(gap.message);
+          if (!gap || gap.assumed) return true;
+          notInDeclaredSpec.push({
+            kind: "relationship",
+            id: `${r.source} --[${r.predicate}]--> ${r.target}`,
+            type: `${source}.${r.predicate}.${target}`,
+            since: gap.since,
+          });
+          return false;
+        });
 
         // What each rule decided, and how each decide item of this call fared.
         // Every rule, one that decided nothing included: a rule that matches nothing may be mistyped.
@@ -4076,6 +4120,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         keepList("unwiredTests", planned.unwiredTests);
         keepList("tier1NotElementCards", tier1NotElementCards);
         keepList("contradictedGaps", contradictedGaps);
+        keepList("declaredSpecNotStaged", notInDeclaredSpec);
         keepList("retiredDecisions", plan.decisions?.retired ?? []);
         for (const r of rules) {
           const d = plan.byRule.get(r.rule.name);
@@ -4557,6 +4602,25 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.
               ...(tier1NotElement ? { tier1NotElement, tier1NotElementCards: capped(tier1NotElementCards, fit.listLimit, "tier1NotElementCards") } : {}),
             },
+            ...(notInDeclaredSpec.length || assumedSpecWarnings.length
+              ? {
+                  declaredSpec: {
+                    ...(notInDeclaredSpec.length
+                      ? {
+                          modelVersion: model.manifest.specVersion,
+                          notStaged: capped(notInDeclaredSpec, fit.listLimit, "declaredSpecNotStaged"),
+                          note:
+                            `Not staged: the code shows these elements and relationships, but spec ` +
+                            `${model.manifest.specVersion}, the model's version, has no such type or relationship ` +
+                            "type (each exists from the spec version given as since), so a landing would refuse " +
+                            `them. project_upgrade moves the model to spec ${getCliBundledSpecVersion()}; extract ` +
+                            "again after it.",
+                        }
+                      : {}),
+                    ...(assumedSpecWarnings.length ? { warnings: [...new Set(assumedSpecWarnings)] } : {}),
+                  },
+                }
+              : {}),
             ...(contradictedGaps.length
               ? {
                   acceptedGaps: {

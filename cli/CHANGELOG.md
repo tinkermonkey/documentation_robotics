@@ -21,6 +21,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
   instructions say to call project_status again after a reconnect.
 - **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
+- **`migration.kind` (#1435).** `project_status` (`spec.migration.kind`) and `project_upgrade`'s
+  preview (`migration.kind`) say `manifest-only` when the pending migration changes nothing in the
+  model but `spec_version` in `manifest.yaml`, as an additive spec release does, so the agent can
+  tell the user that plainly instead of asking them to judge a preview. The preview reads it off
+  its rehearsal of this model, `project_status` off the migration steps.
+- **Lay out an earlier dr's model files on their own (#1439).** `project_upgrade` with
+  `relayout: true` and `dr upgrade --relayout` lay out every element file an earlier dr wrote (long
+  strings folded at 80 columns) or prettier laid out, as this dr writes them, data unchanged: a
+  previewed step of its own, on a model already on this spec too, to commit apart from any plan.
+  Without it, an upgrade only counts those files (`relayout` in the result, a line in
+  `dr upgrade`'s output), since it writes no model file whose data does not change.
+  `changeset_commit_preview` names the files a landing would lay out anew and says to run the
+  relayout first, on its own, and commit it apart from the plan, so the plan's pull request shows
+  only its own changes.
+  `cli/scripts/relayout-model-files.ts` now runs the same code.
 
 ### Changed
 
@@ -180,6 +195,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A rebuilt `--viewer-path` bundle shows without a restart** (#1308): viewer files carry an ETag
   and `index.html` (and every file without a content hash) is `Cache-Control: no-cache`, so the
   browser revalidates each load; hashed assets are cached for good.
+- **Validation follows the spec the model declares (#1411).** dr checked a model only against its
+  own catalog, so a model on spec 0.13.0 took relationships that only 0.14.0 defines, and a
+  consumer that reads the model against its declared spec could not resolve them. Now
+  `relationship_add`, `model_add`, `model_update` (a type change), `dr add`, `dr update --type`
+  and `dr relationship add` refuse a type or relationship type the model's spec lacks,
+  `codebase_extract` does not stage such a relationship (it lists them under `declaredSpec`), and
+  `model_validate`, `dr validate` and `changeset_commit_preview` report it as an error, so a
+  landing is refused too. The message names both versions and the fix: "application.applicationservice
+  --[accesses]--> data-model.objectschema is not in spec 0.13.0, the model's version; it exists
+  from spec 0.14.0. Run project_upgrade first". What each released spec had comes from a table
+  generated from the released catalogs in git (`cli/scripts/generate-spec-catalog-history.ts`,
+  0.8.0 on); a unit test fails when a spec release leaves it behind, naming the command that
+  regenerates it. A model that already holds such a relationship still loads, reads and exports,
+  and takes unrelated changes: `model_validate` names the element ids so it can be found and
+  removed, and a landing counts it with the errors already in the base. A model on a spec newer
+  than dr's is refused nothing extra, and a type or relationship dr doesn't know is reported as
+  unknown here, with the update to make, rather than as a mistake in the model. A legacy short
+  type id (`business.service`) is checked as the type it names, and a type the catalog doesn't
+  have is left to the schema check. A spec release regenerates the table, and release preflight's
+  `bun scripts/generate-spec-catalog-history.ts --release-check` fails while `spec/dist` differs
+  from the catalog tagged for `spec/VERSION`, so a changed catalog always ships under a new spec
+  version.
+- **A manifest with no `spec_version` is no longer a dead end.** It is read as 0.6.0, as before,
+  but declares nothing: a type or relationship that 0.6.0 lacks is a warning naming
+  `project_upgrade`, not a refusal, and a write no longer stamps 0.6.0 into the manifest.
+  `project_upgrade` and `dr upgrade` read it as 0.6.0 and preview the migration from there
+  (`model.assumed` in the result), where `project_upgrade` refused it.
+- **`model_validate` with `layers` no longer reports links into other layers as not found
+  (#1259).** A relationship that names its ends by UUID was placed in a layer by its id, which a
+  UUID doesn't have, so every such link leaving the scope was an error (33 on the viewer's model).
+  An end's layer now comes from the layers the relationship row records. An end that exists
+  nowhere is still reported.
+- **`spec_type` takes a dotted type id (#1280).** `type: "product.feature"` works without `layer`,
+  as every other tool names a type, and so does `element` alone. A `layer` that disagrees with the
+  dotted id is refused, and a call with neither says how to name the type. Carries #1288 by
+  jiangyuer018.
 
 ### Fixed
 

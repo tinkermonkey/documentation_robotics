@@ -14,6 +14,7 @@ import { addRelationshipHandler, deleteRelationshipHandler } from "../../src/com
 import { tmpdir } from "os";
 import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
+import { getCliBundledSpecVersion } from "../../src/utils/spec-version.js";
 
 describe("Relationship Command Orchestrator Hooks", () => {
   let model: Model;
@@ -27,7 +28,8 @@ describe("Relationship Command Orchestrator Hooks", () => {
       name: "Relationship Orchestrator Test",
       description: "Test model for relationship orchestrator hooks",
       version: "1.0.0",
-      specVersion: "0.8.3",
+      // On the bundled spec: the relationships below include types older specs lack (#1411)
+      specVersion: getCliBundledSpecVersion(),
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
     });

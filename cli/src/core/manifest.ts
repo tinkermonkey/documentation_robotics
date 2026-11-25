@@ -93,6 +93,11 @@ export class Manifest {
   modified: string;
   cliVersion?: string;
   specVersion?: string;
+  /**
+   * The manifest on disk has no spec_version, and specVersion is the 0.6.0 Model.load assumes
+   * for it. A save keeps it that way; a migration that stamps a version clears it.
+   */
+  specVersionAssumed?: boolean;
   changeset_history?: ChangesetHistoryEntry[];
   models?: Record<string, ExternalModelDeclaration>;
   codebase_path?: string;
@@ -108,6 +113,7 @@ export class Manifest {
     this.modified = data.modified ?? new Date().toISOString();
     this.cliVersion = data.cliVersion;
     this.specVersion = data.specVersion;
+    if (data.specVersionAssumed) this.specVersionAssumed = true;
     this.models = data.models;
     this.codebase_path = data.codebase_path;
     this.reconciled = data.reconciled;

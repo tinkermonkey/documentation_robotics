@@ -128,6 +128,7 @@ export async function upgradeModel(
   let migration: ApplyMigrationsResult | undefined;
   if (options.versionBumpOnly) {
     model.manifest.specVersion = options.toVersion;
+    model.manifest.specVersionAssumed = false;
     await model.saveManifest();
   } else if (options.catalogOnly) {
     const catalog = await applyCatalogMigrations(model);
