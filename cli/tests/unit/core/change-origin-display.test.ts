@@ -116,8 +116,11 @@ describe("changeset views of a changeset codebase_extract staged", () => {
   });
 
   it.serial("changeset_show: the object in full, one line in summary", async () => {
-    const full = JSON.parse(text(await changesetShowHandler({ changesetId, rootPath })));
+    const full = JSON.parse(text(await changesetShowHandler({ changesetId, rootPath, detail: "full" })));
     expect(full.changes.find((c: any) => c.elementId === SERVICE).origin).toEqual(TIER1);
+    // The default, one line per change, carries the same one-line origin in brackets.
+    const compact = JSON.parse(text(await changesetShowHandler({ changesetId, rootPath })));
+    expect(compact.changes.find((line: string) => line.includes(SERVICE))).toContain("[tier1 clef p=0.82/0.71 confirmed=agent]");
     const summary = JSON.parse(text(await changesetShowHandler({ changesetId, rootPath, detail: "summary" })));
     expect(summary.changes.find((c: any) => c.elementId === SERVICE).origin).toBe("tier1 clef p=0.82/0.71 confirmed=agent");
     expect(summary.changes.find((c: any) => c.elementId === COMPONENT)).not.toHaveProperty("origin");
