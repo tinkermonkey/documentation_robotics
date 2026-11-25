@@ -120,6 +120,25 @@ describe("ensureCentralServer", () => {
     expect(spawned).toHaveLength(0);
   });
 
+  it("returns a process only once /health answers, and names its log when it doesn't (#1282)", async () => {
+    const { env, running, deps, scratch } = await fixture();
+    const pid = await running("1.0.0");
+    let answers = 0;
+    const late = deps({ fetchHealth: async () => (++answers >= 2 ? { status: "ok", cliVersion: "1.0.0" } : null) });
+    const found = await late.ensure({ env });
+    expect(found.record.pid).toBe(pid);
+    expect(found.notice).toBeUndefined();
+    expect(answers).toBe(2);
+
+    const silent = deps({ fetchHealth: async () => null });
+    const hung = await silent.ensure({ env });
+    expect(hung.record.pid).toBe(pid);
+    expect(hung.notice).toContain(`(pid ${pid}, port ${hung.record.port}) is running but did not answer /health`);
+    expect(hung.notice).toContain(`Its log: ${join(scratch, "serve.log")}`);
+    expect(hung.notice).not.toContain("starting");
+    expect(silent.spawned).toHaveLength(0);
+  });
+
   it("starts one detached when none runs, without the session's own variables", async () => {
     const { farm, env, running, deps, pids, scratch } = await fixture();
     const { ensure, spawned } = deps();

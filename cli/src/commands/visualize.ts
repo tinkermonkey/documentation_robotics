@@ -140,10 +140,16 @@ async function defaultDeps(): Promise<VisualizeDeps> {
 export function refusedVisualizeOptions(options: VisualizeOptions): string[] {
   const refused: string[] = [];
   if (options.noAuth) {
-    refused.push("--no-auth: the DR process serves every project, and every route requires its token.");
+    refused.push(
+      "--no-auth: the DR process serves every project, and every route requires its token. A test suite runs its own " +
+        "with dr serve --foreground --state-dir <dir> --port <n> --token-file <file> (see dr serve --help)."
+    );
   }
   if (options.token !== undefined) {
-    refused.push("--token: the DR process makes its own token; the link it opens carries it.");
+    refused.push(
+      "--token: the DR process makes its own token; the link it opens carries it. A test suite gives its own process " +
+        "a token with dr serve --token-file <file>."
+    );
   }
   if (options.idleExit !== undefined) {
     refused.push("--idle-exit: the DR process exits after DR_VIEWER_IDLE_HOURS (default 24) with nothing using it.");

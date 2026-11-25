@@ -807,6 +807,17 @@ program
   .option("--with-danger", "Let chat land and delete changesets (when it starts the process)")
   .option("--read-only", "Limit chat to reading the model (when it starts the process)")
   .option("--with-changesets", "Let chat stage model changes in a changeset (the default; kept for older scripts)")
+  .option(
+    "--state-dir <dir>",
+    "Run an isolated process (a test suite's): its record, token and log go in <dir>, it sweeps no viewers, " +
+      "and --port is the exact port. Pass it to --status and --stop too"
+  )
+  .option(
+    "--token-file <path>",
+    "With --state-dir: use the token in this file (16 or more characters, mode 600, yours) instead of a new one; " +
+      "every call still needs it"
+  )
+  .option("--no-sweep", "Leave other per-project viewers running at start-up (when it starts the process)")
   .addHelpText(
     "after",
     `
@@ -817,6 +828,16 @@ Examples:
   $ dr serve --read-only --viewer-path ./dist/embedded/dr-viewer-bundle
   $ dr serve --status
   $ dr serve --stop
+  $ (umask 077; openssl rand -hex 24 > ./e2e/token)
+  $ DR_FARM_PATH=./e2e/farm dr serve --foreground --json --state-dir ./e2e/state --port 8099 --token-file ./e2e/token
+
+A test suite (or a CLI run from source) gets a process of its own with
+--state-dir: a farm of its own (DR_FARM_PATH, or a farm.yaml above the working
+directory; never the user farm), its record in <dir>, no sweep, and the exact
+--port. The token is still required on every call: --token-file gives the one
+the suite chose (a file only you can read), and with --foreground --json the
+process prints one line on stdout once it serves (its log goes to stderr):
+{"ready":true,"pid":...,"port":...,"url":...,"farmRoot":...,"projects":[...]}.
 
 One process serves every project and checkout of the farm (DR_FARM_PATH, a
 farm.yaml above the working directory, or the user farm). It records itself
@@ -840,6 +861,9 @@ starts the process. Chat stages model changes in a changeset by default.`
       withDanger: options.withDanger === true,
       readOnly: options.readOnly === true,
       withChangesets: options.withChangesets === true,
+      stateDir: options.stateDir,
+      tokenFile: options.tokenFile,
+      ...(options.sweep === false ? { sweep: false } : {}),
     });
   });
 

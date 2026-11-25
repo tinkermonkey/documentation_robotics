@@ -89,6 +89,7 @@ import { fileExists } from "../../utils/file-io.js";
 import { hasLayerReports, regenerateLayerReports } from "../../commands/reports.js";
 import { currentProjectRoot, whenProjectRootSettled } from "../project-root.js";
 import { clearModelCache, jsonResult, reloadModel, runTool, withProjectWriteLock, type McpToolDefinition } from "./shared.js";
+import { withRunningCodeChecked } from "../../utils/running-code.js";
 
 /** The MCP server's stdout carries the protocol: progress lines go to stderr. */
 const logToStderr = (message: string): void => {
@@ -1156,40 +1157,44 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
     let modelResult: ModelUpgradeResult | undefined;
     try {
       // One tracked write: the server's other calls don't read the model while it is half migrated.
-      await trackModelWrite(projectRoot, undefined, async () => {
-        for (const action of scan.actions) {
-          if (action.type === "spec") {
-            await installSpecReference(projectRoot, true);
-            applied.push(actionSummary(action));
-          } else if (action.type === "relayout") {
-            const relayout = await relayoutModelFiles(projectRoot);
-            applied.push({ ...actionSummary(action), files: relayout.files.length });
-          } else if (action.type === "model") {
-            const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, force));
-            modelResult = result;
-            changesets = result.changesets;
-            dropRecord = result.dropRecord;
-            if (action.versionBumpOnly) {
+      // Checked once against the installed CLI before anything is written, and never during it, so a
+      // CLI change partway through can't leave the migration half applied (#1427).
+      await withRunningCodeChecked(() =>
+        trackModelWrite(projectRoot, undefined, async () => {
+          for (const action of scan.actions) {
+            if (action.type === "spec") {
+              await installSpecReference(projectRoot, true);
               applied.push(actionSummary(action));
-            }
-            for (const step of result.migration?.applied ?? []) {
-              // No per-step file count: the migrations count only some of the files they write.
-              applied.push({
-                type: "model",
-                from: step.from,
-                to: step.to,
-                description: step.changes?.description ?? step.description,
-              });
-              const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
-              details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
-              details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
-              details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
-              details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
-              details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+            } else if (action.type === "relayout") {
+              const relayout = await relayoutModelFiles(projectRoot);
+              applied.push({ ...actionSummary(action), files: relayout.files.length });
+            } else if (action.type === "model") {
+              const result = await upgradeModel(projectRoot, modelUpgradeOptions(action, force));
+              modelResult = result;
+              changesets = result.changesets;
+              dropRecord = result.dropRecord;
+              if (action.versionBumpOnly) {
+                applied.push(actionSummary(action));
+              }
+              for (const step of result.migration?.applied ?? []) {
+                // No per-step file count: the migrations count only some of the files they write.
+                applied.push({
+                  type: "model",
+                  from: step.from,
+                  to: step.to,
+                  description: step.changes?.description ?? step.description,
+                });
+                const stepDetails = step.changes?.details as Partial<CatalogMigrationResult["details"]> | undefined;
+                details.elementTypeChanges.push(...(stepDetails?.elementTypeChanges ?? []));
+                details.retiredAttributeChanges.push(...(stepDetails?.retiredAttributeChanges ?? []));
+                details.stagedRetiredAttributeChanges.push(...(stepDetails?.stagedRetiredAttributeChanges ?? []));
+                details.relationshipChanges.push(...(stepDetails?.relationshipChanges ?? []));
+                details.stagedRelationshipChanges.push(...(stepDetails?.stagedRelationshipChanges ?? []));
+              }
             }
           }
-        }
-      });
+        })
+      );
     } catch (error) {
       if (applied.length === 0) throw error;
       // Part of the plan is already on disk: say what, then what failed.

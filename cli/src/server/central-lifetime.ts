@@ -29,6 +29,8 @@ import type { CentralActivity, CentralServer, CentralServerOptions, StartCentral
 import { sweepPerProjectViewers, type PerProjectViewerSweep, type SweepPerProjectViewersOptions } from "./legacy-viewer-sweep.js";
 import { findRunningServer, removeServerRecord, sweepServerRecords, writeServerRecord } from "./server-record.js";
 import { viewerSetting } from "./viewer-settings.js";
+import { canonicalProjectRoot } from "./viewer-registry.js";
+import { describeRunningCodeDrift, type RunningCodeDrift } from "../utils/running-code.js";
 
 /** For tests only: a module path whose `startCentralServer` serve-entry runs instead of the real server. */
 export const SERVE_TEST_STARTER_ENV = "DR_SERVE_TEST_STARTER";
@@ -72,10 +74,50 @@ export function centralIdleReason(activity: CentralActivity, idleMs: number, now
   );
 }
 
+/**
+ * Why the central process should stop so it can be restarted on the installed CLI, or null (#1427).
+ * Only when the CLI changed under it (`drift`) and nothing that a restart would cut is using it: no
+ * browser tab (its token would change), no DrBot turn, no API request or MCP tool call being
+ * answered (`requestsInFlight`), and no MCP client connected straight to `/mcp` (`dr mcp --http`,
+ * `directMcpSessions`). Sessions of the `dr mcp` bridge don't hold it: it replays them on the new process.
+ */
+export function centralStaleReason(activity: CentralActivity, drift: RunningCodeDrift | null): string | null {
+  if (!drift) return null;
+  if (activity.clients > 0 || activity.drBotTurns > 0) return null;
+  if ((activity.requestsInFlight ?? 0) > 0 || (activity.directMcpSessions ?? 0) > 0) return null;
+  return (
+    `${describeRunningCodeDrift(drift)}. No browser tab, DrBot turn or direct MCP client is connected and nothing ` +
+    "is being answered, so it stops for a restart: the dr MCP server reconnects its sessions to a process running " +
+    "the installed CLI"
+  );
+}
+
+/** What a process that may not restart itself says, once, when the installed CLI changed under it. */
+export function staleKeptNotice(drift: RunningCodeDrift): string {
+  return (
+    `${describeRunningCodeDrift(drift)}. It was started attached or with its own options, so it does not restart ` +
+    "itself, and it refuses to write the model until it is restarted: stop it (dr serve --stop, or Ctrl-C in its " +
+    "terminal) and start it again with the same options"
+  );
+}
+
 export interface CentralIdleOptions {
   activity: () => CentralActivity;
   /** Idle limit in ms. Absent or 0: never exit for idleness. */
   idleMs?: number;
+  /**
+   * How the CLI installed under the process changed since it started (a `RunningCodeWatch`'s check).
+   * When given, each check also asks it, and the process ends for a restart once
+   * `centralStaleReason` says so, whatever the idle limit.
+   */
+  staleCheck?: () => Promise<RunningCodeDrift | null>;
+  /**
+   * False: a process that must not restart itself (attached, isolated or started with options a
+   * restart would lose). It keeps running and calls `onStaleKept` once instead.
+   */
+  restartWhenStale?: boolean;
+  /** Called once, when the CLI changed and the process may not restart itself. */
+  onStaleKept?: (drift: RunningCodeDrift) => void;
   /** Called once, with the reason in words, when the process should end. */
   onExit: (reason: string) => void;
   /** How often to check (default: DR_VIEWER_LIFETIME_CHECK_MS, 30s). */
@@ -84,31 +126,65 @@ export interface CentralIdleOptions {
 }
 
 export interface CentralIdleWatch {
-  /** Runs one check now; returns the reason to exit, or null. */
+  /** Runs one idle check now; returns the reason to exit, or null. */
   check(): string | null;
+  /** Runs one stale check now; returns the reason to restart, or null (null too without `staleCheck`). */
+  checkStale(): Promise<string | null>;
   stop(): void;
 }
 
-/** Watches the central process's activity and says when it has been idle for its limit. */
+/**
+ * Watches the central process's activity and says when it has been idle for its limit, or when the
+ * installed CLI changed under it and a restart cuts nothing.
+ */
 export function watchCentralIdle(options: CentralIdleOptions): CentralIdleWatch {
   const now = options.now ?? Date.now;
   const idleMs = options.idleMs ?? 0;
   const check = () => centralIdleReason(options.activity(), idleMs, now());
+  const checkStale = async (): Promise<string | null> => {
+    if (!options.staleCheck) return null;
+    const drift = await options.staleCheck().catch(() => null);
+    // Asked after the drift is read: what is connected now is what a restart would cut.
+    return centralStaleReason(options.activity(), drift);
+  };
   let timer: ReturnType<typeof setInterval> | undefined;
+  let checkingStale = false;
+  let staleKept = false;
   const stop = () => {
     if (timer) clearInterval(timer);
     timer = undefined;
   };
-  if (idleMs > 0) {
+  const exit = (reason: string) => {
+    if (!timer) return;
+    stop();
+    options.onExit(reason);
+  };
+  const staleCheck = options.staleCheck;
+  if (idleMs > 0 || staleCheck) {
     timer = setInterval(() => {
       const reason = check();
-      if (reason === null) return;
-      stop();
-      options.onExit(reason);
+      if (reason !== null) return exit(reason);
+      if (!staleCheck || checkingStale || staleKept) return;
+      checkingStale = true;
+      void staleCheck()
+        .catch(() => null)
+        .then((drift) => {
+          checkingStale = false;
+          if (!drift || !timer) return;
+          if (options.restartWhenStale === false) {
+            staleKept = true;
+            options.onStaleKept?.(drift);
+            return;
+          }
+          // What is connected is read here, in the same turn as the exit: a request that came in
+          // while the drift was read holds the process, and is never cut and replayed.
+          const stale = centralStaleReason(options.activity(), drift);
+          if (stale !== null) exit(stale);
+        });
     }, options.intervalMs ?? viewerSetting("lifetimeCheckMs"));
     timer.unref?.();
   }
-  return { check, stop };
+  return { check, checkStale, stop };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -127,6 +203,36 @@ export async function chooseServePort(
     if (await isFree(port)) return port;
   }
   throw new Error(`No free port from ${start} up.`);
+}
+
+/** `port` itself when it is free; otherwise an error saying it is taken (no search). */
+export async function exactServePort(
+  port: number,
+  isFree: (port: number) => Promise<boolean> = isPortFree
+): Promise<number> {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid port number: ${port}. Port must be between 1 and 65535.`);
+  }
+  if (!(await isFree(port))) throw new Error(`Port ${port} is in use; an isolated DR process listens on the port it is given.`);
+  return port;
+}
+
+/**
+ * The real paths of the farm's projects and their checkouts: a per-project viewer is this farm's
+ * when its project root is in one of them. A project whose checkouts can't be listed counts its
+ * repository folder alone.
+ */
+export async function farmFolders(registry: ProjectRegistry): Promise<string[]> {
+  const folders = new Set<string>();
+  for (const project of registry.farmManifest.getAllProjects()) {
+    folders.add(canonicalProjectRoot(registry.repositoryPath(project)));
+    try {
+      for (const checkout of await registry.checkouts(project.name)) folders.add(checkout.path);
+    } catch {
+      // Not a git repository any more, or gone: its repository folder stands for it.
+    }
+  }
+  return [...folders];
 }
 
 /** A new token for the process: 32 random bytes, URL-safe. */
@@ -155,13 +261,21 @@ export interface RunCentralProcessOptions {
   startServer: StartCentralServer;
   /** Where the port search starts (default 8080). */
   port?: number;
+  /** Listen on `port` itself, or fail: no search (an isolated process for a test suite, #1376). */
+  exactPort?: boolean;
+  /** Sweep the per-project viewers this farm's projects left running (default true; false: `--no-sweep`). */
+  sweep?: boolean;
   /** The process that started this one (`dr serve`), recorded and left alone by the sweep. */
   launcherPid?: number;
   cliVersion: string;
   /** Passed through to the server. */
   serverOptions?: Pick<CentralServerOptions, "pool" | "viewerPath" | "withChangesets" | "withDanger">;
-  /** Called once when the process has been idle for its limit. */
+  /** Called once when the process has been idle for its limit, or should restart on the installed CLI. */
   onIdleExit?: (reason: string) => void;
+  /** How the installed CLI changed since the start (`watchRunningCode`); serve-entry passes it, tests a fake. */
+  staleCheck?: () => Promise<RunningCodeDrift | null>;
+  /** False: never restart itself for a CLI change (see CentralIdleOptions.restartWhenStale); it says so in its log. */
+  restartWhenStale?: boolean;
   /** Lines to log (default: console.log). */
   log?: (line: string) => void;
 
@@ -238,7 +352,9 @@ export async function runCentralProcess(options: RunCentralProcessOptions): Prom
   const before = await otherProcess();
   if (before) throw new CentralProcessRunningError(before);
 
-  const port = await chooseServePort(options.port ?? DEFAULT_SERVE_PORT, options.isPortFree);
+  const port = options.exactPort
+    ? await exactServePort(options.port ?? DEFAULT_SERVE_PORT, options.isPortFree)
+    : await chooseServePort(options.port ?? DEFAULT_SERVE_PORT, options.isPortFree);
   const token = options.token ?? createServerToken();
   const serverId = options.serverId ?? randomUUID();
   const registry = await (options.openRegistry ?? defaultOpenRegistry)(options.farm);
@@ -292,6 +408,9 @@ export async function runCentralProcess(options: RunCentralProcessOptions): Prom
   const idle = watchCentralIdle({
     activity: () => server.activity(),
     idleMs: options.idleMs ?? centralIdleMs(env),
+    ...(options.staleCheck ? { staleCheck: options.staleCheck } : {}),
+    restartWhenStale: options.restartWhenStale ?? true,
+    onStaleKept: (drift) => log(`[serve] ${staleKeptNotice(drift)}.`),
     intervalMs: options.idleCheckMs,
     now: options.now,
     onExit: (reason) => {
@@ -300,14 +419,21 @@ export async function runCentralProcess(options: RunCentralProcessOptions): Prom
     },
   });
 
-  // The per-project viewers this process replaces. Never this process or its launcher.
+  // The per-project viewers this process replaces: only its own farm's (#1369). Never this process
+  // or its launcher.
   let sweep: PerProjectViewerSweep | null = null;
-  try {
-    const excludePids = [pid, options.launcherPid].filter((p): p is number => typeof p === "number");
-    sweep = await (options.sweepViewers ?? sweepPerProjectViewers)({ excludePids });
-    for (const line of describeViewerSweep(sweep)) log(`[serve] ${line}`);
-  } catch (error) {
-    log(`[serve] The sweep of per-project viewers failed: ${error instanceof Error ? error.message : String(error)}`);
+  if (options.sweep === false) {
+    log("[serve] Per-project viewers: not swept (--no-sweep, or an isolated process).");
+  } else {
+    try {
+      const excludePids = [pid, options.launcherPid].filter((p): p is number => typeof p === "number");
+      // Folders it can't list leave nothing in the farm to sweep: a viewer is stopped only when known to be this farm's.
+      const farmRoots = await farmFolders(registry).catch(() => [] as string[]);
+      sweep = await (options.sweepViewers ?? sweepPerProjectViewers)({ excludePids, farmRoots });
+      for (const line of describeViewerSweep(sweep)) log(`[serve] ${line}`);
+    } catch (error) {
+      log(`[serve] The sweep of per-project viewers failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   return { record, server, serverId, sweep, idle, stop };

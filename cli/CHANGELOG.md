@@ -7,8 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
+  on a farm of its own (the user farm is refused): its record, token and log in `<dir>`, no viewer
+  sweep, `--port` exact. `--token-file <path>`, taken only with `--state-dir`, gives it the token
+  the suite chose, from a file the user owns that no one else can read (mode 600), so every call
+  stays authenticated. `--no-sweep` skips the start-up sweep. `--foreground --json` prints one
+  ready line on stdout (pid, port, url, farm, and each project with its checkout keys) and sends
+  the log to stderr. `--status` and `--stop` take `--state-dir` too. `dr visualize --no-auth` and
+  `--token` stay refused, and now say where to go instead.
+- **project_status** names the dr server process that answered (`server.pid`, `server.startedAt`),
+  so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
+  instructions say to call project_status again after a reconnect.
+- **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
+- **`migration.kind` (#1435).** `project_status` (`spec.migration.kind`) and `project_upgrade`'s
+  preview (`migration.kind`) say `manifest-only` when the pending migration changes nothing in the
+  model but `spec_version` in `manifest.yaml`, as an additive spec release does, so the agent can
+  tell the user that plainly instead of asking them to judge a preview. The preview reads it off
+  its rehearsal of this model, `project_status` off the migration steps.
+- **Lay out an earlier dr's model files on their own (#1439).** `project_upgrade` with
+  `relayout: true` and `dr upgrade --relayout` lay out every element file an earlier dr wrote (long
+  strings folded at 80 columns) or prettier laid out, as this dr writes them, data unchanged: a
+  previewed step of its own, on a model already on this spec too, to commit apart from any plan.
+  Without it, an upgrade only counts those files (`relayout` in the result, a line in
+  `dr upgrade`'s output), since it writes no model file whose data does not change.
+  `changeset_commit_preview` names the files a landing would lay out anew and says to run the
+  relayout first, on its own, and commit it apart from the plan, so the plan's pull request shows
+  only its own changes.
+  `cli/scripts/relayout-model-files.ts` now runs the same code.
+
 ### Changed
 
+- **Behaviour change, codebase_extract rules and Tier 0 (#1424):** a project rule that says `none`
+  no longer takes a symbol Tier 0 decided as an element. Such symbols stay Tier 0's and are staged,
+  unless the rule says `overrideTier0: true`, a new key on `decide` items and on rules in
+  `documentation-robotics/extraction-rules.yaml`. A Tier 0 decision that can't be staged (a
+  needs-attributes or ambiguous card) is still the rule's. Every run and preview leads with
+  `ruleWarnings`: per rule, how many such symbols it matched (left to Tier 0) or took (with the key),
+  by type.
+
+  **Migration:** this applies to rules already kept in a project's file. A kept `none` rule that
+  relied on removing what Tier 0 decided (a fixture folder's routes, a test folder's test cases)
+  now leaves those symbols staged. The first run after upgrading names each such rule in
+  `ruleWarnings` ("To keep rejecting these N symbol(s), add overrideTier0: true to rule '<name>' in
+  documentation-robotics/extraction-rules.yaml"). Add the key to
+  that rule and commit the file, or narrow the rule's `where` if it was never meant to cover them.
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.
@@ -105,6 +149,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `codebase_extract`) and the background run's own check call an index that records 0 nodes stale
   ("it holds no code"), and one recorded as `joined`, so it is re-indexed instead of skipped.
   `codebase_index`'s `next` for a stale index now gives the reason.
+- **The central viewer no longer stalls on farm listings** (#1436). Listing projects counted each
+  checkout's staged changesets by YAML-parsing every changeset in the farm, `changes.yaml` and
+  all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
+  It now reads `metadata.yaml`'s status alone, cached by file mtime; concurrent listings share one
+  scan; the single-project routes scan that project only; and a checkout's changeset list re-reads
+  only the changesets whose files changed (an empty metadata.yaml, as read mid-write, is skipped by
+  both). A project folder that is not a git repository costs no git call per listing while it has
+  no `.git`. On a farm the size of the report (9 projects, 264
+  changeset folders, 108 MB), `GET /api/projects/{project}/checkouts` went from 22–25 s to 0.06 s
+  (4 ms warm), `GET /api/projects` from 24 s to 0.4 s, six concurrent requests from 112 s to
+  0.03 s, and a repeat `…/changesets` from 2.5 s to 0.02 s.
+- **A DR process never lands with code older than the installed CLI** (#1427). Once the CLI
+  installed where the central process was loaded from changes after it started, every write to the
+  base model refuses with both versions and the restart (`dr serve --stop`; the dr MCP server
+  reconnects to the installed CLI's process). changeset_commit, its preview and the viewer's Apply
+  refuse before anything is asked or written, and a commit is checked once at its start, so a
+  change partway through never half-lands it. Drift already there at start (a checkout bumped
+  without a rebuild) is logged, not acted on. A process started detached with the default options
+  also restarts itself once no browser tab, DrBot turn, request or directly connected MCP client is
+  using it (`dr mcp` bridge sessions reconnect on their own); any other keeps running and says to
+  restart it by hand. project_status's server section compares with the same start baseline, so
+  it says stale only when a restart would help (a build bumped without a rebuild gets a rebuild
+  note instead), and words the restart for an in-process dr MCP server (`DR_MCP_IN_PROCESS`) too.
+  project_upgrade's apply is checked once before it writes, as a commit is.
+- **Tests can't write the real user farm** (#1438). The test preload points the user farm at a
+  scratch folder, drops a `DR_FARM_PATH` from the shell, and names the real farm in
+  `DR_PROTECTED_FARM_FILES`, which `FarmManifest.save` refuses to write.
+- **A farm project whose repository is gone is flagged** (#1438): `project_list`, `GET
+  /api/projects` and `dr farm status` mark it `missing` with the `dr farm remove <name>` call that
+  drops it. A repository deleted while the central process runs no longer fails the whole listing,
+  and one restored (or a folder that becomes a repository later) is seen again without a restart.
+- **dr serve's start-up sweep stops only its own farm's viewers** (#1369): a per-project viewer
+  whose project is not in the process's farm is kept (`outside-farm`), so a CLI run from source with
+  a farm of its own leaves the installed CLI's viewers alone.
+- **review_open never says a serving viewer is still starting** (#1282). `ensureCentralServer`
+  returns a recorded process once its `/health` answers; one that doesn't is returned with a notice
+  naming its log, and a timed-out wait for another start names the log too.
+- **A rebuilt `--viewer-path` bundle shows without a restart** (#1308): viewer files carry an ETag
+  and `index.html` (and every file without a content hash) is `Cache-Control: no-cache`, so the
+  browser revalidates each load; hashed assets are cached for good.
 - **Validation follows the spec the model declares (#1411).** dr checked a model only against its
   own catalog, so a model on spec 0.13.0 took relationships that only 0.14.0 defines, and a
   consumer that reads the model against its declared spec could not resolve them. Now
@@ -142,23 +226,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dotted id is refused, and a call with neither says how to name the type. Carries #1288 by
   jiangyuer018.
 
-### Added
+### Fixed
 
-- **`migration.kind` (#1435).** `project_status` (`spec.migration.kind`) and `project_upgrade`'s
-  preview (`migration.kind`) say `manifest-only` when the pending migration changes nothing in the
-  model but `spec_version` in `manifest.yaml`, as an additive spec release does, so the agent can
-  tell the user that plainly instead of asking them to judge a preview. The preview reads it off
-  its rehearsal of this model, `project_status` off the migration steps.
-- **Lay out an earlier dr's model files on their own (#1439).** `project_upgrade` with
-  `relayout: true` and `dr upgrade --relayout` lay out every element file an earlier dr wrote (long
-  strings folded at 80 columns) or prettier laid out, as this dr writes them, data unchanged: a
-  previewed step of its own, on a model already on this spec too, to commit apart from any plan.
-  Without it, an upgrade only counts those files (`relayout` in the result, a line in
-  `dr upgrade`'s output), since it writes no model file whose data does not change.
-  `changeset_commit_preview` names the files a landing would lay out anew and says to run the
-  relayout first, on its own, and commit it apart from the plan, so the plan's pull request shows
-  only its own changes.
-  `cli/scripts/relayout-model-files.ts` now runs the same code.
+Extract output and decide (CLI 0.9.0, Tool ergonomics):
+
+- **codebase_verify (#1414):** applies the project's kept rules as codebase_extract does, on every
+  layer (routes too). What a rule says is not an element is listed under the layer's `ignored` with
+  the rule, and a new `rules` block says how many rules were read and applied (or why none could be).
+  A kept `none` rule without `overrideTier0` that leaves symbols Tier 0 can stage in the code only is
+  counted in `rules.tier0Kept`, and `rules.warnings` and `hints` say what to add.
+- **codebase_extract reject (#1254, #1394):** a `files` item leaves out cards an element now names
+  (`modelled`), cards a plan's element names (`planned`) and what `except` lists (`excepted`), each
+  counted. An `except` entry that names no card makes the item record nothing, and says which. With
+  `decide` in the same call, the decide items apply first and a `files` item covers only the cards
+  they left, never one they decided but couldn't stage (`decided`); a `card` item naming a card a
+  decide item names is reported as `decided` and records nothing.
+- **codebase_extract decide (#1394):** a `card` item is resolved against this run's symbols when the
+  last run's record doesn't list it, and `file#symbol` accepts a `./` prefix and backslashes.
+- **codebase_extract preview (#1322):** `preview: true` with `reject` or `clearRejected` records,
+  clears and unstages nothing, and each item says `would-record` (with `wouldUnstage` for what a real
+  call would unstage). A preview with `decide` and `reject` no longer unstages anything, and its
+  answer now includes the reject results.
+- **codebase_extract kept decisions (#1332):** `reject` items take `keep: true`, which writes a rule
+  to `extraction-rules.yaml` instead of the checkout's `.dr/` (a card becomes a rule on its file and
+  `symbol`, with `overrideTier0`; the file is matched exactly, through a new `where.file` condition).
+  A decision record's card, a card with no file, and a `files` item that left out cards the plan
+  names or this call's decide items decided can't be kept as a rule: they are recorded in the
+  checkout and the item says why (`notKept`). A reject answer says when
+  its decisions are local. A kept `none` decide rule that covers recorded rejections retires them
+  (`retired`) instead of matching nothing. A rule the file already holds under another name is not
+  written again. `list: "notElements"` works before any run, after a commit and without a fresh index.
+- **Project rules:** a `files` pattern is read as a path first, so a path with glob characters
+  (`app/users/[id]/page.tsx`) names itself.
+- **codebase_extract where.symbol (#1333):** a new `where.symbol` condition matches the card's
+  symbol (`Assembly._copy_grooves`, `GET /owners/{ownerId}`); `where.name` is documented as the bare
+  name.
+- **codebase_extract attributes (#1380):** a typed `decide` item (or kept rule) takes `attributes`
+  for what its type requires and the code can't give, such as `{type: "button"}`; the code's own
+  facts win. An item whose cards still lack attributes says so with the type's `requiredAttributes`.
+- **codebase_extract verify mode (#1394):** a card whose symbol an element of the plan names says
+  `planned` with that element's id; `view: {planned: true}` lists them and `next` names the decide
+  call that stages them.
+- **codebase_extract output (#1298, #1350):** a page of cards states each candidate list two or more
+  cards share once (`undecided.candidateLists`, named on the card as `candidateList`). `groupBy` now
+  applies to `view` pages (`byFile`, or `byFolder` at `groupDepth`). `decide` with `view` is a run
+  that answers with that view's page of the cards left. The `impacted` list comes in full only when
+  it changed since the last run; otherwise its count and the `list: "impacted"` call.
+- **changeset_verify (#1350):** without `limit`, a page holds fewer entries per list than the default
+  when the default would make the answer larger than about 40 KB, and `sized` says so; `page.totals`
+  and `nextOffset` still give every list's length and the next page.
+- **Skills:** the change-planning skill (all copies) covers `overrideTier0` and `ruleWarnings`,
+  `where.symbol`, `attributes`, decide with `view`, `reject` with `keep`, `except` and `preview`,
+  and `planned` cards.
 
 ## [0.8.0] - 2026-11-24
 

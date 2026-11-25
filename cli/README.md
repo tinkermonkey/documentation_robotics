@@ -562,6 +562,10 @@ dr visualize --stop --all
   reason the process's start-up sweep kept it: started from a terminal, a browser tab connected,
   its tabs could not be read, or its pids could not be confirmed (an unused one that `review_open`
   started is stopped by the next start). `--json` gives the same to a script.
+- **After a CLI upgrade** the running process keeps its old code until it restarts. It restarts
+  itself as soon as no browser tab, DrBot turn or request is using it (MCP sessions reconnect on
+  their own), and until then it refuses to write the model, saying both versions:
+  `dr serve --stop` restarts it at once.
 - **`--stop`** stops the process with the same confirmed stop as `dr serve --stop`.
   **`--stop --all`** also stops every per-project viewer whose pids are confirmed. A viewer found
   only in the process table (its record was lost, or a session with another `DR_STATE_DIR` started
@@ -571,6 +575,23 @@ dr visualize --stop --all
   `dr visualize` launcher, and has a server under it whose script is the dr CLI's. Where it cannot be
   read, the viewer must name itself on `/health`, which it does only for a caller with its token.
   Before a SIGKILL the start time is read again; a reused pid is never signalled.
+- **A test suite's own process.** An end-to-end suite (the viewer's Playwright suite, say) runs an
+  isolated process with its own farm, state and token, and leaves the user's process alone:
+
+  ```bash
+  (umask 077; openssl rand -hex 24 > e2e/token)   # the suite's token, readable by you alone
+  DR_FARM_PATH=e2e/farm dr serve --foreground --json \
+    --state-dir e2e/state --port 8099 --token-file e2e/token --viewer-path dist/embedded/dr-viewer-bundle
+  # prints {"ready":true,"pid":...,"port":8099,"url":"http://127.0.0.1:8099/","projects":[...]} on stdout once it serves
+  dr serve --stop --state-dir e2e/state
+  ```
+
+  `--state-dir` keeps its record, token file and log in that folder, makes `--port` the exact port
+  (it fails rather than move to another), and skips the start-up sweep (`--no-sweep` does that
+  alone). It needs a farm of its own: the user farm is refused. `--token-file` is taken only with
+  `--state-dir`, and only from a file you own that no one else can read (mode 600), as ssh takes a
+  key. With `--json` the process's log goes to stderr, so stdout carries the ready line alone.
+  `/health` answers without the token; every other route needs it.
 
 Neither command gives a partial answer as if it were whole:
 

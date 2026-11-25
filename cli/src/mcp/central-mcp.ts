@@ -36,6 +36,12 @@ import { McpToolRegistry } from "./tool-registry.js";
 export const MCP_ROOT_PATH_HEADER = "x-dr-mcp-root-path";
 /** The header the bridge sends its session environment in (base64url JSON of SESSION_ENV_KEYS). */
 export const MCP_SESSION_ENV_HEADER = "x-dr-mcp-session-env";
+/**
+ * The header the `dr mcp` bridge marks its sessions with: it replays them on a new process, so they
+ * don't hold the central process back from a restart; a session without it (a client connected to
+ * `/mcp` directly) does.
+ */
+export const MCP_BRIDGE_HEADER = "x-dr-mcp-bridge";
 
 /** A session with no open event stream and no request for this long is closed (DR_MCP_SESSION_IDLE_MINUTES). */
 const DEFAULT_SESSION_IDLE_MINUTES = 60;
@@ -115,6 +121,8 @@ interface OpenSession {
   lastSeenAt: number;
   /** GET event streams open now: a live bridge keeps one open. */
   openStreams: number;
+  /** Opened by the `dr mcp` bridge (MCP_BRIDGE_HEADER), which replays it after a restart. */
+  bridged: boolean;
 }
 
 function jsonRpcError(status: number, code: number, message: string): Response {
@@ -146,6 +154,13 @@ export class CentralMcpEndpoint {
   /** MCP sessions open now. */
   get sessionCount(): number {
     return this.sessions.size;
+  }
+
+  /** MCP sessions open now whose client is connected directly, not through the `dr mcp` bridge. */
+  get directSessionCount(): number {
+    let direct = 0;
+    for (const open of this.sessions.values()) if (!open.bridged) direct++;
+    return direct;
   }
 
   /** Handles one request to `/mcp` (already authenticated). */
@@ -196,11 +211,12 @@ export class CentralMcpEndpoint {
       log: this.log,
     });
     const server = await createDrMcpServer(session);
+    const bridged = request.headers.get(MCP_BRIDGE_HEADER) === "1";
     let open: OpenSession | undefined;
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (id) => {
-        open = { id, session, server, transport, lastSeenAt: this.now(), openStreams: 0 };
+        open = { id, session, server, transport, lastSeenAt: this.now(), openStreams: 0, bridged };
         this.sessions.set(id, open);
       },
       onsessionclosed: (id) => {

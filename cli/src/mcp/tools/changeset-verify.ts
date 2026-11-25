@@ -19,8 +19,11 @@ import {
 import type { Model } from "../../core/model.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
-import { jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { compactJson, jsonResult, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { CHANGESET_ALIAS_DESCRIPTION, changesetArg, resolveChangeset } from "./changeset-shared.js";
+
+/** The size a compact or sections answer aims at without a limit (#1350): about one tool result. */
+export const VERIFY_RESULT_TARGET = 40_000;
 
 /**
  * The as-built changeset `against` names: `against.changeset`, or its older name
@@ -107,7 +110,8 @@ const inputSchema = {
     .optional()
     .describe(
       `The most entries to return from each list: lines of the compact report (default ${VERIFY_LIST_LIMIT}) or items of a section ` +
-        `(default ${VERIFY_SECTION_PAGE_SIZE}); any size is accepted. A page size, not a cut-off: the verdict and summary counts are ` +
+        `(default ${VERIFY_SECTION_PAGE_SIZE}), fewer when the default would make the answer larger than about ${VERIFY_RESULT_TARGET / 1000} KB (page.limit says what was used); ` +
+        "any size is accepted and taken as given. A page size, not a cut-off: the verdict and summary counts are " +
         "over everything, and page.totals gives every list's true length."
     ),
   offset: z
@@ -165,10 +169,45 @@ export async function runVerify(args: VerifyComparisonArgs): Promise<{
   return { model, manager, planned, ...(plannedName ? { plannedName } : {}), ...(asBuilt ? { asBuilt } : {}), report };
 }
 
+/**
+ * changeset_verify's answer: the compact report or the sections asked for, each list a page. Without
+ * a limit the page holds the default number of entries per list, or fewer when that would make the
+ * answer larger than {@link VERIFY_RESULT_TARGET} bytes: the most that fit (at least one), with
+ * `sized` saying so. page.nextOffset follows the size used, so the pages stay contiguous whatever
+ * size each call picks. An explicit limit, and detail: "full", are taken as given.
+ */
+export function fitVerifyReport(
+  report: Parameters<typeof compactVerifyReport>[0],
+  options: Parameters<typeof compactVerifyReport>[1] & {}
+): ReturnType<typeof compactVerifyReport> | (ReturnType<typeof compactVerifyReport> & { sized: string }) {
+  const at = (limit?: number) => compactVerifyReport(report, { ...options, ...(limit !== undefined ? { limit } : {}) });
+  const first = at(options.limit);
+  if (options.detail === "full" || options.limit !== undefined) return first;
+  const size = (r: unknown) => Buffer.byteLength(compactJson(r), "utf-8");
+  if (size(first) <= VERIFY_RESULT_TARGET) return first;
+  const defaultLimit = options.sections?.length ? VERIFY_SECTION_PAGE_SIZE : VERIFY_LIST_LIMIT;
+  let low = 1;
+  let high = defaultLimit - 1;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (size(at(mid)) <= VERIFY_RESULT_TARGET) low = mid;
+    else high = mid - 1;
+  }
+  const result = at(low);
+  const over = size(result) > VERIFY_RESULT_TARGET;
+  return {
+    ...result,
+    sized:
+      `Lists are pages of ${low} entries here, not the default ${defaultLimit}, to keep this answer near ${VERIFY_RESULT_TARGET / 1000} KB` +
+      (over ? " (even so it is larger: its fixed parts alone are)" : "") +
+      ". The verdict and counts are over everything; page.totals gives each list's length and more names the call for the next page. limit takes any size.",
+  };
+}
+
 export async function changesetVerifyHandler(args: ChangesetVerifyArgs): Promise<CallToolResult> {
   return runTool(async () => {
     const { report } = await runVerify(args);
-    const result = compactVerifyReport(report, {
+    const result = fitVerifyReport(report, {
       detail: args.detail,
       sections: args.sections,
       layers: args.layers,
@@ -203,7 +242,8 @@ export const changesetVerifyTool: McpToolDefinition<typeof inputSchema> = {
     "references. For more, pass sections: [...] for only some sections in full (unplanned " +
     "lists the unplanned items; matched every match with its notes), narrowed with layers or ids; or detail: \"full\" " +
     "for the whole report (large for a big build). Every list is a page (limit, offset): page.totals gives every list's " +
-    "true length, page.nextOffset the next offset (absent on the last page), and more the call for it. Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
+    `true length, page.nextOffset the next offset (absent on the last page), and more the call for it; without limit a page is smaller than the default when that keeps the answer near ${VERIFY_RESULT_TARGET / 1000} KB (sized says so). ` +
+    "Reads the model fresh from disk, so a commit made outside MCP is seen. Read-only.",
   inputSchema,
   handler: changesetVerifyHandler,
 };

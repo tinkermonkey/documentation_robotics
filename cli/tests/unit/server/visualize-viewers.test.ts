@@ -504,6 +504,11 @@ describe("legacyViewerReason", () => {
     // The central process itself is never listed as a legacy viewer.
     expect(legacyViewerReason(viewer({ clients: 0 }), [100])).toBeNull();
   });
+
+  it("keeps another farm's viewer, as the farm's own process would (#1369)", () => {
+    expect(legacyViewerReason(viewer({ clients: 0 }), [], ["/projects/a"])).toBe("unused");
+    expect(legacyViewerReason(viewer({ clients: 0, projectRoot: "/elsewhere" }), [], ["/projects/a"])).toBe("outside-farm");
+  });
 });
 
 describe("formatCentralProcess", () => {

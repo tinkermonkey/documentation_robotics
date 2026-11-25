@@ -2443,7 +2443,8 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     };
     const handler = createCodebaseExtractHandler(h.deps);
 
-    expect(fail(await handler({ since: "main", preview: true, reject: [{ card: "x", reason: "y" }], rootPath })).error).toContain("preview");
+    // A preview may carry reject (#1322): checked like any reject, and nothing is recorded.
+    expect(fail(await handler({ since: "main", preview: true, reject: [{ card: "x", reason: "y" }], rootPath })).error).toContain("Nothing was recorded");
 
     const preview = ok(await handler({ since: "main", preview: true, rootPath }));
     expect(preview.preview).toBe(true);
@@ -3032,6 +3033,13 @@ describe("codebase_extract since: detect_changes (#1084)", () => {
     // Review hints only: nothing is staged for the callers.
     expect(result.changeset).toBeNull();
     expect(result.staged).toMatchObject({ adds: 0, updates: 0, relationships: 0 });
+    // The same list on the next run comes as its count, and list: "impacted" reads it (#1350).
+    const again = ok(await createCodebaseExtractHandler(h.deps)({ since: "main", rootPath }));
+    expect(again.impacted.items).toBeUndefined();
+    expect(again.impacted).toMatchObject({ total: 2 });
+    expect(again.impacted.unchanged).toContain('list: "impacted"');
+    expect(again.next.join(" ")).not.toContain("call code this range changed");
+    expect(ok(await createCodebaseExtractHandler(h.deps)({ list: "impacted", rootPath })).total).toBe(2);
   });
 
   it("keeps the line rule for a file detect_changes seeded whole though git places its lines", async () => {

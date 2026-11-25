@@ -30,7 +30,7 @@ import {
   compareVersions,
   LIST_DEFAULTS,
   pageOf,
-  RESTART_SERVER,
+  restartServer,
   runGit,
   shortenSections,
   staleServer,
@@ -122,6 +122,7 @@ interface StatusOptions {
   git?: GitRunner;
   tier1?: StatusContext["tier1"];
   installedCli?: StatusContext["installedCli"];
+  runningCodeBaseline?: StatusContext["runningCodeBaseline"];
   /** How the farm and the server record are read (tests pass their own). */
   central?: Partial<CentralDeps>;
 }
@@ -164,6 +165,7 @@ async function statusContext(args: ProjectStatusArgs, options: StatusOptions): P
     git: options.git ?? runGit,
     ...(options.tier1 ? { tier1: options.tier1 } : {}),
     ...(options.installedCli ? { installedCli: options.installedCli } : {}),
+    ...(options.runningCodeBaseline ? { runningCodeBaseline: options.runningCodeBaseline } : {}),
     session,
     central,
   };
@@ -322,11 +324,12 @@ function withIndexNote(step: NextStep, s: Sections): NextStep {
  */
 function withServerNote(step: NextStep, s: Sections): NextStep {
   const stale = staleServer(s.server);
-  if (!stale || step.summary.toLowerCase().includes(RESTART.toLowerCase())) return step;
+  if (!stale || step.summary.toLowerCase().includes(restart().toLowerCase())) return step;
   return { ...step, summary: `${step.summary} Also: ${stale.note}` };
 }
 
-const RESTART = RESTART_SERVER;
+/** The restart advice for the process answering (central, or in-process). */
+const restart = (): string => restartServer();
 
 /** A step that would start an index run waits for the one already running instead. */
 function whileIndexing(step: NextStep, s: Sections): NextStep {
@@ -364,7 +367,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
       summary:
         `The model is on spec ${spec.model}, newer than the ${spec.cli} this dr server is running (CLI ${stale.version}). The dr CLI ` +
         `installed now is already ${stale.installed.version} (spec ${stale.installed.spec}): this server process started before the ` +
-        `upgrade. ${RESTART} before changing the model; the CLI needs no update.`,
+        `upgrade. ${restart()} before changing the model; the CLI needs no update.`,
       tool: null,
     };
   }
@@ -372,7 +375,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
     return {
       summary:
         `This dr server process is CLI ${stale.version} (spec ${spec.cli}), and ${stale.installed.version}` +
-        `${stale.installed.spec ? ` (spec ${stale.installed.spec})` : ""} is installed now. ${RESTART}, then call project_status ` +
+        `${stale.installed.spec ? ` (spec ${stale.installed.spec})` : ""} is installed now. ${restart()}, then call project_status ` +
         `again: the model is on spec ${spec.model}, and its upgrade should come from the installed CLI, not this one.`,
       tool: null,
     };
@@ -394,7 +397,7 @@ function pickNextStep(s: Sections, root: string): NextStep {
     return {
       summary:
         `The model is on spec ${spec.model}, newer than this CLI's ${spec.cli}. Update the dr CLI, then ` +
-        `${RESTART.charAt(0).toLowerCase()}${RESTART.slice(1)}, before changing the model.`,
+        `${restart().charAt(0).toLowerCase()}${restart().slice(1)}, before changing the model.`,
       tool: null,
     };
   }
