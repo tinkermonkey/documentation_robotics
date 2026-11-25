@@ -266,6 +266,11 @@ export const ProjectListEntrySchema = z.object({
   repository: z.string().describe("The main checkout's path"),
   model: z.string().describe('The model folder as the farm records it'),
   remote: z.string().optional().describe("origin's URL, when it has one"),
+  missing: z
+    .literal(true)
+    .optional()
+    .describe("Set when the repository folder is gone: the project stays in the farm until it is removed"),
+  remove: z.string().optional().describe("With missing: the call that drops the project from the farm"),
   checkouts: z.array(ProjectListCheckoutSchema),
 });
 

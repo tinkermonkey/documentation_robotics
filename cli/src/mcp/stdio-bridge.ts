@@ -31,7 +31,7 @@ import { pickSessionEnv } from "../core/session-env.js";
 import type { EnsureCentralServer, EnsuredCentralServer } from "../server/central-mcp-contract.js";
 import { MCP_ROOT_PATH_ENV } from "../server/central-mcp-contract.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { encodeSessionEnv, MCP_ROOT_PATH_HEADER, MCP_SESSION_ENV_HEADER } from "./central-mcp.js";
+import { encodeSessionEnv, MCP_BRIDGE_HEADER, MCP_ROOT_PATH_HEADER, MCP_SESSION_ENV_HEADER } from "./central-mcp.js";
 
 export interface McpStdioBridgeOptions {
   /** Finds or starts the central process. Default: `ensureCentralServer`. */
@@ -45,7 +45,8 @@ export interface McpStdioBridgeOptions {
 
 /** The headers a bridge session sends with every request to `/mcp`. */
 export function bridgeHeaders(token: string, env: NodeJS.ProcessEnv): Record<string, string> {
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  // Marked as the bridge's: it replays the session after a restart, so the session doesn't hold the process.
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}`, [MCP_BRIDGE_HEADER]: "1" };
   const pinned = env[MCP_ROOT_PATH_ENV]?.trim();
   if (pinned) headers[MCP_ROOT_PATH_HEADER] = encodeURIComponent(pinned);
   const sessionEnv = pickSessionEnv(env);

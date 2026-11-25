@@ -94,6 +94,7 @@ import type { McpSession } from "./mcp-session.js";
 import { runWithSessionEnv, sessionEnv } from "../core/session-env.js";
 import type { McpResultCheckout } from "../server/central-mcp-contract.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { countToolCall } from "./tool-calls-in-flight.js";
 
 const MODEL_TOOLS: McpToolDefinition[] = [
   modelListTool,
@@ -273,7 +274,9 @@ export class McpToolRegistry {
             },
             { "mcp.tool.name": tool.name }
           );
-          return session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, call)) : call();
+          return countToolCall(() =>
+            session ? runInMcpSession(session.root, () => runWithSessionEnv(session.env, call)) : call()
+          );
         }
       );
     }

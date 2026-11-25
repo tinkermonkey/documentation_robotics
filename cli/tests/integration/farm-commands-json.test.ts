@@ -534,6 +534,10 @@ describe("Farm Commands - JSON Output Format Support", () => {
       expect(exitCode).toBe(1);
       const project = json.projects[0];
       expect(project.codebase_error).toMatch(/Codebase directory not found/);
+      // The repository is gone: the project is flagged with the call that drops it (#1438).
+      expect(project.repository_missing).toBe(true);
+      expect(project.remove).toBe("dr farm remove gone-service");
+      expect(project.codebase_error).toContain("its repository folder is gone: dr farm remove gone-service drops the project");
       expect(project.sync_state_error).toBeUndefined();
       expect(project.has_pending_changes).toBeUndefined();
       expect(project.last_sync_commit).toBe("abc123def456");
@@ -543,6 +547,7 @@ describe("Farm Commands - JSON Output Format Support", () => {
       expect(text.exitCode).toBe(1);
       expect(text.warnings.join("\n")).toMatch(/Warning: gone-service: Codebase directory not found/);
       expect(text.logs.join("\n")).toMatch(/Codebase unavailable/);
+      expect(text.logs.join("\n")).toMatch(/Remove: +dr farm remove gone-service/);
       expect(text.logs.join("\n")).not.toMatch(/Not synced yet/);
     });
 

@@ -15,6 +15,7 @@ import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
+import { assertRunningCodeInstalled } from "../utils/running-code.js";
 import { trackModelWrite } from "./model-write-tracker.js";
 import { stringifyDrYaml } from "./dr-yaml.js";
 import { getNodeType } from "../generated/node-types.js";
@@ -634,6 +635,7 @@ export class Model {
 
   private async writeLayer(name: string): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     const layer = this.layers.get(name);
     if (!layer) {
       throw new Error(`Layer ${name} not found`);
@@ -937,6 +939,7 @@ export class Model {
 
   private async writeManifest(): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     this.manifest.updateModified();
     const yaml = await import("yaml");
     const manifestPath = `${this.rootPath}/documentation-robotics/model/manifest.yaml`;
@@ -1084,6 +1087,7 @@ export class Model {
 
   private async writeRelationships(options: { preserveHeader?: boolean }): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     const fs = await import("fs/promises");
     const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`;
 
@@ -1810,6 +1814,7 @@ export class Model {
 
   private async writeDirtyLayersAtomic(): Promise<void> {
     assertBaseModelWritable();
+    await assertRunningCodeInstalled();
     // First, save all layers to temporary files
     const tempLayerWrites: Array<{ layer: Layer; tempPath: string }> = [];
 

@@ -23,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   integration files (`.claude/` from `dr claude install`, `.github/` from `dr copilot install`) up to
   this dr when an older dr installed them, as `dr upgrade` does, even when the model is current.
   Files at this dr's version are left alone, edits and all.
+- **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
+  on a farm of its own (the user farm is refused): its record, token and log in `<dir>`, no viewer
+  sweep, `--port` exact. `--token-file <path>`, taken only with `--state-dir`, gives it the token
+  the suite chose, from a file the user owns that no one else can read (mode 600), so every call
+  stays authenticated. `--no-sweep` skips the start-up sweep. `--foreground --json` prints one
+  ready line on stdout (pid, port, url, farm, and each project with its checkout keys) and sends
+  the log to stderr. `--status` and `--stop` take `--state-dir` too. `dr visualize --no-auth` and
+  `--token` stay refused, and now say where to go instead.
+- **project_status** names the dr server process that answered (`server.pid`, `server.startedAt`),
+  so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
+  instructions say to call project_status again after a reconnect.
+- **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
 
 ### Changed
 
@@ -166,6 +178,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `codebase_extract`) and the background run's own check call an index that records 0 nodes stale
   ("it holds no code"), and one recorded as `joined`, so it is re-indexed instead of skipped.
   `codebase_index`'s `next` for a stale index now gives the reason.
+- **The central viewer no longer stalls on farm listings** (#1436). Listing projects counted each
+  checkout's staged changesets by YAML-parsing every changeset in the farm, `changes.yaml` and
+  all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
+  It now reads `metadata.yaml`'s status alone, cached by file mtime; concurrent listings share one
+  scan; the single-project routes scan that project only; and a checkout's changeset list re-reads
+  only the changesets whose files changed (an empty metadata.yaml, as read mid-write, is skipped by
+  both). A project folder that is not a git repository costs no git call per listing while it has
+  no `.git`. On a farm the size of the report (9 projects, 264
+  changeset folders, 108 MB), `GET /api/projects/{project}/checkouts` went from 22–25 s to 0.06 s
+  (4 ms warm), `GET /api/projects` from 24 s to 0.4 s, six concurrent requests from 112 s to
+  0.03 s, and a repeat `…/changesets` from 2.5 s to 0.02 s.
+- **A DR process never lands with code older than the installed CLI** (#1427). Once the CLI
+  installed where the central process was loaded from changes after it started, every write to the
+  base model refuses with both versions and the restart (`dr serve --stop`; the dr MCP server
+  reconnects to the installed CLI's process). changeset_commit, its preview and the viewer's Apply
+  refuse before anything is asked or written, and a commit is checked once at its start, so a
+  change partway through never half-lands it. Drift already there at start (a checkout bumped
+  without a rebuild) is logged, not acted on. A process started detached with the default options
+  also restarts itself once no browser tab, DrBot turn, request or directly connected MCP client is
+  using it (`dr mcp` bridge sessions reconnect on their own); any other keeps running and says to
+  restart it by hand. project_status's server section compares with the same start baseline, so
+  it says stale only when a restart would help (a build bumped without a rebuild gets a rebuild
+  note instead), and words the restart for an in-process dr MCP server (`DR_MCP_IN_PROCESS`) too.
+  project_upgrade's apply is checked once before it writes, as a commit is.
+- **Tests can't write the real user farm** (#1438). The test preload points the user farm at a
+  scratch folder, drops a `DR_FARM_PATH` from the shell, and names the real farm in
+  `DR_PROTECTED_FARM_FILES`, which `FarmManifest.save` refuses to write.
+- **A farm project whose repository is gone is flagged** (#1438): `project_list`, `GET
+  /api/projects` and `dr farm status` mark it `missing` with the `dr farm remove <name>` call that
+  drops it. A repository deleted while the central process runs no longer fails the whole listing,
+  and one restored (or a folder that becomes a repository later) is seen again without a restart.
+- **dr serve's start-up sweep stops only its own farm's viewers** (#1369): a per-project viewer
+  whose project is not in the process's farm is kept (`outside-farm`), so a CLI run from source with
+  a farm of its own leaves the installed CLI's viewers alone.
+- **review_open never says a serving viewer is still starting** (#1282). `ensureCentralServer`
+  returns a recorded process once its `/health` answers; one that doesn't is returned with a notice
+  naming its log, and a timed-out wait for another start names the log too.
+- **A rebuilt `--viewer-path` bundle shows without a restart** (#1308): viewer files carry an ETag
+  and `index.html` (and every file without a content hash) is `Cache-Control: no-cache`, so the
+  browser revalidates each load; hashed assets are cached for good.
 
 ### Fixed
 

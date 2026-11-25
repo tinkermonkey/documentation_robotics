@@ -10,6 +10,13 @@
  *                          start-only options here through ensureCentralServer)
  *   dr serve --status      the running process's record and health, or "not running"
  *   dr serve --stop        stop it, and wait until it is gone
+ *   dr serve --state-dir <dir>
+ *                          an isolated process (a test suite's, or a CLI run from source): its
+ *                          record, token and log in <dir>, no sweep, --port exact (#1376, #1369)
+ *   dr serve --token-file <path>, --no-sweep
+ *                          start only: the token the caller chose (auth stays on), and no sweep
+ *
+ * With --foreground --json the process prints one JSON line once it serves (pid, port, url, farm).
  *
  * It never opens a browser. It refuses to start a second process for a farm that already has a
  * live one, and points to the running one instead. The process itself is `serve-entry.ts`
@@ -18,7 +25,7 @@
 
 import ansis from "ansis";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { openSync, closeSync, readFileSync } from "node:fs";
+import { openSync, closeSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerRecord } from "../core/checkout-types.js";
@@ -53,6 +60,12 @@ export interface ServeOptions {
   status?: boolean;
   stop?: boolean;
   json?: boolean;
+  /** An isolated process's state directory: its record, token and log; no sweep; the exact port. */
+  stateDir?: string;
+  /** A file holding the token the process uses instead of making one (start only). */
+  tokenFile?: string;
+  /** False: leave other per-project viewers running at start-up (start only). */
+  sweep?: boolean;
 }
 
 /** Everything `dr serve` touches outside itself, injected for tests. */
@@ -83,6 +96,14 @@ export interface ServeDeps {
 export interface SpawnEntryOptions extends Omit<CentralStartOptions, "port"> {
   farm: FarmLocation;
   port?: number;
+  /** Listen on `port` itself or fail (an isolated process). */
+  exactPort?: boolean;
+  /** The token file the process reads its token from (absolute). */
+  tokenFile?: string;
+  /** False: no start-up sweep. */
+  sweep?: boolean;
+  /** Print the JSON ready line once it serves. */
+  readyJson?: boolean;
   foreground: boolean;
   env: NodeJS.ProcessEnv;
   cwd: string;
@@ -114,7 +135,88 @@ export const SERVE_START_ENV = {
   viewerPath: "DR_SERVE_VIEWER_PATH",
   withDanger: "DR_SERVE_WITH_DANGER",
   readOnly: "DR_SERVE_READ_ONLY",
+  exactPort: "DR_SERVE_EXACT_PORT",
+  tokenFile: "DR_SERVE_TOKEN_FILE",
+  noSweep: "DR_SERVE_NO_SWEEP",
+  readyJson: "DR_SERVE_READY_JSON",
+  foreground: "DR_SERVE_FOREGROUND",
 } as const;
+
+/** How serve-entry runs beyond the start options it shares with dr visualize: read from its environment. */
+export interface EntryRunOptions {
+  exactPort: boolean;
+  tokenFile?: string;
+  sweep: boolean;
+  readyJson: boolean;
+  /** Attached to a terminal (`--foreground`): it never restarts itself. */
+  foreground: boolean;
+}
+
+/**
+ * Whether a process may restart itself on the installed CLI (#1427): only one started detached
+ * with the default options, as `dr mcp` and a bare `dr serve` start it, so a restart through the
+ * next `dr mcp` call loses nothing. An attached, isolated or customised one keeps running.
+ */
+export function restartsItselfWhenStale(start: CentralStartOptions, run: EntryRunOptions): boolean {
+  const customised =
+    start.port !== undefined || !!start.viewerPath || !!start.withDanger || !!start.readOnly;
+  return !run.foreground && !customised && !run.exactPort && !run.tokenFile && run.sweep;
+}
+
+/** The run options serve-entry reads from its environment (what spawnServeEntry set). */
+export function entryRunOptionsFromEnv(env: NodeJS.ProcessEnv): EntryRunOptions {
+  return {
+    exactPort: env[SERVE_START_ENV.exactPort] === "1",
+    ...(env[SERVE_START_ENV.tokenFile] ? { tokenFile: env[SERVE_START_ENV.tokenFile] } : {}),
+    sweep: env[SERVE_START_ENV.noSweep] !== "1",
+    readyJson: env[SERVE_START_ENV.readyJson] === "1",
+    foreground: env[SERVE_START_ENV.foreground] === "1",
+  };
+}
+
+/** The shortest token --token-file takes. */
+export const MIN_TOKEN_LENGTH = 16;
+
+/** Who may read a token file: its owner and its permission bits (tests pass their own). */
+export interface TokenFileAccess {
+  /** This user's id; undefined where the platform has none (Windows), and then nothing is checked. */
+  uid?: number;
+}
+
+/**
+ * The token in a --token-file: its first line, trimmed. Like ssh with a private key, it refuses a
+ * file other users can read or write (any of mode 0o077) or that another user owns: the token
+ * opens every API route, DrBot included. Throws when the file is missing, open to others, short
+ * or has spaces.
+ */
+export function readTokenFile(path: string, access: TokenFileAccess = { uid: process.getuid?.() }): string {
+  let text: string;
+  try {
+    const info = statSync(path);
+    if (access.uid !== undefined) {
+      if (info.uid !== access.uid) {
+        throw new CLIError(`The token file ${path} is owned by another user (uid ${info.uid}); use a file of your own.`);
+      }
+      if (info.mode & 0o077) {
+        const mode = (info.mode & 0o777).toString(8).padStart(3, "0");
+        throw new CLIError(
+          `The token file ${path} can be read by other users (mode ${mode}); make it yours alone: chmod 600 ${path}`
+        );
+      }
+    }
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    if (error instanceof CLIError) throw error;
+    throw new CLIError(`Could not read the token file ${path}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const token = text.split(/\r?\n/)[0].trim();
+  if (token.length < MIN_TOKEN_LENGTH || /\s/.test(token)) {
+    throw new CLIError(
+      `The token file ${path} must hold a token of ${MIN_TOKEN_LENGTH} or more characters, with no spaces, on its first line.`
+    );
+  }
+  return token;
+}
 
 /** The start options serve-entry reads from its environment (what spawnServeEntry set). */
 export function startOptionsFromEnv(env: NodeJS.ProcessEnv): CentralStartOptions {
@@ -137,6 +239,11 @@ export function serveEntryEnv(options: SpawnEntryOptions): NodeJS.ProcessEnv {
   if (options.viewerPath) env[SERVE_START_ENV.viewerPath] = resolve(options.cwd, options.viewerPath);
   if (options.withDanger) env[SERVE_START_ENV.withDanger] = "1";
   if (options.readOnly) env[SERVE_START_ENV.readOnly] = "1";
+  if (options.exactPort) env[SERVE_START_ENV.exactPort] = "1";
+  if (options.tokenFile) env[SERVE_START_ENV.tokenFile] = resolve(options.cwd, options.tokenFile);
+  if (options.sweep === false) env[SERVE_START_ENV.noSweep] = "1";
+  if (options.readyJson) env[SERVE_START_ENV.readyJson] = "1";
+  if (options.foreground) env[SERVE_START_ENV.foreground] = "1";
   return env;
 }
 
@@ -265,7 +372,10 @@ async function waitUntil(check: () => boolean | Promise<boolean>, timeoutMs: num
 
 /** `dr serve`, `dr serve --status`, `dr serve --stop`. */
 export async function serveCommand(options: ServeOptions, overrides: Partial<ServeDeps> = {}): Promise<void> {
-  const deps: ServeDeps = { ...defaultDeps(), ...overrides };
+  const base: ServeDeps = { ...defaultDeps(), ...overrides };
+  // An isolated process keeps its record, token and log in its own state directory (#1376).
+  const stateDir = options.stateDir !== undefined ? resolve(base.cwd, options.stateDir) : undefined;
+  const deps: ServeDeps = stateDir ? { ...base, env: { ...base.env, DR_STATE_DIR: stateDir } } : base;
   const json = options.json ?? isJson();
 
   const modes = [options.status && "--status", options.stop && "--stop", options.foreground && "--foreground"].filter(Boolean);
@@ -275,13 +385,40 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
     options.viewerPath !== undefined && "--viewer-path",
     options.withDanger && "--with-danger",
     options.readOnly && "--read-only",
+    options.tokenFile !== undefined && "--token-file",
+    options.sweep === false && "--no-sweep",
   ].filter(Boolean);
   if ((options.status || options.stop) && startOnly.length > 0) {
     throw new CLIError(`${startOnly.join(", ")} ${startOnly.length === 1 ? "is" : "are"} used only when dr serve starts the process.`);
   }
   const port = parsePort(options.port);
-  const start = { viewerPath: options.viewerPath, withDanger: options.withDanger, readOnly: options.readOnly };
+  if (options.tokenFile !== undefined) {
+    // A chosen token is for an isolated process only: never the shared one every session of the farm uses.
+    if (!stateDir) {
+      throw new CLIError("--token-file needs --state-dir: only an isolated process takes a token chosen for it.", 1, [
+        "dr serve --foreground --state-dir <dir> --port <n> --token-file <file> runs one for a test suite.",
+      ]);
+    }
+    // Checked now, so a bad file is said here rather than in the process's log.
+    readTokenFile(resolve(deps.cwd, options.tokenFile));
+  }
+  const start = {
+    viewerPath: options.viewerPath,
+    withDanger: options.withDanger,
+    readOnly: options.readOnly,
+    ...(options.tokenFile !== undefined ? { tokenFile: resolve(deps.cwd, options.tokenFile) } : {}),
+    ...(stateDir || options.sweep === false ? { sweep: false } : {}),
+    ...(stateDir && port !== undefined ? { exactPort: true } : {}),
+  };
   const farm = await deps.resolveFarm({ cwd: deps.cwd, env: deps.env });
+  if (stateDir && farm.source === "user" && !options.status && !options.stop) {
+    // An isolated process beside the user's own for the same farm would be a second process for it.
+    throw new CLIError(
+      `--state-dir runs an isolated process on a farm of its own, and this one is the user farm (${farm.file}).`,
+      1,
+      ["Point DR_FARM_PATH at the test's farm (or run inside a folder holding a farm.yaml)."]
+    );
+  }
   const running = await deps.findRunningServer(farm.root, { env: deps.env });
 
   if (options.status) {
@@ -355,7 +492,7 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
   }
 
   if (options.foreground) {
-    const entry = deps.spawnEntry({ farm, port, ...start, foreground: true, env: deps.env, cwd: deps.cwd });
+    const entry = deps.spawnEntry({ farm, port, ...start, readyJson: json, foreground: true, env: deps.env, cwd: deps.cwd });
     // Ctrl-C reaches the entry through the terminal's process group; this process waits for it.
     const ignore = () => {};
     const forward = () => entry.pid && deps.kill(entry.pid, "SIGTERM");
