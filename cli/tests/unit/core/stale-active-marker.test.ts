@@ -330,4 +330,36 @@ describe("retireLegacyActiveMarker, the upgrade's step for the old marker (#1273
       expect(await manager.getActiveId()).toBe(mine.id!);
       expect(await retireLegacyActiveMarker(root)).toBeNull();
     }));
+
+  it("makes nothing active when the old file names a committed changeset, and leaves .dr/ empty", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const landed = await manager.create("landed-long-ago");
+      const metadataFile = join(root, "documentation-robotics", "changesets", landed.id!, "metadata.yaml");
+      const metadata = YAML.parse(await readFile(metadataFile, "utf-8"));
+      await writeFile(metadataFile, YAML.stringify({ ...metadata, status: "committed" }));
+      await writeFile(legacyMarkerPath(root), `${landed.id}\n`);
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({
+        path: "documentation-robotics/changesets/.active",
+        stale: { id: landed.id!, status: "committed" },
+      });
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
+      expect(await manager.getActiveId()).toBeNull();
+      // The empty marker keeps a restored old file from being read
+      await writeFile(legacyMarkerPath(root), `${landed.id}\n`);
+      expect(await manager.getActiveId()).toBeNull();
+    }));
+
+  it("makes nothing active when the old file names a changeset that is gone", () =>
+    withModel(async (root) => {
+      await mkdir(join(root, "documentation-robotics", "changesets"), { recursive: true });
+      await writeFile(legacyMarkerPath(root), "changeset-1700000000000-gone00000\n");
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({
+        path: "documentation-robotics/changesets/.active",
+        stale: { id: "changeset-1700000000000-gone00000", status: "missing" },
+      });
+      expect(await readFile(markerPath(root), "utf-8")).toBe("");
+    }));
 });

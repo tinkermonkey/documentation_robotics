@@ -21,6 +21,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 
 /** The marker, relative to the project root. */
 export const ACTIVE_MARKER_RELATIVE = path.join(".dr", "active-changeset");
@@ -97,8 +98,13 @@ export async function clearActiveMarker(projectRoot: string): Promise<void> {
 export interface RetiredLegacyMarker {
   /** The old marker, relative to the project root, with forward slashes. */
   path: string;
-  /** The id it named, moved to `.dr/active-changeset` because `.dr/` had no marker. */
+  /** The id it named, moved to `.dr/active-changeset` because `.dr/` had no marker and it is staged. */
   movedTo?: string;
+  /**
+   * The id it named when that changeset is not staged (`committed`, `discarded`) or is gone
+   * (`missing`): nothing was made active, and `.dr/active-changeset` was left empty.
+   */
+  stale?: { id: string; status: string };
 }
 
 /** The old marker's path with forward slashes, as git and the answers name it. */
@@ -110,22 +116,39 @@ export function hasLegacyActiveMarker(projectRoot: string): boolean {
 }
 
 /**
- * The upgrade's step for a marker left in the old place (#1273): when `.dr/` has no marker, the
- * id the old one names moves there, so the checkout keeps its active changeset; either way the old
- * file is removed. Committing the deletion (git tracked the file) is the user's. Null when there is
- * no old marker.
+ * The upgrade's step for a marker left in the old place (#1273). When `.dr/` has no marker, the id
+ * the old one names moves there only if it names a staged changeset, so the checkout keeps the
+ * changeset it was working in. An old tracked marker usually outlived its changeset (committed,
+ * discarded or gone): then nothing is made active and `.dr/active-changeset` is left empty, which
+ * also keeps a later `git checkout` of the old file from being read. Either way the old file is
+ * removed; committing the deletion (git tracked the file) is the user's. Null when there is no old
+ * marker.
  */
 export async function retireLegacyActiveMarker(projectRoot: string): Promise<RetiredLegacyMarker | null> {
   const legacy = legacyActiveMarkerPath(projectRoot);
   if (!existsSync(legacy)) return null;
-  let movedTo: string | undefined;
+  const result: RetiredLegacyMarker = { path: LEGACY_ACTIVE_MARKER_PATH };
   if (!existsSync(activeMarkerPath(projectRoot))) {
     const id = await idIn(legacy);
-    if (id) {
+    const changeset = id ? await new StagedChangesetStorage(projectRoot).load(id).catch(() => null) : null;
+    if (id && changeset?.status === "staged") {
       await writeActiveMarker(projectRoot, id);
-      movedTo = id;
+      result.movedTo = id;
+    } else {
+      await clearActiveMarker(projectRoot);
+      if (id) result.stale = { id, status: changeset?.status ?? "missing" };
     }
   }
   await rm(legacy, { force: true });
-  return { path: LEGACY_ACTIVE_MARKER_PATH, ...(movedTo ? { movedTo } : {}) };
+  return result;
+}
+
+/** What a retired old marker meant for the active changeset, in a clause: moved, or nothing made active. */
+export function retiredMarkerClause(retired: RetiredLegacyMarker): string {
+  if (retired.movedTo) return `its changeset ${retired.movedTo} is active through .dr/active-changeset`;
+  if (retired.stale) {
+    const state = retired.stale.status === "missing" ? "no longer exists" : `is ${retired.stale.status}`;
+    return `it named ${retired.stale.id}, which ${state}, so nothing was made active`;
+  }
+  return "this checkout's own marker in .dr/ stays as it is";
 }

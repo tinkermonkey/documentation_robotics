@@ -39,7 +39,7 @@ import {
 import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles } from "../../core/prettier-ignore.js";
 import { commitHookNotes } from "../../core/commit-hooks.js";
 import { scanOutsideModel, type OutsideModel } from "../../core/upgrade-outside-model.js";
-import { retireLegacyActiveMarker } from "../../core/active-changeset-marker.js";
+import { retireLegacyActiveMarker, retiredMarkerClause } from "../../core/active-changeset-marker.js";
 import {
   countFiles,
   diffFiles,
@@ -1056,7 +1056,10 @@ async function legacyMarkerReport(
     legacyMarker: {
       removed: retired.path,
       ...(retired.movedTo ? { movedTo: retired.movedTo } : {}),
-      note: "The marker is per checkout now, in .dr/active-changeset. git tracked the old file: commit its deletion.",
+      ...(retired.stale ? { stale: retired.stale } : {}),
+      note:
+        `Removed: ${retiredMarkerClause(retired)}. The marker is per checkout now, in .dr/active-changeset. ` +
+        "git tracked the old file: commit its deletion.",
     },
   };
 }
@@ -1090,9 +1093,10 @@ async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
           },
         }
       : {}),
-    ...(await legacyMarkerReport(projectRoot, outside, false)),
   };
   return {
+    // Top level, where the up-to-date answer and the applied result put it too
+    ...(await legacyMarkerReport(projectRoot, outside, false)),
     ...(Object.keys(groups).length > 0
       ? {
           outsideModel: {
@@ -1230,6 +1234,8 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         if (ignore.decision) gitignore = { gitignore: gitignoreDecision(ignore, projectRoot) };
       }
       const decisionOpen = Boolean((gitignore.gitignore as { options?: unknown } | undefined)?.options);
+      const legacyMarker = args.modelOnly ? {} : await legacyMarkerReport(projectRoot, outside, args.apply === true);
+      const markerPending = !args.apply && "legacyMarker" in legacyMarker;
       return jsonResult({
         status: "up-to-date",
         rootPath: projectRoot,
@@ -1237,15 +1243,21 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
         ...gitignore,
         ...prettierignore,
-        ...(args.modelOnly ? {} : await legacyMarkerReport(projectRoot, outside, args.apply === true)),
+        ...legacyMarker,
         ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
         ...(outside.commitHooks && !args.modelOnly ? { commitHooks: outside.commitHooks } : {}),
         ...(warnings.length > 0 ? { warnings } : {}),
-        ...(pending.length > 0 || decisionOpen
+        ...(pending.length > 0 || decisionOpen || markerPending
           ? {
               next: [
                 ...(pending.length > 0
                   ? [`${pending.join("; ")}. Calling project_upgrade with apply: true adds the missing lines, once the user approves.`]
+                  : []),
+                ...(markerPending
+                  ? [
+                      "The old active-changeset marker (legacyMarker) is still here: project_upgrade with apply: true " +
+                        "removes it, once the user approves.",
+                    ]
                   : []),
                 ...(decisionOpen
                   ? ['git tracks files under .dr/: put gitignore.options to the user, then call project_upgrade with apply: true and their choice as gitignore.']
@@ -1442,7 +1454,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
 export const projectUpgradeTool: McpToolDefinition<typeof upgradeInputSchema> = {
   name: "project_upgrade",
   description:
-    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines), the per-project integration files a project still has from dr claude install or dr copilot install (integrations: for each, what its upgrade would change, and for .claude/ which installed files the dr plugin also carries, inPlugin, and which only the files carry, notInPlugin; upgradeIntegrations: true with apply upgrades them, even when the model is current) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
+    "Move the model to the spec version this dr carries. Previews by default: the version path, element type renames, retired attributes removed (retiredAttributes, stagedRetiredAttributes), relationship rewrites, anything it can't migrate (the dropped relationships counted by predicate and source and target type in droppedByType), the staged changeset the dropped relationships would be recorded in (dropRecord, with the relationship types the catalog still has between the same element types in routes), the elements the dropped relationships would leave orphaned (wouldOrphan), and, from running the migration on a copy, the model files it would write (wouldWrite), the values it would derive for required attributes (derivedValues) and the required attributes it would leave empty (unfilledRequired). It also lists what applying writes outside the model (outsideModel: spec reference, layer reports, .gitignore and .prettierignore lines), the active-changeset marker left in its old place (legacyMarker: documentation-robotics/changesets/.active, which apply removes, making the changeset it names active in .dr/ only when that is still staged; even when the model is current), the per-project integration files a project still has from dr claude install or dr copilot install (integrations: for each, whether an older dr installed it and what its upgrade would change, and for .claude/ which installed files the dr plugin also carries, inPlugin, and which only the files carry, notInPlugin; upgradeIntegrations: true with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is current) and what the repository's commit hooks would do to a commit of dr's files (commitHooks: a large-file hook that would refuse one, a prettier hook that still receives them). apply: true runs the migration, writes the drop record when it dropped any (an upgrade-record changeset: it never lands; the user restores from it by hand), stages the derived values in a changeset, upgrade-fills-<spec version>, for the user to review and land (never written to the base model), then reloads and validates the base model; force: true (with apply) stamps the version when no migration leads to it; modelOnly: true (with apply) writes nothing outside the model but the spec reference. The applied result lists the model files written (files) apart from the others (otherFiles), the warnings dr validate reports, and the required attributes still empty (validation.unfilledRequired), per element. When git tracks files under .dr/, the result carries gitignore.options and changes nothing there: put them to the user and pass their choice as gitignore with apply: true. Long lists hold their first items and say so (shown, omitted, more) beside the true count; detail: \"full\" returns every item.",
   inputSchema: upgradeInputSchema,
   handler: projectUpgradeHandler,
 };

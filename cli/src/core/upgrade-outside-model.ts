@@ -26,8 +26,8 @@ import { hasLegacyActiveMarker, LEGACY_ACTIVE_MARKER_PATH } from "./active-chang
 /** What an upgrade says about the active-changeset marker left in its old place (#1273). */
 export const LEGACY_MARKER_NOTE =
   "The active-changeset marker moved to .dr/active-changeset, which is per checkout (git ignores .dr/). " +
-  "Applying removes the old file, moving the changeset it names to .dr/ when this checkout has no marker there; " +
-  "git tracked it, so commit its deletion.";
+  "Applying removes the old file; when this checkout has no marker there, the changeset it names becomes active " +
+  "only if it is still staged. git tracked it, so commit its deletion.";
 
 /** An installed integration and what upgrading it would change */
 export interface IntegrationPlan extends IntegrationUpgradePlan {

@@ -190,12 +190,13 @@ describe("dr upgrade and the active-changeset marker left in its old place (#127
     await cleanup().catch(() => undefined);
   });
 
-  it("names it in the plan, removes it when run, and moves its changeset to .dr/", async () => {
+  it("names it in the plan, removes it when run, and moves a staged changeset to .dr/", async () => {
     const legacy = join(root, "documentation-robotics", "changesets", ".active");
     const marker = join(root, ".dr", "active-changeset");
-    await mkdir(join(root, "documentation-robotics", "changesets"), { recursive: true });
+    const model = await Model.load(root, { lazyLoad: false });
+    const plan = await new StagingAreaManager(root, model).create("shared-plan", "A plan from before the move");
     await rm(marker, { force: true });
-    await writeFile(legacy, "changeset-shared\n");
+    await writeFile(legacy, `${plan.id}\n`);
 
     const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: root });
     expect(dryRun.exitCode).toBe(0);
@@ -205,9 +206,25 @@ describe("dr upgrade and the active-changeset marker left in its old place (#127
 
     const run = await runDr(["upgrade", "--yes"], { cwd: root });
     expect(run.exitCode).toBe(0);
-    expect(run.stdout).toContain("Removed documentation-robotics/changesets/.active");
-    expect(run.stdout).toContain("Commit the deletion");
+    expect(run.stdout).toContain(`Removed documentation-robotics/changesets/.active: its changeset ${plan.id} is active`);
+    expect(run.stdout).toContain("commit the deletion");
     expect(existsSync(legacy)).toBe(false);
-    expect(await readFile(marker, "utf-8")).toBe("changeset-shared\n");
+    expect(await readFile(marker, "utf-8")).toBe(`${plan.id}\n`);
+  });
+
+  it("makes nothing active when the old file names a changeset that is gone", async () => {
+    const legacy = join(root, "documentation-robotics", "changesets", ".active");
+    const marker = join(root, ".dr", "active-changeset");
+    await mkdir(join(root, "documentation-robotics", "changesets"), { recursive: true });
+    await rm(marker, { force: true });
+    await writeFile(legacy, "changeset-1700000000000-gone00000\n");
+
+    const run = await runDr(["upgrade", "--yes"], { cwd: root });
+    expect(run.exitCode).toBe(0);
+    expect(run.stdout).toContain(
+      "it named changeset-1700000000000-gone00000, which no longer exists, so nothing was made active"
+    );
+    expect(existsSync(legacy)).toBe(false);
+    expect(await readFile(marker, "utf-8")).toBe("");
   });
 });

@@ -880,48 +880,95 @@ describe("project_upgrade and the active-changeset marker left in its old place 
   const legacy = () => join(dir, "documentation-robotics", "changesets", ".active");
   const marker = () => join(dir, ".dr", "active-changeset");
 
-  it("names it in the preview, and an apply removes it, moving its changeset to .dr/", async () => {
+  /** A changeset made with changeset_create, left inactive: its id. */
+  async function stagedChangeset(name: string): Promise<string> {
+    clearModelCache();
+    return parse(await changesetCreateHandler({ name, activate: false, rootPath: dir })).id;
+  }
+
+  /** The changeset's metadata.yaml says committed, as a landing leaves it. */
+  async function markCommitted(id: string): Promise<void> {
+    const file = join(dir, "documentation-robotics", "changesets", id, "metadata.yaml");
+    const metadata = yaml.parse(await readFile(file, "utf8"));
+    metadata.status = "committed";
+    await writeFile(file, yaml.stringify(metadata));
+    clearModelCache();
+  }
+
+  it("names it in the preview with a next line, and an apply removes it, moving a staged changeset to .dr/", async () => {
     await currentModel(dir);
-    await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
-    await writeFile(legacy(), "changeset-shared\n");
+    const id = await stagedChangeset("shared-plan");
+    await writeFile(legacy(), `${id}\n`);
 
     const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
     expect(preview.status).toBe("up-to-date");
     expect(preview.legacyMarker).toEqual({
       remove: "documentation-robotics/changesets/.active",
-      note: expect.stringContaining("per checkout"),
+      note: expect.stringContaining("only if it is still staged"),
     });
+    // The only thing pending, and the answer says what to call for it
+    expect(preview.next).toContain("project_upgrade with apply: true removes it");
     expect(await fileExists(legacy())).toBe(true);
 
     const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
-    expect(applied.legacyMarker).toMatchObject({
-      removed: "documentation-robotics/changesets/.active",
-      movedTo: "changeset-shared",
-    });
+    expect(applied.legacyMarker).toMatchObject({ removed: "documentation-robotics/changesets/.active", movedTo: id });
+    expect(applied.legacyMarker.note).toContain(`its changeset ${id} is active`);
     expect(applied.legacyMarker.note).toContain("commit its deletion");
     expect(await fileExists(legacy())).toBe(false);
-    expect(await readFile(marker(), "utf8")).toBe("changeset-shared\n");
+    expect(await readFile(marker(), "utf8")).toBe(`${id}\n`);
 
     // Nothing left to say
-    expect(parse(await projectUpgradeHandler({ rootPath: dir })).legacyMarker).toBeUndefined();
+    const again = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(again.legacyMarker).toBeUndefined();
+    expect(again.next).toBeUndefined();
+  });
+
+  it("makes nothing active when the old file names a committed changeset, and leaves .dr/ empty", async () => {
+    await currentModel(dir);
+    const id = await stagedChangeset("landed-plan");
+    await markCommitted(id);
+    await writeFile(legacy(), `${id}\n`);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+
+    expect(applied.legacyMarker.movedTo).toBeUndefined();
+    expect(applied.legacyMarker.stale).toEqual({ id, status: "committed" });
+    expect(applied.legacyMarker.note).toContain(`it named ${id}, which is committed, so nothing was made active`);
+    expect(await fileExists(legacy())).toBe(false);
+    expect(await readFile(marker(), "utf8")).toBe("");
+  });
+
+  it("makes nothing active when the old file names a changeset that is gone", async () => {
+    await currentModel(dir);
+    await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
+    await writeFile(legacy(), "changeset-1700000000000-gone00000\n");
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+
+    expect(applied.legacyMarker.stale).toEqual({ id: "changeset-1700000000000-gone00000", status: "missing" });
+    expect(applied.legacyMarker.note).toContain("which no longer exists, so nothing was made active");
+    expect(await readFile(marker(), "utf8")).toBe("");
   });
 
   it("keeps this checkout's own marker when .dr/ has one, and removes the old file on the migration path too", async () => {
     await currentModel(dir);
     await setSpecVersion(dir, "0.14.0");
+    const id = await stagedChangeset("someone-elses-plan");
     await mkdir(join(dir, ".dr"), { recursive: true });
     await writeFile(marker(), "");
-    await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
-    await writeFile(legacy(), "changeset-shared\n");
+    await writeFile(legacy(), `${id}\n`);
 
+    // In the migration preview it sits where the up-to-date answer puts it: at the top level
     const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
     expect(preview.status).toBe("preview");
-    expect(preview.outsideModel.legacyMarker.remove).toBe("documentation-robotics/changesets/.active");
+    expect(preview.legacyMarker.remove).toBe("documentation-robotics/changesets/.active");
+    expect(preview.outsideModel?.legacyMarker).toBeUndefined();
 
     const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
     expect(applied.status).toBe("applied");
     expect(applied.legacyMarker).toMatchObject({ removed: "documentation-robotics/changesets/.active" });
     expect(applied.legacyMarker.movedTo).toBeUndefined();
+    expect(applied.legacyMarker.note).toContain("this checkout's own marker in .dr/ stays as it is");
     expect(await fileExists(legacy())).toBe(false);
     expect(await readFile(marker(), "utf8")).toBe("");
     // A real migration, like the integrations test on that path
@@ -930,7 +977,7 @@ describe("project_upgrade and the active-changeset marker left in its old place 
   it("leaves it alone with modelOnly", async () => {
     await currentModel(dir);
     await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
-    await writeFile(legacy(), "changeset-shared\n");
+    await writeFile(legacy(), "changeset-1700000000000-gone00000\n");
 
     const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, modelOnly: true }));
     expect(applied.legacyMarker).toBeUndefined();

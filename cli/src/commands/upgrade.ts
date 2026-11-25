@@ -64,7 +64,7 @@ import {
   type StagedRetiredAttributeChange,
 } from "../core/attribute-migration.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
-import { LEGACY_ACTIVE_MARKER_PATH, retireLegacyActiveMarker } from "../core/active-changeset-marker.js";
+import { LEGACY_ACTIVE_MARKER_PATH, retireLegacyActiveMarker, retiredMarkerClause } from "../core/active-changeset-marker.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
@@ -636,8 +636,8 @@ async function applyOutsideModel(
     return null;
   });
   if (retired) {
-    const moved = retired.movedTo ? `, and its changeset ${retired.movedTo} is active through .dr/active-changeset` : "";
-    console.log(ansis.green(`✓ Removed ${retired.path}${moved}: the marker is per checkout now. Commit the deletion.`));
+    console.log(ansis.green(`✓ Removed ${retired.path}: ${retiredMarkerClause(retired)}.`));
+    console.log(ansis.dim("  The marker is per checkout now, in .dr/active-changeset. git tracked the old file: commit the deletion."));
   }
   await offerStaleRemoval(options, context.integrations);
   // No readable model: there is nothing to report on
