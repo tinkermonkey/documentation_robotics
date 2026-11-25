@@ -495,7 +495,10 @@ describe("changeset_impact focus and hubs", () => {
 
   it("walks from chosen elements, reporting unknown ids without failing", async () => {
     await planExportOrders();
-    const result = await impact({ from: [SERVICE, "api.operation.nope"], depth: 1 });
+    const result = await impact({ from: [SERVICE, "api.operation.nope"], depth: 1, detail: "full" });
+    // Compact, an element the plan itself changes is marked on its id.
+    const ids = await impact({ from: [SERVICE], depth: 1 });
+    expect(ids.byLayer.application).toEqual([`${FUNCTION} (added)`]);
     expect(result.from).toEqual([SERVICE]);
     expect(result.unknownFrom).toEqual(["api.operation.nope"]);
     // One hop from the service: the goal, and the function the plan adds (marked as changed).

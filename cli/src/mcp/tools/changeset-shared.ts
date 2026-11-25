@@ -81,7 +81,7 @@ export async function resolveChangeset(
   const changeset = await manager.load(id);
   if (!changeset) {
     throw new CLIError(`Changeset ${id} not found`, ErrorCategory.NOT_FOUND, [
-      'Use "changeset_list" to see all available changesets',
+      'Use "changeset_list" to see the staged changesets (status: "all" lists every one)',
     ]);
   }
   return changeset;
