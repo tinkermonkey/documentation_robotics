@@ -1159,7 +1159,12 @@
       created_at: 2026-11-25T17:21:47.505Z
       updated_at: 2026-11-25T17:21:47.505Z
       version: 1
-  timestamp: 2026-11-25T17:21:47.546Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: relationshipDeleteChange
+  timestamp: 2026-11-25T17:33:34.564Z
   sequenceNumber: 74
 - type: add
   elementId: application.applicationfunction.write-activity-warning
@@ -1176,7 +1181,12 @@
       created_at: 2026-11-25T17:21:47.505Z
       updated_at: 2026-11-25T17:21:47.505Z
       version: 1
-  timestamp: 2026-11-25T17:21:47.546Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-write-activity.ts
+          symbol: writeActivityWarning
+  timestamp: 2026-11-25T17:33:34.564Z
   sequenceNumber: 75
 - type: add
   elementId: application.applicationfunction.record-changeset-write
@@ -1193,7 +1203,12 @@
       created_at: 2026-11-25T17:21:47.505Z
       updated_at: 2026-11-25T17:21:47.505Z
       version: 1
-  timestamp: 2026-11-25T17:21:47.546Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-write-activity.ts
+          symbol: recordChangesetWrite
+  timestamp: 2026-11-25T17:33:34.564Z
   sequenceNumber: 76
 - type: add
   elementId: application.applicationfunction.unstaged-relationship-add
@@ -1210,7 +1225,12 @@
       created_at: 2026-11-25T17:21:47.505Z
       updated_at: 2026-11-25T17:21:47.505Z
       version: 1
-  timestamp: 2026-11-25T17:21:47.546Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: unstagedRelationshipAdd
+  timestamp: 2026-11-25T17:33:34.564Z
   sequenceNumber: 77
 - type: add
   elementId: application.applicationfunction.unstaged-element-add
@@ -1227,7 +1247,12 @@
       created_at: 2026-11-25T17:21:47.505Z
       updated_at: 2026-11-25T17:21:47.505Z
       version: 1
-  timestamp: 2026-11-25T17:21:47.546Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+          symbol: unstagedElementAdd
+  timestamp: 2026-11-25T17:33:34.564Z
   sequenceNumber: 78
 - type: relationship-add
   elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.relationship-delete-change
