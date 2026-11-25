@@ -370,10 +370,11 @@ export async function addOneElement(spec: ElementSpec, rootPath: string | undefi
         name: spec.name,
       };
     }
-    throw new CLIError(`Element ${elementPath} already exists in ${layer} layer, with another ${differs.join(" and ")}`, ErrorCategory.USER, [
-      `Use "model_update" to change it`,
-      `Use "model_show" to view the existing element`,
-    ]);
+    throw new CLIError(
+      `Element ${elementPath} already exists in ${layer} layer, with another ${differs.join(" and ")}`,
+      ErrorCategory.USER,
+      [`Use "model_update" to change it`, `Use "model_show" to view the existing element`]
+    );
   }
   if (taken) {
     throw new CLIError(`Element ${elementPath} already exists in ${layer} layer${otherNameNote(taken.name, spec.name)}`, ErrorCategory.USER, [
@@ -472,7 +473,11 @@ export interface IdNoteSummary {
 export const ID_NOTE_SAMPLE = 5;
 
 /** What a sent element would change in the element already there, or nothing: it is there as sent. */
-function differencesFrom(existing: { description?: string; attributes?: Record<string, unknown>; sourceReference?: unknown }, spec: ElementSpec, prepared: PreparedElement): string[] {
+function differencesFrom(
+  existing: { description?: string; attributes?: Record<string, unknown>; sourceReference?: unknown },
+  spec: ElementSpec,
+  prepared: PreparedElement
+): string[] {
   const differs: string[] = [];
   if (spec.description !== undefined && (spec.description || undefined) !== (existing.description || undefined)) {
     differs.push("description");
@@ -619,7 +624,9 @@ async function addElementBatch(
               reason: differs
                 ? `Repeated earlier in this batch (${at}) with another ${differs.join(" and ")}`
                 : `"${spec.name}" gives the same id as ${at} "${twin.name}" (${item.id}): an id comes from the name alone`,
-              suggestions: [differs ? "Send the element once, as it should be" : "Give one of the two a name that differs in its letters or digits"],
+              suggestions: [
+                differs ? "Send the element once, as it should be" : "Give one of the two a name that differs in its letters or digits",
+              ],
             }
       );
       continue;
@@ -695,7 +702,11 @@ async function addElementBatch(
       ...(idNotes.size > 0
         ? {
             idNotes: [...idNotes.entries()].map(
-              ([kind, ids]): IdNoteSummary => ({ note: ID_NOTE_SUMMARY[kind], count: ids.length, sample: ids.slice(0, ID_NOTE_SAMPLE) })
+              ([kind, ids]): IdNoteSummary => ({
+                note: ID_NOTE_SUMMARY[kind],
+                count: ids.length,
+                sample: ids.slice(0, ID_NOTE_SAMPLE),
+              })
             ),
           }
         : {}),

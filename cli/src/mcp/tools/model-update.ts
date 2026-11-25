@@ -141,12 +141,18 @@ function validateUpdateSourceReferenceOptions(args: UpdateSpec): void {
   }
 
   if (args.addSourceLocation || args.removeSourceLocation) {
-    const conflicting = (["sourceFile", "sourceSymbol", "clearSourceReference"] as const).filter((field) => args[field] !== undefined);
+    const conflicting = (["sourceFile", "sourceSymbol", "clearSourceReference"] as const).filter(
+      (field) => args[field] !== undefined
+    );
     if (conflicting.length > 0) {
+      const verb = conflicting.length === 1 ? "replaces" : "replace";
       throw new CLIError(
-        `addSourceLocation and removeSourceLocation change one location; ${conflicting.join(" and ")} replace${conflicting.length === 1 ? "s" : ""} them all`,
+        `addSourceLocation and removeSourceLocation change one location; ${conflicting.join(" and ")} ${verb} them all`,
         ErrorCategory.USER,
-        ["Send one or the other: sourceFile (with sourceSymbol) to replace the locations, or the location fields to add or remove one"]
+        [
+          "Send one or the other: sourceFile (with sourceSymbol) to replace the locations, or the location fields " +
+            "to add or remove one",
+        ]
       );
     }
     // Provenance and repository go with the location change; they are checked there.
@@ -278,9 +284,16 @@ export async function updateElement(model: Model, args: UpdateSpec): Promise<Upd
   // A location added or removed (#1260) settles against the element's reference on its own.
   const locationChange =
     args.addSourceLocation || args.removeSourceLocation
-      ? settleSourceLocationChange({ add: args.addSourceLocation, remove: args.removeSourceLocation }, currentSource, args, "mcp")
+      ? settleSourceLocationChange(
+          { add: args.addSourceLocation, remove: args.removeSourceLocation },
+          currentSource,
+          args,
+          "mcp"
+        )
       : undefined;
-  const source = locationChange ? { options: {}, warnings: locationChange.warnings } : resolveSourceReferenceOptions(args, "mcp", currentSource);
+  const source = locationChange
+    ? { options: {}, warnings: locationChange.warnings }
+    : resolveSourceReferenceOptions(args, "mcp", currentSource);
   const warnings: string[] = [...source.warnings];
 
   const hasUpdates =

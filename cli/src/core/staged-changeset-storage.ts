@@ -834,7 +834,7 @@ export class StagedChangesetStorage {
       throw new Error(`Changeset '${id}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? id, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError({ ...changeset, id: changeset.id ?? id, name: changeset.name });
     }
     return changeset;
   }

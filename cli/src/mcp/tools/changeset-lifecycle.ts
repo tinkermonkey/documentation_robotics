@@ -171,8 +171,8 @@ export const changesetDeactivateTool: McpToolDefinition<typeof deactivateInputSc
   name: "changeset_deactivate",
   description:
     "Deactivate the active changeset. Its changes stay staged; afterwards mutations write the base model directly. " +
-      "After the active changeset was landed, writes are refused until a changeset is activated or created, or this " +
-      "is called: then they write the base model.",
+    "After the active changeset was landed, writes are refused until a changeset is activated or created, or this " +
+    "is called: then they write the base model.",
   inputSchema: deactivateInputSchema,
   handler: changesetDeactivateHandler,
 };

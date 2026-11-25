@@ -572,7 +572,9 @@ async function prepareLanding(
   const manager = new StagingAreaManager(model.rootPath, model);
   const changeset = await resolveChangeset(manager, args.changeset, "changeset");
   // Already landed is an answer, not a wrong name (#1441).
-  if (changeset.status === "committed") return { result: jsonResult(await alreadyLandedResult(model, changeset)) };
+  if (changeset.status === "committed") {
+    return { result: jsonResult(await alreadyLandedResult(model, changeset)) };
+  }
   if (changeset.status !== "staged") {
     throw new CLIError(`Changeset '${changeset.name}' is ${changeset.status}; only a staged changeset can be committed`, ErrorCategory.USER, [
       'Use "changeset_list" to find a staged changeset',

@@ -105,10 +105,12 @@ export class FileLock {
           }
           if (Date.now() - startTime >= timeout) {
             const owner = await FileLock.readOwner(this.lockPath.replace(/\.lock$/, ""));
+            const since = owner?.since ? ` since ${owner.since}` : "";
+            const by = owner?.pid ? ` (process ${owner.pid})` : "";
             throw new Error(
               `Failed to acquire lock on ${this.lockPath} within ${timeout}ms. ` +
                 (owner?.purpose
-                  ? `It is held for ${owner.purpose}${owner.since ? ` since ${owner.since}` : ""}${owner.pid ? ` (process ${owner.pid})` : ""}.`
+                  ? `It is held for ${owner.purpose}${since}${by}.`
                   : `Resource may be locked by another process or operation.`)
             );
           }

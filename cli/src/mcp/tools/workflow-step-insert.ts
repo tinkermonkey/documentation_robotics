@@ -89,7 +89,10 @@ function stepOf(graph: ChangesetGraph, ref: string, role: "after" | "before"): s
  * The sequence changes that make room for `sequence` among `steps`: each step from there on moves up
  * by one while the next number is taken, and the shift stops at the first gap.
  */
-export function renumberings(steps: Array<{ id: string; sequence: number }>, sequence: number): Array<{ id: string; from: number; to: number }> {
+export function renumberings(
+  steps: Array<{ id: string; sequence: number }>,
+  sequence: number
+): Array<{ id: string; from: number; to: number }> {
   const moves: Array<{ id: string; from: number; to: number }> = [];
   let taken = sequence;
   for (const step of [...steps].filter((s) => s.sequence >= sequence).sort((a, b) => a.sequence - b.sequence || a.id.localeCompare(b.id))) {

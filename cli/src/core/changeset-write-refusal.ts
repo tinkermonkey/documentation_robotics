@@ -21,7 +21,8 @@ export const LANDING_LOCK_PURPOSE = "landing";
 
 /** What to do instead, for every refusal here. */
 const NEXT_STEPS = [
-  'To keep planning, create or activate a changeset ("changeset_create" or "changeset_activate"; dr changeset create or activate) and send the write again',
+  'To keep planning, create or activate a changeset ("changeset_create" or "changeset_activate"; dr changeset ' +
+    "create or activate) and send the write again",
   'To write the base model instead, deactivate ("changeset_deactivate"; dr changeset deactivate) and send the write again',
 ];
 
@@ -63,14 +64,14 @@ export function changesetBeingLandedError(changeset: { id: string; name: string 
 
 /** The changeset is no longer staged (landed meanwhile, or discarded): the write was not staged. */
 export function changesetNotStagedError(
-  changeset: { id: string; name: string; status: string; modified?: string }
+  changeset: { id?: string; name: string; status: string; modified?: string }
 ): ChangesetClosedToWritesError {
   const landed = changeset.status === "committed";
   return new ChangesetClosedToWritesError(
     landed
       ? `Changeset '${changeset.name}' was landed${when(changeset.modified)}, so it takes no more writes, and this one was not staged.`
       : `Changeset '${changeset.name}' is ${changeset.status}, so it takes no writes, and this one was not staged.`,
-    { id: changeset.id, name: changeset.name },
+    { id: changeset.id ?? changeset.name, name: changeset.name },
     landed ? "landed" : "discarded"
   );
 }

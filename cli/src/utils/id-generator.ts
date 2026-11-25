@@ -190,7 +190,9 @@ export function idNoteKind(note: string): IdNoteKind | undefined {
 export const ID_NOTE_SUMMARY: Record<IdNoteKind, string> = {
   "root-route": "Routes on the root path get ids that end in -root.",
   "word-breaks": "Dots, slashes and braces in these names are word breaks in their ids.",
-  "digit-prefix": `These names start with a digit, and an id must start with a letter, so their ids are prefixed with '${LEADING_DIGIT_PREFIX}'.`,
+  "digit-prefix":
+    "These names start with a digit, and an id must start with a letter, so their ids are prefixed with " +
+    `'${LEADING_DIGIT_PREFIX}'.`,
   shortened:
     `These names are longer than ${MAX_ID_SLUG} characters as ids, so each id is cut at a word and ends with a hash of the ` +
     "whole name. The elements keep their full names.",

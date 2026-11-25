@@ -661,9 +661,12 @@ describe("JSON Output on Mutating Commands", () => {
       const applied = await runCLICommand(workdir.path, ["changeset", "apply", "landed-plan", "--no-validate", "--force"]);
       expect(applied.exitCode).toBe(0);
 
-      // Put the marker back, as a landing interrupted before it cleared the marker leaves it
+      // Put the marker back, as a landing interrupted before it cleared the marker leaves it. Such a
+      // landing never wrote the landed note either (#1437: it is written after the marker is
+      // cleared), so take that away too: with the note, writes are refused instead.
       await fs.mkdir(path.dirname(markerPath), { recursive: true });
       await fs.writeFile(markerPath, marker);
+      await fs.rm(path.join(workdir.path, ".dr", "landed-changeset"), { force: true });
 
       const status = await runCLICommand(workdir.path, ["changeset", "status"]);
       expect(status.exitCode).toBe(0);

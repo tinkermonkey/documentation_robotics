@@ -356,9 +356,11 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
       const list = args.relationships !== undefined ? "relationships" : "file";
       const singleFields = (["source", "target", "predicate"] as const).filter((field) => args[field] !== undefined);
       if (singleFields.length > 0) {
-        throw new CLIError(`Send either source/target or ${list}, not both (got ${singleFields.join(", ")} beside ${list})`, ErrorCategory.USER, [
-          "Put the single relationship in the relationships list too",
-        ]);
+        throw new CLIError(
+          `Send either source/target or ${list}, not both (got ${singleFields.join(", ")} beside ${list})`,
+          ErrorCategory.USER,
+          ["Put the single relationship in the relationships list too"]
+        );
       }
       if (args.relationships !== undefined && args.file !== undefined) {
         throw new CLIError("Send either file or relationships, not both", ErrorCategory.USER, [
@@ -368,7 +370,8 @@ export async function relationshipDeleteHandler(args: RelationshipDeleteArgs): P
       let items = args.relationships;
       if (items === undefined) {
         const model = await loadModel(args.rootPath);
-        items = (await readBatchFile("relationship_delete", args.file!, model.rootPath, { relationships: deleteItemsSchema })).relationships ?? [];
+        const batch = await readBatchFile("relationship_delete", args.file!, model.rootPath, { relationships: deleteItemsSchema });
+        items = batch.relationships ?? [];
       }
       return jsonResult(await deleteRelationshipBatch(items, args.rootPath, args), { compact: true, lineWidth: BATCH_RESULT_LINE_WIDTH });
     }
@@ -466,8 +469,18 @@ export async function deleteRelationshipBatch(
         // Sent again after this changeset already removed it: a no-op (#1296).
         const removed = graph
           .relationships()
-          .some((rel) => rel.status === "deleted" && rel.source === from && rel.target === to && (!item.predicate || rel.predicate === item.predicate));
-        results.push(removed ? { ...asSent, status: "unchanged", reason: "This changeset already removes it" } : { ...asSent, ...notFound(item, true) });
+          .some(
+            (rel) =>
+              rel.status === "deleted" &&
+              rel.source === from &&
+              rel.target === to &&
+              (!item.predicate || rel.predicate === item.predicate)
+          );
+        results.push(
+          removed
+            ? { ...asSent, status: "unchanged", reason: "This changeset already removes it" }
+            : { ...asSent, ...notFound(item, true) }
+        );
         continue;
       }
       let staged = 0;

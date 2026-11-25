@@ -429,7 +429,7 @@ export class StagingAreaManager {
 
     // Only allow staging when status is 'staged' (not 'committed' or 'discarded')
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError(changeset);
     }
 
     const stagedChange: Omit<StagedChange, "sequenceNumber"> = {
@@ -466,7 +466,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError(changeset);
     }
     const now = new Date().toISOString();
     await this.storage.addChanges(
@@ -504,7 +504,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError(changeset);
     }
 
     await this.storage.updateChange(changesetId, elementId, {
@@ -534,7 +534,7 @@ export class StagingAreaManager {
     }
 
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError(changeset);
     }
 
     // Remove the element's changes and resequence remaining changes
@@ -563,7 +563,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError(changeset);
     }
 
     await this.storage.removeChanges(changesetId, elementIds);
@@ -588,7 +588,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
     if (changeset.status !== "staged") {
-      throw changesetNotStagedError({ id: changeset.id ?? changesetId, name: changeset.name, status: changeset.status, modified: changeset.modified });
+      throw changesetNotStagedError(changeset);
     }
     const removedAt = await this.storage.removeChangesBySequence(changeset.id, sequences);
     const engine = await this.getProjectionEngine();
