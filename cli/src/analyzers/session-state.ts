@@ -99,6 +99,7 @@ function validateIndexMeta(data: unknown): IndexMeta {
     node_count: obj.node_count as number,
     edge_count: obj.edge_count as number,
     ...(typeof obj.analyzer_version === "string" && obj.analyzer_version ? { analyzer_version: obj.analyzer_version } : {}),
+    ...(obj.joined === true ? { joined: true } : {}),
   };
 }
 
@@ -378,6 +379,38 @@ export async function writeIndexMeta(
   const filePath = getStatePath("index-meta.json", baseDir, analyzerName);
   const content = JSON.stringify(meta, null, 2);
   await fs.writeFile(filePath, content, "utf-8");
+}
+
+/**
+ * Remove the index metadata, so the code reads as not indexed. A run that replaced the analyzer's
+ * graph and then failed removes it: the metadata no longer describes what the analyzer holds.
+ */
+export async function removeIndexMeta(baseDir: string | undefined, analyzerName: string): Promise<void> {
+  await fs.rm(indexMetaPath(baseDir, analyzerName), { force: true });
+}
+
+/**
+ * Whether recorded index metadata describes an index with no code in it. Such an index is never
+ * fresh, whatever its commit (#1345): a run that could not read its counts used to record 0 nodes,
+ * and every codebase tool then read the index as fresh and found nothing in it.
+ */
+export function indexHoldsNoCode(meta: Pick<IndexMeta, "node_count">): boolean {
+  return !(meta.node_count > 0);
+}
+
+/**
+ * Why recorded index metadata can't be trusted to describe the code, or null: it holds no code, or
+ * it was joined from another process's run whose commit and start are unknown (#1345). Such an
+ * index is never fresh, whatever its commit.
+ */
+export function indexUntrusted(meta: Pick<IndexMeta, "node_count" | "joined">): string | null {
+  if (indexHoldsNoCode(meta)) {
+    return `it holds no code: the run that wrote it recorded ${meta.node_count} nodes, so the index is empty or the run could not read what it indexed (see the job log)`;
+  }
+  if (meta.joined) {
+    return "it was recorded from another process's index run, which read the code at a commit DR can't know";
+  }
+  return null;
 }
 
 /**

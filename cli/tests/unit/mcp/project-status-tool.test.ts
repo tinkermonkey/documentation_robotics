@@ -1421,6 +1421,16 @@ describe("project_status", () => {
       expect(data.nextStep.summary).toContain("Refresh");
     });
 
+    it("calls an index that holds no code stale at its own commit, and points at codebase_index (#1345)", async () => {
+      await writeIndex(rootPath, modelSha);
+      const meta = join(rootPath, ".dr", "analyzers", "cbm", "index-meta.json");
+      await writeFile(meta, JSON.stringify({ git_head: modelSha, timestamp: "2026-11-09T00:00:00Z", node_count: 0, edge_count: 0 }));
+      const data = await status(rootPath);
+      expect(data.codeIndex).toMatchObject({ status: "stale", indexedCommit: modelSha, nodes: 0 });
+      expect(data.codeIndex.reason).toContain("holds no code");
+      expect(data.nextStep.tool).toBe("codebase_index");
+    });
+
     it("keeps the index fresh after a commit that touched only the model (bug 11)", async () => {
       await writeIndex(rootPath, modelSha);
       // What landing a changeset commits: model files, and DR's own folders.

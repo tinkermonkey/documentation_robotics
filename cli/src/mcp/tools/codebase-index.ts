@@ -36,6 +36,7 @@ import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolContext, ty
 import {
   analyzerNotFoundError,
   assessIndex,
+  assessSelectedIndex,
   canonicalRoots,
   defaultCodebaseToolDeps,
   describeIndex,
@@ -45,6 +46,8 @@ import {
   WAIT_FOR_INDEX,
   writeWorktreeSnapshot,
   type CodebaseToolDeps,
+  type IndexAssessment,
+  type IndexedFirst,
   type IndexJudgement,
 } from "./codebase-shared.js";
 
@@ -142,7 +145,8 @@ function indexStep(job: IndexJob | null, freshness: IndexFreshness, judgement: I
   if (state === "fresh-with-uncommitted-edits") {
     return "Source files were edited after the index was taken (index.uncommittedEdits). Call codebase_index with wait: 30 to re-index them.";
   }
-  return "The code has changed since the last index. Call codebase_index with wait: 30 to re-index.";
+  // The reason says which: commits that changed source files, another analyzer version, or no code in it.
+  return `The index is stale${judgement?.reason ? ` (${judgement.reason})` : ""}. Call codebase_index with wait: 30 to re-index.`;
 }
 
 /** Sleeps `ms`, or less when `signal` aborts. */
@@ -275,29 +279,7 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         return report(job.analyzer, false, job);
       }
 
-      // Pick the analyzer, discovering one when none is selected yet.
-      let analyzer = session?.active_analyzer;
-      let discovered = false;
-      if (!analyzer) {
-        const discovery = await deps.discover();
-        if (!discovery.selected) {
-          const failed = discovery.found.find((f) => f.error);
-          if (failed) throw await notInstalledError(failed.name, failed.error);
-          const name = discovery.found[0]?.name ?? "cbm";
-          throw new CLIError("No code analyzer is installed", ErrorCategory.USER, await installSuggestions(name));
-        }
-        analyzer = discovery.selected;
-        discovered = true;
-        await writeSession({ active_analyzer: analyzer, selected_at: new Date().toISOString() }, projectRoot);
-      }
-
-      const backend = await deps.getAnalyzer(analyzer);
-      if (!backend) throw analyzerNotFoundError(analyzer);
-      // Discovery has just checked it; otherwise check before starting a run that would fail.
-      if (!discovered) {
-        const detection = await backend.detect(projectRoot);
-        if (!detection.installed) throw await notInstalledError(analyzer, detection.error);
-      }
+      const { analyzer, discovered } = await selectAnalyzer(projectRoot, session?.active_analyzer, deps);
 
       // Federation: record the targets; a changed list needs a run, so the pass links them.
       let crossRepoChanged = false;
@@ -326,38 +308,173 @@ export function createCodebaseIndexHandler(deps: CodebaseToolDeps = defaultCodeb
         editedSinceIndex = judgement?.state === "fresh-with-uncommitted-edits";
       }
 
-      // codebase-memory-mcp indexes every file it isn't told to skip, DR's changesets and analyzer
-      // state included; the run writes .cbmignore too, but doing it here lets the result say so.
-      const ignoreFile = analyzer === "cbm" ? await cbmIgnoreFile(codebaseRoot, projectRoot) : undefined;
-
-      // The uncommitted source files as the run starts, so a later check sees any change to them.
-      const snapshot = await takeWorktreeSnapshot(codebaseRoot);
-      const { started, job: current, replaced } = await startIndexJob({
-        projectRoot,
-        codebaseRoot,
-        analyzer,
+      const { started, job: current, replaced, ignoreFile } = await launchIndexRun(projectRoot, codebaseRoot, analyzer, deps, {
         // The child skips an index taken at the current HEAD unless forced; uncommitted edits need the run,
         // and so do new cross-repo targets (the pass runs after the index).
         force: args.force || editedSinceIndex || crossRepoChanged,
         replaceRunning: args.force,
         ...(args.tier1 === false ? { tier1Fill: false } : {}),
-        spawn: deps.spawn,
-        kill: deps.kill,
-        drCommand: deps.drCommand,
-        isAlive: deps.isAlive,
       });
-      if (started && snapshot) {
-        await writeWorktreeSnapshot(projectRoot, analyzer, { ...snapshot, jobId: current.jobId }).catch(() => undefined);
-      }
       return report(analyzer, started, current, {
         ...(discovered ? { discovered: true } : {}),
         ...(replaced ? { replaced } : {}),
-        // Said only with a run that started (and will read it), not beside a run that did not.
-        ...(ignoreFile && started ? { ignoreFile } : {}),
+        ...(ignoreFile ? { ignoreFile } : {}),
       });
     });
   };
 }
+
+/**
+ * The analyzer for a run: the selected one, checked to be installed, or the first installed one
+ * discovery finds (then recorded as selected).
+ *
+ * @throws CLIError when no analyzer is installed, or the selected one is missing or won't start
+ */
+async function selectAnalyzer(
+  projectRoot: string,
+  selected: string | undefined,
+  deps: CodebaseToolDeps
+): Promise<{ analyzer: string; discovered: boolean }> {
+  let analyzer = selected;
+  let discovered = false;
+  if (!analyzer) {
+    const discovery = await deps.discover();
+    if (!discovery.selected) {
+      const failed = discovery.found.find((f) => f.error);
+      if (failed) throw await notInstalledError(failed.name, failed.error);
+      const name = discovery.found[0]?.name ?? "cbm";
+      throw new CLIError("No code analyzer is installed", ErrorCategory.USER, await installSuggestions(name));
+    }
+    analyzer = discovery.selected;
+    discovered = true;
+    await writeSession({ active_analyzer: analyzer, selected_at: new Date().toISOString() }, projectRoot);
+  }
+
+  const backend = await deps.getAnalyzer(analyzer);
+  if (!backend) throw analyzerNotFoundError(analyzer);
+  // Discovery has just checked it; otherwise check before starting a run that would fail.
+  if (!discovered) {
+    const detection = await backend.detect(projectRoot);
+    if (!detection.installed) throw await notInstalledError(analyzer, detection.error);
+  }
+  return { analyzer, discovered };
+}
+
+/**
+ * Starts the background index run (startIndexJob), with what goes with it: the .cbmignore check
+ * for codebase-memory-mcp and the snapshot of the uncommitted source files as the run starts, so a
+ * later check sees any change to them. codebase_index and indexFirst start their runs here.
+ */
+async function launchIndexRun(
+  projectRoot: string,
+  codebaseRoot: string,
+  analyzer: string,
+  deps: CodebaseToolDeps,
+  options: { force?: boolean; replaceRunning?: boolean; tier1Fill?: false }
+): Promise<{ started: boolean; job: IndexJob; replaced?: IndexJob; ignoreFile?: Record<string, unknown> }> {
+  // codebase-memory-mcp indexes every file it isn't told to skip, DR's changesets and analyzer
+  // state included; the run checks .cbmignore too, but doing it here lets the result say so.
+  const ignoreFile = analyzer === "cbm" ? await cbmIgnoreFile(codebaseRoot, projectRoot) : undefined;
+  const snapshot = await takeWorktreeSnapshot(codebaseRoot);
+  const { started, job, replaced } = await startIndexJob({
+    projectRoot,
+    codebaseRoot,
+    analyzer,
+    force: options.force,
+    replaceRunning: options.replaceRunning,
+    ...(options.tier1Fill === false ? { tier1Fill: false } : {}),
+    spawn: deps.spawn,
+    kill: deps.kill,
+    drCommand: deps.drCommand,
+    isAlive: deps.isAlive,
+  });
+  if (started && snapshot) {
+    await writeWorktreeSnapshot(projectRoot, analyzer, { ...snapshot, jobId: job.jobId }).catch(() => undefined);
+  }
+  // Said only with a run that started (and will read it), not beside a run that did not.
+  return { started, job, ...(replaced ? { replaced } : {}), ...(ignoreFile && started ? { ignoreFile } : {}) };
+}
+
+/** The share of a tool's time budget that indexFirst may spend waiting for the index. */
+export const INDEX_FIRST_SHARE = 0.5;
+
+/**
+ * How long indexFirst may wait for the index, for a call that started at `startedAt` and must end
+ * by `callDeadline`: INDEX_FIRST_SHARE of that time, and never past codebase_index's own longest
+ * wait (MAX_WAIT_SECONDS, less the time kept for the last read).
+ */
+export function indexFirstDeadline(startedAt: number, callDeadline: number): number {
+  return startedAt + Math.min((callDeadline - startedAt) * INDEX_FIRST_SHARE, MAX_WAIT_SECONDS * 1000 - REPORT_RESERVE_MS);
+}
+
+/**
+ * Before a codebase tool judges the index (codebase_extract, #1347): when the code is not indexed,
+ * the index is stale by the rule (judgeIndex, which also calls an index with no code stale), or an
+ * index run is in flight, it starts a run (selecting an analyzer when none is) or joins the one in
+ * flight, and blocks until it ends or `deadline` passes (indexFirstDeadline). Uncommitted edits
+ * never start a run: they don't make the index stale.
+ *
+ * Returns the index as judged at the end (`assessment`, with `uncommittedEdits` as the caller asks,
+ * for requireFreshIndex to use rather than judge again), and what it did (`indexedFirst`, null when
+ * the index was usable as it was). requireFreshIndex then refuses an index still stale after a run.
+ *
+ * @throws CLIError when the run fails (its error and log), when it is still running at the end of
+ *   the wait (how to wait for it, then call `tool` again), or when no analyzer can be selected
+ */
+export async function indexFirst(
+  roots: { projectRoot: string; codebaseRoot: string },
+  deps: CodebaseToolDeps,
+  options: { tool: string; deadline: number; uncommittedEdits?: boolean; signal?: AbortSignal }
+): Promise<{ assessment: IndexAssessment; indexedFirst: IndexedFirst | null }> {
+  const { projectRoot, codebaseRoot } = roots;
+  const began = Date.now();
+  const judging = { uncommittedEdits: options.uncommittedEdits === true };
+  let job = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
+  let why: string;
+  let started = false;
+  let ignoreFile: Record<string, unknown> | undefined;
+  if (job?.state === "running") {
+    why = `an index run was in flight (started ${job.startedAt})`;
+  } else {
+    const before = await assessSelectedIndex(projectRoot, codebaseRoot, deps, judging);
+    const { freshness, judgement } = before;
+    if (before.analyzer && freshness.indexed && judgement && judgement.state !== "stale") return { assessment: before, indexedFirst: null };
+    why = !before.analyzer || !freshness.indexed || !judgement ? "the code was not indexed" : `the index was stale: ${judgement.reason ?? "by the freshness rule"}`;
+    const { analyzer } = await selectAnalyzer(projectRoot, before.analyzer ?? undefined, deps);
+    // Not forced: the run's own check re-indexes a stale index (another commit, another analyzer
+    // version, no code) and skips one another call has just made fresh.
+    const run = await launchIndexRun(projectRoot, codebaseRoot, analyzer, deps, {});
+    job = run.job;
+    started = run.started;
+    ignoreFile = run.ignoreFile;
+  }
+  const settled = await waitForJob(projectRoot, job, options.deadline, deps, options.signal);
+  const seconds = Math.round((Date.now() - began) / 1000);
+  const what = started ? `${options.tool} started an index run` : `${options.tool} waited for the run`;
+  if (settled?.state === "running") {
+    throw new CLIError(
+      `${capitalized(why)}, so ${what} (job ${settled.jobId}); it was still running after ${seconds} s, as long as this call can wait`,
+      ErrorCategory.USER,
+      [`${WAIT_FOR_INDEX}, then call ${options.tool} again`, `Or call ${options.tool} with autoIndex: false to refuse instead of indexing first`]
+    );
+  }
+  if (!settled || settled.state === "failed") {
+    throw new CLIError(
+      `${capitalized(why)}, so ${what}, and the run failed: ${settled?.error ?? "its record is gone"}`,
+      ErrorCategory.USER,
+      [
+        ...(settled ? [`See the log at ${settled.logPath}`] : []),
+        `Fix the cause, then call codebase_index with wait: 30, or call ${options.tool} again`,
+      ]
+    );
+  }
+  return {
+    assessment: await assessSelectedIndex(projectRoot, codebaseRoot, deps, judging),
+    indexedFirst: { why, jobId: settled.jobId, started, seconds, ...(ignoreFile ? { ignoreFile } : {}) },
+  };
+}
+
+const capitalized = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
  * The crossRepo items as configured targets: each an existing directory other than this codebase,
@@ -391,24 +508,41 @@ function crossRepoTargets(
 }
 
 /**
- * Adds DR's own folders to the codebase's .cbmignore (cbm-analyzer.ts ensureCbmIgnore), and says
- * what it did when it changed the file, so the agent can tell the developer about a new file to
- * commit. Undefined when nothing changed; a failure is reported, not thrown: the run still works.
+ * Keeps DR's own folders out of a codebase-memory-mcp index (cbm-analyzer.ts ensureCbmIgnore), and
+ * says so when there is something to tell (#1300): DR wrote its .cbmignore and hid it from git
+ * (nothing to commit), or the developer's own .cbmignore lacks DR's lines (missing: the developer
+ * adds them). Undefined when nothing changed; a failure is reported, not thrown: the run still works.
  */
 async function cbmIgnoreFile(codebaseRoot: string, projectRoot: string): Promise<Record<string, unknown> | undefined> {
   try {
     const { ensureCbmIgnore } = await import("../../analyzers/cbm-analyzer.js");
     const result = await ensureCbmIgnore(codebaseRoot, projectRoot);
-    if (result.added.length === 0) return undefined;
+    if (result.missing?.length) {
+      return {
+        path: result.path,
+        missing: result.missing,
+        note:
+          "This .cbmignore is the developer's (tracked by git, or not written by DR), so DR left it alone, and codebase-memory-mcp " +
+          `indexes DR's model, changesets and analyzer state. Ask the developer to add these lines to it and commit it: ${result.missing.join(", ")} ` +
+          "(git add -f .cbmignore while it is untracked: DR's local exclude hides an untracked .cbmignore in every worktree).",
+      };
+    }
+    if (result.added.length === 0 && !result.excludedBy) return undefined;
     return {
       path: result.path,
       created: result.created,
       added: result.added,
+      ...(result.excludedBy ? { excludedBy: result.excludedBy } : {}),
       note:
-        "codebase-memory-mcp indexes every file it isn't told to skip; this keeps DR's model, changesets and analyzer state out of the index. Commit the file with the code.",
+        "DR's .cbmignore keeps its model, changesets and analyzer state out of codebase-memory-mcp's index. " +
+        (result.excludedBy
+          ? `It is hidden from git through ${result.excludedBy} (the repository's local exclude, in no commit), so the tree is unchanged as git sees it: nothing to commit.`
+          : result.notInGit
+            ? "The codebase is not in a git work tree, so nothing hides the file, and there is no commit to make."
+            : "git already ignores it, so the tree is unchanged as git sees it: nothing to commit."),
     };
   } catch (error) {
-    return { error: `Could not update .cbmignore, so DR's own files may be indexed: ${error instanceof Error ? error.message : String(error)}` };
+    return { error: `Could not check .cbmignore, so DR's own files may be indexed: ${error instanceof Error ? error.message : String(error)}` };
   }
 }
 
@@ -423,9 +557,11 @@ export const codebaseIndexTool: McpToolDefinition<typeof inputSchema> = {
     `${MAX_WAIT_SECONDS}) it blocks until the run ends or the wait does; without it, it returns at once. Start with ` +
     "wait: 30, then call it with status: true, wait: 30 until job.state is done or failed. A call while a run " +
     "is in flight returns that run; force: true stops it and starts over. Skips a fresh index unless force: true. " +
-    "Selects an installed analyzer if none is. Writes .dr/analyzers/, and for codebase-memory-mcp a .cbmignore at " +
-    "the codebase root that keeps documentation-robotics/ and .dr/ out of the index (ignoreFile says when it changed " +
-    "it); never the model. For code that calls other repositories, crossRepo (opt-in) links it to them so codebase_extract " +
+    "Selects an installed analyzer if none is. Writes .dr/analyzers/; for codebase-memory-mcp it keeps documentation-robotics/ and " +
+    ".dr/ out of the index with a .cbmignore at the codebase root that it hides from git through the repository's local exclude, so " +
+    "the working tree is unchanged and nothing needs committing; a .cbmignore the developer tracks is never edited, and ignoreFile.missing " +
+    "lists the lines it lacks for the developer to add. Never writes the model. An index with no code reads stale, and a run that " +
+    "can't read what it indexed fails. For code that calls other repositories, crossRepo (opt-in) links it to them so codebase_extract " +
     "can stage @model/... references. When the checkout opted in to Tier 1, the job then fills Tier 1's answer cache " +
     "(job.progress.phase classifying, job.tier1: cards done of total, cost, estimate; within the monthly cap): job.state is done " +
     "as soon as the index is, so codebase tools can run meanwhile; tier1: false skips the fill, and cancelFill: true stops a running one.",

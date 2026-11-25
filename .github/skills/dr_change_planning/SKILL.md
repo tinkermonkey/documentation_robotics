@@ -43,7 +43,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   `{files: "docs/**"}` for every card in a folder that isn't product code, or
   `{relationship: {source, predicate, target}}` for a relationship extraction staged that the code
   doesn't have; each needs a `reason`, and later runs leave them out. When `next` suggests folders
-  for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
+  for `.cbmignore`, ask the developer before adding them, and have them commit the file
+  (`git add -f .cbmignore`: DR's local exclude hides it until it is tracked), so every checkout
+  and clone indexes the same files; DR never edits a tracked `.cbmignore`. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.
 - `codebase_extract` cards come from the declarations the code index reports (classes, interfaces,
@@ -160,8 +162,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element, and don't add planned elements extraction can't see (tests, intent) to make the verdict
    match. Re-index the code once the build is committed: `codebase_index` with `wait: 30` (it re-indexes when source files changed since the last
    index, committed or not), then `status: true` and `wait: 30` until the job is done; don't call it
-   in a quick loop. If the result reports `ignoreFile` (the `.cbmignore` it wrote so DR's own folders
-   aren't indexed), tell the developer to commit that file. Then `codebase_extract`
+   in a quick loop. DR's own `.cbmignore` (it keeps DR's folders out of the index) is hidden from git,
+   so there is nothing to commit; if the result reports `ignoreFile.missing`, the developer's own
+   `.cbmignore` lacks those lines: ask them to add them. Then `codebase_extract`
    with `since` set to the branch the work started from (e.g. `main`) and
    `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
    `<name>-as-built` active. If it staged nothing, it makes no changeset: `changeset_create` with the
