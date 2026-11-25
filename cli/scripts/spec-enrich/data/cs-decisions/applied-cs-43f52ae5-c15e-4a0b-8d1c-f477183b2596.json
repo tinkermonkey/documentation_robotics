@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-43f52ae5-c15e-4a0b-8d1c-f477183b2596",
+  "select": {
+    "proposal_id": "43f52ae5-c15e-4a0b-8d1c-f477183b2596",
+    "title": "ApplicationInterface: classify the channel (interfaceType, closed) and open the protocol (supersedes d978e094)"
+  },
+  "applied_at": "2026-11-25T14:35:40.891Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "45f426ca3ff7842f21b5171b6c5b4d1cf5f967fc",
+    "spec_version": "0.15.0"
+  }
+}

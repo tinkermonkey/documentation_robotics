@@ -1,0 +1,31 @@
+{
+  "backend": "context-studio",
+  "record": "cs-9217c1d4-14b1-472f-8aef-e62e0f1d2853",
+  "select": {
+    "proposal_id": "9217c1d4-14b1-472f-8aef-e62e0f1d2853",
+    "title": "Allow testing.testcoveragetarget covers application.applicationfunction (DR issue 1360)"
+  },
+  "applied_at": "2026-11-25T14:35:40.683Z",
+  "counts": {
+    "rename": 0,
+    "create": 1,
+    "delete": 0
+  },
+  "actions": [
+    {
+      "action": "create",
+      "kind": "cs:create",
+      "from": "testing.testcoveragetarget.covers.application.applicationfunction",
+      "to": "testing.testcoveragetarget.covers.application.applicationfunction",
+      "p": 0.8,
+      "claims": [],
+      "note": "Context Studio proposal 9217c1d4-14b1-472f-8aef-e62e0f1d2853 seq 1 (create)",
+      "file_written": "spec/schemas/relationships/testing/testcoveragetarget.covers.applicationfunction.relationship.schema.json"
+    }
+  ],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "490efe60186ac71cad3c0d8b41d9766d163c161c",
+    "spec_version": "0.14.0"
+  }
+}

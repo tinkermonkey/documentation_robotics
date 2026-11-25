@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testcoveragetarget covers Applicationfunction",
+  "description": "The target puts the application function in test scope, such as an algorithm or utility routine whose unit tests the target groups. Use covers ApplicationService or ApplicationComponent instead when the tests exercise the consumer-facing offering or the component as a whole.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "testing.testcoveragetarget.covers.application.applicationfunction"
+    },
+    "source_spec_node_id": {
+      "const": "testing.testcoveragetarget"
+    },
+    "source_layer": {
+      "const": "testing"
+    },
+    "destination_spec_node_id": {
+      "const": "application.applicationfunction"
+    },
+    "destination_layer": {
+      "const": "application"
+    },
+    "predicate": {
+      "const": "covers"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "DR's catalog already allows testing.testcasesketch tests application.applicationfunction.",
+    "Heimdall review pilot (DR issue 1360): 116 sketches test 8 application functions that their coverage targets cannot cover."
+  ]
+}

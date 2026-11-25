@@ -485,7 +485,15 @@ export function deriveAttributes(
       };
     }
     case "application.applicationinterface":
-      return { facts: {}, defaults: { protocol: s.facts.decorator_names.includes("RestController") ? "REST" : "HTTP" } };
+      // Tier 0 types only Spring controllers as interfaces, and both kinds serve HTTP. REST is a
+      // style, not a protocol (Context Studio 43f52ae5). A @RestController is an API; a plain
+      // @Controller may render pages, so its interfaceType is left to whoever decides it.
+      return {
+        facts: {},
+        defaults: s.facts.decorator_names.includes("RestController")
+          ? { interfaceType: "api", protocol: "HTTP" }
+          : { protocol: "HTTP" },
+      };
     case "application.applicationcomponent":
       return { facts: {}, defaults: { type: "internal" } };
     case "application.applicationservice":

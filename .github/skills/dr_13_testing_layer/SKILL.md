@@ -199,6 +199,7 @@ summaries reach no other layer. Only the model and test case sketches link to mo
 | TestCoverageModel  | satisfies        | `motivation.requirement`           | "Login API Coverage Model" satisfies "Auth Must Be Regression Tested" |
 | TestCoverageModel  | measures-outcome | `motivation.outcome`               | "Login API Coverage Model" measures-outcome "Fewer Auth Incidents"    |
 | TestCoverageTarget | covers           | `api.operation`                    | "Login Endpoint Coverage" covers "POST /auth/login"                   |
+| TestCoverageTarget | covers           | `application.applicationfunction`  | "Edge Geometry Coverage" covers "Bezier Edge Path Computation"        |
 | TestCoverageTarget | covers           | `product.feature`                  | "Password Reset Coverage" covers "Self-Service Password Reset"        |
 | TestCoverageTarget | covers           | `ux.view`                          | "Login Screen Coverage" covers "Login View"                           |
 | TestCoverageTarget | covers           | `data-store.storedlogic`           | "Order Total Trigger Coverage" covers "recalc_order_total"            |
