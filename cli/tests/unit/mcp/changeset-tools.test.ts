@@ -79,7 +79,7 @@ describe("MCP changeset tools", () => {
         const manager = new StagingAreaManager(rootPath, model);
         const changeset = await manager.create("v1 migration", "Test changeset");
 
-        const result = await changesetShowHandler({ changesetId: changeset.id, rootPath });
+        const result = await changesetShowHandler({ changesetId: changeset.id, rootPath, detail: "full" });
         const data = parse(result);
 
         expect(data.id).toBe(changeset.id);

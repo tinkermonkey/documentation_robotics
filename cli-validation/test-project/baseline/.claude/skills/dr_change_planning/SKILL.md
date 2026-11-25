@@ -54,7 +54,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   them review the staged elements (`changeset_unstage` the ones they disagree with). To see the
   hidden cards, call the run again with `tier1: false`; the developer can switch stage mode off
   with `dr analyzer tier1 set mode suggest`. Don't pass `acceptTier1` then: it is ignored. When `next` suggests folders
-  for `.cbmignore`, ask the developer before adding them. When a `since` run reports `range` (it
+  for `.cbmignore`, ask the developer before adding them, and have them commit the file
+  (`git add -f .cbmignore`: DR's local exclude hides it until it is tracked), so every checkout
+  and clone indexes the same files; DR never edits a tracked `.cbmignore`. When a `since` run reports `range` (it
   reaches far back), check the range with the developer before working through its cards;
   `preview: true` counts a narrower `since` without staging anything.
 - `codebase_extract` cards come from the declarations the code index reports (classes, interfaces,
@@ -84,6 +86,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    none, stage one, or ask the human what the change is for.
 2. **Orient.** `model_search` / `model_show` / `model_trace` for the elements the change touches.
    Inside a changeset these read the plan as it stands (each result carries a change status).
+   `model_search` with `excludeLayers: ["testing"]` leaves test sketches out, and with
+   `fields: ["name", "description"]` finds words in descriptions; `model_show` with `ids: [...]`
+   reads several elements in one call.
    `spec_type` for a type you will add: its required attributes, enums, and the relationships the
    catalog allows to and from it. Within reason, every connection the spec models for a type is
    expected, though not every one will exist: treat the catalog's list as the checklist for each
@@ -117,7 +122,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
      large model. Where `existingCount` is above 0, link an existing element; otherwise decide
      whether the change needs a new one.
    - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
-   - Read the plan with `changeset_show` `detail: "summary"`, not the full snapshots.
+   - Read the plan with `changeset_show`: one line per change by default, narrowed with `layers`,
+     `types` or `operations` and paged with `limit` and `offset`; not `detail: "full"`, which
+     carries every snapshot.
 
    Read the brief's gaps:
    - `peer-pattern`: most elements like this one have a connection it lacks.
@@ -166,8 +173,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    element, and don't add planned elements extraction can't see (tests, intent) to make the verdict
    match. Re-index the code once the build is committed: `codebase_index` with `wait: 30` (it re-indexes when source files changed since the last
    index, committed or not), then `status: true` and `wait: 30` until the job is done; don't call it
-   in a quick loop. If the result reports `ignoreFile` (the `.cbmignore` it wrote so DR's own folders
-   aren't indexed), tell the developer to commit that file. Then `codebase_extract`
+   in a quick loop. DR's own `.cbmignore` (it keeps DR's folders out of the index) is hidden from git,
+   so there is nothing to commit; if the result reports `ignoreFile.missing`, the developer's own
+   `.cbmignore` lacks those lines: ask them to add them. Then `codebase_extract`
    with `since` set to the branch the work started from (e.g. `main`) and
    `changeset: "<name>-as-built"`. It stages what the rules decide in the changed files and leaves
    `<name>-as-built` active. If it staged nothing, it makes no changeset: `changeset_create` with the

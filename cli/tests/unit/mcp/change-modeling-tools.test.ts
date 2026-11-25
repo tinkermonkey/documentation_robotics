@@ -400,7 +400,7 @@ describe("changeset_brief", () => {
 describe("changeset_impact", () => {
   it("reaches existing elements through staged relationships, with their files", async () => {
     await planExportOrders();
-    const impact = parse(await changesetImpactHandler({ depth: 2, rootPath }));
+    const impact = parse(await changesetImpactHandler({ depth: 2, detail: "full", rootPath }));
 
     expect(impact.truncated).toBe(false);
     expect(impact.byLayer.application).toEqual([
@@ -412,12 +412,22 @@ describe("changeset_impact", () => {
       }),
     ]);
     expect(impact.byLayer.motivation).toEqual([expect.objectContaining({ id: GOAL, distance: 2 })]);
+
+    // The default lists the ids alone, and counts what it reached per layer and type (#1284).
+    const compact = parse(await changesetImpactHandler({ depth: 2, rootPath }));
+    expect(compact.detail).toBe("compact");
+    expect(compact.byLayer).toEqual({ motivation: [GOAL], application: [SERVICE] });
+    expect(compact.reachedByLayer).toEqual({
+      motivation: { count: 1, types: { goal: 1 } },
+      application: { count: 1, types: { applicationservice: 1 } },
+    });
+    expect(compact.more).toContain('detail: "full"');
   });
 
   it("treats both ends of a relationship removed between existing elements as impacted", async () => {
     await changesetCreateHandler({ name: "unlink", rootPath });
     await relationshipDeleteHandler({ source: SERVICE, target: GOAL, rootPath });
-    const impact = parse(await changesetImpactHandler({ depth: 1, rootPath }));
+    const impact = parse(await changesetImpactHandler({ depth: 1, detail: "full", rootPath }));
     expect(impact.changed).toBe(0);
     expect(impact.reached).toBe(2);
     expect(impact.byLayer.motivation[0].via).toBe(`${SERVICE} --realizes--> ${GOAL} (deleted by this changeset)`);

@@ -99,6 +99,11 @@ export interface ImpactReport {
   byLayer: Record<string, ImpactedElement[]>;
   /** Elements reached at each hop. */
   perHop: Array<{ depth: number; reached: number }>;
+  /**
+   * Everything the walk reached, counted per layer and, within it, per element type (most common
+   * first): the whole of it, whatever part `byLayer` lists.
+   */
+  reachedByLayer: Record<string, { count: number; types: Record<string, number> }>;
   /** Reached elements with more relationships than `hubThreshold`; the walk did not go through them. */
   hubs: ImpactHub[];
   hubThreshold: number;
@@ -201,6 +206,15 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
     byLayer[layer] = page.filter((e) => e.layer === layer).map(({ layer: _layer, ...rest }) => rest);
   }
   const nextOffset = offset + page.length < ordered.length ? offset + page.length : undefined;
+  const reachedByLayer: ImpactReport["reachedByLayer"] = {};
+  for (const layer of orderedLayers(ordered.map((e) => e.layer))) {
+    const types = new Map<string, number>();
+    for (const e of ordered) if (e.layer === layer) types.set(e.type, (types.get(e.type) ?? 0) + 1);
+    reachedByLayer[layer] = {
+      count: [...types.values()].reduce((sum, n) => sum + n, 0),
+      types: Object.fromEntries([...types].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))),
+    };
+  }
 
   return {
     depth,
@@ -210,6 +224,7 @@ export function computeImpact(graph: ChangesetGraph, options: ImpactOptions = {}
     truncated: page.length < reached.size,
     byLayer,
     perHop: [...perHop.entries()].sort(([a], [b]) => a - b).map(([d, n]) => ({ depth: d, reached: n })),
+    reachedByLayer,
     hubs: hubs.sort((a, b) => a.depth - b.depth || b.degree - a.degree || a.id.localeCompare(b.id)),
     hubThreshold,
     ...(options.from ? { from: [...start], unknownFrom: unknownFrom ?? [] } : {}),
