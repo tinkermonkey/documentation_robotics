@@ -15,7 +15,12 @@
       created_at: 2026-11-25T16:08:53.896Z
       updated_at: 2026-11-25T16:08:53.896Z
       version: 1
-  timestamp: 2026-11-25T16:08:53.905Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-index.ts
+          symbol: indexFirst
+  timestamp: 2026-11-25T16:28:22.188Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.exclude-from-git
@@ -34,7 +39,12 @@
       created_at: 2026-11-25T16:08:53.896Z
       updated_at: 2026-11-25T16:08:53.896Z
       version: 1
-  timestamp: 2026-11-25T16:08:53.905Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: excludeFromGit
+  timestamp: 2026-11-25T16:28:22.188Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.settle-index-counts
@@ -53,7 +63,12 @@
       created_at: 2026-11-25T16:08:53.896Z
       updated_at: 2026-11-25T16:08:53.896Z
       version: 1
-  timestamp: 2026-11-25T16:08:53.905Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: settleIndexCounts
+  timestamp: 2026-11-25T16:28:22.188Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.index-holds-no-code
@@ -72,7 +87,12 @@
       created_at: 2026-11-25T16:08:53.897Z
       updated_at: 2026-11-25T16:08:53.897Z
       version: 1
-  timestamp: 2026-11-25T16:08:53.905Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/session-state.ts
+          symbol: indexHoldsNoCode
+  timestamp: 2026-11-25T16:28:22.188Z
   sequenceNumber: 3
 - type: relationship-add
   elementId: application.applicationfunction.index-first::realizes::application.applicationservice.create-codebase-extract-handler
