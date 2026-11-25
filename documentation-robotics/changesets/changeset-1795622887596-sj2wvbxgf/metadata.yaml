@@ -2,17 +2,17 @@ id: changeset-1795622887596-sj2wvbxgf
 name: cli09-server-viewer-processes
 description: 'CLI 0.9.0 tranche "Dependable server and viewer processes" (#1436 #1427 #1438 #1369 #1282 #1308 #1362 #1376). Done looks like: farm listings count staged changesets from metadata.yaml alone (cached by mtime, concurrent listings share one run) and single-project routes scan one project; a long-lived DR process refuses base-model writes once the installed CLI changed under it, and restarts itself when nothing but MCP sessions use it; the test preload cannot write the real user farm, and farm listings flag a project whose repository is gone; dr serve sweeps only its own farm''s per-project viewers and has an isolated, authenticated test mode (--state-dir, --token-file, --no-sweep, a JSON ready line); ensureCentralServer reports a process that is not answering /health with its log path; viewer files are served with no-cache for index.html so a rebuilt --viewer-path bundle shows; the server instructions and project_status say what survived a reconnect.'
 created: 2026-11-25T16:08:07.642Z
-modified: 2026-11-25T17:18:22.853Z
+modified: 2026-11-25T17:36:16.997Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 28
+  additions: 27
   modifications: 14
   deletions: 0
-lastSequence: 51
+lastSequence: 60
 unstaged:
   - sequence: 10
     removedAt: 24
@@ -200,3 +200,200 @@ unstaged:
           version: 1
       timestamp: 2026-11-25T16:09:06.925Z
     rewritten: true
+  - sequence: 40
+    removedAt: 52
+    change:
+      type: add
+      elementId: application.applicationfunction.assert-farm-file-writable
+      layerName: application
+      after:
+        id: 913f4581-38a0-4cb5-871f-a479a78d0f46
+        path: application.applicationfunction.assert-farm-file-writable
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: assertFarmFileWritable
+        description: Throws when a farm.yaml is one this process must not write (DR_PROTECTED_FARM_FILES, compared with symlinks resolved). The test preload names the developer's real user farm there, so a test that forgets to isolate itself fails instead of writing it (#1438).
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/core/farm-manifest.ts
+              symbol: assertFarmFileWritable
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:18:22.846Z
+    rewritten: true
+  - sequence: 41
+    removedAt: 53
+    change:
+      type: add
+      elementId: application.applicationfunction.watch-running-code
+      layerName: application
+      after:
+        id: 114edac1-3150-478f-bde9-4731523b849d
+        path: application.applicationfunction.watch-running-code
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: watchRunningCode
+        description: Records what is installed when a long-lived process starts, as its baseline, and reports drift already there then (driftAtStart). Its check says how the installed CLI changed since the baseline, so drift present at start, a dev checkout bumped without a rebuild or a skewed clock is never refused or restarted on (#1427).
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/utils/running-code.ts
+              symbol: watchRunningCode
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:18:22.846Z
+    rewritten: true
+  - sequence: 42
+    removedAt: 54
+    change:
+      type: add
+      elementId: application.applicationfunction.with-running-code-checked
+      layerName: application
+      after:
+        id: be94a817-bbc8-454b-97f7-ff9e5f38f6ce
+        path: application.applicationfunction.with-running-code-checked
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: withRunningCodeChecked
+        description: "Runs a commit with the write guard checked once, at its start: refused then, or never during it, so a CLI change partway through can't leave a changeset marked committed with the model unwritten. The changeset_commit tool and the viewer's Apply both land through it (#1427)."
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/utils/running-code.ts
+              symbol: withRunningCodeChecked
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:18:22.846Z
+    rewritten: true
+  - sequence: 43
+    removedAt: 55
+    change:
+      type: add
+      elementId: application.applicationfunction.restarts-itself-when-stale
+      layerName: application
+      after:
+        id: 4395c7c4-c98e-4711-8044-d4bf7d7729d8
+        path: application.applicationfunction.restarts-itself-when-stale
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: restartsItselfWhenStale
+        description: "Whether a central process may restart itself on the installed CLI: only one started detached with the default options (as dr mcp and a bare dr serve start it), so a restart through the next dr mcp call loses nothing. An attached, isolated or customised one keeps running (#1427)."
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/commands/serve.ts
+              symbol: restartsItselfWhenStale
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:18:22.846Z
+    rewritten: true
+  - sequence: 40
+    removedAt: 56
+    change:
+      type: add
+      elementId: application.applicationfunction.assert-farm-file-writable
+      layerName: application
+      after:
+        id: 913f4581-38a0-4cb5-871f-a479a78d0f46
+        path: application.applicationfunction.assert-farm-file-writable
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: assertFarmFileWritable
+        description: Throws when a farm.yaml is one this process must not write (DR_PROTECTED_FARM_FILES, compared with symlinks resolved). The test preload names the developer's real user farm there, so a test that forgets to isolate itself fails instead of writing it (#1438).
+        source_reference: null
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:33:53.423Z
+    rewritten: true
+  - sequence: 43
+    removedAt: 57
+    change:
+      type: add
+      elementId: application.applicationfunction.restarts-itself-when-stale
+      layerName: application
+      after:
+        id: 4395c7c4-c98e-4711-8044-d4bf7d7729d8
+        path: application.applicationfunction.restarts-itself-when-stale
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: restartsItselfWhenStale
+        description: "Whether a central process may restart itself on the installed CLI: only one started detached with the default options (as dr mcp and a bare dr serve start it), so a restart through the next dr mcp call loses nothing. An attached, isolated or customised one keeps running (#1427)."
+        source_reference: null
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:33:53.608Z
+    rewritten: true
+  - sequence: 41
+    removedAt: 58
+    change:
+      type: add
+      elementId: application.applicationfunction.watch-running-code
+      layerName: application
+      after:
+        id: 114edac1-3150-478f-bde9-4731523b849d
+        path: application.applicationfunction.watch-running-code
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: watchRunningCode
+        description: Records what is installed when a long-lived process starts, as its baseline, and reports drift already there then (driftAtStart). Its check says how the installed CLI changed since the baseline, so drift present at start, a dev checkout bumped without a rebuild or a skewed clock is never refused or restarted on (#1427).
+        source_reference: null
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:33:53.523Z
+    rewritten: true
+  - sequence: 42
+    removedAt: 59
+    change:
+      type: add
+      elementId: application.applicationfunction.with-running-code-checked
+      layerName: application
+      after:
+        id: be94a817-bbc8-454b-97f7-ff9e5f38f6ce
+        path: application.applicationfunction.with-running-code-checked
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: withRunningCodeChecked
+        description: "Runs a commit with the write guard checked once, at its start: refused then, or never during it, so a CLI change partway through can't leave a changeset marked committed with the model unwritten. The changeset_commit tool and the viewer's Apply both land through it (#1427)."
+        source_reference: null
+        metadata:
+          created_at: 2026-11-25T17:18:22.817Z
+          updated_at: 2026-11-25T17:18:22.817Z
+          version: 1
+      timestamp: 2026-11-25T17:33:53.565Z
+    rewritten: true
+  - sequence: 7
+    removedAt: 60
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.assert-running-code-installed::depends-on::application.applicationfunction.running-code-drift
+      layerName: application
+      after:
+        source: application.applicationfunction.assert-running-code-installed
+        target: application.applicationfunction.running-code-drift
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:59.402Z
