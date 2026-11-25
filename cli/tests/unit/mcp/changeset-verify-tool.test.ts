@@ -13,7 +13,9 @@ import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelUpdateHandler } from "../../../src/mcp/tools/model-update.js";
 import { changesetCreateHandler, changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
-import { changesetVerifyHandler } from "../../../src/mcp/tools/changeset-verify.js";
+import { changesetVerifyHandler, fitVerifyReport, runVerify, VERIFY_RESULT_TARGET } from "../../../src/mcp/tools/changeset-verify.js";
+import { VERIFY_LIST_LIMIT } from "../../../src/core/changeset-verify.js";
+import { compactJson } from "../../../src/mcp/tools/shared.js";
 import { changesetAdoptSourceReferencesHandler } from "../../../src/mcp/tools/changeset-adopt-source-references.js";
 import { changesetVerifyCommand, formatVerifyReport } from "../../../src/commands/changeset-verify.js";
 
@@ -297,6 +299,35 @@ describe("changeset_verify compact result (#1152)", () => {
     );
     expect(full.detail).toBeUndefined();
     expect(full.elements.matched.map((m: any) => m.planned)).toEqual([OPERATION]);
+  });
+});
+
+describe("changeset_verify sized pages (#1350)", () => {
+  it("holds fewer entries per list than the default when the default would pass about 40 KB, and pages on contiguously", async () => {
+    await stagePlan("plan");
+    await stagePlan("as-built", "export-order-csv");
+    const { report } = await runVerify({ changeset: "plan", against: { changeset: "as-built" }, rootPath });
+    const big = structuredClone(report);
+    big.elements.missing = Array.from({ length: 200 }, (_, i) => ({ planned: `application.applicationfunction.f-${i}`, op: "add", reason: `r${i} ${"x".repeat(2000)}` })) as any;
+    const size = (r: unknown) => Buffer.byteLength(compactJson(r), "utf-8");
+
+    const first = fitVerifyReport(big, {}) as any;
+    expect(size(first)).toBeLessThanOrEqual(VERIFY_RESULT_TARGET);
+    expect(first.page.limit).toBeLessThan(VERIFY_LIST_LIMIT);
+    expect(first.sized).toContain(`not the default ${VERIFY_LIST_LIMIT}`);
+    // The true total is given, and the next page starts where this one ended.
+    expect(first.page.totals.missing).toBe(200 + big.relationships.missing.length);
+    expect(first.page.nextOffset).toBe(first.page.limit);
+    const second = fitVerifyReport(big, { offset: first.page.nextOffset }) as any;
+    expect(second.missing[0]).toStartWith(`application.applicationfunction.f-${first.page.limit} (add)`);
+
+    // An explicit limit is taken as given; a small answer keeps the default.
+    expect((fitVerifyReport(big, { limit: VERIFY_LIST_LIMIT }) as any).sized).toBeUndefined();
+    expect((fitVerifyReport(report, {}) as any).sized).toBeUndefined();
+    // Sections are sized the same way.
+    const sections = fitVerifyReport(big, { sections: ["missing"] }) as any;
+    expect(size(sections)).toBeLessThanOrEqual(VERIFY_RESULT_TARGET);
+    expect(sections.sized).toBeDefined();
   });
 });
 

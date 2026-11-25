@@ -222,7 +222,6 @@ describe("codebase_extract calls that don't extract never index first (review)",
       { page: 2 },
       { view: {} },
       { list: "groups" as const },
-      { list: "notElements" as const },
       { reject: [{ card: "OwnerController", reason: "not code" }] },
       { clearRejected: true as const },
     ];
@@ -230,7 +229,20 @@ describe("codebase_extract calls that don't extract never index first (review)",
       const error = fail(await createCodebaseExtractHandler(h.deps)({ rootPath, ...call }));
       expect(error.error).toBe("The code is not indexed");
     }
+    // The checkout's recorded decisions are read from decisions.json, index or no index (#1332).
+    expect(ok(await createCodebaseExtractHandler(h.deps)({ rootPath, list: "notElements" }))).toMatchObject({ list: "notElements", total: 0 });
     expect(h.spawns).toHaveLength(0);
+  });
+
+  it("decide with view is a run: it indexes first, then answers with the view's page (#1350)", async () => {
+    const h = harness();
+    const result = ok(
+      await createCodebaseExtractHandler(h.deps)({ rootPath, decide: [{ where: { label: "Method" }, as: "none", reason: "not modelled here" }], view: {} })
+    );
+    expect(h.spawns).toHaveLength(1);
+    expect(result.index.indexedFirst).toMatchObject({ why: "the code was not indexed", started: true });
+    expect(result.decide.counts).toMatchObject({ applied: 1 });
+    expect(result.undecided.view).toEqual({});
   });
 
   it("a preview on a stale index starts no run, since a run writes .dr/ and may write .cbmignore", async () => {
