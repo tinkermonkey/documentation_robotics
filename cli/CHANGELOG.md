@@ -18,6 +18,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Skills:** the application layer skill writes interfaces with `interfaceType` and the new
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
+- **`codebase_extract` indexes first (#1347):** when the code is not indexed, the index is stale
+  (or holds no code), or an index run is in flight, the call starts or joins the run and waits for
+  it within its own time budget (at most half of it, and never past 50 seconds), then extracts.
+  `index.indexedFirst` says why, the job and how many seconds it took. A run that outlasts the wait
+  is left running, and the error says how to wait for it (`codebase_index` with `status: true,
+  wait: 30`) before calling again. The new `autoIndex: false` keeps the old refusal.
+- **`.cbmignore` stays out of the working tree's git view (#1300):** with no `.cbmignore` at the
+  codebase root, `codebase_index` and `dr analyzer index` write DR's own and hide it from git
+  through the repository's local exclude (`.git/info/exclude`, in no commit, shared by every
+  worktree), so a read-only run leaves the tree as git saw it and a frozen review tag never has to
+  move. `ignoreFile` says nothing needs committing (`excludedBy`). A `.cbmignore` the developer
+  tracks, or wrote, is never edited: `ignoreFile.missing` lists the lines it lacks for the
+  developer to add, and `dr analyzer index` warns with them. An untracked `.cbmignore` an older DR
+  wrote is hidden the same way. The MCP server instructions and the planning skills no longer say
+  to commit the file.
+
+### Fixed
+
+- **An empty or unreadable index never reads as fresh (#1345):** a codebase-memory-mcp answer
+  without node and edge counts used to be recorded as 0 nodes with a warning in the log, and
+  `codebase_index` then reported the index `done` and `fresh`, so `codebase_extract` staged
+  nothing for changed files. The run now waits for another process's index of the same code
+  (`status: indexing`) through `index_status` and records that run's counts; a failed answer,
+  counts that stay unreadable, or an index of 0 nodes fail the run, and the old index metadata is
+  removed, since the analyzer's graph may have been replaced. The freshness rule (`project_status`,
+  `codebase_index`, `codebase_verify`, `codebase_extract`) and the background run's own check call
+  an index that records 0 nodes stale, with the reason "it holds no code", so it is re-indexed
+  instead of skipped. `codebase_index`'s `next` for a stale index now gives the reason.
 
 ## [0.8.0] - 2026-11-24
 

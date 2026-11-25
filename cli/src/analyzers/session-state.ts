@@ -381,6 +381,23 @@ export async function writeIndexMeta(
 }
 
 /**
+ * Remove the index metadata, so the code reads as not indexed. A run that replaced the analyzer's
+ * graph and then failed removes it: the metadata no longer describes what the analyzer holds.
+ */
+export async function removeIndexMeta(baseDir: string | undefined, analyzerName: string): Promise<void> {
+  await fs.rm(indexMetaPath(baseDir, analyzerName), { force: true });
+}
+
+/**
+ * Whether recorded index metadata describes an index with no code in it. Such an index is never
+ * fresh, whatever its commit (#1345): a run that could not read its counts used to record 0 nodes,
+ * and every codebase tool then read the index as fresh and found nothing in it.
+ */
+export function indexHoldsNoCode(meta: Pick<IndexMeta, "node_count">): boolean {
+  return !(meta.node_count > 0);
+}
+
+/**
  * Read analyzer status from `.dr/analyzers/{analyzerName}/status.json`
  *
  * @param baseDir Optional base directory. Defaults to process.cwd()

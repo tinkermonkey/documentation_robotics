@@ -584,21 +584,21 @@ describe("codebase_extract", () => {
     expect(bad.error).toContain("Unknown layer");
   });
 
-  it("points at codebase_index when the index is missing, stale or still running", async () => {
+  it("with autoIndex: false, points at codebase_index when the index is missing, stale or still running", async () => {
     const h = harness();
-    const missing = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const missing = fail(await createCodebaseExtractHandler(h.deps)({ rootPath, autoIndex: false }));
     expect(missing.error).toBe("The code is not indexed");
     expect(missing.suggestions[0]).toContain("codebase_index");
     expect(missing.suggestions[0]).toContain("codebase_extract");
 
     await indexed();
     h.head.value = NEW_HEAD;
-    const stale = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const stale = fail(await createCodebaseExtractHandler(h.deps)({ rootPath, autoIndex: false }));
     expect(stale.error).toContain("stale");
     expect(stale.suggestions[0]).toContain("codebase_index");
 
     ok(await createCodebaseIndexHandler(h.deps)({ force: true, rootPath }));
-    const running = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    const running = fail(await createCodebaseExtractHandler(h.deps)({ rootPath, autoIndex: false }));
     expect(running.error).toContain("in progress");
     // Nothing was created.
     const model = await Model.load(rootPath);

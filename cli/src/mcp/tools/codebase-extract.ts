@@ -188,6 +188,7 @@ import {
   requireFreshIndex,
   type CodebaseToolDeps,
 } from "./codebase-shared.js";
+import { indexFirst } from "./codebase-index.js";
 
 const DEFAULT_PAGE_SIZE = 25;
 /**
@@ -301,6 +302,13 @@ const inputSchema = {
     .optional()
     .describe(
       "false skips Tier 1 for this run: Tier 0 only, nothing sent, whatever the checkout's tier1.json says. Default: Tier 1 runs when the checkout opted in."
+    ),
+  autoIndex: z
+    .boolean()
+    .optional()
+    .describe(
+      "Default true: when the code is not indexed, the index is stale or an index run is in flight, index first (within this call's time budget) " +
+        "and say so in index.indexedFirst. false refuses instead, pointing at codebase_index."
     ),
   acceptTier1: z
     .literal(true)
@@ -2142,8 +2150,19 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         ]);
       }
 
+      // A missing or stale index is built first, within the budget (#1347); autoIndex: false refuses as before.
+      const indexedFirst =
+        args.autoIndex === false
+          ? null
+          : await indexFirst({ projectRoot, codebaseRoot }, deps, {
+              tool: "codebase_extract",
+              startedAt,
+              budgetMs: deps.budgetMs ?? DEFAULT_BUDGET_MS,
+              signal: context?.signal,
+            });
       const { analyzer, freshness, index: indexJudgement } = await requireFreshIndex(projectRoot, codebaseRoot, deps, "codebase_extract", {
         uncommittedEdits: true,
+        indexedFirst,
       });
       const head = freshness.currentGitHead;
 
@@ -4101,7 +4120,8 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "A run or page into an extraction changeset keeps that run's since and layers. " +
     "The changeset (default extract-<sha>) is created and made active when the run stages something, or when intent is given (the confirmed purpose, used as its description); " +
     "a run that only leaves cards or candidate deletes creates nothing and says which changeset to create first. previousActive is the one " +
-    "active before the first run. Needs a fresh index (codebase_index). Never writes the base model or commits. " +
+    "active before the first run. Indexes first when the code is not indexed or the index is stale (index.indexedFirst says why and how long it took; " +
+    "a run that outlasts this call's budget is left running and the error says how to wait; autoIndex: false refuses instead). Never writes the base model or commits. " +
     "When the checkout opted in to Tier 1 (a decision model; the user enables it), cards Tier 0 narrowed or left open carry its " +
     "suggestion (tier1: band, layer, type, p), the accept band first, and the tier1 block says who received code and the month's " +
     "spend (tell the user its notice). In suggest mode (tier1.mode) Tier 1 alone stages nothing: acceptTier1: true stages the accept band once the user agrees " +

@@ -1183,3 +1183,110 @@ describe("index time (review: bug 2)", () => {
     expect(source.slice(stamp, run)).not.toContain("indexRepository");
   });
 });
+
+describe("an index that holds no code (#1345)", () => {
+  const EMPTY = { ...META, node_count: 0, edge_count: 0 };
+
+  it("is stale whatever its commit, and says why", async () => {
+    const probe = { changedBetween: async () => [], editedSince: async () => [] };
+    const judgement = await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, nodeCount: 0 }, HEAD, probe);
+    expect(judgement.state).toBe("stale");
+    expect(judgement.reason).toContain("it holds no code");
+    // A count left out (older callers) is not judged by it; one with nodes is fresh as before.
+    expect((await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp }, HEAD, probe)).state).toBe("fresh");
+    expect((await judgeIndex({ indexedCommit: HEAD, indexedAt: META.timestamp, nodeCount: 120 }, HEAD, probe)).state).toBe("fresh");
+  });
+
+  it("never reads fresh: codebase_index re-indexes it at the same HEAD, and the tools refuse it", async () => {
+    await selectCbm();
+    await writeIndexMeta(EMPTY, rootPath, "cbm");
+    const h = harness();
+
+    const status = ok(await createCodebaseIndexHandler(h.deps)({ status: true, rootPath }));
+    expect(status.index).toMatchObject({ indexed: true, fresh: false, state: "stale", nodeCount: 0 });
+    expect(status.index.reason).toContain("holds no code");
+    expect(status.next).toContain("holds no code");
+    expect(status.next).toContain("codebase_index with wait: 30");
+
+    await expect(requireFreshIndex(rootPath, rootPath, h.deps, "codebase_extract")).rejects.toThrow("The index is stale: it holds no code");
+    const verify = fail(await createCodebaseVerifyHandler(h.deps)({ rootPath }));
+    expect(verify.error).toContain("holds no code");
+
+    // Not skipped as fresh: a run starts, and the child's own check (CbmAnalyzer.status) agrees.
+    const run = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(run.started).toBe(true);
+  });
+
+  it("the background run's own freshness check doesn't skip an empty index (CbmAnalyzer.status)", async () => {
+    const { CbmAnalyzer } = await import("../../../src/analyzers/cbm-analyzer.js");
+    const { MappingLoader } = await import("../../../src/analyzers/mapping-loader.js");
+    git(rootPath, "init", "-q");
+    await writeFile(join(rootPath, "a.ts"), "export const a = 1;\n");
+    git(rootPath, "add", "-A");
+    git(rootPath, "commit", "-qm", "init");
+    const head = git(rootPath, "rev-parse", "HEAD");
+    const analyzer = new CbmAnalyzer(await MappingLoader.load("cbm"));
+    (analyzer as any).detect = async () => ({ installed: true, binary_path: "/bin/cbm" });
+
+    await writeIndexMeta({ ...EMPTY, git_head: head }, rootPath, "cbm");
+    expect((await analyzer.status(rootPath)).fresh).toBe(false);
+    await writeIndexMeta({ ...META, git_head: head }, rootPath, "cbm");
+    expect((await analyzer.status(rootPath)).fresh).toBe(true);
+  });
+
+  it("CbmAnalyzer.index takes its counts from settleIndexCounts and removes the metadata when that fails", async () => {
+    // The run itself needs codebase-memory-mcp; this pins the wiring that keeps a failed count read
+    // from leaving metadata that reads fresh.
+    const source = await readFile(join(import.meta.dir, "../../../src/analyzers/cbm-analyzer.ts"), "utf-8");
+    const run = source.slice(source.indexOf("await tools.indexRepository("), source.indexOf("await writeIndexMeta(meta, projectRoot, analyzerName);"));
+    expect(run).toContain("await settleIndexCounts(tools, indexResponse");
+    expect(run).toContain("await removeIndexMeta(projectRoot, analyzerName)");
+    expect(run).not.toContain("Defaulting to 0");
+  });
+});
+
+describe(".cbmignore stays out of the tree (#1300)", () => {
+  async function repo(): Promise<void> {
+    git(rootPath, "init", "-q");
+    await mkdir(join(rootPath, "src"), { recursive: true });
+    await writeFile(join(rootPath, "src", "app.ts"), "export const app = 1;\n");
+    await writeFile(join(rootPath, ".gitignore"), ".dr/\n");
+    git(rootPath, "add", "-A");
+    git(rootPath, "commit", "-qm", "init");
+  }
+  const status = () => git(rootPath, "status", "--porcelain", "--untracked-files=all");
+
+  it("writes DR's .cbmignore hidden from git: ignoreFile says nothing needs committing, and the tree is unchanged", async () => {
+    await repo();
+    await selectCbm();
+    const h = harness();
+    const first = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(first.ignoreFile).toMatchObject({
+      path: join(rootPath, ".cbmignore"),
+      created: true,
+      added: ["/documentation-robotics/", "/.dr/"],
+      excludedBy: join(rootPath, ".git", "info", "exclude"),
+    });
+    expect(first.ignoreFile.note).toContain("nothing to commit");
+    expect(first.ignoreFile.note).not.toContain("Commit the file");
+    expect(status()).toBe("");
+    h.killAll();
+
+    const again = ok(await createCodebaseIndexHandler(h.deps)({ rootPath, force: true }));
+    expect(again.ignoreFile).toBeUndefined();
+  });
+
+  it("leaves a .cbmignore the developer tracks alone, and lists what it lacks for the developer", async () => {
+    await repo();
+    await writeFile(join(rootPath, ".cbmignore"), "fixtures/\n");
+    git(rootPath, "add", ".cbmignore");
+    git(rootPath, "commit", "-qm", "fixtures");
+    await selectCbm();
+    const h = harness();
+    const result = ok(await createCodebaseIndexHandler(h.deps)({ rootPath }));
+    expect(result.ignoreFile).toMatchObject({ path: join(rootPath, ".cbmignore"), missing: ["/documentation-robotics/", "/.dr/"] });
+    expect(result.ignoreFile.note).toContain("add these lines to it and commit it");
+    expect(await readFile(join(rootPath, ".cbmignore"), "utf-8")).toBe("fixtures/\n");
+    expect(status()).toBe("");
+  });
+});

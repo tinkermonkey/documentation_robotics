@@ -14,7 +14,7 @@ import { analyzerHomepage, currentGitHead, installedAnalyzerVersion, readIndexFr
 import { SOURCE_EXT, VENDOR_EXCLUDE } from "../../analyzers/cards/build.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { analyzerChanged } from "../../analyzers/version.js";
-import { readSession } from "../../analyzers/session-state.js";
+import { indexHoldsNoCode, readSession } from "../../analyzers/session-state.js";
 import type { CodeChangesResult } from "../../analyzers/code-changes.js";
 import type { AnalyzerBackend } from "../../analyzers/base-analyzer.js";
 import type { AvailableAnalyzer } from "../../analyzers/types.js";
@@ -328,6 +328,21 @@ export interface IndexJudgement {
   committedSince: string[];
   /** Source files with uncommitted edits written after the index was taken. */
   editedSince: string[];
+  /** Set when the calling tool indexed the code before judging it (codebase-index.ts indexFirst). */
+  indexedFirst?: IndexedFirst;
+}
+
+/** What indexFirst did before a tool judged the index, for the result's index.indexedFirst (#1347). */
+export interface IndexedFirst {
+  /** Why: the code was not indexed, the index was stale (and why), or a run was in flight. */
+  why: string;
+  jobId: string;
+  /** True when this call started the run; false when it waited for one already in flight. */
+  started: boolean;
+  /** How long the call spent on the index, in whole seconds. */
+  seconds: number;
+  /** The .cbmignore check, when it has something to say (codebase_index's ignoreFile). */
+  ignoreFile?: Record<string, unknown>;
 }
 
 /** What the rule asks git: commits between two points, and uncommitted edits after a time. */
@@ -399,15 +414,28 @@ function listed(files: string[]): string {
  * An index built by another analyzer version than `installedVersion` is stale whatever the code
  * did: an analyzer upgrade can change the graph's format and qualified names (codebase-memory-mcp
  * 0.11, 0.12.0 and 0.12.1 each did). A version unknown on either side does not count.
+ *
+ * An index that holds no code (`nodeCount` 0) is stale whatever its commit (#1345): it describes
+ * none of the code, so a tool that read it as fresh would find nothing and say nothing changed.
  */
 export async function judgeIndex(
-  index: { indexedCommit: string; indexedAt: string; analyzerVersion?: string },
+  index: { indexedCommit: string; indexedAt: string; analyzerVersion?: string; nodeCount?: number },
   head: string | null,
   probe: IndexProbe,
   installedVersion?: string | null
 ): Promise<IndexJudgement> {
   if (head === null) {
     return { state: "stale", reason: "the code's git HEAD can't be read", committedSince: [], editedSince: [] };
+  }
+  if (index.nodeCount !== undefined && indexHoldsNoCode({ node_count: index.nodeCount })) {
+    return {
+      state: "stale",
+      reason:
+        `it holds no code: the run that wrote it recorded ${index.nodeCount} nodes, so the index is empty or ` +
+        "the run could not read what it indexed (see the job log)",
+      committedSince: [],
+      editedSince: [],
+    };
   }
   if (analyzerChanged({ analyzer_version: index.analyzerVersion }, installedVersion)) {
     return {
@@ -477,7 +505,12 @@ export async function assessIndex(
     options.uncommittedEdits === false ? null : await readWorktreeSnapshot(projectRoot, analyzer, freshness.meta.timestamp, deps.isAlive);
   const probe = indexProbe(codebaseRoot, { ...deps, snapshot });
   const judgement = await judgeIndex(
-    { indexedCommit: freshness.meta.git_head, indexedAt: freshness.meta.timestamp, analyzerVersion: freshness.meta.analyzer_version },
+    {
+      indexedCommit: freshness.meta.git_head,
+      indexedAt: freshness.meta.timestamp,
+      analyzerVersion: freshness.meta.analyzer_version,
+      nodeCount: freshness.meta.node_count,
+    },
     freshness.currentGitHead,
     options.uncommittedEdits === false ? { ...probe, editedSince: async () => [] } : probe,
     installedVersion
@@ -510,6 +543,7 @@ export function describeIndex(freshness: IndexFreshness, judgement?: IndexJudgem
     nodeCount: freshness.meta.node_count,
     edgeCount: freshness.meta.edge_count,
     ...(freshness.meta.analyzer_version ? { analyzerVersion: freshness.meta.analyzer_version } : {}),
+    ...(judgement?.indexedFirst ? { indexedFirst: judgement.indexedFirst } : {}),
   };
 }
 
@@ -520,6 +554,9 @@ export const WAIT_FOR_INDEX = "Call codebase_index with status: true and wait: 3
  * The analyzer and its index, when the index is usable: not stale by the rule (judgeIndex), with
  * no index run in flight. Otherwise a CLIError that points at codebase_index, then `tool` again.
  *
+ * With `indexedFirst` (what indexFirst did just before), the returned judgement carries it, so the
+ * tool's describeIndex says the call indexed first and how long it took.
+ *
  * Uncommitted edits never block. With `uncommittedEdits: true`, `index.state` is
  * `fresh-with-uncommitted-edits` when uncommitted source edits are newer than the index, and
  * `index.editedSince` lists them for the caller's warning; without it that check is skipped.
@@ -529,7 +566,7 @@ export async function requireFreshIndex(
   codebaseRoot: string,
   deps: CodebaseToolDeps,
   tool: string,
-  options: { uncommittedEdits?: boolean } = {}
+  options: { uncommittedEdits?: boolean; indexedFirst?: IndexedFirst | null } = {}
 ): Promise<{
   analyzer: string;
   freshness: Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string };
@@ -557,6 +594,6 @@ export async function requireFreshIndex(
     analyzer,
     // `fresh` by the rule, not by HEAD equality, for callers that describe it (describeIndex).
     freshness: { ...freshness, fresh: true } as Extract<IndexFreshness, { indexed: true }> & { currentGitHead: string },
-    index: judgement,
+    index: options.indexedFirst ? { ...judgement, indexedFirst: options.indexedFirst } : judgement,
   };
 }
