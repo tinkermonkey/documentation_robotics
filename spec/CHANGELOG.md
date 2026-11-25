@@ -7,6 +7,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-25
+
 Context Studio proposals 9217c1d4 and 43f52ae5, decided on 2026-11-24 and 2026-11-25. The catalog
 goes from 1,017 relationship types to 1,018. Nothing is renamed or removed and nothing becomes
 required, so every existing model stays valid; one attribute stops being required and loses its
@@ -29,7 +31,8 @@ fixed list.
   library entry point or a command-line tool, and it mixed protocols with a style (REST) and a
   transport setting (HTTPS). The description gives the vocabulary: name the highest-level protocol
   (MCP, not JSON-RPC or HTTP); a REST API's protocol is HTTP, and so is an HTTPS endpoint's.
-  Existing values stay valid; no migration normalises them yet.
+  Existing values stay valid. CLI 0.9.0's upgrade to 0.16.0 rewrites REST and HTTPS as HTTP and
+  sets `interfaceType` where the old value says it.
 - Definitions: `testing.testcoveragetarget` may name an application function, and
   `application.applicationinterface` refers to `interfaceType` where it spoke of an in-process
   protocol.
