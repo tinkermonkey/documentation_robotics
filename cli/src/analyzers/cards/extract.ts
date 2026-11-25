@@ -167,6 +167,21 @@ export interface CrossEdge {
   targetRoute?: { method: string; path: string };
 }
 
+/**
+ * The source symbol an extracted element records, as cards show it: `METHOD /path` for a route (its
+ * parameters named where the code names them), `Parent.method` for a method, else the name.
+ */
+export function extractedSymbolOf(s: Pick<ExtractedSymbol, "card" | "routePath">): string {
+  const { card } = s;
+  const route = parseRouteName(card.name);
+  if (route) return `${route.method} ${s.routePath ?? route.path}`;
+  if (card.label === "Method" && card.parent_class) {
+    const parent = card.parent_class.split(".").pop();
+    if (parent) return `${parent}.${card.name}`;
+  }
+  return card.name;
+}
+
 /** The extraction ran past its deadline. */
 export class ExtractionTimeoutError extends Error {
   constructor(readonly stage: string) {

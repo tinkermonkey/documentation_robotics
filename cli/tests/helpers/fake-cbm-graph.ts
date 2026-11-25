@@ -53,6 +53,8 @@ export interface FakeProject {
   imports?: Array<{ file: string; name: string; to: string }>;
   /** CBM's get_architecture, when the test gives one. */
   architecture?: CardGraph["architecture"];
+  /** Decision records (CBM ADR nodes): each becomes a decision-record card unless a model element names its file. */
+  adrs?: Array<{ qualified_name: string; file_path: string; adr_id: string; title: string; status: string }>;
 }
 
 /** A Spring-style project: a controller and its handler, the route, an entity, a service, a helper and a test. */
@@ -100,6 +102,10 @@ export function fakeGraph(project: FakeProject): CardGraph {
           return [...row, ev?.strategy ?? "", ev ? String(ev.confidence) : "", ev ? String(ev.candidates) : "", ev?.callee ?? "", ev?.importance !== undefined ? String(ev.importance) : ""];
         });
       }
+      if (/^MATCH \(a:ADR\) RETURN a\.qualified_name/.test(cypher)) {
+        return (project.adrs ?? []).map((a) => [a.qualified_name, a.file_path, a.adr_id, a.title, a.status, "", "", "", "", "", 1, 20]);
+      }
+      if (/^MATCH \(a:ADR\)-\[r:SUPERSEDES\]->\(b:ADR\)/.test(cypher)) return [];
       if (/^MATCH \(a\)-\[r:IMPORTS\]->\(b\) RETURN a\.file_path, r\.local_name, b\.file_path$/.test(cypher)) {
         return (project.imports ?? []).map((i) => [i.file, i.name, i.to]);
       }
