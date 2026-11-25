@@ -736,15 +736,23 @@ describe("project_upgrade: what it writes, derived values and files git tracks u
 
 describe("project_upgrade and per-project integration files (#1252)", () => {
   const versionFile = () => join(dir, ".claude", ".dr-version");
+  const command = (name: string) => join(dir, ".claude", "commands", name);
+
+  /** .claude/ as `dr claude install` writes it, stamped with `version`. */
+  async function withClaudeFiles(version?: string): Promise<void> {
+    await new ClaudeIntegrationManager({ projectRoot: dir }).install({ force: true });
+    if (version) {
+      const data = yaml.parse(await readFile(versionFile(), "utf8"));
+      data.version = version;
+      await writeFile(versionFile(), yaml.stringify(data));
+    }
+  }
 
   /** A current model with .claude/ from an older dr: its version file says 0.6.0, and one command is gone. */
   async function withOlderClaudeFiles(): Promise<void> {
     await currentModel(dir);
-    await new ClaudeIntegrationManager({ projectRoot: dir }).install({ force: true });
-    const version = yaml.parse(await readFile(versionFile(), "utf8"));
-    version.version = "0.6.0";
-    await writeFile(versionFile(), yaml.stringify(version));
-    await rm(join(dir, ".claude", "commands", "dr-model.md"));
+    await withClaudeFiles("0.6.0");
+    await rm(command("dr-model.md"));
   }
 
   it("says what the upgrade would change and which installed files the dr plugin carries, and writes nothing", async () => {
@@ -769,12 +777,16 @@ describe("project_upgrade and per-project integration files (#1252)", () => {
     const full = parse(await projectUpgradeHandler({ rootPath: dir, detail: "full" })).integrations.claude;
     expect(full.plugin.notInPlugin).toHaveLength(11);
     expect(full.plugin.notInPlugin).toContain(".claude/agents/dr-extractor.md");
+    // The note names what each side carries from the lists themselves
+    expect(body.integrations.note).toContain("commands /dr-plan");
+    expect(body.integrations.note).toContain("agents dr-advisor, dr-architect");
+    expect(body.integrations.note).toContain("agents dr-extractor");
     expect(body.integrations.note).toContain("so removing .claude/ would drop them");
     expect(body.integrations.note).toContain("upgradeIntegrations: true");
     expect(body.integrations.note).not.toContain("there is no tool for it");
     // A preview writes nothing
     expect(yaml.parse(await readFile(versionFile(), "utf8")).version).toBe("0.6.0");
-    expect(await fileExists(join(dir, ".claude", "commands", "dr-model.md"))).toBe(false);
+    expect(await fileExists(command("dr-model.md"))).toBe(false);
   });
 
   it("upgrades them with upgradeIntegrations and apply, even when the model is current", async () => {
@@ -785,13 +797,70 @@ describe("project_upgrade and per-project integration files (#1252)", () => {
     expect(body.status).toBe("up-to-date");
     expect(body.integrations.claude.state).toBe("upgraded");
     expect(body.integrations.note).toContain("Upgraded .claude");
-    expect(await fileExists(join(dir, ".claude", "commands", "dr-model.md"))).toBe(true);
+    expect(await fileExists(command("dr-model.md"))).toBe(true);
     expect(yaml.parse(await readFile(versionFile(), "utf8")).version).not.toBe("0.6.0");
 
     const again = parse(await projectUpgradeHandler({ rootPath: dir }));
     expect(again.integrations.claude.state).toBe("up-to-date");
-    expect(again.integrations.claude.paths).toEqual([]);
-    expect(again.integrations.note).not.toContain("behind this dr");
+    expect(again.integrations.claude.paths).toBeUndefined();
+    expect(again.integrations.note).not.toContain("from an older dr");
+  });
+
+  it("leaves files at this dr's version alone, edits and all, and lists the edited ones as kept", async () => {
+    await currentModel(dir);
+    await withClaudeFiles();
+    await writeFile(command("dr-changeset.md"), "Our own notes on changesets\n");
+    await rm(command("dr-model.md"));
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.integrations.claude.state).toBe("up-to-date");
+    expect(preview.integrations.claude.kept).toEqual([".claude/commands/dr-changeset.md"]);
+    expect(preview.integrations.claude.files).toBeUndefined();
+    expect(preview.integrations.note).toContain("stay as they are: no upgrade is pending");
+    expect(preview.integrations.note).not.toContain("from an older dr");
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, upgradeIntegrations: true }));
+    expect(applied.integrations.claude.state).toBe("up-to-date");
+    expect(await readFile(command("dr-changeset.md"), "utf8")).toBe("Our own notes on changesets\n");
+    expect(await fileExists(command("dr-model.md"))).toBe(false);
+  });
+
+  it("names the files edited here that an upgrade from an older dr would replace", async () => {
+    await withOlderClaudeFiles();
+    await writeFile(command("dr-changeset.md"), "Our own notes on changesets\n");
+
+    const body = parse(await projectUpgradeHandler({ rootPath: dir }));
+
+    expect(body.integrations.claude.wouldReplace).toEqual([".claude/commands/dr-changeset.md"]);
+    expect(body.integrations.claude.paths).toContain("overwrite .claude/commands/dr-changeset.md");
+    expect(body.integrations.note).toContain("1 file edited here would be replaced in .claude: .claude/commands/dr-changeset.md.");
+  });
+
+  it("upgrades them on the path where a model migration runs, too", async () => {
+    await currentModel(dir);
+    await setSpecVersion(dir, "0.14.0");
+    await withClaudeFiles("0.6.0");
+    await rm(command("dr-model.md"));
+
+    const body = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, upgradeIntegrations: true }));
+
+    expect(body.status).toBe("applied");
+    expect(body.integrations.claude.state).toBe("upgraded");
+    expect(await fileExists(command("dr-model.md"))).toBe(true);
+    // A real migration, with the layer reports a model without them gets: slower than the others
+  }, 120_000);
+
+  it("says upgradeIntegrations was not applied when the model can't be checked", async () => {
+    await currentModel(dir);
+    await withClaudeFiles("0.6.0");
+    await writeFile(join(dir, "documentation-robotics/model/relationships.yaml"), "- source: [unclosed\n  : :\n");
+
+    const body = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, upgradeIntegrations: true }));
+
+    expect(body.status).toBe("check-failed");
+    expect(body.upgradeIntegrations).toContain("Not applied");
+    expect(body.integrations.claude.state).toBe("upgrade-available");
+    expect(yaml.parse(await readFile(versionFile(), "utf8")).version).toBe("0.6.0");
   });
 
   it("refuses upgradeIntegrations with modelOnly, which writes nothing outside the model", async () => {
@@ -804,5 +873,67 @@ describe("project_upgrade and per-project integration files (#1252)", () => {
   it("says nothing about integrations when the project has none", async () => {
     await currentModel(dir);
     expect(parse(await projectUpgradeHandler({ rootPath: dir })).integrations).toBeUndefined();
+  });
+});
+
+describe("project_upgrade and the active-changeset marker left in its old place (#1273)", () => {
+  const legacy = () => join(dir, "documentation-robotics", "changesets", ".active");
+  const marker = () => join(dir, ".dr", "active-changeset");
+
+  it("names it in the preview, and an apply removes it, moving its changeset to .dr/", async () => {
+    await currentModel(dir);
+    await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
+    await writeFile(legacy(), "changeset-shared\n");
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.status).toBe("up-to-date");
+    expect(preview.legacyMarker).toEqual({
+      remove: "documentation-robotics/changesets/.active",
+      note: expect.stringContaining("per checkout"),
+    });
+    expect(await fileExists(legacy())).toBe(true);
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.legacyMarker).toMatchObject({
+      removed: "documentation-robotics/changesets/.active",
+      movedTo: "changeset-shared",
+    });
+    expect(applied.legacyMarker.note).toContain("commit its deletion");
+    expect(await fileExists(legacy())).toBe(false);
+    expect(await readFile(marker(), "utf8")).toBe("changeset-shared\n");
+
+    // Nothing left to say
+    expect(parse(await projectUpgradeHandler({ rootPath: dir })).legacyMarker).toBeUndefined();
+  });
+
+  it("keeps this checkout's own marker when .dr/ has one, and removes the old file on the migration path too", async () => {
+    await currentModel(dir);
+    await setSpecVersion(dir, "0.14.0");
+    await mkdir(join(dir, ".dr"), { recursive: true });
+    await writeFile(marker(), "");
+    await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
+    await writeFile(legacy(), "changeset-shared\n");
+
+    const preview = parse(await projectUpgradeHandler({ rootPath: dir }));
+    expect(preview.status).toBe("preview");
+    expect(preview.outsideModel.legacyMarker.remove).toBe("documentation-robotics/changesets/.active");
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true }));
+    expect(applied.status).toBe("applied");
+    expect(applied.legacyMarker).toMatchObject({ removed: "documentation-robotics/changesets/.active" });
+    expect(applied.legacyMarker.movedTo).toBeUndefined();
+    expect(await fileExists(legacy())).toBe(false);
+    expect(await readFile(marker(), "utf8")).toBe("");
+    // A real migration, like the integrations test on that path
+  }, 120_000);
+
+  it("leaves it alone with modelOnly", async () => {
+    await currentModel(dir);
+    await mkdir(join(dir, "documentation-robotics", "changesets"), { recursive: true });
+    await writeFile(legacy(), "changeset-shared\n");
+
+    const applied = parse(await projectUpgradeHandler({ rootPath: dir, apply: true, modelOnly: true }));
+    expect(applied.legacyMarker).toBeUndefined();
+    expect(await fileExists(legacy())).toBe(true);
   });
 });

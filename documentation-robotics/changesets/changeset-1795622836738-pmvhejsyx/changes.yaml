@@ -8,7 +8,7 @@
     type: applicationservice
     layer_id: application
     name: changesetShowCommand
-    description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change, as changeset_show with detail summary returns them (--json returns that object)."
+    description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change. --json returns its metadata, purpose, allowed actions, whether it is active, and the per-change summary changeset_show gives with detail summary."
     attributes:
       serviceType: synchronous
     metadata:
@@ -20,7 +20,7 @@
       locations:
         - file: cli/src/commands/changeset.ts
           symbol: changesetShowCommand
-  timestamp: 2026-11-25T16:36:02.108Z
+  timestamp: 2026-11-25T17:12:40.988Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.changeset-for-command
@@ -32,7 +32,7 @@
     type: applicationfunction
     layer_id: application
     name: changesetForCommand
-    description: The changeset a read command (show, staged, diff, preview) names, by name or id and in any state, or the active one when it names none; null with the reason when there is neither.
+    description: The changeset a read command (show, staged, diff, preview) names, by name or id and in any state, or the active one when it names none; { error } saying why when there is neither (noActive when nothing was named and none is active).
     metadata:
       created_at: 2026-11-25T16:08:10.392Z
       updated_at: 2026-11-25T16:08:10.392Z
@@ -42,7 +42,7 @@
       locations:
         - file: cli/src/commands/changeset.ts
           symbol: changesetForCommand
-  timestamp: 2026-11-25T16:36:02.108Z
+  timestamp: 2026-11-25T17:12:41.092Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.description-lines
@@ -252,7 +252,7 @@
     type: applicationfunction
     layer_id: application
     name: integrationsReport
-    description: "project_upgrade's integrations section: for each per-project integration installed (.claude/ from dr claude install, .github/ from dr copilot install), its version, what its upgrade would change (or changed), and for Claude Code which installed files the dr plugin carries; with a note on what removing them would drop and how to upgrade them (upgradeIntegrations with apply)."
+    description: "project_upgrade's integrations section: for each per-project integration installed (.claude/ from dr claude install, .github/ from dr copilot install), its version and whether an upgrade is pending by dr upgrade's rule (the installed version is older than this dr's), what that upgrade would change or changed and the edited files it replaces, or with none pending the edited files that stay; for Claude Code which installed files the dr plugin carries, described from the lists; with a note on what removing them would drop and how to upgrade them (upgradeIntegrations with apply)."
     metadata:
       created_at: 2026-11-25T16:08:10.393Z
       updated_at: 2026-11-25T16:08:10.393Z
@@ -262,7 +262,7 @@
       locations:
         - file: cli/src/mcp/tools/project-tools.ts
           symbol: integrationsReport
-  timestamp: 2026-11-25T16:36:02.108Z
+  timestamp: 2026-11-25T17:12:40.743Z
   sequenceNumber: 11
 - type: relationship-add
   elementId: application.applicationservice.changeset-show-command::serves::application.applicationfunction.changeset-commands
@@ -714,7 +714,7 @@
     type: objectschema
     layer_id: data-model
     name: IntegrationReport
-    description: "One per-project integration in project_upgrade's answer: folder, installedVersion, the upgrade's file counts by action with the first paths, kept and stale entries, and for Claude Code the plugin coverage."
+    description: "One per-project integration in project_upgrade's answer: folder, installedVersion, state (an upgrade is pending only when the installed version is older than this dr's, as dr upgrade decides), and with one pending or done the file counts by action, the first paths and the files edited here it replaces (wouldReplace); with none pending the files edited here that stay (kept); stale entries; and for Claude Code the plugin coverage."
     attributes:
       type: object
     metadata:
@@ -726,7 +726,7 @@
       locations:
         - file: cli/src/mcp/tools/project-tools.ts
           symbol: IntegrationReport
-  timestamp: 2026-11-25T16:36:02.108Z
+  timestamp: 2026-11-25T17:12:40.674Z
   sequenceNumber: 48
 - type: relationship-add
   elementId: application.applicationfunction.source-file-summary::accesses::data-model.objectschema.source-file-summary
@@ -1262,17 +1262,6 @@
   timestamp: 2026-11-25T16:08:44.141Z
   sequenceNumber: 68
 - type: relationship-add
-  elementId: application.applicationfunction.integrations-report::depends-on::application.applicationfunction.base-integration-manager-is-installed
-  layerName: application
-  after:
-    source: application.applicationfunction.integrations-report
-    target: application.applicationfunction.base-integration-manager-is-installed
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:44.141Z
-  sequenceNumber: 69
-- type: relationship-add
   elementId: application.applicationfunction.review-step::depends-on::application.applicationfunction.collect-changesets
   layerName: application
   after:
@@ -1393,3 +1382,274 @@
     category: structural
   timestamp: 2026-11-25T16:29:36.544Z
   sequenceNumber: 78
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): what its upgrade would change and, for Claude Code, which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades them, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes: &a39
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts), previews the migration unless apply is set; leaves installed integrations alone and says when a project still has them. CLI: dr upgrade (cli/src/commands/upgrade.ts), which also brings installed integration files up to date. Model writes skip unchanged files (writeLayer, cli/src/core/model.ts). Issues #1246, #1165, #1168."
+    source_reference: &a40
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a41
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan, and remove it when applied, moving its changeset to .dr/ when the checkout has no marker there. A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes: *a39
+    source_reference: *a40
+    metadata: *a41
+  timestamp: 2026-11-25T17:12:40.805Z
+  sequenceNumber: 100
+- type: update
+  elementId: data-model.objectschema.project-upgrade-args
+  layerName: data-model
+  before:
+    id: 7ecff9ce-41b3-4b99-b0d1-4a9d94d6a2ae
+    path: data-model.objectschema.project-upgrade-args
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectUpgradeArgs
+    description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, and upgradeIntegrations (with apply: bring the per-project integration files up to this dr, as dr upgrade does)."
+    attributes: &a42
+      type: object
+    source_reference: &a43
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-tools.ts
+          symbol: ProjectUpgradeArgs
+    metadata: &a44
+      created_at: 2026-11-20T15:05:47.924Z
+      updated_at: 2026-11-20T15:05:47.924Z
+      version: 1
+  after:
+    id: 7ecff9ce-41b3-4b99-b0d1-4a9d94d6a2ae
+    path: data-model.objectschema.project-upgrade-args
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectUpgradeArgs
+    description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, and upgradeIntegrations (with apply: bring the per-project integration files an older dr installed up to this dr, as dr upgrade does; refused with modelOnly)."
+    attributes: *a42
+    source_reference: *a43
+    metadata: *a44
+  timestamp: 2026-11-25T17:12:40.923Z
+  sequenceNumber: 101
+- type: update
+  elementId: application.applicationfunction.scan-outside-model
+  layerName: application
+  before:
+    id: 2a869482-da08-4bf0-a2cd-d836df940434
+    path: application.applicationfunction.scan-outside-model
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: scanOutsideModel
+    description: "What an upgrade would touch outside the model, apart from integrations: spec reference, reports, .gitignore and git's index, .prettierignore, commit hook notes. Reads only."
+    source_reference: &a45
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-outside-model.ts
+          symbol: scanOutsideModel
+    metadata: &a46
+      created_at: 2026-11-20T18:10:42.351Z
+      updated_at: 2026-11-20T18:10:42.351Z
+      version: 1
+  after:
+    id: 2a869482-da08-4bf0-a2cd-d836df940434
+    path: application.applicationfunction.scan-outside-model
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: scanOutsideModel
+    description: "What an upgrade would touch outside the model, apart from integrations: spec reference, reports, .gitignore and git's index, .prettierignore, commit hook notes, and the active-changeset marker left in its old place. Reads only."
+    source_reference: *a45
+    metadata: *a46
+  timestamp: 2026-11-25T17:12:41.191Z
+  sequenceNumber: 104
+- type: update
+  elementId: data-model.objectschema.outside-model
+  layerName: data-model
+  before:
+    id: be33b879-1bc7-4a8e-8f8b-75898b809405
+    path: data-model.objectschema.outside-model
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: OutsideModel
+    description: What an upgrade touches outside the model, by group
+    attributes: &a47
+      type: object
+    source_reference: &a48
+      provenance: extracted
+      locations:
+        - file: cli/src/core/upgrade-outside-model.ts
+          symbol: OutsideModel
+    metadata: &a49
+      created_at: 2026-11-20T18:10:52.413Z
+      updated_at: 2026-11-20T18:10:52.413Z
+      version: 1
+  after:
+    id: be33b879-1bc7-4a8e-8f8b-75898b809405
+    path: data-model.objectschema.outside-model
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: OutsideModel
+    description: What an upgrade touches outside the model, by group, the old active-changeset marker included
+    attributes: *a47
+    source_reference: *a48
+    metadata: *a49
+  timestamp: 2026-11-25T17:12:41.312Z
+  sequenceNumber: 105
+- type: add
+  elementId: application.applicationfunction.retire-legacy-active-marker
+  layerName: application
+  after:
+    id: 63f3cd40-5b69-442d-b098-c60ddc559073
+    path: application.applicationfunction.retire-legacy-active-marker
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: retireLegacyActiveMarker
+    description: "The upgrade's step for the active-changeset marker left in its old place (documentation-robotics/changesets/.active): when .dr/ has no marker the changeset it names moves there, and the old file is removed; committing the deletion is the user's. Null when there is no old file."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/active-changeset-marker.ts
+          symbol: retireLegacyActiveMarker
+    metadata:
+      created_at: 2026-11-25T17:12:51.188Z
+      updated_at: 2026-11-25T17:12:51.188Z
+      version: 1
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 106
+- type: add
+  elementId: application.applicationfunction.legacy-marker-report
+  layerName: application
+  after:
+    id: 29aa62d5-9adb-43c4-9ed2-a1627ce6155d
+    path: application.applicationfunction.legacy-marker-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: legacyMarkerReport
+    description: "project_upgrade's legacyMarker: the old active-changeset marker named, with what applying does, in a preview; removed by an apply (not with modelOnly), with the changeset it moved to .dr/."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/project-tools.ts
+          symbol: legacyMarkerReport
+    metadata:
+      created_at: 2026-11-25T17:12:51.188Z
+      updated_at: 2026-11-25T17:12:51.188Z
+      version: 1
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 107
+- type: relationship-add
+  elementId: application.applicationfunction.integrations-report::depends-on::application.applicationfunction.base-integration-manager-load-version-file
+  layerName: application
+  after:
+    source: application.applicationfunction.integrations-report
+    target: application.applicationfunction.base-integration-manager-load-version-file
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 108
+- type: relationship-add
+  elementId: application.applicationfunction.retire-legacy-active-marker::depends-on::application.applicationfunction.write-active-marker
+  layerName: application
+  after:
+    source: application.applicationfunction.retire-legacy-active-marker
+    target: application.applicationfunction.write-active-marker
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 109
+- type: relationship-add
+  elementId: application.applicationfunction.retire-legacy-active-marker::depends-on::application.applicationfunction.legacy-active-marker-path
+  layerName: application
+  after:
+    source: application.applicationfunction.retire-legacy-active-marker
+    target: application.applicationfunction.legacy-active-marker-path
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 110
+- type: relationship-add
+  elementId: application.applicationfunction.retire-legacy-active-marker::realizes::application.applicationservice.upgrade-command
+  layerName: application
+  after:
+    source: application.applicationfunction.retire-legacy-active-marker
+    target: application.applicationservice.upgrade-command
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 111
+- type: relationship-add
+  elementId: application.applicationfunction.retire-legacy-active-marker::satisfies::motivation.requirement.per-checkout-state-never-leaks
+  layerName: application
+  after:
+    source: application.applicationfunction.retire-legacy-active-marker
+    target: motivation.requirement.per-checkout-state-never-leaks
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 112
+- type: relationship-add
+  elementId: application.applicationfunction.legacy-marker-report::depends-on::application.applicationfunction.retire-legacy-active-marker
+  layerName: application
+  after:
+    source: application.applicationfunction.legacy-marker-report
+    target: application.applicationfunction.retire-legacy-active-marker
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 113
+- type: relationship-add
+  elementId: application.applicationfunction.legacy-marker-report::realizes::application.applicationservice.project-upgrade-handler
+  layerName: application
+  after:
+    source: application.applicationfunction.legacy-marker-report
+    target: application.applicationservice.project-upgrade-handler
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 114
+- type: relationship-add
+  elementId: application.applicationfunction.scan-outside-model::depends-on::application.applicationfunction.legacy-active-marker-path
+  layerName: application
+  after:
+    source: application.applicationfunction.scan-outside-model
+    target: application.applicationfunction.legacy-active-marker-path
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:12:51.215Z
+  sequenceNumber: 115

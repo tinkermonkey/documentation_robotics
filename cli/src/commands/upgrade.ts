@@ -64,6 +64,7 @@ import {
   type StagedRetiredAttributeChange,
 } from "../core/attribute-migration.js";
 import { ClaudeIntegrationManager } from "../integrations/claude-manager.js";
+import { LEGACY_ACTIVE_MARKER_PATH, retireLegacyActiveMarker } from "../core/active-changeset-marker.js";
 import { CopilotIntegrationManager } from "../integrations/copilot-manager.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
@@ -629,6 +630,15 @@ async function applyOutsideModel(
 ): Promise<void> {
   await keepDotDrOutOfGit(projectRoot, options);
   await keepPrettierOffDrFiles(projectRoot);
+  // The active-changeset marker in its old place, which git tracked (#1273)
+  const retired = await retireLegacyActiveMarker(projectRoot).catch((error) => {
+    console.log(ansis.yellow(`⚠ Could not remove ${LEGACY_ACTIVE_MARKER_PATH}: ${getErrorMessage(error)}`));
+    return null;
+  });
+  if (retired) {
+    const moved = retired.movedTo ? `, and its changeset ${retired.movedTo} is active through .dr/active-changeset` : "";
+    console.log(ansis.green(`✓ Removed ${retired.path}${moved}: the marker is per checkout now. Commit the deletion.`));
+  }
   await offerStaleRemoval(options, context.integrations);
   // No readable model: there is nothing to report on
   if (hasModel) {

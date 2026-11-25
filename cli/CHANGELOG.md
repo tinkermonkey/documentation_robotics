@@ -12,15 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dr changeset show [changeset]` (#1219):** shows one changeset by name or id, whatever its state
   or purpose (a staged plan that isn't active, an upgrade record, a committed changeset; the active
   one when none is named): status, purpose, allowed actions, its description as written and one line
-  per change. `--json` returns what `changeset_show` with `detail: "summary"` returns. `dr upgrade`
-  points at it for its drop record instead of a `changes.yaml` path.
+  per change. `--json` returns its metadata, purpose, allowed actions, whether it is active, and the
+  per-change summary `changeset_show` gives with `detail: "summary"`. `dr upgrade` points at it for
+  its drop record instead of a `changes.yaml` path.
 - **`project_status` `task` (#1301):** `plan`, `review` or `reconcile` says what the session is for.
   While planning or reviewing, code drift and the code index are said in `nextStep.info`, not made
   the step: a review goes to the staged plan (`changeset_brief`, then `review_open`). Without a
   task, a drift step says how to ask for the other.
 - **`project_upgrade` `upgradeIntegrations` (#1252):** with `apply`, brings the per-project
   integration files (`.claude/` from `dr claude install`, `.github/` from `dr copilot install`) up to
-  this dr as `dr upgrade` does, even when the model is current.
+  this dr when an older dr installed them, as `dr upgrade` does, even when the model is current.
+  Files at this dr's version are left alone, edits and all.
 
 ### Changed
 
@@ -41,14 +43,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upgrade would change, and for `.claude/` which installed files the dr plugin also carries (its
   skills, `/dr-plan`, two agents: they load twice) and which only the project's files carry (the
   other commands, `dr-extractor`), so removing `.claude/` is no longer called safe when it isn't.
-  The note no longer says there is no tool for the Copilot files.
+  An upgrade is pending only when the installed version is older, as `dr upgrade` decides, and the
+  files edited here that it would replace are named. The note no longer says there is no tool for
+  the Copilot files. `integrations` in the answer is now an object, one entry per integration and a
+  `note`, where it was a string.
 - **The old active-changeset marker (#1273):** clearing the active changeset leaves an empty
   `.dr/active-changeset` instead of none, so `documentation-robotics/changesets/.active` restored
   from git never makes its changeset active again. `project_status` reports an old marker still on
   disk or in git (`changesets.legacyMarker`: whether git tracks it, whether it decides the active
-  changeset) and says to commit its deletion. The planning skill and `/dr-plan` say the active
+  changeset) and says to commit its deletion. `dr upgrade` and `project_upgrade` name the old file
+  in their plan and remove it when applied (its changeset moves to `.dr/` when the checkout has no
+  marker there), saying to commit the deletion. The planning skill and `/dr-plan` say the active
   changeset is per checkout, so a reviewer opens a PR's plan by name.
-
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.

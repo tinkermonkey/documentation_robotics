@@ -38,7 +38,8 @@ import {
 } from "../../core/dot-dr-ignore.js";
 import { PRETTIER_IGNORE_BY_HAND, ensurePrettierIgnoresDrFiles } from "../../core/prettier-ignore.js";
 import { commitHookNotes } from "../../core/commit-hooks.js";
-import { scanOutsideModel } from "../../core/upgrade-outside-model.js";
+import { scanOutsideModel, type OutsideModel } from "../../core/upgrade-outside-model.js";
+import { retireLegacyActiveMarker } from "../../core/active-changeset-marker.js";
 import {
   countFiles,
   diffFiles,
@@ -355,15 +356,21 @@ interface IntegrationReport {
   folder: string;
   installedVersion?: string;
   /**
-   * up-to-date: nothing to change. upgrade-available: its upgrade would change the files counted.
-   * upgraded: upgradeIntegrations (with apply) changed them. newer: a newer dr installed it, and
-   * it is left alone (dr upgrade --force would put this dr's older files in).
+   * As dr upgrade decides it: an upgrade is pending only when the installed version differs from
+   * this dr's and isn't newer. up-to-date: the same version; nothing to do. upgrade-available: an
+   * older version; its upgrade would change the files counted. upgraded: upgradeIntegrations (with
+   * apply) changed them. newer: a newer dr installed it, and it is left alone (dr upgrade --force
+   * would put this dr's older files in).
    */
   state: "up-to-date" | "upgrade-available" | "upgraded" | "newer";
-  /** The upgrade's files by action (would change, or changed once upgraded). */
-  files: Record<"add" | "update" | "overwrite" | "remove", number>;
-  /** "<action> <path>" for those files: the first ones, with shown/omitted/more beside them when cut. */
-  paths: string[];
+  /** With an upgrade pending or done: its files by action. */
+  files?: Record<"add" | "update" | "overwrite" | "remove", number>;
+  /** "<action> <path>" for those files: the first ones, with pathsShown/pathsOmitted/more when cut. */
+  paths?: string[];
+  /** Files edited in the project that the upgrade would replace (it runs with force, as dr upgrade does). */
+  wouldReplace?: string[];
+  /** With nothing pending: files edited in the project since they were installed, which nothing touches. */
+  kept?: string[];
   /** Leftovers of older layouts the upgrade doesn't touch (dr upgrade offers to remove them). */
   stale?: string[];
   /** For Claude Code: which installed entries the dr plugin also carries and which it doesn't. */
@@ -371,12 +378,44 @@ interface IntegrationReport {
   [key: string]: unknown;
 }
 
+/** How many names of each kind a sentence spells out. */
+const NAMES_SPELLED = 3;
+
+/**
+ * Integration paths (".claude/<folder>/<entry>") in words, grouped by folder, from the paths
+ * themselves: "skills dr_01_motivation_layer, dr_02_business_layer, dr_03_product_layer and 14
+ * more; commands /dr-plan; agents dr-advisor, dr-architect".
+ */
+function describeEntries(paths: string[]): string {
+  const byFolder = new Map<string, string[]>();
+  for (const path of paths) {
+    const [, folder = "", entry = ""] = path.replace(/\/$/, "").split("/");
+    const name = entry.replace(/\.md$/, "");
+    byFolder.set(folder, [...(byFolder.get(folder) ?? []), folder === "commands" ? `/${name}` : name]);
+  }
+  return [...byFolder.entries()]
+    .map(([folder, names]) => {
+      const rest = names.length - NAMES_SPELLED;
+      return `${folder} ${names.slice(0, NAMES_SPELLED).join(", ")}${rest > 0 ? ` and ${rest} more` : ""}`;
+    })
+    .join("; ");
+}
+
+/** "a, b, c and 4 more" of a list of paths. */
+function someOf(paths: string[]): string {
+  const rest = paths.length - NAMES_SPELLED;
+  return `${paths.slice(0, NAMES_SPELLED).join(", ")}${rest > 0 ? ` and ${rest} more` : ""}`;
+}
+
 /**
  * The per-project integration files a project has from `dr claude install` (.claude/) and
- * `dr copilot install` (.github/): for each, what its upgrade would change, or changed when
- * `upgrade` is set (the result of upgradeIntegrations with apply), and for Claude Code which
+ * `dr copilot install` (.github/): for each, whether an upgrade is pending by dr upgrade's rule
+ * (the installed version differs from this dr's and isn't newer) and what it would change, or
+ * changed when `upgrade` is set (upgradeIntegrations with apply), and for Claude Code which
  * installed entries the dr plugin carries, so the advice is to keep and upgrade the files, or that
- * removing them is safe (#1252). Nothing when there are none, which is the usual case.
+ * removing them is safe (#1252). With no version change nothing is pending and nothing is
+ * written: files edited in the project are listed as kept. Nothing when there are none, which is
+ * the usual case.
  */
 async function integrationsReport(
   projectRoot: string,
@@ -394,28 +433,46 @@ async function integrationsReport(
     try {
       const installed = await manager.loadVersionFile();
       if (!installed) continue;
+      // dr upgrade's rule (upgrade.ts): upgrade when the version differs, unless a newer dr installed it.
       const newer = compareVersions(installed.version, cliVersion) > 0;
-      // As dr upgrade runs it: with force, which replaces files edited in the project.
-      const plan = await manager.planUpgrade({ force: true });
+      const pending = installed.version !== cliVersion && !newer;
+      // A pending upgrade runs with force, as dr upgrade runs it: files edited in the project are
+      // replaced. With none pending, the plan without force says which edited files stay as they are.
+      const plan = await manager.planUpgrade({ force: pending });
       if (!plan) continue;
-      const changes = plan.files.length > 0 || installed.version !== cliVersion;
-      const upgrade = options.upgrade && changes && !newer;
+      const upgrade = options.upgrade && pending;
       if (upgrade) await manager.applyUpgrade({ force: true });
-      const files = { add: 0, update: 0, overwrite: 0, remove: 0 };
-      for (const file of plan.files) files[file.action]++;
-      const { items: paths, rest } = capped(
-        plan.files.map((file) => `${file.action} ${file.path}`),
-        INTEGRATION_PATHS_SHOWN
-      );
+
       const report: IntegrationReport = {
         folder,
         installedVersion: installed.version,
-        state: newer ? "newer" : upgrade ? "upgraded" : changes ? "upgrade-available" : "up-to-date",
-        files,
-        paths,
-        ...(Object.keys(rest).length > 0 ? { pathsShown: rest.shown, pathsOmitted: rest.omitted, more: rest.more } : {}),
+        state: newer ? "newer" : upgrade ? "upgraded" : pending ? "upgrade-available" : "up-to-date",
         ...(plan.stale.length > 0 ? { stale: plan.stale } : {}),
       };
+      if (pending) {
+        const files = { add: 0, update: 0, overwrite: 0, remove: 0 };
+        for (const file of plan.files) files[file.action]++;
+        const { items: paths, rest } = capped(
+          plan.files.map((file) => `${file.action} ${file.path}`),
+          INTEGRATION_PATHS_SHOWN
+        );
+        const replaced = plan.files.filter((file) => file.action === "overwrite").map((file) => file.path);
+        Object.assign(report, {
+          files,
+          paths,
+          ...(Object.keys(rest).length > 0 ? { pathsShown: rest.shown, pathsOmitted: rest.omitted, more: rest.more } : {}),
+          ...(replaced.length > 0 ? { wouldReplace: replaced } : {}),
+        });
+        if (replaced.length > 0) {
+          notes.push(
+            `${replaced.length} file${replaced.length === 1 ? "" : "s"} edited here ${upgrade ? "were" : "would be"} ` +
+              `replaced in ${folder}: ${someOf(replaced)}.`
+          );
+        }
+      } else if (plan.kept.length > 0) {
+        report.kept = plan.kept;
+      }
+
       if (manager instanceof ClaudeIntegrationManager) {
         const coverage = await manager.pluginCoverage();
         if (coverage) {
@@ -429,13 +486,16 @@ async function integrationsReport(
             notInPluginCount: coverage.notInPlugin.length,
             ...(more ? { more } : {}),
           };
+          const carried =
+            coverage.inPlugin.length > 0
+              ? `The dr plugin carries ${coverage.inPlugin.length} of them ` +
+                `(${describeEntries(coverage.inPlugin)}), which load twice while both are installed`
+              : "The dr plugin carries none of them";
           notes.push(
-            `This project has per-project Claude Code files from \`dr claude install\` (.claude/). The dr plugin carries ` +
-              `${coverage.inPlugin.length} of them (its skills, /dr-plan, the dr-architect and dr-advisor agents), which ` +
-              "load twice while both are installed" +
+            `This project has per-project Claude Code files from \`dr claude install\` (.claude/). ${carried}` +
               (coverage.notInPlugin.length > 0
-                ? `; it doesn't carry the other ${coverage.notInPlugin.length} (integrations.claude.plugin.notInPlugin, ` +
-                  "such as the /dr-model and /dr-changeset commands), so removing .claude/ would drop them. Keep the files " +
+                ? `; it doesn't carry the other ${coverage.notInPlugin.length} ` +
+                  `(${describeEntries(coverage.notInPlugin)}), so removing .claude/ would drop them. Keep the files ` +
                   "and keep them current, or remove them once the user no longer wants what only they carry."
                 : ", and it carries everything they hold, so the user can remove them.")
           );
@@ -452,23 +512,26 @@ async function integrationsReport(
   const found = Object.values(reports);
   if (found.length === 0) return {};
   const states = found.filter((report): report is IntegrationReport => "state" in report);
-  const pending = states.filter((report) => report.state === "upgrade-available").map((report) => report.folder);
+  const behind = states.filter((report) => report.state === "upgrade-available").map((report) => report.folder);
   const upgraded = states.filter((report) => report.state === "upgraded").map((report) => report.folder);
   if (upgraded.length > 0) {
     notes.push(
-      `Upgraded ${upgraded.join(" and ")} to this dr (${cliVersion}), as dr upgrade does: files edited in the project ` +
-        "were replaced (paths lists them), so show the user the diff before committing."
+      `Upgraded ${upgraded.join(" and ")} to this dr (${cliVersion}), as dr upgrade does (paths lists every file), ` +
+        "so show the user the diff before committing."
     );
   }
-  if (pending.length > 0) {
+  if (behind.length > 0) {
     notes.push(
-      `${pending.join(" and ")} ${pending.length === 1 ? "is" : "are"} behind this dr (${cliVersion}): ` +
-        "project_upgrade with apply: true and upgradeIntegrations: true brings them up to date, as dr upgrade does " +
-        "(files edited in the project are replaced: paths lists every file), once the user approves."
+      `${behind.join(" and ")} ${behind.length === 1 ? "is" : "are"} from an older dr: ` +
+        `project_upgrade with apply: true and upgradeIntegrations: true brings ${behind.length === 1 ? "it" : "them"} ` +
+        `to ${cliVersion}, as dr upgrade does (paths lists every file it writes), once the user approves.`
     );
   }
   if (states.some((report) => report.state === "newer")) {
     notes.push("A newer dr installed some of these files; they are left alone.");
+  }
+  if (states.some((report) => report.kept)) {
+    notes.push("Files edited here since they were installed (kept) stay as they are: no upgrade is pending.");
   }
   return { integrations: { ...reports, note: notes.join(" ") } };
 }
@@ -972,6 +1035,32 @@ function catalogCheckErrors(scan: UpgradeScan): string[] {
  * layer reports, the ignore files (or the decision about files git tracks under .dr/) and what a
  * large-file commit hook would do. Empty when it touches nothing there.
  */
+/**
+ * The active-changeset marker in its old place (#1273): named, with what applying does, in a
+ * preview (from the scan); removed by an apply, its changeset moved to .dr/ when the checkout has
+ * no marker there (the apply looks for the file itself).
+ */
+async function legacyMarkerReport(
+  projectRoot: string,
+  outside: Pick<OutsideModel, "legacyMarker">,
+  apply: boolean
+): Promise<{ legacyMarker?: Record<string, unknown> }> {
+  if (!apply) {
+    return outside.legacyMarker
+      ? { legacyMarker: { remove: outside.legacyMarker.path, note: outside.legacyMarker.note } }
+      : {};
+  }
+  const retired = await retireLegacyActiveMarker(projectRoot);
+  if (!retired) return {};
+  return {
+    legacyMarker: {
+      removed: retired.path,
+      ...(retired.movedTo ? { movedTo: retired.movedTo } : {}),
+      note: "The marker is per checkout now, in .dr/active-changeset. git tracked the old file: commit its deletion.",
+    },
+  };
+}
+
 async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
   const outside = await scanOutsideModel(projectRoot, scan);
   let decision: ReturnType<typeof gitignoreDecision> | undefined;
@@ -1001,6 +1090,7 @@ async function outsideModelReport(projectRoot: string, scan: UpgradeScan) {
           },
         }
       : {}),
+    ...(await legacyMarkerReport(projectRoot, outside, false)),
   };
   return {
     ...(Object.keys(groups).length > 0
@@ -1094,6 +1184,14 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           ...versions(scan),
           message: `The model is at spec v${specVersion}, but it could not be checked against the catalog, so it may still need catalog changes. Nothing was changed.`,
           errors: checkErrors,
+          // Nothing is written while the model can't be checked: an asked-for integration upgrade included.
+          ...(upgradesIntegrations(args)
+            ? {
+                upgradeIntegrations:
+                  "Not applied: nothing is written while the model can't be checked. Fix the errors, then call again.",
+              }
+            : {}),
+          ...(await integrationsReport(projectRoot, { upgrade: false })),
         });
       }
       // A model already on this spec still gets what dr upgrade gives it outside the model: the
@@ -1139,6 +1237,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
         message: `The model is at spec v${specVersion}, the version this dr carries. Nothing to upgrade.`,
         ...gitignore,
         ...prettierignore,
+        ...(args.modelOnly ? {} : await legacyMarkerReport(projectRoot, outside, args.apply === true)),
         ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
         ...(outside.commitHooks && !args.modelOnly ? { commitHooks: outside.commitHooks } : {}),
         ...(warnings.length > 0 ? { warnings } : {}),
@@ -1259,8 +1358,14 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
     // choice, #1185) and prettier kept off the files dr writes (#1155, #1246). Not with modelOnly.
     let gitignore: Record<string, unknown> = {};
     let prettierignoreAdded: { path: string; added: string[] } | undefined;
+    let legacyMarker: { legacyMarker?: Record<string, unknown> } = {};
     if (!args.modelOnly) {
       gitignore = await applyGitignore(projectRoot, args.gitignore, warnings);
+      try {
+        legacyMarker = await legacyMarkerReport(projectRoot, {}, true);
+      } catch (error) {
+        warnings.push(`The old active-changeset marker was not removed: ${getErrorMessage(error)}`);
+      }
       try {
         const ignore = await ensurePrettierIgnoresDrFiles(projectRoot);
         if (ignore.status === "added") prettierignoreAdded = { path: ignore.path!, added: ignore.entries! };
@@ -1302,6 +1407,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           validation,
           ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
+          ...legacyMarker,
           ...reports,
           ...(commitHooks.length > 0 ? { commitHooks } : {}),
           ...(warnings.length > 0 ? { warnings } : {}),
@@ -1322,6 +1428,7 @@ async function runProjectUpgrade(args: ProjectUpgradeArgs): Promise<CallToolResu
           followUpError: `The migration was applied, but reloading or validating the model failed: ${getErrorMessage(error)}`,
           ...gitignore,
           ...(prettierignoreAdded ? { prettierignore: prettierignoreAdded } : {}),
+          ...legacyMarker,
           ...(warnings.length > 0 ? { warnings } : {}),
           ...(await integrationsReport(projectRoot, { upgrade: upgradesIntegrations(args) })),
           next: "Tell the user the model was migrated, then check it with model_reload and model_validate.",

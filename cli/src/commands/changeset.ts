@@ -983,6 +983,28 @@ function failRead(error: string, span: unknown): never {
   process.exit(1);
 }
 
+/**
+ * Say why a read command has no changeset to read, then the caller stops: a name no changeset has
+ * fails (exit 1); nothing named and none active is said and, as before #1219, is not a failure.
+ */
+function sayNoChangeset(found: { error: string; noActive?: true }, span: unknown): void {
+  if (!found.noActive) failRead(found.error, span);
+  if (isJson()) {
+    console.log(JSON.stringify({ status: "error", code: 1, message: "No active changeset" }));
+  } else {
+    console.error(ansis.red("Error: No active changeset"));
+  }
+  if (isTelemetryEnabled && span) {
+    (span as any).setStatus({ code: 2, message: "No active changeset" });
+  }
+  endSpan(span as any);
+}
+
+/** How a read command names a changeset's changes: staged, or those of a committed or discarded one. */
+function changesWord(changeset: Changeset): string {
+  return changeset.status === "staged" ? "Staged Changes" : `Changes (${changeset.status})`;
+}
+
 /** The line `dr changeset show` prints for one change of the summary (changeset-summary.ts). */
 function changeLine(change: ReturnType<typeof summarizeChangeset>["changes"][number]): string {
   const mark = change.operation.endsWith("add") ? "+" : change.operation.endsWith("delete") ? "-" : "~";
@@ -997,8 +1019,9 @@ function changeLine(change: ReturnType<typeof summarizeChangeset>["changes"][num
 /**
  * Show one changeset, whatever its state or purpose (the active one when none is named): its
  * status, purpose and the actions its state allows, its description as written (markdown, line
- * breaks kept), and one line per change. --json returns what changeset_show with detail "summary"
- * returns, so a reader of either gets the same fields (#1219).
+ * breaks kept), and one line per change (#1219). --json returns the changeset's metadata, purpose
+ * and allowed actions, whether it is active here, and the per-change summary changeset_show gives
+ * with detail "summary" (summarizeChangeset); not changeset_show's revision or review verdicts.
  */
 export async function changesetShowCommand(name: string | undefined, options: { model?: string } = {}): Promise<void> {
   const span = isTelemetryEnabled ? startSpan("changeset.show", { "changeset.named": !!name }) : null;
@@ -1111,20 +1134,8 @@ export async function changesetStagedCommand(
     const found = await changesetForCommand(manager, name);
 
     if ("error" in found) {
-      if (found.noActive) {
-        // As before #1219: nothing named and nothing active is said, not a failure.
-        if (isJson()) {
-          console.log(JSON.stringify({ status: "error", code: 1, message: "No active changeset" }));
-        } else {
-          console.error(ansis.red("Error: No active changeset"));
-        }
-        if (isTelemetryEnabled && span) {
-          (span as any).setStatus({ code: 2, message: "No active changeset" });
-        }
-        endSpan(span);
-        return;
-      }
-      failRead(found.error, span);
+      sayNoChangeset(found, span);
+      return;
     }
 
     const { changeset } = found;
@@ -1142,7 +1153,7 @@ export async function changesetStagedCommand(
     }
 
     if (changes.length === 0) {
-      handleSuccess("No staged changes", {
+      handleSuccess(`No ${changesWord(changeset).toLowerCase()}`, {
         changesetId,
         changeCount: 0,
         changes: [],
@@ -1155,7 +1166,7 @@ export async function changesetStagedCommand(
     }
 
     if (!isJson()) {
-      console.log(ansis.bold(`\nStaged Changes (${changes.length}):`) + ansis.dim(` ${changeset.name}\n`));
+      console.log(ansis.bold(`\n${changesWord(changeset)} (${changes.length}):`) + ansis.dim(` ${changeset.name}\n`));
       // The Origin column (who decided each change) only when codebase_extract staged some.
       const withOrigin = changes.some((c) => !!c.origin);
       const tableData = changes.map((c: any) => ({
@@ -1168,7 +1179,7 @@ export async function changesetStagedCommand(
       console.table(tableData);
     }
 
-    handleSuccess(`Listed ${changes.length} staged change(s)`, {
+    handleSuccess(`Listed ${changes.length} change(s) of ${changeset.name} (${changeset.status})`, {
       changesetId,
       changesetName: changeset.name,
       changeCount: changes.length,
@@ -1555,21 +1566,14 @@ export async function changesetPreviewCommand(
     const found = await changesetForCommand(manager, name);
 
     if ("error" in found) {
-      if (found.noActive) {
-        // As before #1219: nothing named and nothing active is said, not a failure.
-        console.error(ansis.red("Error: No active changeset"));
-        if (isTelemetryEnabled && span) {
-          (span as any).setStatus({ code: 2, message: "No active changeset" });
-        }
-        endSpan(span);
-        return;
-      }
-      failRead(found.error, span);
+      sayNoChangeset(found, span);
+      return;
     }
 
     const { changeset } = found;
 
-    console.log(ansis.bold(`\nPreview: Merged Model State (${ansis.cyan("with staged changes")})`));
+    const merged = ansis.cyan(`with ${changesWord(changeset).toLowerCase()}`);
+    console.log(ansis.bold(`\nPreview: Merged Model State (${merged})`));
     console.log(ansis.dim(`Changeset: ${changeset.name}`));
     console.log();
 
@@ -1602,7 +1606,7 @@ export async function changesetPreviewCommand(
       const layerChanges = changeset.changes.filter((c: any) => c.layerName === options.layer);
 
       if (layerChanges.length === 0) {
-        console.log(ansis.dim(`No staged changes in layer '${options.layer}'`));
+        console.log(ansis.dim(`No ${changesWord(changeset).toLowerCase()} in layer '${options.layer}'`));
         return;
       }
 
@@ -1677,21 +1681,13 @@ export async function changesetDiffCommand(
     const found = await changesetForCommand(manager, name);
 
     if ("error" in found) {
-      if (found.noActive) {
-        // As before #1219: nothing named and nothing active is said, not a failure.
-        console.error(ansis.red("Error: No active changeset"));
-        if (isTelemetryEnabled && span) {
-          (span as any).setStatus({ code: 2, message: "No active changeset" });
-        }
-        endSpan(span);
-        return;
-      }
-      failRead(found.error, span);
+      sayNoChangeset(found, span);
+      return;
     }
 
     const { changeset } = found;
 
-    console.log(ansis.bold("\nDiff: Base Model vs Staged Changes"));
+    console.log(ansis.bold(`\nDiff: Base Model vs ${changesWord(changeset)}`));
     console.log(ansis.dim(`Changeset: ${changeset.name}\n`));
 
     // Group changes by layer
@@ -1711,7 +1707,7 @@ export async function changesetDiffCommand(
 
     if (layerMap.size === 0) {
       console.log(
-        ansis.dim(options.layer ? `No changes in layer '${options.layer}'` : "No staged changes")
+        ansis.dim(options.layer ? `No changes in layer '${options.layer}'` : `No ${changesWord(changeset).toLowerCase()}`)
       );
       if (isTelemetryEnabled && span) {
         (span as any).setStatus({ code: 0 });

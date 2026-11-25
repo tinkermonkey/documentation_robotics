@@ -11,17 +11,17 @@ description: |-
 
   **Done when** each issue's behaviour has a unit test (and an integration test where it is end to end), the skills and server instructions say the same, and verify finds the build matches this plan.
 created: 2026-11-25T16:07:16.780Z
-modified: 2026-11-25T16:36:02.118Z
+modified: 2026-11-25T17:12:51.227Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 66
-  modifications: 13
+  additions: 75
+  modifications: 17
   deletions: 0
-lastSequence: 96
+lastSequence: 115
 unstaged:
   - sequence: 9
     removedAt: 79
@@ -392,4 +392,121 @@ unstaged:
           updated_at: 2026-11-25T16:08:17.266Z
           version: 1
       timestamp: 2026-11-25T16:08:17.278Z
+    rewritten: true
+  - sequence: 69
+    removedAt: 97
+    change:
+      type: relationship-add
+      elementId: application.applicationfunction.integrations-report::depends-on::application.applicationfunction.base-integration-manager-is-installed
+      layerName: application
+      after:
+        source: application.applicationfunction.integrations-report
+        target: application.applicationfunction.base-integration-manager-is-installed
+        predicate: depends-on
+        layer: application
+        category: structural
+      timestamp: 2026-11-25T16:08:44.141Z
+  - sequence: 48
+    removedAt: 98
+    change:
+      type: add
+      elementId: data-model.objectschema.integration-report
+      layerName: data-model
+      after:
+        id: 526d6948-3af3-4e39-829f-8384b692751b
+        path: data-model.objectschema.integration-report
+        spec_node_id: data-model.objectschema
+        type: objectschema
+        layer_id: data-model
+        name: IntegrationReport
+        description: "One per-project integration in project_upgrade's answer: folder, installedVersion, the upgrade's file counts by action with the first paths, kept and stale entries, and for Claude Code the plugin coverage."
+        attributes:
+          type: object
+        metadata:
+          created_at: 2026-11-25T16:08:17.266Z
+          updated_at: 2026-11-25T16:08:17.266Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/project-tools.ts
+              symbol: IntegrationReport
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 11
+    removedAt: 99
+    change:
+      type: add
+      elementId: application.applicationfunction.integrations-report
+      layerName: application
+      after:
+        id: f522695f-4e59-4788-a4e8-813baa386fef
+        path: application.applicationfunction.integrations-report
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: integrationsReport
+        description: "project_upgrade's integrations section: for each per-project integration installed (.claude/ from dr claude install, .github/ from dr copilot install), its version, what its upgrade would change (or changed), and for Claude Code which installed files the dr plugin carries; with a note on what removing them would drop and how to upgrade them (upgradeIntegrations with apply)."
+        metadata:
+          created_at: 2026-11-25T16:08:10.393Z
+          updated_at: 2026-11-25T16:08:10.393Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/mcp/tools/project-tools.ts
+              symbol: integrationsReport
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 102
+    change:
+      type: add
+      elementId: application.applicationservice.changeset-show-command
+      layerName: application
+      after:
+        id: 61a44d2c-462a-43b1-b7cf-b699f871a993
+        path: application.applicationservice.changeset-show-command
+        spec_node_id: application.applicationservice
+        type: applicationservice
+        layer_id: application
+        name: changesetShowCommand
+        description: "dr changeset show [changeset]: one changeset by name or id, whatever its state or purpose (the active one when none is named): its status, purpose, the actions its state allows, its description as written (markdown, line breaks kept) and one line per change, as changeset_show with detail summary returns them (--json returns that object)."
+        attributes:
+          serviceType: synchronous
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/changeset.ts
+              symbol: changesetShowCommand
+      timestamp: 2026-11-25T16:36:02.108Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 103
+    change:
+      type: add
+      elementId: application.applicationfunction.changeset-for-command
+      layerName: application
+      after:
+        id: 1d8e59f6-0f2f-4510-87fe-bb7e4e2e7ca5
+        path: application.applicationfunction.changeset-for-command
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: changesetForCommand
+        description: The changeset a read command (show, staged, diff, preview) names, by name or id and in any state, or the active one when it names none; null with the reason when there is neither.
+        metadata:
+          created_at: 2026-11-25T16:08:10.392Z
+          updated_at: 2026-11-25T16:08:10.392Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/commands/changeset.ts
+              symbol: changesetForCommand
+      timestamp: 2026-11-25T16:36:02.108Z
     rewritten: true

@@ -21,6 +21,7 @@ import { Element } from "../../../src/core/element.js";
 import { MutationHandler } from "../../../src/core/mutation-handler.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { StagedChangesetStorage } from "../../../src/core/staged-changeset-storage.js";
+import { retireLegacyActiveMarker } from "../../../src/core/active-changeset-marker.js";
 import { modelAddHandler } from "../../../src/mcp/tools/model-add.js";
 import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
 import { changesetDeactivateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
@@ -300,5 +301,33 @@ describe("where the marker lives", () => {
       await manager.setActive(mine.id!);
       expect(await manager.getActiveId()).toBe(mine.id!);
       expect(await exists(legacyMarkerPath(root))).toBe(false);
+    }));
+});
+
+describe("retireLegacyActiveMarker, the upgrade's step for the old marker (#1273)", () => {
+  it("moves the changeset the old file names to .dr/ when there is no marker there, and removes it", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const changeset = await manager.create("mid-change-before-the-move");
+      await writeFile(legacyMarkerPath(root), `${changeset.id}\n`);
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({
+        path: "documentation-robotics/changesets/.active",
+        movedTo: changeset.id!,
+      });
+      expect(await exists(legacyMarkerPath(root))).toBe(false);
+      expect(await manager.getActiveId()).toBe(changeset.id!);
+    }));
+
+  it("keeps the checkout's own marker, and is null when there is no old file", () =>
+    withModel(async (root) => {
+      const { manager } = await managerFor(root);
+      const mine = await manager.create("mine");
+      await manager.setActive(mine.id!);
+      await writeFile(legacyMarkerPath(root), "changeset-someone-elses\n");
+
+      expect(await retireLegacyActiveMarker(root)).toEqual({ path: "documentation-robotics/changesets/.active" });
+      expect(await manager.getActiveId()).toBe(mine.id!);
+      expect(await retireLegacyActiveMarker(root)).toBeNull();
     }));
 });

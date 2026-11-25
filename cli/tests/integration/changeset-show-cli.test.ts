@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
@@ -167,5 +168,41 @@ describe("dr changeset show and the changeset read commands", () => {
     const both = await runDr(["changeset", "create", "two-names", "--intent", "One", "--description", "Other"], { cwd: root });
     expect(both.exitCode).toBe(1);
     expect(`${both.stdout}${both.stderr}`).toContain("--intent and --description name the same thing");
+  });
+});
+
+describe("dr upgrade and the active-changeset marker left in its old place (#1273)", () => {
+  let root: string;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const workdir = await createTestWorkdir();
+    root = workdir.path;
+    cleanup = workdir.cleanup;
+  });
+
+  afterEach(async () => {
+    await cleanup().catch(() => undefined);
+  });
+
+  it("names it in the plan, removes it when run, and moves its changeset to .dr/", async () => {
+    const legacy = join(root, "documentation-robotics", "changesets", ".active");
+    const marker = join(root, ".dr", "active-changeset");
+    await mkdir(join(root, "documentation-robotics", "changesets"), { recursive: true });
+    await rm(marker, { force: true });
+    await writeFile(legacy, "changeset-shared\n");
+
+    const dryRun = await runDr(["upgrade", "--dry-run"], { cwd: root });
+    expect(dryRun.exitCode).toBe(0);
+    expect(dryRun.stdout).toContain("Old active-changeset marker");
+    expect(dryRun.stdout).toContain("remove    documentation-robotics/changesets/.active");
+    expect(existsSync(legacy)).toBe(true);
+
+    const run = await runDr(["upgrade", "--yes"], { cwd: root });
+    expect(run.exitCode).toBe(0);
+    expect(run.stdout).toContain("Removed documentation-robotics/changesets/.active");
+    expect(run.stdout).toContain("Commit the deletion");
+    expect(existsSync(legacy)).toBe(false);
+    expect(await readFile(marker, "utf-8")).toBe("changeset-shared\n");
   });
 });

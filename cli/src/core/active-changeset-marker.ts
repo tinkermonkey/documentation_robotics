@@ -92,3 +92,40 @@ export async function clearActiveMarker(projectRoot: string): Promise<void> {
   await writeFile(file, "", "utf-8");
   await rm(legacyActiveMarkerPath(projectRoot), { force: true });
 }
+
+/** What an upgrade did about a marker left in the old place (#1273). */
+export interface RetiredLegacyMarker {
+  /** The old marker, relative to the project root, with forward slashes. */
+  path: string;
+  /** The id it named, moved to `.dr/active-changeset` because `.dr/` had no marker. */
+  movedTo?: string;
+}
+
+/** The old marker's path with forward slashes, as git and the answers name it. */
+export const LEGACY_ACTIVE_MARKER_PATH = LEGACY_ACTIVE_MARKER_RELATIVE.split(path.sep).join("/");
+
+/** Whether this checkout still has a marker in the old place. */
+export function hasLegacyActiveMarker(projectRoot: string): boolean {
+  return existsSync(legacyActiveMarkerPath(projectRoot));
+}
+
+/**
+ * The upgrade's step for a marker left in the old place (#1273): when `.dr/` has no marker, the
+ * id the old one names moves there, so the checkout keeps its active changeset; either way the old
+ * file is removed. Committing the deletion (git tracked the file) is the user's. Null when there is
+ * no old marker.
+ */
+export async function retireLegacyActiveMarker(projectRoot: string): Promise<RetiredLegacyMarker | null> {
+  const legacy = legacyActiveMarkerPath(projectRoot);
+  if (!existsSync(legacy)) return null;
+  let movedTo: string | undefined;
+  if (!existsSync(activeMarkerPath(projectRoot))) {
+    const id = await idIn(legacy);
+    if (id) {
+      await writeActiveMarker(projectRoot, id);
+      movedTo = id;
+    }
+  }
+  await rm(legacy, { force: true });
+  return { path: LEGACY_ACTIVE_MARKER_PATH, ...(movedTo ? { movedTo } : {}) };
+}

@@ -575,7 +575,9 @@ export async function collectLegacyMarker(
       ? ` git still tracks it: remove it with git rm ${LEGACY_ACTIVE_MARKER_RELATIVE} and commit the deletion.`
       : " It is gone from this checkout but git still tracks it: commit its deletion " +
         `(git rm ${LEGACY_ACTIVE_MARKER_RELATIVE}).`
-    : " git doesn't track it: delete it.";
+    : tracked === null
+      ? " git couldn't say whether it tracks it: delete it, and if git tracks it, commit the deletion."
+      : " git doesn't track it: delete it.";
   return {
     path: LEGACY_ACTIVE_MARKER_RELATIVE,
     onDisk,
@@ -918,12 +920,17 @@ export interface SourceFileSummary {
   /** The folders with the most changed files, most first: the first few (`folderCount` is the whole count). */
   folders: Array<{ folder: string; files: number }>;
   folderCount: number;
+  /** When `folders` shows fewer than `folderCount`: how many, and the call that lists every file. */
+  more?: string;
   /** The elements that reference the changed files, counted per layer, each element once. */
   elementsByLayer: Record<string, number>;
 }
 
-/** {@link SourceFileSummary} of a whole list of changed files (with every element of each). */
-export function sourceFileSummary(entries: readonly ChangedSourceFile[]): SourceFileSummary {
+/**
+ * {@link SourceFileSummary} of a whole list of changed files (with every element of each).
+ * `listCall` is the call that returns the whole list, named in `more` when folders are left out.
+ */
+export function sourceFileSummary(entries: readonly ChangedSourceFile[], listCall?: string): SourceFileSummary {
   const folders = new Map<string, number>();
   const elements = new Set<string>();
   for (const entry of entries) {
@@ -937,9 +944,13 @@ export function sourceFileSummary(entries: readonly ChangedSourceFile[]): Source
     elementsByLayer[layer] = (elementsByLayer[layer] ?? 0) + 1;
   }
   const most = [...folders.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const shown = most.slice(0, SUMMARY_FOLDERS);
   return {
-    folders: most.slice(0, SUMMARY_FOLDERS).map(([folder, files]) => ({ folder, files })),
+    folders: shown.map(([folder, files]) => ({ folder, files })),
     folderCount: folders.size,
+    ...(listCall && folders.size > shown.length
+      ? { more: `folders shows ${shown.length} of ${folders.size}: ${listCall} returns every file.` }
+      : {}),
     elementsByLayer,
   };
 }
@@ -1708,10 +1719,15 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     // Counted over the whole lists before they are cut, so the folders and layers are all of them.
     const summaries = {
       ...(drift.changedSourceFiles.length > 0
-        ? { changedSourceSummary: sourceFileSummary(drift.changedSourceFiles) }
+        ? { changedSourceSummary: sourceFileSummary(drift.changedSourceFiles, listCall("changedSourceFiles", 0, rootPath)) }
         : {}),
       ...(drift.uncommittedSourceFiles.length > 0
-        ? { uncommittedSourceSummary: sourceFileSummary(drift.uncommittedSourceFiles) }
+        ? {
+            uncommittedSourceSummary: sourceFileSummary(
+              drift.uncommittedSourceFiles,
+              listCall("uncommittedSourceFiles", 0, rootPath)
+            ),
+          }
         : {}),
     };
     const changedSourceFiles = cutFiles("changedSourceFiles");

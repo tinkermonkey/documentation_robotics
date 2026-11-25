@@ -26,8 +26,10 @@ import {
 import {
   changesSpecVersion,
   LANDING_WHEN_DRIFT_BLOCKS,
+  collectLegacyMarker,
   readInstalledCli,
   runGit,
+  sourceFileSummary,
   type GitRunner,
 } from "../../../src/mcp/tools/project-status-collectors.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
@@ -975,6 +977,18 @@ describe("project_status", () => {
     describe("the active-changeset marker from before .dr/ (#1273)", () => {
       const legacy = () => join(rootPath, "documentation-robotics", "changesets", ".active");
 
+      it("says git couldn't say whether it tracks the old file, rather than that it doesn't", async () => {
+        await mkdir(join(rootPath, "documentation-robotics", "changesets"), { recursive: true });
+        await writeFile(legacy(), "changeset-x\n");
+        const noGit: GitRunner = async () => ({ ok: false, error: "git is not installed", missing: true });
+
+        const state = await collectLegacyMarker({ projectRoot: rootPath, git: noGit });
+
+        expect(state).toMatchObject({ onDisk: true, tracked: null, inUse: true, names: "changeset-x" });
+        expect(state!.note).toContain("git couldn't say whether it tracks it");
+        expect(state!.note).not.toContain("git doesn't track it");
+      });
+
       it("reports an old marker git tracks, which still decides the active changeset, and asks for its deletion", async () => {
         const planId = await stagePlan(rootPath, "shared-plan", "shared");
         await rm(join(rootPath, ".dr", "active-changeset"), { force: true });
@@ -1395,6 +1409,27 @@ describe("project_status", () => {
           expect(two.nextStep.tool).toBe("changeset_list");
           expect(two.nextStep.summary).toContain('2 changesets are staged: "add-');
           expect(two.nextStep.summary).toContain("Ask the user which one is under review");
+        });
+
+        it("review counts plans only: an as-built record or an upgrade record is not what a review reads", async () => {
+          const model = await Model.load(rootPath, { lazyLoad: false });
+          const manager = new StagingAreaManager(model.rootPath, model);
+          await manager.create("extract-abc1234", "Staged by codebase_extract", { kind: "extract" }, {
+            purpose: "bootstrap",
+          });
+          await manager.create("upgrade-drops-9.9.9", "Dropped relationships", { kind: "upgrade" }, {
+            purpose: "upgrade-record",
+          });
+          clearModelCache();
+
+          const none = await statusFor("review");
+          expect(none.nextStep.tool).toBeNull();
+          expect(none.nextStep.summary).toContain("No changeset is staged in this checkout");
+
+          const planId = await stagePlan(rootPath, "add-refunds", "refunds");
+          const one = await statusFor("review");
+          expect(one.nextStep.tool).toBe("changeset_brief");
+          expect(one.nextStep.args).toEqual({ changeset: planId, rootPath });
         });
 
         it("review with a plan active reads that plan, and is not told to refresh the index", async () => {
@@ -2021,5 +2056,35 @@ describe("project_status indexing section", () => {
     // unless ps can't tell; either way the section reports the run.
     expect(["running", "failed"]).toContain(s.indexing.status);
     expect(s.indexing.jobId).toBe("job-1");
+  });
+});
+
+describe("sourceFileSummary (#1251)", () => {
+  const file = (path: string, elements: string[]) => ({ file: path, elements, elementCount: elements.length });
+
+  it("counts files per folder, most first, and each element once per layer", () => {
+    const summary = sourceFileSummary([
+      file("src/a/one.ts", ["application.applicationfunction.one", "api.operation.one"]),
+      file("src/a/two.ts", ["application.applicationfunction.one"]),
+      file("src/b/three.ts", ["testing.testcasesketch.three"]),
+      file("top.ts", ["application.applicationfunction.top"]),
+    ]);
+    expect(summary).toEqual({
+      folders: [
+        { folder: "src/a", files: 2 },
+        { folder: ".", files: 1 },
+        { folder: "src/b", files: 1 },
+      ],
+      folderCount: 3,
+      elementsByLayer: { application: 2, api: 1, testing: 1 },
+    });
+  });
+
+  it("names the call for every file when it shows only the first folders", () => {
+    const entries = Array.from({ length: 7 }, (_, i) => file(`src/f${i}/x.ts`, [`api.operation.op-${i}`]));
+    const summary = sourceFileSummary(entries, 'project_status with list: "changedSourceFiles"');
+    expect(summary.folders).toHaveLength(5);
+    expect(summary.folderCount).toBe(7);
+    expect(summary.more).toBe('folders shows 5 of 7: project_status with list: "changedSourceFiles" returns every file.');
   });
 });

@@ -732,7 +732,9 @@ function reviewStep(changesets: Sections["changesets"]): NextStep {
     const why = "error" in changesets ? `: ${changesets.error}` : "";
     return { summary: `The changesets could not be read${why}.`, tool: null };
   }
-  const plans = changesets.staged.filter((entry) => entry.purpose !== "upgrade-record");
+  // What a review reads is a plan (a DrBot chat's too): never an as-built record (bootstrap,
+  // reconcile, verification) or an upgrade record.
+  const plans = changesets.staged.filter((entry) => !entry.asBuilt && entry.purpose !== "upgrade-record");
   const perCheckout =
     "The active changeset is per checkout (.dr/active-changeset), so a plan from a branch is staged here, not active.";
   if (plans.length === 1) {
