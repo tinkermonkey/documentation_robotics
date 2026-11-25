@@ -242,6 +242,11 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   committed changeset answers `already-landed`, with when it landed, its files (named as the model
   names them, `application_function.yaml`) and whether git has them, instead of an error that read
   as if the wrong changeset was named.
+- **`codebase_extract`'s shortened lists can all be read in full.** `acceptedGaps.contradicted`,
+  `unchanged.tier1NotElementCards`, decision records' `retired` and `rules.decided` named a
+  `list: "contradictedGaps"`, `"tier1NotElementCards"`, `"retiredDecisions"` or `"rules"` call that
+  the tool's schema refused. `list` now takes all four, and a list's hint can only name a list
+  `list` accepts.
 - **An empty or unreadable index never reads as fresh (#1345):** a codebase-memory-mcp answer
   without node and edge counts used to be recorded as 0 nodes with a warning in the log, and
   `codebase_index` then reported the index `done` and `fresh`, so `codebase_extract` staged

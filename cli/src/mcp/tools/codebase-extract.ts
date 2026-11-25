@@ -245,6 +245,31 @@ const rejectItemSchema = strictItem("A reject[] item", {
         reason: z.string().min(1).describe("Why it is not a model element (or relationship), in a few words."),
       });
 
+/**
+ * The lists `list` reads from a run's record. Every shortened list's hint names one of these
+ * (capped's name is typed by it), so the call the hint gives is one the schema accepts.
+ */
+const RUN_LISTS = [
+  "groups",
+  "candidateDeletes",
+  "updated",
+  "retyped",
+  "impacted",
+  "ruleDecided",
+  "sharedHelpers",
+  "planCoverage",
+  "unwiredTests",
+  "notElements",
+  "declaredSpecNotStaged",
+  "contradictedGaps",
+  "tier1NotElementCards",
+  "retiredDecisions",
+  "rules",
+] as const;
+
+/** A list `list` can read: the name a shortened list's hint gives. */
+type RunListName = (typeof RUN_LISTS)[number];
+
 const inputSchema = {
   changeset: z
     .string()
@@ -388,19 +413,7 @@ const inputSchema = {
         "With decide, the call is a run: the items apply first and the answer is this view's page of the cards left."
     ),
   list: z
-    .enum([
-      "groups",
-      "candidateDeletes",
-      "updated",
-      "retyped",
-      "impacted",
-      "ruleDecided",
-      "sharedHelpers",
-      "planCoverage",
-      "unwiredTests",
-      "notElements",
-      "declaredSpecNotStaged",
-    ])
+    .enum(RUN_LISTS)
     .optional()
     .describe(
       "Read one list of the last run in full, a page at a time (limit, offset): nothing is extracted or staged. Each list a run shortens says " +
@@ -651,7 +664,7 @@ function page<T>(items: T[], pageNumber: number, pageSize: number) {
 }
 
 /** How to read a named list of the last run from an offset: the `more` of a shortened list. */
-function listCall(name: string, nextOffset: number): string {
+function listCall(name: RunListName, nextOffset: number): string {
   return `Call codebase_extract with list: "${name}" and offset: ${nextOffset} for the rest (nothing is extracted or staged).`;
 }
 
@@ -659,7 +672,7 @@ function listCall(name: string, nextOffset: number): string {
  * A list of the response at its default length: its true total, the items shown, and, when it is
  * shortened, the call that returns the rest (`list: <name>`, which reads the run's record).
  */
-function capped<T>(items: T[], limit = MAX_LISTED, name?: string) {
+function capped<T>(items: T[], limit = MAX_LISTED, name?: RunListName) {
   return pageOf(items, limit, 0, name ? (next) => listCall(name, next) : undefined);
 }
 
