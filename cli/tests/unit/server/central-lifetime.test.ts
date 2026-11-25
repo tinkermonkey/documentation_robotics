@@ -14,11 +14,14 @@ import {
   CentralProcessRunningError,
   centralIdleMs,
   centralIdleReason,
+  centralStaleReason,
   chooseServePort,
+  exactServePort,
   runCentralProcess,
   watchCentralIdle,
   type RunCentralProcessOptions,
 } from "../../../src/server/central-lifetime.js";
+import type { RunningCodeDrift } from "../../../src/utils/running-code.js";
 import type { CentralActivity, CentralServerOptions } from "../../../src/server/central-server-contract.js";
 import type { PerProjectViewerSweep, SweepPerProjectViewersOptions } from "../../../src/server/legacy-viewer-sweep.js";
 import { readServerRecord, serverRecordPath, serverTokenPath, writeServerRecord } from "../../../src/server/server-record.js";
@@ -87,6 +90,44 @@ describe("the idle rule", () => {
   });
 });
 
+describe("restarting on the installed CLI (#1427)", () => {
+  const drift: RunningCodeDrift = { reason: "version", running: "0.8.0", installed: { version: "0.9.0", spec: null } };
+
+  it("restarts only when the CLI changed and nothing a restart would cut is using it", () => {
+    expect(centralStaleReason(activity(), null)).toBeNull();
+    // MCP sessions don't hold it: the bridge reconnects them.
+    const reason = centralStaleReason(activity({ mcpSessions: 3 }), drift);
+    expect(reason).toContain("runs CLI 0.8.0, and CLI 0.9.0 is installed now");
+    expect(reason).toContain("the dr MCP server reconnects its sessions");
+    for (const busy of [{ clients: 1 }, { drBotTurns: 1 }, { requestsInFlight: 1 }]) {
+      expect(centralStaleReason(activity(busy), drift)).toBeNull();
+    }
+  });
+
+  it("ends through onExit when the stale check finds drift, even with no idle limit", async () => {
+    let current = activity({ clients: 1 });
+    const reasons: string[] = [];
+    const watch = watchCentralIdle({
+      activity: () => current,
+      idleMs: 0,
+      intervalMs: 5,
+      staleCheck: async () => drift,
+      onExit: (reason) => reasons.push(reason),
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(reasons).toEqual([]);
+      expect(await watch.checkStale()).toBeNull();
+      current = activity({ mcpSessions: 1 });
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      expect(reasons).toHaveLength(1);
+      expect(reasons[0]).toContain("stops for a restart");
+    } finally {
+      watch.stop();
+    }
+  });
+});
+
 describe("port choice", () => {
   it("takes 8080 when it is free", async () => {
     expect(await chooseServePort(undefined, async () => true)).toBe(8080);
@@ -99,6 +140,12 @@ describe("port choice", () => {
 
   it("starts the search at --port", async () => {
     expect(await chooseServePort(9000, async () => true)).toBe(9000);
+  });
+
+  it("takes an exact port or fails, never searching (an isolated process, #1376)", async () => {
+    expect(await exactServePort(9100, async () => true)).toBe(9100);
+    await expect(exactServePort(9100, async () => false)).rejects.toThrow("Port 9100 is in use");
+    await expect(exactServePort(0, async () => true)).rejects.toThrow("Invalid port number");
   });
 
   it("rejects a port out of range", async () => {
@@ -283,6 +330,48 @@ describe("runCentralProcess", () => {
       expect(sweeps.length).toBe(1);
       expect(sweeps[0].excludePids).toEqual([4242, 4241]);
       expect(lines.some((line) => line.includes("Per-project viewers: stopped 0, kept 0."))).toBe(true);
+    } finally {
+      await proc.stop();
+    }
+  });
+
+  it("sweeps only the farm's own folders, and not at all with sweep: false (#1369)", async () => {
+    const ctx = await setup();
+    const sweeps: SweepPerProjectViewersOptions[] = [];
+    const registry = {
+      farmManifest: { getAllProjects: () => [{ name: "a", repository: "/projects/a", model: "/projects/a/m" }] },
+      repositoryPath: (project: { repository: string }) => project.repository,
+      checkouts: async () => [{ path: "/worktrees/a-feature" }],
+    } as unknown as ProjectRegistry;
+    const proc = await runCentralProcess(
+      options(ctx, { sweepViewers: emptySweep(sweeps), openRegistry: async () => registry })
+    );
+    await proc.stop();
+    expect(sweeps).toHaveLength(1);
+    expect(sweeps[0].farmRoots).toEqual(["/projects/a", "/worktrees/a-feature"]);
+
+    const lines: string[] = [];
+    const skipped: SweepPerProjectViewersOptions[] = [];
+    const quiet = await runCentralProcess(
+      options(await setup(), { sweep: false, sweepViewers: emptySweep(skipped), log: (line) => lines.push(line) })
+    );
+    try {
+      expect(skipped).toHaveLength(0);
+      expect(quiet.sweep).toBeNull();
+      expect(lines.some((line) => line.includes("not swept"))).toBe(true);
+    } finally {
+      await quiet.stop();
+    }
+  });
+
+  it("listens on the exact port it is given, or refuses to start", async () => {
+    const ctx = await setup();
+    await expect(
+      runCentralProcess(options(ctx, { port: 9123, exactPort: true, isPortFree: async (p) => p !== 9123 }))
+    ).rejects.toThrow("Port 9123 is in use");
+    const proc = await runCentralProcess(options(ctx, { port: 9124, exactPort: true }));
+    try {
+      expect(proc.record.port).toBe(9124);
     } finally {
       await proc.stop();
     }

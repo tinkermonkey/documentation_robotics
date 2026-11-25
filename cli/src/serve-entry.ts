@@ -9,7 +9,16 @@
  *   DR_SERVE_WITH_DANGER   "1": DrBot may also land and delete
  *   DR_SERVE_READ_ONLY     "1": DrBot reads only (the default is changeset staging)
  *   DR_SERVE_LAUNCHER_PID  the `dr serve` process that started this one
+ *   DR_SERVE_EXACT_PORT    "1": listen on DR_SERVE_PORT itself or fail (an isolated process)
+ *   DR_SERVE_TOKEN_FILE    a file whose first line is the token to use instead of a new one
+ *   DR_SERVE_NO_SWEEP      "1": no start-up sweep of per-project viewers
+ *   DR_SERVE_READY_JSON    "1": print one JSON line once it serves (pid, port, url, farmRoot)
+ *   DR_STATE_DIR           where its record, token and log go (an isolated process's own folder)
  *   DR_FARM_PATH, ...      the farm, as `resolveFarm` reads it (from this process's cwd)
+ *
+ * It turns on the running-code guard (utils/running-code.ts): once the CLI installed where it was
+ * loaded from changes under it, it refuses to write the model, and it stops for a restart as soon
+ * as nothing a restart would cut is using it (#1427).
  *
  * For tests only:
  *   DR_SERVE_TEST_STARTER  path of a module whose `startCentralServer` replaces the real one,
@@ -25,10 +34,11 @@ import {
   type CentralProcess,
 } from "./server/central-lifetime.js";
 import { resolveFarm } from "./core/project-registry.js";
-import { startOptionsFromEnv } from "./commands/serve.js";
+import { entryRunOptionsFromEnv, readTokenFile, startOptionsFromEnv } from "./commands/serve.js";
 import { resolveChatMode } from "./commands/visualize.js";
 import { getErrorMessage } from "./utils/errors.js";
 import { getCliVersion } from "./utils/spec-version.js";
+import { enableRunningCodeGuard, runningCodeDrift } from "./utils/running-code.js";
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false;
@@ -103,18 +113,37 @@ async function main(): Promise<void> {
   try {
     const farm = await resolveFarm();
     const start = startOptionsFromEnv(process.env);
+    const run = entryRunOptionsFromEnv(process.env);
+    enableRunningCodeGuard();
     running = await runCentralProcess({
       farm,
       startServer: await loadStartCentralServer(),
       port: start.port,
+      exactPort: run.exactPort,
+      sweep: run.sweep,
+      ...(run.tokenFile ? { token: readTokenFile(run.tokenFile) } : {}),
       serverOptions: {
         ...(start.viewerPath ? { viewerPath: start.viewerPath } : {}),
         ...resolveChatMode(start),
       },
       launcherPid: positiveInt(process.env.DR_SERVE_LAUNCHER_PID),
       cliVersion: getCliVersion(),
+      staleCheck: () => runningCodeDrift(),
       onIdleExit: () => void shutdown(0),
     });
+    if (run.readyJson) {
+      const { record } = running;
+      console.log(
+        JSON.stringify({
+          ready: true,
+          pid: record.pid,
+          port: record.port,
+          url: `http://127.0.0.1:${record.port}/`,
+          farmRoot: record.farmRoot,
+          cliVersion: record.cliVersion,
+        })
+      );
+    }
   } catch (error) {
     if (error instanceof CentralProcessRunningError) {
       console.error(`[serve] ${error.message}`);

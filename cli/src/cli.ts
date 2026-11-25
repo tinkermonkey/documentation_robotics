@@ -807,6 +807,16 @@ program
   .option("--with-danger", "Let chat land and delete changesets (when it starts the process)")
   .option("--read-only", "Limit chat to reading the model (when it starts the process)")
   .option("--with-changesets", "Let chat stage model changes in a changeset (the default; kept for older scripts)")
+  .option(
+    "--state-dir <dir>",
+    "Run an isolated process (a test suite's): its record, token and log go in <dir>, it sweeps no viewers, " +
+      "and --port is the exact port. Pass it to --status and --stop too"
+  )
+  .option(
+    "--token-file <path>",
+    "Use the token in this file (16 or more characters) instead of a new one, when it starts the process; every call still needs it"
+  )
+  .option("--no-sweep", "Leave other per-project viewers running at start-up (when it starts the process)")
   .addHelpText(
     "after",
     `
@@ -817,6 +827,14 @@ Examples:
   $ dr serve --read-only --viewer-path ./dist/embedded/dr-viewer-bundle
   $ dr serve --status
   $ dr serve --stop
+  $ DR_FARM_PATH=./e2e/farm dr serve --foreground --json --state-dir ./e2e/state --port 8099 --token-file ./e2e/token
+
+A test suite (or a CLI run from source) gets a process of its own with
+--state-dir: a farm of its own (DR_FARM_PATH, or a farm.yaml above the working
+directory), its record in <dir>, no sweep, and the exact --port. The token is
+still required on every call: --token-file gives the one the suite chose, and
+with --foreground --json the process prints one line once it serves:
+{"ready":true,"pid":...,"port":...,"url":...,"farmRoot":...}.
 
 One process serves every project and checkout of the farm (DR_FARM_PATH, a
 farm.yaml above the working directory, or the user farm). It records itself
@@ -840,6 +858,9 @@ starts the process. Chat stages model changes in a changeset by default.`
       withDanger: options.withDanger === true,
       readOnly: options.readOnly === true,
       withChangesets: options.withChangesets === true,
+      stateDir: options.stateDir,
+      tokenFile: options.tokenFile,
+      ...(options.sweep === false ? { sweep: false } : {}),
     });
   });
 

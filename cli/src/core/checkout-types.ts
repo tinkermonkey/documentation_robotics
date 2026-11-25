@@ -96,6 +96,10 @@ export interface ProjectListEntry {
   /** The model folder as the farm records it. */
   model: string;
   remote?: string;
+  /** Set when the repository folder is gone: the project stays listed until it is removed (#1438). */
+  missing?: true;
+  /** With `missing`: the call that drops the project from the farm (`dr farm remove <name>`). */
+  remove?: string;
   checkouts: ProjectListCheckout[];
 }
 

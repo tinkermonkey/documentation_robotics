@@ -59,6 +59,8 @@ import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js
 import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { assertRunningCodeInstalled } from "../../utils/running-code.js";
+import { getCliVersion } from "../../utils/spec-version.js";
 import { changesetLinkIfRunning } from "./central-viewer.js";
 import {
   jsonResult,
@@ -565,6 +567,9 @@ async function landingWarnings(target: LandingTarget): Promise<string[]> {
 async function prepareLanding(
   args: { changeset: string; rootPath?: string }
 ): Promise<{ landing: LandingTarget } | { result: CallToolResult }> {
+  // A process whose installed CLI changed under it would land with the old code: refuse before the
+  // person is asked anything (#1427). Only the central process has the guard on.
+  await assertRunningCodeInstalled();
   // The cached model names the project; the commit runs on a fresh read, like the viewer's.
   const rootPath = (await loadModel(args.rootPath)).rootPath;
   const model = await Model.load(rootPath, { lazyLoad: false });
@@ -857,6 +862,8 @@ export async function changesetCommitPreviewHandler(
       id: changeset.id,
       name: changeset.name,
       status: "ready-to-commit",
+      // The CLI that lands it, stamped as the manifest's cli_version (#1427).
+      cliVersion: getCliVersion(),
       // Drift is in the summary; it does not stop the landing.
       drifted: hash.isDrifted,
       summary: message,

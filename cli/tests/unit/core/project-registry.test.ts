@@ -320,4 +320,72 @@ describe("resolving checkouts", () => {
       ["alpha-wt", "cs-1", 0],
     ]);
   });
+
+  it("counts staged changesets from metadata.yaml alone, never parsing changes.yaml (#1436)", async () => {
+    const tmp = await scratch();
+    const { registry } = await folderFarm(tmp);
+    const repo = await createRepo(path.join(tmp, "big"));
+    await registry.registerProject(repo);
+    const changesets = path.join(repo, "documentation-robotics", "changesets");
+    const write = async (id: string, status: string, changes: string) => {
+      await mkdir(path.join(changesets, id), { recursive: true });
+      await writeFile(path.join(changesets, id, "metadata.yaml"), `id: ${id}\nname: ${id}\nstatus: ${status}\n`);
+      await writeFile(path.join(changesets, id, "changes.yaml"), changes);
+    };
+    await write("a", "staged", "- type: add\n");
+    await write("b", "committed", "- type: add\n");
+    // Not YAML at all: a listing that parsed it would skip this changeset and count 1.
+    await write("c", "staged", "{{{ not yaml");
+
+    const [entry] = await registry.listProjects();
+    expect(entry.checkouts[0].stagedChangesets).toBe(2);
+
+    // A status rewritten on disk is read again (the cache keys on mtime and size).
+    await writeFile(path.join(changesets, "a", "metadata.yaml"), "id: a\nname: a\nstatus: discarded\n");
+    expect((await registry.listProject("big"))?.checkouts[0].stagedChangesets).toBe(1);
+  });
+
+  it("shares one scan between listings asked for while it runs (#1436)", async () => {
+    const tmp = await scratch();
+    const { registry } = await folderFarm(tmp);
+    await registry.registerProject(await createRepo(path.join(tmp, "one")));
+    const [first, second] = await Promise.all([registry.listProjects(), registry.listProjects()]);
+    expect(second).toBe(first);
+    const [a, b] = await Promise.all([registry.listProject("one"), registry.listProject("one")]);
+    expect(b).toBe(a);
+    // Once it is done, the next listing scans again.
+    expect(await registry.listProjects()).not.toBe(first);
+    expect(await registry.listProject("nope")).toBeNull();
+  });
+
+  it("flags a project whose repository folder is gone, with the call that removes it (#1438)", async () => {
+    const tmp = await scratch();
+    const { registry } = await folderFarm(tmp);
+    const gone = await createRepo(path.join(tmp, "gone"));
+    await registry.registerProject(gone);
+    await registry.registerProject(await createRepo(path.join(tmp, "here")));
+    await rm(gone, { recursive: true, force: true });
+
+    const list = await registry.listProjects();
+    const missing = list.find((p) => p.name === "gone");
+    expect(missing).toMatchObject({ missing: true, remove: "dr farm remove gone" });
+    expect(list.find((p) => p.name === "here")).not.toHaveProperty("missing");
+  });
+
+  it("reloads farm.yaml only when its text changed, keeping what it resolved otherwise", async () => {
+    const tmp = await scratch();
+    const { location, registry } = await folderFarm(tmp);
+    await registry.reload();
+    const manifest = registry.farmManifest;
+    await registry.reload();
+    expect(registry.farmManifest).toBe(manifest);
+
+    // Another process registers a project: the next reload sees it.
+    const other = await FarmManifest.load(location.file);
+    const repo = await createRepo(path.join(tmp, "later"));
+    other.addProject("later", { name: "later", repository: repo, model: path.join(repo, "documentation-robotics", "model") });
+    await other.save(location.file);
+    await registry.reload();
+    expect(registry.getProject("later")).toBeDefined();
+  });
 });

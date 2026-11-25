@@ -1,0 +1,461 @@
+- type: add
+  elementId: application.applicationfunction.staged-changeset-storage-list-statuses
+  layerName: application
+  after:
+    id: fa1a5a84-5f5e-4ea4-a6b1-ab134be7f833
+    path: application.applicationfunction.staged-changeset-storage-list-statuses
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagedChangesetStorage listStatuses
+    description: Each changeset folder's id and status, read from its metadata.yaml alone (never changes.yaml), with a status kept until the file's mtime or size changes. What a farm listing counts a checkout's staged changesets with, so listing projects no longer YAML-parses every changeset in the farm (#1436).
+    metadata:
+      created_at: 2026-11-25T16:08:59.368Z
+      updated_at: 2026-11-25T16:08:59.368Z
+      version: 1
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.running-code-drift
+  layerName: application
+  after:
+    id: c9c1c309-a537-4892-a1d2-126ae1f2f06a
+    path: application.applicationfunction.running-code-drift
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: runningCodeDrift
+    description: "How the CLI installed where this process was loaded from differs from the code it runs: another version on disk, or its files written after the process started. Null when they agree. What project_status's server section and the write guard read (#1427)."
+    metadata:
+      created_at: 2026-11-25T16:08:59.368Z
+      updated_at: 2026-11-25T16:08:59.368Z
+      version: 1
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.assert-running-code-installed
+  layerName: application
+  after:
+    id: dd3408c1-f5e9-4dc9-ae18-aa2352715d7e
+    path: application.applicationfunction.assert-running-code-installed
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: assertRunningCodeInstalled
+    description: "In a long-lived DR process (the central process enables it), refuses a write to the base model once runningCodeDrift finds the installed CLI changed under it: nothing is written, and the error names both versions and the restart (dr serve --stop; the dr MCP server reconnects to a process running the installed CLI). Short-lived dr commands never trip it (#1427)."
+    metadata:
+      created_at: 2026-11-25T16:08:59.368Z
+      updated_at: 2026-11-25T16:08:59.368Z
+      version: 1
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.central-stale-reason
+  layerName: application
+  after:
+    id: 3f45a542-7ff1-4f76-9d3a-b81cfcd9c1d9
+    path: application.applicationfunction.central-stale-reason
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: centralStaleReason
+    description: "Why the central process should restart, or null: the installed CLI changed under it (runningCodeDrift) and no browser tab or DrBot turn is connected. MCP sessions do not hold it, because the dr mcp bridge reconnects and replays them on the installed CLI's process. Checked on the idle watch's interval (#1427)."
+    metadata:
+      created_at: 2026-11-25T16:08:59.368Z
+      updated_at: 2026-11-25T16:08:59.368Z
+      version: 1
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.visualization-server-serve-custom-viewer
+  layerName: application
+  after:
+    id: 309be28e-4b18-44af-b0ef-07e145e85906
+    path: application.applicationfunction.visualization-server-serve-custom-viewer
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: VisualizationServer serveCustomViewer
+    description: "Serves a file of the viewer build (the bundled one, or --viewer-path) from disk on every request. index.html and every file without a content hash in its name go out with Cache-Control: no-cache and an ETag (a 304 when unchanged), so a rebuilt bundle shows on the next load; hashed assets are immutable (#1308)."
+    metadata:
+      created_at: 2026-11-25T16:08:59.368Z
+      updated_at: 2026-11-25T16:08:59.368Z
+      version: 1
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: application.applicationcomponent.staged-changeset-storage::assigned-to::application.applicationfunction.staged-changeset-storage-list-statuses
+  layerName: application
+  after:
+    source: application.applicationcomponent.staged-changeset-storage
+    target: application.applicationfunction.staged-changeset-storage-list-statuses
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: application.applicationfunction.list-projects::depends-on::application.applicationfunction.staged-changeset-storage-list-statuses
+  layerName: application
+  after:
+    source: application.applicationfunction.list-projects
+    target: application.applicationfunction.staged-changeset-storage-list-statuses
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: application.applicationfunction.assert-running-code-installed::depends-on::application.applicationfunction.running-code-drift
+  layerName: application
+  after:
+    source: application.applicationfunction.assert-running-code-installed
+    target: application.applicationfunction.running-code-drift
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.running-code-drift::depends-on::application.applicationfunction.read-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.running-code-drift
+    target: application.applicationfunction.read-installed-cli
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.collect-server::depends-on::application.applicationfunction.running-code-drift
+  layerName: application
+  after:
+    source: application.applicationfunction.collect-server
+    target: application.applicationfunction.running-code-drift
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.central-stale-reason::depends-on::application.applicationfunction.running-code-drift
+  layerName: application
+  after:
+    source: application.applicationfunction.central-stale-reason
+    target: application.applicationfunction.running-code-drift
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.watch-central-idle::depends-on::application.applicationfunction.central-stale-reason
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-central-idle
+    target: application.applicationfunction.central-stale-reason
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationcomponent.visualization-server::assigned-to::application.applicationfunction.visualization-server-serve-custom-viewer
+  layerName: application
+  after:
+    source: application.applicationcomponent.visualization-server
+    target: application.applicationfunction.visualization-server-serve-custom-viewer
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T16:08:59.402Z
+  sequenceNumber: 12
+- type: add
+  elementId: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+  layerName: motivation
+  after:
+    id: 9f9b4cd1-6151-4ad5-a8a3-5e9fbaf3e977
+    path: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    spec_node_id: motivation.requirement
+    type: requirement
+    layer_id: motivation
+    name: A long-lived DR process never writes the model with code older than the installed CLI
+    description: Once the dr CLI installed where a long-lived DR process (the central process) was loaded from changes under it (another version, or its files rewritten after it started), the process refuses every write to the base model and says to restart it, so a landing never stamps an old cli_version or writes the old file layout (#1427). It restarts itself when only MCP sessions, which reconnect, are using it.
+    attributes:
+      requirementType: non-functional
+      priority: high
+    metadata:
+      created_at: 2026-11-25T16:09:06.759Z
+      updated_at: 2026-11-25T16:09:06.759Z
+      version: 1
+  timestamp: 2026-11-25T16:09:06.925Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: application.applicationfunction.assert-running-code-installed::satisfies::motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.assert-running-code-installed
+    target: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T16:09:06.925Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: application.applicationfunction.central-stale-reason::satisfies::motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.central-stale-reason
+    target: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T16:09:06.925Z
+  sequenceNumber: 15
+- type: update
+  elementId: application.applicationfunction.list-projects
+  layerName: application
+  before:
+    id: a51a424a-35e9-4253-9292-26ebecb4d450
+    path: application.applicationfunction.list-projects
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: listProjects
+    description: The ProjectListEntry for every registered project, in name order, with its checkouts.
+    source_reference: &a1
+      provenance: manual
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.listProjects
+    metadata: &a2
+      created_at: 2026-11-21T17:14:10.904Z
+      updated_at: 2026-11-21T17:14:10.904Z
+      version: 1
+  after:
+    id: a51a424a-35e9-4253-9292-26ebecb4d450
+    path: application.applicationfunction.list-projects
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: listProjects
+    description: The ProjectListEntry for every registered project, in name order, with its checkouts. Each checkout's staged changesets are counted from their metadata.yaml alone (StagedChangesetStorage listStatuses, cached by file mtime), never by parsing changes.yaml, and concurrent listings share one run, so a page load's several requests cost one scan (#1436). A project whose repository folder is gone is flagged missing, with the dr farm remove call that drops it (#1438).
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-25T16:09:20.253Z
+  sequenceNumber: 16
+- type: update
+  elementId: data-model.objectschema.project-list-entry
+  layerName: data-model
+  before:
+    id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+    path: data-model.objectschema.project-list-entry
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectListEntry
+    description: "What project_list, GET /api/projects and dr farm list return for a project: name, repository, model path, and its checkouts with branch, head, state, active changeset and staged changeset count."
+    attributes: &a3
+      type: object
+    source_reference: &a4
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: ProjectListEntry
+    metadata: &a5
+      created_at: 2026-11-21T17:14:10.890Z
+      updated_at: 2026-11-21T17:14:10.890Z
+      version: 1
+  after:
+    id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+    path: data-model.objectschema.project-list-entry
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectListEntry
+    description: "One farm project as every interface lists it: name, repository (the main checkout's path), model folder, remote, and its checkouts with their state, active changeset and staged count. missing: true, with remove (the dr farm remove call), when the repository folder is gone (#1438)."
+    attributes: *a3
+    source_reference: *a4
+    metadata: *a5
+  timestamp: 2026-11-25T16:09:20.359Z
+  sequenceNumber: 17
+- type: update
+  elementId: application.applicationservice.farm-status-command
+  layerName: application
+  before:
+    id: 98b32d4f-87cb-4d55-b995-7106737ff630
+    path: application.applicationservice.farm-status-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: farmStatusCommand
+    description: Show farm status
+    attributes: &a6
+      serviceType: synchronous
+    source_reference: &a7
+      provenance: extracted
+      locations:
+        - file: cli/src/commands/farm.ts
+          symbol: farmStatusCommand
+    metadata: &a8
+      created_at: 2026-11-20T15:05:23.844Z
+      updated_at: 2026-11-20T15:05:23.844Z
+      version: 1
+  after:
+    id: 98b32d4f-87cb-4d55-b995-7106737ff630
+    path: application.applicationservice.farm-status-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: farmStatusCommand
+    description: "dr farm status: the farm and each registered project with its sync state. A project whose repository folder is gone is reported as such, with the dr farm remove call that drops it (#1438)."
+    attributes: *a6
+    source_reference: *a7
+    metadata: *a8
+  timestamp: 2026-11-25T16:09:21.119Z
+  sequenceNumber: 18
+- type: update
+  elementId: application.applicationfunction.sweep-per-project-viewers
+  layerName: application
+  before:
+    id: d98cfff7-8790-413d-b6c8-1fce1791f184
+    path: application.applicationfunction.sweep-per-project-viewers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sweepPerProjectViewers
+    description: At start-up, finds per-project viewers from the legacy records and a process scan, stops those review_open started that have no connected tab, and reports the rest with their pids for dr visualize --stop.
+    source_reference: &a9
+      provenance: manual
+      locations:
+        - file: cli/src/server/legacy-viewer-sweep.ts
+          symbol: sweepPerProjectViewers
+    metadata: &a10
+      created_at: 2026-11-21T17:14:10.905Z
+      updated_at: 2026-11-21T17:14:10.905Z
+      version: 1
+  after:
+    id: d98cfff7-8790-413d-b6c8-1fce1791f184
+    path: application.applicationfunction.sweep-per-project-viewers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: sweepPerProjectViewers
+    description: At start-up, finds per-project viewers from the legacy records and a process scan, stops those review_open started that have no connected tab and whose project is in this process's farm, and reports the rest with their pids for dr visualize --stop. Never runs for dr serve --no-sweep or an isolated process (--state-dir), so a CLI run from source leaves the installed CLI's viewers alone (#1369).
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-25T16:09:21.238Z
+  sequenceNumber: 19
+- type: update
+  elementId: application.applicationservice.serve-command
+  layerName: application
+  before:
+    id: e1fa4704-8156-4ecc-abe3-2b53f9187cd8
+    path: application.applicationservice.serve-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: serveCommand
+    description: "dr serve: runs the user's central DR process in the foreground (dr mcp and dr visualize start it detached)."
+    attributes: &a11
+      serviceType: synchronous
+    source_reference: &a12
+      provenance: manual
+      locations:
+        - file: cli/src/commands/serve.ts
+          symbol: serveCommand
+    metadata: &a13
+      created_at: 2026-11-21T17:14:10.906Z
+      updated_at: 2026-11-21T17:14:10.906Z
+      version: 1
+  after:
+    id: e1fa4704-8156-4ecc-abe3-2b53f9187cd8
+    path: application.applicationservice.serve-command
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: serveCommand
+    description: "dr serve: runs the user's central DR process (detached, or attached with --foreground; dr mcp and dr visualize start it detached), and --status and --stop it. --state-dir <dir> runs an isolated process for a test suite: its record, token and log go in <dir>, it sweeps no viewers, and --port is the exact port. --token-file <path> gives the process the token the suite chose (every call still needs it). --no-sweep skips the start-up sweep. With --json, a foreground process prints one ready line (pid, port, url, farm) once it serves (#1376, #1369)."
+    attributes: *a11
+    source_reference: *a12
+    metadata: *a13
+  timestamp: 2026-11-25T16:09:21.387Z
+  sequenceNumber: 20
+- type: update
+  elementId: application.applicationfunction.ensure-central-server
+  layerName: application
+  before:
+    id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+    path: application.applicationfunction.ensure-central-server
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCentralServer
+    description: Finds the running central process for the farm in use from its server record, or starts one detached (dr serve) under the starting marker. It replaces an older process only when no browser tab, MCP session or DrBot turn is connected; otherwise it returns the older one with a notice.
+    source_reference: &a14
+      provenance: manual
+      locations:
+        - file: cli/src/server/ensure-central-server.ts
+          symbol: ensureCentralServer
+    metadata: &a15
+      created_at: 2026-11-21T17:14:10.905Z
+      updated_at: 2026-11-21T17:14:10.905Z
+      version: 1
+  after:
+    id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+    path: application.applicationfunction.ensure-central-server
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCentralServer
+    description: The central DR process for the farm in use, started when there is none, returned once its record is written and its /health answers. A recorded process that does not answer /health comes back with a notice naming its log, instead of a link that hangs (#1282). A process older than this CLI is replaced only when nothing uses it.
+    source_reference: *a14
+    metadata: *a15
+  timestamp: 2026-11-25T16:09:21.447Z
+  sequenceNumber: 21
+- type: update
+  elementId: data-model.schemacomposition.server-section
+  layerName: data-model
+  before:
+    id: a41d79ca-0f5e-47d7-a2c8-b52673af112b
+    path: data-model.schemacomposition.server-section
+    spec_node_id: data-model.schemacomposition
+    type: schemacomposition
+    layer_id: data-model
+    name: ServerSection
+    description: "project_status's server section: current, stale (with the installed CLI and a note) or unknown."
+    source_reference: &a16
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-status-collectors.ts
+          symbol: ServerSection
+    metadata: &a17
+      created_at: 2026-11-20T16:39:29.299Z
+      updated_at: 2026-11-20T16:39:29.299Z
+      version: 1
+  after:
+    id: a41d79ca-0f5e-47d7-a2c8-b52673af112b
+    path: data-model.schemacomposition.server-section
+    spec_node_id: data-model.schemacomposition
+    type: schemacomposition
+    layer_id: data-model
+    name: ServerSection
+    description: "project_status's server section: the dr server process that answered (its CLI version, pid and start time, so an agent can tell after the tools reconnect whether the process restarted) and whether it is the CLI installed now (current, stale with what changed and the restart, or unknown) (#1362, #1427)."
+    source_reference: *a16
+    metadata: *a17
+  timestamp: 2026-11-25T16:09:22.650Z
+  sequenceNumber: 22
+- type: relationship-add
+  elementId: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli::realizes::motivation.outcome.one-viewer-process-serves-every-mapped-project
+  layerName: motivation
+  after:
+    source: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    target: motivation.outcome.one-viewer-process-serves-every-mapped-project
+    predicate: realizes
+    layer: motivation
+    category: structural
+  timestamp: 2026-11-25T16:09:36.231Z
+  sequenceNumber: 23

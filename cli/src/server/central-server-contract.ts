@@ -48,6 +48,8 @@ export interface CentralActivity {
   drBotTurns: number;
   /** When it was last used: a request other than `/health`, or a websocket opening or closing. Epoch ms. */
   lastActivityAt: number;
+  /** API requests and MCP tool calls being answered now (absent: not counted). */
+  requestsInFlight?: number;
 }
 
 /** `GET /health` on the central process. Unauthenticated: status and version only, unless the token is sent. */

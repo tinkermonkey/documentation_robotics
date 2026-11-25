@@ -344,6 +344,11 @@ export function explicitNameCall(repositoryPath: string): string {
   return `dr farm add <name> --codebase ${repositoryPath}`;
 }
 
+/** The call that drops a project from the farm (one whose repository folder is gone, say). */
+export function removeProjectCall(name: string): string {
+  return `dr farm remove ${name}`;
+}
+
 /**
  * The name a new project gets (`application.applicationfunction.derive-project-name`): the
  * explicit name when given, else the main checkout's folder name in kebab case. A name another
@@ -415,6 +420,11 @@ export class ProjectRegistry {
   private readonly checkoutCache = new Map<string, CheckoutCache>();
   private readonly removedAnnounced = new Map<string, Set<string>>();
   private readonly listeners = new Set<CheckoutRemovedListener>();
+  /** The farm.yaml text the manifest was last read from: a reload with the same text reads nothing again. */
+  private manifestText: string | null = null;
+  /** The listing under way, shared by every caller that asks while it runs (#1436). */
+  private listing: Promise<ProjectListEntry[]> | null = null;
+  private readonly projectListings = new Map<string, Promise<ProjectListEntry | null>>();
 
   private constructor(farm: FarmLocation, manifest: FarmManifest) {
     this.farm = farm;
@@ -437,9 +447,20 @@ export class ProjectRegistry {
     return this.manifest;
   }
 
-  /** Re-read farm.yaml from disk (another process may have registered a project). */
+  /**
+   * Re-read farm.yaml from disk (another process may have registered a project). When its text is
+   * what was read last time, nothing changes, and the repositories already resolved are kept.
+   */
   async reload(): Promise<void> {
+    let text: string | null = null;
+    try {
+      text = await readFile(this.farm.file, "utf-8");
+    } catch {
+      // No farm.yaml (a user farm not created yet): loadFarm says what that means.
+    }
+    if (text !== null && text === this.manifestText) return;
     this.manifest = await loadFarm(this.farm, { create: false });
+    this.manifestText = text;
     this.repositories.clear();
   }
 
@@ -480,7 +501,7 @@ export class ProjectRegistry {
       throw new Error(`Unknown project '${projectName}'`);
     }
     const repository = await this.repositoryOf(project);
-    if (!repository) {
+    const lone = async (): Promise<Checkout[]> => {
       const repoPath = await realOrResolved(this.repositoryPath(project));
       return [
         {
@@ -493,6 +514,16 @@ export class ProjectRegistry {
           locked: false,
         },
       ];
+    };
+    if (!repository) return lone();
+    if (!existsSync(repository.commonDir)) {
+      // The repository was deleted since it was resolved: resolve it again next time, and list its
+      // main checkout as missing rather than failing the whole listing on git (#1438).
+      this.repositories.delete(project.name);
+      const checkouts = await lone();
+      this.announceRemoved(projectName, this.checkoutCache.get(projectName)?.checkouts ?? [], checkouts);
+      this.checkoutCache.delete(projectName);
+      return checkouts;
     }
 
     const signature = await worktreeSignature(repository.commonDir);
@@ -627,9 +658,17 @@ export class ProjectRegistry {
 
   /**
    * Every registered project with its checkouts (`application.applicationfunction.list-projects`),
-   * in name order. Re-checks each project's worktrees.
+   * in name order. Re-checks each project's worktrees. Calls made while a listing runs share it,
+   * so a page load's several requests cost one scan (#1436); the entries are shared, not copied.
    */
-  async listProjects(): Promise<ProjectListEntry[]> {
+  listProjects(): Promise<ProjectListEntry[]> {
+    this.listing ??= this.scanProjects().finally(() => {
+      this.listing = null;
+    });
+    return this.listing;
+  }
+
+  private async scanProjects(): Promise<ProjectListEntry[]> {
     const projects = this.manifest.getAllProjects().sort((a, b) => a.name.localeCompare(b.name));
     const entries: ProjectListEntry[] = [];
     for (const project of projects) {
@@ -638,10 +677,20 @@ export class ProjectRegistry {
     return entries;
   }
 
-  /** One project as `listProjects` lists it, or null when the farm has no project of that name. */
-  async listProject(name: string): Promise<ProjectListEntry | null> {
-    const project = this.manifest.getProject(name);
-    return project ? this.listEntry(project) : null;
+  /**
+   * One project as `listProjects` lists it, or null when the farm has no project of that name.
+   * Scans that project only; calls for the same project while one runs share it.
+   */
+  listProject(name: string): Promise<ProjectListEntry | null> {
+    let listing = this.projectListings.get(name);
+    if (!listing) {
+      const project = this.manifest.getProject(name);
+      listing = (project ? this.listEntry(project) : Promise.resolve(null)).finally(() => {
+        this.projectListings.delete(name);
+      });
+      this.projectListings.set(name, listing);
+    }
+    return listing;
   }
 
   private async listEntry(project: FarmProject): Promise<ProjectListEntry> {
@@ -658,11 +707,14 @@ export class ProjectRegistry {
         ...(await changesetSummary(checkout, this.modelPathFor(project, checkout, main))),
       });
     }
+    const repository = this.repositoryPath(project);
     return {
       name: project.name,
-      repository: this.repositoryPath(project),
+      repository,
       model: project.model,
       ...(project.remote ? { remote: project.remote } : {}),
+      // A project whose repository was deleted stays in the farm until removed: say so, and how (#1438).
+      ...(existsSync(repository) ? {} : { missing: true as const, remove: removeProjectCall(project.name) }),
       checkouts: listed,
     };
   }
@@ -751,11 +803,9 @@ async function changesetSummary(
     activeChangeset = null;
   }
   try {
-    const changesetsDir = path.join(root, "documentation-robotics", "changesets");
-    if (existsSync(changesetsDir)) {
-      const changesets = await new StagedChangesetStorage(root).list();
-      stagedChangesets = changesets.filter((c) => c.status === "staged").length;
-    }
+    // metadata.yaml alone, cached by mtime: never every changes.yaml in the farm (#1436).
+    const statuses = await new StagedChangesetStorage(root).listStatuses();
+    stagedChangesets = statuses.filter((c) => c.status === "staged").length;
   } catch {
     stagedChangesets = 0;
   }

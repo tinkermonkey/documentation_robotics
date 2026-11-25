@@ -19,6 +19,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
 
+### Added
+
+- **`dr serve` test mode** (#1376): `--state-dir <dir>` runs an isolated process for a test suite
+  (its record, token and log in `<dir>`, no viewer sweep, `--port` exact); `--token-file <path>`
+  gives it the token the suite chose, so every call stays authenticated; `--no-sweep` skips the
+  start-up sweep; and `--foreground --json` prints one ready line (pid, port, url, farm). `--status`
+  and `--stop` take `--state-dir` too. `dr visualize --no-auth` and `--token` stay refused, and now
+  say where to go instead.
+- **project_status** names the dr server process that answered (`server.pid`, `server.startedAt`),
+  so after the dr tools reconnect an agent can tell whether it restarted (#1362). The server
+  instructions say to call project_status again after a reconnect.
+- **changeset_commit_preview** says which CLI version the landing stamps (`cliVersion`) (#1427).
+
+### Fixed
+
+- **The central viewer no longer stalls on farm listings** (#1436). Listing projects counted each
+  checkout's staged changesets by YAML-parsing every changeset in the farm, `changes.yaml` and
+  all, on every `GET /api/projects` and `/api/projects/{project}/checkouts` (and `project_list`).
+  It now reads `metadata.yaml`'s status alone, cached by file mtime; concurrent listings share one
+  scan; the single-project routes scan that project only; and a checkout's changeset list re-reads
+  only the changesets whose files changed. On a farm the size of the report (9 projects, 264
+  changeset folders, 108 MB), `GET /api/projects/{project}/checkouts` went from 22–25 s to 0.06 s
+  (4 ms warm), `GET /api/projects` from 24 s to 0.4 s, six concurrent requests from 112 s to
+  0.03 s, and a repeat `…/changesets` from 2.5 s to 0.02 s.
+- **A DR process never lands with code older than the installed CLI** (#1427). Once the CLI
+  installed where the central process was loaded from changes under it, every write to the base
+  model refuses with both versions and the restart (`dr serve --stop`; the dr MCP server reconnects
+  to the installed CLI's process), and changeset_commit and its preview refuse before anything is
+  asked. The process also restarts itself as soon as no browser tab, DrBot turn or request is using
+  it: MCP sessions reconnect through the `dr mcp` bridge.
+- **Tests can't write the real user farm** (#1438). The test preload points the user farm at a
+  scratch folder, drops a `DR_FARM_PATH` from the shell, and names the real farm in
+  `DR_PROTECTED_FARM_FILES`, which `FarmManifest.save` refuses to write.
+- **A farm project whose repository is gone is flagged** (#1438): `project_list`, `GET
+  /api/projects` and `dr farm status` mark it `missing` with the `dr farm remove <name>` call that
+  drops it. A repository deleted while the central process runs no longer fails the whole listing.
+- **dr serve's start-up sweep stops only its own farm's viewers** (#1369): a per-project viewer
+  whose project is not in the process's farm is kept (`outside-farm`), so a CLI run from source with
+  a farm of its own leaves the installed CLI's viewers alone.
+- **review_open never says a serving viewer is still starting** (#1282). `ensureCentralServer`
+  returns a recorded process once its `/health` answers; one that doesn't is returned with a notice
+  naming its log, and a timed-out wait for another start names the log too.
+- **A rebuilt `--viewer-path` bundle shows without a restart** (#1308): viewer files carry an ETag
+  and `index.html` (and every file without a content hash) is `Cache-Control: no-cache`, so the
+  browser revalidates each load; hashed assets are cached for good.
+
 ## [0.8.0] - 2026-11-24
 
 **Specification Support:** v0.15.0
