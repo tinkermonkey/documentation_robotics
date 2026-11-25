@@ -29,7 +29,7 @@
     type: applicationfunction
     layer_id: application
     name: releaseHeldCards
-    description: After validation, decides by its none rule each symbol a rule held back from Tier 0 that ended up a card (needs-attributes or ambiguous) instead of being staged, and counts per rule what Tier 0 kept.
+    description: After validation, gives back to its none rule each card whose symbol the rule held for Tier 0 and that ended up a card (needs-attributes or ambiguous) instead of being staged; returns the cards left and the ones each rule took.
     metadata:
       created_at: 2026-11-25T16:10:29.153Z
       updated_at: 2026-11-25T16:10:29.153Z
@@ -39,7 +39,7 @@
       locations:
         - file: cli/src/analyzers/project-rules.ts
           symbol: releaseHeldCards
-  timestamp: 2026-11-25T16:35:43.653Z
+  timestamp: 2026-11-25T17:04:09.976Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.rule-warnings
@@ -73,7 +73,7 @@
     type: applicationfunction
     layer_id: application
     name: sharedCandidateLists
-    description: A page of cards with each candidate list two or more cards share stated once (candidateLists) and named on those cards, and the cards grouped by file when groupBy asks.
+    description: A page of cards with each candidate list two or more cards share stated once (candidateLists, by a short name) and named on those cards (candidateList) instead of repeated; a list of one type, or one only one card has, stays on its card.
     metadata:
       created_at: 2026-11-25T16:10:29.154Z
       updated_at: 2026-11-25T16:10:29.154Z
@@ -83,7 +83,7 @@
       locations:
         - file: cli/src/mcp/tools/codebase-extract.ts
           symbol: sharedCandidateLists
-  timestamp: 2026-11-25T16:35:43.653Z
+  timestamp: 2026-11-25T17:04:10.004Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.fit-verify-report

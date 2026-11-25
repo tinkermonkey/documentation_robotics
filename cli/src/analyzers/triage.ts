@@ -128,8 +128,11 @@ export interface GroupOptions {
 
 export const DEFAULT_GROUP_DEPTH = 2;
 
-function normFile(file: string): string {
-  return file.replace(/\\/g, "/").replace(/^\.\//, "");
+/** A codebase-relative path as cards and rules compare it: forward slashes, no leading `./`; null stays null. */
+export function normFile(file: string): string;
+export function normFile(file: string | null | undefined): string | null;
+export function normFile(file: string | null | undefined): string | null {
+  return file ? file.replace(/\\/g, "/").replace(/^\.\//, "") : null;
 }
 
 export function groupPath(file: string | null, depth: number, byFile = false): string {

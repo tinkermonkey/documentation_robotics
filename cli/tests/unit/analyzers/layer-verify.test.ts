@@ -304,6 +304,16 @@ describe("layer-verify (#1082)", () => {
     expect((taken.buckets.ignored ?? []).map((e) => e.reason)).toContain(
       "a kept rule in documentation-robotics/extraction-rules.yaml says it is not an element (k8s-not-ours: another team's manifests)"
     );
+    // The kept rule without overrideTier0 left what Tier 0 can stage in the code only: counted, with what to add.
+    const result = await verifyResult(["technology"], new Map(), { graph, rules });
+    expect(result.tier0Kept).toEqual({ "k8s-not-ours": 1 });
+    const warned = rulesApplied(2, result.reports, undefined, result.tier0Kept);
+    expect(warned.tier0Kept).toEqual({ "k8s-not-ours": 1 });
+    expect(warned.warnings).toEqual([
+      expect.stringContaining(
+        "To keep rejecting these 1 symbol(s), add overrideTier0: true to rule 'k8s-not-ours' in documentation-robotics/extraction-rules.yaml"
+      ),
+    ]);
     // The report says how many rules it read and how many entries each layer left out because of one.
     const applied = rulesApplied(1, [taken]);
     expect(applied.applied.technology).toBeGreaterThan(0);

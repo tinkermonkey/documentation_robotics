@@ -40,10 +40,14 @@ Extract output and decide (CLI 0.9.0, Tool ergonomics):
 - **codebase_verify (#1414):** applies the project's kept rules as codebase_extract does, on every
   layer (routes too). What a rule says is not an element is listed under the layer's `ignored` with
   the rule, and a new `rules` block says how many rules were read and applied (or why none could be).
+  A kept `none` rule without `overrideTier0` that leaves symbols Tier 0 can stage in the code only is
+  counted in `rules.tier0Kept`, and `rules.warnings` and `hints` say what to add.
 - **codebase_extract reject (#1254, #1394):** a `files` item leaves out cards an element now names
-  (counted as `modelled`), and takes `except` for cards to keep. With `decide` in the same call, the
-  decide items apply first and a `files` item covers only the cards they left; a `card` item naming a
-  card a decide item names is reported as `decided` and records nothing.
+  (`modelled`), cards a plan's element names (`planned`) and what `except` lists (`excepted`), each
+  counted. An `except` entry that names no card makes the item record nothing, and says which. With
+  `decide` in the same call, the decide items apply first and a `files` item covers only the cards
+  they left, never one they decided but couldn't stage (`decided`); a `card` item naming a card a
+  decide item names is reported as `decided` and records nothing.
 - **codebase_extract decide (#1394):** a `card` item is resolved against this run's symbols when the
   last run's record doesn't list it, and `file#symbol` accepts a `./` prefix and backslashes.
 - **codebase_extract preview (#1322):** `preview: true` with `reject` or `clearRejected` records,
@@ -52,9 +56,13 @@ Extract output and decide (CLI 0.9.0, Tool ergonomics):
   answer now includes the reject results.
 - **codebase_extract kept decisions (#1332):** `reject` items take `keep: true`, which writes a rule
   to `extraction-rules.yaml` instead of the checkout's `.dr/` (a card becomes a rule on its file and
-  `symbol`, with `overrideTier0`). A reject answer says when its decisions are local. A kept `none`
-  decide rule that covers recorded rejections retires them (`retired`) instead of matching nothing.
-  `list: "notElements"` works before any run.
+  `symbol`, with `overrideTier0`). A decision record's card, or a card with no file, can't be held by
+  a rule: it is recorded in the checkout and the item says why (`notKept`). A reject answer says when
+  its decisions are local. A kept `none` decide rule that covers recorded rejections retires them
+  (`retired`) instead of matching nothing. A rule the file already holds under another name is not
+  written again. `list: "notElements"` works before any run, after a commit and without a fresh index.
+- **Project rules:** a `files` pattern is read as a path first, so a path with glob characters
+  (`app/users/[id]/page.tsx`) names itself.
 - **codebase_extract where.symbol (#1333):** a new `where.symbol` condition matches the card's
   symbol (`Assembly._copy_grooves`, `GET /owners/{ownerId}`); `where.name` is documented as the bare
   name.

@@ -738,6 +738,13 @@ export interface VerifyRules {
   applied: Record<string, number>;
   /** Set when the file exists and could not be used: no rule was applied. */
   error?: string;
+  /**
+   * Per `none` rule without overrideTier0: symbols it matches that Tier 0 decided as elements and
+   * codebase_extract stages, so they are listed in the code only (#1424).
+   */
+  tier0Kept?: Record<string, number>;
+  /** One sentence per such rule: what to add, and where. */
+  warnings?: string[];
   /** What this means for the reader, in a sentence. */
   note: string;
 }

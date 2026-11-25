@@ -16,15 +16,16 @@ import { strictItem } from "../strict-schema.js";
 import type { ExtractionGraph } from "../../analyzers/cards/extract.js";
 import type { ElementPlan, UndecidedCard } from "../../analyzers/extraction-plan.js";
 import {
-  PROJECT_RULES_FILE,
   PROJECT_RULE_PREFIX,
   compileRule,
+  overrideTier0Advice,
   parseDecision,
   ruleNameFor,
   type CompiledRule,
   type ProjectRule,
 } from "../../analyzers/project-rules.js";
 import type { Tier0Outcome } from "../../analyzers/tier0-rules.js";
+import { normFile } from "../../analyzers/triage.js";
 import type { BatchItemResult } from "./batch-result.js";
 
 const whereSchema = strictItem("A decide[] item's where", {
@@ -137,20 +138,19 @@ export interface CompiledDecide {
 /** What a card item resolves to: a card of the last run, or a symbol of this run. */
 export type CardRef = Pick<UndecidedCard, "cardId" | "file" | "symbol" | "label" | "qualifiedName"> & Partial<UndecidedCard>;
 
-function normFile(file: string | null | undefined): string {
-  return (file ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
+/**
+ * Whether a reference names a card's code: its symbol, its qualified name, or `file#symbol` (a ./
+ * prefix or backslashes allowed). The whole `file#symbol` is compared, so a symbol with a `#` in it
+ * (`Foo.#bar`) is read whole.
+ */
+export function namesCode(code: { file: string | null; symbol: string; qualifiedName?: string }, ref: string): boolean {
+  return code.symbol === ref || code.qualifiedName === ref || normFile(`${code.file ?? ""}#${code.symbol}`) === normFile(ref);
 }
 
-/** The cards a card item names: by cardId, else by symbol, file#symbol (a ./ prefix or backslashes allowed) or qualified name. */
+/** The cards a card item names: by cardId, else by symbol, file#symbol or qualified name ({@link namesCode}). */
 export function cardsNamed<T extends CardRef>(cards: readonly T[], ref: string): T[] {
   const byId = cards.filter((c) => c.cardId === ref);
-  if (byId.length) return byId;
-  const hash = ref.lastIndexOf("#");
-  const refFile = hash > 0 ? normFile(ref.slice(0, hash)) : null;
-  const refSymbol = hash > 0 ? ref.slice(hash + 1) : null;
-  return cards.filter(
-    (c) => c.symbol === ref || c.qualifiedName === ref || (refFile !== null && normFile(c.file) === refFile && c.symbol === refSymbol)
-  );
+  return byId.length ? byId : cards.filter((c) => namesCode(c, ref));
 }
 
 /**
@@ -343,10 +343,9 @@ export function ruleWarnings(
   const out: string[] = [];
   for (const r of reports) {
     if (r.tier0Kept) {
-      const where = inFile.has(r.rule) ? `to rule '${r.rule}' in documentation-robotics/${PROJECT_RULES_FILE}` : `to the decide item '${r.rule}'`;
       out.push(
         `Rule '${r.rule}' says none, but ${r.tier0Kept} symbol(s) it matches were decided by Tier 0 as elements (${typeCounts(keptTypes.get(r.rule))}): ` +
-          `they stay Tier 0's and ${preview ? "would be" : "are"} staged. To keep rejecting these ${r.tier0Kept} symbol(s), add overrideTier0: true ${where} ` +
+          `they stay Tier 0's and ${preview ? "would be" : "are"} staged. ${overrideTier0Advice(r.rule, r.tier0Kept, inFile.has(r.rule))} ` +
           "(a none rule takes what Tier 0 decided only with it, since CLI 0.9.0; preview: true first shows what it removes). " +
           "Otherwise narrow the rule's where so it covers only what Tier 0 left open."
       );

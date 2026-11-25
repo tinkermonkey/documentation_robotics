@@ -265,7 +265,11 @@ export function createCodebaseVerifyHandler(deps: CodebaseToolDeps = defaultCode
       ];
       // The engine's hints name no tool (the CLI prints them too): say which tools apply here.
       const { hints: _engineHints, ...rest } = report;
-      const hints = report.buckets.in_graph_only.length > 0 ? [IN_CODE_ONLY_HINT] : [];
+      const hints = [
+        ...(report.buckets.in_graph_only.length > 0 ? [IN_CODE_ONLY_HINT] : []),
+        // A kept none rule that leaves what Tier 0 decided in the code only says what to add (#1424).
+        ...(report.rules?.warnings ?? []),
+      ];
       return jsonResult(
         {
         status,

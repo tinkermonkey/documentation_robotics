@@ -40,7 +40,9 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   symbols it matched, so read it before applying. A rule kept before CLI 0.9.0 that should go on
   rejecting them needs `overrideTier0: true` added in the rules file: the warning names the rule. `where.name` matches the bare name, `where.symbol`
   the card's `symbol` (`Class.method`). A typed item takes `attributes` for what its type requires
-  and the code can't give. Add `view` to the call to get the cards it leaves.
+  and the code can't give. Add `view` to the call to get the cards it leaves. A page of cards states a
+  candidate list several cards share once, in `undecided.candidateLists`, and each such card names
+  it in `candidateList` instead of listing `candidates`.
   Read what is left with `view`.
 - When `codebase_extract` returns cards (in a bootstrap, or when you verify), ask the developer about
   the ones you can't place with confidence: whether a card is a model element at all, which type it

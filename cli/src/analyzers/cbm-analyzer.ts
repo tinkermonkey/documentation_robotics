@@ -2581,6 +2581,21 @@ export class CbmAnalyzer implements AnalyzerBackend {
         notElements: recorded.notElements,
         ruleExcluded,
       });
+      // Routes in the code only that a kept none rule matches but leaves to Tier 0 (no overrideTier0):
+      // counted per rule, for the rules block's warning.
+      const tier0Kept: Record<string, number> = {};
+      const keptRouteRules = projectRules.filter((r) => r.rule.where && r.decision.kind === "none" && !r.rule.overrideTier0);
+      for (const g of keptRouteRules.length ? (report.buckets?.in_graph_only ?? []) : []) {
+        if (!g.http_method || !g.http_path) continue;
+        const subject = {
+          file: g.source_file || null,
+          label: "Route",
+          name: `__route__${g.http_method}__${g.http_path}`,
+          symbol: `${g.http_method} ${g.http_path}`,
+        };
+        const rule = keptRouteRules.find((r) => r.matches(subject));
+        if (rule) tier0Kept[rule.rule.name] = (tier0Kept[rule.rule.name] ?? 0) + 1;
+      }
 
       // The other layers: what extraction makes of the code's tables, infrastructure and test
       // cases against the model's elements of those types (layer-verify.ts).
@@ -2627,6 +2642,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
           });
           layers.push(...result.reports);
           layersNotVerified = result.notVerified;
+          for (const [rule, n] of Object.entries(result.tier0Kept ?? {})) tier0Kept[rule] = (tier0Kept[rule] ?? 0) + n;
         } catch (error) {
           const reason = error instanceof Error ? error.message : String(error);
           layersNotVerified = others.map((layer) => ({ layer, reason }));
@@ -2646,7 +2662,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
         layers,
         ...(layersNotVerified.length ? { layers_not_verified: layersNotVerified } : {}),
         rejections: rejectionsApplied(recorded, layers),
-        rules: rulesApplied(projectRules.length, layers, rulesError),
+        rules: rulesApplied(projectRules.length, layers, rulesError, tier0Kept),
       };
     } finally {
       client.close();

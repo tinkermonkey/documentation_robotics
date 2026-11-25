@@ -43,7 +43,7 @@ import { TEST_PATH } from "./cards/routes.js";
 import { TEST_CASE_LABEL } from "./cards/test-cases.js";
 import type { CardGraph } from "./cards/types.js";
 import { decisionKey, ownerTypeResolver, planElements, planRelationships, sourceSymbolOf, type ElementPlan } from "./extraction-plan.js";
-import { applyProjectRules, isProjectRule, projectRuleName, type CompiledRule } from "./project-rules.js";
+import { applyProjectRules, isProjectRule, overrideTier0Advice, projectRuleName, type CompiledRule } from "./project-rules.js";
 import { validatePlannedAdds } from "./validate-planned.js";
 import type { LayerVerifyEntry, LayerVerifyRelationship, LayerVerifyReport, VerifyRejections, VerifyRules } from "./types.js";
 import { IgnoreFileLoader, type IgnoreRule } from "./verify-ignore.js";
@@ -236,6 +236,11 @@ interface Planned {
 export interface LayerVerifyResult {
   reports: LayerVerifyReport[];
   notVerified: Array<{ layer: string; reason: string }>;
+  /**
+   * Per `none` rule without overrideTier0: symbols of a checked type it matches that Tier 0 decided
+   * and can stage, so they stay in the code only (#1424). Absent when there are none.
+   */
+  tier0Kept?: Record<string, number>;
 }
 
 /**
@@ -339,16 +344,25 @@ export function rejectionsApplied(recorded: RecordedDecisions, layers: LayerVeri
  * read, how many entries each layer left out because of one (under that layer's `ignored`, the API
  * layer's routes included), and why none was applied when the file could not be used.
  */
-export function rulesApplied(read: number, layers: LayerVerifyReport[], error?: string): VerifyRules {
+export function rulesApplied(read: number, layers: LayerVerifyReport[], error?: string, tier0Kept: Record<string, number> = {}): VerifyRules {
   const applied: Record<string, number> = {};
   for (const layer of layers) applied[layer.layer] = (layer.buckets.ignored ?? []).filter((e) => e.reason?.startsWith(RULE_REASON)).length;
   const total = Object.values(applied).reduce((n, c) => n + c, 0);
   const file = path.join("documentation-robotics", "extraction-rules.yaml");
+  // A kept none rule without overrideTier0 that matches what Tier 0 can stage: those stay in the
+  // code only, and the report says what to add, as codebase_extract's ruleWarnings does (#1424).
+  const kept = Object.entries(tier0Kept).filter(([, n]) => n > 0);
+  const warnings = kept.map(
+    ([rule, n]) =>
+      `Rule '${rule}' says none, but ${n} symbol(s) it matches were decided by Tier 0 as elements, which codebase_extract stages, so they are listed in the code only. ` +
+      `${overrideTier0Advice(rule, n, true)}.`
+  );
   return {
     file,
     read,
     applied,
     ...(error ? { error } : {}),
+    ...(kept.length ? { tier0Kept: Object.fromEntries(kept), warnings } : {}),
     note: error
       ? `No kept rule was applied: ${error}. Entries a rule says are not elements may be listed as in the code only.`
       : read
@@ -413,6 +427,7 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
   // The two extractions read the same edge, fact and doc indexes: query the graph for them once.
   input = { ...input, graph: sharedQueries(input.graph) };
   const live = [...input.model.elements.values()].filter((e) => e.status !== "deleted");
+  const tier0Kept: Record<string, number> = {};
   const plan = async (extraction: ExtractionGraph): Promise<Planned> => {
     const rules = input.rules ?? [];
     const applied = rules.length ? applyProjectRules(extraction, rules, { ownerTypeOf: ownerTypeResolver(input.model, extraction.project) }) : null;
@@ -433,6 +448,12 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
       const held = planned.adds.filter((a) => applied.held.has(a.symbol.card.id));
       if (held.length) {
         const failing = new Set((await validatePlannedAdds(held)).filter((x) => x.errors.length).map((x) => x.add));
+        // What Tier 0 can stage stays Tier 0's: in the code only, counted under the rule that matched it.
+        for (const a of held) {
+          if (failing.has(a) || !layers.includes(a.layer) || !LAYER_CHECKS[a.layer]?.types.includes(a.type)) continue;
+          const rule = applied.held.get(a.symbol.card.id)!.rule;
+          tier0Kept[rule] = (tier0Kept[rule] ?? 0) + 1;
+        }
         if (failing.size) {
           planned.adds = planned.adds.filter((a) => !failing.has(a));
           for (const a of failing) {
@@ -465,7 +486,7 @@ export async function verifyLayers(input: LayerVerifyInput): Promise<LayerVerify
     if (report) reports.push(report);
   }
   for (const layer of layers) if (failed.has(layer)) notVerified.push({ layer, reason: failed.get(layer)! });
-  return { reports, notVerified };
+  return { reports, notVerified, ...(Object.keys(tier0Kept).length ? { tier0Kept } : {}) };
 }
 
 /** The test cases' extraction and plan, or null when no test file is in the graph or the model. */

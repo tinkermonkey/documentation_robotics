@@ -15,6 +15,7 @@ import {
   filesMatcher,
   loadProjectRules,
   projectRulesPath,
+  overrideTier0Advice,
   relationshipRuleFor,
   releaseHeldCards,
   ruleNameFor,
@@ -102,6 +103,18 @@ describe("project rules", () => {
     expect(filesMatcher("src/**/*.test.ts")("src/a/b.test.ts")).toBe(true);
     expect(filesMatcher("design/**")("design/x/y.js")).toBe(true);
     expect(filesMatcher("src/a.ts")("src/a.ts")).toBe(true);
+    // A path with glob characters names itself (a kept reject writes a card's file as the pattern).
+    expect(filesMatcher("app/users/[id]/page.tsx")("app/users/[id]/page.tsx")).toBe(true);
+    expect(filesMatcher("app/users/[id]/")("app/users/[id]/page.tsx")).toBe(true);
+    expect(filesMatcher("app/users/[id]/page.tsx")("app/users/i/page.tsx")).toBe(true);
+    expect(filesMatcher("app/users/[id]/page.tsx")("app/users/x/page.tsx")).toBe(false);
+  });
+
+  it("says what to add, and where, for symbols a none rule left to Tier 0", () => {
+    expect(overrideTier0Advice("not-tests", 3, true)).toBe(
+      "To keep rejecting these 3 symbol(s), add overrideTier0: true to rule 'not-tests' in documentation-robotics/extraction-rules.yaml"
+    );
+    expect(overrideTier0Advice("not-tests", 1, false)).toBe("To keep rejecting these 1 symbol(s), add overrideTier0: true to the decide item 'not-tests'");
   });
 
   it("refuses a rule that is malformed, naming it and what is wrong", () => {
@@ -308,6 +321,16 @@ describe("project rules", () => {
       const text = await readFile(projectRulesPath(root), "utf-8");
       expect(text.startsWith("# Extraction rules for this project")).toBe(true);
       expect(text).toContain("version: 1");
+    });
+
+    it("doesn't write a rule the file already holds under another name", async () => {
+      const rule = { name: "not-in-design", where: { files: "design/**" }, as: "none", reason: "prototypes" };
+      await saveProjectRule(root, rule);
+      const again = await saveProjectRule(root, { ...rule, name: "not-in-design-2", reason: "said again" });
+      expect(again).toEqual({ replaced: false, file: projectRulesPath(root), duplicateOf: "not-in-design" });
+      expect((await loadProjectRules(root)).map((r) => r.rule.name)).toEqual(["not-in-design"]);
+      // One that decides more (it overrides Tier 0) is another rule.
+      expect((await saveProjectRule(root, { ...rule, name: "not-in-design-2", overrideTier0: true })).duplicateOf).toBeUndefined();
     });
 
     it("refuses a file it cannot read as rules, saying which rule and why", async () => {

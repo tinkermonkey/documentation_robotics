@@ -129,17 +129,22 @@ export function projectRulesPath(projectRoot: string): string {
   return path.join(projectRoot, "documentation-robotics", PROJECT_RULES_FILE);
 }
 
-/** Whether a codebase-relative file is the file, in the folder, or matches the glob. */
+/**
+ * Whether a codebase-relative file is the file, in the folder, or matches the glob. A pattern is
+ * read as a path first, so a path with glob characters in it (`app/users/[id]/page.tsx`, as a kept
+ * reject writes a card's file) still names itself.
+ */
 export function filesMatcher(pattern: string): (file: string) => boolean {
   const p = pattern.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
   if (/[*?[\]{}]/.test(p)) {
     // Compiled once, and each file judged once: a run asks about every symbol of every file.
     const exact = new Minimatch(p, { dot: true });
     const folder = new Minimatch(`${p.replace(/\/+$/, "")}/**`, { dot: true });
+    const dir = p.replace(/\/+$/, "");
     const seen = new Map<string, boolean>();
     return (file) => {
       let hit = seen.get(file);
-      if (hit === undefined) seen.set(file, (hit = exact.match(file) || folder.match(file)));
+      if (hit === undefined) seen.set(file, (hit = file === dir || file.startsWith(`${dir}/`) || exact.match(file) || folder.match(file)));
       return hit;
     };
   }
@@ -387,13 +392,25 @@ const FILE_HEADER =
   "# The first rule that matches a symbol wins. Written by codebase_extract (decide with keep: true);\n" +
   "# edit by hand as you like.\n";
 
+/** What a rule decides, without its name, reason or record: two rules alike here are the same rule. */
+function ruleDecides(rule: ProjectRule): string {
+  const { where, relationship, as, attributes, overrideTier0 } = rule;
+  const sorted = (v: unknown): unknown =>
+    v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, sorted(x)])) : v;
+  return JSON.stringify(sorted({ where, relationship, as, attributes, overrideTier0: overrideTier0 === true }));
+}
+
 /**
  * Add a rule to the project's file, or replace the one of the same name. Returns whether it
- * replaced one. The rule is compiled first, so a malformed one is never written.
+ * replaced one. The rule is compiled first, so a malformed one is never written. A rule the file
+ * already holds under another name (the same where or relationship, as, attributes and
+ * overrideTier0) is not written again: `duplicateOf` names the one that holds it.
  */
-export async function saveProjectRule(projectRoot: string, rule: ProjectRule): Promise<{ replaced: boolean; file: string }> {
+export async function saveProjectRule(projectRoot: string, rule: ProjectRule): Promise<{ replaced: boolean; file: string; duplicateOf?: string }> {
   compileRule(rule);
   const existing = (await loadProjectRules(projectRoot)).map((c) => c.rule);
+  const same = existing.find((r) => r.name !== rule.name && ruleDecides(r) === ruleDecides(rule));
+  if (same) return { replaced: false, file: projectRulesPath(projectRoot), duplicateOf: same.name };
   const at = existing.findIndex((r) => r.name === rule.name);
   const rules = at >= 0 ? existing.map((r, i) => (i === at ? rule : r)) : [...existing, rule];
   const file = projectRulesPath(projectRoot);
@@ -544,6 +561,16 @@ export function applyProjectRules(extraction: ExtractionGraph, rules: readonly C
     };
   });
   return { extraction: { ...extraction, symbols }, untouched, overrode, held };
+}
+
+/**
+ * What to do about symbols a `none` rule matched and left to Tier 0 (#1424), in the words
+ * codebase_extract's ruleWarnings and codebase_verify's rules block both use: the key, and where.
+ * `inFile`: the rule is kept in the rules file (else it is a decide item of the call).
+ */
+export function overrideTier0Advice(rule: string, symbols: number, inFile: boolean): string {
+  const where = inFile ? `to rule '${rule}' in documentation-robotics/${PROJECT_RULES_FILE}` : `to the decide item '${rule}'`;
+  return `To keep rejecting these ${symbols} symbol(s), add overrideTier0: true ${where}`;
 }
 
 /**
