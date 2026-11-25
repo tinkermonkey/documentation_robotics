@@ -211,13 +211,49 @@ describe("codebase_extract", () => {
     const result = ok(await createCodebaseExtractHandler(h.deps)({ rootPath }));
 
     expect(result.staged.relationships).toBe(2);
-    expect(result.declaredSpec.notStaged).toEqual([
-      expect.objectContaining({ relationship: `${TEST_SKETCH} --[tests]--> ${SCHEMA}` }),
-    ]);
-    expect(result.declaredSpec.notStaged[0].message).toContain("is not in spec 0.11.0, the model's version; it exists from spec 0.12.0");
+    expect(result.declaredSpec.modelVersion).toBe("0.11.0");
+    expect(result.declaredSpec.notStaged).toMatchObject({
+      total: 1,
+      items: [
+        {
+          kind: "relationship",
+          id: `${TEST_SKETCH} --[tests]--> ${SCHEMA}`,
+          type: "testing.testcasesketch.tests.data-model.objectschema",
+          since: "0.12.0",
+        },
+      ],
+    });
+    // The reason is given once, for the whole list
+    expect(result.declaredSpec.note).toContain("spec 0.11.0, the model's version, has no such type or relationship type");
     expect(result.declaredSpec.note).toContain("project_upgrade");
     const changeset = await changesetOf(result.changeset.id);
     expect(changeset.changes.some((c) => c.elementId === INFERRED_TEST)).toBe(false);
+
+    // The whole list pages through list: "declaredSpecNotStaged"
+    const listed = ok(await createCodebaseExtractHandler(h.deps)({ rootPath, list: "declaredSpecNotStaged" }));
+    expect(listed.items).toHaveLength(1);
+  });
+
+  it("does not stage an element whose type the declared spec lacks, nor its relationships (#1411)", async () => {
+    await indexed();
+    // A business capability exists only from spec 0.10.0
+    const manifestPath = join(rootPath, "documentation-robotics/model/manifest.yaml");
+    await writeFile(manifestPath, (await readFile(manifestPath, "utf-8")).replace(/^spec_version:.*$/m, "spec_version: 0.9.0"));
+    clearModelCache();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath, pageSize: 10 }));
+    const helpers = first.undecided.items.find((c: any) => c.symbol === "Helpers");
+    expect(helpers).toBeDefined();
+
+    const run = ok(
+      await handler({ rootPath, decide: [{ card: helpers.cardId, as: "business.businesscapability", reason: "test" }] })
+    );
+    const item = run.declaredSpec.notStaged.items.find((i: any) => i.kind === "element");
+    expect(item).toMatchObject({ kind: "element", type: "business.businesscapability", since: "0.10.0" });
+    const changeset = await changesetOf(run.changeset.id);
+    expect(changeset.changes.some((c) => c.elementId === item.id)).toBe(false);
+    expect(changeset.changes.some((c) => c.elementId.includes(item.id))).toBe(false);
   });
 
   it("bootstraps an empty model into a new changeset, never the base model", async () => {

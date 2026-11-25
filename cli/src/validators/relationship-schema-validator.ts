@@ -359,10 +359,10 @@ export class RelationshipValidator {
         layer: relationship.layer,
         elementId: relationship.source,
         message: `${relationship.source} --[${relationship.predicate}]--> ${relationship.target}: ${notDeclared.message}`,
-        // A manifest with no spec_version declares nothing: warn
+        // A manifest with no spec_version declares nothing: warn, and go on to the cardinality check
         ...(notDeclared.assumed ? { warning: true } : {}),
       });
-      return errors;
+      if (!notDeclared.assumed) return errors;
     }
 
     // Validate cardinality constraints
