@@ -34,7 +34,8 @@ import {
   type ViewerSurvey,
 } from "../server/viewer-control.js";
 import type { ServerRecord } from "../core/checkout-types.js";
-import { resolveFarm } from "../core/project-registry.js";
+import { ProjectRegistry, resolveFarm } from "../core/project-registry.js";
+import { farmFolders } from "../server/central-lifetime.js";
 import type { CentralHealth } from "../server/central-server-contract.js";
 import { sweepDecision, type KeptReason } from "../server/legacy-viewer-sweep.js";
 import { findRunningServer } from "../server/server-record.js";
@@ -59,12 +60,17 @@ const REASON_TEXT: Record<LegacyViewerReason, string> = {
   "tabs-connected": "kept: a browser tab is connected",
   "unknown-tabs": "kept: its tabs could not be read",
   unconfirmed: "kept: its pids could not be confirmed",
+  "outside-farm": "kept: its project is not in the farm of the DR process that would sweep it",
   unused: "unused: the next start of the DR process stops it",
 };
 
-/** The sweep's reason for a legacy viewer, as `--list` shows it. */
-export function legacyViewerReason(viewer: RunningViewer, excludePids: number[] = []): LegacyViewerReason | null {
-  const decision = sweepDecision(viewer, new Set(excludePids));
+/** The sweep's reason for a legacy viewer, as `--list` shows it; `farmRoots` as the farm's process would sweep (#1369). */
+export function legacyViewerReason(
+  viewer: RunningViewer,
+  excludePids: number[] = [],
+  farmRoots?: readonly string[]
+): LegacyViewerReason | null {
+  const decision = sweepDecision(viewer, new Set(excludePids), farmRoots);
   if (decision === "excluded") return null;
   if (decision === "stop") return "unused";
   return decision === "stop-failed" ? "unconfirmed" : decision;
@@ -77,15 +83,26 @@ export interface CentralProcessState {
   record: ServerRecord | null;
   /** Its `/health` with the token; null when it doesn't answer. */
   health: CentralHealth | null;
+  /** The farm's project and checkout folders, which its start-up sweep keeps to; absent when they couldn't be read. */
+  farmRoots?: string[];
 }
 
 /** Finds the farm's central process from its server record and asks its `/health`. Starts nothing. */
 export async function readCentralProcess(cwd: string, env: NodeJS.ProcessEnv): Promise<CentralProcessState> {
   const farm = await resolveFarm({ cwd, env });
+  const farmRoots = await ProjectRegistry.open({ cwd, env })
+    .then((registry) => farmFolders(registry))
+    .catch(() => undefined);
+  const roots = farmRoots ? { farmRoots } : {};
   const running = await findRunningServer(farm.root, { env });
-  if (!running) return { farmRoot: farm.root, record: null, health: null };
+  if (!running) return { farmRoot: farm.root, record: null, health: null, ...roots };
   const { fetchCentralHealth } = await import("./serve.js");
-  return { farmRoot: farm.root, record: running.record, health: await fetchCentralHealth(running.record, running.token) };
+  return {
+    farmRoot: farm.root,
+    record: running.record,
+    health: await fetchCentralHealth(running.record, running.token),
+    ...roots,
+  };
 }
 
 /** The central process in lines of text. */
@@ -210,10 +227,11 @@ export async function listViewersCommand(deps: ListViewersDeps = {}): Promise<Vi
   const central = await (deps.readCentral ?? readCentralProcess)(deps.cwd ?? process.cwd(), env);
   const survey = await surveyViewers(deps);
   const exclude = central.record ? [central.record.pid] : [];
-  const viewers = survey.viewers.filter((viewer) => legacyViewerReason(viewer, exclude) !== null);
+  const reason = (viewer: RunningViewer) => legacyViewerReason(viewer, exclude, central.farmRoots);
+  const viewers = survey.viewers.filter((viewer) => reason(viewer) !== null);
   const legacy: ListedLegacyViewer[] = viewers.map((viewer) => ({
     ...withoutToken(viewer),
-    keptReason: legacyViewerReason(viewer, exclude)!,
+    keptReason: reason(viewer)!,
   }));
   const counts = surveyCounts({ ...survey, viewers });
   const caveats = surveyCaveats(survey);
@@ -254,7 +272,7 @@ export async function listViewersCommand(deps: ListViewersDeps = {}): Promise<Vi
   log("");
   if (viewers.length > 0) {
     log("Per-project viewers left by CLI 0.7 and earlier:");
-    log(formatViewerTable(viewers, deps.cliVersion, (viewer) => REASON_TEXT[legacyViewerReason(viewer, exclude)!]));
+    log(formatViewerTable(viewers, deps.cliVersion, (viewer) => REASON_TEXT[reason(viewer)!]));
     log("");
   }
   if (survey.processScan) {

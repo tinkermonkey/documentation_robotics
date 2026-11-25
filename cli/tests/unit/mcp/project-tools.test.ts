@@ -32,6 +32,7 @@ import { installSpecReference } from "../../../src/utils/spec-installer.js";
 import { Validator } from "../../../src/validators/validator.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 import { fileExists } from "../../../src/utils/file-io.js";
+import { enableRunningCodeGuard } from "../../../src/utils/running-code.js";
 
 let dir: string;
 
@@ -135,6 +136,27 @@ describe("project_upgrade", () => {
 
     const applied = await projectUpgradeHandler({ rootPath: dir, apply: true });
     expect(applied.isError).toBe(true);
+  });
+});
+
+describe("project_upgrade and the installed CLI (#1427)", () => {
+  it.serial("refuses to apply, writing nothing, once the CLI changed under the process", async () => {
+    await Model.init(dir, { name: "Old", version: "0.1.0", specVersion: "0.8.4" });
+    enableRunningCodeGuard(true, async () => ({
+      reason: "version",
+      running: "0.8.0",
+      installed: { version: "0.9.0", spec: null },
+    }));
+    try {
+      const applied = await projectUpgradeHandler({ rootPath: dir, apply: true });
+      expect(applied.isError).toBe(true);
+      expect((applied.content[0] as { text: string }).text).toContain("runs CLI 0.8.0, and CLI 0.9.0 is installed now");
+      expect(yaml.parse(await readFile(join(dir, "documentation-robotics/model/manifest.yaml"), "utf8")).spec_version).toBe(
+        "0.8.4"
+      );
+    } finally {
+      enableRunningCodeGuard(false);
+    }
   });
 });
 

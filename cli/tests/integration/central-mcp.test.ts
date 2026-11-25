@@ -26,6 +26,7 @@ import { FarmManifest } from "../../src/core/farm-manifest.js";
 import { ProjectRegistry, type FarmLocation } from "../../src/core/project-registry.js";
 import { MCP_ROOT_PATH_HEADER, MCP_SESSION_ENV_HEADER, encodeSessionEnv } from "../../src/mcp/central-mcp.js";
 import { startCentralServerWith } from "../../src/server/central-server.js";
+import { bridgeHeaders } from "../../src/mcp/stdio-bridge.js";
 import type { CentralServer } from "../../src/server/central-server-contract.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
@@ -76,8 +77,12 @@ describe("MCP on the central process", () => {
   const open: Session[] = [];
 
   /** An MCP session; `roots` are what the client answers roots/list with. */
-  async function connect(options: { roots?: string[]; pin?: string; env?: Record<string, string>; token?: string } = {}): Promise<Session> {
-    const headers: Record<string, string> = { Authorization: `Bearer ${options.token ?? TOKEN}` };
+  async function connect(
+    options: { roots?: string[]; pin?: string; env?: Record<string, string>; token?: string; bridged?: boolean } = {}
+  ): Promise<Session> {
+    const headers: Record<string, string> = options.bridged
+      ? bridgeHeaders(options.token ?? TOKEN, {})
+      : { Authorization: `Bearer ${options.token ?? TOKEN}` };
     if (options.pin) headers[MCP_ROOT_PATH_HEADER] = encodeURIComponent(options.pin);
     if (options.env) headers[MCP_SESSION_ENV_HEADER] = encodeSessionEnv(options.env);
     const transport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${server.port}/mcp`), {
@@ -219,6 +224,21 @@ describe("MCP on the central process", () => {
     });
     expect(refused.status).toBe(401);
     await expect(connect({ token: "wrong" })).rejects.toThrow();
+  });
+
+  it("tells the bridge's sessions from clients connected straight to /mcp, which hold a restart (#1427)", async () => {
+    const before = server.activity();
+    const bridged = await connect({ roots: [beta], bridged: true });
+    expect(server.activity().mcpSessions).toBe(before.mcpSessions + 1);
+    expect(server.activity().directMcpSessions).toBe(before.directMcpSessions);
+    const direct = await connect({ roots: [beta] });
+    expect(server.activity().mcpSessions).toBe(before.mcpSessions + 2);
+    expect(server.activity().directMcpSessions).toBe((before.directMcpSessions ?? 0) + 1);
+    for (const session of [bridged, direct]) {
+      await session.transport.terminateSession();
+      await session.client.close();
+      open.splice(open.indexOf(session), 1);
+    }
   });
 
   it("answers GET and DELETE only for a session it knows, and a DELETE ends the session", async () => {

@@ -8,7 +8,8 @@
  * └── review.yaml         # Optional: the reviewer's per-change verdicts (see changeset-review.ts)
  */
 
-import { readFile, writeFile, readdir, rm } from "fs/promises";
+import { createHash } from "crypto";
+import { readFile, writeFile, readdir, rm, stat } from "fs/promises";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { FileLock } from "../utils/file-lock.js";
 import path from "path";
@@ -80,6 +81,88 @@ function addTombstones(changeset: Changeset, tombstones: UnstagedChange[]): void
     changeset.unstaged = changeset.unstaged.slice(-MAX_UNSTAGED_TOMBSTONES);
     changeset.unstagedPrunedThrough = Math.max(changeset.unstagedPrunedThrough ?? -1, ...dropped.map((t) => t.removedAt));
   }
+}
+
+/** A changeset folder's id and the status its metadata.yaml gives (null when it can't be read). */
+export interface ChangesetStatusEntry {
+  id: string;
+  status: string | null;
+}
+
+/** A top-level `status:` line of metadata.yaml: plain, double- or single-quoted value. */
+const STATUS_LINE = /^status:[ \t]*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s#'"][^\s#]*))[ \t]*(?:#.*)?$/gm;
+
+/**
+ * The `status` of a changeset's metadata.yaml text, as loading it reads it: a top-level `status:`
+ * line is read directly; with no single such line (an unusual layout) the whole file is parsed.
+ * Metadata without a status is `staged`, as Changeset.fromJSON takes it. Null, a changeset not
+ * counted, where load() skips it too: text that is not YAML, or not a mapping (an empty file, say,
+ * read mid-write).
+ */
+export function readMetadataStatus(text: string): string | null {
+  const matches = [...text.matchAll(STATUS_LINE)];
+  if (matches.length === 1) {
+    const [, double, single, plain] = matches[0];
+    return double ?? single ?? plain;
+  }
+  try {
+    const parsed = yaml.parse(text) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const status = (parsed as { status?: unknown }).status;
+    return typeof status === "string" && status ? status : "staged";
+  } catch {
+    return null;
+  }
+}
+
+/** Statuses already read, by metadata.yaml path, kept while the file's mtime and size are unchanged. */
+const statusCache = new Map<string, { mtimeMs: number; size: number; status: string | null }>();
+/** The cache is cleared past this many entries (folders removed since are never looked up again). */
+const STATUS_CACHE_MAX = 20_000;
+
+async function cachedMetadataStatus(metadataPath: string): Promise<string | null> {
+  let stamp: { mtimeMs: number; size: number };
+  try {
+    stamp = await stat(metadataPath);
+  } catch {
+    statusCache.delete(metadataPath);
+    return null;
+  }
+  const cached = statusCache.get(metadataPath);
+  if (cached && cached.mtimeMs === stamp.mtimeMs && cached.size === stamp.size) return cached.status;
+  let status: string | null;
+  try {
+    status = readMetadataStatus(await readFile(metadataPath, "utf-8"));
+  } catch {
+    status = null;
+  }
+  if (statusCache.size >= STATUS_CACHE_MAX) statusCache.clear();
+  statusCache.set(metadataPath, { mtimeMs: stamp.mtimeMs, size: stamp.size, status });
+  return status;
+}
+
+/**
+ * A changeset folder's files, as a stamp that changes when any of them is rewritten: a hash of
+ * metadata.yaml and the review file (small, and rewritten in place at the same size, say a status
+ * flip within one timestamp tick), and the mtime and size of changes.yaml (megabytes, and never
+ * rewritten without its metadata.yaml).
+ */
+export async function changesetFilesStamp(changesetPath: string): Promise<string> {
+  const parts: string[] = [];
+  for (const file of ["metadata.yaml", REVIEW_FILE]) {
+    try {
+      parts.push(createHash("sha1").update(await readFile(path.join(changesetPath, file))).digest("hex"));
+    } catch {
+      parts.push("-");
+    }
+  }
+  try {
+    const s = await stat(path.join(changesetPath, "changes.yaml"));
+    parts.push(`${s.mtimeMs}:${s.size}`);
+  } catch {
+    parts.push("-");
+  }
+  return parts.join("|");
 }
 
 /**
@@ -200,6 +283,10 @@ export class StagedChangesetStorage {
       // Load metadata
       const metadataContent = await readFile(metadataPath, "utf-8");
       const metadata = yaml.parse(metadataContent);
+      // An empty file (one read mid-write, say) is no changeset yet: skipped, as listStatuses skips it.
+      if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        throw new Error("metadata.yaml is empty or not a mapping");
+      }
 
       // Load changes
       const changesContent = await readFile(changesPath, "utf-8");
@@ -298,6 +385,39 @@ export class StagedChangesetStorage {
       stringifyStaged(numbered),
       "utf-8"
     );
+  }
+
+  /**
+   * Each changeset folder's id and status, read from its metadata.yaml alone: never changes.yaml,
+   * which can run to megabytes. A status is kept (process-wide) until the file's mtime or size
+   * changes. What a farm listing counts staged changesets with (#1436).
+   */
+  async listStatuses(): Promise<ChangesetStatusEntry[]> {
+    let entries;
+    try {
+      entries = await readdir(this.changesetsDir, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+    const statuses: ChangesetStatusEntry[] = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      statuses.push({
+        id: entry.name,
+        status: await cachedMetadataStatus(path.join(this.changesetsDir, entry.name, "metadata.yaml")),
+      });
+    }
+    return statuses;
+  }
+
+  /** The changeset folder names on disk (no file is read). */
+  async listIds(): Promise<string[]> {
+    try {
+      const entries = await readdir(this.changesetsDir, { withFileTypes: true });
+      return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    } catch {
+      return [];
+    }
   }
 
   /**

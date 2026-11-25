@@ -19,7 +19,7 @@ import { AnnotationStore, type Annotation as StoredAnnotation } from "../core/an
 import { Changeset as StagedChangeset } from "../core/changeset.js";
 import type { CheckoutRef } from "../core/checkout-types.js";
 import { Model } from "../core/model.js";
-import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
+import { changesetFilesStamp, StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { getErrorMessage } from "../utils/errors.js";
 
@@ -93,6 +93,8 @@ export class CheckoutContext<S extends CheckoutSubscriber = CheckoutSubscriber> 
   readonly changesetStorage: StagedChangesetStorage;
   /** changesetId -> changeset, as last read from disk. */
   readonly changesets: Map<string, StagedChangeset> = new Map();
+  /** Changeset folder -> the changeset read from it and its files' stamp then: an unchanged folder is not read again. */
+  private readonly changesetReads: Map<string, { stamp: string; changeset: StagedChangeset }> = new Map();
   /** The websockets subscribed to this checkout's feed. */
   readonly subscribers: Set<S> = new Set();
   watcher?: any;
@@ -175,16 +177,39 @@ export class CheckoutContext<S extends CheckoutSubscriber = CheckoutSubscriber> 
     return Model.load(this.rootPath, { lazyLoad: false });
   }
 
-  /** Reads every staged changeset from disk into `changesets`. */
+  /**
+   * Reads every staged changeset from disk into `changesets`. A changeset whose files are unchanged
+   * since the last read (same mtime and size) is kept as it was read, not parsed again: routes call
+   * this on every request, and a checkout's changesets run to megabytes of YAML (#1436).
+   */
   async loadChangesets(): Promise<void> {
     try {
-      const changesets = await this.changesetStorage.list();
+      const folders = await this.changesetStorage.listIds();
+      const reads = new Map<string, { stamp: string; changeset: StagedChangeset }>();
+      let parsed = 0;
+      for (const folder of folders) {
+        const stamp = await changesetFilesStamp(this.changesetStorage.getChangesetPath(folder));
+        const previous = this.changesetReads.get(folder);
+        if (previous && previous.stamp === stamp) {
+          reads.set(folder, previous);
+          continue;
+        }
+        try {
+          const changeset = await this.changesetStorage.load(folder);
+          parsed++;
+          if (changeset) reads.set(folder, { stamp, changeset });
+        } catch (error) {
+          console.warn(`[Changesets] Warning: Failed to load changeset '${folder}': ${getErrorMessage(error)}`);
+        }
+      }
+      this.changesetReads.clear();
       this.changesets.clear();
-      for (const cs of changesets) {
-        this.changesets.set(cs.id, cs);
+      for (const [folder, read] of reads) {
+        this.changesetReads.set(folder, read);
+        this.changesets.set(read.changeset.id, read.changeset);
       }
       if (process.env.VERBOSE) {
-        console.log(`[Changesets] Loaded ${changesets.length} changeset(s) from disk`);
+        console.log(`[Changesets] ${reads.size} changeset(s) on disk, ${parsed} read again`);
       }
     } catch (err) {
       console.warn(`[Changesets] Warning: Failed to load changesets from disk: ${err}`);

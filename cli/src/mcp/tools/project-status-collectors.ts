@@ -6,9 +6,8 @@
  * Nothing here touches the network or starts the code analyzer.
  */
 
-import { readdir, realpath, stat } from "node:fs/promises";
+import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Model } from "../../core/model.js";
 import type { Changeset } from "../../core/changeset.js";
 import type { BaseRead } from "../../core/changeset-base-index.js";
@@ -25,6 +24,17 @@ import { DEFAULT_CENTRAL_DEPS, runningCentralLink, type CentralDeps, type Sessio
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
+import {
+  describeRunningCodeDrift,
+  PACKAGE_ROOT,
+  readInstalledCli,
+  RESTART_DR_PROCESS,
+  installedChangedSince,
+  restartAdvice,
+  runningCodeBaseline,
+  runningCodeDrift,
+  type InstalledCli,
+} from "../../utils/running-code.js";
 import { indexProbe, isIndexedSource, judgeIndex, readWorktreeSnapshot, type GitRunner } from "./codebase-shared.js";
 import { isExtractionChangeset } from "./codebase-extract.js";
 import { parse as parseYaml } from "yaml";
@@ -54,6 +64,8 @@ export interface StatusContext {
   tier1?: Tier1StatusOptions;
   /** The CLI on disk where this process was loaded from (default: its package.json, read now). */
   installedCli?: () => Promise<InstalledCli | null>;
+  /** What was installed when this process started (default: runningCodeBaseline); tests pass their own. */
+  runningCodeBaseline?: () => Promise<InstalledCli | null>;
   /**
    * Which staged changesets get their base drift described in full (what changed in the base and
    * what overlaps). Describing costs a pass over the model per changeset, and the status opens
@@ -180,8 +192,8 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
       upgradeNeeded: false,
       reason: restart
         ? `the model is on spec ${modelVersion}, newer than the ${cli} this dr server is running, but the dr CLI installed ` +
-          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the session's dr server; the CLI needs no update`
-        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the session's dr server`,
+          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the DR process (dr serve --stop); the CLI needs no update`
+        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the DR process (dr serve --stop)`,
       ...assumed,
     };
   }
@@ -221,139 +233,109 @@ export function compareVersions(a: string, b: string): number {
 // the dr server answering this call
 
 /** The CLI found on disk: its version, the spec version it bundles (null when that can't be read) and when its files last changed. */
-export interface InstalledCli {
-  version: string;
-  spec: string | null;
-  /** When the installed files were last written (ms since the epoch); undefined when that can't be read. */
-  modifiedAt?: number;
+export type { InstalledCli } from "../../utils/running-code.js";
+export { readInstalledCli };
+
+/** The dr server process that answered: after the dr tools reconnect, a new pid means it restarted (#1362). */
+interface ServerProcessInfo {
+  pid: number;
+  /** When the process started (ISO). */
+  startedAt: string;
 }
 
-export type ServerSection =
-  | {
-      /**
-       * The process answering is the CLI found in `comparedWith`, the package folder it was loaded
-       * from. A newer dr installed somewhere else (another node version's global folder, say) is
-       * not looked for, so this does not mean nothing newer is installed.
-       */
-      status: "current";
-      version: string;
-      comparedWith: string;
-    }
-  | {
-      /**
-       * The CLI on disk changed after this server process started (another version, or the same
-       * version installed or built again), so the session is still talking to the old code. Fixed
-       * by restarting the session's dr server, not by updating the CLI.
-       */
-      status: "stale";
-      version: string;
-      /** The package folder this process was loaded from, where the installed CLI was read. */
-      comparedWith: string;
-      installed: { version: string; spec: string | null };
-      /** When the installed files changed, when that is what gave it away. */
-      changedAt?: string;
-      /** What happened and what to do, in a sentence: shown as it is. */
-      note: string;
-    }
-  | { status: "unknown"; version: string; comparedWith: string; reason: string };
-
-/** How a session gets the installed CLI's server: nothing the agent can call. */
-export const RESTART_SERVER = "Restart the session's dr server (reconnect the dr MCP server, or restart the session)";
-
-/** This module's file, and the package it was loaded from: `<package>/{src,dist}/mcp/tools/` → `<package>`. */
-const THIS_FILE = fileURLToPath(import.meta.url);
-const PACKAGE_ROOT = path.resolve(path.dirname(THIS_FILE), "..", "..", "..");
-
-/** A file's modification time in ms, or undefined when it can't be read. */
-async function modifiedAt(file: string): Promise<number | undefined> {
-  try {
-    return (await stat(file)).mtimeMs;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * The CLI installed where this process was loaded from, read from disk now. A long-lived `dr mcp`
- * process keeps the code it started with, so after an upgrade in place this differs from
- * getCliVersion(), and after any install or build its files are newer than the process. Null when
- * the package can't be read (its folder was removed or moved).
- */
-export async function readInstalledCli(packageRoot: string = PACKAGE_ROOT): Promise<InstalledCli | null> {
-  let version: unknown;
-  try {
-    version = (JSON.parse(await readFile(path.join(packageRoot, "package.json"))) as { version?: unknown }).version;
-  } catch {
-    return null;
-  }
-  if (typeof version !== "string" || !version) return null;
-  let spec: string | null = null;
-  // The tree this process runs from first (dist when built, src under a dev runner), then the other.
-  const running = path.relative(PACKAGE_ROOT, THIS_FILE).split(path.sep)[0] === "src" ? "src" : "dist";
-  for (const dir of [running, running === "src" ? "dist" : "src"]) {
-    try {
-      const manifest = JSON.parse(await readFile(path.join(packageRoot, dir, "schemas", "bundled", "manifest.json"))) as {
-        specVersion?: unknown;
-      };
-      if (typeof manifest.specVersion === "string" && manifest.specVersion) {
-        spec = manifest.specVersion;
-        break;
+export type ServerSection = ServerProcessInfo &
+  (
+    | {
+        /**
+         * The process answering is the CLI found in `comparedWith`, the package folder it was loaded
+         * from. A newer dr installed somewhere else (another node version's global folder, say) is
+         * not looked for, so this does not mean nothing newer is installed.
+         */
+        status: "current";
+        version: string;
+        comparedWith: string;
+        /** When the build differs from the package.json it was loaded with (bumped without a rebuild): what to do. */
+        note?: string;
       }
-    } catch {
-      // Not built there; try the next.
-    }
-  }
-  // An install rewrites package.json; a build rewrites this module's file.
-  const times = (
-    await Promise.all([modifiedAt(path.join(packageRoot, "package.json")), modifiedAt(path.join(packageRoot, path.relative(PACKAGE_ROOT, THIS_FILE)))])
-  ).filter((time): time is number => time !== undefined);
-  return { version, spec, ...(times.length > 0 ? { modifiedAt: Math.max(...times) } : {}) };
+    | {
+        /**
+         * The CLI on disk changed after this server process started (another version, or the same
+         * version installed or built again), so the session is still talking to the old code. Fixed
+         * by restarting the DR process (dr serve --stop), not by updating the CLI.
+         */
+        status: "stale";
+        version: string;
+        /** The package folder this process was loaded from, where the installed CLI was read. */
+        comparedWith: string;
+        installed: { version: string; spec: string | null };
+        /** When the installed files changed, when that is what gave it away. */
+        changedAt?: string;
+        /** What happened and what to do, in a sentence: shown as it is. */
+        note: string;
+      }
+    | { status: "unknown"; version: string; comparedWith: string; reason: string }
+  );
+
+/** How a session gets the installed CLI's server (no tool does it), for the process answering: read at call time. */
+export function restartServer(): string {
+  return restartAdvice();
 }
 
-/** Files written this long after the process started are a new install, not this process's own start-up. */
-const STARTUP_MARGIN_MS = 5_000;
+/** The central process's wording, kept for callers that name it. */
+export const RESTART_SERVER = RESTART_DR_PROCESS;
 
 /**
- * Whether this server process is the CLI that is installed. Two signs that it is not: the version
- * on disk where it was loaded from differs from the one it was built with, or the installed files
- * were written after it started (the same version installed or built again). Either way a `dr mcp`
- * process started before the change answers with the old code, and the old bundled spec, until it
- * is restarted.
+ * Whether this server process is the CLI that is installed (utils/running-code.ts): the version on
+ * disk where it was loaded from differs from the one it was built with, or the installed files were
+ * written after it started. Either way the process answers with the old code, and the old bundled
+ * spec, until it is restarted. Also names the process (pid, start time), so an agent can tell after
+ * the dr tools reconnect whether it is still the same one (#1362).
  */
 export async function collectServer(ctx: StatusContext): Promise<ServerSection> {
   const version = getCliVersion();
   const installed = await (ctx.installedCli ?? readInstalledCli)();
   const comparedWith = PACKAGE_ROOT;
-  if (!installed) {
-    return { status: "unknown", version, comparedWith, reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}` };
-  }
-  const found = { version: installed.version, spec: installed.spec };
-  if (installed.version !== version) {
-    return {
-      status: "stale",
-      version,
-      comparedWith,
-      installed: found,
-      note:
-        `This dr server process is CLI ${version}, and ${installed.version} is installed now: it started before the CLI ` +
-        `changed and still runs the old code. ${RESTART_SERVER} to use the installed one.`,
-    };
-  }
   const startedAt = Date.now() - process.uptime() * 1000;
-  if (installed.modifiedAt !== undefined && installed.modifiedAt > startedAt + STARTUP_MARGIN_MS) {
-    const changedAt = new Date(installed.modifiedAt).toISOString();
+  const processInfo = { pid: process.pid, startedAt: new Date(startedAt).toISOString() };
+  if (!installed) {
     return {
-      status: "stale",
+      status: "unknown",
       version,
       comparedWith,
-      installed: found,
-      changedAt,
-      note:
-        `The dr CLI's files on disk changed at ${changedAt}, after this dr server process started (the version is still ` +
-        `${version}): the process runs the code it started with. ${RESTART_SERVER} to use what is installed.`,
+      ...processInfo,
+      reason: `the CLI's package.json could not be read under ${PACKAGE_ROOT}`,
     };
   }
-  return { status: "current", version, comparedWith };
+  // Against what was installed when this process started, as the write guard compares (#1427):
+  // drift already there then (a checkout bumped without a rebuild) is a rebuild to do, not a
+  // restart, and the guard lets writes through.
+  const baseline = await (ctx.runningCodeBaseline ?? runningCodeBaseline)();
+  const drift = installedChangedSince(baseline, installed, version);
+  if (!drift) {
+    const atStart = await runningCodeDrift({ installed: baseline, running: version, startedAt });
+    return {
+      status: "current",
+      version,
+      comparedWith,
+      ...processInfo,
+      ...(atStart?.reason === "version"
+        ? {
+            note:
+              `This build of the dr CLI is ${version}, but its package.json said ${atStart.installed.version} when this ` +
+              "process started: rebuild the CLI (a restart runs the same build).",
+          }
+        : {}),
+    };
+  }
+  return {
+    status: "stale",
+    version,
+    comparedWith,
+    ...processInfo,
+    installed: { version: installed.version, spec: installed.spec },
+    ...(drift.reason === "rewritten" ? { changedAt: drift.changedAt } : {}),
+    note: `${describeRunningCodeDrift(drift)}. ${restartServer()} to use the installed one.`,
+  };
 }
 
 /** The section when it says the server is stale, else undefined. */

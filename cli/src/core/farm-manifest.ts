@@ -5,9 +5,40 @@
  * The farm manifest tracks project registrations and their model folder locations.
  */
 
+import { realpathSync } from "fs";
 import path from "path";
 import yaml from "yaml";
 import { readFile, writeFile } from "../utils/file-io.js";
+
+/**
+ * farm.yaml files this process must never write, separated by the path delimiter. The test preload
+ * (cli/tests/setup.ts) puts the developer's real user farm here, so a test that forgets to isolate
+ * itself fails instead of registering its scratch project in that farm (#1438).
+ */
+export const PROTECTED_FARM_FILES_ENV = "DR_PROTECTED_FARM_FILES";
+
+/** A path with its existing folders' symlinks resolved, so two spellings of one file compare equal. */
+function comparablePath(file: string): string {
+  const resolved = path.resolve(file);
+  try {
+    return path.join(realpathSync(path.dirname(resolved)), path.basename(resolved));
+  } catch {
+    return resolved;
+  }
+}
+
+/** Throws when `file` is a farm.yaml this process must not write (PROTECTED_FARM_FILES_ENV). */
+export function assertFarmFileWritable(file: string, env: NodeJS.ProcessEnv = process.env): void {
+  const protectedFiles = (env[PROTECTED_FARM_FILES_ENV] ?? "").split(path.delimiter).filter(Boolean);
+  if (protectedFiles.length === 0) return;
+  const target = comparablePath(file);
+  if (protectedFiles.some((protectedFile) => comparablePath(protectedFile) === target)) {
+    throw new Error(
+      `Refused to write ${file}: it is protected (${PROTECTED_FARM_FILES_ENV}), the user farm this run must not ` +
+        "touch. Give the code a farm of its own (DR_FARM_PATH, XDG_CONFIG_HOME, or the env or registry it takes)."
+    );
+  }
+}
 
 /** The farm format this CLI writes. */
 export const FARM_SCHEMA_V2 = "dr-farm-v2";
@@ -274,6 +305,7 @@ export class FarmManifest {
     if (this.isLegacy()) {
       throw new Error(legacyFarmNotice(this.filePath ?? targetPath));
     }
+    assertFarmFileWritable(targetPath);
 
     this.modified = new Date().toISOString();
     const data = this.toJSON();

@@ -8,6 +8,8 @@
  *   wait for that one start instead of starting their own.
  * - A process older than this CLI is replaced only when no browser tab, MCP session or DrBot turn
  *   uses it. Otherwise it is returned as it is, with a notice saying so.
+ * - A running process is returned once it answers `/health`. One that doesn't is returned with a
+ *   notice naming its log, never reported as still starting (#1282).
  *
  * (`application.applicationfunction.ensure-central-server`, `data-store.collection.server-starting-marker`)
  */
@@ -157,7 +159,8 @@ async function ensureWith(options: EnsureCentralServerOptions, deps: EnsureCentr
         );
       }
       if (compareCliVersions(running.record.cliVersion, deps.cliVersion) >= 0) {
-        return { record: running.record, token: running.token, started: replaced };
+        const silent = await notAnsweringNotice(farm, running.record, running.token, env, deps);
+        return { record: running.record, token: running.token, started: replaced, ...(silent ? { notice: silent } : {}) };
       }
       const health = await deps.fetchHealth(running.record, running.token);
       const inUse = health ? describeUse(health) : "";
@@ -181,7 +184,11 @@ async function ensureWith(options: EnsureCentralServerOptions, deps: EnsureCentr
     if (!marker) {
       // Someone else is starting it: wait for its record (or for its marker to go away).
       if (deps.now() > deadline) {
-        throw new Error(`Timed out waiting for another caller to start the DR process for ${farm.root}.`);
+        const log = await deps.logPath(farm.root, env).catch(() => null);
+        throw new Error(
+          `Timed out waiting for another caller to start the DR process for ${farm.root}.` +
+            (log ? ` Its log: ${log}.` : "")
+        );
       }
       await deps.sleep(deps.pollMs);
       continue;
@@ -197,6 +204,34 @@ async function ensureWith(options: EnsureCentralServerOptions, deps: EnsureCentr
       await marker.release();
     }
   }
+}
+
+/** How many times a recorded process is asked for /health before it is reported as not answering. */
+const HEALTH_ATTEMPTS = 3;
+
+/**
+ * Null when the recorded process answers `/health`; otherwise a notice naming it and its log (#1282).
+ * Its record is written only once it listens, so one that doesn't answer is busy or hung, not
+ * starting: the link it gets may not load until it answers.
+ */
+async function notAnsweringNotice(
+  farm: FarmLocation,
+  record: ServerRecord,
+  token: string,
+  env: NodeJS.ProcessEnv,
+  deps: EnsureCentralServerDeps
+): Promise<string | null> {
+  for (let attempt = 0; attempt < HEALTH_ATTEMPTS; attempt++) {
+    if (attempt > 0) await deps.sleep(deps.pollMs * 5);
+    if (await deps.fetchHealth(record, token)) return null;
+  }
+  const log = await deps.logPath(farm.root, env).catch(() => null);
+  return (
+    `The DR process for ${farm.root} (pid ${record.pid}, port ${record.port}) is running but did not answer ` +
+    `/health: it is busy or hung, so its link may not load until it answers.` +
+    (log ? ` Its log: ${log}.` : "") +
+    ` dr serve --status checks it again; dr serve --stop stops it.`
+  );
 }
 
 /** Takes the starting marker, or returns null while a live caller holds it. A dead or stale holder's marker is removed. */
