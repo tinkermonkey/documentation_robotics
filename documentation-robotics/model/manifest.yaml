@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.8.0
 spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-25T10:48:49.337Z
+updated: 2026-11-25T14:04:13.481Z
 project:
   name: dr-codebase
   description: ""
@@ -74,7 +74,7 @@ layers:
     path: documentation-robotics/model/07_api/
     enabled: true
     elements:
-      operation: 52
+      operation: 30
   data-model:
     order: 8
     name: Data model
@@ -191,6 +191,9 @@ changeset_history:
     action: committed
   - name: wire-test-sketches
     committed_at: 2026-11-25T10:45:30.599Z
+    action: committed
+  - name: wire-api-operations
+    committed_at: 2026-11-25T14:04:13.481Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

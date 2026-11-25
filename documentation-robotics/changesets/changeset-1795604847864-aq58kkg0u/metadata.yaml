@@ -1,0 +1,15 @@
+id: changeset-1795604847864-aq58kkg0u
+name: wire-api-operations
+description: "One element per viewer API route: delete the 22 api-spec-* duplicate operations (moving their links to the server.ts operations), wire the verification operation, and model what the routes' code traces reach that the model is missing."
+created: 2026-11-25T11:07:27.921Z
+modified: 2026-11-25T14:04:13.477Z
+status: committed
+baseSnapshot: v2:sha256:85c2adb4a5867b3760d3da0daefb6611263e052659bd0cbb8cb42aa385ac3fab
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 50
+  modifications: 0
+  deletions: 23
+lastSequence: 72
