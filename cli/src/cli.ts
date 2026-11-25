@@ -997,7 +997,8 @@ program
   .option("--full", "List every file, element and derived value; long lists otherwise show their first entries with the total")
   .option(
     "--relayout",
-    "Also lay out the model files an earlier dr wrote (long strings folded at 80 columns) as this dr writes them, data unchanged"
+    "Also lay out the model files an earlier dr wrote (long strings folded at 80 columns) as this dr writes them, " +
+      "data unchanged"
   )
   .addHelpText(
     "after",

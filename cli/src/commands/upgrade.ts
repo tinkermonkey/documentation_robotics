@@ -443,7 +443,13 @@ async function handleUpgrade(
         : `v${action.toVersion}`;
 
       const icon =
-        action.type === "spec" ? "📦" : action.type === "integration" ? "🔌" : action.type === "relayout" ? "📐" : "🔄";
+        action.type === "spec"
+          ? "📦"
+          : action.type === "integration"
+            ? "🔌"
+            : action.type === "relayout"
+              ? "📐"
+              : "🔄";
       console.log(ansis.yellow(`${icon} ${action.description}`));
       console.log(ansis.dim(`   Version: ${versionChange}`));
 

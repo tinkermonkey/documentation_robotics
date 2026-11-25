@@ -137,7 +137,8 @@ export async function addCommand(
     const notDeclared = typeNotInDeclaredSpec(model.manifest?.specVersion, `${layer}.${resolvedType}`);
     if (notDeclared) {
       throw new CLIError(notDeclared.message, ErrorCategory.USER, [
-        `dr upgrade moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; run it, then add the element again`,
+        `dr upgrade moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
+          "run it, then add the element again",
       ]);
     }
 

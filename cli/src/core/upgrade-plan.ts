@@ -257,7 +257,10 @@ function relayoutAction(relayout: RelayoutResult, toVersion: string): UpgradeAct
         "columns). Re-laying them out now keeps that out of later landings: commit it on its own.",
       ...files.slice(0, RELAYOUT_FILES_NAMED),
       ...(files.length > RELAYOUT_FILES_NAMED
-        ? [`and ${files.length - RELAYOUT_FILES_NAMED} more (project_upgrade's relayout.files and dr upgrade --full list them all)`]
+        ? [
+            `and ${files.length - RELAYOUT_FILES_NAMED} more ` +
+              "(project_upgrade's relayout.files and dr upgrade --full list them all)",
+          ]
         : []),
     ],
   };
