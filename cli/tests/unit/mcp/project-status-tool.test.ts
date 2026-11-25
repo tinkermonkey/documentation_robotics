@@ -240,9 +240,16 @@ describe("project_status", () => {
     expect(data.nextStep.summary).toContain("Update the dr CLI");
     // This server is the installed CLI, so the CLI itself is too old: an update, then a restart.
     // `comparedWith` says which install was read: "current" is about that one, not every dr on the machine.
-    expect(data.server).toEqual({ status: "current", version: getCliVersion(), comparedWith: expect.stringContaining("cli") });
+    // It also names the process (#1362): a new pid after the tools reconnect means it restarted.
+    expect(data.server).toEqual({
+      status: "current",
+      version: getCliVersion(),
+      comparedWith: expect.stringContaining("cli"),
+      pid: process.pid,
+      startedAt: expect.any(String),
+    });
     expect(data.spec.reason).toContain("update the dr CLI");
-    expect(data.nextStep.summary).toContain("restart the session's dr server");
+    expect(data.nextStep.summary).toContain("restart the DR process (`dr serve --stop`");
   });
 
   describe("a dr server older than the installed CLI", () => {
@@ -256,15 +263,15 @@ describe("project_status", () => {
 
       expect(data.server).toMatchObject({ status: "stale", version: getCliVersion(), installed: { version: "99.1.0", spec: "99.0.0" } });
       expect(data.spec.status).toBe("ahead");
-      expect(data.spec.reason).toContain("restart the session's dr server; the CLI needs no update");
+      expect(data.spec.reason).toContain("restart the DR process (dr serve --stop); the CLI needs no update");
       expect(data.spec.reason).not.toContain("update the dr CLI");
       expect(data.nextStep.tool).toBeNull();
       expect(data.nextStep.summary).toContain("The dr CLI installed now is already 99.1.0 (spec 99.0.0)");
-      expect(data.nextStep.summary).toContain("Restart the session's dr server");
+      expect(data.nextStep.summary).toContain("Restart the DR process (`dr serve --stop`");
       expect(data.nextStep.summary).toContain("the CLI needs no update");
       expect(data.nextStep.summary).not.toContain("Update the dr CLI");
       // The restart is said once.
-      expect(data.nextStep.summary.match(/restart the session's dr server/gi)).toHaveLength(1);
+      expect(data.nextStep.summary.match(/restart the DR process/gi)).toHaveLength(1);
     });
 
     it("still says update when the installed CLI is too old for the model as well", async () => {
@@ -275,8 +282,8 @@ describe("project_status", () => {
 
       expect(data.server.status).toBe("stale");
       expect(data.spec.reason).toContain("update the dr CLI");
-      expect(data.nextStep.summary).toContain("Update the dr CLI, then restart the session's dr server");
-      expect(data.nextStep.summary.match(/restart the session's dr server/gi)).toHaveLength(1);
+      expect(data.nextStep.summary).toContain("Update the dr CLI, then restart the DR process");
+      expect(data.nextStep.summary.match(/restart the DR process/gi)).toHaveLength(1);
     });
 
     it("sends the upgrade of an older model to the installed CLI: restart first", async () => {
@@ -299,8 +306,9 @@ describe("project_status", () => {
       expect(data.server.status).toBe("stale");
       expect((data.server as any).note).toContain("still runs the old code");
       expect(data.nextStep.tool).toBe("codebase_index");
-      expect(data.nextStep.summary).toContain(`Also: This dr server process is CLI ${getCliVersion()}, and 99.1.0 is installed now`);
-      expect(data.nextStep.summary).toContain("Restart the session's dr server");
+      expect(data.nextStep.summary).toContain(`Also: This DR process runs CLI ${getCliVersion()}, and CLI 99.1.0 is installed now`);
+      expect(data.nextStep.summary).toContain("Restart the DR process (`dr serve --stop`");
+      expect(data.nextStep.summary).toContain("until then it refuses to write the model");
     });
 
     it("sees the same version installed or built again after the server started, by its files' time", async () => {
@@ -312,9 +320,9 @@ describe("project_status", () => {
       const rebuilt = await projectStatus({ rootPath }, sameVersion(Date.now() + 60_000));
       expect(rebuilt.server).toMatchObject({ status: "stale", version: getCliVersion(), installed: { version: getCliVersion() } });
       expect((rebuilt.server as any).changedAt).toBeTruthy();
-      expect((rebuilt.server as any).note).toContain(`after this dr server process started (the version is still ${getCliVersion()})`);
+      expect((rebuilt.server as any).note).toContain(`after this DR process started (the version is still ${getCliVersion()})`);
       expect(rebuilt.nextStep.tool).toBe("codebase_index");
-      expect(rebuilt.nextStep.summary).toContain("Restart the session's dr server");
+      expect(rebuilt.nextStep.summary).toContain("Restart the DR process (`dr serve --stop`");
 
       // Files older than the process are the ones it was started from.
       const asStarted = await projectStatus({ rootPath }, sameVersion(Date.now() - 24 * 60 * 60 * 1000));

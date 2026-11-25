@@ -187,8 +187,8 @@ export async function collectSpec(ctx: StatusContext): Promise<SpecSection> {
       upgradeNeeded: false,
       reason: restart
         ? `the model is on spec ${modelVersion}, newer than the ${cli} this dr server is running, but the dr CLI installed ` +
-          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the session's dr server; the CLI needs no update`
-        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the session's dr server`,
+          `now (${stale.installed.version}) carries ${stale.installed.spec}: restart the DR process (dr serve --stop); the CLI needs no update`
+        : `the model is on spec ${modelVersion}, newer than this CLI's ${cli}; update the dr CLI, then restart the DR process (dr serve --stop)`,
       ...assumed,
     };
   }
@@ -254,7 +254,7 @@ export type ServerSection = ServerProcessInfo &
         /**
          * The CLI on disk changed after this server process started (another version, or the same
          * version installed or built again), so the session is still talking to the old code. Fixed
-         * by restarting the session's dr server, not by updating the CLI.
+         * by restarting the DR process (dr serve --stop), not by updating the CLI.
          */
         status: "stale";
         version: string;

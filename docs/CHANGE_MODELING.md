@@ -340,12 +340,14 @@ computed over the whole lists before anything is shortened.
   steps, and whether they reach the CLI's version) or `ahead` (update the CLI, or restart the
   server when `server` is `stale`). A manifest without `spec_version` is read as 0.6.0, as
   `dr upgrade` reads it, with `assumed: true`.
-- `server`: the CLI version of the process answering, against the one installed where it was
+- `server`: the process answering (its `pid` and `startedAt`, so a new pid after the dr tools
+  reconnect says it restarted) and its CLI version, against the one installed where it was
   loaded from (`comparedWith`, the package folder; a newer `dr` installed elsewhere is not looked
   for). `stale` when the versions differ, or when they are the same and the installed files were
-  written after the process started (the same version installed or built again): a `dr mcp`
-  process started before the change still runs the old code and the old bundled spec, and the fix
-  is to restart the session's dr server, not to update the CLI.
+  written after the process started (the same version installed or built again): the DR process
+  started before the change still runs the old code and the old bundled spec, refuses to write the
+  model, and restarts itself once no tab or DrBot turn uses it. The fix is to restart it
+  (`dr serve --stop`), not to update the CLI.
 - `changesets`: the active changeset and the staged ones, with change counts by operation,
   `baseDrifted` and, when the base's hash changed since the changeset was created, `drift`: its
   `state` and whether it blocks (`core/changeset-drift-status.ts`, the answer a commit acts on),
