@@ -18,6 +18,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Skills:** the application layer skill writes interfaces with `interfaceType` and the new
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
+- **A new model declares this dr's spec.** A model created without a spec version (`dr farm`
+  makes one) is stamped with the spec this dr carries. Before, it had no `spec_version`, was read
+  as 0.6.0 and was offered a migration it did not need.
+
+### Fixed
+
+- **Validation follows the spec the model declares (#1411).** dr checked a model only against its
+  own catalog, so a model on spec 0.13.0 took relationships that only 0.14.0 defines, and a
+  consumer that reads the model against its declared spec could not resolve them. Now
+  `relationship_add`, `model_add`, `model_update` (a type change), `dr add` and
+  `dr relationship add` refuse a type or relationship type the model's spec lacks, and
+  `model_validate`, `dr validate` and `changeset_commit_preview` report it as an error, so a
+  landing is refused too. The message names both versions and the fix: "application.applicationservice
+  --[accesses]--> data-model.objectschema is not in spec 0.13.0, the model's version; it exists
+  from spec 0.14.0. Run project_upgrade first". What each released spec had comes from a table
+  generated from the released catalogs in git (`cli/scripts/generate-spec-catalog-history.ts`,
+  0.8.0 on); a unit test fails when a spec release leaves it behind.
+- **`model_validate` with `layers` no longer reports links into other layers as not found
+  (#1259).** A relationship that names its ends by UUID was placed in a layer by its id, which a
+  UUID doesn't have, so every such link leaving the scope was an error (33 on the viewer's model).
+  An end's layer now comes from the layers the relationship row records. An end that exists
+  nowhere is still reported.
+- **`spec_type` takes a dotted type id (#1280).** `type: "product.feature"` works without `layer`,
+  as every other tool names a type, and so does `element` alone. A `layer` that disagrees with the
+  dotted id is refused, and a call with neither says how to name the type. Carries #1288 by
+  jiangyuer018.
+
+### Added
+
+- **`migration.kind` (#1435).** `project_status` (`spec.migration.kind`) and `project_upgrade`'s
+  preview (`migration.kind`) say `manifest-only` when the pending migration changes nothing in the
+  model but `spec_version` in `manifest.yaml`, as an additive spec release does, so the agent can
+  tell the user that plainly instead of asking them to judge a preview. The preview reads it off
+  its rehearsal of this model, `project_status` off the migration steps.
+- **Lay out an earlier dr's model files on their own (#1439).** `project_upgrade` with
+  `relayout: true` and `dr upgrade --relayout` lay out every element file an earlier dr wrote (long
+  strings folded at 80 columns) or prettier laid out, as this dr writes them, data unchanged: a
+  previewed step of its own, on a model already on this spec too, to commit apart from any plan.
+  Without it, an upgrade only counts those files (`relayout` in the result, a line in
+  `dr upgrade`'s output), since it writes no model file whose data does not change.
+  `changeset_commit_preview` names the files a landing would lay out anew and points at the step.
+  `cli/scripts/relayout-model-files.ts` now runs the same code.
 
 ## [0.8.0] - 2026-11-24
 
