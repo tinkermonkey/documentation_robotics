@@ -29,6 +29,7 @@ import {
   PACKAGE_ROOT,
   readInstalledCli,
   RESTART_DR_PROCESS,
+  restartAdvice,
   runningCodeDrift,
   type InstalledCli,
 } from "../../utils/running-code.js";
@@ -269,7 +270,12 @@ export type ServerSection = ServerProcessInfo &
     | { status: "unknown"; version: string; comparedWith: string; reason: string }
   );
 
-/** How a session gets the installed CLI's server: no tool does it. */
+/** How a session gets the installed CLI's server (no tool does it), for the process answering: read at call time. */
+export function restartServer(): string {
+  return restartAdvice();
+}
+
+/** The central process's wording, kept for callers that name it. */
 export const RESTART_SERVER = RESTART_DR_PROCESS;
 
 /**
@@ -303,7 +309,7 @@ export async function collectServer(ctx: StatusContext): Promise<ServerSection> 
     ...processInfo,
     installed: { version: installed.version, spec: installed.spec },
     ...(drift.reason === "rewritten" ? { changedAt: drift.changedAt } : {}),
-    note: `${describeRunningCodeDrift(drift)}. ${RESTART_SERVER} to use the installed one; until then it refuses to write the model.`,
+    note: `${describeRunningCodeDrift(drift)}. ${restartServer()} to use the installed one.`,
   };
 }
 

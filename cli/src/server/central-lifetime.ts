@@ -77,15 +77,27 @@ export function centralIdleReason(activity: CentralActivity, idleMs: number, now
 /**
  * Why the central process should stop so it can be restarted on the installed CLI, or null (#1427).
  * Only when the CLI changed under it (`drift`) and nothing that a restart would cut is using it: no
- * browser tab (its token would change), no DrBot turn and no API request or MCP tool call being
- * answered. MCP sessions don't hold it: the dr mcp bridge reconnects them to the new process.
+ * browser tab (its token would change), no DrBot turn, no API request or MCP tool call being
+ * answered (`requestsInFlight`), and no MCP client connected straight to `/mcp` (`dr mcp --http`,
+ * `directMcpSessions`). Sessions of the `dr mcp` bridge don't hold it: it replays them on the new process.
  */
 export function centralStaleReason(activity: CentralActivity, drift: RunningCodeDrift | null): string | null {
   if (!drift) return null;
-  if (activity.clients > 0 || activity.drBotTurns > 0 || (activity.requestsInFlight ?? 0) > 0) return null;
+  if (activity.clients > 0 || activity.drBotTurns > 0) return null;
+  if ((activity.requestsInFlight ?? 0) > 0 || (activity.directMcpSessions ?? 0) > 0) return null;
   return (
-    `${describeRunningCodeDrift(drift)}. No browser tab or DrBot turn is connected and nothing is being answered, ` +
-    "so it stops for a restart: the dr MCP server reconnects its sessions to a process running the installed CLI"
+    `${describeRunningCodeDrift(drift)}. No browser tab, DrBot turn or direct MCP client is connected and nothing ` +
+    "is being answered, so it stops for a restart: the dr MCP server reconnects its sessions to a process running " +
+    "the installed CLI"
+  );
+}
+
+/** What a process that may not restart itself says, once, when the installed CLI changed under it. */
+export function staleKeptNotice(drift: RunningCodeDrift): string {
+  return (
+    `${describeRunningCodeDrift(drift)}. It was started attached or with its own options, so it does not restart ` +
+    "itself, and it refuses to write the model until it is restarted: stop it (dr serve --stop, or Ctrl-C in its " +
+    "terminal) and start it again with the same options"
   );
 }
 
@@ -94,11 +106,18 @@ export interface CentralIdleOptions {
   /** Idle limit in ms. Absent or 0: never exit for idleness. */
   idleMs?: number;
   /**
-   * How the CLI installed under the process differs from the code it runs (`runningCodeDrift`).
+   * How the CLI installed under the process changed since it started (a `RunningCodeWatch`'s check).
    * When given, each check also asks it, and the process ends for a restart once
    * `centralStaleReason` says so, whatever the idle limit.
    */
   staleCheck?: () => Promise<RunningCodeDrift | null>;
+  /**
+   * False: a process that must not restart itself (attached, isolated or started with options a
+   * restart would lose). It keeps running and calls `onStaleKept` once instead.
+   */
+  restartWhenStale?: boolean;
+  /** Called once, when the CLI changed and the process may not restart itself. */
+  onStaleKept?: (drift: RunningCodeDrift) => void;
   /** Called once, with the reason in words, when the process should end. */
   onExit: (reason: string) => void;
   /** How often to check (default: DR_VIEWER_LIFETIME_CHECK_MS, 30s). */
@@ -130,6 +149,7 @@ export function watchCentralIdle(options: CentralIdleOptions): CentralIdleWatch 
   };
   let timer: ReturnType<typeof setInterval> | undefined;
   let checkingStale = false;
+  let staleKept = false;
   const stop = () => {
     if (timer) clearInterval(timer);
     timer = undefined;
@@ -139,16 +159,28 @@ export function watchCentralIdle(options: CentralIdleOptions): CentralIdleWatch 
     stop();
     options.onExit(reason);
   };
-  if (idleMs > 0 || options.staleCheck) {
+  const staleCheck = options.staleCheck;
+  if (idleMs > 0 || staleCheck) {
     timer = setInterval(() => {
       const reason = check();
       if (reason !== null) return exit(reason);
-      if (!options.staleCheck || checkingStale) return;
+      if (!staleCheck || checkingStale || staleKept) return;
       checkingStale = true;
-      void checkStale().then((stale) => {
-        checkingStale = false;
-        if (stale !== null) exit(stale);
-      });
+      void staleCheck()
+        .catch(() => null)
+        .then((drift) => {
+          checkingStale = false;
+          if (!drift || !timer) return;
+          if (options.restartWhenStale === false) {
+            staleKept = true;
+            options.onStaleKept?.(drift);
+            return;
+          }
+          // What is connected is read here, in the same turn as the exit: a request that came in
+          // while the drift was read holds the process, and is never cut and replayed.
+          const stale = centralStaleReason(options.activity(), drift);
+          if (stale !== null) exit(stale);
+        });
     }, options.intervalMs ?? viewerSetting("lifetimeCheckMs"));
     timer.unref?.();
   }
@@ -240,8 +272,10 @@ export interface RunCentralProcessOptions {
   serverOptions?: Pick<CentralServerOptions, "pool" | "viewerPath" | "withChangesets" | "withDanger">;
   /** Called once when the process has been idle for its limit, or should restart on the installed CLI. */
   onIdleExit?: (reason: string) => void;
-  /** How the installed CLI differs from the running code (`runningCodeDrift`); serve-entry passes it, tests a fake. */
+  /** How the installed CLI changed since the start (`watchRunningCode`); serve-entry passes it, tests a fake. */
   staleCheck?: () => Promise<RunningCodeDrift | null>;
+  /** False: never restart itself for a CLI change (see CentralIdleOptions.restartWhenStale); it says so in its log. */
+  restartWhenStale?: boolean;
   /** Lines to log (default: console.log). */
   log?: (line: string) => void;
 
@@ -375,6 +409,8 @@ export async function runCentralProcess(options: RunCentralProcessOptions): Prom
     activity: () => server.activity(),
     idleMs: options.idleMs ?? centralIdleMs(env),
     ...(options.staleCheck ? { staleCheck: options.staleCheck } : {}),
+    restartWhenStale: options.restartWhenStale ?? true,
+    onStaleKept: (drift) => log(`[serve] ${staleKeptNotice(drift)}.`),
     intervalMs: options.idleCheckMs,
     now: options.now,
     onExit: (reason) => {

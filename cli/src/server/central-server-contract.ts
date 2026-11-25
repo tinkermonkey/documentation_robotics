@@ -50,6 +50,8 @@ export interface CentralActivity {
   lastActivityAt: number;
   /** API requests and MCP tool calls being answered now (absent: not counted). */
   requestsInFlight?: number;
+  /** MCP sessions of clients connected straight to `/mcp`, not through the `dr mcp` bridge (absent: not counted). */
+  directMcpSessions?: number;
 }
 
 /** `GET /health` on the central process. Unauthenticated: status and version only, unless the token is sent. */

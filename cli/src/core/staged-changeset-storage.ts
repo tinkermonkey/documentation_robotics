@@ -8,6 +8,7 @@
  * └── review.yaml         # Optional: the reviewer's per-change verdicts (see changeset-review.ts)
  */
 
+import { createHash } from "crypto";
 import { readFile, writeFile, readdir, rm, stat } from "fs/promises";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { FileLock } from "../utils/file-lock.js";
@@ -92,8 +93,10 @@ export interface ChangesetStatusEntry {
 const STATUS_LINE = /^status:[ \t]*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s#'"][^\s#]*))[ \t]*(?:#.*)?$/gm;
 
 /**
- * The `status` of a changeset's metadata.yaml text. A top-level `status:` line is read directly;
- * only when there is no single such line (an unusual layout) is the whole file parsed.
+ * The `status` of a changeset's metadata.yaml text, as loading it reads it: a top-level `status:`
+ * line is read directly; with no single such line (an unusual layout) the whole file is parsed.
+ * Metadata without a status is `staged`, as Changeset.fromJSON takes it; null only when the text
+ * is not YAML.
  */
 export function readMetadataStatus(text: string): string | null {
   const matches = [...text.matchAll(STATUS_LINE)];
@@ -103,7 +106,7 @@ export function readMetadataStatus(text: string): string | null {
   }
   try {
     const parsed = yaml.parse(text) as { status?: unknown } | null;
-    return typeof parsed?.status === "string" ? parsed.status : null;
+    return typeof parsed?.status === "string" && parsed.status ? parsed.status : "staged";
   } catch {
     return null;
   }
@@ -135,16 +138,26 @@ async function cachedMetadataStatus(metadataPath: string): Promise<string | null
   return status;
 }
 
-/** A changeset folder's files, as their mtime and size: changes when any of them is rewritten. */
+/**
+ * A changeset folder's files, as a stamp that changes when any of them is rewritten: a hash of
+ * metadata.yaml and the review file (small, and rewritten in place at the same size, say a status
+ * flip within one timestamp tick), and the mtime and size of changes.yaml (megabytes, and never
+ * rewritten without its metadata.yaml).
+ */
 export async function changesetFilesStamp(changesetPath: string): Promise<string> {
   const parts: string[] = [];
-  for (const file of ["metadata.yaml", "changes.yaml", REVIEW_FILE]) {
+  for (const file of ["metadata.yaml", REVIEW_FILE]) {
     try {
-      const s = await stat(path.join(changesetPath, file));
-      parts.push(`${s.mtimeMs}:${s.size}`);
+      parts.push(createHash("sha1").update(await readFile(path.join(changesetPath, file))).digest("hex"));
     } catch {
       parts.push("-");
     }
+  }
+  try {
+    const s = await stat(path.join(changesetPath, "changes.yaml"));
+    parts.push(`${s.mtimeMs}:${s.size}`);
+  } catch {
+    parts.push("-");
   }
   return parts.join("|");
 }

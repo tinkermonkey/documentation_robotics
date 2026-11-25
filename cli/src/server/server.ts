@@ -49,6 +49,7 @@ import type { ProjectRegistry } from "../core/project-registry.js";
 import { CheckoutContext, checkoutKey, type CheckoutSubscriber } from "./checkout-context.js";
 import type { CentralActivity } from "./central-server-contract.js";
 import { toolCallsInFlight } from "../mcp/tool-calls-in-flight.js";
+import { assertRunningCodeInstalled, RunningCodeChangedError, withRunningCodeChecked } from "../utils/running-code.js";
 import { CheckoutContextPool } from "./checkout-context-pool.js";
 import { DrBotLauncher, JSONRPC_ERRORS } from "./dr-bot-launcher.js";
 import { CHECKOUT_CONTEXT_KEY, telemetryMiddleware } from "./telemetry-middleware.js";
@@ -3672,6 +3673,16 @@ export class VisualizationServer {
       // A record (verification or upgrade) never lands (commit refuses it too); refused before any review drop.
       const refusal = await manager.landingRefusal(changeset);
       if (refusal) return c.json({ error: refusal.fullText }, 409);
+      // A process whose installed CLI changed under it would land with the old code (#1427): refused
+      // before anything is written, the review's drops included.
+      try {
+        await assertRunningCodeInstalled();
+      } catch (error) {
+        if (error instanceof RunningCodeChangedError) {
+          return c.json({ error: error.message, restart: error.suggestions?.[0] }, 409);
+        }
+        throw error;
+      }
     }
 
     // A commit with the reviewer's verdicts: leave the dropped changes (and what depends on them)
@@ -3713,10 +3724,13 @@ export class VisualizationServer {
       }
       if (action === "commit") {
         // Only errors the changeset introduces block; the base model's own are counted.
-        const commit = await manager.commit(model, changesetId, {
-          validate: true,
-          ...(progress ? { onProgress: progress.onProgress } : {}),
-        });
+        // Checked once for the whole commit: a CLI change partway through never half-lands it.
+        const commit = await withRunningCodeChecked(() =>
+          manager.commit(model, changesetId, {
+            validate: true,
+            ...(progress ? { onProgress: progress.onProgress } : {}),
+          })
+        );
         result = {
           committed: commit.committed,
           skipped: commit.skipped ?? 0,
@@ -4167,6 +4181,7 @@ export class VisualizationServer {
       drBotTurns,
       lastActivityAt: this.lastActivityAt,
       requestsInFlight: this.apiRequestsInFlight + toolCallsInFlight(),
+      directMcpSessions: this.central.mcpEndpoint?.directSessionCount ?? 0,
     };
   }
 

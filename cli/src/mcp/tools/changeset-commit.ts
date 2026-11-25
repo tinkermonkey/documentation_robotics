@@ -59,7 +59,7 @@ import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js
 import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
-import { assertRunningCodeInstalled } from "../../utils/running-code.js";
+import { assertRunningCodeInstalled, withRunningCodeChecked } from "../../utils/running-code.js";
 import { getCliVersion } from "../../utils/spec-version.js";
 import { changesetLinkIfRunning } from "./central-viewer.js";
 import {
@@ -739,7 +739,10 @@ export async function changesetCommitHandler(
       const progress = createCommitProgressReporter(model.rootPath, changeset.id);
       let landed;
       try {
-        landed = await manager.commit(model, changeset.id, { validate: true, onProgress: progress.onProgress });
+        // Checked once for the whole commit: a CLI change partway through never half-lands it (#1427).
+        landed = await withRunningCodeChecked(() =>
+          manager.commit(model, changeset.id, { validate: true, onProgress: progress.onProgress })
+        );
       } catch (error) {
         progress.fail();
         throw commitError(error, changeset.name);

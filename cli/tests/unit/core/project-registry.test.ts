@@ -372,6 +372,37 @@ describe("resolving checkouts", () => {
     expect(list.find((p) => p.name === "here")).not.toHaveProperty("missing");
   });
 
+  it("lists a repository restored after it was gone as present again, without a restart", async () => {
+    const tmp = await scratch();
+    const { registry } = await folderFarm(tmp);
+    const dir = path.join(tmp, "comeback");
+    await registry.registerProject(await createRepo(dir));
+    expect((await registry.listProject("comeback"))?.checkouts[0]).toMatchObject({ state: "present", branch: "main" });
+
+    await rm(dir, { recursive: true, force: true });
+    expect(await registry.listProject("comeback")).toMatchObject({ missing: true, checkouts: [{ state: "missing" }] });
+
+    // Cloned again at the same place: the failed lookup in between was not cached.
+    await createRepo(dir);
+    await registry.reload();
+    const back = await registry.listProject("comeback");
+    expect(back).not.toHaveProperty("missing");
+    expect(back?.checkouts[0]).toMatchObject({ key: "main", state: "present", branch: "main" });
+  });
+
+  it("asks git again for a project folder that was not a repository when first seen", async () => {
+    const tmp = await scratch();
+    const { registry } = await folderFarm(tmp);
+    const dir = path.join(tmp, "later-repo");
+    await registry.registerProject(await createRepo(dir));
+    // As if registered before its `git init`: the folder exists, but has no repository yet.
+    await rm(path.join(dir, ".git"), { recursive: true, force: true });
+    await registry.reload();
+    expect((await registry.listProject("later-repo"))?.checkouts[0]).toMatchObject({ branch: null });
+    await createRepo(dir);
+    expect((await registry.listProject("later-repo"))?.checkouts[0]).toMatchObject({ branch: "main" });
+  });
+
   it("reloads farm.yaml only when its text changed, keeping what it resolved otherwise", async () => {
     const tmp = await scratch();
     const { location, registry } = await folderFarm(tmp);

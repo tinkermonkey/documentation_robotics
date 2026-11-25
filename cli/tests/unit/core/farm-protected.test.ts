@@ -26,17 +26,31 @@ describe("the test preload", () => {
     expect((process.env[PROTECTED_FARM_FILES_ENV] ?? "").split(path.delimiter)).toContain(real);
   });
 
-  it("makes a save to the real user farm fail, without writing it", async () => {
-    const real = path.join(os.homedir(), ".config", "dr", "farm.yaml");
-    const existed = existsSync(real);
-    // An env without XDG_CONFIG_HOME resolves to the real farm: the leak #1438 found.
-    expect(userFarmFile({})).toBe(real);
-    await expect(FarmManifest.create("leak").save(userFarmFile({}))).rejects.toThrow(/Refused to write .*protected/);
-    expect(existsSync(real)).toBe(existed);
+  it("protects the farm an env without XDG_CONFIG_HOME resolves to (the leak #1438 found)", () => {
+    // Only the check: nothing here ever saves to the real path, so a run without the preload
+    // (another runner, another bunfig) fails this test instead of touching the farm.
+    expect(() => assertFarmFileWritable(userFarmFile({}))).toThrow(/Refused to write .*protected/);
   });
 });
 
 describe("assertFarmFileWritable", () => {
+  it("makes FarmManifest.save refuse a protected file without writing it", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "dr-protected-save-"));
+    scratchDirs.push(dir);
+    const file = path.join(dir, "farm.yaml");
+    const saved = process.env[PROTECTED_FARM_FILES_ENV];
+    process.env[PROTECTED_FARM_FILES_ENV] = [saved, file].filter(Boolean).join(path.delimiter);
+    try {
+      await expect(FarmManifest.create("leak").save(file)).rejects.toThrow(/Refused to write .*protected/);
+      expect(existsSync(file)).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env[PROTECTED_FARM_FILES_ENV];
+      else process.env[PROTECTED_FARM_FILES_ENV] = saved;
+    }
+    await FarmManifest.create("allowed").save(path.join(dir, "other.yaml"));
+    expect(existsSync(path.join(dir, "other.yaml"))).toBe(true);
+  });
+
   it("refuses a protected file however it is spelled, and allows any other", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "dr-protected-"));
     scratchDirs.push(dir);

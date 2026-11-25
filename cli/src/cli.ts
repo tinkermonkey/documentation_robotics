@@ -814,7 +814,8 @@ program
   )
   .option(
     "--token-file <path>",
-    "Use the token in this file (16 or more characters) instead of a new one, when it starts the process; every call still needs it"
+    "With --state-dir: use the token in this file (16 or more characters, mode 600, yours) instead of a new one; " +
+      "every call still needs it"
   )
   .option("--no-sweep", "Leave other per-project viewers running at start-up (when it starts the process)")
   .addHelpText(
@@ -827,14 +828,16 @@ Examples:
   $ dr serve --read-only --viewer-path ./dist/embedded/dr-viewer-bundle
   $ dr serve --status
   $ dr serve --stop
+  $ (umask 077; openssl rand -hex 24 > ./e2e/token)
   $ DR_FARM_PATH=./e2e/farm dr serve --foreground --json --state-dir ./e2e/state --port 8099 --token-file ./e2e/token
 
 A test suite (or a CLI run from source) gets a process of its own with
 --state-dir: a farm of its own (DR_FARM_PATH, or a farm.yaml above the working
-directory), its record in <dir>, no sweep, and the exact --port. The token is
-still required on every call: --token-file gives the one the suite chose, and
-with --foreground --json the process prints one line once it serves:
-{"ready":true,"pid":...,"port":...,"url":...,"farmRoot":...}.
+directory; never the user farm), its record in <dir>, no sweep, and the exact
+--port. The token is still required on every call: --token-file gives the one
+the suite chose (a file only you can read), and with --foreground --json the
+process prints one line on stdout once it serves (its log goes to stderr):
+{"ready":true,"pid":...,"port":...,"url":...,"farmRoot":...,"projects":[...]}.
 
 One process serves every project and checkout of the farm (DR_FARM_PATH, a
 farm.yaml above the working directory, or the user farm). It records itself

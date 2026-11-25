@@ -2,17 +2,17 @@ id: changeset-1795622887596-sj2wvbxgf
 name: cli09-server-viewer-processes
 description: 'CLI 0.9.0 tranche "Dependable server and viewer processes" (#1436 #1427 #1438 #1369 #1282 #1308 #1362 #1376). Done looks like: farm listings count staged changesets from metadata.yaml alone (cached by mtime, concurrent listings share one run) and single-project routes scan one project; a long-lived DR process refuses base-model writes once the installed CLI changed under it, and restarts itself when nothing but MCP sessions use it; the test preload cannot write the real user farm, and farm listings flag a project whose repository is gone; dr serve sweeps only its own farm''s per-project viewers and has an isolated, authenticated test mode (--state-dir, --token-file, --no-sweep, a JSON ready line); ensureCentralServer reports a process that is not answering /health with its log path; viewer files are served with no-cache for index.html so a rebuilt --viewer-path bundle shows; the server instructions and project_status say what survived a reconnect.'
 created: 2026-11-25T16:08:07.642Z
-modified: 2026-11-25T16:46:19.480Z
+modified: 2026-11-25T17:18:22.853Z
 status: staged
 baseSnapshot: v2:sha256:4506116032a937476a72f8119b4b07d4c6863c0685e0090a09259f8b8bada8c8
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 16
-  modifications: 8
+  additions: 28
+  modifications: 14
   deletions: 0
-lastSequence: 30
+lastSequence: 51
 unstaged:
   - sequence: 10
     removedAt: 24
@@ -126,4 +126,77 @@ unstaged:
           updated_at: 2026-11-25T16:08:59.368Z
           version: 1
       timestamp: 2026-11-25T16:08:59.402Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 31
+    change:
+      type: add
+      elementId: application.applicationfunction.central-stale-reason
+      layerName: application
+      after:
+        id: 3f45a542-7ff1-4f76-9d3a-b81cfcd9c1d9
+        path: application.applicationfunction.central-stale-reason
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: centralStaleReason
+        description: "Why the central process should restart, or null: the installed CLI changed under it (runningCodeDrift) and no browser tab or DrBot turn is connected. MCP sessions do not hold it, because the dr mcp bridge reconnects and replays them on the installed CLI's process. Checked on the idle watch's interval (#1427)."
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/server/central-lifetime.ts
+              symbol: centralStaleReason
+      timestamp: 2026-11-25T16:46:19.477Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 33
+    change:
+      type: add
+      elementId: application.applicationfunction.assert-running-code-installed
+      layerName: application
+      after:
+        id: dd3408c1-f5e9-4dc9-ae18-aa2352715d7e
+        path: application.applicationfunction.assert-running-code-installed
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: assertRunningCodeInstalled
+        description: "In a long-lived DR process (the central process enables it), refuses a write to the base model once runningCodeDrift finds the installed CLI changed under it: nothing is written, and the error names both versions and the restart (dr serve --stop; the dr MCP server reconnects to a process running the installed CLI). Short-lived dr commands never trip it (#1427)."
+        metadata:
+          created_at: 2026-11-25T16:08:59.368Z
+          updated_at: 2026-11-25T16:08:59.368Z
+          version: 1
+        source_reference:
+          provenance: extracted
+          locations:
+            - file: cli/src/utils/running-code.ts
+              symbol: assertRunningCodeInstalled
+      timestamp: 2026-11-25T16:46:19.477Z
+    rewritten: true
+  - sequence: 13
+    removedAt: 39
+    change:
+      type: add
+      elementId: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+      layerName: motivation
+      after:
+        id: 9f9b4cd1-6151-4ad5-a8a3-5e9fbaf3e977
+        path: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+        spec_node_id: motivation.requirement
+        type: requirement
+        layer_id: motivation
+        name: A long-lived DR process never writes the model with code older than the installed CLI
+        description: Once the dr CLI installed where a long-lived DR process (the central process) was loaded from changes under it (another version, or its files rewritten after it started), the process refuses every write to the base model and says to restart it, so a landing never stamps an old cli_version or writes the old file layout (#1427). It restarts itself when only MCP sessions, which reconnect, are using it.
+        attributes:
+          requirementType: non-functional
+          priority: high
+        metadata:
+          created_at: 2026-11-25T16:09:06.759Z
+          updated_at: 2026-11-25T16:09:06.759Z
+          version: 1
+      timestamp: 2026-11-25T16:09:06.925Z
     rewritten: true

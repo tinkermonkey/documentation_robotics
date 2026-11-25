@@ -308,7 +308,6 @@ describe("project_status", () => {
       expect(data.nextStep.tool).toBe("codebase_index");
       expect(data.nextStep.summary).toContain(`Also: This DR process runs CLI ${getCliVersion()}, and CLI 99.1.0 is installed now`);
       expect(data.nextStep.summary).toContain("Restart the DR process (`dr serve --stop`");
-      expect(data.nextStep.summary).toContain("until then it refuses to write the model");
     });
 
     it("sees the same version installed or built again after the server started, by its files' time", async () => {

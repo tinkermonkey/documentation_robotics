@@ -15,7 +15,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, realpath, rm, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { portAllocator } from "../helpers/port-allocator.ts";
@@ -56,6 +56,7 @@ describe.skipIf(!ready).serial("dr serve --state-dir: an isolated, authenticated
   let port: number;
   let child: ChildProcess | undefined;
   let readyLine: Record<string, unknown>;
+  let stdoutText = "";
   let base: string;
 
   const dr = (args: string[]) =>
@@ -117,6 +118,7 @@ describe.skipIf(!ready).serial("dr serve --state-dir: an isolated, authenticated
       const timer = setTimeout(() => reject(new Error(`no ready line within 45s:\n${output}`)), 45_000);
       child!.stdout!.on("data", (chunk) => {
         output += chunk;
+        stdoutText += chunk;
         for (const line of output.split("\n")) {
           if (!line.startsWith("{")) continue;
           try {
@@ -136,13 +138,31 @@ describe.skipIf(!ready).serial("dr serve --state-dir: an isolated, authenticated
   }, 60_000);
 
   afterAll(async () => {
-    if (child?.pid && isProcessAlive(child.pid)) child.kill("SIGKILL");
+    // Both: the dr serve launcher, and the serve-entry process it runs, so a failed test orphans neither.
+    const servePid = typeof readyLine?.pid === "number" ? readyLine.pid : undefined;
+    for (const pid of [servePid, child?.pid]) {
+      if (pid && isProcessAlive(pid)) {
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {
+          // Gone between the check and the signal.
+        }
+      }
+    }
     portAllocator.releasePort(port);
     await rm(scratch, { recursive: true, force: true });
   });
 
   it("prints a ready line with its pid and the exact port, and records itself in its own state directory", () => {
     expect(readyLine).toMatchObject({ ready: true, port, url: `${base}/`, farmRoot: join(scratch, "farm") });
+    // The farm's projects with their checkouts' keys: a gone repository has none.
+    expect(readyLine.projects).toEqual([
+      { project: "app", checkouts: ["main"] },
+      { project: "gone", checkouts: [] },
+    ]);
+    // stdout carries the ready line alone; the process's log went to stderr.
+    const lines = stdoutText.split("\n").filter((line) => line.trim() !== "");
+    expect(lines.every((line) => line.startsWith("{"))).toBe(true);
     expect(typeof readyLine.pid).toBe("number");
     expect(existsSync(join(stateDir, "servers"))).toBe(true);
     // Nothing went to the scratch HOME's state or config.
@@ -190,6 +210,25 @@ describe.skipIf(!ready).serial("dr serve --state-dir: an isolated, authenticated
 
     const asset = await get("/assets/index-B3x9kQ2a.js");
     expect(asset.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+  });
+
+  it("refuses a token file others can read, and --state-dir on the user farm, before starting anything", async () => {
+    const open = join(scratch, "open.token");
+    await writeFile(open, `${TOKEN}\n`);
+    await chmod(open, 0o644);
+    const args = ["serve", "--foreground", "--state-dir", join(scratch, "other-state"), "--port", String(port + 1)];
+    const loose = dr([...args, "--token-file", open]);
+    expect(loose.status).not.toBe(0);
+    expect(loose.stderr + loose.stdout).toContain("can be read by other users (mode 644)");
+
+    const userFarm = spawnSync("node", [CLI_PATH, ...args], {
+      cwd: scratch,
+      env: { ...env, DR_FARM_PATH: undefined },
+      encoding: "utf8",
+      timeout: 60_000,
+    });
+    expect(userFarm.status).not.toBe(0);
+    expect(userFarm.stderr + userFarm.stdout).toContain("this one is the user farm");
   });
 
   it("is found and stopped through the same --state-dir", async () => {

@@ -9,13 +9,19 @@
  * started (the same version installed or built again).
  *
  * - `runningCodeDrift` says which, or null. project_status's server section reads it.
- * - `assertRunningCodeInstalled` refuses a base-model write once it finds drift. It is off until
- *   `enableRunningCodeGuard` turns it on, which only the central process does: a short-lived dr
- *   command has just loaded the installed code, and a test process must not trip on a rebuild.
- * - The central process also restarts itself when it finds drift and only MCP sessions, which the
- *   dr mcp bridge reconnects, are using it (central-lifetime.ts, `centralStaleReason`).
+ * - `watchRunningCode` records what is installed when a process starts and says later whether it
+ *   changed since. Drift already there at start (a dev checkout bumped without a rebuild, an
+ *   npm-linked checkout, a skewed clock) is reported once and never refused or restarted on.
+ * - `assertRunningCodeInstalled` refuses a base-model write once the installed CLI changed since
+ *   the start. It is off until `enableRunningCodeGuard` turns it on, which only the central process
+ *   does: a short-lived dr command has just loaded the installed code, and a test process must not
+ *   trip on a rebuild. `withRunningCodeChecked` checks once for a whole commit, so a change partway
+ *   through never leaves a landing half written.
+ * - A detached central process started with the default options also restarts itself when the
+ *   CLI changed and nothing a restart would cut is using it (central-lifetime.ts, `centralStaleReason`).
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -115,13 +121,53 @@ export async function runningCodeDrift(options: RunningCodeOptions = {}): Promis
   return null;
 }
 
+/**
+ * How the installed CLI changed since `baseline`, what was installed when the process started:
+ * another version, or its files written since. Null when it didn't, or either can't be read.
+ * Comparing two reads of the same files, it never mistakes drift there at start, or a skewed
+ * clock, for a change.
+ */
+export function installedChangedSince(
+  baseline: InstalledCli | null,
+  current: InstalledCli | null,
+  running: string = getCliVersion()
+): RunningCodeDrift | null {
+  if (!baseline || !current) return null;
+  if (current.version !== baseline.version) return { reason: "version", running, installed: current };
+  if (current.modifiedAt !== undefined && baseline.modifiedAt !== undefined && current.modifiedAt > baseline.modifiedAt) {
+    return { reason: "rewritten", running, installed: current, changedAt: new Date(current.modifiedAt).toISOString() };
+  }
+  return null;
+}
+
+/** What a long-lived process records about its code when it starts (`watchRunningCode`). */
+export interface RunningCodeWatch {
+  /** What was installed at start; null when it couldn't be read (then nothing is ever reported). */
+  baseline: InstalledCli | null;
+  /** Drift already there at start: reported, never guarded or restarted on. */
+  driftAtStart: RunningCodeDrift | null;
+  /** How the installed CLI changed since the start; null while it hasn't. */
+  check: () => Promise<RunningCodeDrift | null>;
+}
+
+/** Records what is installed now as this process's baseline; `check` compares later reads with it. */
+export async function watchRunningCode(
+  options: { read?: () => Promise<InstalledCli | null>; running?: string } = {}
+): Promise<RunningCodeWatch> {
+  const read = options.read ?? (() => readInstalledCli());
+  const running = options.running ?? getCliVersion();
+  const baseline = await read();
+  const driftAtStart = await runningCodeDrift({ installed: baseline, running });
+  return { baseline, driftAtStart, check: async () => installedChangedSince(baseline, await read(), running) };
+}
+
 /** What happened, in a sentence. */
 export function describeRunningCodeDrift(drift: RunningCodeDrift): string {
   return drift.reason === "version"
     ? `This DR process runs CLI ${drift.running}, and CLI ${drift.installed.version} is installed now: ` +
         "it started before the CLI changed and still runs the old code"
     : `The dr CLI's files on disk changed at ${drift.changedAt}, after this DR process started (the version is ` +
-        `still ${drift.running}): the process runs the code it started with`;
+        `still ${drift.installed.version}): the process runs the code it started with`;
 }
 
 /**
@@ -131,6 +177,16 @@ export function describeRunningCodeDrift(drift: RunningCodeDrift): string {
 export const RESTART_DR_PROCESS =
   "Restart the DR process (`dr serve --stop` stops it, with its browser tabs and DrBot turns; the dr MCP " +
   "server then reconnects on the next tool call and starts the installed CLI's process)";
+
+/** The same for a dr MCP server that runs in the client's own process (DR_MCP_IN_PROCESS): no central process to stop. */
+export const RESTART_IN_PROCESS =
+  "Restart this dr MCP server (reconnect it in the client, or restart the session): it runs in the client's own " +
+  "process (DR_MCP_IN_PROCESS), so dr serve --stop does not reach it";
+
+/** How the process answering gets onto the installed CLI: the central process, or an in-process dr MCP server. */
+export function restartAdvice(env: NodeJS.ProcessEnv = process.env): string {
+  return /^(1|true|yes|on)$/i.test(env.DR_MCP_IN_PROCESS?.trim() ?? "") ? RESTART_IN_PROCESS : RESTART_DR_PROCESS;
+}
 
 /** Refused: a write to the base model by a process whose installed CLI changed under it. */
 export class RunningCodeChangedError extends CLIError {
@@ -145,31 +201,54 @@ export class RunningCodeChangedError extends CLIError {
   }
 }
 
-/** How the guard reads drift; replaced in tests. */
+/** How the guard reads drift: a `RunningCodeWatch`'s check in the central process, a fake in tests. */
 export type RunningCodeCheck = () => Promise<RunningCodeDrift | null>;
 
-let guard: { check: RunningCodeCheck; checkedAt: number; drift: RunningCodeDrift | null } | null = null;
+interface Guard {
+  check: RunningCodeCheck;
+  checkedAt: number;
+  drift: RunningCodeDrift | null;
+}
+
+let guard: Guard | null = null;
 
 /** A drift check is reused this long; once drift is found it is kept (the process never catches up). */
 const GUARD_RECHECK_MS = 2_000;
 
+/** Set while a commit runs inside `withRunningCodeChecked`: its writes were checked once, at its start. */
+const checkedForCommit = new AsyncLocalStorage<true>();
+
 /**
- * Turns the write guard on for this process (the central process does, at start), or off with
- * `false`. `check` replaces how drift is read (tests).
+ * Turns the write guard on for this process with how it reads drift (the central process passes
+ * its `RunningCodeWatch`'s check, at start), or off with `false`.
  */
-export function enableRunningCodeGuard(enabled: boolean = true, check: RunningCodeCheck = () => runningCodeDrift()): void {
-  guard = enabled ? { check, checkedAt: Number.NEGATIVE_INFINITY, drift: null } : null;
+export function enableRunningCodeGuard(enabled: boolean, check?: RunningCodeCheck): void {
+  if (enabled && !check) throw new Error("enableRunningCodeGuard(true) needs the check it reads drift with");
+  guard = enabled ? { check: check!, checkedAt: Number.NEGATIVE_INFINITY, drift: null } : null;
 }
 
 /**
  * Throws RunningCodeChangedError when the guard is on and the installed CLI changed under this
  * process. Every write to the base model calls it (model.ts), next to assertBaseModelWritable.
+ * Inside `withRunningCodeChecked` it passes: that commit was checked at its start.
  */
 export async function assertRunningCodeInstalled(now: number = Date.now()): Promise<void> {
-  if (!guard) return;
-  if (!guard.drift && now - guard.checkedAt >= GUARD_RECHECK_MS) {
-    guard.drift = await guard.check();
-    guard.checkedAt = now;
+  // The guard as it is now: turning it off (or on again) during the await below changes nothing here.
+  const current = guard;
+  if (!current || checkedForCommit.getStore()) return;
+  if (!current.drift && now - current.checkedAt >= GUARD_RECHECK_MS) {
+    current.drift = await current.check();
+    current.checkedAt = now;
   }
-  if (guard.drift) throw new RunningCodeChangedError(guard.drift);
+  if (current.drift) throw new RunningCodeChangedError(current.drift);
+}
+
+/**
+ * Runs a commit with the guard checked once, at its start: refused then, or never during it. A
+ * change of the installed CLI partway through can't stop a landing after its changeset is marked
+ * committed and before the model is written (#1427).
+ */
+export async function withRunningCodeChecked<T>(commit: () => Promise<T>): Promise<T> {
+  await assertRunningCodeInstalled();
+  return checkedForCommit.run(true, commit);
 }

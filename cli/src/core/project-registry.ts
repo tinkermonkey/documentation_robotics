@@ -416,7 +416,7 @@ interface CheckoutCache {
 export class ProjectRegistry {
   readonly farm: FarmLocation;
   private manifest: FarmManifest;
-  private readonly repositories = new Map<string, Repository | null>();
+  private readonly repositories = new Map<string, Repository>();
   private readonly checkoutCache = new Map<string, CheckoutCache>();
   private readonly removedAnnounced = new Map<string, Set<string>>();
   private readonly listeners = new Set<CheckoutRemovedListener>();
@@ -480,13 +480,18 @@ export class ProjectRegistry {
     return resolveFarmPath(this.farm.root, project.repository);
   }
 
-  /** The repository of a project, from git; null when its folder is not a git working tree. */
+  /**
+   * The repository of a project, from git; null when its folder is not a git working tree. Only a
+   * repository found is cached: a null is asked again next time, so a repository cloned again, a
+   * `git init` after registering or one failed git call doesn't stick for the life of the process.
+   */
   async repositoryOf(project: FarmProject): Promise<Repository | null> {
     const key = project.name;
-    if (!this.repositories.has(key)) {
-      this.repositories.set(key, await resolveRepository(this.repositoryPath(project)));
-    }
-    return this.repositories.get(key) ?? null;
+    const cached = this.repositories.get(key);
+    if (cached) return cached;
+    const repository = await resolveRepository(this.repositoryPath(project));
+    if (repository) this.repositories.set(key, repository);
+    return repository;
   }
 
   /**

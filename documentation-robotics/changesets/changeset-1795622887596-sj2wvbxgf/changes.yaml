@@ -52,7 +52,7 @@
     type: applicationfunction
     layer_id: application
     name: assertRunningCodeInstalled
-    description: "In a long-lived DR process (the central process enables it), refuses a write to the base model once runningCodeDrift finds the installed CLI changed under it: nothing is written, and the error names both versions and the restart (dr serve --stop; the dr MCP server reconnects to a process running the installed CLI). Short-lived dr commands never trip it (#1427)."
+    description: "In the central process (which turns it on with its RunningCodeWatch), refuses a write to the base model once the installed CLI changed since the process started: nothing is written, and the error names both versions and the restart. Drift already there at start is never refused. Inside withRunningCodeChecked it passes: that commit was checked once, at its start (#1427)."
     metadata:
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
@@ -62,7 +62,7 @@
       locations:
         - file: cli/src/utils/running-code.ts
           symbol: assertRunningCodeInstalled
-  timestamp: 2026-11-25T16:46:19.477Z
+  timestamp: 2026-11-25T17:18:20.333Z
   sequenceNumber: 2
 - type: add
   elementId: application.applicationfunction.central-stale-reason
@@ -74,7 +74,7 @@
     type: applicationfunction
     layer_id: application
     name: centralStaleReason
-    description: "Why the central process should restart, or null: the installed CLI changed under it (runningCodeDrift) and no browser tab or DrBot turn is connected. MCP sessions do not hold it, because the dr mcp bridge reconnects and replays them on the installed CLI's process. Checked on the idle watch's interval (#1427)."
+    description: "Why the central process should stop for a restart on the installed CLI, or null (#1427): the CLI changed since it started, and nothing a restart would cut is using it: no browser tab, no DrBot turn, no API request or MCP tool call being answered (requestsInFlight) and no MCP client connected straight to /mcp (directMcpSessions). Sessions of the dr mcp bridge, which marks them, don't hold it: it replays them. Only a process started detached with the default options restarts; any other keeps running and says to restart it by hand."
     metadata:
       created_at: 2026-11-25T16:08:59.368Z
       updated_at: 2026-11-25T16:08:59.368Z
@@ -84,7 +84,7 @@
       locations:
         - file: cli/src/server/central-lifetime.ts
           symbol: centralStaleReason
-  timestamp: 2026-11-25T16:46:19.477Z
+  timestamp: 2026-11-25T17:18:20.202Z
   sequenceNumber: 3
 - type: add
   elementId: application.applicationfunction.visualization-server-serve-custom-viewer
@@ -195,7 +195,7 @@
     type: requirement
     layer_id: motivation
     name: A long-lived DR process never writes the model with code older than the installed CLI
-    description: Once the dr CLI installed where a long-lived DR process (the central process) was loaded from changes under it (another version, or its files rewritten after it started), the process refuses every write to the base model and says to restart it, so a landing never stamps an old cli_version or writes the old file layout (#1427). It restarts itself when only MCP sessions, which reconnect, are using it.
+    description: Once the dr CLI installed where a long-lived DR process (the central process) was loaded from changes after the process started (another version, or its files rewritten), the process refuses every write to the base model and says to restart it, so a landing never stamps an old cli_version or writes the old file layout (#1427). A commit is checked once at its start, so a change partway through never half-lands it. Drift already there at start is reported, not refused. A process started detached with the default options restarts itself once nothing a restart would cut is using it; any other keeps running and says to restart it by hand.
     attributes:
       requirementType: non-functional
       priority: high
@@ -203,7 +203,7 @@
       created_at: 2026-11-25T16:09:06.759Z
       updated_at: 2026-11-25T16:09:06.759Z
       version: 1
-  timestamp: 2026-11-25T16:09:06.925Z
+  timestamp: 2026-11-25T17:18:20.779Z
   sequenceNumber: 13
 - type: relationship-add
   elementId: application.applicationfunction.assert-running-code-installed::satisfies::motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
@@ -509,3 +509,374 @@
     metadata: *a18
   timestamp: 2026-11-25T16:45:39.675Z
   sequenceNumber: 25
+- type: update
+  elementId: application.applicationfunction.ensure-central-server
+  layerName: application
+  before:
+    id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+    path: application.applicationfunction.ensure-central-server
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCentralServer
+    description: The central DR process for the farm in use, started when there is none, returned once its record is written and its /health answers. A recorded process that does not answer /health comes back with a notice naming its log, instead of a link that hangs (#1282). A process older than this CLI is replaced only when nothing uses it.
+    source_reference: &a19
+      provenance: manual
+      locations:
+        - file: cli/src/server/ensure-central-server.ts
+          symbol: ensureCentralServer
+    metadata: &a20
+      created_at: 2026-11-21T17:14:10.905Z
+      updated_at: 2026-11-21T17:14:10.905Z
+      version: 1
+  after:
+    id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+    path: application.applicationfunction.ensure-central-server
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCentralServer
+    description: The central DR process for the farm in use, started when there is none, returned once its record is written and its /health answers. A recorded process that does not answer /health within three tries is still returned, with a notice naming its pid, port and log, rather than a link said to be starting (#1282). A timed-out wait for another caller's start names the log too. A process older than this CLI is replaced only when nothing uses it.
+    source_reference: *a19
+    metadata: *a20
+  timestamp: 2026-11-25T17:18:20.265Z
+  sequenceNumber: 32
+- type: update
+  elementId: application.applicationfunction.checkout-context-load-changesets
+  layerName: application
+  before:
+    id: c3c3737e-f059-4b41-b6db-47aba1fe47bb
+    path: application.applicationfunction.checkout-context-load-changesets
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: CheckoutContext.loadChangesets
+    description: Reads every staged changeset from disk into `changesets`.
+    source_reference: &a21
+      provenance: extracted
+      locations:
+        - file: cli/src/server/checkout-context.ts
+          symbol: CheckoutContext.loadChangesets
+    metadata: &a22
+      created_at: 2026-11-24T21:42:21.516Z
+      updated_at: 2026-11-24T21:42:21.516Z
+      version: 1
+  after:
+    id: c3c3737e-f059-4b41-b6db-47aba1fe47bb
+    path: application.applicationfunction.checkout-context-load-changesets
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: CheckoutContext.loadChangesets
+    description: "Reads every staged changeset from disk into the context's map. A changeset whose files are unchanged since the last read (a hash of metadata.yaml and review.yaml, the mtime and size of changes.yaml) is kept as it was read, not parsed again: routes call it on every request (#1436)."
+    source_reference: *a21
+    metadata: *a22
+  timestamp: 2026-11-25T17:18:20.386Z
+  sequenceNumber: 34
+- type: update
+  elementId: application.applicationfunction.project-registry-reload
+  layerName: application
+  before:
+    id: 4d69a370-580a-45ec-ae88-bad5e1ba119b
+    path: application.applicationfunction.project-registry-reload
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ProjectRegistry.reload
+    description: Re-read farm.yaml from disk (another process may have registered a project).
+    source_reference: &a23
+      provenance: extracted
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.reload
+    metadata: &a24
+      created_at: 2026-11-24T21:42:21.516Z
+      updated_at: 2026-11-24T21:42:21.516Z
+      version: 1
+  after:
+    id: 4d69a370-580a-45ec-ae88-bad5e1ba119b
+    path: application.applicationfunction.project-registry-reload
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ProjectRegistry.reload
+    description: Re-read farm.yaml from disk (another process may have registered a project). When its text is what was read last time, nothing changes and the repositories already resolved are kept (#1436).
+    source_reference: *a23
+    metadata: *a24
+  timestamp: 2026-11-25T17:18:20.434Z
+  sequenceNumber: 35
+- type: update
+  elementId: application.applicationfunction.project-registry-repository-of
+  layerName: application
+  before:
+    id: adb10d69-c8d8-46d5-a0e3-c25d14ed89bb
+    path: application.applicationfunction.project-registry-repository-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ProjectRegistry.repositoryOf
+    description: The repository of a project, from git; null when its folder is not a git working tree.
+    source_reference: &a25
+      provenance: extracted
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.repositoryOf
+    metadata: &a26
+      created_at: 2026-11-24T21:42:21.516Z
+      updated_at: 2026-11-24T21:42:21.516Z
+      version: 1
+  after:
+    id: adb10d69-c8d8-46d5-a0e3-c25d14ed89bb
+    path: application.applicationfunction.project-registry-repository-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ProjectRegistry.repositoryOf
+    description: "The repository of a project, from git; null when its folder is not a git working tree. Only a repository found is cached: a null is asked again, so a repository cloned again, a git init after registering or one failed git call doesn't stick until a restart."
+    source_reference: *a25
+    metadata: *a26
+  timestamp: 2026-11-25T17:18:20.507Z
+  sequenceNumber: 36
+- type: update
+  elementId: application.applicationfunction.farm-manifest-save
+  layerName: application
+  before:
+    id: b90fcbdd-9f39-4e7a-bd37-926c1eeddea6
+    path: application.applicationfunction.farm-manifest-save
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: FarmManifest save
+    description: Save manifest to file @param filePath - Path where to save farm.yaml
+    source_reference: &a27
+      provenance: extracted
+      locations:
+        - file: cli/src/core/farm-manifest.ts
+          symbol: FarmManifest.save
+    metadata: &a28
+      created_at: 2026-11-20T15:08:21.758Z
+      updated_at: 2026-11-20T15:08:21.758Z
+      version: 1
+  after:
+    id: b90fcbdd-9f39-4e7a-bd37-926c1eeddea6
+    path: application.applicationfunction.farm-manifest-save
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: FarmManifest save
+    description: "Save the manifest to its farm.yaml. Refused for a file named in DR_PROTECTED_FARM_FILES (assertFarmFileWritable): the test preload protects the developer's real user farm that way (#1438)."
+    source_reference: *a27
+    metadata: *a28
+  timestamp: 2026-11-25T17:18:20.603Z
+  sequenceNumber: 37
+- type: update
+  elementId: application.applicationfunction.bridge-headers
+  layerName: application
+  before:
+    id: 1cb8e6a8-dc5c-4f16-ad07-79e9f1a42753
+    path: application.applicationfunction.bridge-headers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: bridgeHeaders
+    description: The headers a bridge session sends with every request to `/mcp`.
+    source_reference: &a29
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/stdio-bridge.ts
+          symbol: bridgeHeaders
+    metadata: &a30
+      created_at: 2026-11-24T21:42:21.516Z
+      updated_at: 2026-11-24T21:42:21.516Z
+      version: 1
+  after:
+    id: 1cb8e6a8-dc5c-4f16-ad07-79e9f1a42753
+    path: application.applicationfunction.bridge-headers
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: bridgeHeaders
+    description: "The headers a bridge session sends with every request to /mcp: the token, the pinned root and session env, and x-dr-mcp-bridge, which marks the session as one the bridge replays after a restart."
+    source_reference: *a29
+    metadata: *a30
+  timestamp: 2026-11-25T17:18:20.722Z
+  sequenceNumber: 38
+- type: add
+  elementId: application.applicationfunction.assert-farm-file-writable
+  layerName: application
+  after:
+    id: 913f4581-38a0-4cb5-871f-a479a78d0f46
+    path: application.applicationfunction.assert-farm-file-writable
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: assertFarmFileWritable
+    description: Throws when a farm.yaml is one this process must not write (DR_PROTECTED_FARM_FILES, compared with symlinks resolved). The test preload names the developer's real user farm there, so a test that forgets to isolate itself fails instead of writing it (#1438).
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/farm-manifest.ts
+          symbol: assertFarmFileWritable
+    metadata:
+      created_at: 2026-11-25T17:18:22.817Z
+      updated_at: 2026-11-25T17:18:22.817Z
+      version: 1
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 40
+- type: add
+  elementId: application.applicationfunction.watch-running-code
+  layerName: application
+  after:
+    id: 114edac1-3150-478f-bde9-4731523b849d
+    path: application.applicationfunction.watch-running-code
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: watchRunningCode
+    description: Records what is installed when a long-lived process starts, as its baseline, and reports drift already there then (driftAtStart). Its check says how the installed CLI changed since the baseline, so drift present at start, a dev checkout bumped without a rebuild or a skewed clock is never refused or restarted on (#1427).
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/utils/running-code.ts
+          symbol: watchRunningCode
+    metadata:
+      created_at: 2026-11-25T17:18:22.817Z
+      updated_at: 2026-11-25T17:18:22.817Z
+      version: 1
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 41
+- type: add
+  elementId: application.applicationfunction.with-running-code-checked
+  layerName: application
+  after:
+    id: be94a817-bbc8-454b-97f7-ff9e5f38f6ce
+    path: application.applicationfunction.with-running-code-checked
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: withRunningCodeChecked
+    description: "Runs a commit with the write guard checked once, at its start: refused then, or never during it, so a CLI change partway through can't leave a changeset marked committed with the model unwritten. The changeset_commit tool and the viewer's Apply both land through it (#1427)."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/utils/running-code.ts
+          symbol: withRunningCodeChecked
+    metadata:
+      created_at: 2026-11-25T17:18:22.817Z
+      updated_at: 2026-11-25T17:18:22.817Z
+      version: 1
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 42
+- type: add
+  elementId: application.applicationfunction.restarts-itself-when-stale
+  layerName: application
+  after:
+    id: 4395c7c4-c98e-4711-8044-d4bf7d7729d8
+    path: application.applicationfunction.restarts-itself-when-stale
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: restartsItselfWhenStale
+    description: "Whether a central process may restart itself on the installed CLI: only one started detached with the default options (as dr mcp and a bare dr serve start it), so a restart through the next dr mcp call loses nothing. An attached, isolated or customised one keeps running (#1427)."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/commands/serve.ts
+          symbol: restartsItselfWhenStale
+    metadata:
+      created_at: 2026-11-25T17:18:22.817Z
+      updated_at: 2026-11-25T17:18:22.817Z
+      version: 1
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 43
+- type: relationship-add
+  elementId: application.applicationfunction.farm-manifest-save::depends-on::application.applicationfunction.assert-farm-file-writable
+  layerName: application
+  after:
+    source: application.applicationfunction.farm-manifest-save
+    target: application.applicationfunction.assert-farm-file-writable
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 44
+- type: relationship-add
+  elementId: application.applicationcomponent.farm-manifest::assigned-to::application.applicationfunction.assert-farm-file-writable
+  layerName: application
+  after:
+    source: application.applicationcomponent.farm-manifest
+    target: application.applicationfunction.assert-farm-file-writable
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 45
+- type: relationship-add
+  elementId: application.applicationfunction.watch-running-code::depends-on::application.applicationfunction.read-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-running-code
+    target: application.applicationfunction.read-installed-cli
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 46
+- type: relationship-add
+  elementId: application.applicationfunction.watch-running-code::depends-on::application.applicationfunction.running-code-drift
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-running-code
+    target: application.applicationfunction.running-code-drift
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 47
+- type: relationship-add
+  elementId: application.applicationfunction.with-running-code-checked::depends-on::application.applicationfunction.assert-running-code-installed
+  layerName: application
+  after:
+    source: application.applicationfunction.with-running-code-checked
+    target: application.applicationfunction.assert-running-code-installed
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 48
+- type: relationship-add
+  elementId: application.applicationfunction.watch-running-code::satisfies::motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.watch-running-code
+    target: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 49
+- type: relationship-add
+  elementId: application.applicationfunction.with-running-code-checked::satisfies::motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.with-running-code-checked
+    target: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 50
+- type: relationship-add
+  elementId: application.applicationfunction.restarts-itself-when-stale::satisfies::motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+  layerName: application
+  after:
+    source: application.applicationfunction.restarts-itself-when-stale
+    target: motivation.requirement.a-long-lived-dr-process-never-writes-the-model-with-code-older-than-the-installed-cli
+    predicate: satisfies
+    layer: application
+    targetLayer: motivation
+    category: structural
+  timestamp: 2026-11-25T17:18:22.846Z
+  sequenceNumber: 51

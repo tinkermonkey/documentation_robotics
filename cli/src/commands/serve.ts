@@ -25,7 +25,7 @@
 
 import ansis from "ansis";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { openSync, closeSync, readFileSync } from "node:fs";
+import { openSync, closeSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerRecord } from "../core/checkout-types.js";
@@ -139,6 +139,7 @@ export const SERVE_START_ENV = {
   tokenFile: "DR_SERVE_TOKEN_FILE",
   noSweep: "DR_SERVE_NO_SWEEP",
   readyJson: "DR_SERVE_READY_JSON",
+  foreground: "DR_SERVE_FOREGROUND",
 } as const;
 
 /** How serve-entry runs beyond the start options it shares with dr visualize: read from its environment. */
@@ -147,6 +148,19 @@ export interface EntryRunOptions {
   tokenFile?: string;
   sweep: boolean;
   readyJson: boolean;
+  /** Attached to a terminal (`--foreground`): it never restarts itself. */
+  foreground: boolean;
+}
+
+/**
+ * Whether a process may restart itself on the installed CLI (#1427): only one started detached
+ * with the default options, as `dr mcp` and a bare `dr serve` start it, so a restart through the
+ * next `dr mcp` call loses nothing. An attached, isolated or customised one keeps running.
+ */
+export function restartsItselfWhenStale(start: CentralStartOptions, run: EntryRunOptions): boolean {
+  const customised =
+    start.port !== undefined || !!start.viewerPath || !!start.withDanger || !!start.readOnly;
+  return !run.foreground && !customised && !run.exactPort && !run.tokenFile && run.sweep;
 }
 
 /** The run options serve-entry reads from its environment (what spawnServeEntry set). */
@@ -156,18 +170,43 @@ export function entryRunOptionsFromEnv(env: NodeJS.ProcessEnv): EntryRunOptions 
     ...(env[SERVE_START_ENV.tokenFile] ? { tokenFile: env[SERVE_START_ENV.tokenFile] } : {}),
     sweep: env[SERVE_START_ENV.noSweep] !== "1",
     readyJson: env[SERVE_START_ENV.readyJson] === "1",
+    foreground: env[SERVE_START_ENV.foreground] === "1",
   };
 }
 
 /** The shortest token --token-file takes. */
 export const MIN_TOKEN_LENGTH = 16;
 
-/** The token in a --token-file: its first line, trimmed. Throws when it is missing, short or has spaces. */
-export function readTokenFile(path: string): string {
+/** Who may read a token file: its owner and its permission bits (tests pass their own). */
+export interface TokenFileAccess {
+  /** This user's id; undefined where the platform has none (Windows), and then nothing is checked. */
+  uid?: number;
+}
+
+/**
+ * The token in a --token-file: its first line, trimmed. Like ssh with a private key, it refuses a
+ * file other users can read or write (any of mode 0o077) or that another user owns: the token
+ * opens every API route, DrBot included. Throws when the file is missing, open to others, short
+ * or has spaces.
+ */
+export function readTokenFile(path: string, access: TokenFileAccess = { uid: process.getuid?.() }): string {
   let text: string;
   try {
+    const info = statSync(path);
+    if (access.uid !== undefined) {
+      if (info.uid !== access.uid) {
+        throw new CLIError(`The token file ${path} is owned by another user (uid ${info.uid}); use a file of your own.`);
+      }
+      if (info.mode & 0o077) {
+        const mode = (info.mode & 0o777).toString(8).padStart(3, "0");
+        throw new CLIError(
+          `The token file ${path} can be read by other users (mode ${mode}); make it yours alone: chmod 600 ${path}`
+        );
+      }
+    }
     text = readFileSync(path, "utf8");
   } catch (error) {
+    if (error instanceof CLIError) throw error;
     throw new CLIError(`Could not read the token file ${path}: ${error instanceof Error ? error.message : String(error)}`);
   }
   const token = text.split(/\r?\n/)[0].trim();
@@ -204,6 +243,7 @@ export function serveEntryEnv(options: SpawnEntryOptions): NodeJS.ProcessEnv {
   if (options.tokenFile) env[SERVE_START_ENV.tokenFile] = resolve(options.cwd, options.tokenFile);
   if (options.sweep === false) env[SERVE_START_ENV.noSweep] = "1";
   if (options.readyJson) env[SERVE_START_ENV.readyJson] = "1";
+  if (options.foreground) env[SERVE_START_ENV.foreground] = "1";
   return env;
 }
 
@@ -352,8 +392,16 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
     throw new CLIError(`${startOnly.join(", ")} ${startOnly.length === 1 ? "is" : "are"} used only when dr serve starts the process.`);
   }
   const port = parsePort(options.port);
-  // Checked now, so a bad file is said here rather than in the process's log.
-  if (options.tokenFile !== undefined) readTokenFile(resolve(deps.cwd, options.tokenFile));
+  if (options.tokenFile !== undefined) {
+    // A chosen token is for an isolated process only: never the shared one every session of the farm uses.
+    if (!stateDir) {
+      throw new CLIError("--token-file needs --state-dir: only an isolated process takes a token chosen for it.", 1, [
+        "dr serve --foreground --state-dir <dir> --port <n> --token-file <file> runs one for a test suite.",
+      ]);
+    }
+    // Checked now, so a bad file is said here rather than in the process's log.
+    readTokenFile(resolve(deps.cwd, options.tokenFile));
+  }
   const start = {
     viewerPath: options.viewerPath,
     withDanger: options.withDanger,
@@ -363,6 +411,14 @@ export async function serveCommand(options: ServeOptions, overrides: Partial<Ser
     ...(stateDir && port !== undefined ? { exactPort: true } : {}),
   };
   const farm = await deps.resolveFarm({ cwd: deps.cwd, env: deps.env });
+  if (stateDir && farm.source === "user" && !options.status && !options.stop) {
+    // An isolated process beside the user's own for the same farm would be a second process for it.
+    throw new CLIError(
+      `--state-dir runs an isolated process on a farm of its own, and this one is the user farm (${farm.file}).`,
+      1,
+      ["Point DR_FARM_PATH at the test's farm (or run inside a folder holding a farm.yaml)."]
+    );
+  }
   const running = await deps.findRunningServer(farm.root, { env: deps.env });
 
   if (options.status) {

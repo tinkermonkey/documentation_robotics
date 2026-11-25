@@ -16,6 +16,7 @@ import {
   centralIdleReason,
   centralStaleReason,
   chooseServePort,
+  staleKeptNotice,
   exactServePort,
   runCentralProcess,
   watchCentralIdle,
@@ -99,8 +100,62 @@ describe("restarting on the installed CLI (#1427)", () => {
     const reason = centralStaleReason(activity({ mcpSessions: 3 }), drift);
     expect(reason).toContain("runs CLI 0.8.0, and CLI 0.9.0 is installed now");
     expect(reason).toContain("the dr MCP server reconnects its sessions");
-    for (const busy of [{ clients: 1 }, { drBotTurns: 1 }, { requestsInFlight: 1 }]) {
+    // A client connected straight to /mcp (dr mcp --http) would lose its session: it holds the process.
+    for (const busy of [{ clients: 1 }, { drBotTurns: 1 }, { requestsInFlight: 1 }, { directMcpSessions: 1 }]) {
       expect(centralStaleReason(activity(busy), drift)).toBeNull();
+    }
+  });
+
+  it("keeps a process that may not restart itself running, and says so once (#1427 review)", async () => {
+    const kept: RunningCodeDrift[] = [];
+    const exits: string[] = [];
+    let checks = 0;
+    const watch = watchCentralIdle({
+      activity: () => activity(),
+      idleMs: 0,
+      intervalMs: 5,
+      staleCheck: async () => {
+        checks++;
+        return drift;
+      },
+      restartWhenStale: false,
+      onStaleKept: (d) => kept.push(d),
+      onExit: (reason) => exits.push(reason),
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(exits).toEqual([]);
+      expect(kept).toEqual([drift]);
+      expect(checks).toBe(1);
+    } finally {
+      watch.stop();
+    }
+    expect(staleKeptNotice(drift)).toContain("does not restart itself");
+    expect(staleKeptNotice(drift)).toContain("start it again with the same options");
+  });
+
+  it("reads what is connected right before exiting: a request that came in meanwhile holds it", async () => {
+    let current = activity();
+    let release!: () => void;
+    const exits: string[] = [];
+    const watch = watchCentralIdle({
+      activity: () => current,
+      idleMs: 0,
+      intervalMs: 5,
+      staleCheck: () =>
+        new Promise((resolve) => {
+          release = () => resolve(drift);
+        }),
+      onExit: (reason) => exits.push(reason),
+    });
+    try {
+      while (!release) await new Promise((resolve) => setTimeout(resolve, 2));
+      current = activity({ requestsInFlight: 1 });
+      release();
+      await new Promise((resolve) => setTimeout(resolve, 3));
+      expect(exits).toEqual([]);
+    } finally {
+      watch.stop();
     }
   });
 
@@ -361,6 +416,28 @@ describe("runCentralProcess", () => {
       expect(lines.some((line) => line.includes("not swept"))).toBe(true);
     } finally {
       await quiet.stop();
+    }
+  });
+
+  it("logs, and never exits, when it may not restart itself", async () => {
+    const lines: string[] = [];
+    const exits: string[] = [];
+    const drift: RunningCodeDrift = { reason: "version", running: "0.8.0", installed: { version: "0.9.0", spec: null } };
+    const proc = await runCentralProcess(
+      options(await setup(), {
+        idleCheckMs: 5,
+        staleCheck: async () => drift,
+        restartWhenStale: false,
+        onIdleExit: (reason) => exits.push(reason),
+        log: (line) => lines.push(line),
+      })
+    );
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(exits).toEqual([]);
+      expect(lines.filter((line) => line.includes("does not restart itself"))).toHaveLength(1);
+    } finally {
+      await proc.stop();
     }
   });
 

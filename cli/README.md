@@ -579,16 +579,19 @@ dr visualize --stop --all
   isolated process with its own farm, state and token, and leaves the user's process alone:
 
   ```bash
-  printf '%s\n' "$(openssl rand -hex 24)" > e2e/token   # the suite's token: every call still needs it
+  (umask 077; openssl rand -hex 24 > e2e/token)   # the suite's token, readable by you alone
   DR_FARM_PATH=e2e/farm dr serve --foreground --json \
     --state-dir e2e/state --port 8099 --token-file e2e/token --viewer-path dist/embedded/dr-viewer-bundle
-  # prints {"ready":true,"pid":...,"port":8099,"url":"http://127.0.0.1:8099/",...} once it serves
+  # prints {"ready":true,"pid":...,"port":8099,"url":"http://127.0.0.1:8099/","projects":[...]} on stdout once it serves
   dr serve --stop --state-dir e2e/state
   ```
 
   `--state-dir` keeps its record, token file and log in that folder, makes `--port` the exact port
   (it fails rather than move to another), and skips the start-up sweep (`--no-sweep` does that
-  alone). `/health` answers without the token; every other route needs it.
+  alone). It needs a farm of its own: the user farm is refused. `--token-file` is taken only with
+  `--state-dir`, and only from a file you own that no one else can read (mode 600), as ssh takes a
+  key. With `--json` the process's log goes to stderr, so stdout carries the ready line alone.
+  `/health` answers without the token; every other route needs it.
 
 Neither command gives a partial answer as if it were whole:
 

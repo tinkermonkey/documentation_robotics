@@ -45,7 +45,11 @@ describe("readMetadataStatus", () => {
     expect(readMetadataStatus(text)).toBe("committed");
     // Two top-level lines (not valid YAML as one mapping): parsed, and unreadable is null.
     expect(readMetadataStatus("status: staged\nstatus: committed\n")).toBeNull();
-    expect(readMetadataStatus("description: |\n  status: staged\nname: x\n")).toBeNull();
+  });
+
+  it("reads metadata with no status as staged, as loading the changeset does", () => {
+    expect(readMetadataStatus("description: |\n  status: committed\nname: x\n")).toBe("staged");
+    expect(readMetadataStatus("id: a\nname: a\n")).toBe("staged");
   });
 });
 
@@ -101,5 +105,17 @@ describe("changesetFilesStamp", () => {
     expect(second).not.toBe(first);
     await writeFile(path.join(dir, "review.yaml"), "decisions: []\n");
     expect(await changesetFilesStamp(dir)).not.toBe(second);
+  });
+
+  it("sees metadata rewritten at the same size within one timestamp tick", async () => {
+    const root = await scratch();
+    const dir = await changeset(root, "one", "id: one\nstatus: staged\n");
+    const file = path.join(dir, "metadata.yaml");
+    const when = new Date("2026-11-25T10:00:00Z");
+    await utimes(file, when, when);
+    const before = await changesetFilesStamp(dir);
+    await writeFile(file, "id: one\nstatus: landed\n");
+    await utimes(file, when, when);
+    expect(await changesetFilesStamp(dir)).not.toBe(before);
   });
 });

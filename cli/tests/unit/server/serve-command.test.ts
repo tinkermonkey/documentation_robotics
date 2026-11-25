@@ -12,13 +12,14 @@ import type { FarmLocation } from "../../../src/core/project-registry.js";
 import {
   entryRunOptionsFromEnv,
   readTokenFile,
+  restartsItselfWhenStale,
   serveCommand,
   serveEntryEnv,
   startOptionsFromEnv,
   type ServeDeps,
   type SpawnEntryOptions,
 } from "../../../src/commands/serve.js";
-import { writeFileSync } from "node:fs";
+import { chmodSync, writeFileSync } from "node:fs";
 import type { RunningServer } from "../../../src/server/server-record.js";
 import { CLIError } from "../../../src/utils/errors.js";
 
@@ -267,7 +268,7 @@ describe("dr serve start options (slice 4A)", () => {
 
 describe("an isolated process for a test suite (#1376, #1369)", () => {
   const tokenFile = join(stateDir, "suite.token");
-  writeFileSync(tokenFile, "suite-token-0123456789\n");
+  writeFileSync(tokenFile, "suite-token-0123456789\n", { mode: 0o600 });
 
   it("keeps --state-dir's record apart, sweeps nothing, takes the exact port and the suite's token", async () => {
     const w = world(null);
@@ -323,9 +324,10 @@ describe("an isolated process for a test suite (#1376, #1369)", () => {
   it("refuses a short or unreadable token file before starting anything, and the start-only flags with --stop", async () => {
     const w = world(null);
     const short = join(stateDir, "short.token");
-    writeFileSync(short, "abc\n");
-    await expect(serveCommand({ foreground: true, tokenFile: short }, w.deps)).rejects.toThrow("16 or more characters");
-    await expect(serveCommand({ foreground: true, tokenFile: join(stateDir, "nope") }, w.deps)).rejects.toThrow(
+    writeFileSync(short, "abc\n", { mode: 0o600 });
+    const state = { foreground: true, stateDir: "/suite/state" };
+    await expect(serveCommand({ ...state, tokenFile: short }, w.deps)).rejects.toThrow("16 or more characters");
+    await expect(serveCommand({ ...state, tokenFile: join(stateDir, "nope") }, w.deps)).rejects.toThrow(
       "Could not read the token file"
     );
     await expect(serveCommand({ stop: true, tokenFile, sweep: false }, w.deps)).rejects.toThrow(
@@ -333,6 +335,48 @@ describe("an isolated process for a test suite (#1376, #1369)", () => {
     );
     expect(w.spawned).toEqual([]);
     expect(readTokenFile(tokenFile)).toBe("suite-token-0123456789");
+  });
+
+  it("refuses a token file other users can read, or another user owns, as ssh refuses a key", () => {
+    const open = join(stateDir, "open.token");
+    writeFileSync(open, "suite-token-0123456789\n");
+    chmodSync(open, 0o644);
+    expect(() => readTokenFile(open)).toThrow("can be read by other users (mode 644); make it yours alone: chmod 600");
+    chmodSync(open, 0o600);
+    expect(readTokenFile(open)).toBe("suite-token-0123456789");
+    expect(() => readTokenFile(open, { uid: (process.getuid?.() ?? 0) + 1 })).toThrow("is owned by another user");
+    // Where the platform has no user ids, nothing is checked.
+    chmodSync(open, 0o644);
+    expect(readTokenFile(open, {})).toBe("suite-token-0123456789");
+  });
+
+  it("takes --token-file only with --state-dir, and --state-dir only on a farm of its own", async () => {
+    const w = world(null);
+    w.deps.spawnEntry = (options) => {
+      w.spawned.push(options);
+      return { pid: 7000, exited: Promise.resolve(0) };
+    };
+    await expect(serveCommand({ foreground: true, tokenFile }, w.deps)).rejects.toThrow("--token-file needs --state-dir");
+    const userFarm: FarmLocation = { root: "/home/u/.config/dr", file: "/home/u/.config/dr/farm.yaml", source: "user" };
+    await expect(
+      serveCommand({ foreground: true, stateDir: "/suite/state" }, { ...w.deps, resolveFarm: async () => userFarm })
+    ).rejects.toThrow("this one is the user farm");
+    // --status and --stop still find a process by its state directory.
+    await serveCommand({ status: true, stateDir: "/suite/state", json: true }, { ...w.deps, resolveFarm: async () => userFarm });
+    expect(w.spawned).toEqual([]);
+  });
+
+  it("restarts itself on a new CLI only when detached with the default options", () => {
+    const run = { exactPort: false, sweep: true, readyJson: false, foreground: false };
+    expect(restartsItselfWhenStale({}, run)).toBe(true);
+    expect(restartsItselfWhenStale({}, { ...run, foreground: true })).toBe(false);
+    expect(restartsItselfWhenStale({ readOnly: true }, run)).toBe(false);
+    expect(restartsItselfWhenStale({ viewerPath: "/v" }, run)).toBe(false);
+    expect(restartsItselfWhenStale({ withDanger: true }, run)).toBe(false);
+    expect(restartsItselfWhenStale({ port: 9000 }, run)).toBe(false);
+    expect(restartsItselfWhenStale({}, { ...run, exactPort: true })).toBe(false);
+    expect(restartsItselfWhenStale({}, { ...run, tokenFile: "/t" })).toBe(false);
+    expect(restartsItselfWhenStale({}, { ...run, sweep: false })).toBe(false);
   });
 
   it("hands the run options to serve-entry in its environment, and nothing inherited", () => {
@@ -345,7 +389,13 @@ describe("an isolated process for a test suite (#1376, #1369)", () => {
       tokenFile: "token",
       readyJson: true,
     });
-    expect(entryRunOptionsFromEnv(env)).toEqual({ exactPort: true, tokenFile: "/suite/token", sweep: true, readyJson: true });
-    expect(entryRunOptionsFromEnv({})).toEqual({ exactPort: false, sweep: true, readyJson: false });
+    expect(entryRunOptionsFromEnv(env)).toEqual({
+      exactPort: true,
+      tokenFile: "/suite/token",
+      sweep: true,
+      readyJson: true,
+      foreground: true,
+    });
+    expect(entryRunOptionsFromEnv({})).toEqual({ exactPort: false, sweep: true, readyJson: false, foreground: false });
   });
 });
