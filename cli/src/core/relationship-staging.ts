@@ -17,6 +17,7 @@ import type { ChangesetGraph, GraphRelationship } from "./changeset-graph.js";
 import type { Changeset, StagedChange } from "./changeset.js";
 import type { StagingAreaManager } from "./staging-area.js";
 import { RelationshipCatalog } from "./relationship-catalog.js";
+import { relationshipNotInDeclaredSpec, type DeclaredSpecGap } from "./declared-spec.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
@@ -188,13 +189,26 @@ export async function stageRelationshipDeletes(
 export function validateRelationshipCombination(
   sourceSpecNodeId: string,
   predicate: string,
-  destSpecNodeId: string
-): { valid: boolean; suggestions?: string[] } {
+  destSpecNodeId: string,
+  /** The spec version the model declares: a relationship type only a later spec has is refused (#1411) */
+  modelSpecVersion?: string
+): { valid: boolean; suggestions?: string[]; declaredSpec?: DeclaredSpecGap } {
   const valid =
     getValidRelationships(sourceSpecNodeId, predicate, destSpecNodeId).length >
     0;
 
   if (valid) {
+    const declaredSpec = relationshipNotInDeclaredSpec(modelSpecVersion, sourceSpecNodeId, predicate, destSpecNodeId);
+    if (declaredSpec) {
+      return {
+        valid: false,
+        declaredSpec,
+        suggestions: [
+          `project_upgrade (dr upgrade) moves the model from spec ${declaredSpec.modelVersion} to ${declaredSpec.bundled}; ` +
+            "preview it, then stage the relationship again",
+        ],
+      };
+    }
     return { valid: true };
   }
 
@@ -392,6 +406,8 @@ export async function planRelationshipBatch(
     collisions?: IdCollision[];
     /** The status for an add: "staged" into the changeset (default), or "added" to the model. */
     addStatus?: "staged" | "added";
+    /** The spec version the model declares: a relationship type only a later spec has is refused (#1411). */
+    specVersion?: string;
   } = {}
 ): Promise<RelationshipBatchPlan> {
   const addStatus = options.addStatus ?? "staged";
@@ -555,7 +571,8 @@ export async function planRelationshipBatch(
 
     const sourceSpec = `${source.layer}.${normalizeNodeType(source.layer, source.type)}`;
     const targetSpec = `${target.layer}.${normalizeNodeType(target.layer, target.type)}`;
-    const validation = validateRelationshipCombination(sourceSpec, item.predicate, targetSpec);
+    const validation = validateRelationshipCombination(sourceSpec, item.predicate, targetSpec, options.specVersion);
+    if (validation.declaredSpec) return invalid(validation.declaredSpec.message, validation.suggestions);
     if (!validation.valid) {
       return invalid(`The catalog has no ${sourceSpec} --[${item.predicate}]--> ${targetSpec}`, validation.suggestions);
     }

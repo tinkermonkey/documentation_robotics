@@ -9,7 +9,7 @@ import { Relationships, type Relationship } from "./relationships.js";
 import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import type { StagedChange } from "./changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
-import { getCliVersion } from "../utils/spec-version.js";
+import { getCliBundledSpecVersion, getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan, startActiveSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import { getCodebasePath } from "../utils/globals.js";
@@ -179,7 +179,7 @@ function titleToSnakeCase(title: string): string {
  * Uses the spec node title for accurate word boundaries (e.g., "InputSpacePartition" → "input_space_partition").
  * Falls back to the raw type string when the title is unavailable.
  */
-function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
+export function typeToSnakeStem(specNodeId: string | undefined, type: string): string {
   if (specNodeId) {
     const nodeType = getNodeType(specNodeId as SpecNodeId);
     if (nodeType?.title) {
@@ -1644,7 +1644,9 @@ export class Model {
       await ensureDir(`${rootPath}/documentation-robotics/model/${orderNum}_${layerName}`);
     }
 
-    const manifest = new Manifest(manifestData);
+    // A model this CLI creates is on its spec unless the caller says otherwise. With no spec_version
+    // it would be read back as 0.6.0 and checked against that spec (#1411).
+    const manifest = new Manifest({ ...manifestData, specVersion: manifestData.specVersion ?? getCliBundledSpecVersion() });
 
     // Resolve codebaseRoot with priority: options > CLI flag > manifest > default
     let codebaseRoot = rootPath;

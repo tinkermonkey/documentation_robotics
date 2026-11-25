@@ -590,6 +590,40 @@ describe("MCP model tools", () => {
       });
     });
 
+    it("places a link end named by UUID through the layers its relationship records, when scoped by layers (#1259)", async () => {
+      await withProject(async (rootPath) => {
+        await modelAddHandler({
+          layer: "application",
+          type: "applicationservice",
+          name: "payment-api",
+          attributes: { serviceType: "synchronous" },
+          rootPath,
+        });
+        const model = await loadModel(rootPath);
+        const service = model.getElementById("application.applicationservice.payment-api")!;
+        const payments = model.getElementById("business.businessservice.payments")!;
+        // relationships.yaml may name elements by UUID; the row records each end's layer
+        model.relationships.add({
+          source: service.id,
+          predicate: "realizes",
+          target: payments.id,
+          layer: "application",
+          targetLayer: "business",
+        } as any);
+
+        for (const layers of [["application"], ["business"], ["application", "business"]]) {
+          const data = parse(await modelValidateHandler({ layers, rootPath }));
+          expect({ layers, errors: data.errors }).toEqual({ layers, errors: [] });
+        }
+
+        // An end named by UUID that exists nowhere is still reported
+        const ghost = "00000000-0000-4000-8000-00000000dead";
+        model.relationships.add({ source: service.id, predicate: "realizes", target: ghost, layer: "application", targetLayer: "business" } as any);
+        const data = parse(await modelValidateHandler({ layers: ["application"], rootPath }));
+        expect(data.errors.filter((e: any) => e.message.includes(ghost))).toHaveLength(1);
+      });
+    });
+
     it("still reports a relationship whose in-scope end is missing when scoped by layers", async () => {
       await withProject(async (rootPath) => {
         const model = await loadModel(rootPath);

@@ -230,9 +230,13 @@ export async function addRelationship(
   const validation = validateRelationshipCombination(
     sourceSpecNodeId,
     predicate,
-    targetSpecNodeId
+    targetSpecNodeId,
+    model.manifest?.specVersion
   );
 
+  if (validation.declaredSpec) {
+    throw new CLIError(validation.declaredSpec.message, ErrorCategory.USER, validation.suggestions);
+  }
   if (!validation.valid) {
     throw new CLIError(
       `Invalid relationship: ${source} --[${predicate}]--> ${target}`,

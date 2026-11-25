@@ -10,7 +10,8 @@
 
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
-import type { Relationship } from "../core/relationships.js";
+import { relationshipEndLayer, type Relationship } from "../core/relationships.js";
+import { relationshipNotInDeclaredSpec } from "../core/declared-spec.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import { readFile } from "../utils/file-io.js";
@@ -217,8 +218,9 @@ export class RelationshipValidator {
 
     // Check if relationship crosses layer boundary when --layers filter is active
     if (model.loadedLayerFilter && model.loadedLayerFilter.length > 0) {
-      const sourceLayer = this.extractLayerFromElementId(relationship.source);
-      const targetLayer = this.extractLayerFromElementId(relationship.target);
+      // An end named by UUID has no layer in its id: the relationship row records it (#1259)
+      const sourceLayer = relationshipEndLayer(relationship, "source");
+      const targetLayer = relationshipEndLayer(relationship, "target");
 
       // If we can parse layers and both endpoints are within the filter, proceed with full validation.
       // If one or both endpoints are outside the filter, only skip if both endpoints are
@@ -337,6 +339,22 @@ export class RelationshipValidator {
         layer: relationship.layer,
         elementId: relationship.source,
         message: `Failed to load schema for relationship: ${relationship.source} --[${relationship.predicate}]--> ${relationship.target} (${schemaKey})`,
+      });
+      return errors;
+    }
+
+    // In this CLI's catalog, but maybe not in the spec the model declares (#1411)
+    const notDeclared = relationshipNotInDeclaredSpec(
+      model.manifest?.specVersion,
+      sourceSpecId,
+      relationship.predicate,
+      targetSpecId
+    );
+    if (notDeclared) {
+      errors.push({
+        layer: relationship.layer,
+        elementId: relationship.source,
+        message: `${relationship.source} --[${relationship.predicate}]--> ${relationship.target}: ${notDeclared.message}`,
       });
       return errors;
     }
@@ -562,14 +580,6 @@ export class RelationshipValidator {
       }
     }
     return null;
-  }
-
-  private extractLayerFromElementId(elementId: string): string | null {
-    const parts = elementId.split(".");
-    if (parts.length < 2) {
-      return null;
-    }
-    return parts[0];
   }
 
 }

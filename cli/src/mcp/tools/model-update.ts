@@ -17,6 +17,7 @@ import { Layer } from "../../core/layer.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
 import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
+import { typeNotInDeclaredSpec } from "../../core/declared-spec.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import {
   buildSourceReference,
@@ -259,6 +260,13 @@ async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutc
         throw new CLIError(`Invalid element type "${args.type}" for layer "${layerName}"`, ErrorCategory.USER, suggestions);
       }
       resolvedNewType = normalizeNodeType(layerName, args.type);
+      const notDeclared = typeNotInDeclaredSpec(model.manifest?.specVersion, `${layerName}.${resolvedNewType}`);
+      if (notDeclared) {
+        throw new CLIError(notDeclared.message, ErrorCategory.USER, [
+          `project_upgrade (dr upgrade) moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
+            "preview it, then change the type again",
+        ]);
+      }
     }
 
     // The element is the projected one, so a patch merges over attributes the changeset already staged.

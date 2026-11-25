@@ -26,6 +26,7 @@ import { specReferenceNotice, specReferenceStanding } from "../../utils/spec-ins
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import { countByLayerAndType, modelView, orphanIds, validateView } from "./model-view.js";
 import { nextPageHint, pageOf, pagingFields, wholePage } from "../../core/paging.js";
+import { relationshipEndLayer } from "../../core/relationships.js";
 
 /** The kinds of warning `warnings` can list. */
 const WARNING_KINDS: WarningKind[] = [
@@ -326,7 +327,6 @@ function danglingOutOfScopeEnds(model: Model, scope: Set<string>): Array<Omit<Va
       if (element.path) known.add(element.path);
     }
   }
-  const layerOf = (id: string) => id.split(".")[0] ?? "";
   // The layer the reference validator reads from a target (reference-validator.ts
   // extractLayerFromId): a known layer the id starts with, else its first segment.
   const referenceLayerOf = (id: string) => {
@@ -339,16 +339,19 @@ function danglingOutOfScopeEnds(model: Model, scope: Set<string>): Array<Omit<Va
   const issues: Array<Omit<ValidationIssue, "severity">> = [];
 
   for (const rel of model.relationships.getAll()) {
-    // An id with no layer segment is looked up, and reported, by the relationship validator
-    // whatever the scope (relationship-schema-validator.ts extractLayerFromElementId).
-    if (!rel.source.includes(".") || !rel.target.includes(".")) continue;
-    const sourceIn = scope.has(layerOf(rel.source));
-    const targetIn = scope.has(layerOf(rel.target));
+    // The layer of each end, as the relationship validator reads it: from a dotted id, or from the
+    // layers the row records for an end named by UUID (#1259). An end neither places is looked up,
+    // and reported, by the relationship validator whatever the scope.
+    const sourceLayer = relationshipEndLayer(rel, "source");
+    const targetLayer = relationshipEndLayer(rel, "target");
+    if (!sourceLayer || !targetLayer) continue;
+    const sourceIn = scope.has(sourceLayer);
+    const targetIn = scope.has(targetLayer);
     if (sourceIn === targetIn) continue; // both in scope: the validators check it; neither: skipped
     const [end, role] = sourceIn ? [rel.target, "target"] : [rel.source, "source"];
     if (known.has(end)) continue;
     issues.push({
-      layer: rel.layer || layerOf(rel.source),
+      layer: rel.layer || sourceLayer,
       elementId: end,
       message: `[Relationship Schema]: Relationship ${role} element '${end}' not found (outside the validated layers, and not in the model)`,
       category: "reference",

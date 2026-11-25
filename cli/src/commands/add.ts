@@ -19,6 +19,7 @@ import { getActiveSpan } from "../telemetry/index.js";
 import { deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../utils/id-generator.js";
 import { getAllLayerIds, isValidLayer } from "../generated/layer-registry.js";
 import { isValidNodeType, getNodeTypesForLayer, normalizeNodeType } from "../generated/node-types.js";
+import { typeNotInDeclaredSpec } from "../core/declared-spec.js";
 import {
   CLIError,
   ErrorCategory,
@@ -130,6 +131,14 @@ export async function addCommand(
         throw new ModelNotFoundError();
       }
       throw error;
+    }
+
+    // A type this CLI has but the spec the model declares does not (#1411)
+    const notDeclared = typeNotInDeclaredSpec(model.manifest?.specVersion, `${layer}.${resolvedType}`);
+    if (notDeclared) {
+      throw new CLIError(notDeclared.message, ErrorCategory.USER, [
+        `dr upgrade moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; run it, then add the element again`,
+      ]);
     }
 
     // Get or create layer

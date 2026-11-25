@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { Relationships, elementIdentifiers, type Relationship } from "../../../src/core/relationships.js";
+import { Relationships, elementIdentifiers, relationshipEndLayer, type Relationship } from "../../../src/core/relationships.js";
 
 const UUID = "11111111-1111-4111-8111-111111111111";
 const PATH = "application.applicationcomponent.alpha";
@@ -64,5 +64,22 @@ describe("Relationships.retain", () => {
     const store = new Relationships([rel("a", "b")]);
     expect(store.retain(() => true)).toBe(0);
     expect(store.isDirty()).toBe(false);
+  });
+});
+
+describe("relationshipEndLayer (#1259)", () => {
+  it("reads a dotted id's layer from its first segment", () => {
+    const rel = { source: "api.operation.x", target: "data-model.objectschema.y", layer: "api" };
+    expect(relationshipEndLayer(rel, "source")).toBe("api");
+    expect(relationshipEndLayer(rel, "target")).toBe("data-model");
+  });
+
+  it("reads an end named by UUID from the layers the row records", () => {
+    const rel = { source: "a920ab1c-c481-46b6-bdb4-4050501adeac", target: "e642ad79-62ea-47a4-ae04-d512d0ef7881" };
+    expect(relationshipEndLayer({ ...rel, layer: "application", targetLayer: "business" }, "source")).toBe("application");
+    expect(relationshipEndLayer({ ...rel, layer: "application", targetLayer: "business" }, "target")).toBe("business");
+    // No targetLayer: an intra-layer row
+    expect(relationshipEndLayer({ ...rel, layer: "application" }, "target")).toBe("application");
+    expect(relationshipEndLayer(rel, "source")).toBeNull();
   });
 });

@@ -218,7 +218,10 @@ export async function addRelationshipBatch(
   const active = await activeStagedChangeset(manager);
   const changeset = active ?? previewChangeset();
   const graph = await ChangesetGraph.build(model, changeset);
-  const plan = await planRelationshipBatch(graph, changeset, items, { addStatus: active ? "staged" : "added" });
+  const plan = await planRelationshipBatch(graph, changeset, items, {
+    addStatus: active ? "staged" : "added",
+    specVersion: model.manifest?.specVersion,
+  });
   await applyRelationshipPlan(model, manager, active, plan, []);
   if (plan.changes.length > 0 || plan.unstageKeys.length > 0) {
     await reloadModel(rootPath);

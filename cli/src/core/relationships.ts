@@ -30,6 +30,24 @@ export function elementIdentifiers(
 }
 
 /**
+ * The layer a relationship's source or target is in: the first segment of a dotted id
+ * (`layer.type.name`), else, for an end named by UUID, the layer the row records (`layer` for the
+ * source; `targetLayer`, or `layer` when the row has none, for the target). Null when neither
+ * says. A layer-scoped validation reads it to tell an end outside the scope from a missing one
+ * without loading the other layers (#1259).
+ */
+export function relationshipEndLayer(
+  relationship: { source: string; target: string; layer?: string; targetLayer?: string },
+  end: "source" | "target"
+): string | null {
+  const id = relationship[end];
+  const dot = id.indexOf(".");
+  if (dot > 0) return id.slice(0, dot);
+  const recorded = end === "source" ? relationship.layer : relationship.targetLayer ?? relationship.layer;
+  return recorded || null;
+}
+
+/**
  * Relationships class for managing the central relationships.yaml file
  */
 export class Relationships {

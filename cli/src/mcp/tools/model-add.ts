@@ -28,6 +28,7 @@ import {
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
+import { typeNotInDeclaredSpec } from "../../core/declared-spec.js";
 import { requiredAttributesLine, requiredAttributesOf } from "../../utils/required-attributes.js";
 import { compactId, deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
@@ -137,8 +138,11 @@ class AttributeRefusal extends CLIError {
   }
 }
 
-/** Validates one element and builds it; throws a CLIError saying what is wrong. */
-async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
+/**
+ * Validates one element and builds it; throws a CLIError saying what is wrong. `specVersion`, the
+ * version the model declares, refuses a type only a later spec has (#1411).
+ */
+async function prepareElement(spec: ElementSpec, specVersion?: string): Promise<PreparedElement> {
   if (!isValidLayer(spec.layer)) {
     const validLayers = getAllLayerIds();
     const similar = findSimilar(spec.layer, validLayers, 3);
@@ -157,6 +161,13 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
   }
 
   const resolvedType = normalizeNodeType(spec.layer, spec.type);
+  const notDeclared = typeNotInDeclaredSpec(specVersion, `${spec.layer}.${resolvedType}`);
+  if (notDeclared) {
+    throw new CLIError(notDeclared.message, ErrorCategory.USER, [
+      `project_upgrade (dr upgrade) moves the model from spec ${notDeclared.modelVersion} to ${notDeclared.bundled}; ` +
+        "preview it, then add the element again",
+    ]);
+  }
   const derived = deriveElementId(spec.layer, resolvedType, spec.name);
   const elementPath = derived.id;
 
@@ -270,9 +281,10 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
 }
 
 async function addSingleElement(spec: ElementSpec, rootPath: string | undefined): Promise<CallToolResult> {
+  const model = await loadModel(rootPath);
   let prepared: PreparedElement;
   try {
-    prepared = await prepareElement(spec);
+    prepared = await prepareElement(spec, model.manifest?.specVersion);
   } catch (error) {
     // What the type requires and what each takes, so one retry fixes it (#1153).
     const required = error instanceof AttributeRefusal ? requiredAttributesLine(error.specNodeId) : undefined;
@@ -280,8 +292,6 @@ async function addSingleElement(spec: ElementSpec, rootPath: string | undefined)
     throw error;
   }
   const { element, id: elementPath, layer } = prepared;
-
-  const model = await loadModel(rootPath);
 
   // Inside a changeset getLayer() projects even a layer the model has no elements in, so ask the
   // model's layer list whether this layer is new to it.
@@ -428,7 +438,7 @@ async function addElementBatch(
     const asSent = { index, name: spec.name };
     let item: PreparedElement;
     try {
-      item = await prepareElement(spec);
+      item = await prepareElement(spec, model.manifest?.specVersion);
     } catch (error) {
       const id = idFor(spec);
       const reason = getErrorMessage(error);
@@ -511,6 +521,7 @@ async function addElementBatch(
     rejected,
     collisions: idCollisions(refusedIds, graph, pending, pendingAt),
     addStatus: active ? "staged" : "added",
+    specVersion: model.manifest?.specVersion,
   });
 
   if (active) {
