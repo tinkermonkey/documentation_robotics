@@ -152,11 +152,12 @@ describe("thresholds and mode", () => {
    * sends, by `<qset>/<model>`: a spec change landed after the held-out runs and they were not
    * repeated yet, so a run falls back to suggest mode. List a default here when that happens and
    * remove it when the record carries the new digest; a default that goes stale without being
-   * listed fails the test below. Empty since the 2026-11-18 re-measurement (dr-qset-2/clef was
-   * listed between the landing of the 2026-11-17 and 2026-11-18 definitions and the repeated
-   * runs that followed each).
+   * listed fails the test below. dr-qset-2/clef was listed between the landing of the 2026-11-17
+   * and 2026-11-18 definitions and the repeated runs that followed each, and is listed again
+   * since the 2026-11-22 definitions (Context Studio f8336df1 and the other heimdall pilot
+   * decisions) until the held-out runs are repeated on them.
    */
-  const STALE_VERDICTS = new Set<string>();
+  const STALE_VERDICTS = new Set<string>(["dr-qset-2/clef"]);
 
   test("dr-qset-2 x clef carries its result on five held-out corpora: the not-element band passes, the accept band doesn't", async () => {
     const h = DEFAULT_THRESHOLDS["dr-qset-2"].clef.heldOut!;

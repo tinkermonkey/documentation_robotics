@@ -18,6 +18,7 @@ import { currentProjectRoot, whenProjectRootSettled, type ProjectRootSource } fr
 import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
 import {
   collectChangesets,
+  collectCheckout,
   collectCodeDrift,
   collectCodeIndex,
   collectIndexing,
@@ -44,7 +45,9 @@ import {
   type RootResolution,
   type StatusContext,
   type StatusList,
+  type StatusSession,
 } from "./project-status-collectors.js";
+import { DEFAULT_CENTRAL_DEPS, type CentralDeps } from "./central-viewer.js";
 
 /** How many entries a `list` call returns when `limit` is not given. */
 export const LIST_PAGE_DEFAULT = 50;
@@ -57,7 +60,8 @@ const inputSchema = {
     .describe(
       "Return one of the lists the status shortens, in full and paged, instead of the status: stagedChangesets, " +
         "changedSourceFiles and uncommittedSourceFiles (each file with every element that references it), " +
-        "unreferencedFiles, landedSince (latest first), changedSinceIndex or uncommittedEdits. The status's more lines name the call."
+        "unreferencedFiles, landedSince (latest first), changedSinceIndex, uncommittedEdits or otherCheckouts (the project's " +
+        "other checkouts). The status's more lines name the call."
     ),
   limit: z
     .number()
@@ -72,6 +76,7 @@ export type ProjectStatusArgs = z.infer<z.ZodObject<typeof inputSchema>>;
 
 /** The sections, one collector each. A new section is one more entry here. */
 const COLLECTORS = {
+  checkout: collectCheckout,
   model: collectModel,
   spec: collectSpec,
   server: collectServer,
@@ -102,7 +107,8 @@ export interface NextStep {
 }
 
 export interface ProjectStatus extends Sections {
-  project: { root: string; resolvedBy: RootResolution; projectRoot: string | null };
+  /** Where the call resolved to; `name` and `checkout` when a farm project owns it (the checkout section has the rest). */
+  project: { root: string; resolvedBy: RootResolution; projectRoot: string | null; name?: string; checkout?: string };
   nextStep: NextStep;
 }
 
@@ -116,6 +122,8 @@ interface StatusOptions {
   git?: GitRunner;
   tier1?: StatusContext["tier1"];
   installedCli?: StatusContext["installedCli"];
+  /** How the farm and the server record are read (tests pass their own). */
+  central?: Partial<CentralDeps>;
 }
 
 /** What every collector gets for this call: the project it resolved to and the shared model. */
@@ -137,6 +145,15 @@ async function statusContext(args: ProjectStatusArgs, options: StatusOptions): P
   const modelDir = manifest && (await fileExists(manifest)) ? path.dirname(manifest) : null;
 
   let modelPromise: Promise<Model> | undefined;
+  const central: CentralDeps = { ...DEFAULT_CENTRAL_DEPS, ...options.central };
+  // Read-only: a folder no project owns is reported, not registered (review_open registers it).
+  const where = projectRoot ?? root;
+  let sessionPromise: Promise<StatusSession | null> | undefined;
+  const session = () =>
+    (sessionPromise ??= (async () => {
+      const registry = await central.openRegistry(where);
+      return { registry, resolved: await registry.resolvePath(where) };
+    })());
   return {
     root,
     resolvedBy,
@@ -147,6 +164,8 @@ async function statusContext(args: ProjectStatusArgs, options: StatusOptions): P
     git: options.git ?? runGit,
     ...(options.tier1 ? { tier1: options.tier1 } : {}),
     ...(options.installedCli ? { installedCli: options.installedCli } : {}),
+    session,
+    central,
   };
 }
 
@@ -172,8 +191,9 @@ export async function projectStatus(args: ProjectStatusArgs, options: StatusOpti
   );
   const sections = Object.fromEntries(entries) as Sections;
 
+  const at = sections.checkout?.status === "ok" ? { name: sections.checkout.project, checkout: sections.checkout.checkout } : {};
   return {
-    project: { root, resolvedBy, projectRoot },
+    project: { root, resolvedBy, projectRoot, ...at },
     ...shortenSections(sections, args.rootPath),
     nextStep: suggestNextStep(sections, { root, rootPath: args.rootPath }),
   };
@@ -192,7 +212,7 @@ export interface StatusListPage {
 }
 
 /** The collector whose section holds each list. */
-const LIST_SECTION: Record<StatusList, "changesets" | "codeIndex" | "codeDrift"> = {
+const LIST_SECTION: Record<StatusList, "changesets" | "codeIndex" | "codeDrift" | "checkout"> = {
   stagedChangesets: "changesets",
   changedSourceFiles: "codeDrift",
   uncommittedSourceFiles: "codeDrift",
@@ -200,6 +220,7 @@ const LIST_SECTION: Record<StatusList, "changesets" | "codeIndex" | "codeDrift">
   landedSince: "codeDrift",
   changedSinceIndex: "codeIndex",
   uncommittedEdits: "codeIndex",
+  otherCheckouts: "checkout",
 };
 
 /**
@@ -732,9 +753,10 @@ export async function projectStatusHandler(args: ProjectStatusArgs): Promise<Cal
 export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
   name: "project_status",
   description:
-    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the viewer running for the project with its link, and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
+    "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active and staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart), the farm project and checkout this folder is (checkout) with the project's other checkouts (branch, head, state, active changeset, staged count), the central DR process serving the shared viewer with this checkout's link when it runs (it never starts it: review_open does), and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. The status is kept small, so its lists show their first entries by default: " +
     `${LIST_DEFAULTS.stagedChangesets} staged changesets, ${LIST_DEFAULTS.changedSourceFiles} changed source files with ${LIST_DEFAULTS.elementsPerFile} elements each, ` +
     `${LIST_DEFAULTS.unreferencedFiles} unreferenced files, the ${LIST_DEFAULTS.landedSince} latest changesets landed since, ${LIST_DEFAULTS.changedSinceIndex} files changed since the index, ` +
+    `${LIST_DEFAULTS.otherCheckouts} other checkouts, ` +
     "and 3 overlapping changes per drifted changeset (changeset_brief with sections: [\"drift\"] lists those). Each shortened list has its true count beside it, its page (total, returned, offset, nextOffset) under pages, and a more line naming the call for the rest: " +
     `list returns any of them in full, paged with limit (default ${LIST_PAGE_DEFAULT}, no upper bound) and offset, as items and page. Every status, count and nextStep is computed over the whole lists, never over what is shown. ` +
     "Reads local files and git only. Call it first in a session.",

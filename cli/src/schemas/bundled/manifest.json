@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.14.0",
+  "specVersion": "0.15.0",
   "layers": [
     {
       "id": "motivation",
@@ -34,14 +34,14 @@
       "number": 5,
       "name": "Application Layer",
       "nodeTypeCount": 10,
-      "relationshipCount": 90
+      "relationshipCount": 92
     },
     {
       "id": "technology",
       "number": 6,
       "name": "Technology Layer",
       "nodeTypeCount": 13,
-      "relationshipCount": 92
+      "relationshipCount": 99
     },
     {
       "id": "api",
@@ -55,7 +55,7 @@
       "number": 8,
       "name": "Data Model Layer",
       "nodeTypeCount": 9,
-      "relationshipCount": 55
+      "relationshipCount": 56
     },
     {
       "id": "data-store",
@@ -68,8 +68,8 @@
       "id": "ux",
       "number": 10,
       "name": "UX Layer",
-      "nodeTypeCount": 22,
-      "relationshipCount": 96
+      "nodeTypeCount": 23,
+      "relationshipCount": 99
     },
     {
       "id": "navigation",
@@ -94,7 +94,7 @@
     }
   ],
   "totals": {
-    "nodeTypes": 194,
-    "relationships": 1004
+    "nodeTypes": 195,
+    "relationships": 1017
   }
 }

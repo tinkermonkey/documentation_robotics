@@ -21,6 +21,7 @@ import { CANONICAL_LAYER_NAMES } from "./layers.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import { FileLock } from "../utils/file-lock.js";
 import { getErrorMessage } from "../utils/errors.js";
+import { stringifyDrYaml } from "./dr-yaml.js";
 import { RELATIONSHIP_REWRITE_TABLE } from "./relationship-migration-table.js";
 
 export interface ElementTypeRenameChange {
@@ -195,7 +196,7 @@ export async function migrateElementTypes(
 # Last updated: ${new Date().toISOString()}
 
 `;
-        await writeFile(relationshipsPath, header + YAML.stringify(rewritten), "utf-8");
+        await writeFile(relationshipsPath, header + stringifyDrYaml(rewritten), "utf-8");
         result.filesModified++;
       }
     }

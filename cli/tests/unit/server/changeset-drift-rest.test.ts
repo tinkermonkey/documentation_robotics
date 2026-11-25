@@ -18,15 +18,14 @@ import { extractionPurpose } from "../../../src/core/changeset-purpose.js";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { ChangesetActionResultSchema, ChangesetDetailSchema, ChangesetsListSchema } from "../../../src/server/schemas.js";
-import type { VisualizationServer } from "../../../src/server/server.js";
-import { createServerWithoutChatDetection } from "./helpers.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 
 const GOAL = "motivation.goal.faster-checkout";
 const OTHER_GOAL = "motivation.goal.lower-costs";
 const SERVICE = "application.applicationservice.order-export";
 
 let rootPath: string;
-let server: VisualizationServer | undefined;
+let server: TestFarmServer | undefined;
 
 /** An element as a staged add or update carries it. */
 function goal(id: string, description: string, uuid: string = randomUUID()) {
@@ -77,15 +76,15 @@ async function land(id: string): Promise<void> {
 
 /** The server over the model as it is on disk now, as the watcher's reload leaves it. */
 async function api() {
-  server?.stop();
-  const { model } = await fresh();
-  server = createServerWithoutChatDetection(model, { authEnabled: false });
-  const request = (path: string, init?: RequestInit) => (server as any).app.request(path, init) as Promise<Response>;
+  await server?.stop();
+  server = await startTestFarmServer(rootPath);
+  // Requests to the checkout's routes: `request("/changesets")` is `/api/projects/<p>/checkouts/main/changesets`.
+  const request = server.request;
   return {
-    list: async () => ChangesetsListSchema.parse(await (await request("/api/changesets")).json()).changesets,
+    list: async () => ChangesetsListSchema.parse(await (await request("/changesets")).json()).changesets,
     detail: async (id: string, query = "") =>
-      ChangesetDetailSchema.parse(await (await request(`/api/changesets/${id}${query}`)).json()),
-    commit: (id: string) => request(`/api/changesets/${id}/commit`, { method: "POST" }),
+      ChangesetDetailSchema.parse(await (await request(`/changesets/${id}${query}`)).json()),
+    commit: (id: string) => request(`/changesets/${id}/commit`, { method: "POST" }),
   };
 }
 
@@ -99,7 +98,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  server?.stop();
+  await server?.stop();
   server = undefined;
   await rm(rootPath, { recursive: true, force: true });
 });
@@ -185,7 +184,7 @@ describe("base drift on the changeset endpoints", () => {
     // The reviewer leaves the overlapping update out: what lands overlaps nothing.
     const { detail } = await api();
     const overlappingUpdate = (await detail(planId)).changes.find((change) => change.elementId === GOAL)!;
-    const landed = await (server as any).app.request(`/api/changesets/${planId}/commit`, {
+    const landed = await server!.request(`/changesets/${planId}/commit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ drop: [(overlappingUpdate as { sequenceNumber: number }).sequenceNumber] }),
@@ -463,7 +462,7 @@ describe("base drift on the changeset endpoints", () => {
     expect(whole.truncated).toBe(false);
     expect(whole.page.nextOffset).toBeUndefined();
 
-    const bad = await (server as any).app.request(`/api/changesets/${planId}?driftLimit=0`);
+    const bad = await server!.request(`/changesets/${planId}?driftLimit=0`);
     expect(bad.status).toBe(400);
   });
 });
@@ -505,22 +504,32 @@ describe("drift status when the check itself fails", () => {
 describe("model reloads", () => {
   it.serial("a reload that finishes after a newer one started does not put its older model back", async () => {
     await api();
+    const t = server!;
+    // The checkout's own file watcher would start reloads of its own through the stub below (any
+    // file event under the project): only the two reloads this test starts may run.
+    const watched = await t.context();
+    await watched.watcher?.close();
+    watched.watcher = undefined;
     const older = (await fresh()).model;
     const newer = (await fresh()).model;
     // Two overlapping reloads (one per file event of a write): the first to start finishes last.
     let finishOlder!: (model: Model) => void;
     const loads = [new Promise<Model>((resolve) => (finishOlder = resolve)), Promise.resolve(newer)];
-    (server as any).loadModelFromDisk = () => loads.shift();
+    (t.server as any).loadModelFromDisk = () => loads.shift();
     const sent: any[] = [];
-    (server as any).clients.add({ send: (data: string) => sent.push(JSON.parse(data)), close: () => {} });
+    const context = await t.context();
+    context.subscribers.add({ send: (data: string) => sent.push(JSON.parse(data)), close: () => {} } as any);
 
-    const first = (server as any).reloadAndBroadcast();
-    const second = (server as any).reloadAndBroadcast();
+    // Both start now, in this order, in the loaded context (t.inCheckout would look the checkout
+    // up first, and two lookups can finish in either order).
+    const reload = () => (t.server as any).inContext(context, () => (t.server as any).reloadAndBroadcast());
+    const first = reload();
+    const second = reload();
     await second;
     finishOlder(older);
     await first;
 
-    expect((server as any).model).toBe(newer);
+    expect(context.model).toBe(newer);
     expect(sent.filter((m) => m.type === "model.updated")).toHaveLength(1);
   });
 });
@@ -531,21 +540,22 @@ describe("model reloads", () => {
 describe("the changeset routes need the token", () => {
   const TOKEN = "test-token-1272";
 
+  /** Requests to an exact path, with no token unless the call sets one. */
   async function authed() {
-    server?.stop();
-    const { model } = await fresh();
-    server = createServerWithoutChatDetection(model, { authEnabled: true, authToken: TOKEN });
-    return (path: string, init: RequestInit = {}) => (server as any).app.request(path, init) as Promise<Response>;
+    await server?.stop();
+    server = await startTestFarmServer(rootPath, { token: TOKEN });
+    const t = server;
+    return (path: string, init: RequestInit = {}) => t.raw(path, { ...init, headers: init.headers ?? {} });
   }
 
   it.serial("refuses commit and discard without a token (401) or with a wrong one (403), and writes nothing", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     const request = await authed();
     for (const action of ["commit", "discard"]) {
-      expect((await request(`/api/changesets/${planId}/${action}`, { method: "POST" })).status).toBe(401);
-      const wrong = await request(`/api/changesets/${planId}/${action}`, { method: "POST", headers: { Authorization: "Bearer nope" } });
+      expect((await request(server!.api(`/changesets/${planId}/${action}`), { method: "POST" })).status).toBe(401);
+      const wrong = await request(server!.api(`/changesets/${planId}/${action}`), { method: "POST", headers: { Authorization: "Bearer nope" } });
       expect(wrong.status).toBe(403);
-      expect((await request(`/api/changesets/${planId}/${action}?token=nope`, { method: "POST" })).status).toBe(403);
+      expect((await request(`${server!.api(`/changesets/${planId}/${action}`)}?token=nope`, { method: "POST" })).status).toBe(403);
     }
     const { manager } = await fresh();
     expect((await manager.load(planId))!.status).toBe("staged");
@@ -554,14 +564,14 @@ describe("the changeset routes need the token", () => {
   it.serial("lands with the token, as Apply does", async () => {
     const planId = await planAdding("export-orders", service(SERVICE));
     const request = await authed();
-    const landed = await request(`/api/changesets/${planId}/commit`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } });
+    const landed = await request(server!.api(`/changesets/${planId}/commit`), { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` } });
     expect(landed.status).toBe(200);
     expect((await landed.json()).status).toBe("committed");
   });
 
   it.serial("every registered API route refuses a request with no token", async () => {
     const request = await authed();
-    const routes = ((server as any).app.routes as Array<{ method: string; path: string }>).filter(
+    const routes = ((server!.server as any).app.routes as Array<{ method: string; path: string }>).filter(
       (route) => route.path.startsWith("/api/") && route.method !== "ALL"
     );
     expect(routes.length).toBeGreaterThan(20);

@@ -1,0 +1,18 @@
+apm.instrumentationscope.dr-cli-tracer:
+  id: 9367f6c7-b900-4cd6-8980-07e98a969797
+  path: apm.instrumentationscope.dr-cli-tracer
+  spec_node_id: apm.instrumentationscope
+  type: instrumentationscope
+  layer_id: apm
+  name: dr-cli tracer
+  description: The tracer scope (trace.getTracer("dr-cli", cliVersion)) every DR span is emitted under.
+  attributes:
+    droppedAttributesCount: 0
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/telemetry/index.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.229Z
+    updated_at: 2026-11-21T17:21:34.229Z
+    version: 1

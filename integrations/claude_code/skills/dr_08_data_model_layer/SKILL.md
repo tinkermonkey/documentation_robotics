@@ -113,31 +113,32 @@ Activate when the user:
 A subschema written in place is part of what declares it (`composes`); a type declared elsewhere and
 reached by `$ref` or by name is `references`. Subtyping is `specializes`.
 
-| Source Type       | Predicate   | Target Type       | Example                                                            |
-| ----------------- | ----------- | ----------------- | ------------------------------------------------------------------ |
-| JSONSchema        | composes    | ObjectSchema      | "Order API Schemas" document composes its root "Order" schema      |
-| JSONSchema        | composes    | SchemaDefinition  | "Order API Schemas" composes the "Address" definition it declares  |
-| JSONSchema        | composes    | SchemaComposition | "Order API Schemas" composes its root "PaymentMethod" (`oneOf`)    |
-| ObjectSchema      | composes    | SchemaProperty    | "Order" composes the "status" property                             |
-| ObjectSchema      | specializes | ObjectSchema      | "AdminUser" specializes "User"                                     |
-| SchemaProperty    | composes    | StringSchema      | "email" property composes its inline `format: email` constraint    |
-| SchemaProperty    | composes    | NumericSchema     | "total" property composes its inline `minimum: 0` constraint       |
-| SchemaProperty    | composes    | ArraySchema       | "lineItems" property composes its inline array constraints         |
-| SchemaProperty    | references  | ObjectSchema      | "shippingAddress" property references "Address"                    |
-| SchemaProperty    | references  | SchemaDefinition  | "currency" property references the "CurrencyCode" definition       |
-| ArraySchema       | composes    | ObjectSchema      | "LineItemList" composes its inline `items` object schema           |
-| ArraySchema       | composes    | StringSchema      | "TagList" composes its inline `items` string schema                |
-| ArraySchema       | composes    | Reference         | "OrderList" composes its `items: $ref: #/definitions/Order`        |
-| ArraySchema       | references  | SchemaDefinition  | "OrderList" references the "Order" definition its items take       |
-| Reference         | references  | SchemaDefinition  | `$ref: #/definitions/Address` references the "Address" definition  |
-| Reference         | references  | ObjectSchema      | `$ref` to the "Customer" object schema                             |
-| Reference         | references  | JSONSchema        | `$ref: common.schema.json` references that document                |
-| SchemaComposition | composes    | ObjectSchema      | "PaymentMethod" (`oneOf`) composes its inline "CardPayment" branch |
-| SchemaComposition | composes    | Reference         | "CustomerWithAudit" (`allOf`) composes its `$ref` branch           |
-| SchemaComposition | references  | SchemaDefinition  | "CustomerWithAudit" (`allOf`) references "AuditFields"             |
-| SchemaDefinition  | composes    | SchemaDefinition  | "Customer" composes "ContactInfo" declared inside it               |
-| SchemaDefinition  | specializes | SchemaDefinition  | "PremiumCustomer" specializes "Customer"                           |
-| SchemaDefinition  | references  | SchemaDefinition  | "Invoice" references "Customer"                                    |
+| Source Type       | Predicate   | Target Type       | Example                                                              |
+| ----------------- | ----------- | ----------------- | -------------------------------------------------------------------- |
+| JSONSchema        | composes    | ObjectSchema      | "Order API Schemas" document composes its root "Order" schema        |
+| JSONSchema        | composes    | SchemaDefinition  | "Order API Schemas" composes the "Address" definition it declares    |
+| JSONSchema        | composes    | SchemaComposition | "Order API Schemas" composes its root "PaymentMethod" (`oneOf`)      |
+| ObjectSchema      | composes    | SchemaProperty    | "Order" composes the "status" property                               |
+| ObjectSchema      | specializes | ObjectSchema      | "AdminUser" specializes "User"                                       |
+| SchemaProperty    | composes    | StringSchema      | "email" property composes its inline `format: email` constraint      |
+| SchemaProperty    | composes    | NumericSchema     | "total" property composes its inline `minimum: 0` constraint         |
+| SchemaProperty    | composes    | ArraySchema       | "lineItems" property composes its inline array constraints           |
+| SchemaProperty    | references  | ObjectSchema      | "shippingAddress" property references "Address"                      |
+| ObjectSchema      | references  | ObjectSchema      | "Order" references "Customer" (when its properties are not modelled) |
+| SchemaProperty    | references  | SchemaDefinition  | "currency" property references the "CurrencyCode" definition         |
+| ArraySchema       | composes    | ObjectSchema      | "LineItemList" composes its inline `items` object schema             |
+| ArraySchema       | composes    | StringSchema      | "TagList" composes its inline `items` string schema                  |
+| ArraySchema       | composes    | Reference         | "OrderList" composes its `items: $ref: #/definitions/Order`          |
+| ArraySchema       | references  | SchemaDefinition  | "OrderList" references the "Order" definition its items take         |
+| Reference         | references  | SchemaDefinition  | `$ref: #/definitions/Address` references the "Address" definition    |
+| Reference         | references  | ObjectSchema      | `$ref` to the "Customer" object schema                               |
+| Reference         | references  | JSONSchema        | `$ref: common.schema.json` references that document                  |
+| SchemaComposition | composes    | ObjectSchema      | "PaymentMethod" (`oneOf`) composes its inline "CardPayment" branch   |
+| SchemaComposition | composes    | Reference         | "CustomerWithAudit" (`allOf`) composes its `$ref` branch             |
+| SchemaComposition | references  | SchemaDefinition  | "CustomerWithAudit" (`allOf`) references "AuditFields"               |
+| SchemaDefinition  | composes    | SchemaDefinition  | "Customer" composes "ContactInfo" declared inside it                 |
+| SchemaDefinition  | specializes | SchemaDefinition  | "PremiumCustomer" specializes "Customer"                             |
+| SchemaDefinition  | references  | SchemaDefinition  | "Invoice" references "Customer"                                      |
 
 ----------------- | ----------- | ----------------- | ----------------------------------------------------------------- |
 | JSONSchema | aggregates | ObjectSchema | "Order API Schemas" document aggregates "Order" |

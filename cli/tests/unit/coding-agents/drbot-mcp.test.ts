@@ -13,7 +13,7 @@ import { CHANGESET_ONLY_ENV } from "../../../src/core/changeset-only-guard.js";
 import { CHANGESET_ORIGIN_ENV } from "../../../src/core/changeset-review.js";
 import { McpToolRegistry } from "../../../src/mcp/tool-registry.js";
 import { BASE_MODEL_WRITE_TOOLS } from "../../../src/mcp/changeset-only.js";
-import { VisualizationServer } from "../../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
 import {
   formatForClaudeCode,
   formatForClaudeCodeWithChangesets,
@@ -239,19 +239,33 @@ describe("drBotMcpPrompt", () => {
 });
 
 describe("VisualizationServer Claude Code launch args with the dr MCP server", () => {
-  let model: Model;
+  type LaunchOptions = { withDanger?: boolean; withChangesets?: boolean };
+  /** One server per permission option set the tests use, over the same saved model. */
+  const servers = new Map<string, TestFarmServer>();
+  const keyOf = (options: LaunchOptions) => `${!!options.withDanger}/${!!options.withChangesets}`;
 
   beforeAll(async () => {
     const root = join(scratch, "model");
     await mkdir(root, { recursive: true });
-    model = await Model.init(root, {
+    await Model.init(root, {
       name: "DrBot MCP Test Model",
       version: "0.1.0",
     });
+    for (const options of [{}, { withChangesets: true }, { withDanger: true }, { withDanger: true, withChangesets: true }]) {
+      servers.set(keyOf(options), await startTestFarmServer(root, { server: options }));
+    }
   });
 
-  function args(options: { withDanger?: boolean; withChangesets?: boolean }, mcpConfigPath?: string): string[] {
-    return (new VisualizationServer(model, options) as any).buildClaudeChatArgs(mcpConfigPath);
+  afterAll(async () => {
+    for (const t of servers.values()) await t.stop();
+  });
+
+  function drBotFor(options: LaunchOptions): any {
+    return (servers.get(keyOf(options))!.server as any).drBot;
+  }
+
+  function args(options: LaunchOptions, mcpConfigPath?: string): string[] {
+    return drBotFor(options).buildClaudeChatArgs(mcpConfigPath);
   }
 
   function valueOf(cmd: string[], flag: string): string | undefined {
@@ -313,7 +327,7 @@ describe("VisualizationServer Claude Code launch args with the dr MCP server", (
   });
 
   it("names the agent only when its definition is passed or claude can load it", () => {
-    const server = new VisualizationServer(model, {}) as any;
+    const server = drBotFor({});
     expect(server.buildClaudeChatArgs(undefined, undefined, [], true)).not.toContain("--agent");
     expect(server.buildClaudeChatArgs(undefined, undefined, ["--agents", "{}"]).slice(0, 5)).toEqual([
       "claude",

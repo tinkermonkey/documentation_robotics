@@ -567,8 +567,9 @@ export interface DrBotAgentLaunch {
 }
 
 /**
- * Resolves DrBot's dr-architect once and derives both the launch arguments and the tool check
- * from it.
+ * Resolves DrBot's dr-architect once for a checkout (`rootPath`, the checkout's path: a project
+ * copy of the agent is looked up in that checkout) and derives both the launch arguments and the
+ * tool check from it. The DrBot launcher (server/dr-bot-launcher.ts) calls it for each turn's checkout.
  *
  * Under an allowlist (every mode but danger) the launch runs `claude --restricted`, which loads
  * no agent file from the project or the user folder, so the agent is always passed with --agents:

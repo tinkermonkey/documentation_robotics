@@ -19,7 +19,13 @@ bun ledger.ts --models $M        # experiment 1: the ledger and each finder's vo
 bun seeded.ts --models $M        # experiment 3: seeded gaps
 bun label-sheet.ts --models viewer=~/workspace/documentation_robotics_viewer,context-studio=~/workspace/context-studio   # experiment 2: the sheet to fill in
 bun witnesses.ts --models $M     # track B: the question bank's witnesses (--check validates questions.json only)
+bun score.ts --model heimdall --repo ~/workspace/heimdall   # track C: score a model review (RUNBOOK.md step C)
 ```
+
+`score.ts` reads one repository's review: its `assess/before-*` and `assess/after-*` tags (latest
+by default, or `--before`, `--after`), the `review-questions` and `review-open` changesets as
+staged, the logs in `data/<model>/`, and the session transcripts under `~/.claude/projects` for
+token use (`--no-transcripts` skips them).
 
 `--models` takes `name=path` pairs; a path is a repository root or a model directory.
 `DR_ASSESS_MODELS` is read when the flag is absent. `--no-code` skips the code index. The reports
@@ -45,6 +51,7 @@ The code finders need a current index. They do not build one: index the reposito
 | `questions.json` | The review question bank (track B), with its witnesses                           |
 | `witnesses.ts`   | Validates the bank against the spec; writes each model's witnesses for the agent |
 | `RUNBOOK.md`     | The model review protocol the agent follows (track C, steps A to C)              |
+| `score.ts`       | Track C: precision, verdicts, spec gaps and tokens per question of a review      |
 
 ## Data
 
@@ -55,6 +62,9 @@ The code finders need a current index. They do not build one: index the reposito
 - `data/pair-labels.csv`: experiment 2, filled in by the maintainer.
 - `data/witness-report.md`: the bank's witness counts per model. The per-model
   `data/<model>/witnesses.*`, `answers.jsonl` and `open.jsonl` stay local.
+- `data/<model>/score-report.md`, `data/<model>/score.json`: `score.ts`, local like the logs it
+  reads (`answers.jsonl`, `open.jsonl`, `rejected-by-rule.jsonl`, and `spec-gaps.json`, which
+  places spec-gap verdicts on the roadmap's register rows when the log does not name one).
 
 ## Reading a finding
 

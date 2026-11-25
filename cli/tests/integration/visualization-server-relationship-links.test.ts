@@ -6,24 +6,23 @@
  * the same directory, call GET /api/model over HTTP, and assert the specific
  * relationship appears in data.links.
  *
- * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
- * - Tests start/stop the visualization server requiring exclusive port access
- * - Concurrent execution would cause port conflicts and server state issues
+ * The server is the one-mode central server over a scratch farm (tests/helpers/test-farm-server.ts):
+ * it loads the project's main checkout from disk and serves it at
+ * /api/projects/{project}/checkouts/main/model. Each server listens on a port the OS picks.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { Model } from "../../src/core/model.js";
-import { VisualizationServer } from "../../src/server/server.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
-import { portAllocator } from "../helpers/port-allocator.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { Layer } from "../../src/core/layer.js";
 import { Element } from "../../src/core/element.js";
 
 describe.serial("VisualizationServer relationship links in /api/model", () => {
   let workdir: { path: string; cleanup: () => Promise<void> };
   let model: Model;
-  let server: VisualizationServer;
-  let port: number;
+  let t: TestFarmServer;
+  const modelUrl = () => t.url(t.api("/model"));
 
   beforeAll(async () => {
     // Create isolated test directory from golden copy
@@ -80,26 +79,16 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
     // Persist relationships to relationships.yaml
     await model.saveRelationships();
 
-    // Reload model to simulate server startup
-    // This ensures relationships.yaml is loaded during Model.load()
-    const loadedModel = await Model.load(workdir.path);
-
-    // Allocate port for this test
-    port = await portAllocator.allocatePort();
-
-    // Start server with the reloaded model
-    server = new VisualizationServer(loadedModel, { authEnabled: false });
-    await server.start(port);
+    // Start the server over this directory: it loads the model (and relationships.yaml)
+    // from disk on the first request, as a server startup would
+    t = await startTestFarmServer(workdir.path, { listen: true });
   });
 
   afterAll(async () => {
     // Stop server
-    if (server) {
-      server.stop();
+    if (t) {
+      await t.stop();
     }
-
-    // Release port back to allocator
-    portAllocator.releasePort(port);
 
     // Clean up working directory
     if (workdir) {
@@ -109,7 +98,7 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
 
   it("should include relationships in /api/model response data.links", async () => {
     // Call GET /api/model endpoint
-    const response = await fetch(`http://localhost:${port}/api/model`);
+    const response = await fetch(modelUrl(), { headers: t.auth });
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -138,7 +127,7 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
   });
 
   it("should have correct structure for all links in /api/model", async () => {
-    const response = await fetch(`http://localhost:${port}/api/model`);
+    const response = await fetch(modelUrl(), { headers: t.auth });
     const data = await response.json();
 
     // Verify all links have required fields with valid values
@@ -171,7 +160,7 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
 
   it("should return consistent relationship data across multiple requests", async () => {
     // First call to /api/model
-    const response1 = await fetch(`http://localhost:${port}/api/model`);
+    const response1 = await fetch(modelUrl(), { headers: t.auth });
     const data1 = await response1.json();
 
     const link1 = data1.links.find(
@@ -181,7 +170,7 @@ describe.serial("VisualizationServer relationship links in /api/model", () => {
     );
 
     // Second call to /api/model (should return same data)
-    const response2 = await fetch(`http://localhost:${port}/api/model`);
+    const response2 = await fetch(modelUrl(), { headers: t.auth });
     const data2 = await response2.json();
 
     const link2 = data2.links.find(
@@ -297,17 +286,17 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
     // Load model with lazyLoad: true
     const lazyModel = await Model.load(workdir.path, { lazyLoad: true });
 
-    // Allocate port for this test
-    const port = await portAllocator.allocatePort();
-    let server: VisualizationServer | undefined;
+    // The lazily loaded model sees the relationships on disk
+    expect(lazyModel.relationships.toArray().length).toBeGreaterThan(0);
+
+    let server: TestFarmServer | undefined;
 
     try {
-      // Start server with lazy-loaded model
-      server = new VisualizationServer(lazyModel, { authEnabled: false });
-      await server.start(port);
+      // Start a server over the same directory: it loads the checkout's model from disk itself
+      server = await startTestFarmServer(workdir.path, { listen: true });
 
-      // Call /api/model endpoint
-      const response = await fetch(`http://localhost:${port}/api/model`);
+      // Call the checkout's model endpoint
+      const response = await fetch(server.url(server.api("/model")), { headers: server.auth });
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -328,10 +317,8 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
     } finally {
       // Stop server in finally block to ensure cleanup even if assertions fail
       if (server) {
-        server.stop();
+        await server.stop();
       }
-      // Release port
-      portAllocator.releasePort(port);
     }
   });
 });
@@ -361,9 +348,7 @@ describe.serial("Model.load() relationships behavior with lazyLoad: true", () =>
  */
 describe.serial("VisualizationServer relationship deduplication guard", () => {
   let workdir: { path: string; cleanup: () => Promise<void> };
-  let model: Model;
-  let server: VisualizationServer;
-  let port: number;
+  let t: TestFarmServer;
 
   beforeAll(async () => {
     // Create isolated test directory from golden copy
@@ -421,9 +406,10 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
     // Persist to relationships.yaml
     await model.saveRelationships();
 
-    // Reload model from disk
-    // This populates model.relationships from relationships.yaml, but elements have empty arrays
-    model = await Model.load(workdir.path);
+    // Start the server over this directory and take the model it loaded from disk.
+    // That populates model.relationships from relationships.yaml, but elements have empty arrays
+    t = await startTestFarmServer(workdir.path, { listen: true });
+    model = (await t.context()).model;
 
     // CRITICAL STEP: Create the dual-storage condition by injecting the same relationship
     // into the element's inline relationships array. This simulates the scenario where
@@ -445,24 +431,16 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
       }
     }
 
-    // Allocate port for this test
-    port = await portAllocator.allocatePort();
-
-    // Start server with the dual-storage relationship condition
-    // serializeModel() will now process this relationship twice (once inline, once centralized)
+    // The server's model now holds the dual-storage relationship condition:
+    // serializeModel() will process this relationship twice (once inline, once centralized)
     // and the deduplication guard in linksMap must prevent duplicate insertion
-    server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(port);
   });
 
   afterAll(async () => {
     // Stop server
-    if (server) {
-      server.stop();
+    if (t) {
+      await t.stop();
     }
-
-    // Release port back to allocator
-    portAllocator.releasePort(port);
 
     // Clean up working directory
     if (workdir) {
@@ -471,8 +449,8 @@ describe.serial("VisualizationServer relationship deduplication guard", () => {
   });
 
   it("should not duplicate relationships that exist in both inline and centralized storage", async () => {
-    // Call GET /api/model endpoint
-    const response = await fetch(`http://localhost:${port}/api/model`);
+    // Call GET on the checkout's model endpoint
+    const response = await fetch(t.url(t.api("/model")), { headers: t.auth });
     expect(response.status).toBe(200);
 
     const data = await response.json();

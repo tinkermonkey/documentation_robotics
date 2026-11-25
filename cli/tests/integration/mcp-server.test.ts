@@ -105,6 +105,7 @@ const MODEL_TOOL_NAMES = [
   "changeset_commit_preview",
   "review_open",
   "project_status",
+  "project_list",
   "codebase_extract",
   "gap_accept",
   "gap_reopen",
@@ -124,7 +125,9 @@ function spawnMcp(
   cwd?: string,
   pathOverride?: string
 ): McpProcess {
-  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath };
+  // In process: these suites drive the tools over a real stdio MCP connection without starting
+  // the central process (the bridge has its own test, mcp-stdio-bridge.test.ts).
+  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath, DR_MCP_IN_PROCESS: "1" };
   delete env.DR_MCP_API_KEY;
   if (apiKey !== undefined) {
     env.DR_MCP_API_KEY = apiKey;

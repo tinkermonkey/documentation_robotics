@@ -12,7 +12,7 @@ import { createTestWorkdir } from "../helpers/golden-copy.js";
 import { runDr } from "../helpers/cli-runner.js";
 import { Model } from "../../src/core/model.js";
 import { StagingAreaManager } from "../../src/core/staging-area.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import { extractionPurpose } from "../../src/core/changeset-purpose.js";
 import { createFakeWs, waitFor } from "../unit/server/helpers.js";
 
@@ -29,6 +29,7 @@ const ADD = [
 describe("changeset commit/discard API", () => {
   let dir: string;
   let cleanup: () => Promise<void>;
+  let servers: TestFarmServer[] = [];
 
   beforeEach(async () => {
     const workdir = await createTestWorkdir();
@@ -37,8 +38,17 @@ describe("changeset commit/discard API", () => {
   });
 
   afterEach(async () => {
+    await Promise.all(servers.map((s) => s.stop()));
+    servers = [];
     await cleanup().catch(() => {});
   });
+
+  /** A server over the model as it is on disk now (it loads the model itself, on first use). */
+  async function serve(): Promise<TestFarmServer> {
+    const server = await startTestFarmServer(dir);
+    servers.push(server);
+    return server;
+  }
 
   /** Create + activate a changeset with one staged add; returns its id. */
   async function stageOneAdd(): Promise<string> {
@@ -51,23 +61,22 @@ describe("changeset commit/discard API", () => {
   }
 
   it("lists a changeset created after the server loaded (no restart needed)", async () => {
-    const model = await Model.load(dir, { lazyLoad: false });
-    const server = new VisualizationServer(model, { authEnabled: false });
-    const list = async () => (await (await (server as any).app.request("/api/changesets")).json()).changesets;
+    const server = await serve();
+    const list = async () => (await (await server.request("/changesets")).json()).changesets;
 
     const before = await list();
     const id = await stageOneAdd();
 
     expect(before[id]).toBeUndefined();
     expect((await list())[id]).toMatchObject({ name: "review-test", status: "staged", changes_count: 1 });
-    const detail = await (await (server as any).app.request(`/api/changesets/${id}`)).json();
+    const detail = await (await server.request(`/changesets/${id}`)).json();
     expect(detail.changes).toHaveLength(1);
   });
 
-  async function post(path: string): Promise<Response> {
-    const model = await Model.load(dir, { lazyLoad: false });
-    const server = new VisualizationServer(model, { authEnabled: false });
-    return (server as any).app.request(path, { method: "POST" });
+  /** POSTs to the checkout's `rest` (`/changesets/<id>/commit`) on a fresh server. */
+  async function post(rest: string): Promise<Response> {
+    const server = await serve();
+    return server.request(rest, { method: "POST" });
   }
 
   /** Whether the element's slug appears in the model files on disk (Model.load would
@@ -87,7 +96,7 @@ describe("changeset commit/discard API", () => {
     const id = await stageOneAdd();
     expect(await inBaseModel(ELEMENT_ID)).toBe(false);
 
-    const res = await post(`/api/changesets/${id}/commit`);
+    const res = await post(`/changesets/${id}/commit`);
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -113,7 +122,7 @@ describe("changeset commit/discard API", () => {
     const warn = spyOn(console, "warn").mockImplementation(() => {});
     let res: Response;
     try {
-      res = await post(`/api/changesets/${id}/commit`);
+      res = await post(`/changesets/${id}/commit`);
     } finally {
       clear.mockRestore();
       warn.mockRestore();
@@ -130,7 +139,7 @@ describe("changeset commit/discard API", () => {
   it("discards a staged changeset without touching the model", async () => {
     const id = await stageOneAdd();
 
-    const res = await post(`/api/changesets/${id}/discard`);
+    const res = await post(`/changesets/${id}/discard`);
 
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ id, status: "discarded" });
@@ -145,10 +154,10 @@ describe("changeset commit/discard API", () => {
 
   it("refuses to act on a changeset that is no longer staged", async () => {
     const id = await stageOneAdd();
-    expect((await post(`/api/changesets/${id}/commit`)).status).toBe(200);
+    expect((await post(`/changesets/${id}/commit`)).status).toBe(200);
 
-    expect((await post(`/api/changesets/${id}/commit`)).status).toBe(409);
-    expect((await post(`/api/changesets/${id}/discard`)).status).toBe(409);
+    expect((await post(`/changesets/${id}/commit`)).status).toBe(409);
+    expect((await post(`/changesets/${id}/discard`)).status).toBe(409);
   });
 
   // #1169: landing one changeset rewrote the manifest, so every other one read as drifted.
@@ -160,9 +169,9 @@ describe("changeset commit/discard API", () => {
     expect((await runDr(other, { cwd: dir })).exitCode).toBe(0);
     const model = await Model.load(dir, { lazyLoad: true });
     const otherId = (await new StagingAreaManager(dir, model).getActiveId())!;
-    expect((await post(`/api/changesets/${otherId}/commit`)).status).toBe(200);
+    expect((await post(`/changesets/${otherId}/commit`)).status).toBe(200);
 
-    const res = await post(`/api/changesets/${id}/commit`);
+    const res = await post(`/changesets/${id}/commit`);
     expect(res.status).toBe(200);
     expect(await inBaseModel(ELEMENT_ID)).toBe(true);
   });
@@ -174,12 +183,12 @@ describe("changeset commit/discard API", () => {
     // The element the changeset adds lands in the base first.
     expect((await runDr(ADD, { cwd: dir })).exitCode).toBe(0);
 
-    const reads = new VisualizationServer(await Model.load(dir, { lazyLoad: false }), { authEnabled: false });
-    const before = (await (await (reads as any).app.request(`/api/changesets/${id}`)).json()).drift;
+    const reads = await serve();
+    const before = (await (await reads.request(`/changesets/${id}`)).json()).drift;
     expect(before).toMatchObject({ state: "drifted", blocksCommit: false });
     expect(before.overlapping.elements).toMatchObject([{ id: ELEMENT_ID, reason: "already-in-base" }]);
 
-    const res = await post(`/api/changesets/${id}/commit`);
+    const res = await post(`/changesets/${id}/commit`);
     expect(res.status).toBe(200);
     const result = await res.json();
     // The add is skipped, as its consequence said: the base's element stands.
@@ -215,8 +224,8 @@ describe("changeset commit/discard API", () => {
     });
 
     for (const init of [{ method: "POST" }, { method: "POST", body: JSON.stringify({ drop: [0] }), headers: { "Content-Type": "application/json" } }]) {
-      const server = new VisualizationServer(await Model.load(dir, { lazyLoad: false }), { authEnabled: false });
-      const res = await (server as any).app.request(`/api/changesets/${record.id}/commit`, init);
+      const server = await serve();
+      const res = await server.request(`/changesets/${record.id}/commit`, init);
       expect(res.status).toBe(409);
       const { error } = await res.json();
       expect(error).toContain("'review-test-as-built' is a verification record");
@@ -229,11 +238,11 @@ describe("changeset commit/discard API", () => {
     expect(after!.status).toBe("staged");
     expect(after!.changes).toHaveLength(1);
 
-    const server = new VisualizationServer(await Model.load(dir, { lazyLoad: false }), { authEnabled: false });
-    const list = (await (await (server as any).app.request("/api/changesets")).json()).changesets;
+    const server = await serve();
+    const list = (await (await server.request("/changesets")).json()).changesets;
     expect(list[record.id!]).toMatchObject({ purpose: "verification", verifies: planId, actions: ["discard"] });
     expect(list[planId]).toMatchObject({ purpose: "plan", actions: ["commit", "discard"] });
-    const detail = await (await (server as any).app.request(`/api/changesets/${record.id}`)).json();
+    const detail = await (await server.request(`/changesets/${record.id}`)).json();
     expect(detail).toMatchObject({
       purpose: "verification",
       verifies: planId,
@@ -242,15 +251,15 @@ describe("changeset commit/discard API", () => {
     });
 
     // It can still be discarded; the plan still lands.
-    expect((await post(`/api/changesets/${record.id}/discard`)).status).toBe(200);
-    expect((await post(`/api/changesets/${planId}/commit`)).status).toBe(200);
-    const landed = (await (await (server as any).app.request("/api/changesets")).json()).changesets;
+    expect((await post(`/changesets/${record.id}/discard`)).status).toBe(200);
+    expect((await post(`/changesets/${planId}/commit`)).status).toBe(200);
+    const landed = (await (await server.request("/changesets")).json()).changesets;
     expect(landed[planId]).toMatchObject({ status: "committed", actions: [] });
   });
 
   it("returns 404 for an unknown changeset", async () => {
-    expect((await post(`/api/changesets/changeset-missing/commit`)).status).toBe(404);
-    expect((await post(`/api/changesets/changeset-missing/discard`)).status).toBe(404);
+    expect((await post(`/changesets/changeset-missing/commit`)).status).toBe(404);
+    expect((await post(`/changesets/changeset-missing/discard`)).status).toBe(404);
   });
 
   it("returns 422 and applies nothing when the changeset fails validation", async () => {
@@ -265,7 +274,7 @@ describe("changeset commit/discard API", () => {
       after: { type: "operation", name: "Invalid Operation", attributes: {} },
     });
 
-    const res = await post(`/api/changesets/${changeset.id}/commit`);
+    const res = await post(`/changesets/${changeset.id}/commit`);
 
     expect(res.status).toBe(422);
     expect((await res.json()).error).toContain("Validation failed");
@@ -281,7 +290,7 @@ describe("changeset commit/discard API", () => {
 describe("changesets.updated broadcast", () => {
   let dir: string;
   let cleanup: () => Promise<void>;
-  let server: VisualizationServer | undefined;
+  let server: TestFarmServer | undefined;
 
   beforeEach(async () => {
     const workdir = await createTestWorkdir();
@@ -290,23 +299,23 @@ describe("changesets.updated broadcast", () => {
   });
 
   afterEach(async () => {
-    server?.stop();
+    await server?.stop();
     server = undefined;
     await cleanup().catch(() => {});
   });
 
-  /** A server with one recording client attached (no HTTP listener). */
+  /** A server with one recording client subscribed to its checkout (no HTTP listener). */
   async function serverWithClient() {
-    const model = await Model.load(dir, { lazyLoad: false });
-    server = new VisualizationServer(model, { authEnabled: false });
+    server = await startTestFarmServer(dir);
     const ws = createFakeWs();
-    (server as any).clients.add(ws);
+    (await server.context()).subscribers.add(ws as any);
     return { server, ws };
   }
 
-  async function watch(server: VisualizationServer): Promise<void> {
-    (server as any).setupFileWatcher();
-    await new Promise((resolve) => (server as any).watcher.once("ready", resolve));
+  /** The checkout's file watcher, started when the server loaded the checkout, once it is ready. */
+  async function watch(server: TestFarmServer): Promise<void> {
+    const watcher = (await server.context()).watcher as any;
+    if (!watcher._readyEmitted) await new Promise((resolve) => watcher.once("ready", resolve));
   }
 
   const updates = (ws: ReturnType<typeof createFakeWs>) =>
@@ -369,7 +378,7 @@ describe("changesets.updated broadcast", () => {
     });
     const { server, ws } = await serverWithClient();
     const drift = async () =>
-      (await (await (server as any).app.request("/api/changesets")).json()).changesets[id].drift;
+      (await (await server.request("/changesets")).json()).changesets[id].drift;
     expect(await drift()).toMatchObject({ state: "none", blocksCommit: false });
     await watch(server);
 
@@ -391,7 +400,7 @@ describe("changesets.updated broadcast", () => {
     const id = await stageOneAdd();
     const { server, ws } = await serverWithClient();
 
-    const res = await (server as any).app.request(`/api/changesets/${id}/commit`, { method: "POST" });
+    const res = await server.request(`/changesets/${id}/commit`, { method: "POST" });
 
     expect(res.status).toBe(200);
     const [update] = updates(ws);
@@ -404,7 +413,7 @@ describe("changesets.updated broadcast", () => {
     const id = await stageOneAdd();
     const { server, ws } = await serverWithClient();
 
-    const res = await (server as any).app.request(`/api/changesets/${id}/discard`, { method: "POST" });
+    const res = await server.request(`/changesets/${id}/discard`, { method: "POST" });
 
     expect(res.status).toBe(200);
     const [update] = updates(ws);

@@ -5,13 +5,10 @@ motivation.outcome.changes-are-planned-as-changesets:
   type: outcome
   layer_id: motivation
   name: Changes are planned as changesets
-  description: "MVP criterion 1: changes in the MVP projects are planned as
-    changesets through MCP instead of prose plans."
+  description: "MVP criterion 1: changes in the MVP projects are planned as changesets through MCP instead of prose plans."
   attributes:
     status: planned
-    documentation: "MVP criterion 1: changes in the MVP projects are planned as
-      changesets through MCP instead of prose plans. Record each change's
-      outcome so the tools are judged on use."
+    documentation: "MVP criterion 1: changes in the MVP projects are planned as changesets through MCP instead of prose plans. Record each change's outcome so the tools are judged on use."
   metadata:
     created_at: 2026-11-09T21:54:56.364Z
     updated_at: 2026-11-09T21:54:56.364Z
@@ -23,14 +20,10 @@ motivation.outcome.pressure-testing-catches-what-prose-plans-miss:
   type: outcome
   layer_id: motivation
   name: Pressure-testing catches what prose plans miss
-  description:
-    "MVP criterion 2: pressure-testing finds things a prose plan would
-    have missed, and we can name them."
+  description: "MVP criterion 2: pressure-testing finds things a prose plan would have missed, and we can name them."
   attributes:
     status: planned
-    documentation: "MVP criterion 2: pressure-testing finds things a prose plan
-      would have missed, and we can name them. Record each change's outcome so
-      the tools are judged on use."
+    documentation: "MVP criterion 2: pressure-testing finds things a prose plan would have missed, and we can name them. Record each change's outcome so the tools are judged on use."
   metadata:
     created_at: 2026-11-09T21:54:56.384Z
     updated_at: 2026-11-09T21:54:56.384Z
@@ -42,14 +35,10 @@ motivation.outcome.changesets-land-with-the-code:
   type: outcome
   layer_id: motivation
   name: Changesets land with the code
-  description: "MVP criterion 3: the changeset is committed in the pull request
-    that ships the code."
+  description: "MVP criterion 3: the changeset is committed in the pull request that ships the code."
   attributes:
     status: planned
-    documentation:
-      "MVP criterion 3: the changeset is committed in the pull request
-      that ships the code. Record each change's outcome so the tools are judged
-      on use."
+    documentation: "MVP criterion 3: the changeset is committed in the pull request that ships the code. Record each change's outcome so the tools are judged on use."
   metadata:
     created_at: 2026-11-09T21:54:56.411Z
     updated_at: 2026-11-09T21:54:56.411Z
@@ -61,13 +50,10 @@ motivation.outcome.verified-plan-to-build-difference-is-small:
   type: outcome
   layer_id: motivation
   name: Verified plan-to-build difference is small
-  description: "MVP criterion 4: once extraction can verify, the difference
-    between plan and build is small and explained."
+  description: "MVP criterion 4: once extraction can verify, the difference between plan and build is small and explained."
   attributes:
     status: planned
-    documentation: "MVP criterion 4: once extraction can verify, the difference
-      between plan and build is small and explained. Record each change's
-      outcome so the tools are judged on use."
+    documentation: "MVP criterion 4: once extraction can verify, the difference between plan and build is small and explained. Record each change's outcome so the tools are judged on use."
   metadata:
     created_at: 2026-11-09T21:54:56.435Z
     updated_at: 2026-11-09T21:54:56.435Z
@@ -79,14 +65,25 @@ motivation.outcome.every-mvp-project-has-an-as-built-model:
   type: outcome
   layer_id: motivation
   name: Every MVP project has an as-built model
-  description: Each project in the MVP has a model that describes what it is,
-    bootstrapped by extraction or grown with its changes.
+  description: Each project in the MVP has a model that describes what it is, bootstrapped by extraction or grown with its changes.
   attributes:
     status: planned
-    documentation: "Measured by: context-studio, the viewer, heimdall, house,
-      stagecraft and toland-cad each have a model that validates and passes
-      code-to-model verification."
+    documentation: "Measured by: context-studio, the viewer, heimdall, house, stagecraft and toland-cad each have a model that validates and passes code-to-model verification."
   metadata:
     created_at: 2026-11-09T22:04:37.931Z
     updated_at: 2026-11-09T22:04:37.931Z
+    version: 1
+motivation.outcome.one-viewer-process-serves-every-mapped-project:
+  id: 20914373-c910-4886-b439-2bc9ca4f7861
+  path: motivation.outcome.one-viewer-process-serves-every-mapped-project
+  spec_node_id: motivation.outcome
+  type: outcome
+  layer_id: motivation
+  name: One viewer process serves every mapped project
+  description: One server process per user serves every project in the user's farm; review_open from any project's session returns a link into it without starting a process (issue 1279, done when).
+  attributes:
+    status: planned
+  metadata:
+    created_at: 2026-11-21T17:14:10.876Z
+    updated_at: 2026-11-21T17:14:10.876Z
     version: 1

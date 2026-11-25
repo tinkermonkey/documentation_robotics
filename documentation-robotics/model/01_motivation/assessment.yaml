@@ -5,19 +5,10 @@ motivation.assessment.print-mode-declines-elicitation:
   type: assessment
   layer_id: motivation
   name: Print mode declines elicitation
-  description: The Claude desktop app's Code tab runs Claude Code in print mode,
-    which declines every MCP elicitation request at once while still advertising
-    the form capability, so changeset_commit's dialog never reaches the person.
+  description: The Claude desktop app's Code tab runs Claude Code in print mode, which declines every MCP elicitation request at once while still advertising the form capability, so changeset_commit's dialog never reaches the person.
   attributes:
     assessmentType: gap
-    documentation:
-      "Found 2026-11-17 landing context-studio's restore-upgrade-drops:
-      changeset_commit was declined twice although the person approved the
-      permission card. The MCP log
-      (~/Library/Caches/claude-cli-nodejs/<project>/mcp-logs-plugin-dr-dr/)
-      records 'Elicitation request received in print mode' and the decline in
-      the same second. The client advertises capabilities.elicitation.form, so
-      the server cannot tell beforehand."
+    documentation: "Found 2026-11-17 landing context-studio's restore-upgrade-drops: changeset_commit was declined twice although the person approved the permission card. The MCP log (~/Library/Caches/claude-cli-nodejs/<project>/mcp-logs-plugin-dr-dr/) records 'Elicitation request received in print mode' and the decline in the same second. The client advertises capabilities.elicitation.form, so the server cannot tell beforehand."
   metadata:
     created_at: 2026-11-17T20:42:52.452Z
     updated_at: 2026-11-17T20:42:52.452Z
@@ -29,20 +20,10 @@ motivation.assessment.drift-shows-only-when-apply-is-refused:
   type: assessment
   layer_id: motivation
   name: Drift shows only when Apply is refused
-  description: The viewer learns that the base model changed under a changeset
-    only when a commit is attempted and refused (409). GET /api/changesets and
-    GET /api/changesets/:id carry no drift field, so nothing can be shown before
-    Apply.
+  description: The viewer learns that the base model changed under a changeset only when a commit is attempted and refused (409). GET /api/changesets and GET /api/changesets/:id carry no drift field, so nothing can be shown before Apply.
   attributes:
     assessmentType: gap
-    documentation: "Found 2026-11-18 from the viewer side
-      (documentation_robotics_viewer issue 576, show base drift before Apply):
-      at main 6ef30d2f the REST side meets drift only in the commit route
-      (StagingAreaManager.detectDrift), while changeset_brief already names what
-      changed (describeDrift). Dogfood the same day (#1171): the viewer offered
-      Apply on a verification record whose plan had landed, and the refusal for
-      drift was the first sign anything was off. #1169: drift with nothing
-      changed read as blocking until the base index told the two apart."
+    documentation: "Found 2026-11-18 from the viewer side (documentation_robotics_viewer issue 576, show base drift before Apply): at main 6ef30d2f the REST side meets drift only in the commit route (StagingAreaManager.detectDrift), while changeset_brief already names what changed (describeDrift). Dogfood the same day (#1171): the viewer offered Apply on a verification record whose plan had landed, and the refusal for drift was the first sign anything was off. #1169: drift with nothing changed read as blocking until the base index told the two apart."
   metadata:
     created_at: 2026-11-18T19:52:37.492Z
     updated_at: 2026-11-18T19:52:37.492Z
@@ -54,22 +35,53 @@ motivation.assessment.one-base-edit-blocks-every-staged-plan:
   type: assessment
   layer_id: motivation
   name: One base edit blocks every staged plan
-  description:
-    A commit refuses a changeset for drift whenever any element in the
-    base changed or was removed since the changeset was created, also one the
-    changeset neither edits nor links to. So one landing that edits an element
-    blocks every other staged plan until each is forced.
+  description: A commit refuses a changeset for drift whenever any element in the base changed or was removed since the changeset was created, also one the changeset neither edits nor links to. So one landing that edits an element blocks every other staged plan until each is forced.
   attributes:
     assessmentType: gap
-    documentation: "Found 2026-11-18, twice. Building the REST drift field (PR
-      1191): its own plan read drifted with nothing overlapping after PR 1189
-      landed and changed four features it does not touch. The viewer session's
-      live test of that field: three staged plans, one base edit to an element
-      none of them touches, all three drifted with blocksCommit true and an
-      empty overlapping, so the viewer held Apply on all of them. The rule is
-      contentFreeDrift (cli/src/core/changeset-base-index.ts), added for #1169:
-      it counts only additions to the base as content-free."
+    documentation: "Found 2026-11-18, twice. Building the REST drift field (PR 1191): its own plan read drifted with nothing overlapping after PR 1189 landed and changed four features it does not touch. The viewer session's live test of that field: three staged plans, one base edit to an element none of them touches, all three drifted with blocksCommit true and an empty overlapping, so the viewer held Apply on all of them. The rule is contentFreeDrift (cli/src/core/changeset-base-index.ts), added for #1169: it counts only additions to the base as content-free."
   metadata:
     created_at: 2026-11-18T20:52:36.710Z
     updated_at: 2026-11-18T20:52:36.710Z
+    version: 1
+motivation.assessment.nothing-re-baselines-a-drifted-changeset:
+  id: a11bdf9d-80d9-48eb-acbe-73e6dd438bb8
+  path: motivation.assessment.nothing-re-baselines-a-drifted-changeset
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: Nothing re-baselines a drifted changeset
+  description: "Once a changeset's base moved, no tool takes the new base as its starting point: an update restaged on the current base still reads as changed in the base, and the only ways forward were force or the dr CLI (#1169, #1239)."
+  attributes:
+    assessmentType: gap
+  metadata:
+    created_at: 2026-11-20T16:38:46.225Z
+    updated_at: 2026-11-20T16:38:46.225Z
+    version: 1
+motivation.assessment.viewers-pile-up-per-checkout:
+  id: 03d466e8-6524-4ef8-8c27-dba291ee6e36
+  path: motivation.assessment.viewers-pile-up-per-checkout
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: Viewers pile up per checkout
+  description: After the 0.7.0 release one machine had six viewers, five on worktrees, each with its own port, token and process pair; switching project means switching viewer (issue 1279).
+  attributes:
+    assessmentType: gap
+  metadata:
+    created_at: 2026-11-21T17:14:10.881Z
+    updated_at: 2026-11-21T17:14:10.881Z
+    version: 1
+motivation.assessment.dr-cannot-tell-a-worktree-from-a-project:
+  id: f5d624a2-c32a-4288-9048-34f314ef7393
+  path: motivation.assessment.dr-cannot-tell-a-worktree-from-a-project
+  spec_node_id: motivation.assessment
+  type: assessment
+  layer_id: motivation
+  name: DR cannot tell a worktree from a project
+  description: "Nothing in DR knows a worktree is a worktree: the farm, MCP root resolution, the viewer registry and .dr/ state each treat every checkout as a separate project (issue 1285)."
+  attributes:
+    assessmentType: gap
+  metadata:
+    created_at: 2026-11-21T17:14:10.881Z
+    updated_at: 2026-11-21T17:14:10.881Z
     version: 1

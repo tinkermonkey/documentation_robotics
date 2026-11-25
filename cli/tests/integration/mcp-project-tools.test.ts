@@ -59,7 +59,8 @@ async function waitForMessage(state: McpProcess, matches: (message: any) => bool
  * answer its roots/list request with the given folders.
  */
 async function startServer(roots: string[], globalArgs: string[] = []): Promise<McpProcess> {
-  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath };
+  // In process: no central process (the bridge has its own test, mcp-stdio-bridge.test.ts).
+  const env: NodeJS.ProcessEnv = { ...process.env, DR_CONFIG_PATH: configPath, DR_MCP_IN_PROCESS: "1" };
   delete env.DR_MCP_API_KEY;
   delete env.DR_MCP_ROOT_PATH;
   delete env.DR_CHANGESET_ONLY;
@@ -541,6 +542,9 @@ describe("project_status over MCP", () => {
     // A list the status shortens is returned in full by the same tool, paged.
     const unreferenced = await call("project_status", { list: "unreferencedFiles", limit: 1 });
     expect(unreferenced).toEqual({
+      // Every result names its checkout; an in-process server has no farm registry to name one.
+      project: null,
+      checkout: null,
       list: "unreferencedFiles",
       items: [{ file: "src/lighting.ts", source: true, added: true }],
       page: { total: 1, returned: 1, offset: 0 },

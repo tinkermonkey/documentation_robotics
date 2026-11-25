@@ -1,0 +1,33 @@
+technology.technologyservice.per-user-dr-service:
+  id: d268a65e-fd60-4959-906d-465a471b07ed
+  path: technology.technologyservice.per-user-dr-service
+  spec_node_id: technology.technologyservice
+  type: technologyservice
+  layer_id: technology
+  name: Per-user DR service
+  description: "The central DR process as a platform service on the workstation: compute for MCP, the viewer and DrBot, one per user."
+  attributes:
+    serviceType: compute
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/central-lifetime.ts
+        symbol: runCentralProcess
+  metadata:
+    created_at: 2026-11-21T17:14:10.909Z
+    updated_at: 2026-11-21T17:14:10.909Z
+    version: 1
+technology.technologyservice.otlp-collector:
+  id: 75dd8485-5eac-418a-a224-fceade772d33
+  path: technology.technologyservice.otlp-collector
+  spec_node_id: technology.technologyservice
+  type: technologyservice
+  layer_id: technology
+  name: OTLP collector
+  description: The OpenTelemetry collector the CLI exports to when built with telemetry (default localhost:4318); optional, outside DR.
+  attributes:
+    serviceType: monitoring
+  metadata:
+    created_at: 2026-11-21T17:21:34.233Z
+    updated_at: 2026-11-21T17:21:34.233Z
+    version: 1

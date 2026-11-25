@@ -1,7 +1,7 @@
 /**
  * The collectors behind project_status. Each one reports one section from local files and git,
  * independently of the others: a collector that fails reports its own error and the rest still
- * answer. A new section (the running viewer, indexing progress) is one more collector.
+ * answer. A new section (the checkout, the viewer link, indexing progress) is one more collector.
  *
  * Nothing here touches the network or starts the code analyzer.
  */
@@ -20,8 +20,8 @@ import { readIndexMeta, readSession } from "../../analyzers/session-state.js";
 import { getCliBundledSpecVersion, getCliVersion, getModelSpecVersion } from "../../utils/spec-version.js";
 import { fileExists, readFile } from "../../utils/file-io.js";
 import { readActiveMarker } from "../../core/active-changeset-marker.js";
-import { probeViewer, viewerUrl, type SweepResult } from "../../server/viewer-registry.js";
-import { viewerSetting } from "../../server/viewer-settings.js";
+import type { ProjectListCheckout } from "../../core/checkout-types.js";
+import { DEFAULT_CENTRAL_DEPS, runningCentralLink, type CentralDeps, type SessionCheckout } from "./central-viewer.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
 import { getErrorMessage } from "../../utils/errors.js";
@@ -61,6 +61,19 @@ export interface StatusContext {
    * does and the call that describes them. `all` is what the `stagedChangesets` list uses.
    */
   describeDrift?: "active" | "all";
+  /**
+   * The farm and the checkout this call resolves to: null when no farm could be read, `resolved`
+   * null when no project owns the folder. Loaded once, shared by the checkout and viewer sections.
+   */
+  session?: () => Promise<StatusSession | null>;
+  /** How the viewer section reads the server record (tests pass their own). */
+  central?: Pick<CentralDeps, "findRunningServer" | "cliVersion">;
+}
+
+/** The registry a status call opened, and the checkout it resolved to, if any. */
+export interface StatusSession {
+  registry: SessionCheckout["registry"];
+  resolved: SessionCheckout["resolved"] | null;
 }
 
 /** A section a collector could not produce. */
@@ -756,6 +769,8 @@ export const LIST_DEFAULTS = {
   landedSince: 5,
   changedSinceIndex: 15,
   uncommittedEdits: 15,
+  /** The project's checkouts other than this one. */
+  otherCheckouts: 10,
 } as const;
 
 /** The lists `project_status` pages with `list`, `limit` and `offset`. */
@@ -767,6 +782,7 @@ export const STATUS_LISTS = [
   "landedSince",
   "changedSinceIndex",
   "uncommittedEdits",
+  "otherCheckouts",
 ] as const;
 export type StatusList = (typeof STATUS_LISTS)[number];
 
@@ -1452,6 +1468,7 @@ export interface ListSections {
   changesets: ChangesetsSection | ErrorSection;
   codeIndex: CodeIndexSection | ErrorSection;
   codeDrift: CodeDriftSection | ErrorSection;
+  checkout: CheckoutSection | { status: "none" } | ErrorSection;
 }
 
 /** `project_status with list: "x", offset: n` as an agent would write the call. */
@@ -1471,6 +1488,9 @@ export function statusListItems(list: StatusList, s: Partial<ListSections>): { i
   });
   if (list === "stagedChangesets") {
     return s.changesets?.status === "ok" ? { items: s.changesets.staged } : unavailable(s.changesets, "changesets");
+  }
+  if (list === "otherCheckouts") {
+    return s.checkout?.status === "ok" ? { items: s.checkout.otherCheckouts } : unavailable(s.checkout, "checkout");
   }
   if (list === "changedSinceIndex" || list === "uncommittedEdits") {
     const index = s.codeIndex;
@@ -1518,6 +1538,13 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
       if (hiddenDrifted > 0) more[0] += ` ${hiddenDrifted} of those not shown ${hiddenDrifted === 1 ? "has" : "have"} a drifted base.`;
       out.changesets = { ...out.changesets, staged, ...said(pages, more) };
     }
+  }
+
+  if (out.checkout?.status === "ok") {
+    const pages: ShortenedPages = {};
+    const more: string[] = [];
+    const otherCheckouts = cut("otherCheckouts", out.checkout.otherCheckouts, pages, more);
+    if (more.length > 0) out.checkout = { ...out.checkout, otherCheckouts, ...said(pages, more) };
   }
 
   const index = out.codeIndex;
@@ -1581,64 +1608,106 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
 }
 
 // ---------------------------------------------------------------------------------------------
-// viewer
+// checkout and viewer
 
-/** What reading the viewer registry cleaned up or left unread, when it did either. */
-export interface ViewerRegistrySweep {
-  staleRemoved?: { records: number; startingMarkers: number; logs: number; tempFiles: number };
-  /** Records this CLI could not read whose process is alive (a newer CLI's viewer, perhaps): left in place. */
-  unreadableRecords?: number;
-}
+/**
+ * The project and checkout this call resolves to in the farm, and the project's other checkouts:
+ * each with its branch, head, state, active changeset and staged changeset count. The list is
+ * whole here; the default answer shortens it (`otherCheckouts`, paged with `list`).
+ */
+export type CheckoutSection =
+  | { status: "unregistered"; reason: string; farm: { root: string; source: string } }
+  | {
+      status: "ok";
+      project: string;
+      checkout: string;
+      path: string;
+      branch: string | null;
+      head: string;
+      farm: { root: string; source: string };
+      otherCheckouts: ProjectListCheckout[];
+      /** Set when the default answer shortened otherCheckouts: its page, and the call for the rest. */
+      pages?: ShortenedPages;
+      more?: string;
+    };
 
-export type ViewerSection = (
-  | { status: "none" }
-  | { status: "running"; url: string; port: number; pid: number; startedAt: string; withChangesets: boolean }
-  | { status: "unreachable"; port: number; pid: number; note: string }
-) &
-  ViewerRegistrySweep;
-
-function sweepPart(swept: SweepResult | undefined): ViewerRegistrySweep {
-  if (!swept) return {};
+export async function collectCheckout(ctx: StatusContext): Promise<CheckoutSection | { status: "none" }> {
+  if (!ctx.session) return { status: "none" };
+  const session = await ctx.session();
+  if (!session) return { status: "none" };
+  const farm = { root: session.registry.farm.root, source: session.registry.farm.source };
+  if (!session.resolved) {
+    return {
+      status: "unregistered",
+      reason: `No project in the farm at ${farm.root} owns ${ctx.projectRoot ?? ctx.root}; review_open adds its repository.`,
+      farm,
+    };
+  }
+  const { ref, checkout } = session.resolved;
+  const entry = await session.registry.listProject(ref.project);
   return {
-    ...(swept.removed.length > 0
-      ? { staleRemoved: { records: swept.records, startingMarkers: swept.markers, logs: swept.logs, tempFiles: swept.tempFiles } }
-      : {}),
-    ...(swept.unreadable.length > 0 ? { unreadableRecords: swept.unreadable.length } : {}),
+    status: "ok",
+    project: ref.project,
+    checkout: ref.checkout,
+    path: checkout.path,
+    branch: checkout.branch,
+    head: checkout.head,
+    farm,
+    otherCheckouts: (entry?.checkouts ?? []).filter((c) => c.key !== ref.checkout),
   };
 }
 
 /**
- * The viewer `dr visualize` (or review_open) runs for this project, from its record in the user's
- * state directory. The health probe is kept short so the call stays fast:
- * DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS (500 ms, the retry twice that). Reading the registry removes
- * records and logs of viewers that are gone; the section says so when it did.
+ * The farm's central DR process, which serves the shared viewer for every project and checkout:
+ * whether it runs, its CLI version (outdated: older than this CLI) and this checkout's link. Read
+ * from the server record; it never starts the process (review_open does).
  */
+export type ViewerSection =
+  | { status: "none"; note: string }
+  | {
+      status: "running";
+      url: string;
+      project: string;
+      checkout: string;
+      port: number;
+      pid: number;
+      startedAt: string;
+      cliVersion: string;
+      outdated: boolean;
+      note?: string;
+    };
+
 export async function collectViewer(ctx: StatusContext): Promise<ViewerSection> {
-  if (!ctx.projectRoot) return { status: "none" };
-  const timeoutMs = viewerSetting("statusHealthTimeoutMs");
-  const probe = await probeViewer(ctx.projectRoot, { probeTimeoutMs: timeoutMs, retryTimeoutMs: timeoutMs * 2 });
-  const swept = sweepPart(probe.swept);
-  if (probe.state === "none") return { status: "none", ...swept };
-  const { record } = probe;
-  if (probe.state === "unreachable") {
+  const session = ctx.session ? await ctx.session() : null;
+  if (!session?.resolved) {
+    return { status: "none", note: "This folder is not a checkout of a project in the farm, so it has no viewer link." };
+  }
+  const deps = ctx.central ?? DEFAULT_CENTRAL_DEPS;
+  const found = await runningCentralLink(session.registry.farm.root, session.resolved.ref, {}, deps);
+  if (!found) {
     return {
-      status: "unreachable",
-      port: record.port,
-      pid: record.pid,
-      note:
-        `The viewer's process is alive but it did not answer within ${timeoutMs * 2} ms ` +
-        "(DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS); it may still be loading.",
-      ...swept,
+      status: "none",
+      note: "No central DR process runs for this farm. review_open starts it and returns the link to a changeset.",
     };
   }
+  const { link, record, outdated } = found;
   return {
     status: "running",
-    url: viewerUrl(record),
+    url: link.url,
+    project: link.project,
+    checkout: link.checkout,
     port: record.port,
     pid: record.pid,
     startedAt: record.startedAt,
-    withChangesets: record.withChangesets,
-    ...swept,
+    cliVersion: record.cliVersion,
+    outdated,
+    ...(outdated
+      ? {
+          note:
+            `It runs CLI ${record.cliVersion}, older than this CLI's ${deps.cliVersion}. review_open with restart: true ` +
+            "replaces it; ask the user first, since that ends every DrBot chat in it.",
+        }
+      : {}),
   };
 }
 

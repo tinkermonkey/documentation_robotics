@@ -8,12 +8,10 @@ import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
 import { createAdaptorServer, type ServerType } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
-import { spawn, spawnSync, type ChildProcess } from "child_process";
-import chokidar from "chokidar";
-import { randomBytes, randomUUID, timingSafeEqual } from "crypto";
-import { existsSync, mkdirSync, readFileSync, realpathSync } from "fs";
+import { AsyncLocalStorage } from "async_hooks";
+import { randomBytes, timingSafeEqual } from "crypto";
+import { realpathSync } from "fs";
 import { realpath } from "fs/promises";
-import { homedir } from "os";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -22,16 +20,14 @@ const require = createRequire(import.meta.url);
 import { Model } from "../core/model.js";
 import { Element } from "../core/element.js";
 import { Changeset as StagedChangeset } from "../core/changeset.js";
-import { StagedChangesetStorage } from "../core/staged-changeset-storage.js";
 import { StagingAreaManager } from "../core/staging-area.js";
-import { activeMarkerPath } from "../core/active-changeset-marker.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { allowedActions, purposeOf, RecordLandingError } from "../core/changeset-purpose.js";
+import { verifyChangesetInModel } from "../core/changeset-verify.js";
 import { ChangesetGraph } from "../core/changeset-graph.js";
 import { driftDetail, driftStatus, type DriftSubject } from "../core/changeset-drift-status.js";
 import type { ChangesetDrift } from "../core/changeset-base-index.js";
 import {
-  CHANGESET_ORIGIN_ENV,
   cascadeDrops,
   danglingRelationshipAdds,
   deleteBlockers,
@@ -43,42 +39,25 @@ import {
   type ReviewVerdict,
 } from "../core/changeset-review.js";
 import { CANONICAL_LAYER_NAMES } from "../core/layers.js";
-import { AnnotationStore, type Annotation as StoredAnnotation } from "../core/annotation-store.js";
-import { telemetryMiddleware } from "./telemetry-middleware.js";
-import { BaseChatClient } from "../coding-agents/base-chat-client.js";
-import { ClaudeCodeClient } from "../coding-agents/claude-code-client.js";
-import { CopilotClient } from "../coding-agents/copilot-client.js";
+import { type Annotation as StoredAnnotation } from "../core/annotation-store.js";
+import {
+  type CheckoutRef,
+  type ContextPoolSettings,
+  type ResolvedCheckout,
+} from "../core/checkout-types.js";
+import type { ProjectRegistry } from "../core/project-registry.js";
+import { CheckoutContext, checkoutKey, type CheckoutSubscriber } from "./checkout-context.js";
+import { CheckoutContextPool } from "./checkout-context-pool.js";
+import { DrBotLauncher, JSONRPC_ERRORS } from "./dr-bot-launcher.js";
+import { CHECKOUT_CONTEXT_KEY, telemetryMiddleware } from "./telemetry-middleware.js";
 import { detectAvailableClients, selectChatClient } from "../coding-agents/chat-utils.js";
-import {
-  formatForClaudeCode,
-  formatForClaudeCodeWithChangesets,
-  applyCopilotPermissions,
-  CHANGESET_ONLY_ENV,
-} from "../coding-agents/default-permissions.js";
-import {
-  DR_ARCHITECT_AGENT,
-  drMcpAllowedTools,
-  resolveDrCommand,
-  prepareDrMcpLaunch,
-  prepareDrBotAgent,
-  type AgentMcpToolCheck,
-  type DrBotAgentLaunch,
-  type DrBotMode,
-  type DrMcpLaunch,
-  type PrepareDrMcpLaunchOptions,
-} from "../coding-agents/drbot-mcp.js";
-import {
-  DRBOT_BUILT_IN_TOOLS,
-  drBotDisallowedTools,
-  drBotLaunchSettings,
-  drBotSessionPrompt,
-  explainDeniedToolCall,
-  isExplainedRefusal,
-  isPermissionDenial,
-} from "../coding-agents/drbot-permissions.js";
-import { CHAT_MODE_ENV, CHAT_PROJECT_ROOT_ENV, REFUSAL_MARKER } from "../coding-agents/chat-guard.js";
 import { getErrorMessage } from "../utils/errors.js";
-import { hasExited } from "../utils/stop-child-process.js";
+import {
+  createCommitProgressReporter,
+  sameRootPath,
+  subscribeCommitProgress,
+  type PublishedCommitProgress,
+} from "../core/commit-progress.js";
 import {
   AnnotationCreateSchema,
   AnnotationUpdateSchema,
@@ -98,8 +77,15 @@ import {
   ChangesetCommitRefusedSchema,
   ChangesetReviewSchema,
   ChangesetReviewUpdateSchema,
+  ChangesetVerificationSchema,
   ModelResponseSchema,
   LayerResponseSchema,
+  FeedSubscriptionSchema,
+  ProjectNameParamSchema,
+  CheckoutKeyParamSchema,
+  ProjectListEntrySchema,
+  ProjectsListSchema,
+  ProjectCheckoutsSchema,
   SpecResponseSchema,
   AnnotationRepliesSchema,
   WSMessageSchema,
@@ -107,6 +93,7 @@ import {
   JSONRPCRequestSchema,
   JSONRPCResponseSchema,
   Tier1StatusResponseSchema,
+  ChangesetCommitProgressSchema,
 } from "./schemas.js";
 import {
   cappedReason,
@@ -119,22 +106,6 @@ import {
 } from "../analyzers/classifier/status.js";
 import type { Tier1Month } from "../analyzers/classifier/types.js";
 import { readSession } from "../analyzers/session-state.js";
-
-/**
- * JSON-RPC 2.0 Error Codes
- * Subset of JSON-RPC 2.0 error codes used in this implementation.
- * Standard JSON-RPC 2.0 also defines PARSE_ERROR (-32700) and INVALID_REQUEST (-32600)
- * for protocol-level errors not applicable to WebSocket message handling.
- */
-const JSONRPC_ERRORS = {
-  // Standard JSON-RPC errors
-  INVALID_PARAMS: -32602,      // Invalid method parameters
-  METHOD_NOT_FOUND: -32601,    // Method does not exist
-  INTERNAL_ERROR: -32603,      // Internal server error
-
-  // Custom application errors
-  NO_CLIENT_AVAILABLE: -32001, // No chat client available
-} as const;
 
 /**
  * Type Casting Note
@@ -163,22 +134,7 @@ type SimpleWSMessage = z.infer<typeof SimpleWSMessageSchema>;
 type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 type WSMessage = z.infer<typeof WSMessageSchema>;
-
-/** What the server compares to tell an annotation changed, and which replies are new. */
-interface AnnotationFingerprint {
-  elementId: string;
-  /** content, tags, resolved and updatedAt, serialized. */
-  state: string;
-  replyIds: string[];
-}
-
-function annotationFingerprint(annotation: StoredAnnotation): AnnotationFingerprint {
-  return {
-    elementId: annotation.elementId,
-    state: JSON.stringify([annotation.content, annotation.tags, annotation.resolved, annotation.updatedAt ?? null]),
-    replyIds: annotation.replies.map((reply) => reply.id),
-  };
-}
+type FeedSubscription = z.infer<typeof FeedSubscriptionSchema>;
 
 // Type for WebSocket context from Hono's WebSocket helper (hono/ws), shared by all
 // runtime adapters (@hono/node-ws, hono/bun, hono/cloudflare-workers, etc.)
@@ -188,58 +144,8 @@ interface HonoWSContext {
   close(code?: number, reason?: string): void;
 }
 
-/** A viewer conversation's Claude Code session. */
-interface ChatSession {
-  sessionId: string;
-  /** Claude Code has created the session: later sends pass --resume. */
-  started: boolean;
-  /** A send has already launched with --session-id for it. */
-  attempted?: boolean;
-}
-
-/** How a chat turn is launched. */
-interface ChatLaunchOptions {
-  /** The send named a conversation, so its Claude Code session is kept and resumed. */
-  resumable?: boolean;
-  /** The turn's hold on its conversation (see reserveChatConversation). */
-  turn?: symbol;
-  /** This launch is the one retry after "session id already in use". */
-  retried?: boolean;
-}
-
-/** What the server tracks while streaming one Claude Code reply. */
-interface ClaudeTurnState {
-  accumulatedText: string;
-  /** tool_use id -> the call, until its tool_result arrives. */
-  pendingTools: Map<string, { name: unknown; input: unknown }>;
-  /**
-   * tool_use id -> a call that failed with a result that didn't read as a permission refusal.
-   * The turn's `result` event lists the refused calls, so one of these may still turn out to be one.
-   */
-  failedTools: Map<string, { name: unknown; input: unknown; result: unknown }>;
-
-  /** The conversation's Claude Code session, when the send named a conversation. */
-  session?: ChatSession;
-  /** Claude Code printed at least one stream-json event. */
-  sawEvent: boolean;
-}
-
-/** A tool_result's content as text: a string, or the text blocks of a content array. */
-function toolResultText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    return content
-      .map((part) =>
-        part && typeof part === "object" && typeof (part as any).text === "string" ? (part as any).text : ""
-      )
-      .filter(Boolean)
-      .join("\n");
-  }
-  return "";
-}
-
 export interface VisualizationServerOptions {
-  authEnabled?: boolean;
+  /** The one token every `/api/...`, `/ws` and `/mcp` call carries. Default: a random one. */
   authToken?: string;
   withDanger?: boolean;
   /**
@@ -248,10 +154,49 @@ export interface VisualizationServerOptions {
    */
   withChangesets?: boolean;
   viewerPath?: string;
-  /** This viewer's id, as its registry record has it; GET /health reports it. */
-  viewerId?: string;
-  /** Pid of the `dr visualize` launcher that runs this server; GET /health reports it. */
+  /** Pid of the process that launched this server; GET /health reports it with the token. */
   launcherPid?: number;
+  /**
+   * The farm the server serves, every project and checkout of it: the central process (issue
+   * 1279, `docs/design/USER_LEVEL_DR.md` sections 7 and 8; `startCentralServer` in
+   * central-server.ts). It is the server's only mode.
+   */
+  central: CentralModeOptions;
+}
+
+/** What the server needs to serve a whole farm. */
+export interface CentralModeOptions {
+  /** The farm's registry: the only way the server resolves a project or checkout. */
+  registry: ProjectRegistry;
+  /** Context pool limits. Default: `contextPoolSettingsFromEnv()`. */
+  pool?: ContextPoolSettings;
+  /**
+   * The checkout an MCP session with no root of its own works in (the process's working
+   * directory's checkout, else the farm's first project's main); null when the farm has none.
+   * It serves no route: every project-data route names its checkout.
+   */
+  defaultCheckout: CheckoutRef | null;
+  /** This process's id, reported by `/health` with the token. */
+  serverId?: string;
+  /**
+   * How often (ms) the server asks the registry whether its loaded checkouts still exist, so a
+   * removed checkout's subscribers hear `checkout.removed` (default 30 s; 0 turns it off). The
+   * registry has no file watcher: it notices a removal when asked.
+   */
+  removalCheckMs?: number;
+}
+
+/** The first segments of every checkout-scoped route. */
+const SCOPED_PREFIX = "/api/projects/:project/checkouts/:checkout";
+
+/**
+ * A websocket's subscription to one checkout's feed on the central server. The checkout's
+ * context holds it as a subscriber: sends go to the socket, and closing it (the context closing)
+ * ends only this subscription, never the socket, which may be subscribed to other checkouts.
+ */
+interface FeedSubscriber extends CheckoutSubscriber {
+  ref: CheckoutRef;
+  ws: HonoWSContext;
 }
 
 /**
@@ -470,73 +415,85 @@ async function readCommitRequest(
 }
 export class VisualizationServer {
   private app: OpenAPIHono;
-  private model: Model;
   private _servers: ServerType[] = []; // One per loopback address the viewer listens on
   private upgradeWebSocket?: ReturnType<typeof createNodeWebSocket>["upgradeWebSocket"];
   private injectWebSocket?: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
-  private clients: Set<HonoWSContext> = new Set();
-  private watcher?: any;
   /** When the viewer was last used (see getActivity); the idle exit is measured from it. */
   private lastActivityAt = Date.now();
-  private viewerId?: string;
   private launcherPid?: number;
-  /**
-   * Annotations live on disk (documentation-robotics/annotations/), shared with the MCP
-   * annotation_* tools, which run in other processes.
-   */
-  private annotationStore: AnnotationStore;
-  /** What this server last saw of each annotation, to tell which changes to broadcast. */
-  private annotationSnapshot: Map<string, AnnotationFingerprint> = new Map();
-  /** Serializes annotation writes and snapshot syncs, so a sync never sees half of a write. */
-  private annotationQueue: Promise<unknown> = Promise.resolve();
-  /** Pending debounced annotation sync from the file watcher. */
-  private annotationsBroadcastTimer?: ReturnType<typeof setTimeout>;
-  private changesets: Map<string, StagedChangeset> = new Map(); // changesetId -> changeset
-  private changesetStorage?: StagedChangesetStorage;
   private authToken: string;
-  private authEnabled: boolean = true;
-  private withDanger: boolean = false; // Danger mode disabled by default
-  private withChangesets: boolean = false; // Changeset-only write mode disabled by default
   private viewerPath?: string; // Optional custom viewer path
-  private activeChatProcesses: Map<string, ChildProcess> = new Map(); // conversationId -> spawned chat process
   private chatConversationCounter: number = 0;
-  /**
-   * Viewer conversation id -> Claude Code session id. The first send in a conversation starts the
-   * session with --session-id; `started` is set once Claude Code has created it, and later sends
-   * pass --resume. A new conversation id starts a new session.
-   */
-  private chatSessions: Map<string, ChatSession> = new Map();
-  /**
-   * Conversation id -> the running turn's token. A conversation runs one turn at a time: it is
-   * reserved when chat.send arrives and released only after that turn's process has exited.
-   */
-  private busyChatConversations: Map<string, symbol> = new Map();
-  /** Chat processes stopped by chat.cancel: nothing more from them reaches the client. */
-  private cancelledChatProcesses = new WeakSet<ChildProcess>();
-  /** Test hook: Claude Code's config directory (default ~/.claude or CLAUDE_CONFIG_DIR). */
-  private _testClaudeConfigDir?: string;
-  /** Pending debounced `changesets.updated` broadcast from the file watcher. */
-  private changesetsBroadcastTimer?: ReturnType<typeof setTimeout>;
   /** Debounce for changeset-directory events: one write is several file events. */
   private changesetsDebounceMs = 150;
-  /** Counts model reloads, so one that finishes after a newer one started doesn't put its model back. */
-  private reloadGeneration = 0;
-  private selectedChatClient?: BaseChatClient; // Selected chat client for server
   private chatInitializationError?: Error; // Store initialization error for status endpoint
-  private _testClaudeCmdOverride?: string[];
-  private _testCopilotCmdOverride?: string[];
-  /** Test hook: prepare DrBot's MCP launch with these (scratch dirs) even under _testClaudeCmdOverride. */
-  private _testDrMcpOptions?: Partial<Pick<PrepareDrMcpLaunchOptions, "drCommand" | "tempRoot">> & {
-    homeDir?: string;
-    env?: NodeJS.ProcessEnv;
-    bundledPath?: string | null;
-  };
-  /** Test hook: the claude arguments the last chat launch built, before any _testClaudeCmdOverride. */
-  _testLastClaudeChatArgs?: string[];
   /** Test hook: how GET /api/tier1 reads Tier 1 (an empty environment, a fake git, a fixed clock). */
   private _testTier1Options?: Pick<Tier1StatusOptions, "env" | "git" | "now">;
-  private drBotWarnings = new Set<string>();
+  /**
+   * Launches DrBot's turns (dr-bot-launcher.ts): each in its checkout, under the process's cap on
+   * running turns. One per server, for every checkout of the farm.
+   */
+  readonly drBot: DrBotLauncher;
+  /**
+   * The checkout context of the request or message being handled. The server has no checkout of
+   * its own: every request and websocket message runs in the context of the checkout it names.
+   */
+  private readonly scope = new AsyncLocalStorage<CheckoutContext>();
+  /** Set once stop() is called: stopping again waits for the same stop. */
+  private stopping?: Promise<void>;
+  /** Whether any stop() call said the process is about to exit (the watchers are left open). */
+  private stopForExit = false;
+  /** The farm, the checkout context pool and the open sockets. */
+  private central: {
+    options: CentralModeOptions;
+    pool: CheckoutContextPool;
+    /** Every open socket, with its subscriptions by checkout key. */
+    sockets: Map<HonoWSContext, Map<string, FeedSubscriber>>;
+    stopListening: () => void;
+    removalTimer?: ReturnType<typeof setInterval>;
+    /** Open TCP connections, destroyed on stop: an upgraded websocket would otherwise hold the listener open. */
+    connections: Set<import("net").Socket>;
+    /** `/mcp`: the MCP sessions (mcp/central-mcp.ts), made on the first MCP request. */
+    mcp?: Promise<import("../mcp/central-mcp.js").CentralMcpEndpoint>;
+    mcpEndpoint?: import("../mcp/central-mcp.js").CentralMcpEndpoint;
+  };
 
+  /**
+   * Everything the server holds for the checkout being served (checkout-context.ts): the
+   * checkout the current request or message names. Contexts are never shared between checkouts.
+   */
+  private get context(): CheckoutContext {
+    const scoped = this.scope.getStore();
+    if (scoped) return scoped;
+    throw new Error("No checkout for this call: the server serves a checkout only inside a request or message that names one");
+  }
+
+  /** Runs fn with `context` as the checkout being served. */
+  private inContext<T>(context: CheckoutContext, fn: () => T): T {
+    return this.scope.run(context, fn);
+  }
+
+  /** The checkout's model: the context's, which the watcher's reload replaces. */
+  private get model(): Model {
+    return this.context.model;
+  }
+  private set model(model: Model) {
+    this.context.model = model;
+  }
+  /** The websockets subscribed to the checkout's feed. */
+  private get clients(): Set<CheckoutSubscriber> {
+    return this.context.subscribers;
+  }
+  /** Test hook: the checkout's file watcher (the context owns it). */
+  get watcher(): any {
+    return this.context.watcher;
+  }
+  set watcher(watcher: any) {
+    this.context.watcher = watcher;
+  }
+  private get annotationStore() {
+    return this.context.annotationStore;
+  }
   /**
    * Valid spec node IDs per layer
    * Dynamically loaded from compiled spec (spec/dist/{layer}.json at module load time)
@@ -621,35 +578,45 @@ export class VisualizationServer {
     return ids;
   })();
 
-  constructor(model: Model, options?: VisualizationServerOptions) {
+  /** The central server for every project and checkout of a farm. */
+  constructor(options: VisualizationServerOptions) {
     this.app = new OpenAPIHono();
-    this.model = model;
-    this.annotationStore = new AnnotationStore(model.rootPath);
+    const central = options.central;
+    if (!central) throw new Error("A visualization server serves a farm: pass the central option");
+    const pool = new CheckoutContextPool({
+      resolver: central.registry.resolver(),
+      settings: central.pool,
+      load: (resolved) => this.loadCheckoutContext(resolved),
+    });
+    const stopRemovedListener = central.registry.onCheckoutRemoved(({ ref }) => {
+      this.closeRemovedCheckout(ref);
+    });
+    // A commit run in this process (the viewer's Apply, an MCP or DrBot changeset_commit) reports
+    // its progress on a process-wide channel; its checkout's subscribers hear it (issue 1361).
+    const stopProgressListener = subscribeCommitProgress((progress) => this.broadcastCommitProgress(progress));
+    const stopListening = () => {
+      stopRemovedListener();
+      stopProgressListener();
+    };
+    this.central = { options: central, pool, sockets: new Map(), stopListening, connections: new Set() };
 
     // Set up the WebSocket adapter for this app instance (works under both
     // Node.js and Bun, since @hono/node-server/@hono/node-ws use Node's
     // http module, which Bun also implements).
     this.loadWebSocketAdapter();
 
-    // Auth configuration (CLI options override environment variables)
-    this.authEnabled = options?.authEnabled ?? process.env.DR_AUTH_ENABLED !== "false";
-    this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
-    this.withDanger = options?.withDanger || false;
-    this.withChangesets = options?.withChangesets || false;
-    this.viewerId = options?.viewerId;
-    this.launcherPid = options?.launcherPid;
+    // Every API, websocket and MCP call carries the token: there is no unauthenticated mode.
+    this.authToken = options.authToken || this.generateAuthToken();
+    this.drBot = new DrBotLauncher({
+      withDanger: options.withDanger || false,
+      withChangesets: options.withChangesets || false,
+      // One socket can chat in several checkouts: replies name theirs.
+      stampCheckout: true,
+    });
+    this.launcherPid = options.launcherPid;
     // Use explicit viewerPath if provided, otherwise fall back to the bundled viewer
-    this.viewerPath = options?.viewerPath ||
+    this.viewerPath = options.viewerPath ||
       new URL("../viewer", import.meta.url).pathname;
-
-    // Validate cross-field configuration
-    if (!this.authEnabled && options?.authToken) {
-      console.warn(
-        "[VisualizationServer] Warning: authToken provided but authEnabled is false. " +
-        "The token will be generated but not used for authentication. " +
-        "Set authEnabled: true to enable authentication."
-      );
-    }
 
     // Add CORS middleware
     this.app.use("/*", cors());
@@ -659,10 +626,6 @@ export class VisualizationServer {
 
     // Add authentication middleware (except for health endpoint and root)
     this.app.use("/api/*", async (c, next) => {
-      if (!this.authEnabled) {
-        return next();
-      }
-
       // Check for token in Authorization header or query parameter
       const authHeader = c.req.header("Authorization");
       const queryToken = c.req.query("token");
@@ -686,18 +649,23 @@ export class VisualizationServer {
       return next();
     });
 
-    // An API request that got past the authentication above counts as use of the viewer (see
-    // getActivity). A refused request, a health check and a page or asset load do not: anything
-    // can make those, and they would keep an unused viewer alive.
-    this.app.use("/api/*", async (_c, next) => {
-      this.lastActivityAt = Date.now();
-      return next();
+    // An API request that got past the authentication above counts as use of the server (see
+    // centralActivity). A refused request, a health check, a page or asset load, and a call to a
+    // retired unscoped route (410) do not: those would keep an unused process alive, and a stale
+    // custom viewer polling a retired route gets nothing from it.
+    this.app.use("/api/*", async (c, next) => {
+      await next();
+      if (c.res.status !== 410) this.lastActivityAt = Date.now();
     });
+
+    // Each project-data request runs in the context of the checkout its path names.
+    this.app.use("/api/*", (c, next) => this.scopeRequest(c, next));
+    // MCP for every session of the farm (issue 1279, slice 3A), behind the one token.
+    this.app.all("/mcp", (c) => this.handleMcp(c.req.raw));
 
     this.setupRoutes();
 
-    // Log auth token if enabled
-    if (this.authEnabled && process.env.VERBOSE) {
+    if (process.env.VERBOSE) {
       console.log(`[Auth] Authentication enabled. Token: ${this.authToken}`);
     }
 
@@ -741,10 +709,10 @@ export class VisualizationServer {
 
     // Select the chat client from available clients
     // Note: Chat client preference is no longer persisted in manifest
-    this.selectedChatClient = selectChatClient(clients, null);
+    this.drBot.chatClient = selectChatClient(clients, null);
 
-    if (this.selectedChatClient && process.env.VERBOSE) {
-      console.log(`[Chat] Using chat client: ${this.selectedChatClient.getClientName()}`);
+    if (this.drBot.chatClient && process.env.VERBOSE) {
+      console.log(`[Chat] Using chat client: ${this.drBot.chatClient.getClientName()}`);
     } else if (clients.length === 0 && process.env.VERBOSE) {
       console.log("[Chat] No chat clients available");
     }
@@ -788,50 +756,15 @@ export class VisualizationServer {
 
   /** Runs an annotation write or sync after the ones queued before it. */
   private withAnnotations<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.annotationQueue.then(fn, fn);
-    this.annotationQueue = run.catch(() => {});
-    return run;
+    return this.context.withAnnotations(fn);
   }
 
   /**
    * Records an annotation as seen and returns a broadcast for each difference from what this
-   * server last saw of it: the change a route just made, and any change another process made
-   * that the watcher has not synced yet (so recording it as seen doesn't swallow that change).
-   * Call it inside withAnnotations.
+   * server last saw of it. Call it inside withAnnotations.
    */
   private diffAnnotation(annotation: StoredAnnotation): Array<Record<string, unknown>> {
-    const before = this.annotationSnapshot.get(annotation.id);
-    const after = annotationFingerprint(annotation);
-    this.annotationSnapshot.set(annotation.id, after);
-    if (!before) {
-      return [
-        {
-          type: "annotation.added",
-          annotationId: annotation.id,
-          elementId: annotation.elementId,
-          timestamp: annotation.createdAt,
-        },
-      ];
-    }
-    const out: Array<Record<string, unknown>> = [];
-    if (before.state !== after.state) {
-      out.push({
-        type: "annotation.updated",
-        annotationId: annotation.id,
-        timestamp: annotation.updatedAt ?? new Date().toISOString(),
-      });
-    }
-    for (const reply of annotation.replies) {
-      if (!before.replyIds.includes(reply.id)) {
-        out.push({
-          type: "annotation.reply.added",
-          annotationId: annotation.id,
-          replyId: reply.id,
-          timestamp: reply.createdAt,
-        });
-      }
-    }
-    return out;
+    return this.context.diffAnnotation(annotation);
   }
 
   /**
@@ -841,35 +774,18 @@ export class VisualizationServer {
    * annotation.deleted.
    */
   private async syncAnnotations(options: { broadcast: boolean }): Promise<void> {
-    const messages = await this.withAnnotations(async () => {
-      const current = await this.annotationStore.list();
-      const now = new Date().toISOString();
-      const out: Array<Record<string, unknown>> = [];
-      const seen = new Set<string>();
-      for (const annotation of current) {
-        seen.add(annotation.id);
-        out.push(...this.diffAnnotation(annotation));
-      }
-      for (const id of [...this.annotationSnapshot.keys()]) {
-        if (seen.has(id)) continue;
-        this.annotationSnapshot.delete(id);
-        out.push({ type: "annotation.deleted", annotationId: id, timestamp: now });
-      }
-      return out;
-    });
+    const messages = await this.context.syncAnnotations();
     if (!options.broadcast) return;
     await this.broadcastAll(messages);
   }
 
   /** Syncs the annotations once their files have been quiet for a moment. */
   private scheduleAnnotationsSync(): void {
-    if (this.annotationsBroadcastTimer) clearTimeout(this.annotationsBroadcastTimer);
-    this.annotationsBroadcastTimer = setTimeout(() => {
-      this.annotationsBroadcastTimer = undefined;
+    this.context.debounce("annotations", this.changesetsDebounceMs, () => {
       this.syncAnnotations({ broadcast: true }).catch((error) => {
         console.error(`[Watcher] Failed to broadcast annotations: ${getErrorMessage(error)}`);
       });
-    }, this.changesetsDebounceMs);
+    });
   }
 
   /**
@@ -899,11 +815,22 @@ export class VisualizationServer {
         const requestPath = c.req.path;
         if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
 
-        // Skip API routes and WebSocket - let them be handled by their specific routes
-        if (requestPath.startsWith("/api/") || requestPath === "/ws" || requestPath === "/health" || requestPath === "/api-spec.yaml" || requestPath === "/api-docs") {
+        // Skip API routes, WebSocket and MCP - let them be handled by their specific routes
+        if (
+          requestPath.startsWith("/api/") ||
+          requestPath === "/ws" ||
+          requestPath === "/health" ||
+          requestPath === "/api-spec.yaml" ||
+          requestPath === "/api-docs" ||
+          requestPath === "/mcp" ||
+          requestPath.startsWith("/mcp/")
+        ) {
           if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
+        // The viewer's deep links (/p/<project>/c/<checkout>/...) are its page: a link opened
+        // without its hash still loads the viewer, which routes from there.
+        if (requestPath === "/p" || requestPath.startsWith("/p/")) return this.serveCustomViewer("index.html");
 
         if (process.env.VERBOSE) console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
         return this.serveCustomViewer(requestPath.substring(1));
@@ -929,34 +856,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(healthRoute, (c) => {
-      const response: any = {
-        status: this.chatInitializationError ? "degraded" : "ok",
-        version: "0.1.0",
-        // The dr CLI serving the API: the viewer shows it; `version` is the API's own.
-        cliVersion: getCliVersion(),
-      };
-      // Which viewer this is (server/viewer-registry.ts), its pids and its open tabs: only to a
-      // caller with the token. Its registry record carries the same id and the token, so the CLI
-      // can tell this viewer from another that took its port; a web page cannot learn whether a
-      // review is open or what the process ids are. A viewer without auth has no token, so it
-      // tells nobody, and is identified from the process table instead.
-      if (this.authEnabled && this.requestHasToken(c)) {
-        response.pid = process.pid;
-        response.clients = this.clients.size;
-        if (this.viewerId) response.viewerId = this.viewerId;
-        if (this.launcherPid) response.launcherPid = this.launcherPid;
-      }
-
-      // Include warnings if any services failed to initialize
-      if (this.chatInitializationError) {
-        response.warnings = [
-          `Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`
-        ];
-      }
-
-      return c.json(response);
-    });
+    this.app.openapi(healthRoute, (c) => c.json(this.centralHealth(this.requestHasToken(c))));
 
     // Get full model
     const getModelRoute = createRoute({
@@ -986,7 +886,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(getModelRoute, async (c) => {
+    this.dataRoute(getModelRoute, async (c) => {
       if (process.env.VERBOSE) console.log(`[ROUTE] /api/model handler called`);
       try {
         if (process.env.VERBOSE) console.log(`[ROUTE] /api/model serializing model...`);
@@ -1043,7 +943,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getLayerRoute, (async (c: any) => {
+    this.dataRoute(getLayerRoute, (async (c: any) => {
       try {
         const { layerName } = c.req.valid("param");
         const layer = await this.model.getLayer(layerName);
@@ -1111,6 +1011,8 @@ export class VisualizationServer {
       }
     }) as any);
 
+    this.setupProjectRoutes();
+
     // Annotations API (spec-compliant routes)
 
     // Get all annotations (optionally filtered by elementId)
@@ -1137,7 +1039,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationsRoute, (async (c: any) => {
+    this.dataRoute(getAnnotationsRoute, (async (c: any) => {
       try {
         const query = c.req.valid("query");
         // All annotations, or one element's; read from disk, so the MCP tools' show too.
@@ -1201,7 +1103,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(createAnnotationRoute, async (c) => {
+    this.dataRoute(createAnnotationRoute, async (c) => {
       try {
         const body = c.req.valid("json");
 
@@ -1270,7 +1172,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationRoute, (async (c: any) => {
+    this.dataRoute(getAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const annotation = await this.annotationStore.get(annotationId);
@@ -1339,7 +1241,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(putAnnotationRoute, (async (c: any) => {
+    this.dataRoute(putAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
@@ -1404,7 +1306,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(patchAnnotationRoute, (async (c: any) => {
+    this.dataRoute(patchAnnotationRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
@@ -1456,14 +1358,14 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(deleteAnnotationRoute, async (c) => {
+    this.dataRoute(deleteAnnotationRoute, async (c) => {
       try {
         const { annotationId } = c.req.valid("param");
 
         // Removes the annotation and its replies
         const deleted = await this.withAnnotations(async () => {
           const existed = await this.annotationStore.delete(annotationId);
-          this.annotationSnapshot.delete(annotationId);
+          this.context.annotationSnapshot.delete(annotationId);
           return existed;
         });
         if (!deleted) {
@@ -1516,7 +1418,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getAnnotationRepliesRoute, (async (c: any) => {
+    this.dataRoute(getAnnotationRepliesRoute, (async (c: any) => {
       try {
         const { annotationId } = c.req.valid("param");
         const annotation = await this.annotationStore.get(annotationId);
@@ -1577,7 +1479,7 @@ export class VisualizationServer {
       },
     });
 
-    this.app.openapi(createAnnotationReplyRoute, async (c) => {
+    this.dataRoute(createAnnotationReplyRoute, async (c) => {
       try {
         const { annotationId } = c.req.valid("param");
         const body = c.req.valid("json");
@@ -1641,21 +1543,21 @@ export class VisualizationServer {
     // Changesets are re-read from disk on every request: the CLI (or a chat agent in
     // changeset mode) creates and stages them under documentation-robotics/changesets,
     // which the file watcher doesn't cover, so the in-memory map goes stale.
-    this.app.openapi(getChangesetsRoute, async (c) => {
+    this.dataRoute(getChangesetsRoute, async (c) => {
       await this.loadChangesetsFromDisk();
       const changesets: Record<string, any> = {};
 
       // One manager for the request: each changeset's base is compared with the model as loaded.
       // A copy of the map's entries: the loop awaits, and a reload meanwhile refills the map.
-      const manager = new StagingAreaManager(this.model.rootPath, this.model);
+      const manager = this.context.stagingArea();
       // One read of the base for the request too: it is indexed and hashed once, however many
       // changesets are compared with it. A failure here is each changeset's "unknown", below.
-      const entries = [...this.changesets];
+      const entries = [...this.context.changesets];
       const base = entries.some(([, changeset]) => changeset.status === "staged")
         ? await manager.readBase().catch(() => undefined)
         : undefined;
       for (const [id, changeset] of entries) {
-        const { purpose, verifies } = await purposeOf(this.model.rootPath, changeset);
+        const { purpose, verifies } = await purposeOf(this.context.rootPath, changeset);
         changesets[id] = {
           name: changeset.name,
           ...(changeset.description ? { description: changeset.description } : {}),
@@ -1721,18 +1623,18 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getChangesetRoute, (async (c: any) => {
+    this.dataRoute(getChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const { driftLimit, driftOffset } = c.req.valid("query") as { driftLimit?: number; driftOffset?: number };
       await this.loadChangesetsFromDisk();
-      const changeset = this.changesets.get(changesetId);
+      const changeset = this.context.changesets.get(changesetId);
 
       if (!changeset) {
         return c.json({ error: "Changeset not found" }, 404);
       }
 
       const blockers = await this.changesetBlockers(changeset);
-      const { purpose, verifies, scope } = await purposeOf(this.model.rootPath, changeset);
+      const { purpose, verifies, scope } = await purposeOf(this.context.rootPath, changeset);
       return c.json({
         id: changeset.id,
         name: changeset.name,
@@ -1750,7 +1652,7 @@ export class VisualizationServer {
         actions: allowedActions(purpose, changeset.status),
         drift: await driftDetail(
           this.model,
-          new StagingAreaManager(this.model.rootPath, this.model),
+          this.context.stagingArea(),
           this.driftSubject(changeset, purpose, verifies),
           { limit: driftLimit, offset: driftOffset }
         ),
@@ -1762,6 +1664,57 @@ export class VisualizationServer {
           return list ? { ...change, blockers: list } : change;
         }),
       });
+    }) as any);
+
+    // A plan compared with what was built: changeset_verify's report, read-only.
+    const getChangesetVerificationRoute = createRoute({
+      method: 'get',
+      path: '/api/changesets/:changesetId/verification',
+      tags: ['Changesets'],
+      summary: 'Compare a plan changeset with an as-built changeset',
+      description:
+        'The plan changeset (staged or committed) compared with the changeset named by `against` (a verification ' +
+        'record or any as-built changeset): the same report as the changeset_verify MCP tool, in full. Each planned ' +
+        'element and relationship is matched (exact or probable), divergent, missing or unverifiable (extraction ' +
+        'cannot see it), and each as-built one the plan does not name is unplanned. Element ids are dotted ids. ' +
+        'Read-only; nothing is staged or written.',
+      security: [{ bearerAuth: [] }],
+      request: {
+        params: z.object({ changesetId: IdSchema }),
+        query: z.object({
+          against: IdSchema.describe('The as-built changeset id to compare the plan with'),
+        }),
+      },
+      responses: {
+        200: {
+          description: 'The comparison',
+          content: { 'application/json': { schema: ChangesetVerificationSchema } },
+        },
+        400: {
+          description: 'against is missing, or names the plan itself',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+        404: {
+          description: 'The plan or the as-built changeset was not found',
+          content: { 'application/json': { schema: ErrorResponseSchema } },
+        },
+      },
+    });
+
+    // ✅ Type cast required: See Type Casting Note at top of file
+    this.dataRoute(getChangesetVerificationRoute, (async (c: any) => {
+      const { changesetId } = c.req.valid("param");
+      const { against } = c.req.valid("query") as { against: string };
+      if (against === changesetId) {
+        return c.json({ error: "against names the plan itself; pass the as-built changeset to compare with" }, 400);
+      }
+      await this.loadChangesetsFromDisk();
+      const planned = this.context.changesets.get(changesetId);
+      if (!planned) return c.json({ error: "Changeset not found" }, 404);
+      const asBuilt = this.context.changesets.get(against);
+      if (!asBuilt) return c.json({ error: `As-built changeset not found: ${against}` }, 404);
+      const report = await verifyChangesetInModel(this.model, { planned, against: { changeset: asBuilt } });
+      return c.json({ ...report, asBuiltChangeset: { id: asBuilt.id, name: asBuilt.name } });
     }) as any);
 
     // Record the reviewer's per-change verdicts (keep / drop / ask) on a staged changeset.
@@ -1801,7 +1754,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(putChangesetReviewRoute, (async (c: any) => {
+    this.dataRoute(putChangesetReviewRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const body = c.req.valid("json") as {
         decisions: Array<{ sequence: number; verdict: ReviewVerdict | null; note?: string }>;
@@ -1871,7 +1824,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(commitChangesetRoute, (async (c: any) => {
+    this.dataRoute(commitChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       const parsed = await readCommitRequest(c);
       if ("error" in parsed) {
@@ -1900,7 +1853,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(discardChangesetRoute, (async (c: any) => {
+    this.dataRoute(discardChangesetRoute, (async (c: any) => {
       const { changesetId } = c.req.valid("param");
       return this.runChangesetAction(c, changesetId, "discard");
     }) as any);
@@ -1953,7 +1906,7 @@ export class VisualizationServer {
     });
 
     // ✅ Type cast required: See Type Casting Note at top of file
-    this.app.openapi(getTier1Route, (async (c: any) => {
+    this.dataRoute(getTier1Route, (async (c: any) => {
       const { analyzer: asked } = c.req.valid("query") as { analyzer?: string };
       try {
         return c.json(await this.tier1Body(asked));
@@ -1985,17 +1938,22 @@ export class VisualizationServer {
       ],
       tags: [
         { name: 'Health', description: 'Server health and status' },
+        { name: 'Projects', description: "The farm's projects and their checkouts (central process)" },
         { name: 'Schema', description: 'JSON Schema specifications' },
         { name: 'Model', description: 'Architecture model data' },
         { name: 'Changesets', description: 'Model changesets and history' },
         { name: 'Annotations', description: 'User annotations on model elements' },
         { name: 'Extraction', description: 'Codebase extraction: Tier 1 (decision model) state and spend' },
         { name: 'WebSocket', description: 'Real-time updates via WebSocket' },
+        { name: 'MCP', description: 'The MCP interface for every session of the farm' },
+        { name: 'Docs', description: 'This document, and an interactive view of it' },
       ],
     });
 
     // Swagger UI for interactive API exploration
     this.app.get('/api-docs', swaggerUI({ url: '/api-spec.yaml' }));
+
+    this.registerUnscopedRouteDocs();
 
     // WebSocket endpoint
     // Only register if the WebSocket adapter was set up successfully
@@ -2003,8 +1961,8 @@ export class VisualizationServer {
       this.app.get(
         "/ws",
         async (c, next) => {
-          // Check WebSocket auth if enabled
-          if (this.authEnabled) {
+          // Every socket carries the token.
+          {
             // Accept token from multiple sources to support diverse client environments:
             // 1. Query parameter: ?token=<token>
             //    Why: Works in all browsers. Simple and universally compatible.
@@ -2065,10 +2023,11 @@ export class VisualizationServer {
         onOpen: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket connection
           await this.recordWebSocketEvent("ws.connection.open", {
-            "ws.client_count": this.clients.size + 1,
+            "ws.client_count": this.socketCount() + 1,
           });
 
-          this.clients.add(ws);
+          // A socket receives nothing until it subscribes to a checkout.
+          this.central.sockets.set(ws, new Map());
           this.lastActivityAt = Date.now();
 
           // Send connected message per spec
@@ -2081,20 +2040,20 @@ export class VisualizationServer {
           );
 
           if (process.env.VERBOSE) {
-            console.log(`[WebSocket] Client connected (total: ${this.clients.size})`);
+            console.log(`[WebSocket] Client connected (total: ${this.socketCount()})`);
           }
         },
 
         onClose: async (_evt: any, ws: HonoWSContext) => {
           // Telemetry: Track WebSocket disconnection
           await this.recordWebSocketEvent("ws.connection.close", {
-            "ws.client_count": this.clients.size - 1,
+            "ws.client_count": this.socketCount() - 1,
           });
 
-          this.clients.delete(ws);
+          this.dropSocket(ws);
           this.lastActivityAt = Date.now();
           if (process.env.VERBOSE) {
-            console.log(`[WebSocket] Client disconnected (total: ${this.clients.size})`);
+            console.log(`[WebSocket] Client disconnected (total: ${this.socketCount()})`);
           }
         },
 
@@ -2140,6 +2099,8 @@ export class VisualizationServer {
               }
             } else if ('type' in data) {
               messageType = (data as SimpleWSMessage).type;
+            } else if ('action' in data) {
+              messageType = `feed.${data.action}`;
             } else {
               messageType = "unknown";
             }
@@ -2150,12 +2111,8 @@ export class VisualizationServer {
               "ws.message.size_bytes": msgStr.length,
             });
 
-            // Check if it's a JSON-RPC message
-            if ('jsonrpc' in data && data.jsonrpc === "2.0") {
-              await this.handleJSONRPCMessage(ws, data);
-            } else {
-              await this.handleWSMessage(ws, data);
-            }
+            // A feed subscription, or a message handled in the checkout it is for.
+            const checkout = await this.dispatchWSMessage(ws, data);
 
             // Telemetry: Track successful message processing
             const durationMs = Date.now() - messageStartTime;
@@ -2163,6 +2120,7 @@ export class VisualizationServer {
               "ws.message.type": messageType,
               "ws.message.duration_ms": durationMs,
               "ws.message.status": "success",
+              ...(checkout ? { "dr.project": checkout.project, "dr.checkout": checkout.checkout } : {}),
             });
           } catch (error) {
             const errorMsg = getErrorMessage(error);
@@ -2204,6 +2162,65 @@ export class VisualizationServer {
       }))
       );
     }
+  }
+
+  /**
+   * Documents the routes outside the project and checkout scope that are not OpenAPI routes of
+   * their own (the websocket, MCP and the docs), so the document lists every route the server
+   * answers. Their handlers are registered elsewhere.
+   */
+  private registerUnscopedRouteDocs(): void {
+    const registry = this.app.openAPIRegistry;
+    // A websocket frame, not a route body: registered so clients generate its type (issue 1361).
+    registry.register("ChangesetCommitProgress", ChangesetCommitProgressSchema);
+    const unauthorized = { description: "No token, or a wrong one" };
+    registry.registerPath({
+      method: "get",
+      path: "/ws",
+      tags: ["WebSocket"],
+      summary: "Open the websocket",
+      description:
+        "Upgrades to a websocket (one per browser tab). The token comes as ?token=, as the " +
+        "Sec-WebSocket-Protocol pair [\"token\", <token>], or as Authorization: Bearer. A socket receives " +
+        "nothing until it subscribes to a checkout: {action: \"subscribe\", project, checkout}. Every event " +
+        "carries the project and checkout it is about. The frames are in cli/docs/VISUALIZATION_SERVER_PROTOCOL.md; " +
+        "changeset.commit.progress is the ChangesetCommitProgress schema.",
+      responses: {
+        101: { description: "Switching to the websocket protocol" },
+        401: unauthorized,
+        403: { description: "The token is wrong" },
+      },
+    });
+    for (const method of ["post", "get", "delete"] as const) {
+      registry.registerPath({
+        method,
+        path: "/mcp",
+        tags: ["MCP"],
+        summary: "MCP (streamable HTTP)",
+        description:
+          "The MCP interface for every project of the farm (streamable HTTP: POST a JSON-RPC message, GET the " +
+          "session's event stream, DELETE to end the session). The token comes as Authorization: Bearer only.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: "The MCP response" },
+          401: unauthorized,
+        },
+      });
+    }
+    registry.registerPath({
+      method: "get",
+      path: "/api-spec.yaml",
+      tags: ["Docs"],
+      summary: "This OpenAPI document",
+      responses: { 200: { description: "The OpenAPI document" } },
+    });
+    registry.registerPath({
+      method: "get",
+      path: "/api-docs",
+      tags: ["Docs"],
+      summary: "Interactive API documentation (Swagger UI)",
+      responses: { 200: { description: "The Swagger UI page" } },
+    });
   }
 
   /**
@@ -2445,7 +2462,7 @@ export class VisualizationServer {
    * Broadcast message to all connected WebSocket clients
    */
   private async broadcastMessage(message: any): Promise<void> {
-    const messageStr = JSON.stringify(message);
+    const messageStr = JSON.stringify(this.stamp(message));
     const messageType = message.type || "unknown";
 
     // Telemetry: Track broadcast start
@@ -2456,7 +2473,7 @@ export class VisualizationServer {
     });
 
     let failureCount = 0;
-    const failedClients: HonoWSContext[] = [];
+    const failedClients: CheckoutSubscriber[] = [];
 
     for (const client of this.clients) {
       try {
@@ -2545,7 +2562,7 @@ export class VisualizationServer {
     if (await this.findElement(id)) return true;
     // Changesets are written by other processes (the CLI, the MCP tools): read them fresh.
     await this.loadChangesetsFromDisk();
-    for (const changeset of this.changesets.values()) {
+    for (const changeset of this.context.changesets.values()) {
       if (changeset.status !== "staged") continue;
       if (changeset.changes.some((change) => change.type === "add" && change.elementId === id)) return true;
     }
@@ -2653,7 +2670,7 @@ export class VisualizationServer {
       switch (method) {
         case "chat.status":
           // Check if any chat client is available
-          const hasClient = this.selectedChatClient !== undefined;
+          const hasClient = this.drBot.chatClient !== undefined;
 
           // Determine error message: initialization error takes precedence
           let statusError: string | null = null;
@@ -2665,10 +2682,10 @@ export class VisualizationServer {
 
           sendResponse({
             sdk_available: hasClient,
-            sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
+            sdk_version: hasClient ? this.drBot.chatClient!.getClientName() : null,
             error_message: statusError,
             // What the chat agent may do, fixed when the viewer started (#1241).
-            permission_mode: this.chatPermissionMode(),
+            permission_mode: this.drBot.chatPermissionMode(),
           });
           break;
 
@@ -2680,7 +2697,7 @@ export class VisualizationServer {
           }
 
           // Check if chat client is available
-          if (!this.selectedChatClient) {
+          if (!this.drBot.chatClient) {
             sendError(
               JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
               "No chat client available. Install Claude Code or GitHub Copilot to enable chat."
@@ -2706,59 +2723,25 @@ export class VisualizationServer {
           const conversationId: string =
             clientConversationId ?? `conv-${++this.chatConversationCounter}-${Date.now()}`;
 
-          // Claude Code can resume a session, but not while it is still answering. The check
-          // and the reservation are synchronous, so two quick sends can't both get through.
-          if (this.busyChatConversations.has(conversationId)) {
-            sendError(
-              JSONRPC_ERRORS.INVALID_PARAMS,
-              "A reply is still running in this conversation; wait for it or cancel it first"
-            );
+          // The launcher runs the turn in this checkout, or queues it at the cap, or refuses a
+          // send to a conversation whose reply is still running.
+          const started = await this.drBot.startTurn({
+            context: this.context,
+            channel: ws,
+            conversationId,
+            message: (params as any).message,
+            requestId: id,
+            resumable: clientConversationId !== undefined,
+          });
+          if (started.status === "refused") {
+            sendError(started.code, started.message);
             return;
-          }
-          const turn = this.reserveChatConversation(conversationId);
-
-          // Launch chat with selected client
-          try {
-            await this.launchChat(ws, conversationId, (params as any).message, id, {
-              resumable: clientConversationId !== undefined,
-              turn,
-            });
-          } catch (error) {
-            this.releaseChatConversation(conversationId, turn);
-            throw error;
           }
           break;
 
         case "chat.cancel":
           // Cancel the named conversation's reply, or else the first active one
-          let cancelled = false;
-          let cancelledConvId = null;
-          const cancelConvId = (params as any)?.conversation_id;
-          const cancelCandidates = [...this.activeChatProcesses].filter(
-            ([convId, proc]) =>
-              !this.cancelledChatProcesses.has(proc) &&
-              (typeof cancelConvId !== "string" || convId === cancelConvId)
-          );
-
-          // The entry stays until the turn's own cleanup, after the process has exited: the
-          // conversation is busy until then, so a resend can't start a second agent on the
-          // same session.
-          for (const [convId, process] of cancelCandidates) {
-            try {
-              this.cancelledChatProcesses.add(process);
-              process.kill();
-              cancelled = true;
-              cancelledConvId = convId;
-              break;
-            } catch (error) {
-              console.warn(`[Chat] Failed to cancel process for conversation ${convId}: ${getErrorMessage(error)}`);
-            }
-          }
-
-          sendResponse({
-            cancelled,
-            conversation_id: cancelledConvId,
-          });
+          sendResponse(this.drBot.cancel(this.context, (params as any)?.conversation_id));
           break;
 
         default:
@@ -2771,1066 +2754,63 @@ export class VisualizationServer {
   }
 
   /**
-   * Launch chat with selected client and stream responses via WebSocket
-   */
-  private async launchChat(
-    ws: HonoWSContext,
-    conversationId: string,
-    message: string,
-    requestId: string | number | undefined,
-    options: ChatLaunchOptions = {}
-  ): Promise<void> {
-    if (!this.selectedChatClient) {
-      if (options.turn) this.releaseChatConversation(conversationId, options.turn);
-      ws.send(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
-            message: "No chat client available",
-          },
-          id: requestId,
-        })
-      );
-      return;
-    }
-
-    // Route to appropriate client-specific handler
-    if (this.selectedChatClient instanceof ClaudeCodeClient) {
-      await this.launchClaudeCodeChat(ws, conversationId, message, requestId, options);
-    } else if (this.selectedChatClient instanceof CopilotClient) {
-      await this.launchCopilotChat(ws, conversationId, message, requestId, options);
-    } else {
-      if (options.turn) this.releaseChatConversation(conversationId, options.turn);
-      ws.send(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: JSONRPC_ERRORS.NO_CLIENT_AVAILABLE,
-            message: "Unknown chat client type",
-          },
-          id: requestId,
-        })
-      );
-    }
-  }
-
-  /**
-   * Build command arguments for Claude Code launch
-   */
-  private buildClaudeChatArgs(
-    mcpConfigPath?: string,
-    session?: ChatSession,
-    agentArgs: string[] = [],
-    omitAgent: boolean = false
-  ): string[] {
-    // Under an allowlist claude loads no installed agent, so `--agent` names one only when the
-    // launch passes its definition (agentArgs); with none to pass, DrBot runs as plain claude.
-    const cmd = ["claude", ...(omitAgent ? [] : ["--agent", DR_ARCHITECT_AGENT]), ...agentArgs, "--print"];
-    const mode = this.drBotMode();
-
-    // Apply permissions: full access, changeset-only writes, or the read-safe allowlist.
-    // With the dr MCP server connected, the mode's mcp__dr__* tools are allowed too; the
-    // Bash rules stay as the fallback.
-    const mcpRules = mcpConfigPath ? drMcpAllowedTools(mode) : [];
-    if (mode === "danger") {
-      cmd.push("--dangerously-skip-permissions");
-    } else {
-      const bashRules = mode === "changesets" ? formatForClaudeCodeWithChangesets() : formatForClaudeCode();
-      // The allowlist is the only thing that allows (each flag checked against claude 2.1.328):
-      // - --restricted: no user, project or local settings file is read, so none can add allow
-      //   rules or a permissive default mode; the file tools are confined to the project.
-      // - --tools: no editing or network tool exists in the session at all.
-      // - --permission-mode dontAsk: anything not allowed is denied, never asked about.
-      // - --disallowedTools: what DrBot must never do is denied outright, which wins over an
-      //   allow rule from any source (managed settings are still read).
-      cmd.push(
-        "--restricted",
-        "--tools",
-        DRBOT_BUILT_IN_TOOLS.join(","),
-        "--permission-mode",
-        "dontAsk",
-        "--allowedTools",
-        [bashRules, ...mcpRules].join(","),
-        "--disallowedTools",
-        drBotDisallowedTools(mode).join(",")
-      );
-      // --settings is still read under --restricted: it carries the hook that refuses, with the
-      // reason, any Bash call that is not one plain dr command, and the user's sign-in settings.
-      const settings = drBotLaunchSettings(mode, this._testDrMcpOptions?.drCommand ?? resolveDrCommand(), this.userClaudeSettings());
-      if (settings) cmd.push("--settings", settings);
-    }
-
-    if (mcpConfigPath) {
-      cmd.push("--mcp-config", mcpConfigPath);
-    }
-    // Under an allowlist DrBot can call only its own dr server's tools, so load no other MCP
-    // server: the user's plugins and connectors would describe tools it can't call (#1240).
-    if (mode !== "danger") {
-      cmd.push("--strict-mcp-config");
-    }
-
-    // Every launch says how to reach the model, which mode this is and what a refused call
-    // means (#1241), whether or not the MCP server connected. Danger mode without MCP has nothing to say.
-    const sessionPrompt = drBotSessionPrompt(mode, { mcpConnected: mcpConfigPath !== undefined });
-    if (sessionPrompt) {
-      cmd.push("--append-system-prompt", sessionPrompt);
-    }
-
-    // Same session handling as ClaudeCodeClient: start the session with our id, then resume it.
-    if (session) {
-      cmd.push(session.started ? "--resume" : "--session-id", session.sessionId);
-    }
-
-    cmd.push("--verbose", "--output-format", "stream-json");
-    return cmd;
-  }
-
-  /**
-   * The Claude Code session for a viewer conversation, created on its first send. A send
-   * without a conversation id gets none, so it runs in a fresh session as before.
-   */
-  private chatSessionFor(conversationId: string, resumable: boolean) {
-    if (!resumable) return undefined;
-    let session = this.chatSessions.get(conversationId);
-    if (!session) {
-      session = { sessionId: randomUUID(), started: false };
-      this.chatSessions.set(conversationId, session);
-    }
-    return session;
-  }
-
-  /** Marks a conversation busy for one turn; the token releases it. */
-  private reserveChatConversation(conversationId: string): symbol {
-    const turn = Symbol(conversationId);
-    this.busyChatConversations.set(conversationId, turn);
-    return turn;
-  }
-
-  /** Ends a turn's hold on its conversation. A stale token (an older turn) releases nothing. */
-  private releaseChatConversation(conversationId: string, turn: symbol): void {
-    if (this.busyChatConversations.get(conversationId) === turn) {
-      this.busyChatConversations.delete(conversationId);
-    }
-  }
-
-  /** Drops a turn's process from activeChatProcesses, unless a newer turn's has replaced it. */
-  private forgetChatProcess(conversationId: string, proc: ChildProcess): void {
-    if (this.activeChatProcesses.get(conversationId) === proc) {
-      this.activeChatProcesses.delete(conversationId);
-    }
-  }
-
-  /**
-   * Whether Claude Code already has this session on disk
-   * (`<config dir>/projects/<cwd with non-alphanumerics as "-">/<id>.jsonl`). A first send that
-   * died before the server saw it start can still have created it, and --session-id would then
-   * fail with "already in use".
-   */
-  private claudeSessionExists(sessionId: string): boolean {
-    const configDir =
-      this._testClaudeConfigDir ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(homedir(), ".claude");
-    const roots = new Set([this.model.rootPath]);
-    try {
-      roots.add(realpathSync(this.model.rootPath));
-    } catch {
-      // Keep the path as given.
-    }
-    for (const root of roots) {
-      const projectDir = root.replace(/[^a-zA-Z0-9]/g, "-");
-      if (existsSync(path.join(configDir, "projects", projectDir, `${sessionId}.jsonl`))) return true;
-    }
-    return false;
-  }
-
-  /** DrBot's permission mode; danger wins over changeset-only. */
-  private drBotMode(): DrBotMode {
-    if (this.withDanger) return "danger";
-    return this.withChangesets ? "changesets" : "read-safe";
-  }
-
-  /**
-   * The mode the selected chat client really runs in. Copilot has no changeset staging: outside
-   * danger mode it gets the read-safe allowlist whatever the viewer was started with.
-   */
-  private chatPermissionMode(): DrBotMode {
-    const mode = this.drBotMode();
-    return this.selectedChatClient instanceof CopilotClient && mode === "changesets" ? "read-safe" : mode;
-  }
-
-  /**
-   * Resolves the dr-architect DrBot runs, once: the extra launch arguments (--agents for the
-   * bundled copy) and the check of its tools both come from this lookup.
-   */
-  private async resolveDrBotAgentLaunch(): Promise<DrBotAgentLaunch> {
-    const overrides = this._testDrMcpOptions ?? {};
-    try {
-      return await prepareDrBotAgent(this.model.rootPath, this.drBotMode(), {
-        homeDir: overrides.homeDir,
-        env: overrides.env,
-        bundledPath: overrides.bundledPath,
-      });
-    } catch (error) {
-      this.warnDrBotOnce(
-        `[Claude Code] Could not check the installed ${DR_ARCHITECT_AGENT} agent's tools ` +
-          `(${getErrorMessage(error)}); connecting the dr MCP server anyway.`
-      );
-      return { agent: null, args: [], check: null };
-    }
-  }
-
-  /**
-   * Writes the MCP config that connects DrBot to `dr mcp` for this model. Returns null when it
-   * can't (logged), or when the agent DrBot runs can't see the dr tools: DrBot then launches
-   * without MCP and uses its Bash rules.
-   */
-  private async prepareDrBotMcp(check: AgentMcpToolCheck | null): Promise<DrMcpLaunch | null> {
-    const mode = this.drBotMode();
-    const overrides = this._testDrMcpOptions ?? {};
-
-    // The agent's `tools:` field decides which MCP tools DrBot can see. When the launch added the
-    // ones an installed copy leaves out (check.added), the chat works and the warning only asks
-    // for the upgrade. Otherwise a copy that lists none of them can't use the server: say so, and
-    // launch without MCP rather than tell the agent about tools it can't call.
-    if (check?.replaced) {
-      this.warnDrBotOnce(
-        `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.replaced.path}) can't be passed to the ` +
-          `chat (${check.replaced.reason}), so the chat runs the one bundled with this dr. ` +
-          "Run `dr claude upgrade` to update the file."
-      );
-    }
-    if (check?.added) {
-      this.warnDrBotOnce(
-        `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) ` +
-          (check.noneVisible ? "predates the dr MCP tools" : `doesn't list ${check.missing.join(", ")}`) +
-          "; the chat adds them for its own sessions. Run `dr claude upgrade` to update the file."
-      );
-    } else if (check && (check.error || check.missing.length > 0)) {
-      this.warnDrBotOnce(
-        check.error
-          ? `[Claude Code] Could not pass the ${check.source === "bundled" ? "bundled " : ""}${DR_ARCHITECT_AGENT} agent (${check.path}: ${check.error}), ` +
-              "so the chat may run one that can't see the dr MCP tools; it falls back to Bash dr commands."
-          : check.noneVisible
-            ? `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) predates the dr MCP ` +
-              "tools, so the chat can't use them and falls back to Bash dr commands. " +
-              "Run `dr claude upgrade` to update it."
-            : `[Claude Code] The installed ${DR_ARCHITECT_AGENT} agent (${check.path}) doesn't list ` +
-              `${check.missing.join(", ")}, so the chat can't use those dr MCP tools. ` +
-              "Run `dr claude upgrade` to update it."
-      );
-      if (check.noneVisible) return null;
-    }
-
-    try {
-      return await prepareDrMcpLaunch({
-        rootPath: this.model.rootPath,
-        changesetOnly: mode === "changesets",
-        chatMode: mode === "danger" ? undefined : mode,
-        drCommand: overrides.drCommand,
-        tempRoot: overrides.tempRoot,
-      });
-    } catch (error) {
-      console.warn(
-        `[Claude Code] dr MCP server unavailable for chat, falling back to Bash dr commands: ${getErrorMessage(error)}`
-      );
-      return null;
-    }
-  }
-
-  /** Logs a DrBot setup warning once per server rather than on every chat message. */
-  private warnDrBotOnce(message: string): void {
-    if (this.drBotWarnings.has(message)) return;
-    this.drBotWarnings.add(message);
-    console.warn(message);
-  }
-
-  /**
-   * Environment for chat agent processes. In changeset-only mode it sets
-   * CHANGESET_ONLY_ENV, so any `dr` command the agent runs refuses to save the base
-   * model and can only stage changes in an active changeset (core/changeset-only-guard.ts).
-   */
-  private buildChatEnv(binDir?: string): NodeJS.ProcessEnv {
-    // A changeset DrBot creates records origin.kind "chat" (core/changeset-review.ts).
-    const env: NodeJS.ProcessEnv = { ...process.env, [CHANGESET_ORIGIN_ENV]: "chat" };
-    if (this.withChangesets && !this.withDanger) {
-      env[CHANGESET_ONLY_ENV] = "true";
-    }
-    // Every `dr` the agent runs then refuses, itself, what the mode does not allow
-    // (coding-agents/chat-guard.ts). Danger mode has no mode to enforce.
-    const mode = this.chatPermissionMode();
-    if (mode === "danger") {
-      delete env[CHAT_MODE_ENV];
-      delete env[CHAT_PROJECT_ROOT_ENV];
-    } else {
-      env[CHAT_MODE_ENV] = mode;
-      env[CHAT_PROJECT_ROOT_ENV] = this.model.rootPath;
-    }
-    // This launch's own dr first, so the agent's `dr` commands carry the guards above even
-    // where an older dr is installed globally (drbot-mcp.ts writes it).
-    if (binDir) {
-      env.PATH = env.PATH ? `${binDir}${path.delimiter}${env.PATH}` : binDir;
-    }
-    return env;
-  }
-
-  /**
-   * The user's own Claude Code settings (`<config dir>/settings.json`), or null when there is
-   * none or it can't be read. Only its sign-in keys are carried into a launch (drBotLaunchSettings).
-   */
-  private userClaudeSettings(): Record<string, unknown> | null {
-    const configDir =
-      this._testClaudeConfigDir ?? process.env.CLAUDE_CONFIG_DIR ?? path.join(homedir(), ".claude");
-    try {
-      const parsed = JSON.parse(readFileSync(path.join(configDir, "settings.json"), "utf8"));
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Add permission flags to Copilot command based on withDanger setting
-   * Applies read-safe permissions when withDanger is false, with graceful degradation
-   * if the installed Copilot CLI doesn't support granular permission flags.
-   * @param cmd The command array to modify (will be mutated)
-   * @param variant The Copilot variant for error messages (e.g., "gh copilot" or "copilot")
-   */
-  private addCopilotPermissionFlags(cmd: string[], variant: string): void {
-    const copilotCommand = cmd[0] === "gh" ? "gh" : "copilot";
-    applyCopilotPermissions(cmd, variant, copilotCommand, this.withDanger);
-  }
-
-  /**
-   * Launch Claude Code CLI with dr-architect agent and stream responses
-   */
-  private async launchClaudeCodeChat(
-    ws: HonoWSContext,
-    conversationId: string,
-    message: string,
-    requestId: string | number | undefined,
-    options: ChatLaunchOptions = {}
-  ): Promise<void> {
-    let drMcp: DrMcpLaunch | null = null;
-    const session = this.chatSessionFor(conversationId, options.resumable === true);
-    const turnToken = options.turn ?? this.reserveChatConversation(conversationId);
-    const release = () => this.releaseChatConversation(conversationId, turnToken);
-    try {
-      // Fixture tests skip MCP preparation (it would read the real installed agent and write a temp
-      // config) unless they inject fakes.
-      const skipMcp =
-        this._testClaudeCmdOverride !== undefined && this._testDrMcpOptions === undefined;
-      const agent = skipMcp ? null : await this.resolveDrBotAgentLaunch();
-      drMcp = agent ? await this.prepareDrBotMcp(agent.check) : null;
-
-      // An earlier send may have created the session without the server seeing it start.
-      if (session && !session.started && session.attempted && this.claudeSessionExists(session.sessionId)) {
-        session.started = true;
-      }
-      const usedSessionIdFlag = session !== undefined && !session.started;
-      if (session && usedSessionIdFlag) session.attempted = true;
-      const cmd = this.buildClaudeChatArgs(
-        drMcp?.configPath,
-        session,
-        agent?.args ?? [],
-        // No definition to pass, and under an allowlist claude would not find an installed one.
-        agent !== null && agent.args.length === 0 && this.drBotMode() !== "danger"
-      );
-      this._testLastClaudeChatArgs = [...cmd];
-
-      // Test hook: allow tests to substitute a fixture command for the real claude binary
-      if (this._testClaudeCmdOverride) {
-        cmd.splice(0, cmd.length, ...this._testClaudeCmdOverride);
-      }
-
-      // Launch claude with dr-architect agent for comprehensive DR expertise
-      const proc = spawn(cmd[0], cmd.slice(1), {
-        cwd: this.model.rootPath,
-        env: this.buildChatEnv(drMcp?.binDir),
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      // The MCP config is private to this launch: remove it once the agent is gone.
-      if (drMcp) {
-        const cleanup = drMcp.cleanup;
-        proc.once("exit", () => void cleanup());
-        proc.once("error", () => void cleanup());
-      }
-
-      // Node reports spawn failures (e.g. ENOENT if `claude` isn't on PATH) asynchronously
-      // via an 'error' event rather than a synchronous throw. Without this handler, an
-      // unhandled 'error' event on the ChildProcess EventEmitter throws and crashes the
-      // whole server (server-entry.ts's uncaughtException handler tears the process down)
-      // instead of just failing this one chat request.
-      proc.on("error", (err) => {
-        const errorMsg = getErrorMessage(err);
-        console.error(
-          `[Claude Code] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
-        );
-        this.forgetChatProcess(conversationId, proc);
-        release();
-        try {
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: JSONRPC_ERRORS.INTERNAL_ERROR,
-                message: `Failed to launch Claude Code: ${errorMsg}`,
-              },
-              id: requestId,
-            })
-          );
-        } catch (sendError) {
-          console.error(
-            `[Claude Code] Failed to send spawn-error notification: ${getErrorMessage(sendError)}`
-          );
-        }
-      });
-      // A failed spawn also destroys the stdio streams Node already created, which can
-      // raise a second, separate unhandled 'error' event on `proc.stdin` itself. Swallow
-      // it here since the handler above already reports the failure to the client.
-      proc.stdin?.on("error", () => {});
-
-      // Keep the end of stderr: Claude Code reports a session id already in use there.
-      let stderrTail = "";
-      proc.stderr?.on("data", (data: Buffer) => {
-        stderrTail = (stderrTail + data.toString()).slice(-4096);
-      });
-
-      // Store active process
-      this.activeChatProcesses.set(conversationId, proc);
-      const isCancelled = () => this.cancelledChatProcesses.has(proc);
-
-      // Send user message via stdin (like Python prototype)
-      proc.stdin?.write(message);
-      proc.stdin?.end();
-
-      // Stream stdout (JSON events)
-      const decoder = new TextDecoder();
-
-      const streamOutput = async () => {
-        const turn: ClaudeTurnState = {
-          accumulatedText: "",
-          pendingTools: new Map(),
-          failedTools: new Map(),
-          session,
-          sawEvent: false,
-        };
-        let buffer = "";
-
-        // Handles one stdout line: a stream-json event, or else raw text for the reply.
-        // After a cancel nothing more is sent: the client may already be streaming its next turn.
-        const handleLine = (line: string, isLast: boolean) => {
-          if (isCancelled()) return;
-          let event: any;
-          try {
-            event = JSON.parse(line);
-          } catch (parseError) {
-            if (process.env.DEBUG) {
-              console.debug(`[Chat] Failed to parse JSON chunk: ${getErrorMessage(parseError)}`);
-            }
-            this.sendChatNotification(ws, "chat.response.chunk", {
-              conversation_id: conversationId,
-              content: isLast ? line : line + "\n",
-              is_final: isLast,
-              timestamp: new Date().toISOString(),
-            });
-            return;
-          }
-          turn.sawEvent = true;
-          this.handleClaudeStreamEvent(ws, conversationId, event, turn);
-        };
-
-        try {
-          for await (const chunkBuf of proc.stdout!) {
-            const chunk = decoder.decode(chunkBuf, { stream: true });
-            buffer += chunk;
-
-            // Process complete lines (JSON events)
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (!line.trim()) continue;
-              handleLine(line, false);
-            }
-          }
-
-          // Process remaining buffer (a last line with no trailing newline)
-          if (buffer.trim()) {
-            handleLine(buffer, true);
-          }
-
-          // Wait for process to complete
-          const exitCode = await this.waitForExit(proc);
-
-          // Clean up
-          this.forgetChatProcess(conversationId, proc);
-
-          // Claude Code has created the session once it ran to completion; resume it next time.
-          if (session && exitCode === 0) session.started = true;
-
-          // The session exists although the server never saw it start (an earlier send died
-          // after Claude Code wrote it): resume it instead, once, within this same send.
-          if (
-            session &&
-            usedSessionIdFlag &&
-            !options.retried &&
-            !isCancelled() &&
-            exitCode !== 0 &&
-            !turn.sawEvent &&
-            /already in use/i.test(stderrTail)
-          ) {
-            session.started = true;
-            await this.launchClaudeCodeChat(ws, conversationId, message, requestId, {
-              ...options,
-              turn: turnToken,
-              retried: true,
-            });
-            return;
-          }
-
-          // A tool with no result by the end of the turn never finished (the agent crashed):
-          // report it as failed so the viewer doesn't show it running forever. Not after a
-          // cancel: the client has moved on, and they would land on its next turn.
-          if (!isCancelled()) {
-            this.failPendingTools(ws, conversationId, turn, "The tool reported no result before the reply ended");
-          }
-
-          // The process has exited: the conversation can take its next send.
-          release();
-
-          // Send completion response
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              result: {
-                conversation_id: conversationId,
-                status: exitCode === 0 ? "complete" : "error",
-                exit_code: exitCode,
-                full_response: turn.accumulatedText,
-                timestamp: new Date().toISOString(),
-              },
-              id: requestId,
-            })
-          );
-        } catch (error) {
-          // A process that never actually spawned (see the proc.on("error", ...)
-          // handler above, which already reported this failure to the client) has no
-          // pid - Node assigns one synchronously only once posix_spawn succeeds. Bail
-          // out here instead of sending a second, duplicate JSON-RPC response for the
-          // same request or trying to kill a process that never started.
-          if (!proc.pid) {
-            release();
-            return;
-          }
-
-          const errorMsg = getErrorMessage(error);
-
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: JSONRPC_ERRORS.INTERNAL_ERROR,
-                message: `Chat failed: ${errorMsg}`,
-              },
-              id: requestId,
-            })
-          );
-
-          this.forgetChatProcess(conversationId, proc);
-
-          try {
-            await this.killProcessWithRetry(proc, conversationId, "Claude Code");
-          } catch (error) {
-            console.error(`[Claude Code] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
-          } finally {
-            release();
-          }
-        }
-      };
-
-      // Start streaming in background
-      streamOutput().catch((err) => {
-        const errorMsg = getErrorMessage(err);
-        console.error(`[Claude Code] Stream error: ${errorMsg}`);
-        release();
-
-        // Notify client of stream failure via WebSocket
-        try {
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: JSONRPC_ERRORS.INTERNAL_ERROR,
-                message: `Stream error: ${errorMsg}`,
-              },
-              id: requestId,
-            })
-          );
-        } catch (sendError) {
-          console.error(`[Claude Code] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
-        }
-      });
-    } catch (error) {
-      void drMcp?.cleanup();
-      release();
-      const errorMsg = getErrorMessage(error);
-
-      ws.send(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: JSONRPC_ERRORS.INTERNAL_ERROR,
-            message: `Failed to launch Claude Code: ${errorMsg}`,
-          },
-          id: requestId,
-        })
-      );
-    }
-  }
-
-  /** Sends a JSON-RPC notification to one chat client. */
-  private sendChatNotification(ws: HonoWSContext, method: string, params: Record<string, unknown>): void {
-    ws.send(JSON.stringify({ jsonrpc: "2.0", method, params }));
-  }
-
-  /**
-   * Turns one Claude Code stream-json event into the chat notifications the viewer reads:
-   * - assistant text -> `chat.response.chunk`
-   * - assistant tool_use -> `chat.tool.invoke` with `status: "executing"`
-   * - user tool_result -> `chat.tool.invoke` again, same `tool_use_id`, `completed` or `failed`
-   * - result (end of the turn) -> `chat.response.complete`
-   */
-  private handleClaudeStreamEvent(
-    ws: HonoWSContext,
-    conversationId: string,
-    event: any,
-    turn: ClaudeTurnState
-  ): void {
-    // Claude Code reports the session id once it has created the session (the init event).
-    if (turn.session && typeof event?.session_id === "string") {
-      turn.session.started = true;
-    }
-
-    if (event?.type === "assistant") {
-      const content = Array.isArray(event.message?.content) ? event.message.content : [];
-      for (const block of content) {
-        if (block?.type === "text") {
-          turn.accumulatedText += block.text;
-          this.sendChatNotification(ws, "chat.response.chunk", {
-            conversation_id: conversationId,
-            content: block.text,
-            is_final: false,
-            timestamp: new Date().toISOString(),
-          });
-        } else if (block?.type === "tool_use") {
-          if (typeof block.id === "string") {
-            turn.pendingTools.set(block.id, { name: block.name, input: block.input });
-          }
-          this.sendChatNotification(ws, "chat.tool.invoke", {
-            conversation_id: conversationId,
-            tool_use_id: block.id,
-            tool_name: block.name,
-            tool_input: block.input,
-            status: "executing",
-            timestamp: new Date().toISOString(),
-          });
-        }
-      }
-    } else if (event?.type === "user") {
-      // Tool results come back as a user message. A call denied at the permission prompt
-      // (nothing can answer it under --print) comes back as an error result: `failed`.
-      const content = Array.isArray(event.message?.content) ? event.message.content : [];
-      for (const block of content) {
-        if (block?.type !== "tool_result" || typeof block.tool_use_id !== "string") continue;
-        this.sendToolOutcome(ws, conversationId, turn, block.tool_use_id, block.is_error === true, block.content);
-      }
-    } else if (event?.type === "result") {
-      // Denials the turn lists but never answered with a tool_result are failures too. One whose
-      // tool_result didn't read as a refusal is reported again, now with the reason.
-      const denials = Array.isArray(event.permission_denials) ? event.permission_denials : [];
-      for (const denial of denials) {
-        const id = denial?.tool_use_id;
-        if (typeof id !== "string") continue;
-        if (turn.pendingTools.has(id)) {
-          this.sendToolOutcome(ws, conversationId, turn, id, true, `Permission denied: ${denial.tool_name ?? "tool"}`);
-        } else if (turn.failedTools.has(id)) {
-          const failed = turn.failedTools.get(id)!;
-          this.sendToolOutcome(ws, conversationId, turn, id, true, failed.result, { denied: true, call: failed });
-        }
-      }
-      this.sendChatNotification(ws, "chat.response.complete", {
-        conversation_id: conversationId,
-        result: event.result,
-        is_error: event.is_error === true,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
-  /**
-   * Sends a tool's final `chat.tool.invoke` (completed or failed) and stops tracking it. A call
-   * DrBot's permissions refused also carries `permission_denied` and, after Claude Code's own
-   * text, the rule that refused it and how the person allows it (#1241).
-   */
-  private sendToolOutcome(
-    ws: HonoWSContext,
-    conversationId: string,
-    turn: ClaudeTurnState,
-    toolUseId: string,
-    isError: boolean,
-    result: unknown,
-    known: { denied?: boolean; call?: { name: unknown; input: unknown } } = {}
-  ): void {
-    const tool = known.call ?? turn.pendingTools.get(toolUseId);
-    turn.pendingTools.delete(toolUseId);
-    turn.failedTools.delete(toolUseId);
-    const text = toolResultText(result);
-    const denied = isError && (known.denied === true || isPermissionDenial(text));
-    if (isError && !denied && tool) {
-      turn.failedTools.set(toolUseId, { name: tool.name, input: tool.input, result });
-    }
-    // A refusal from the chat's own hook or from dr itself already says why: nothing is added.
-    const explained = denied && isExplainedRefusal(text);
-    const explanation = !denied
-      ? undefined
-      : explained
-        ? text.slice(text.indexOf(REFUSAL_MARKER)).trim()
-        : explainDeniedToolCall(
-            this.drBotMode(),
-            { toolName: tool?.name, toolInput: tool?.input },
-            this.model.rootPath
-          );
-    this.sendChatNotification(ws, "chat.tool.invoke", {
-      conversation_id: conversationId,
-      tool_use_id: toolUseId,
-      tool_name: tool?.name,
-      tool_input: tool?.input,
-      status: isError ? "failed" : "completed",
-      is_error: isError,
-      result,
-      ...(isError
-        ? { error: [text || "Tool call failed", explained ? undefined : explanation].filter(Boolean).join("\n\n") }
-        : {}),
-      ...(denied ? { permission_denied: true, permission_explanation: explanation } : {}),
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /** Reports every tool still waiting for a result as failed. */
-  private failPendingTools(ws: HonoWSContext, conversationId: string, turn: ClaudeTurnState, reason: string): void {
-    for (const toolUseId of [...turn.pendingTools.keys()]) {
-      this.sendToolOutcome(ws, conversationId, turn, toolUseId, true, reason);
-    }
-  }
-
-  /**
-   * Launch GitHub Copilot CLI and stream responses via WebSocket
-   */
-  private async launchCopilotChat(
-    ws: HonoWSContext,
-    conversationId: string,
-    message: string,
-    requestId: string | number | undefined,
-    options: ChatLaunchOptions = {}
-  ): Promise<void> {
-    const turnToken = options.turn ?? this.reserveChatConversation(conversationId);
-    const release = () => this.releaseChatConversation(conversationId, turnToken);
-    try {
-      // Determine which command to use (gh copilot or standalone copilot)
-      let cmd: string[];
-
-      // Test hook: allow tests to substitute a fixture command for the real copilot binary
-      if (this._testCopilotCmdOverride) {
-        cmd = [...this._testCopilotCmdOverride];
-      } else {
-        // Check if gh CLI with copilot extension is available
-        const ghResult = spawnSync("gh", ["copilot", "--version"], {
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-
-        // Log why we're falling back to standalone copilot, for debuggability: `gh`
-        // missing (ENOENT), `gh` present but the copilot extension isn't installed
-        // (non-zero exit), or another spawn failure are otherwise indistinguishable.
-        if (ghResult.error) {
-          console.warn(
-            `[Copilot] 'gh copilot --version' probe failed to spawn: ${getErrorMessage(ghResult.error)}`
-          );
-        } else if (ghResult.status !== 0 && process.env.VERBOSE) {
-          console.log(
-            `[Copilot] 'gh copilot' unavailable (exit ${ghResult.status}), falling back to standalone 'copilot'`
-          );
-        }
-
-        if (ghResult.status === 0) {
-          cmd = ["gh", "copilot", "explain"];
-          this.addCopilotPermissionFlags(cmd, "gh copilot");
-          cmd.push(message);
-        } else {
-          // Try standalone copilot
-          cmd = ["copilot", "explain"];
-          this.addCopilotPermissionFlags(cmd, "copilot");
-          cmd.push(message);
-        }
-      }
-
-      // Launch GitHub Copilot. It gets the chat's mode in its environment too, so any `dr` it
-      // runs keeps to the read-only rules whatever Copilot's own permission flags do.
-      const proc = spawn(cmd[0], cmd.slice(1), {
-        cwd: this.model.rootPath,
-        env: this.buildChatEnv(),
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      // See the matching handler in launchClaudeCodeChat: Node reports spawn failures
-      // (e.g. ENOENT if `gh`/`copilot` isn't on PATH) asynchronously via an 'error'
-      // event, and an unhandled one would crash the whole server instead of just this
-      // one chat request.
-      proc.on("error", (err) => {
-        const errorMsg = getErrorMessage(err);
-        console.error(
-          `[Copilot] Failed to spawn subprocess for conversation ${conversationId}: ${errorMsg}`
-        );
-        this.forgetChatProcess(conversationId, proc);
-        release();
-        try {
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: JSONRPC_ERRORS.INTERNAL_ERROR,
-                message: `Failed to launch GitHub Copilot: ${errorMsg}`,
-              },
-              id: requestId,
-            })
-          );
-        } catch (sendError) {
-          console.error(
-            `[Copilot] Failed to send spawn-error notification: ${getErrorMessage(sendError)}`
-          );
-        }
-      });
-      // See the matching guard in launchClaudeCodeChat: a failed spawn can also raise a
-      // separate unhandled 'error' event on the stdin stream Node already created.
-      proc.stdin?.on("error", () => {});
-
-      // Store active process
-      this.activeChatProcesses.set(conversationId, proc);
-
-      // GitHub Copilot outputs plain text/markdown (not JSON)
-      const decoder = new TextDecoder();
-
-      const streamOutput = async () => {
-        let accumulatedText = "";
-
-        try {
-          for await (const chunkBuf of proc.stdout!) {
-            const chunk = decoder.decode(chunkBuf, { stream: true });
-            accumulatedText += chunk;
-
-            // Nothing more after a cancel: the client may already be streaming its next turn.
-            if (this.cancelledChatProcesses.has(proc)) continue;
-
-            // Send text chunk as it arrives
-            ws.send(
-              JSON.stringify({
-                jsonrpc: "2.0",
-                method: "chat.response.chunk",
-                params: {
-                  conversation_id: conversationId,
-                  content: chunk,
-                  is_final: false,
-                  timestamp: new Date().toISOString(),
-                },
-              })
-            );
-          }
-
-          // Wait for process to complete
-          const exitCode = await this.waitForExit(proc);
-
-          // Clean up
-          this.forgetChatProcess(conversationId, proc);
-          release();
-
-          // Send completion response
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              result: {
-                conversation_id: conversationId,
-                status: exitCode === 0 ? "complete" : "error",
-                exit_code: exitCode,
-                full_response: accumulatedText,
-                timestamp: new Date().toISOString(),
-              },
-              id: requestId,
-            })
-          );
-        } catch (error) {
-          // See the matching guard in launchClaudeCodeChat: a process that never
-          // actually spawned has no pid, and its own proc.on("error", ...) handler
-          // above already reported the failure - avoid a duplicate response/kill.
-          if (!proc.pid) {
-            release();
-            return;
-          }
-
-          const errorMsg = getErrorMessage(error);
-
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: JSONRPC_ERRORS.INTERNAL_ERROR,
-                message: `Chat failed: ${errorMsg}`,
-              },
-              id: requestId,
-            })
-          );
-
-          this.forgetChatProcess(conversationId, proc);
-
-          try {
-            await this.killProcessWithRetry(proc, conversationId, "Copilot");
-          } catch (error) {
-            console.error(`[Copilot] Failed to kill process for conversation ${conversationId}: ${getErrorMessage(error)}`);
-          } finally {
-            release();
-          }
-        }
-      };
-
-      // Start streaming in background
-      streamOutput().catch((err) => {
-        const errorMsg = getErrorMessage(err);
-        console.error(`[Copilot] Stream error: ${errorMsg}`);
-        release();
-
-        // Notify client of stream failure via WebSocket
-        try {
-          ws.send(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: JSONRPC_ERRORS.INTERNAL_ERROR,
-                message: `Stream error: ${errorMsg}`,
-              },
-              id: requestId,
-            })
-          );
-        } catch (sendError) {
-          console.error(`[Copilot] Failed to send stream error notification: ${getErrorMessage(sendError)}`);
-        }
-      });
-    } catch (error) {
-      release();
-      const errorMsg = getErrorMessage(error);
-
-      ws.send(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: JSONRPC_ERRORS.INTERNAL_ERROR,
-            message: `Failed to launch GitHub Copilot: ${errorMsg}`,
-          },
-          id: requestId,
-        })
-      );
-    }
-  }
-
-  /**
    * Watch the model and the changesets for changes made outside the server (the CLI, DrBot).
    * A model change reloads and broadcasts `model.updated`. A changeset change, including the
    * active-changeset marker in `.dr/`, broadcasts a debounced `changesets.updated`. An annotation change (the
    * MCP annotation_* tools write the same files) broadcasts what changed, debounced.
    */
   private setupFileWatcher(): void {
-    const drRoot = path.join(this.model.rootPath, "documentation-robotics");
-    const modelPath = path.join(drRoot, "model");
-    const changesetsPath = path.join(drRoot, "changesets");
-    const annotationsPath = path.join(drRoot, "annotations");
-    // Which changeset is active is per-checkout state in .dr/ (active-changeset-marker.ts)
-    const markerPath = activeMarkerPath(this.model.rootPath);
-    const markerDir = path.dirname(markerPath);
-    const isWithin = (filePath: string, dir: string) =>
-      filePath === dir || filePath.startsWith(dir + path.sep);
-
-    // Use chokidar for consistent, well-tested cross-platform recursive watching
-    // rather than Node's built-in recursive fs.watch (Linux support for the
-    // `recursive` option only landed in Node 19.1.0, and its maturity/event
-    // semantics still vary more by platform than chokidar's).
-    // chokidar doesn't pick up a watched directory created later, and a model has no
-    // changesets/ until its first changeset: watch documentation-robotics/ and keep to
-    // model/, changesets/ and annotations/ under it.
-    try {
-      // .dr/ is watched for the marker alone: its other contents (the spec reference, analyzer
-      // state, logs) are ignored, so nothing under them is read or watched. chokidar can't watch
-      // a directory that isn't there yet, and a fresh checkout has no .dr/ until something
-      // writes per-checkout state, so make it.
-      try {
-        mkdirSync(markerDir, { recursive: true });
-      } catch (error) {
-        console.warn(`[Watcher] Could not create ${markerDir}: ${getErrorMessage(error)}`);
-      }
-      this.watcher = chokidar.watch([drRoot, markerDir], {
-        persistent: true,
-        ignoreInitial: true,
-        ignored: (filePath: string) =>
-          !(
-            filePath === drRoot ||
-            filePath === markerDir ||
-            filePath === markerPath ||
-            isWithin(filePath, modelPath) ||
-            isWithin(filePath, changesetsPath) ||
-            isWithin(filePath, annotationsPath)
-          ),
-      });
-
-      this.watcher.on("all", async (_event: string, filePath: string) => {
-        if (process.env.VERBOSE) {
-          console.log(`[Watcher] File changed: ${filePath}`);
-        }
-
-        if (isWithin(filePath, annotationsPath)) {
-          this.scheduleAnnotationsSync();
-          return;
-        }
-
-        if (filePath === markerPath || isWithin(filePath, changesetsPath)) {
-          this.scheduleChangesetsBroadcast();
-          return;
-        }
-        if (!isWithin(filePath, modelPath)) return;
-
-        try {
+    // The watcher's events run in the context of the checkout it watches.
+    const context = this.context;
+    context.watch({
+      onModelChanged: () =>
+        this.inContext(context, async () => {
           await this.reloadAndBroadcast();
           // A base change moves the staged changesets' drift, which clients read from GET /api/changesets.
           this.scheduleChangesetsBroadcast();
-        } catch (error) {
-          const message = getErrorMessage(error);
-          console.error(`[Watcher] Failed to reload model: ${message}`);
-        }
-      });
-
-      this.watcher.on("error", (err: unknown) => {
-        console.warn(`[Watcher] Could not watch ${drRoot}: ${getErrorMessage(err)}`);
-      });
-    } catch (err) {
-      console.warn(`[Watcher] Could not watch ${drRoot}: ${err}`);
-    }
+        }),
+      onChangesetsChanged: () => this.inContext(context, () => this.scheduleChangesetsBroadcast()),
+      onAnnotationsChanged: () => this.inContext(context, () => this.scheduleAnnotationsSync()),
+    });
   }
 
   /** Broadcasts `changesets.updated` once the changeset files have been quiet for a moment. */
   private scheduleChangesetsBroadcast(): void {
-    if (this.changesetsBroadcastTimer) clearTimeout(this.changesetsBroadcastTimer);
-    this.changesetsBroadcastTimer = setTimeout(() => {
-      this.changesetsBroadcastTimer = undefined;
+    this.context.debounce("changesets", this.changesetsDebounceMs, () => {
       this.broadcastChangesetsUpdated().catch((error) => {
         console.error(`[Watcher] Failed to broadcast changesets: ${getErrorMessage(error)}`);
       });
-    }, this.changesetsDebounceMs);
+    });
+  }
+
+  /**
+   * Sends `changeset.commit.progress` to the subscribers of the checkout a commit in flight is
+   * landing in, and to no other checkout's (issue 1361). A report for a checkout this server has
+   * not loaded has no subscribers to reach and is dropped.
+   *
+   * Sent synchronously (no telemetry await, unlike broadcastMessage): a report is on every socket
+   * when the reporter returns, so the commit's final report goes out before its HTTP response.
+   */
+  private broadcastCommitProgress(progress: PublishedCommitProgress): void {
+    const { rootPath, ...payload } = progress;
+    for (const ref of this.central.pool.loaded()) {
+      const context = this.central.pool.peek(ref);
+      if (!context || !sameRootPath(context.rootPath, rootPath)) continue;
+      if (context.subscribers.size === 0) continue;
+      const message = JSON.stringify(
+        this.inContext(context, () =>
+          this.stamp({ type: "changeset.commit.progress", ...payload, timestamp: new Date().toISOString() })
+        )
+      );
+      for (const subscriber of [...context.subscribers]) {
+        try {
+          subscriber.send(message);
+        } catch (error) {
+          context.subscribers.delete(subscriber);
+          console.warn(`[WebSocket] Failed to send commit progress to a client: ${getErrorMessage(error)}`);
+        }
+      }
+    }
   }
 
   /**
@@ -3841,13 +2821,13 @@ export class VisualizationServer {
     await this.loadChangesetsFromDisk();
     let active: string | null = null;
     try {
-      active = await new StagingAreaManager(this.model.rootPath).getActiveId();
+      active = await new StagingAreaManager(this.context.rootPath).getActiveId();
     } catch (error) {
       console.warn(`[Changesets] Could not read the active changeset: ${getErrorMessage(error)}`);
     }
     await this.broadcastMessage({
       type: "changesets.updated",
-      ids: [...this.changesets.keys()],
+      ids: [...this.context.changesets.keys()],
       active,
       timestamp: new Date().toISOString(),
     });
@@ -4580,7 +3560,7 @@ export class VisualizationServer {
 
   /** The model as it is on disk now. */
   private loadModelFromDisk(): Promise<Model> {
-    return Model.load(this.model.rootPath, { lazyLoad: false });
+    return this.context.loadModelFromDisk();
   }
 
   /**
@@ -4591,18 +3571,20 @@ export class VisualizationServer {
     // started earlier may have read the disk mid-write, so once a newer one is under way its result
     // is dropped: the newest reload, started after the last write, is the one that sets the model
     // (which the changesets' drift is read against) and broadcasts it.
-    const generation = ++this.reloadGeneration;
+    const generation = ++this.context.reloadGeneration;
     const model = await this.loadModelFromDisk();
-    if (generation !== this.reloadGeneration) return;
+    if (generation !== this.context.reloadGeneration) return;
     this.model = model;
     await this.loadChangesetsFromDisk();
 
     const modelData = await this.serializeModel();
-    const message = JSON.stringify({
-      type: "model.updated",
-      data: modelData,
-      timestamp: new Date().toISOString(),
-    });
+    const message = JSON.stringify(
+      this.stamp({
+        type: "model.updated",
+        data: modelData,
+        timestamp: new Date().toISOString(),
+      })
+    );
 
     for (const client of this.clients) {
       try {
@@ -4634,7 +3616,7 @@ export class VisualizationServer {
     action: "commit" | "discard",
     review?: { drop: number[]; deleteBlockedLinks: number[] }
   ) {
-    let model = await Model.load(this.model.rootPath, { lazyLoad: false });
+    let model = await Model.load(this.context.rootPath, { lazyLoad: false });
     let manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(changesetId);
@@ -4668,6 +3650,10 @@ export class VisualizationServer {
       }
     }
 
+    // The commit's progress, for the checkout's open viewers (issue 1361). Advisory: the response
+    // below is unchanged, and a failure's last report says the phase it stopped in.
+    const progress = action === "commit" ? createCommitProgressReporter(this.context.rootPath, changesetId) : undefined;
+
     let result: {
       committed?: number;
       skipped?: number;
@@ -4680,12 +3666,15 @@ export class VisualizationServer {
     try {
       if (restoreOnFailure) {
         // A fresh model without the dropped changes (inside the try, so a failure puts them back).
-        model = await Model.load(this.model.rootPath, { lazyLoad: false });
+        model = await Model.load(this.context.rootPath, { lazyLoad: false });
         manager = new StagingAreaManager(model.rootPath, model);
       }
       if (action === "commit") {
         // Only errors the changeset introduces block; the base model's own are counted.
-        const commit = await manager.commit(model, changesetId, { validate: true });
+        const commit = await manager.commit(model, changesetId, {
+          validate: true,
+          ...(progress ? { onProgress: progress.onProgress } : {}),
+        });
         result = {
           committed: commit.committed,
           skipped: commit.skipped ?? 0,
@@ -4700,6 +3689,7 @@ export class VisualizationServer {
         await manager.discard(changesetId);
       }
     } catch (error) {
+      progress?.fail();
       if (restoreOnFailure) await this.restoreDroppedChanges(changeset.id, restoreOnFailure);
       if (error instanceof RecordLandingError) {
         return c.json({ error: error.fullText }, 409);
@@ -4717,6 +3707,7 @@ export class VisualizationServer {
       await manager.clearActive();
     }
 
+    progress?.phase("reloading");
     try {
       await this.reloadAndBroadcast();
     } catch (error) {
@@ -4728,7 +3719,9 @@ export class VisualizationServer {
       console.error(`[Changesets] Broadcast after ${action} failed: ${getErrorMessage(error)}`);
     }
 
-    const updated = this.changesets.get(changesetId) ?? (await manager.load(changesetId));
+    progress?.finish();
+
+    const updated = this.context.changesets.get(changesetId) ?? (await manager.load(changesetId));
     return c.json({
       id: changesetId,
       name: changeset.name,
@@ -4825,7 +3818,7 @@ export class VisualizationServer {
     dropped: { sequences: number[]; removedAt: number }
   ): Promise<void> {
     try {
-      const storage = new StagedChangesetStorage(this.model.rootPath);
+      const storage = this.context.changesetStorage;
       if ((await storage.load(changesetId))?.status !== "staged") return;
       await storage.restoreUnstaged(changesetId, dropped.sequences, dropped.removedAt);
     } catch (error) {
@@ -4841,7 +3834,7 @@ export class VisualizationServer {
    * a verification record, the plan it verifies when that changeset is still on disk.
    */
   private driftSubject(changeset: StagedChangeset, purpose: DriftSubject["purpose"], verifies?: string): DriftSubject {
-    const plan = verifies ? this.changesets.get(verifies) : undefined;
+    const plan = verifies ? this.context.changesets.get(verifies) : undefined;
     return { changeset, purpose, ...(plan ? { plan: { name: plan.name, status: plan.status } } : {}) };
   }
 
@@ -4877,8 +3870,7 @@ export class VisualizationServer {
     changesetId: string,
     decisions: Array<{ sequence: number; verdict: ReviewVerdict | null; note?: string }>
   ) {
-    this.changesetStorage ??= new StagedChangesetStorage(this.model.rootPath);
-    const storage = this.changesetStorage;
+    const storage = this.context.changesetStorage;
     if (!(await storage.load(changesetId))) {
       return c.json({ error: "Changeset not found" }, 404);
     }
@@ -4939,7 +3931,7 @@ export class VisualizationServer {
    */
   private async tier1Body(asked?: string): Promise<Record<string, unknown>> {
     const real = async (dir: string) => realpath(dir).catch(() => dir);
-    const projectRoot = await real(this.model.rootPath);
+    const projectRoot = await real(this.context.rootPath);
     const codebaseRoot = await real(this.model.codebaseRoot);
     const analyzer = asked ?? (await readSession(projectRoot).catch(() => null))?.active_analyzer ?? "cbm";
     const status = await tier1Status(projectRoot, analyzer, { codebaseRoot, ...(this._testTier1Options ?? {}) });
@@ -4950,67 +3942,45 @@ export class VisualizationServer {
    * Load all changesets from disk into the in-memory map
    */
   private async loadChangesetsFromDisk(): Promise<void> {
-    this.changesetStorage ??= new StagedChangesetStorage(this.model.rootPath);
-    try {
-      const changesets = await this.changesetStorage.list();
-      this.changesets.clear();
-      for (const cs of changesets) {
-        this.changesets.set(cs.id, cs);
-      }
-      if (process.env.VERBOSE) {
-        console.log(`[Changesets] Loaded ${changesets.length} changeset(s) from disk`);
-      }
-    } catch (err) {
-      console.warn(`[Changesets] Warning: Failed to load changesets from disk: ${err}`);
-    }
+    await this.context.loadChangesets();
   }
 
   /**
-   * Start the server
+   * Start the server: it listens on 127.0.0.1 only, and sweeps idle contexts and removed checkouts.
    */
   async start(port: number = 8080): Promise<void> {
-    // Initialize changeset storage and load from disk
-    this.changesetStorage = new StagedChangesetStorage(this.model.rootPath);
-    await this.loadChangesetsFromDisk();
-    // What the annotation files hold now, so the watcher broadcasts only later changes.
-    await this.syncAnnotations({ broadcast: false }).catch((error) => {
-      console.warn(`[Annotations] Could not read the annotations: ${getErrorMessage(error)}`);
-    });
-
-    // The viewer is local: it listens on the loopback addresses only, never on other
-    // interfaces. Both families, so "localhost" reaches it whichever one the client tries.
-    // @hono/node-server works identically under Node.js and Bun (both implement Node's http
-    // module), so no runtime-specific branching is needed here.
+    const central = this.central;
     try {
-      this._servers.push(await this.listenOn(port, "127.0.0.1"));
-      try {
-        this._servers.push(await this.listenOn(port, "::1"));
-      } catch (error) {
-        // No IPv6 loopback on this machine: IPv4 alone serves localhost.
-        const code = (error as NodeJS.ErrnoException).code;
-        if (code !== "EADDRNOTAVAIL" && code !== "EAFNOSUPPORT") throw error;
-      }
+      const server = await this.listenOn(port, "127.0.0.1");
+      server.on("connection", (socket: import("net").Socket) => {
+        central.connections.add(socket);
+        socket.once("close", () => central.connections.delete(socket));
+      });
+      this._servers.push(server);
     } catch (error) {
       this.closeServers();
       if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
-        throw new Error(`Port ${port} is already in use. Try a different port with --port <port>.`);
+        throw new Error(`Port ${port} is already in use.`);
       }
       throw error;
     }
-    // Wire up the WebSocket upgrade handler on each HTTP server
     for (const server of this._servers) this.injectWebSocket?.(server);
-
-    // Watched once the server is listening, so a server that could not bind leaves no watcher.
-    this.setupFileWatcher();
-
-    console.log(`✓ Visualization server running at http://localhost:${port}`);
+    central.pool.startSweeping();
+    const interval = central.options.removalCheckMs ?? 30_000;
+    if (interval > 0) {
+      central.removalTimer = setInterval(() => {
+        this.checkRemovedCheckouts().catch((error) => {
+          console.warn(`[Central] Checking for removed checkouts failed: ${getErrorMessage(error)}`);
+        });
+      }, interval);
+      central.removalTimer.unref?.();
+    }
   }
 
   /**
    * One HTTP server for the app, listening on host:port. Node reports bind failures (e.g.
    * EADDRINUSE) through an 'error' event, not a throw; this turns that into a rejection
-   * instead of an unhandled 'error' that would crash the process via server-entry.ts's
-   * uncaughtException handler.
+   * instead of an unhandled 'error' that would crash the process.
    */
   private async listenOn(port: number, host: string): Promise<ServerType> {
     const server = createAdaptorServer({ fetch: this.app.fetch });
@@ -5041,106 +4011,6 @@ export class VisualizationServer {
     return this.authToken;
   }
 
-  /**
-   * Check if authentication is enabled
-   */
-  isAuthEnabled(): boolean {
-    return this.authEnabled;
-  }
-
-  /**
-   * Wait for a spawned child process to exit and resolve with its exit code
-   * Node's ChildProcess doesn't expose a Bun-style `.exited` promise, so this
-   * wraps the "exit" event (or the already-set exitCode, if it fired before
-   * we started listening).
-   */
-  private waitForExit(proc: ChildProcess): Promise<number> {
-    return new Promise((resolve) => {
-      // A process killed by a signal (chat.cancel) has no exit code: report it as 1, and don't
-      // wait for an 'exit' that has already fired.
-      if (this.hasExited(proc)) {
-        resolve(proc.exitCode ?? 1);
-        return;
-      }
-      proc.once("exit", (code, signal) => resolve(code ?? (signal ? 1 : 0)));
-    });
-  }
-
-  /**
-   * Whether a child process has actually terminated.
-   *
-   * NOTE: Node's `ChildProcess.killed` means "kill() was successfully used to send a
-   * signal" — it does NOT mean the process has exited (a process can ignore SIGTERM
-   * and keep running with `.killed === true`). This differs from Bun's
-   * `Subprocess.killed`, which does mean "has the process exited". Use exitCode/
-   * signalCode (set only once the process has actually terminated) instead of
-   * `.killed` to decide whether retry/escalation is still needed.
-   */
-  private hasExited(proc: ChildProcess): boolean {
-    return hasExited(proc);
-  }
-
-  /**
-   * Kill a process with retry logic and exponential backoff
-   * Attempts graceful SIGTERM first, then force SIGKILL if needed
-   */
-  private async killProcessWithRetry(
-    proc: ChildProcess,
-    conversationId: string,
-    label: string
-  ): Promise<void> {
-    const maxRetries = 3;
-    let attempt = 0;
-    const baseDelay = 100; // milliseconds
-
-    while (attempt < maxRetries) {
-      try {
-        if (this.hasExited(proc)) {
-          // Process already terminated
-          return;
-        }
-
-        // Try graceful termination with SIGTERM
-        proc.kill("SIGTERM");
-
-        // Wait for process to exit gracefully
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        if (this.hasExited(proc)) {
-          return;
-        }
-      } catch (error) {
-        // Continue to retry
-      }
-
-      attempt++;
-      if (attempt < maxRetries) {
-        // Exponential backoff: 100ms, 200ms, 400ms
-        const delay = baseDelay * Math.pow(2, attempt - 1);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-
-    // Force kill if graceful shutdown failed
-    try {
-      if (!this.hasExited(proc)) {
-        proc.kill("SIGKILL");
-        console.warn(
-          `[${label}] Process for conversation ${conversationId} did not respond to SIGTERM, force killed with SIGKILL`
-        );
-      }
-    } catch (error) {
-      throw new Error(
-        `Failed to kill process: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  /**
-   * How the viewer is being used, for the idle exit (server/viewer-lifetime.ts): the browser tabs
-   * connected now, and when it was last used (an API request that passed authentication, or a
-   * tab's WebSocket opening or closing).
-   */
   /** Whether a request carries this server's token (Authorization: Bearer, or ?token=). */
   private requestHasToken(c: { req: { header(name: string): string | undefined; query(name: string): string | undefined } }): boolean {
     const authHeader = c.req.header("Authorization");
@@ -5148,12 +4018,8 @@ export class VisualizationServer {
     return !!provided && this.isAuthToken(provided);
   }
 
-  getActivity(): { clients: number; lastActivityAt: number } {
-    return { clients: this.clients.size, lastActivityAt: this.lastActivityAt };
-  }
-
   /**
-   * Stop the server.
+   * Stop the server (`stopCentral`, not awaited).
    *
    * With `processExiting`, the file watcher is left open: the process is about to exit, which
    * releases its watches. Closing a chokidar watcher while the tree it watches is being deleted
@@ -5162,35 +4028,467 @@ export class VisualizationServer {
    * folder is removed as its viewer is stopped.
    */
   stop(options: { processExiting?: boolean } = {}): void {
-    // Close all WebSocket connections
-    for (const client of this.clients) {
-      try {
-        client.close();
-      } catch (error) {
-        // Log unexpected errors regardless of VERBOSE flag for operational visibility
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (!errorMessage.includes('already closed')) {
-          console.warn(`[SERVER] Unexpected error closing WebSocket client: ${errorMessage}`);
+    void this.stopCentral(options);
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // The farm (issue 1279): every project and checkout
+  // -------------------------------------------------------------------------------------------
+
+  /** Open websockets, subscribed or not. */
+  private socketCount(): number {
+    return this.central.sockets.size;
+  }
+
+  /** An event carries the checkout it is about. */
+  private stamp(message: Record<string, unknown>): Record<string, unknown> {
+    const { project, checkout } = this.context.ref;
+    return { ...message, project, checkout };
+  }
+
+  /**
+   * Stops the central server: ends every checkout's DrBot turns, tells each subscriber its
+   * checkout is no longer served, closes every context and socket, then the listener.
+   */
+  stopCentral(options: { processExiting?: boolean } = {}): Promise<void> {
+    // A later call that says the process is exiting still counts, if the contexts are not closed yet.
+    if (options.processExiting) this.stopForExit = true;
+    this.stopping ??= this.stopFarm();
+    return this.stopping;
+  }
+
+  private async stopFarm(): Promise<void> {
+    const central = this.central;
+    if (central.removalTimer) clearInterval(central.removalTimer);
+    central.removalTimer = undefined;
+    central.stopListening();
+    // End the MCP sessions (their bridges reconnect to the next process).
+    if (central.mcp) await (await central.mcp).close().catch(() => {});
+    const timestamp = new Date().toISOString();
+    for (const ref of central.pool.loaded()) {
+      const context = central.pool.peek(ref);
+      if (!context) continue;
+      for (const [conversationId, proc] of context.chatProcesses) {
+        context.cancelledChatProcesses.add(proc);
+        try {
+          proc.kill("SIGTERM");
+        } catch (error) {
+          console.warn(`[Central] Could not stop DrBot turn ${conversationId}: ${getErrorMessage(error)}`);
+        }
+      }
+      const message = JSON.stringify({ type: "server.stopping", project: ref.project, checkout: ref.checkout, timestamp });
+      for (const subscriber of context.subscribers) {
+        try {
+          subscriber.send(message);
+        } catch {
+          // A socket that is already gone needs no notice.
         }
       }
     }
-    this.clients.clear();
-
-    // Stop file watcher
-    if (this.watcher && !options.processExiting) {
-      this.watcher.close?.();
+    central.pool.stop({ processExiting: this.stopForExit });
+    for (const ws of central.sockets.keys()) {
+      try {
+        ws.close(1001, "server stopping");
+      } catch {
+        // Already closed.
+      }
     }
-    if (this.changesetsBroadcastTimer) {
-      clearTimeout(this.changesetsBroadcastTimer);
-      this.changesetsBroadcastTimer = undefined;
+    central.sockets.clear();
+    const servers = this._servers;
+    this._servers = [];
+    const closed = Promise.all(
+      servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve())))
+    );
+    for (const connection of central.connections) connection.destroy();
+    central.connections.clear();
+    // The listener stops accepting at close(). Its callback waits for every connection to end,
+    // and under Bun it never comes once a connection was upgraded to a websocket, even after the
+    // connection is destroyed: wait for it a moment, no longer.
+    let grace: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([closed, new Promise<void>((resolve) => (grace = setTimeout(resolve, 1000)))]);
+    clearTimeout(grace);
+  }
+
+  /** The port the server listens on (the one the OS chose when started on port 0). */
+  listeningPort(): number | undefined {
+    const address = this._servers[0]?.address();
+    return address && typeof address === "object" ? address.port : undefined;
+  }
+
+  /** What the central process reports for its idle exit (`CentralActivity` in central-server-contract.ts). */
+  centralActivity(): { clients: number; mcpSessions: number; drBotTurns: number; lastActivityAt: number } {
+    // Running turns, across every checkout (the launcher's cap counts the same ones).
+    const drBotTurns = this.drBot.runningTurns;
+    return {
+      clients: this.socketCount(),
+      mcpSessions: this.central.mcpEndpoint?.sessionCount ?? 0,
+      drBotTurns,
+      lastActivityAt: this.lastActivityAt,
+    };
+  }
+
+  /**
+   * `/mcp` on the central process: the token as a bearer header (never a query parameter: an MCP
+   * client always sends headers), then the session's own MCP server (mcp/central-mcp.ts).
+   */
+  private async handleMcp(request: Request): Promise<Response> {
+    const central = this.central;
+    const header = request.headers.get("authorization") ?? "";
+    const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+    if (!token || !this.isAuthToken(token)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    this.lastActivityAt = Date.now();
+    central.mcp ??= import("../mcp/central-mcp.js").then(({ CentralMcpEndpoint }) => {
+      central.mcpEndpoint = new CentralMcpEndpoint({
+        registry: central.options.registry,
+        fallbackRoot: async () => {
+          const ref = central.options.defaultCheckout;
+          return ref ? (await central.options.registry.resolveRef(ref))?.checkout.path : undefined;
+        },
+        onActivity: () => {
+          this.lastActivityAt = Date.now();
+        },
+      });
+      return central.mcpEndpoint;
+    });
+    return (await central.mcp).handle(request);
+  }
+
+  /** `/health` on the central process (`CentralHealth`): status and version, the rest only with the token. */
+  private centralHealth(withToken: boolean): z.infer<typeof HealthResponseSchema> {
+    const central = this.central;
+    const response: z.infer<typeof HealthResponseSchema> = { status: "ok", version: "0.1.0", cliVersion: getCliVersion() };
+    // Chat detection failed at start-up: the server runs, without DrBot. Anyone may learn that it
+    // is degraded; what failed (an error that can name local paths) is for the token's holder only.
+    if (this.chatInitializationError) response.status = "degraded";
+    if (!withToken) return response;
+    if (this.chatInitializationError) {
+      response.warnings = [`Chat service unavailable: ${getErrorMessage(this.chatInitializationError)}`];
+    }
+    if (central.options.serverId) response.serverId = central.options.serverId;
+    response.pid = process.pid;
+    if (this.launcherPid) response.launcherPid = this.launcherPid;
+    response.farmRoot = this.farmRoot();
+    response.clients = this.socketCount();
+    // What `ensureCentralServer` reads before it replaces an older process: is anything using it?
+    const activity = this.centralActivity();
+    response.mcpSessions = activity.mcpSessions;
+    response.drBotTurns = activity.drBotTurns;
+    response.loadedCheckouts = central.pool.size;
+    return response;
+  }
+
+  private farmRoot(): string {
+    const root = this.central.options.registry.farm.root;
+    try {
+      return realpathSync(root);
+    } catch {
+      return root;
+    }
+  }
+
+  /**
+   * A checkout's context, loaded on first use. A message naming why when the registry doesn't
+   * list the project, or the checkout, or the checkout is not on disk (`missing` or `prunable`).
+   */
+  private async acquireCheckout(ref: CheckoutRef): Promise<{ context: CheckoutContext } | { error: string }> {
+    const central = this.central;
+    const registry = central.options.registry;
+    // Another process may have registered the project since the registry was read.
+    if (!registry.getProject(ref.project)) await this.reloadRegistry();
+    if (!registry.getProject(ref.project)) return { error: `Unknown project: ${ref.project}` };
+
+    const resolved = await registry.resolveRef(ref);
+    if (!resolved) {
+      // Gone, or never there: a loaded context for it is closed.
+      this.closeRemovedCheckout(ref);
+      const listed = (await registry.checkouts(ref.project)).find((c) => c.key === ref.checkout);
+      return {
+        error: listed
+          ? `Checkout ${ref.checkout} of project ${ref.project} is ${listed.state}: its folder is not on disk`
+          : `Unknown checkout of project ${ref.project}: ${ref.checkout}`,
+      };
+    }
+    const context = await central.pool.acquire(ref);
+    if (!context || context.closed) return { error: `Checkout ${ref.checkout} of project ${ref.project} could not be loaded` };
+    return { context };
+  }
+
+  private async reloadRegistry(): Promise<void> {
+    try {
+      await this.central.options.registry.reload();
+    } catch (error) {
+      console.warn(`[Central] Could not re-read the farm: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /** Loads a checkout's context for the pool: its model, changesets and annotations, and its file watcher. */
+  private async loadCheckoutContext(resolved: ResolvedCheckout): Promise<CheckoutContext> {
+    const context = await CheckoutContext.load(resolved.ref, resolved.modelPath);
+    await this.inContext(context, async () => {
+      await this.loadChangesetsFromDisk();
+      await this.syncAnnotations({ broadcast: false }).catch((error) => {
+        console.warn(`[Annotations] Could not read the annotations: ${getErrorMessage(error)}`);
+      });
+      this.setupFileWatcher();
+    });
+    return context;
+  }
+
+  /**
+   * A checkout is gone (`checkout-removed`): its context closes, ending its DrBot turns, and its
+   * subscribers hear `checkout.removed`. Their sockets stay open for their other checkouts.
+   */
+  private closeRemovedCheckout(ref: CheckoutRef): void {
+    this.central.pool.close(ref);
+  }
+
+  /** Asks the registry about each loaded checkout, so a removed one is closed even with no request for it. */
+  private async checkRemovedCheckouts(): Promise<void> {
+    const central = this.central;
+    for (const ref of central.pool.loaded()) {
+      if (!(await central.options.registry.resolveRef(ref))) this.closeRemovedCheckout(ref);
+    }
+  }
+
+  /**
+   * Runs an `/api/projects/{project}/checkouts/{checkout}/...` request in that checkout's context:
+   * 404 when the registry doesn't list it or it is not on disk. Every other `/api/...` path (the
+   * project routes, `/api/spec`, the retired unscoped routes) needs no checkout.
+   */
+  private async scopeRequest(c: any, next: () => Promise<void>): Promise<Response | void> {
+    const segments = c.req.path.split("/");
+    let ref: CheckoutRef;
+    if (segments[2] === "projects") {
+      // /api/projects, /api/projects/{project}, /api/projects/{project}/checkouts
+      if (segments.length < 7 || segments[4] !== "checkouts") return next();
+      try {
+        ref = { project: decodeURIComponent(segments[3]), checkout: decodeURIComponent(segments[5]) };
+      } catch {
+        return c.json({ error: "Malformed project or checkout in the path" }, 400);
+      }
+    } else {
+      return next();
+    }
+    const found = await this.acquireCheckout(ref);
+    if ("error" in found) return c.json({ error: found.error }, 404);
+    c.set(CHECKOUT_CONTEXT_KEY, ref);
+    return this.inContext(found.context, () => next());
+  }
+
+  /** Handles a websocket message: a feed subscription, or a message in the checkout it is for. */
+  private async dispatchWSMessage(ws: HonoWSContext, data: WSMessage): Promise<CheckoutRef | undefined> {
+    const handle = () =>
+      "jsonrpc" in data && data.jsonrpc === "2.0" ? this.handleJSONRPCMessage(ws, data) : this.handleWSMessage(ws, data);
+    if ("action" in data) return this.handleFeedSubscription(ws, data);
+    const ref = this.messageCheckout(ws, data);
+    if (!ref) {
+      ws.send(JSON.stringify({ type: "error", message: "Subscribe to a checkout first: {action: \"subscribe\", project, checkout}" }));
+      return undefined;
+    }
+    const found = await this.acquireCheckout(ref);
+    if ("error" in found) {
+      ws.send(JSON.stringify({ type: "error", message: found.error, project: ref.project, checkout: ref.checkout }));
+      return ref;
+    }
+    await this.inContext(found.context, handle);
+    return ref;
+  }
+
+  /**
+   * The checkout a websocket message is for: the project and checkout its params name, else the
+   * socket's one subscription; null when it names none and the socket has no one subscription.
+   */
+  private messageCheckout(ws: HonoWSContext, data: WSMessage): CheckoutRef | null {
+    const params = "params" in data ? (data.params as Record<string, unknown> | undefined) : undefined;
+    if (params && typeof params === "object" && typeof params.project === "string" && typeof params.checkout === "string") {
+      return { project: params.project, checkout: params.checkout };
+    }
+    const subscriptions = [...(this.central.sockets.get(ws)?.values() ?? [])];
+    return subscriptions.length === 1 ? subscriptions[0].ref : null;
+  }
+
+  /**
+   * `{action: "subscribe" | "unsubscribe", project, checkout}`: adds or removes the socket's
+   * subscription to the checkout's feed, acquiring its context. A subscribed context is never
+   * evicted. (`application.applicationfunction.subscribe-checkout-feed`)
+   */
+  private async handleFeedSubscription(ws: HonoWSContext, frame: FeedSubscription): Promise<CheckoutRef> {
+    const central = this.central;
+    const ref: CheckoutRef = { project: frame.project, checkout: frame.checkout };
+    const key = checkoutKey(ref);
+    const timestamp = () => new Date().toISOString();
+
+    if (frame.action === "unsubscribe") {
+      const subscription = central.sockets.get(ws)?.get(key);
+      if (subscription) {
+        central.sockets.get(ws)!.delete(key);
+        central.pool.peek(ref)?.subscribers.delete(subscription);
+      }
+      ws.send(JSON.stringify({ type: "unsubscribed", ...ref, timestamp: timestamp() }));
+      return ref;
     }
 
-    if (this.annotationsBroadcastTimer) {
-      clearTimeout(this.annotationsBroadcastTimer);
-      this.annotationsBroadcastTimer = undefined;
+    const found = await this.acquireCheckout(ref);
+    if ("error" in found) {
+      ws.send(JSON.stringify({ type: "error", message: found.error, ...ref }));
+      return ref;
     }
+    // The socket may have closed while the checkout loaded.
+    const subscriptions = central.sockets.get(ws);
+    if (!subscriptions) return ref;
+    if (!subscriptions.has(key)) {
+      const subscription: FeedSubscriber = {
+        ref,
+        ws,
+        send: (source, options) => ws.send(source, options),
+        // The context closing ends this subscription only; the socket stays open.
+        close: () => {
+          if (central.sockets.get(ws)?.get(key) === subscription) central.sockets.get(ws)!.delete(key);
+        },
+      };
+      found.context.subscribers.add(subscription);
+      subscriptions.set(key, subscription);
+    }
+    found.context.touch();
+    ws.send(JSON.stringify({ type: "subscribed", ...ref, timestamp: timestamp() }));
+    return ref;
+  }
 
-    // Stop the servers
-    this.closeServers();
+  /** A closed socket's subscriptions end. */
+  private dropSocket(ws: HonoWSContext): void {
+    const central = this.central;
+    for (const subscription of central.sockets.get(ws)?.values() ?? []) {
+      central.pool.peek(subscription.ref)?.subscribers.delete(subscription);
+    }
+    central.sockets.delete(ws);
+  }
+
+  /** The farm's projects, the registry re-read first. */
+  private async farmProjects() {
+    await this.reloadRegistry();
+    return this.central.options.registry.listProjects();
+  }
+
+  /** `GET /api/projects`, `/api/projects/{project}` and `/api/projects/{project}/checkouts` (central only). */
+  private setupProjectRoutes(): void {
+    const notFound = {
+      description: "The farm lists no project of that name",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    };
+    const projectParams = z.object({ project: ProjectNameParamSchema });
+
+    const listProjectsRoute = createRoute({
+      method: "get",
+      path: "/api/projects",
+      tags: ["Projects"],
+      summary: "List the projects",
+      description: "Every project of the farm with its checkouts (main checkout and linked worktrees)",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "The farm's projects", content: { "application/json": { schema: ProjectsListSchema } } },
+      },
+    });
+    this.app.openapi(listProjectsRoute, (async (c: any) => {
+      try {
+        return c.json({ projects: await this.farmProjects() });
+      } catch (error) {
+        return c.json({ error: getErrorMessage(error) }, 500);
+      }
+    }) as any);
+
+    const getProjectRoute = createRoute({
+      method: "get",
+      path: "/api/projects/:project",
+      tags: ["Projects"],
+      summary: "Get a project",
+      description: "One project of the farm with its checkouts",
+      security: [{ bearerAuth: [] }],
+      request: { params: projectParams },
+      responses: {
+        200: { description: "The project", content: { "application/json": { schema: ProjectListEntrySchema } } },
+        404: notFound,
+      },
+    });
+    this.app.openapi(getProjectRoute, (async (c: any) => {
+      const { project } = c.req.valid("param");
+      const entry = (await this.farmProjects()).find((p) => p.name === project);
+      if (!entry) return c.json({ error: `Unknown project: ${project}` }, 404);
+      return c.json(entry);
+    }) as any);
+
+    const getProjectCheckoutsRoute = createRoute({
+      method: "get",
+      path: "/api/projects/:project/checkouts",
+      tags: ["Projects"],
+      summary: "List a project's checkouts",
+      description: "The project's main checkout and linked worktrees, with their state and staged changesets",
+      security: [{ bearerAuth: [] }],
+      request: { params: projectParams },
+      responses: {
+        200: { description: "The project's checkouts", content: { "application/json": { schema: ProjectCheckoutsSchema } } },
+        404: notFound,
+      },
+    });
+    this.app.openapi(getProjectCheckoutsRoute, (async (c: any) => {
+      const { project } = c.req.valid("param");
+      const entry = (await this.farmProjects()).find((p) => p.name === project);
+      if (!entry) return c.json({ error: `Unknown project: ${project}` }, 404);
+      return c.json({ project: entry.name, checkouts: entry.checkouts });
+    }) as any);
+  }
+
+  /**
+   * Registers a project-data route under /api/projects/{project}/checkouts/{checkout}/: `route`
+   * is written with its old unscoped path (/api/...), which answers `410 Gone` naming the scoped
+   * one for this release (retiredRoute). scopeRequest runs the handler in the named checkout's
+   * context.
+   */
+  private dataRoute(route: any, handler: (c: any) => any): void {
+    const scoped = VisualizationServer.scopedRoute(route);
+    this.app.openapi(scoped, handler);
+    this.retiredRoute(route.method, route.path, scoped.path);
+  }
+
+  /**
+   * An unscoped project-data path, retired in slice 4 of issue 1279: `410 Gone` with the scoped
+   * path template that replaces it, for a custom viewer build (`--viewer-path`) that still calls
+   * it. Not in the OpenAPI document. Kept for one release.
+   */
+  private retiredRoute(method: string, oldPath: string, scopedPath: string): void {
+    const template = (p: string) => p.replace(/:([A-Za-z]+)/g, "{$1}");
+    const body = {
+      error:
+        `${method.toUpperCase()} ${template(oldPath)} is gone: every project-data route names its project and checkout. ` +
+        "Projects and their checkouts are listed at GET /api/projects.",
+      replacement: template(scopedPath),
+    };
+    this.app.on(method.toUpperCase(), oldPath, (c) => c.json(body, 410));
+  }
+
+  /** The checkout-scoped twin of an unscoped /api route. */
+  private static scopedRoute(route: any): any {
+    const scope = z.object({ project: ProjectNameParamSchema, checkout: CheckoutKeyParamSchema });
+    const params = route.request?.params ? scope.merge(route.request.params) : scope;
+    const own404 = route.responses?.[404]?.description;
+    return createRoute({
+      ...route,
+      path: SCOPED_PREFIX + route.path.slice("/api".length),
+      description: `${route.description}, in the named project's checkout`,
+      request: { ...(route.request ?? {}), params },
+      responses: {
+        ...route.responses,
+        404: {
+          description: own404
+            ? `${own404}; or the farm lists no such project or checkout, or the checkout is not on disk`
+            : "The farm lists no such project or checkout, or the checkout is not on disk",
+          content: { "application/json": { schema: ErrorResponseSchema } },
+        },
+      },
+    });
   }
 }

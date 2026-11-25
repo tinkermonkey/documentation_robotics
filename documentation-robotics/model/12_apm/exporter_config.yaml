@@ -1,0 +1,19 @@
+apm.exporterconfig.dr-cli-otlp-exporter:
+  id: d69a6d2b-9782-49ce-8ba5-63e9de5d39de
+  path: apm.exporterconfig.dr-cli-otlp-exporter
+  spec_node_id: apm.exporterconfig
+  type: exporterconfig
+  layer_id: apm
+  name: dr-cli OTLP exporter
+  description: "OTLP/HTTP exporter for spans and logs: DR_OTLP_ENDPOINT (default http://localhost:4318/v1/traces), DR_OTLP_LOGS_ENDPOINT, wrapped to survive an unreachable collector."
+  attributes:
+    type: otlp
+    endpoint: http://localhost:4318/v1/traces
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/telemetry/resilient-exporter.ts
+  metadata:
+    created_at: 2026-11-21T17:21:34.230Z
+    updated_at: 2026-11-21T17:21:34.230Z
+    version: 1

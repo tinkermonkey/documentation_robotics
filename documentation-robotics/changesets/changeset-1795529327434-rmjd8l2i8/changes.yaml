@@ -1,0 +1,301 @@
+- type: add
+  elementId: application.applicationevent.changeset-commit-progress
+  layerName: application
+  after:
+    id: 8a3b4826-742b-49b7-8e32-af800b1e5cc4
+    path: application.applicationevent.changeset-commit-progress
+    spec_node_id: application.applicationevent
+    type: applicationevent
+    layer_id: application
+    name: changeset.commit.progress
+    description: "Broadcast on /ws to the committing checkout's subscribers while a commit runs (#1361): { type, changesetId, applied, total, phase, layer?, failed?, project, checkout, timestamp }."
+    attributes:
+      eventType: system
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: changeset.commit.progress
+    metadata:
+      created_at: 2026-11-24T14:08:57.649Z
+      updated_at: 2026-11-24T14:08:57.649Z
+      version: 1
+  timestamp: 2026-11-24T14:08:57.660Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.create-commit-progress-reporter
+  layerName: application
+  after:
+    id: d3ee643d-d2bd-43c8-8019-3e10c3ddc9f2
+    path: application.applicationfunction.create-commit-progress-reporter
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: createCommitProgressReporter
+    description: "Throttles one commit's progress reports (the first, each phase change and the final one always; otherwise at most one per interval, default 200 ms) and publishes them on the process-wide commit progress channel keyed by the checkout's root path; finish() sends the final applied == total report, fail() the last one with failed: true."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/commit-progress.ts
+          symbol: createCommitProgressReporter
+    metadata:
+      created_at: 2026-11-24T14:08:57.652Z
+      updated_at: 2026-11-24T14:08:57.652Z
+      version: 1
+  timestamp: 2026-11-24T14:08:57.660Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.broadcast-commit-progress
+  layerName: application
+  after:
+    id: 6cdfaee9-b3d2-4530-8f22-1bcb7a0730aa
+    path: application.applicationfunction.broadcast-commit-progress
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: broadcastCommitProgress
+    description: "The central server's listener on the commit progress channel: finds the checkout context whose root path the report names and broadcasts changeset.commit.progress to that checkout's subscribers only."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/server/server.ts
+          symbol: broadcastCommitProgress
+        - file: cli/src/server/server.ts
+          symbol: VisualizationServer.broadcastCommitProgress
+    metadata:
+      created_at: 2026-11-24T14:08:57.653Z
+      updated_at: 2026-11-24T14:08:57.653Z
+      version: 1
+  timestamp: 2026-11-24T14:59:48.404Z
+  sequenceNumber: 2
+- type: relationship-add
+  elementId: application.applicationfunction.create-commit-progress-reporter::triggers::application.applicationevent.changeset-commit-progress
+  layerName: application
+  after:
+    source: application.applicationfunction.create-commit-progress-reporter
+    target: application.applicationevent.changeset-commit-progress
+    predicate: triggers
+    layer: application
+    category: structural
+  timestamp: 2026-11-24T14:08:57.660Z
+  sequenceNumber: 3
+- type: relationship-add
+  elementId: application.applicationevent.changeset-commit-progress::triggers::application.applicationfunction.broadcast-commit-progress
+  layerName: application
+  after:
+    source: application.applicationevent.changeset-commit-progress
+    target: application.applicationfunction.broadcast-commit-progress
+    predicate: triggers
+    layer: application
+    category: structural
+  timestamp: 2026-11-24T14:08:57.660Z
+  sequenceNumber: 4
+- type: add
+  elementId: product.feature.commit-progress
+  layerName: product
+  after:
+    id: 7f92476e-ed85-44a4-acac-542ec029d028
+    path: product.feature.commit-progress
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit progress
+    description: "While a changeset commit runs, the central server tells the viewers open on that checkout how far it has got: a changeset.commit.progress broadcast with the changes applied so far, the total and the phase (validating, applying, saving, reloading, done). Throttled; a success always ends with applied == total and phase done, a failure with failed: true and the phase it stopped in. Sent for the viewer's Apply and for changeset_commit (MCP, DrBot) run in the central process; a separate dr changeset commit process sends none. Advisory: the commit's own response is unchanged."
+    attributes:
+      priority: medium
+      status: developing
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/commit-progress.ts
+    metadata:
+      created_at: 2026-11-24T14:09:03.141Z
+      updated_at: 2026-11-24T14:09:03.141Z
+      version: 1
+  timestamp: 2026-11-24T14:09:03.160Z
+  sequenceNumber: 5
+- type: add
+  elementId: data-model.objectschema.commit-progress
+  layerName: data-model
+  after:
+    id: edd235c9-cd1d-4159-a9b1-a7ae9d6d5687
+    path: data-model.objectschema.commit-progress
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: CommitProgress
+    description: "One progress report of a commit in flight: changesetId, applied, total, phase (validating | applying | saving | reloading | done), layer while applying, failed on the last report of a failed commit."
+    attributes:
+      type: object
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/commit-progress.ts
+          symbol: CommitProgress
+    metadata:
+      created_at: 2026-11-24T14:09:03.141Z
+      updated_at: 2026-11-24T14:09:03.141Z
+      version: 1
+  timestamp: 2026-11-24T14:09:03.160Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: application.applicationevent.changeset-commit-progress::accesses::data-model.objectschema.commit-progress
+  layerName: application
+  after:
+    source: application.applicationevent.changeset-commit-progress
+    target: data-model.objectschema.commit-progress
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-24T14:09:03.160Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.staging-area-manager-commit::triggers::application.applicationevent.changeset-commit-progress
+  layerName: application
+  after:
+    source: application.applicationfunction.staging-area-manager-commit
+    target: application.applicationevent.changeset-commit-progress
+    predicate: triggers
+    layer: application
+    category: structural
+  timestamp: 2026-11-24T14:09:03.160Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationservice.viewer-api::realizes::product.feature.commit-progress
+  layerName: application
+  after:
+    source: application.applicationservice.viewer-api
+    target: product.feature.commit-progress
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-24T14:09:14.120Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationservice.changeset-commit-handler::realizes::product.feature.commit-progress
+  layerName: application
+  after:
+    source: application.applicationservice.changeset-commit-handler
+    target: product.feature.commit-progress
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-24T14:09:14.120Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.create-commit-progress-reporter::realizes::application.applicationservice.viewer-api
+  layerName: application
+  after:
+    source: application.applicationfunction.create-commit-progress-reporter
+    target: application.applicationservice.viewer-api
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-24T14:09:14.120Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.broadcast-commit-progress::realizes::application.applicationservice.viewer-api
+  layerName: application
+  after:
+    source: application.applicationfunction.broadcast-commit-progress
+    target: application.applicationservice.viewer-api
+    predicate: realizes
+    layer: application
+    category: structural
+  timestamp: 2026-11-24T14:09:14.120Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationfunction.create-commit-progress-reporter::accesses::data-model.objectschema.commit-progress
+  layerName: application
+  after:
+    source: application.applicationfunction.create-commit-progress-reporter
+    target: data-model.objectschema.commit-progress
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-24T14:09:14.120Z
+  sequenceNumber: 13
+- type: update
+  elementId: data-model.objectschema.commit-options
+  layerName: data-model
+  before:
+    id: f70e4161-7922-4d56-8714-4755fc0f5448
+    path: data-model.objectschema.commit-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: CommitOptions
+    description: Options for commit operation
+    attributes: &a1
+      type: object
+    source_reference: &a2
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: CommitOptions
+    metadata: &a3
+      created_at: 2026-11-20T15:04:41.103Z
+      updated_at: 2026-11-20T15:04:41.103Z
+      version: 1
+  after:
+    id: f70e4161-7922-4d56-8714-4755fc0f5448
+    path: data-model.objectschema.commit-options
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: CommitOptions
+    description: "StagingAreaManager.commit's options: validate, dryRun, the deprecated force, and onProgress (#1361), called with each CommitProgress report (validating, applying with the layer of each change, saving) while a real commit runs."
+    attributes: *a1
+    source_reference: *a2
+    metadata: *a3
+  timestamp: 2026-11-24T14:09:18.140Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: product.feature.commit-progress::depends-on::product.feature.changeset-commit
+  layerName: product
+  after:
+    source: product.feature.commit-progress
+    target: product.feature.changeset-commit
+    predicate: depends-on
+    layer: product
+    category: structural
+  timestamp: 2026-11-24T14:09:23.259Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: product.feature.commit-progress::serves::product.persona.reviewer
+  layerName: product
+  after:
+    source: product.feature.commit-progress
+    target: product.persona.reviewer
+    predicate: serves
+    layer: product
+    category: structural
+  timestamp: 2026-11-24T14:09:23.259Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: application.applicationcomponent.visualization-server::assigned-to::application.applicationfunction.broadcast-commit-progress
+  layerName: application
+  after:
+    source: application.applicationcomponent.visualization-server
+    target: application.applicationfunction.broadcast-commit-progress
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-24T14:09:23.259Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationfunction.broadcast-commit-progress::accesses::data-model.objectschema.commit-progress
+  layerName: application
+  after:
+    source: application.applicationfunction.broadcast-commit-progress
+    target: data-model.objectschema.commit-progress
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-24T14:09:23.259Z
+  sequenceNumber: 18

@@ -16,6 +16,7 @@ import { getCodebasePath } from "../utils/globals.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../utils/errors.js";
 import { assertBaseModelWritable } from "./changeset-only-guard.js";
 import { trackModelWrite } from "./model-write-tracker.js";
+import { stringifyDrYaml } from "./dr-yaml.js";
 import { getNodeType } from "../generated/node-types.js";
 import type { SpecNodeId } from "../generated/node-types.js";
 import type { ChangesetHistoryEntry, ManifestData, ModelOptions } from "../types/index.js";
@@ -770,7 +771,7 @@ export class Model {
         };
       }
 
-      outputs.set(filename, yaml.stringify(yamlData));
+      outputs.set(filename, stringifyDrYaml(yamlData));
     }
 
     // A file named like a wanted one but for letter case is renamed to it first: on a
@@ -996,7 +997,7 @@ export class Model {
     }
 
     await ensureDir(`${this.rootPath}/documentation-robotics/model`);
-    await writeFile(manifestPath, yaml.stringify(yamlData));
+    await writeFile(manifestPath, stringifyDrYaml(yamlData));
   }
 
   private getLayerElementCounts(layer: Layer): Record<string, number> {
@@ -1084,7 +1085,6 @@ export class Model {
   private async writeRelationships(options: { preserveHeader?: boolean }): Promise<void> {
     assertBaseModelWritable();
     const fs = await import("fs/promises");
-    const yaml = await import("yaml");
     const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`;
 
     await ensureDir(`${this.rootPath}/documentation-robotics/model`);
@@ -1110,7 +1110,7 @@ export class Model {
         // Missing or unreadable file: fall back to the standard header
       }
     }
-    const yamlContent = header + yaml.stringify(data);
+    const yamlContent = header + stringifyDrYaml(data);
 
     await fs.writeFile(relationshipsPath, yamlContent, "utf-8");
     this.relationships.markClean();
@@ -1154,7 +1154,7 @@ export class Model {
     for (const project of manifest.getAllProjects()) {
       if (path.basename(project.model) === modelName) {
         // Found matching project, resolve codebase path
-        const codebaseFullPath = path.resolve(farmRoot, project.source);
+        const codebaseFullPath = path.resolve(farmRoot, project.repository);
         return codebaseFullPath;
       }
     }
@@ -1634,7 +1634,6 @@ export class Model {
     manifestData: ManifestData,
     options: ModelOptions = {}
   ): Promise<Model> {
-    const yaml = await import("yaml");
 
     // Create model directory structure
     await ensureDir(`${rootPath}/documentation-robotics/model`);
@@ -1672,7 +1671,7 @@ export class Model {
 # Last updated: ${timestamp}
 
 `;
-    const yamlContent = header + yaml.stringify([]);
+    const yamlContent = header + stringifyDrYaml([]);
     await writeFile(relationshipsPath, yamlContent);
 
     return model;

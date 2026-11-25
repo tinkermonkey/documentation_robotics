@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Applicationcomponent satisfies Requirement",
+  "description": "The application component meets a requirement directly, such as a component that exists to enforce isolation, caching or a lifecycle rule the requirement states. Prefer applicationservice satisfies requirement when the requirement is about behaviour the component exposes as a service.",
+  "allOf": [
+    {
+      "$ref": "../../base/spec-node-relationship.schema.json"
+    }
+  ],
+  "properties": {
+    "id": {
+      "const": "application.applicationcomponent.satisfies.motivation.requirement"
+    },
+    "source_spec_node_id": {
+      "const": "application.applicationcomponent"
+    },
+    "source_layer": {
+      "const": "application"
+    },
+    "destination_spec_node_id": {
+      "const": "motivation.requirement"
+    },
+    "destination_layer": {
+      "const": "motivation"
+    },
+    "predicate": {
+      "const": "satisfies"
+    },
+    "cardinality": {
+      "const": "many-to-many"
+    },
+    "strength": {
+      "const": "medium"
+    }
+  },
+  "x-dr-evidence": [
+    "ArchiMate 3.2 Appendix B: realization is allowed from an application component to a requirement.",
+    "DR already allows data-model.objectschema satisfies motivation.requirement and api.operation satisfies motivation.requirement."
+  ]
+}

@@ -29,7 +29,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { McpToolRegistry } from "../../src/mcp/tool-registry.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer } from "../helpers/test-farm-server.js";
 import { runDr } from "../helpers/cli-runner.js";
 
 let rootPath: string;
@@ -431,13 +431,19 @@ describe("a bootstrap codebase_extract staged is stamped on every landing path",
     }
   }
 
-  /** The viewer's Apply: POST /api/changesets/:id/commit. */
+  /**
+   * The viewer's Apply: POST /api/projects/{project}/checkouts/main/changesets/:id/commit, on a
+   * central server whose one project is the test repository (the server loads it from disk).
+   */
   async function landWithViewer(id: string): Promise<void> {
     clearModelCache();
-    const model = await Model.load(rootPath, { lazyLoad: false });
-    const server = new VisualizationServer(model, { authEnabled: false });
-    const response: Response = await (server as any).app.request(`/api/changesets/${id}/commit`, { method: "POST" });
-    expect(response.status).toBe(200);
+    const t = await startTestFarmServer(rootPath);
+    try {
+      const response: Response = await t.request(`/changesets/${id}/commit`, { method: "POST" });
+      expect(response.status).toBe(200);
+    } finally {
+      await t.stop();
+    }
     clearModelCache();
   }
 

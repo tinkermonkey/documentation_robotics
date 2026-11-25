@@ -8,8 +8,8 @@ description: codebase_extract answers with groups and a count of the decisions
   are measured before and after, and issues 1154, 1177, 1178, 1213, 1181, 1162
   and the reject part of 1182 are closed with tests.
 created: 2026-11-20T16:55:34.307Z
-modified: 2026-11-20T18:20:29.452Z
-status: staged
+modified: 2026-11-24T13:46:40.913Z
+status: committed
 baseSnapshot: sha256:da5ead4b97c022f4b42ed510772ddae44deea617815d738c07fd8e66452e6bfa
 origin:
   kind: plan

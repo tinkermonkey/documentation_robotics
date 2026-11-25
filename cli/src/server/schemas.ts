@@ -82,10 +82,23 @@ export const JSONRPCResponseSchema = z.object({
   }
 );
 
+/**
+ * A websocket frame subscribing to, or unsubscribing from, one checkout's feed on the central
+ * server (issue 1279). A socket receives model, changeset and annotation events only for the
+ * checkouts it subscribed to; each event carries its project and checkout.
+ * (`data-model.objectschema.feed-subscription`)
+ */
+export const FeedSubscriptionSchema = z.object({
+  action: z.enum(['subscribe', 'unsubscribe']),
+  project: z.string().min(1),
+  checkout: z.string().min(1),
+});
+
 export const WSMessageSchema = z.union([
   SimpleWSMessageSchema,
   JSONRPCRequestSchema,
   JSONRPCResponseSchema,
+  FeedSubscriptionSchema,
 ]);
 
 // Base schemas for common types
@@ -207,13 +220,61 @@ export const ErrorResponseSchema = z.object({
 });
 
 export const HealthResponseSchema = z.object({
-  status: z.string().describe('Server health status'),
+  status: z.string().describe('`ok`, or `degraded` when a service failed to start (see `warnings`)'),
+  warnings: z.array(z.string()).optional().describe('What failed to start, e.g. the chat service; only when `status` is `degraded`, and only with the auth token'),
   version: z.string().describe('API version (the version of this HTTP API, not of the dr CLI or the spec)'),
   cliVersion: z.string().describe('Version of the dr CLI that is serving this API, e.g. "0.5.0"'),
+  serverId: z.string().optional().describe('Id of the process, as its server record has it. Only with the auth token'),
   pid: z.number().int().optional().describe('Process id of the server. Only with the auth token'),
-  launcherPid: z.number().int().optional().describe('Process id of the `dr visualize` process that runs the server. Only with the auth token'),
-  viewerId: z.string().optional().describe("Id of this viewer, as its record in the user's viewer registry has it. Only with the auth token"),
-  clients: z.number().int().optional().describe('Browser tabs connected now (WebSocket clients). Only with the auth token'),
+  launcherPid: z.number().int().optional().describe('Process id of the process that launched the server. Only with the auth token'),
+  farmRoot: z.string().optional().describe('Real path of the farm root the process serves. Only with the auth token'),
+  clients: z.number().int().optional().describe('Websockets open now, subscribed or not. Only with the auth token'),
+  mcpSessions: z.number().int().optional().describe('MCP sessions open now. Only with the auth token'),
+  drBotTurns: z.number().int().optional().describe('DrBot turns running now, across every checkout. Only with the auth token'),
+  loadedCheckouts: z.number().int().optional().describe('Checkout contexts loaded now. Only with the auth token'),
+});
+
+/** A project name in a scoped route: its name in the farm. */
+export const ProjectNameParamSchema = z.string().min(1).openapi({
+  param: { name: 'project', in: 'path' },
+  description: "The project's name in the farm",
+  example: 'documentation-robotics',
+});
+
+/** A checkout key in a scoped route: `main`, or git's name for a linked worktree. */
+export const CheckoutKeyParamSchema = z.string().min(1).openapi({
+  param: { name: 'checkout', in: 'path' },
+  description: '`main` for the main worktree, else the name git gives the linked worktree',
+  example: 'main',
+});
+
+/** One checkout as a project listing shows it (`ProjectListCheckout` in checkout-types.ts). */
+export const ProjectListCheckoutSchema = z.object({
+  key: z.string().describe('`main`, or the linked worktree\'s name'),
+  path: z.string().describe('Real path of the working tree'),
+  branch: z.string().nullable().describe('Short branch name, or null when detached'),
+  head: z.string().describe('Commit the working tree is at'),
+  state: z.enum(['present', 'missing', 'prunable']).describe('`missing`: git lists it but the folder is gone'),
+  activeChangeset: z.string().nullable().describe("The active changeset's id, when one is active"),
+  stagedChangesets: z.number().int().describe('How many changesets are staged in the checkout'),
+});
+
+/** A project with its checkouts (`ProjectListEntry` in checkout-types.ts). */
+export const ProjectListEntrySchema = z.object({
+  name: z.string().describe("The project's name in the farm"),
+  repository: z.string().describe("The main checkout's path"),
+  model: z.string().describe('The model folder as the farm records it'),
+  remote: z.string().optional().describe("origin's URL, when it has one"),
+  checkouts: z.array(ProjectListCheckoutSchema),
+});
+
+export const ProjectsListSchema = z.object({
+  projects: z.array(ProjectListEntrySchema),
+});
+
+export const ProjectCheckoutsSchema = z.object({
+  project: z.string(),
+  checkouts: z.array(ProjectListCheckoutSchema),
 });
 
 export const AnnotationSchema = z.object({
@@ -353,6 +414,49 @@ const driftSummaryShape = {
     .describe('Deprecated: always false. Drift warns at a commit and never refuses it, so do not hold Apply on this; read state'),
   message: z.string().describe('What the state means for this changeset, in a sentence or two. Names no CLI command'),
 };
+
+/**
+ * `changeset.commit.progress` (issue 1361): a websocket broadcast, not a route body. Registered as
+ * a component so clients generate its type from the OpenAPI document.
+ */
+export const ChangesetCommitProgressSchema = z
+  .object({
+    type: z.literal('changeset.commit.progress'),
+    changesetId: z.string().describe('The changeset being committed'),
+    applied: z
+      .number()
+      .int()
+      .describe('Changes handled so far (applied, or skipped as already in the base)'),
+    total: z
+      .number()
+      .int()
+      .describe(
+        'The changes the commit handles: the staged changes left after a reviewed commit drops some. ' +
+          'Relationships deleted with a delete (deleteBlockedLinks) count inside that delete.'
+      ),
+    phase: z
+      .enum(['validating', 'applying', 'saving', 'reloading', 'done'])
+      .describe(
+        'validating: checking the changeset; applying: writing the changes; saving: writing the files; ' +
+          'reloading: the server reloading the model (the viewer\'s Apply and changeset_commit); done: landed.'
+      ),
+    layer: z.string().optional().describe('While applying: the layer of the change being written'),
+    failed: z
+      .literal(true)
+      .optional()
+      .describe('On the last report of a commit that failed; phase is where it stopped. The commit response says why.'),
+    project: z.string().describe('The project the checkout belongs to'),
+    checkout: z.string().describe('The checkout being committed to'),
+    timestamp: z.string().describe('When the server sent it (ISO 8601)'),
+  })
+  .openapi('ChangesetCommitProgress', {
+    description:
+      'Websocket broadcast to the subscribers of the checkout a commit lands in, while it runs: after ' +
+      'POST .../changesets/{changesetId}/commit or an MCP changeset_commit in the server process. Throttled: ' +
+      'the first report, each phase change and the last are always sent, otherwise at most one per 200 ms. ' +
+      'A success ends with phase done and applied == total; a failure ends with failed: true. Advisory: the ' +
+      "commit's response is what counts.",
+  });
 
 export const ChangesetDriftSummarySchema = z.object(driftSummaryShape)
   .describe(
@@ -692,6 +796,80 @@ export const Tier1StatusResponseSchema = z.object({
   summary: z.string().describe('One line for a person: the state, then this month\'s spend against the cap (and the 80% warning)'),
   note: z.string().describe('How a person changes Tier 1 (dr analyzer tier1 ...; nothing over this API) and what the spend counts'),
 }).openapi('Tier1Status');
+
+// GET /api/changesets/:id/verification: changeset_verify's report, for a viewer to draw.
+const VerifyRelationshipSchema = z.object({
+  source: z.string().describe('Source element id'),
+  predicate: z.string(),
+  target: z.string().describe('Target element id'),
+});
+const FieldDifferenceSchema = z.object({
+  field: z.string(),
+  planned: z.unknown(),
+  built: z.unknown(),
+});
+const PlannedOpSchema = z.enum(['add', 'update', 'delete'] as const);
+const ElementMatchSchema = z.object({
+  planned: z.string().describe('The planned element id'),
+  built: z.string().describe('The as-built element id it matched'),
+  op: PlannedOpSchema,
+  match: z.enum(['exact', 'probable'] as const),
+  reason: z.string().optional(),
+}).passthrough();
+const VerificationCountsSchema = z.object({
+  planned: z.number().int(),
+  matched: z.number().int(),
+  probable: z.number().int(),
+  missing: z.number().int(),
+  divergent: z.number().int(),
+  unplanned: z.number().int(),
+  deletionsNotDone: z.number().int(),
+  unverifiable: z.number().int(),
+}).passthrough();
+
+export const ChangesetVerificationSchema = z.object({
+  plannedChangeset: z.object({ id: z.string(), name: z.string() }).describe('The plan'),
+  asBuiltChangeset: z.object({ id: z.string(), name: z.string() }).describe('The changeset it was compared with'),
+  planned: z.object({ label: z.string(), elements: z.number().int(), relationships: z.number().int() }),
+  against: z.object({ label: z.string(), kind: z.enum(['changeset', 'base', 'snapshot'] as const) }),
+  verdict: z.enum(['match', 'probable-match', 'diverges', 'incomplete', 'unverifiable', 'empty-plan'] as const),
+  verdictText: z.string().describe('The verdict as a sentence for a person'),
+  summary: z.object({ elements: VerificationCountsSchema, relationships: VerificationCountsSchema }),
+  elements: z.object({
+    matched: z.array(ElementMatchSchema).describe('Built as planned (match exact) or probably (match probable)'),
+    divergent: z.array(ElementMatchSchema.extend({ fields: z.array(FieldDifferenceSchema) })),
+    missing: z.array(z.object({
+      planned: z.string(), layer: z.string(), type: z.string(), name: z.string(), op: PlannedOpSchema, reason: z.string(),
+    }).passthrough()).describe('Planned, not found in the build'),
+    unverifiable: z.array(z.object({
+      planned: z.string(), layer: z.string(), type: z.string(), name: z.string(), op: PlannedOpSchema, reason: z.string(),
+    }).passthrough()).describe('Planned, but extraction cannot see this kind of element: not checked'),
+    unplanned: z.array(z.object({
+      id: z.string(), layer: z.string(), type: z.string(), name: z.string(),
+      change: z.enum(['added', 'updated', 'deleted', 'present'] as const),
+    }).passthrough()).describe('Built, not in the plan'),
+    deletionsNotDone: z.array(z.object({ planned: z.string(), built: z.string() }).passthrough()),
+  }),
+  relationships: z.object({
+    matched: z.array(z.object({
+      planned: VerifyRelationshipSchema, built: VerifyRelationshipSchema, op: z.enum(['add', 'delete'] as const),
+      match: z.enum(['exact', 'probable'] as const), reason: z.string().optional(),
+    }).passthrough()),
+    divergent: z.array(z.object({
+      planned: VerifyRelationshipSchema, built: VerifyRelationshipSchema, fields: z.array(FieldDifferenceSchema),
+    }).passthrough()),
+    missing: z.array(z.object({ planned: VerifyRelationshipSchema, reason: z.string() }).passthrough()),
+    unverifiable: z.array(z.object({
+      planned: VerifyRelationshipSchema, op: z.enum(['add', 'delete'] as const), reason: z.string(),
+    }).passthrough()),
+    unplanned: z.array(VerifyRelationshipSchema.extend({
+      change: z.enum(['added', 'deleted', 'present'] as const),
+    }).passthrough()),
+    deletionsNotDone: z.array(z.object({ planned: VerifyRelationshipSchema, built: VerifyRelationshipSchema }).passthrough()),
+  }),
+  warning: z.string().optional().describe('Set when the comparison says little about the code'),
+  notes: z.array(z.string()),
+}).passthrough();
 
 // Type inference from input schemas
 export type AnnotationCreate = z.infer<typeof AnnotationCreateSchema>;

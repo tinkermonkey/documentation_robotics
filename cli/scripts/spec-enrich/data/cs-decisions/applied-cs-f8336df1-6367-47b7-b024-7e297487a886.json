@@ -1,0 +1,20 @@
+{
+  "backend": "context-studio",
+  "record": "cs-f8336df1-6367-47b7-b024-7e297487a886",
+  "select": {
+    "proposal_id": "f8336df1-6367-47b7-b024-7e297487a886",
+    "title": "Heimdall review pilot: rulings S1 and S10 (library API, UI components, test granularity)"
+  },
+  "applied_at": "2026-11-22T14:46:55.791Z",
+  "counts": {
+    "rename": 0,
+    "create": 0,
+    "delete": 0
+  },
+  "actions": [],
+  "source_revision": {
+    "repo": "git@github.com:tinkermonkey/documentation_robotics.git",
+    "commit": "e6a0b1dc",
+    "spec_version": "0.14.0"
+  }
+}

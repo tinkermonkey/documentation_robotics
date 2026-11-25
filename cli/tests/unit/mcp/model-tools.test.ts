@@ -28,6 +28,7 @@ import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
 import { modelReloadHandler } from "../../../src/mcp/tools/model-reload.js";
 import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tools.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
+import { installSpecReference } from "../../../src/utils/spec-installer.js";
 
 function parse(result: any): any {
   return JSON.parse(result.content[0].text);
@@ -526,6 +527,28 @@ describe("MCP model tools", () => {
         expect(data.specVersion).toContain("spec v0.12.0");
         expect(data.specVersion).toContain("project_upgrade");
         expect(data.specVersion).not.toMatch(/\bdr (upgrade|validate)\b/);
+      });
+    });
+
+    it("says in one line when the checkout has no spec reference, and that validation is unaffected (#1168)", async () => {
+      await withProject(async (rootPath) => {
+        // Model.init installs no .dr/: the state of a fresh clone or worktree
+        const data = parse(await modelValidateHandler({ rootPath }));
+        expect(data.valid).toBe(true);
+        expect(data.summary.errorCount).toBe(0);
+        expect(data.specReference).toContain("Spec reference not installed in this checkout");
+        expect(data.specReference).toContain("validation is unaffected");
+        expect(data.specReference).toContain("project_upgrade");
+        expect(data.specReference).toContain("once the user approves");
+        expect(data.specReference).toContain("modelOnly: true");
+        expect(data.specReference).not.toMatch(/\bdr (upgrade|validate)\b/);
+        expect(data.specReference).not.toContain("\n");
+
+        const orphans = parse(await modelValidateHandler({ orphans: true, rootPath }));
+        expect(orphans.specReference).toContain("Spec reference not installed");
+
+        await installSpecReference(rootPath, false);
+        expect(parse(await modelValidateHandler({ rootPath })).specReference).toBeUndefined();
       });
     });
 

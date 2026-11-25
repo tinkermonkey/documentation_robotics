@@ -89,7 +89,7 @@ describe("Farm Sync - End-to-End Flow", () => {
     farmManifest = FarmManifest.create("Test Farm");
     farmManifest.addProject("test-project", {
       name: "test-project",
-      source: "codebase",
+      repository: "codebase",
       model: "model",
     });
 
@@ -354,7 +354,7 @@ describe("Farm Sync - End-to-End Flow", () => {
       });
       farmManifest.addProject("test-project", {
         name: "test-project",
-        source: "codebase",
+        repository: "codebase",
         model: "model",
       });
       const farmYamlPath = path.join(farmDir, "farm.yaml");

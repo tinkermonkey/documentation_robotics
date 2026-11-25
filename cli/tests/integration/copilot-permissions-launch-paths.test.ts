@@ -3,20 +3,30 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { CopilotClient } from "../../src/coding-agents/copilot-client.js";
 import { ChatOptions } from "../../src/coding-agents/base-chat-client.js";
 import { formatForCopilot } from "../../src/coding-agents/default-permissions.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer, type TestFarmServer, type TestFarmServerOptions } from "../helpers/test-farm-server.js";
 import { Model } from "../../src/core/model.js";
 import { createTestWorkdir } from "../helpers/golden-copy.js";
 
 describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
   let workdir: any;
   let testModel: Model;
+  const farms: TestFarmServer[] = [];
+
+  /** A central server whose one project is the test workdir (the model is already on disk). */
+  async function startServer(server: TestFarmServerOptions["server"]): Promise<TestFarmServer> {
+    const t = await startTestFarmServer(workdir.path, { server });
+    farms.push(t);
+    return t;
+  }
 
   beforeEach(async () => {
     workdir = await createTestWorkdir();
     testModel = await Model.load(workdir.path);
+    expect(testModel).toBeDefined();
   });
 
   afterEach(async () => {
+    for (const t of farms.splice(0)) await t.stop();
     await workdir.cleanup();
   });
 
@@ -92,13 +102,13 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
     });
 
     describe("Danger mode handling", () => {
-      it("danger mode behavior is verified via code inspection in VisualizationServer.addCopilotPermissionFlags", () => {
+      it("danger mode behavior is verified via code inspection in VisualizationServer.addCopilotPermissionFlags", async () => {
         // The danger mode logic in VisualizationServer (now via shared applyCopilotPermissions)
         // probes Copilot's help text and attempts to add --allow-all-tools.
         // This is verified via code inspection rather than direct testing because
         // addCopilotPermissionFlags is private and doesn't expose arguments.
-        const server = new VisualizationServer(testModel, { withDanger: true });
-        expect((server as any).withDanger).toBe(true);
+        const server = (await startServer({ withDanger: true })).server;
+        expect((server as any).drBot.withDanger).toBe(true);
       });
     });
   });
@@ -199,10 +209,10 @@ describe("Read-Safe Permissions in GitHub Copilot Launch Paths", () => {
         expect(allowedTools).not.toContain("Write");
       });
 
-      it("should not apply allowedTools when withDanger is explicitly true", () => {
+      it("should not apply allowedTools when withDanger is explicitly true", async () => {
         // The server and client both check withDanger flag
         // When true, they use --allow-all-tools instead of --allowedTools
-        const server = new VisualizationServer(testModel, { withDanger: true });
+        const server = (await startServer({ withDanger: true })).server;
 
         // Just verify construction doesn't fail
         expect(server).toBeDefined();

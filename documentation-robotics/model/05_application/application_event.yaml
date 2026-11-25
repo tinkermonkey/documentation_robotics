@@ -1,0 +1,38 @@
+application.applicationevent.checkout-removed:
+  id: e0b36923-65bd-485b-bf4c-c582297abfbf
+  path: application.applicationevent.checkout-removed
+  spec_node_id: application.applicationevent
+  type: applicationevent
+  layer_id: application
+  name: Checkout removed
+  description: A checkout the registry listed is gone (git worktree remove, or its folder deleted).
+  attributes:
+    eventType: system
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/project-registry.ts
+        symbol: CheckoutRemovedEvent
+  metadata:
+    created_at: 2026-11-21T17:14:10.904Z
+    updated_at: 2026-11-21T17:14:10.904Z
+    version: 1
+application.applicationevent.changeset-commit-progress:
+  id: 8a3b4826-742b-49b7-8e32-af800b1e5cc4
+  path: application.applicationevent.changeset-commit-progress
+  spec_node_id: application.applicationevent
+  type: applicationevent
+  layer_id: application
+  name: changeset.commit.progress
+  description: "Broadcast on /ws to the committing checkout's subscribers while a commit runs (#1361): { type, changesetId, applied, total, phase, layer?, failed?, project, checkout, timestamp }."
+  attributes:
+    eventType: system
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: changeset.commit.progress
+  metadata:
+    created_at: 2026-11-24T14:08:57.649Z
+    updated_at: 2026-11-24T14:08:57.649Z
+    version: 1

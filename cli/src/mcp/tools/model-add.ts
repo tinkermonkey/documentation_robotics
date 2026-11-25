@@ -21,12 +21,14 @@ import type { Model } from "../../core/model.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
 import {
   planRelationshipBatch,
+  type IdCollision,
   type PendingElement,
   type RejectedElement,
 } from "../../core/relationship-staging.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
-import { getNodeType, getNodeTypesForLayer, isValidNodeType, normalizeNodeType, type SpecNodeId } from "../../generated/node-types.js";
+import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
+import { requiredAttributesLine, requiredAttributesOf } from "../../utils/required-attributes.js";
 import { compactId, deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
 import { schemaLookupHint } from "../../utils/error-hints.js";
@@ -60,7 +62,8 @@ const NAME_DESCRIPTION =
   "Human-readable element name; used to derive the element ID layer.type.kebab-name, split at camelCase, spaces, " +
   "underscores, dots and slashes, and after a digit that a capitalised word follows ('GraphLayoutSnapshot' → " +
   "graph-layout-snapshot, 'Tier1Status' → tier1-status, 'Node.js' → node-js, 'GET /' → get-root). A name that " +
-  "starts with a digit gets the prefix n- ('3D Effect' → n-3d-effect).";
+  "starts with a digit gets the prefix n- ('3D Effect' → n-3d-effect). A run of capitals ends before its last capital " +
+  "when a lowercase letter follows ('HTTPServer' → http-server), and a plural acronym stays whole ('URLs' → urls).";
 
 const elementItemSchema = strictItem("An elements[] item", {
   layer: z.string().describe("Canonical layer name."),
@@ -89,7 +92,9 @@ const inputSchema = {
       "Batch form only: relationships to stage in the same write, as relationship_add takes them. They name an " +
         "element by its id (layer.type.kebab-name), by that id without its hyphens, or by its name, whether this " +
         "call adds it, an earlier call staged it, or the model has it. A reference that is not an exact id and " +
-        "matches more than one element is reported, not guessed."
+        "matches more than one element is reported, not guessed. When two names give one id, the second " +
+        "element is refused, and a relationship naming that id or the refused name is reported, not linked " +
+        "to the first."
     ),
   file: z
     .string()
@@ -198,6 +203,8 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
     if (inAttributes) {
       throw new AttributeRefusal(
         `Element ${elementPath} has invalid attributes:\n${errorMessages}`,
+        // The single form adds what the type requires (addSingleElement); a batch lists it once
+        // per type in requiredAttributes, not on every refused item.
         [schemaLookupHint("mcp", spec.layer, resolvedType)],
         `${spec.layer}.${resolvedType}`
       );
@@ -217,26 +224,6 @@ async function prepareElement(spec: ElementSpec): Promise<PreparedElement> {
   }
 
   return { element, id: elementPath, layer: spec.layer, type: resolvedType, warnings, notes: derived.notes };
-}
-
-/**
- * What a type requires, as `attribute → what it takes`, so a refused batch can be fixed in one
- * retry without a spec_type call per type (#1153).
- */
-function requiredAttributesOf(specNodeId: string): Record<string, string> | undefined {
-  const info = getNodeType(specNodeId as SpecNodeId);
-  if (!info || info.requiredAttributes.length === 0) return undefined;
-  return Object.fromEntries(
-    info.requiredAttributes.map((name) => {
-      const constraint = (info.attributeConstraints[name] ?? {}) as { type?: unknown; enum?: unknown[] };
-      const takes = Array.isArray(constraint.enum)
-        ? `one of [${constraint.enum.join(", ")}]`
-        : typeof constraint.type === "string"
-          ? constraint.type
-          : "any value";
-      return [name, takes];
-    })
-  );
 }
 
 export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResult> {
@@ -283,7 +270,15 @@ export async function modelAddHandler(args: ModelAddArgs): Promise<CallToolResul
 }
 
 async function addSingleElement(spec: ElementSpec, rootPath: string | undefined): Promise<CallToolResult> {
-  const prepared = await prepareElement(spec);
+  let prepared: PreparedElement;
+  try {
+    prepared = await prepareElement(spec);
+  } catch (error) {
+    // What the type requires and what each takes, so one retry fixes it (#1153).
+    const required = error instanceof AttributeRefusal ? requiredAttributesLine(error.specNodeId) : undefined;
+    if (required && error instanceof CLIError) throw new CLIError(error.message, ErrorCategory.USER, [required, ...(error.suggestions ?? [])]);
+    throw error;
+  }
   const { element, id: elementPath, layer } = prepared;
 
   const model = await loadModel(rootPath);
@@ -405,6 +400,11 @@ async function addElementBatch(
   const results: ElementBatchResult[] = [];
   /** Types an element was refused for its attributes in, with what each requires. */
   const requiredAttributes: Record<string, Record<string, string>> = {};
+  /**
+   * Refused elements and the ids their names gave, with the id of the element that holds them: a
+   * name refused because another one gives its id leaves that id contested for relationships (#1297).
+   */
+  const refusedIds: Array<{ name: string; ids: string[]; holder: string }> = [];
 
   // What is already there, for a name whose element exists under an id an earlier rule gave it:
   // the projection's live elements, and the ones this call has accepted so far.
@@ -438,7 +438,14 @@ async function addElementBatch(
       }
       // Kept with the name, layer and type it was sent as, so a reference by its name or its
       // unhyphenated id still finds the refusal instead of linking past it.
-      if (id) rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
+      if (id) {
+        rejected.set(id, { reason, name: spec.name, layer: spec.layer, type: id.split(".")[1] });
+        refusedIds.push({ name: spec.name, ids: [id], holder: id });
+        // An element of another name may hold the id an earlier rule gave this name: a link by
+        // that id could mean the refused element too.
+        const near = existingUnderEarlierId(spec.layer, id.split(".")[1], spec.name, id, alreadyThere);
+        if (near.existing) refusedIds.push({ name: spec.name, ids: [near.existing, id], holder: near.existing });
+      }
       results.push({
         ...asSent,
         ...(id ? { id } : {}),
@@ -450,6 +457,7 @@ async function addElementBatch(
     }
     const existing = graph.getElement(item.id);
     if (existing && existing.status !== "deleted") {
+      refusedIds.push({ name: spec.name, ids: [item.id], holder: item.id });
       results.push({
         ...asSent,
         id: item.id,
@@ -464,6 +472,7 @@ async function addElementBatch(
       // Two names, one id ("GET /x" and "GET /x*"): say which name it collided with, since the
       // ids alone do not show it.
       const at = `elements[${pendingAt.get(item.id)}]`;
+      refusedIds.push({ name: spec.name, ids: [item.id], holder: item.id });
       results.push({
         ...asSent,
         id: item.id,
@@ -479,6 +488,7 @@ async function addElementBatch(
     const near = existingUnderEarlierId(item.layer, item.type, spec.name, item.id, alreadyThere);
     if (near.existing) {
       const [reason, , suggestions] = alreadyExistsUnderEarlierId(near.existing, item.id, near.existingName);
+      refusedIds.push({ name: spec.name, ids: [near.existing, item.id], holder: near.existing });
       results.push({ ...asSent, id: near.existing, status: "invalid", reason, suggestions });
       continue;
     }
@@ -499,6 +509,7 @@ async function addElementBatch(
   const plan = await planRelationshipBatch(graph, changeset, relationships, {
     pending,
     rejected,
+    collisions: idCollisions(refusedIds, graph, pending, pendingAt),
     addStatus: active ? "staged" : "added",
   });
 
@@ -531,6 +542,37 @@ async function addElementBatch(
   };
 }
 
+/**
+ * The ids a refused name shares with an element of another name, the one kept: in this call, or in
+ * the projection. A refused name the element itself carries (sent twice, or already in the model)
+ * contests nothing, and a relationship by its id still binds to it.
+ */
+function idCollisions(
+  refusedIds: Array<{ name: string; ids: string[]; holder: string }>,
+  graph: ChangesetGraph,
+  pending: Map<string, PendingElement>,
+  pendingAt: Map<string, number>
+): IdCollision[] {
+  const collisions = new Map<string, IdCollision>();
+  for (const refused of refusedIds) {
+    const inCall = pending.get(refused.holder);
+    const live = graph.getElement(refused.holder);
+    const kept = inCall
+      ? { name: inCall.name, where: `elements[${pendingAt.get(refused.holder)}], which this call adds` }
+      : live && live.status !== "deleted"
+        ? { name: live.name, where: live.status === "added" && !live.alreadyInBase ? "which this changeset adds" : "which the model has" }
+        : undefined;
+    // An element with no name is refused as plain "already exists" (otherNameNote): no clash.
+    if (!kept || kept.name === undefined || kept.name === refused.name) continue;
+    for (const id of refused.ids) {
+      // An id the name gives today, held under the id an earlier rule gave: say which id holds it.
+      const where = refused.holder === id ? kept.where : `as ${refused.holder}, ${kept.where}`;
+      collisions.set(`${id}\u0000${refused.name}`, { id, kept: { name: kept.name, where }, refusedName: refused.name });
+    }
+  }
+  return [...collisions.values()];
+}
+
 /** Writes one element to the base model (no changeset is active). */
 async function writeElement(model: Model, prepared: PreparedElement): Promise<void> {
   let layerObj = await model.getLayer(prepared.layer);
@@ -560,7 +602,8 @@ export const modelAddTool: McpToolDefinition<typeof inputSchema> = {
     "(layer/type/name) or many (elements: [...], with optional relationships: [...]); a list is staged in one " +
     "write, so use it when adding several, and put a large one in a JSON file (file) instead of the call. An " +
     "element's id is layer.type.kebab-name, with the name split at camelCase and after a digit that a capitalised " +
-    "word follows ('GraphLayoutSnapshot' → graph-layout-snapshot, 'Tier1Status' → tier1-status); the same name " +
+    "word follows ('GraphLayoutSnapshot' → graph-layout-snapshot, 'Tier1Status' → tier1-status), and before the last " +
+    "capital of a run that a lowercase letter follows ('HTTPServer' → http-server; a plural acronym such as 'URLs' stays whole); the same name " +
     "gives the same id in codebase_extract. A relationship may name an element by its id, by that id without " +
     "hyphens or by its name, when exactly one element matches; relationships.readByName says how each such " +
     "reference was read. A list returns, for elements and for relationships, counts by status (staged, or " +

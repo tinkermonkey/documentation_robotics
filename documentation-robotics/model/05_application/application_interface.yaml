@@ -1,0 +1,38 @@
+application.applicationinterface.central-server-http-endpoint:
+  id: 177776a8-703f-4980-ab96-5f7159602166
+  path: application.applicationinterface.central-server-http-endpoint
+  spec_node_id: application.applicationinterface
+  type: applicationinterface
+  layer_id: application
+  name: Central server HTTP endpoint
+  description: "127.0.0.1:<port> of the central process: /mcp (streamable HTTP MCP), /api/... (viewer API), the viewer's pages and /health. Token required on all but /health."
+  attributes:
+    protocol: HTTP
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/central-server.ts
+        symbol: startCentralServerWith
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationinterface.central-server-websocket:
+  id: a382ef2d-7a68-4d2c-a3e2-058988c1e510
+  path: application.applicationinterface.central-server-websocket
+  spec_node_id: application.applicationinterface
+  type: applicationinterface
+  layer_id: application
+  name: Central server websocket
+  description: "/ws on the central process: one socket per tab, subscribed per checkout; carries change events and DrBot chat."
+  attributes:
+    protocol: WebSocket
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: /ws
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1

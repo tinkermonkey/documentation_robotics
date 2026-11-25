@@ -23,7 +23,7 @@ import { Validator } from "../../src/validators/validator.js";
 import { clearModelCache } from "../../src/mcp/tools/shared.js";
 import { modelAddHandler } from "../../src/mcp/tools/model-add.js";
 import { runDr } from "../helpers/cli-runner.js";
-import { VisualizationServer } from "../../src/server/server.js";
+import { startTestFarmServer } from "../helpers/test-farm-server.js";
 
 const SERVICE = "application.applicationservice.checkout";
 const GOAL = "motivation.goal.faster-checkout";
@@ -139,12 +139,16 @@ describe("changeset commit with pre-existing validation errors", () => {
     const baseErrorCount = await setUpModelWithPreExistingError();
     const { id } = await stageDescriptionUpdate();
 
-    const model = await Model.load(rootPath, { lazyLoad: false });
-    const server = new VisualizationServer(model, { authEnabled: false });
-    const res: Response = await (server as any).app.request(`/api/changesets/${id}/commit`, { method: "POST" });
+    // The server loads the model on disk itself.
+    const server = await startTestFarmServer(rootPath);
+    try {
+      const res: Response = await server.request(`/changesets/${id}/commit`, { method: "POST" });
 
-    expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ id, status: "committed", committed: 1, preExistingErrors: baseErrorCount });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({ id, status: "committed", committed: 1, preExistingErrors: baseErrorCount });
+    } finally {
+      await server.stop();
+    }
   });
 
   it("dr changeset commit reports the ignored count, and accepts --no-validate and the old --validate", async () => {

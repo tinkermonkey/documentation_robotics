@@ -5,20 +5,25 @@ motivation.constraint.no-list-of-recognised-calls:
   type: constraint
   layer_id: motivation
   name: No list of recognised calls
-  description: DR does not keep a list of framework or library calls that mark a
-    top-level constant as a store, a schema, a route or anything else.
-    Maintaining one is outside this project's scope.
+  description: DR does not keep a list of framework or library calls that mark a top-level constant as a store, a schema, a route or anything else. Maintaining one is outside this project's scope.
   attributes:
     constraintType: technical
-    documentation:
-      "DR does not keep a list of framework or library calls (a store
-      factory, a schema builder, a route builder) that mark a top-level constant
-      as an element. Maintaining one is outside this project's scope. Source:
-      maintainer ruling, 2026-11-18. Scope: the cbm analyzer's mapping and Tier
-      0 rules. Check: no rule or mapping entry matches on the name of a
-      third-party call. Where the code graph reports nothing that tells such a
-      constant from any other, extraction by rule ignores it."
+    documentation: "DR does not keep a list of framework or library calls (a store factory, a schema builder, a route builder) that mark a top-level constant as an element. Maintaining one is outside this project's scope. Source: maintainer ruling, 2026-11-18. Scope: the cbm analyzer's mapping and Tier 0 rules. Check: no rule or mapping entry matches on the name of a third-party call. Where the code graph reports nothing that tells such a constant from any other, extraction by rule ignores it."
   metadata:
     created_at: 2026-11-18T18:04:53.570Z
     updated_at: 2026-11-18T18:04:53.570Z
+    version: 1
+motivation.constraint.names-and-routes-stay-usable-across-projects:
+  id: 067dad95-88b3-4f03-965e-48d003ad1ac9
+  path: motivation.constraint.names-and-routes-stay-usable-across-projects
+  spec_node_id: motivation.constraint
+  type: constraint
+  layer_id: motivation
+  name: Names and routes stay usable across projects
+  description: "Project names are the names federated models use in @model/ references, and every id the API returns is project-qualified, so a later cross-project platform view can join projects without renaming anything (maintainer ruling 6: not now, not ruled out)."
+  attributes:
+    constraintType: technical
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
     version: 1

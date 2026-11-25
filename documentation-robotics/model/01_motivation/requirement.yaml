@@ -5,17 +5,11 @@ motivation.requirement.developer-stays-in-the-conversation:
   type: requirement
   layer_id: motivation
   name: Developer stays in the conversation
-  description:
-    Every step of the DR use cases can be done by the developer's agent
-    through dr mcp; the developer types no dr command. Verified by walking each
-    use case in Claude Code with only the dr MCP tools and no Bash access to dr.
+  description: Every step of the DR use cases can be done by the developer's agent through dr mcp; the developer types no dr command. Verified by walking each use case in Claude Code with only the dr MCP tools and no Bash access to dr.
   attributes:
     requirementType: non-functional
     priority: critical
-    documentation: Every step of the DR use cases can be done by the developer's
-      agent through dr mcp; the developer types no dr command. Verified by
-      walking each use case in Claude Code with only the dr MCP tools and no
-      Bash access to dr.
+    documentation: Every step of the DR use cases can be done by the developer's agent through dr mcp; the developer types no dr command. Verified by walking each use case in Claude Code with only the dr MCP tools and no Bash access to dr.
   metadata:
     created_at: 2026-11-09T22:04:37.956Z
     updated_at: 2026-11-09T22:04:37.956Z
@@ -27,24 +21,11 @@ motivation.requirement.landing-a-change-needs-a-humans-confirmation:
   type: requirement
   layer_id: motivation
   name: Landing a change needs a human's confirmation
-  description: "A changeset reaches the base model only after a person confirms
-    it: in an MCP confirmation dialog (elicitation), in the permission prompt a
-    client forces for changeset_commit (Claude Code, carrying a confirmation
-    token from a preview of the same changeset state), or with the viewer's
-    Apply button. A session where no person can answer (DrBot, a non-interactive
-    run) is refused."
+  description: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused."
   attributes:
     requirementType: functional
     priority: critical
-    documentation:
-      "A changeset reaches the base model only after a person confirms
-      it: in an MCP confirmation dialog (elicitation), in the permission prompt
-      a client forces for changeset_commit (Claude Code, carrying a confirmation
-      token from a preview of the same changeset state), or with the viewer's
-      Apply button. A session where no person can answer (DrBot, a
-      non-interactive run) is refused. Acceptance: a changeset lands from the
-      Claude desktop Code tab after one approval; no client lands one without a
-      person."
+    documentation: "A changeset reaches the base model only after a person confirms it: in an MCP confirmation dialog (elicitation), in the permission prompt a client forces for changeset_commit (Claude Code, carrying a confirmation token from a preview of the same changeset state), or with the viewer's Apply button. A session where no person can answer (DrBot, a non-interactive run) is refused. Acceptance: a changeset lands from the Claude desktop Code tab after one approval; no client lands one without a person."
   metadata:
     created_at: 2026-11-09T22:04:38.022Z
     updated_at: 2026-11-09T22:04:38.022Z
@@ -56,16 +37,11 @@ motivation.requirement.extraction-writes-the-as-built-side:
   type: requirement
   layer_id: motivation
   name: Extraction writes the as-built side
-  description: Extraction stages what it finds into a changeset, never into the
-    base model, so the same output can bootstrap a model, keep it as-built, or
-    be compared with a plan.
+  description: Extraction stages what it finds into a changeset, never into the base model, so the same output can bootstrap a model, keep it as-built, or be compared with a plan.
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      Extraction stages what it finds into a changeset, never into the
-      base model, so the same output can bootstrap a model, keep it as-built, or
-      be compared with a plan.
+    documentation: Extraction stages what it finds into a changeset, never into the base model, so the same output can bootstrap a model, keep it as-built, or be compared with a plan.
   metadata:
     created_at: 2026-11-09T22:04:38.033Z
     updated_at: 2026-11-09T22:04:38.033Z
@@ -77,15 +53,11 @@ motivation.requirement.one-install-per-machine:
   type: requirement
   layer_id: motivation
   name: One install per machine
-  description:
-    After installing the dr CLI and the DR plugin once, any repository
-    can use DR with no per-project configuration, copied files or API keys.
+  description: After installing the dr CLI and the DR plugin once, any repository can use DR with no per-project configuration, copied files or API keys.
   attributes:
     requirementType: quality
     priority: high
-    documentation: After installing the dr CLI and the DR plugin once, any
-      repository can use DR with no per-project configuration, copied files or
-      API keys.
+    documentation: After installing the dr CLI and the DR plugin once, any repository can use DR with no per-project configuration, copied files or API keys.
   metadata:
     created_at: 2026-11-09T22:04:38.084Z
     updated_at: 2026-11-09T22:04:38.084Z
@@ -97,17 +69,11 @@ motivation.requirement.accepted-gaps-are-recorded-with-a-reason:
   type: requirement
   layer_id: motivation
   name: Accepted gaps are recorded with a reason
-  description:
-    A connection the spec models but the change deliberately leaves out
-    is recorded with its reason, so the brief stops reporting it and
-    verification can tell intent from omission (#1026).
+  description: A connection the spec models but the change deliberately leaves out is recorded with its reason, so the brief stops reporting it and verification can tell intent from omission (#1026).
   attributes:
     requirementType: functional
     priority: medium
-    documentation:
-      A connection the spec models but the change deliberately leaves
-      out is recorded with its reason, so the brief stops reporting it and
-      verification can tell intent from omission (#1026).
+    documentation: A connection the spec models but the change deliberately leaves out is recorded with its reason, so the brief stops reporting it and verification can tell intent from omission (#1026).
   metadata:
     created_at: 2026-11-09T22:04:38.116Z
     updated_at: 2026-11-09T22:04:38.116Z
@@ -119,20 +85,11 @@ motivation.requirement.a-refused-landing-says-why:
   type: requirement
   layer_id: motivation
   name: A refused landing says why
-  description:
-    "When changeset_commit does not land a changeset, it says which of
-    these happened: the person declined, the dialog could not be shown, or the
-    model drifted. It names the way forward for each: the viewer's Apply, an
-    interactive session, or force."
+  description: "When changeset_commit does not land a changeset, it says which of these happened: the person declined, no confirmation came back (the dialog may not have been shown), no person can confirm in this session, the changeset or base changed since the person saw it, validation failed, or the changeset is a record. It names the way forward that works from this client: the commit preview and its token in Claude Code's permission prompt, or the viewer's Apply. Drift is not a refusal, and no refusal leaves the dr CLI as the only way to land."
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "A decline that arrives within about a second of the request is
-      reported as 'the confirmation dialog could not be shown', not as the
-      person declining. Acceptance: in the desktop Code tab an elicitation-only
-      commit reports that the dialog could not be shown and points to the
-      viewer's Apply; a person's real decline is still reported as declined."
+    documentation: "A decline that arrives within about a second of the request is reported as 'the confirmation dialog could not be shown', not as the person declining. Acceptance: in the desktop Code tab an elicitation-only commit reports that the dialog could not be shown and points to the viewer's Apply; a person's real decline is still reported as declined."
   metadata:
     created_at: 2026-11-17T20:42:52.468Z
     updated_at: 2026-11-17T20:42:52.468Z
@@ -144,23 +101,11 @@ motivation.requirement.extraction-offers-only-reported-declarations-as-candidate
   type: requirement
   layer_id: motivation
   name: Extraction offers only reported declarations as candidates
-  description: Extraction builds a candidate only from a declaration the code
-    graph reports (a class, interface, function, method, route or type). It
-    never offers a file. Relationships that were joined through a file's element
-    are joined to declarations or dropped, and an element an existing model
-    sourced at a whole file stays valid and is not reported as drift.
+  description: Extraction builds a candidate only from a declaration the code graph reports (a class, interface, function, method, route or type). It never offers a file. Relationships that were joined through a file's element are joined to declarations or dropped, and an element an existing model sourced at a whole file stays valid and is not reported as drift.
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      Extraction builds a candidate only from a declaration the code
-      graph reports (a class, interface, function, method, route or type). It
-      never offers a file. Relationships that were joined through a file's
-      element (imports and test-file links) are joined to declarations or
-      dropped, and an element an existing model sourced at a whole file stays
-      valid and is not reported as drift. Verified when codebase_extract returns
-      no file card on any corpus and the analyzer mapping has no entry for the
-      code graph's Module node.
+    documentation: Extraction builds a candidate only from a declaration the code graph reports (a class, interface, function, method, route or type). It never offers a file. Relationships that were joined through a file's element (imports and test-file links) are joined to declarations or dropped, and an element an existing model sourced at a whole file stays valid and is not reported as drift. Verified when codebase_extract returns no file card on any corpus and the analyzer mapping has no entry for the code graph's Module node.
   metadata:
     created_at: 2026-11-18T18:04:53.571Z
     updated_at: 2026-11-18T18:04:53.571Z
@@ -172,23 +117,11 @@ motivation.requirement.the-agent-models-what-the-code-graph-does-not-report:
   type: requirement
   layer_id: motivation
   name: The agent models what the code graph does not report
-  description: "Content the code graph reports no declaration for is modelled by
-    the calling agent, guided by the skills: entry points made of top-level
-    statements, file-based routes, top-level constants such as stores and
-    schemas, and buildable projects. Each element it stages names the file and,
-    where there is one, the symbol."
+  description: "Content the code graph reports no declaration for is modelled by the calling agent, guided by the skills: entry points made of top-level statements, file-based routes, top-level constants such as stores and schemas, and buildable projects. Each element it stages names the file and, where there is one, the symbol."
   attributes:
     requirementType: functional
     priority: medium
-    documentation:
-      "Content the code graph reports no declaration for is modelled by
-      the calling agent, guided by the skills: entry points made of top-level
-      statements (Program.cs, main.tsx), file-based routes (a Next.js page),
-      top-level constants such as stores and schemas, and buildable projects
-      declared by a build manifest. Each element the agent stages names the file
-      and, where there is one, the symbol. Verified when the layer skills say
-      where to look for each of these and no longer tell the agent to model a
-      file as an element."
+    documentation: "Content the code graph reports no declaration for is modelled by the calling agent, guided by the skills: entry points made of top-level statements (Program.cs, main.tsx), file-based routes (a Next.js page), top-level constants such as stores and schemas, and buildable projects declared by a build manifest. Each element the agent stages names the file and, where there is one, the symbol. Verified when the layer skills say where to look for each of these and no longer tell the agent to model a file as an element."
   metadata:
     created_at: 2026-11-18T18:04:53.572Z
     updated_at: 2026-11-18T18:04:53.572Z
@@ -200,23 +133,11 @@ motivation.requirement.drift-is-known-before-landing:
   type: requirement
   layer_id: motivation
   name: Drift is known before landing
-  description: A person reviewing a staged changeset can see, before trying to
-    land it, whether the base model changed under it, what changed, and whether
-    that blocks landing. Drift that touched nothing the changeset was staged
-    against, and drift under a verification record (which never lands), never
-    read as blocking.
+  description: "A person reviewing a staged changeset can see, before landing it, whether the base model changed under it, which staged changes the base overlaps, and what landing does about each overlap. Drift never blocks a landing: it is shown where the person confirms (the dialog, the commit preview, the viewer before Apply) and again in the landing's result. What is shown never passes for more than was read: the count of overlaps is the true one, every kind of overlap is shown with what landing does about it, and a list shortened for display says how many it left out and names the call that returns them all. Drift that overlaps nothing the changeset stages, and drift under a record (which never lands), read as no warning."
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "Acceptance: with no commit attempt, the viewer API reports for
-      each changeset one of: nothing changed; the base changed but nothing the
-      changeset was staged against did (content-free, #1169; not blocking); the
-      base changed under it (blocking a commit without force, with the
-      overlapping staged changes and the base's changes named); or not
-      applicable (a verification record, #1171, or a changeset that is no longer
-      staged). The answer agrees with what a commit would do: it is blocking
-      exactly when POST /api/changesets/:id/commit would refuse for drift."
+    documentation: "Acceptance: with no commit attempt, the viewer API reports for each changeset one of: nothing changed; the base changed but nothing the changeset was staged against did (content-free, #1169; not blocking); the base changed under it (blocking a commit without force, with the overlapping staged changes and the base's changes named); or not applicable (a verification record, #1171, or a changeset that is no longer staged). The answer agrees with what a commit would do: it is blocking exactly when POST /api/changesets/:id/commit would refuse for drift."
   metadata:
     created_at: 2026-11-18T19:52:37.508Z
     updated_at: 2026-11-18T19:52:37.508Z
@@ -227,29 +148,12 @@ motivation.requirement.only-an-overlapping-base-change-blocks-a-landing:
   spec_node_id: motivation.requirement
   type: requirement
   layer_id: motivation
-  name: Only an overlapping base change blocks a landing
-  description: "A staged changeset is refused for drift only when the base
-    overlaps it: an element it stages any change for (an update, a delete, or a
-    delete then an add) changed or was removed, an element it deletes gained a
-    relationship the delete would remove, an element at an end of a relationship
-    it adds or deletes changed or was removed, the base already has what it
-    adds, or lacks what it deletes. Any other change to the base does not block
-    it."
+  name: Only an overlapping base change warns at a landing
+  description: "Drift never refuses a landing. A staged changeset lands with a warning only when the base overlaps it in a way that could make the landing wrong: an element it stages a change for changed in the base after that change was staged, or was removed; an element it deletes gained a relationship the delete would remove; an element at an end of a relationship it adds or deletes was removed; the base already has what it adds, or lacks what it deletes. Each overlap is named with what landing does about it. Any other change to the base, a description, name or attribute edit on a link's end included, is not an overlap."
   attributes:
     requirementType: functional
     priority: high
-    documentation: "Acceptance: with a base index recorded, a changeset staged
-      before another one landed commits without force when the other changed or
-      removed only elements and relationships it does not edit or link to; it is
-      still refused when the other changed or removed an element it stages a
-      change for (whatever the staged ops and their order), linked an element it
-      deletes, or changed or removed an element it links to. Without a base
-      index a changed hash still blocks, since the two cannot be told apart. The
-      CLI, changeset_commit, the viewer's Apply, project_status and the viewer
-      API's drift field all read the one rule (StagingAreaManager.detectDrift).
-      Not covered, as before this change: fields outside the base index's
-      content hash (accepted gaps, metadata, references), and an update of an
-      element the base gained after the changeset was created."
+    documentation: "Acceptance: a drifted changeset lands from changeset_commit and the viewer's Apply without force, and each shows what overlapped and what landing did about it. From the CLI it lands when a person at a terminal says yes to the listed overlaps, or with --force; with no terminal and a real overlap dr changeset commit refuses with a non-zero exit and the list, and with no overlap it lands and exits 0. A staged update or delete is compared with the base through the element state it recorded when it was staged, so an update restaged on the current base is not an overlap, and one staged on an older base still is after a re-baseline. A staged delete of an element the base has a relationship on that the plan stages no delete for is an overlap, read from the base as it is now. A change to an element at a link's end that keeps its id is not an overlap (the id carries its layer and type); a removed end is. Without a base index, what changed cannot be listed and the landing says so. The CLI, changeset_commit, the viewer's Apply, project_status and the viewer API's drift field all read the one rule (StagingAreaManager.detectDrift). Validation errors the changeset introduces and records (verification, upgrade) are still refused. Not covered, as before: fields outside the content hash (accepted gaps, metadata, references)."
   metadata:
     created_at: 2026-11-18T20:52:36.711Z
     updated_at: 2026-11-18T20:52:36.711Z
@@ -261,18 +165,11 @@ motivation.requirement.a-migration-records-what-it-drops:
   type: requirement
   layer_id: motivation
   name: A migration records what it drops
-  description: When a spec migration removes relationships whose type has no
-    replacement in the catalog, it leaves a record that names each one (source,
-    predicate, target, and the rule that retired it), which the user can review
-    and restore from. The record is a staged changeset that never lands.
+  description: When a spec migration removes relationships whose type has no replacement in the catalog, it leaves a record that names each one (source, predicate, target, and the rule that retired it), which the user can review and restore from. The record is a staged changeset that never lands.
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "Issue #1164, maintainer decision 2026-11-18. Verified when an
-      upgrade that drops relationships leaves one staged upgrade-record
-      changeset listing them, the dry run names it, and a run that drops nothing
-      writes none."
+    documentation: "Issue #1164, maintainer decision 2026-11-18. Verified when an upgrade that drops relationships leaves one staged upgrade-record changeset listing them, the dry run names it, and a run that drops nothing writes none."
   metadata:
     created_at: 2026-11-19T13:36:34.322Z
     updated_at: 2026-11-19T13:36:34.322Z
@@ -284,19 +181,307 @@ motivation.requirement.a-migration-takes-the-route-the-catalog-offers:
   type: requirement
   layer_id: motivation
   name: A migration takes the route the catalog offers
-  description: A relationship of a retired type is rewritten, not dropped, when
-    the catalog has a type that says the same thing and a change record names it
-    as the replacement. Replacements come only from catalog types a Context
-    Studio proposal added.
+  description: A relationship of a retired type is rewritten, not dropped, when the catalog has a type that says the same thing and a change record names it as the replacement. Replacements come only from catalog types a Context Studio proposal added.
   attributes:
     requirementType: functional
     priority: high
-    documentation:
-      "Issue #1164. The rewrite table is generated from change records;
-      a replace-dropped action names the replacement for a triple an earlier
-      record dropped, and the generator fails when the replacement is not in the
-      catalog."
+    documentation: "Issue #1164. The rewrite table is generated from change records; a replace-dropped action names the replacement for a triple an earlier record dropped, and the generator fails when the replacement is not in the catalog."
   metadata:
     created_at: 2026-11-19T13:36:34.344Z
     updated_at: 2026-11-19T13:36:34.344Z
+    version: 1
+motivation.requirement.model-reads-fit-one-result-and-agree:
+  id: 4c878843-c1f6-413a-81a9-0d310a9c4bb9
+  path: motivation.requirement.model-reads-fit-one-result-and-agree
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Model reads fit one result and agree
+  description: "A read tool's default answer fits one tool result however large the model, puts errors and the few items that matter ahead of bulk listings, and two tools asked the same thing about the same view give the same answer and say which view it was. A limit is a page size, never a cut-off: a longer list is paged with its true total, and every count and verdict is of the whole set."
+  attributes:
+    requirementType: quality
+    priority: high
+    documentation: "Found by sister projects' agents (issues 1203, 1204, 1214, 1215, 1216), with the maintainer's rule on limits of 2026-11-20: limits are flexible boundaries, paged or pageable, and an answer never portrays completeness it does not have. The default of model_validate, model_stats, model_list and model_trace does not grow with the model: bulk is counted by kind, layer and type, and listed on request a page at a time (limit, offset, the true total, nextOffset, and the exact next call). Counts, summaries and verdicts are computed over the whole set, never the page. model_stats and model_validate report the same validity for the same view (the base model, or the active changeset's projection) and name the view. A trace answers what an element depends on by the predicate's meaning, and reports only the changeset edges it walked. Verified by the before and after response sizes on DR's own model in the pull request, and by tests that the pages together equal the whole list."
+  metadata:
+    created_at: 2026-11-20T16:31:17.277Z
+    updated_at: 2026-11-20T16:31:17.277Z
+    version: 1
+motivation.requirement.a-limit-never-hides-part-of-an-answer:
+  id: fc5f8bf1-1a9d-45a8-b144-6b04526f0fda
+  path: motivation.requirement.a-limit-never-hides-part-of-an-answer
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A limit never hides part of an answer
+  description: "A count or size limit in a changeset_brief or changeset_impact answer is a default the caller can change, never a silent cut-off. A list too long for one tool result comes a page at a time, with its true total, how many items the answer holds and the call for the next page; counts and summaries are over the whole list, not the page. No answer reads as complete when it is not (#1183, #1232)."
+  attributes:
+    requirementType: non-functional
+    priority: high
+    documentation: "A count or size limit in a changeset_brief or changeset_impact answer is a default the caller can change, never a silent cut-off. A list too long for one tool result comes a page at a time, with its true total, how many items the answer holds and the call for the next page; counts and summaries are over the whole list, not the page. No answer reads as complete when it is not (#1183, #1232)."
+  metadata:
+    created_at: 2026-11-20T17:16:47.878Z
+    updated_at: 2026-11-20T17:16:47.878Z
+    version: 1
+motivation.requirement.a-changeset-can-be-re-baselined:
+  id: 687301ac-59d9-41ac-8e34-030f71cef401
+  path: motivation.requirement.a-changeset-can-be-re-baselined
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A changeset can be re-baselined
+  description: "A staged changeset whose base moved can take the base as it is now as its starting point: changeset_update with rebaseline records the current base hash and base index and returns what moved under the changeset since the last one. A re-baseline is a visible act and clears nothing a landing would act on: every element overlap is read from the base as it is now and from what the staged change recorded, so an update or delete made on older content, and a delete that would take a relationship the plan never saw, stay overlaps until the plan resolves them, and the landing summary still lists them and says when the changeset was re-baselined."
+  attributes:
+    requirementType: functional
+    priority: medium
+    documentation: "Acceptance: after a re-baseline the changeset's drift state is none unless a staged change still overlaps the base as it is now; the response lists what was added, removed and changed in the base since the previous base (a page with true totals; a preview returns the same and writes nothing, since what moved cannot be read again once applied), the overlaps that were cleared and the ones that remain with how to resolve each; the base index records when it was re-baselined, from which base hash and to which, and how many times, and the confirmation dialog and commit preview show it. A re-baseline followed by a preview still shows every overlap that is true against the base. A record (verification, upgrade) and a changeset that is no longer staged are refused."
+  metadata:
+    created_at: 2026-11-20T16:38:29.310Z
+    updated_at: 2026-11-20T16:38:29.310Z
+    version: 1
+motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model:
+  id: ff8e6b6c-a8b5-495c-83c8-46e0d4323633
+  path: motivation.requirement.extraction-decisions-are-made-by-rule-and-kept-with-the-model
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Extraction decisions are made by rule and kept with the model
+  description: What extraction should stage or leave out is decided in bulk by a stated rule (which code, what it is, why), and the rules a project keeps are committed beside its model, so every checkout and every later run applies them without asking again.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation: "A decision covers every card a rule names: by files, kind, visibility, nesting, name or the type of the owning class's element. A rule says an element type or 'not an element', with a reason. Kept rules live in documentation-robotics/extraction-rules.yaml and are applied before cards are made. Verified when a fresh clone of a project with rules is asked only for the cards no rule covers, and each run reports what every rule decided."
+  metadata:
+    created_at: 2026-11-20T16:56:25.745Z
+    updated_at: 2026-11-20T16:56:25.745Z
+    version: 1
+motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs:
+  id: fea3d982-963d-458e-9815-8c16cdaf5dde
+  path: motivation.requirement.an-extraction-run-says-how-many-decisions-it-needs
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: An extraction run says how many decisions it needs
+  description: A run answers with the cards grouped and counted, and with the number of decisions left for the caller, before it lists any card. A since run asks only about the symbols its range changed.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation: Groups are by folder and file, kind and visibility, with what the model already has there and the folders no element names. preview returns the same groups without creating anything. Cards stay reachable by filter and page. In a since run, symbols the range did not touch are counted and listed on request, and with a plan active the run lists planned elements that have no as-built candidate. Verified by the decisions, calls and bytes a whole-codebase run and a 20-commit since run of this repository need, before and after.
+  metadata:
+    created_at: 2026-11-20T16:56:25.762Z
+    updated_at: 2026-11-20T16:56:25.762Z
+    version: 1
+motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out:
+  id: 4478fc3c-40e6-42d7-bf63-4a4eb62cfec3
+  path: motivation.requirement.a-shortened-or-filtered-extraction-answer-says-what-it-left-out
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A shortened or filtered extraction answer says what it left out
+  description: Every count and verdict codebase_extract gives is over the whole set. A list shortened to fit, a filter, or a rule that decided cards reports its true total and the call that returns the rest, and no answer reads as complete while something is hidden.
+  attributes:
+    requirementType: non-functional
+    priority: high
+    documentation: "Limits are defaults the caller can change (limit, offset), never cut-offs. A shortened list returns total, returned, nextOffset and a one-line 'more' naming the next call. A layers, view or since filter reports what it left out. Items that failed or did nothing are never shortened. Verified by a test per list with more items than its default: total is right, the rest is reachable and the pages together equal the whole."
+  metadata:
+    created_at: 2026-11-20T16:56:25.762Z
+    updated_at: 2026-11-20T16:56:25.762Z
+    version: 1
+motivation.requirement.verification-says-what-it-could-not-check:
+  id: b78f9db9-77a1-4de5-8bcf-edee2ee5644c
+  path: motivation.requirement.verification-says-what-it-could-not-check
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Verification says what it could not check
+  description: "codebase_verify and changeset_verify never report an unchecked element as in step, drifted or missing. Each layer states one of three things: checked and in step, checked and drifted (with what), or not checked (with why and what would make it checkable). A list is never cut: it is a page with its true total."
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation: "Acceptance (issues 1180, 1226, 1159): a layer that compared nothing reads not_checked, never in_step; an operation sourced to a file the check can't read is not counted as lacking a source reference; a planned element extraction can't produce is unverifiable with its reason, and a clean match never rests on text evidence alone; recorded rejections are reported with how many were read and applied; every list gives its true total and the call for the rest."
+  metadata:
+    created_at: 2026-11-20T18:09:28.129Z
+    updated_at: 2026-11-20T18:09:28.129Z
+    version: 1
+motivation.requirement.an-upgrade-changes-only-what-it-says:
+  id: 04a8d749-4b94-43f8-9117-b2d9c525be78
+  path: motivation.requirement.an-upgrade-changes-only-what-it-says
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: An upgrade changes only what it says
+  description: Before it writes, an upgrade names every file it would change, in the model and outside it (spec reference, integration files, reports, ignore files, git's index), with every list's true total and a way to see all of it. It writes nothing it did not name, and a model file whose data does not change keeps its bytes, so an upgrade that only stamps the spec version changes only the manifest.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation: "Issues #1246 and #1165. Verified when a version-stamp upgrade of a model in prettier's layout changes only manifest.yaml, and the dry run on a copy names the same model files the real run writes."
+  metadata:
+    created_at: 2026-11-20T18:10:01.918Z
+    updated_at: 2026-11-20T18:10:01.918Z
+    version: 1
+motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model:
+  id: 9562292e-2589-4351-90f4-12422b54c9cb
+  path: motivation.requirement.derived-values-are-reviewed-before-they-reach-the-model
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Derived values are reviewed before they reach the model
+  description: When a new spec version requires attributes the model leaves empty, values that follow plainly from the element itself may be derived, but they go into a staged changeset for the user to review and land, never into the base model directly. What has no such value is listed per element.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation: "Issue #1166, maintainer decision 2026-11-18. Verified when an upgrade leaves the base model's element files unchanged and stages the derived values in upgrade-fills-<spec version>, and a second run stages none of them again."
+  metadata:
+    created_at: 2026-11-20T18:10:01.964Z
+    updated_at: 2026-11-20T18:10:01.964Z
+    version: 1
+motivation.requirement.a-decision-about-tracked-files-is-the-users:
+  id: e0d9e0fb-956e-4580-9d72-d7c29c49701b
+  path: motivation.requirement.a-decision-about-tracked-files-is-the-users
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A decision about tracked files is the user's
+  description: When git tracks files that an ignore rule would cover, the tool does not add the rule over them. It puts the choice to the person (untrack, keep tracked, or leave as is) with what each choice changes, and acts only on their answer.
+  attributes:
+    requirementType: functional
+    priority: high
+    documentation: "Issue #1185. Verified when dr upgrade and project_upgrade leave .gitignore and the index alone without a choice, and after untrack the next git add -A of the upgrade succeeds."
+  metadata:
+    created_at: 2026-11-20T18:10:01.964Z
+    updated_at: 2026-11-20T18:10:01.964Z
+    version: 1
+motivation.requirement.one-central-process-per-user:
+  id: 1301f97a-e3f1-4924-846c-1b8d3a12088f
+  path: motivation.requirement.one-central-process-per-user
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: One central process per user
+  description: One back-end process per user serves the MCP interface and the multi-project viewer on one port with one token, and launches every DrBot sub-process (maintainer ruling 4).
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.879Z
+    updated_at: 2026-11-21T17:14:10.879Z
+    version: 1
+motivation.requirement.every-api-call-names-its-project-and-checkout:
+  id: cb1efd63-80a8-4c4b-938f-899c0dca1568
+  path: motivation.requirement.every-api-call-names-its-project-and-checkout
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Every API call names its project and checkout
+  description: Every viewer API route that reads or writes project data is scoped by project and checkout (/api/projects/:project/checkouts/:checkout/...). The unscoped /api routes are removed in the release whose bundled viewer uses the scoped ones, with no compatibility window (maintainer ruling 5).
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.per-checkout-state-never-leaks:
+  id: c61cbf29-75e4-4554-b5c2-aca360b977c6
+  path: motivation.requirement.per-checkout-state-never-leaks
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Per-checkout state never leaks
+  description: Annotations, changesets, staging, drift, the active changeset, the websocket feed and DrBot conversations are held per checkout; nothing read or written for one checkout is visible through another's routes, links or feed.
+  attributes:
+    requirementType: non-functional
+    priority: critical
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.a-checkout-is-addressed-below-its-project:
+  id: 5b20734d-4b3b-4d68-8800-d0ba47810be0
+  path: motivation.requirement.a-checkout-is-addressed-below-its-project
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: A checkout is addressed below its project
+  description: A checkout (the main checkout or a linked worktree) is named by a key that is unique within its project and derived from git, and is addressed as project plus checkout in MCP arguments, viewer URLs, API routes and CLI arguments.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.links-into-the-shared-viewer-start-no-process:
+  id: 5f709fc2-6cb0-4b04-b875-5d1dea085491
+  path: motivation.requirement.links-into-the-shared-viewer-start-no-process
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Links into the shared viewer start no process
+  description: review_open, project_status and every MCP tool that returns a viewer link return a deep link (project, checkout, changeset or element) into the one shared viewer and never start a per-project viewer.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.dr-bot-runs-in-its-project-and-checkout:
+  id: 6880e9b4-f7ba-4179-9cba-3000e983cb58
+  path: motivation.requirement.dr-bot-runs-in-its-project-and-checkout
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: DrBot runs in its project and checkout
+  description: The central process launches each DrBot sub-process (Claude Code CLI, GitHub Copilot CLI) with the checkout as its working directory and its dr MCP connection pinned to that project and checkout.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.models-load-lazily-and-are-evicted:
+  id: b526c79c-8ed6-422f-b573-1e616505664e
+  path: motivation.requirement.models-load-lazily-and-are-evicted
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Models load lazily and are evicted
+  description: A checkout's model is loaded on first use, watched while loaded, and evicted when idle or when the pool is full, so a long farm does not load every model at start-up.
+  attributes:
+    requirementType: non-functional
+    priority: medium
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.projects-resolve-through-one-registry:
+  id: 276e9bf8-523c-4a0a-bf4e-b6bba196378e
+  path: motivation.requirement.projects-resolve-through-one-registry
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Projects resolve through one registry
+  description: Every interface turns a path, a project name or a project and checkout into a project and checkout through the one project registry; a path outside every registered project is registered through the same code before it is served.
+  attributes:
+    requirementType: functional
+    priority: high
+  metadata:
+    created_at: 2026-11-21T17:14:10.880Z
+    updated_at: 2026-11-21T17:14:10.880Z
+    version: 1
+motivation.requirement.telemetry-names-its-project-and-checkout:
+  id: bb4d59a0-104c-42c2-9d43-2c05c82a89e6
+  path: motivation.requirement.telemetry-names-its-project-and-checkout
+  spec_node_id: motivation.requirement
+  type: requirement
+  layer_id: motivation
+  name: Telemetry names its project and checkout
+  description: When the CLI is built with telemetry, every span the central process emits for project data carries dr.project and dr.checkout, so traces from one per-user process can be told apart per checkout in the collector.
+  attributes:
+    requirementType: non-functional
+    priority: low
+  metadata:
+    created_at: 2026-11-21T17:22:16.827Z
+    updated_at: 2026-11-21T17:22:16.827Z
     version: 1

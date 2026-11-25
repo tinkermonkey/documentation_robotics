@@ -7,6 +7,253 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-24
+
+**Specification Support:** v0.15.0
+
+One DR process per user (issue 1279). `dr serve` runs a central process for the farm that serves
+every project and every git checkout (main checkout and worktrees) from one port, behind one token:
+the viewer, its API, the websocket feed, DrBot and the MCP interface. `dr mcp` becomes a stdio
+bridge to it, `dr visualize`, `review_open` and `project_status` link into it and start nothing
+else, and the bundled viewer (0.17.0) shows the checkout a link names. The release also clears the
+0.8.0 milestone: required attributes up front, id collisions in a batch, acronym ids, the YAML
+layout prettier leaves alone, and the brief's delta.
+
+**Breaking changes, and what to do:**
+
+- Project-data routes are served only under `/api/projects/{project}/checkouts/{checkout}/...`.
+  The old unscoped routes answer `410 Gone` with the replacement path for this release, then 404. A
+  custom viewer build (`--viewer-path`) must move to the scoped routes; the bundled viewer has.
+- `dr visualize` no longer starts a per-project server. `--no-auth`, `--token`, `--idle-exit`,
+  `--exit-with-parent`, `--stop <project>` and `--stop --port` are refused. Use `dr visualize
+--stop --all` once to end per-project viewers an older CLI left running (the process's start-up
+  sweep already stops the unused ones).
+- `farm.yaml` is `dr-farm-v2`. A v1 farm is read with a notice; run `dr farm migrate --apply` before
+  `dr farm add` or `remove` will write it.
+- Element ids for names with an acronym before a capitalised word change (`HTTPServer` →
+  `http-server`). Existing elements keep their ids and are still found when their name is added
+  again.
+
+### Added
+
+- **Commit progress (issue 1361).** While a changeset commit runs, the server sends
+  `changeset.commit.progress` (`changesetId`, `applied`, `total`, `phase`, `layer`, `failed`) to the
+  websockets of the checkout it lands in, throttled to one per 200 ms plus the first, each phase
+  change and the last; a success ends with `phase: "done"` and `applied == total`, a failure with
+  `failed: true`. Sent for the viewer's Apply and for MCP `changeset_commit` (DrBot included) in the
+  server process. The commit response, `changesets.updated` and `model.updated` are unchanged. The
+  frame is the `ChangesetCommitProgress` schema in `docs/api-spec.yaml`.
+- **Project registry (issue 1279, slice 1A).** `cli/src/core/project-registry.ts` is the one code
+  that resolves the farm in use (`DR_FARM_PATH`, else a farm found upward, else the user farm at
+  `~/.config/dr/farm.yaml`), lists projects with their checkouts, resolves a path, a project
+  name or a `{project, checkout}` to a checkout, discovers checkouts from `git worktree list`
+  (`main`, or git's worktree name; `present`, `missing` or `prunable`; cached until the worktree
+  metadata changes, raising checkout-removed once) and registers a project under a derived or
+  explicit name. `dr serve`, `dr mcp`, the MCP tools and the viewer resolve projects through it.
+- **`dr serve` (issue 1279, slice 2B)** runs the central DR process for the farm in use: detached
+  by default (it prints the link and pid), attached with `--foreground`; `--port` sets where the
+  port search starts (8080, else the next free port). It records itself in
+  `servers/<farm-hash>.json` with a 0600 token file, refuses a second process for the same farm,
+  stops unused per-project viewers that `review_open` started, and exits after
+  `DR_VIEWER_IDLE_HOURS` (24) with no tab, MCP session, DrBot turn or request. `--status` shows
+  the running process and its health; `--stop` stops it and waits.
+- **`dr farm migrate [--apply]`** moves a `dr-farm-v1` farm to `dr-farm-v2`: a preview by
+  default, listing each project, the checkout each old entry becomes and the names dropped.
+- **`GET /api/projects/{project}/checkouts/{checkout}/changesets/{id}/verification?against=<as-built id>`**: a plan compared
+  with an as-built changeset, the same report `changeset_verify` gives (matched, probable, divergent,
+  missing, unverifiable and unplanned elements and relationships, by element id), plus the as-built
+  changeset's id and name. Read-only. The viewer draws it on its C4 diagrams.
+- **MCP on the central process (issue 1279, slice 3A).** The process serves `/mcp` (streamable
+  HTTP, the one token), and each MCP session resolves its own checkout: from `DR_MCP_ROOT_PATH`,
+  else the client's roots, else the process's default checkout. No session changes another's
+  working directory. Every tool result names its `project` and `checkout` (`_meta["dr/checkout"]`).
+  `dr mcp` over stdio is now a bridge: it finds the farm's process (starting `dr serve` when none
+  runs, or replacing an older idle one) and forwards MCP messages to it, so the plugin's
+  configuration doesn't change. `dr mcp --http` prints the process's `/mcp` URL and token file.
+  `DR_MCP_IN_PROCESS=1` serves the tools inside `dr mcp` itself, for one session.
+- **`project_list` (issue 1279, slice 3B):** every project in the farm with its checkouts (branch,
+  head, state, active changeset, staged count), paged. `review_open` returns a link into the central
+  process for the session's checkout and starts nothing; `project_status` names the project and
+  checkout, lists the project's other checkouts and gives this checkout's link; `changeset_commit`'s
+  refusal carries the same link.
+- **DrBot per checkout (issue 1279, slice 3C).** Each turn runs in its checkout's directory with
+  `DR_MCP_ROOT_PATH` set to it; at most `DR_DRBOT_MAX_TURNS` (3) turns run at once, and a turn over
+  the cap is queued with `chat.turn.queued` and `chat.turn.started`. On the central process every
+  chat frame carries `project` and `checkout`.
+
+### Changed
+
+- **The per-project viewer's lifetime watch is gone (issue 1279, after slice 4B).** Nothing ran
+  `watchViewerLifetime` once the single-model server was removed, so it is deleted with its tests
+  and `parseIdleExitHours`; the central process's idle exit (`central-lifetime.ts`) is what ends a
+  DR process. `DR_VIEWER_LIFETIME_CHECK_MS` now only sets how often that idle check runs. The docs
+  that still described per-project viewers (`GRACEFUL_SHUTDOWN.md`, `review_open` in
+  `MCP_SERVER.md` and `CHANGE_MODELING.md`, `dr visualize --no-auth`) now describe the DR process.
+- **Bundled viewer 0.17.0** (issue 1279). The viewer runs on the central process's project- and
+  checkout-scoped routes. Every page is `/#/p/<project>/c/<checkout>/...`, so the links
+  `review_open`, `project_status` and `dr visualize` give open the checkout they name. A bare `/`
+  shows a project and checkout picker. The websocket and DrBot chat are per checkout. It also
+  adds the C4 diagram export (SVG, PNG, Structurizr DSL, C4-PlantUML), Back and Forward through
+  graph moves, a progress bar while Apply commits (from `changeset.commit.progress`, #1361),
+  change counts on the C4 changeset overlay, and Open/Closed changeset groups in the nav rail.
+
+- **`dr visualize [path]` opens the shared viewer on the central DR process (issue 1279, slice
+  4A).** It ensures the farm's process runs (starting `dr serve` detached when none does) and opens
+  the browser at `/#/p/<project>/c/<checkout>/` for the checkout the path (default: the working
+  directory) is in, registering a repository with a model that no project owns yet. It no longer
+  starts a per-project server (nor its `visualize.server.startup` span), and nothing writes a
+  per-project viewer record any more.
+  `--no-browser` prints the link. `--port`, `--viewer-path`, `--with-danger`, `--read-only` and
+  `--with-changesets` apply only when it starts the process; when the process already runs, a
+  notice says which were not applied. `--no-auth` and `--token` are refused: every route requires
+  the process's token. `--idle-exit` and `--exit-with-parent` are refused too (the process has its
+  own idle exit, and is shared). `--list` shows the process (pid, port, CLI version, tabs, MCP
+  sessions, DrBot turns, checkouts loaded) and each per-project viewer older CLIs left running, with
+  the reason the start-up sweep kept it. `--stop` stops the process as `dr serve --stop` does;
+  `--stop --all` also stops every per-project viewer whose pids are confirmed. `--stop <project>`
+  and `--stop --port` are gone: one process serves every project.
+- **`dr serve` takes `--viewer-path`, `--with-danger` and `--read-only`** (and `--with-changesets`,
+  the default), used when it starts the process. Its chat now stages model changes in a changeset by
+  default, as `dr visualize`'s did; it was read-only before.
+- `findRunningViewer` returns the farm's central process, from its server record while its
+  `/health` answers; it no longer looks up per-project viewers.
+
+- **`farm.yaml` is `dr-farm-v2`**: one project per git repository with `name`, `repository` (the
+  main checkout), `model` and `remote`; `source` and `branch` are gone, and checkouts come from
+  git. A `dr-farm-v1` farm is read with a notice naming `dr farm migrate`, and `add`/`remove`
+  refuse to write it until it is migrated. `dr farm status --format json` reports `repository`
+  instead of `source`; `dr farm add --format json` reports `repository`, `created` and `farm`.
+- **`dr farm` uses the user farm when no folder farm is found**, instead of failing with "Not in a
+  farm directory".
+- **`dr farm add [name]`** resolves a worktree path to its repository's project (found, or added
+  under the main checkout) and derives the name from the main checkout's folder when none is
+  given; a name another repository holds is refused, never suffixed.
+- **`dr farm sync` and `dr farm pull` act on the main checkout**, also when a v1 entry names a
+  linked worktree.
+- **One server mode, and every project-data route names its checkout (issue 1279, slice 4B).**
+  The visualization server is the central process only: the per-project single-model mode and its
+  entry point (`dist/server-entry.js`) are gone. The model, layer, annotation, changeset
+  (verification, review, commit and discard included) and Tier 1 routes are served only under
+  `/api/projects/{project}/checkouts/{checkout}/...`. For this one release, each old unscoped path
+  (`/api/model`, `/api/changesets`, ...) answers `410 Gone` with
+  `{ "error", "replacement" }`, `replacement` being the scoped path template, for a custom viewer
+  build (`--viewer-path`) that still calls it; none is in `docs/api-spec.yaml`. The process's
+  default checkout serves no route: it is only where an MCP session with no root of its own works.
+  A websocket message that names no checkout runs in the socket's one subscription, else gets an
+  error: no checkout is assumed. Every call needs the token (there is no unauthenticated server).
+  `/health` no longer reports `viewerId`; with the token it reports `serverId`, `farmRoot`,
+  `mcpSessions`, `drBotTurns` and `loadedCheckouts`. The viewer's deep-link paths
+  (`/p/<project>/c/<checkout>/...`) load its page. `docs/api-spec.yaml` now also lists `/ws`, `/mcp`,
+  `/api-docs` and `/api-spec.yaml`.
+- **`dr serve` leaves its file watchers to the exit** when it stops to exit (a signal, `--stop`, the
+  idle exit), as the per-project viewer did (#1235): closing a watcher while a worktree is being
+  deleted could hang the process. A call to a retired unscoped route no longer counts as use of the
+  server, and `/health` says `degraded` when the chat service failed to start; what failed is in
+  `warnings`, for the token's holder only.
+- **A queued DrBot turn is announced once.** `chat.turn.queued` and `chat.turn.started` are no longer
+  also streamed as a quoted line of reply text, which a viewer showing the notifications showed twice.
+
+- **Bundled spec** carries eight Context Studio decisions of 2026-11-22 (spec 0.15.0): `ux.designtoken`, thirteen relationship types, new `softwareType` and `paradigm`
+  values, optional per-instance APM attributes, and the library-API, UI-component and test-sketch
+  rulings.
+- **Layer skills:** a React component is a `ux.librarycomponent`, not an application component (the
+  application skill pointed at a nonexistent `ux.component`); a library's exports are application
+  services behind an application interface, not API operations; frameworks are `softwareType:
+library` and runtimes `language-runtime`, not `middleware`; one test case sketch per test function
+  is listed as a pitfall.
+
+### Fixed
+
+- **model_add no longer attaches a refused element's relationships to another element (issue
+  1297).** When two names in a batch give one id ("galaxyLayout tests" and "galaxy-layout tests"
+  both give `testing.testcoveragetarget.galaxy-layout-tests`), the batch keeps the first and refuses
+  the second, as before. A relationship in the same batch that names that id, exactly or without its
+  hyphens, or names the refused element by its name, is now reported as invalid: the reason names
+  both names, the id and the element that holds it, and says to give the refused one a distinct
+  name. Before, it was staged on the element kept. A relationship that names the kept element by its
+  own name still binds. The same holds when the new name collides with an element already in the
+  model or the changeset under another name. Sending an existing element's own name again still
+  links by its id. `relationship_add` and `dr add` add no elements beside relationships and are
+  unchanged.
+- **dr writes model and changeset YAML in a layout prettier leaves alone (issue 1246).** Long
+  strings are no longer folded at 80 columns: each stays on its key's line, and a string that has
+  to be quoted gets the quote prettier gives it (single when it holds a double quote, else double).
+  Prettier at its default settings, and with this repository's `.prettierrc`, now leaves what dr
+  writes as it is, so a project that runs prettier on `documentation-robotics/` without a
+  `.prettierignore` entry no longer has the two rewriting each other, and a one-word edit is a
+  one-line diff. The layout covers the element files, `relationships.yaml`, the manifest, the files
+  `dr upgrade`'s migrations rewrite, changesets (`metadata.yaml`, `changes.yaml`, `review.yaml`),
+  annotations and `extraction-rules.yaml` (`cli/src/core/dr-yaml.ts`), and
+  `scripts/relayout-model-files.ts` lays element files out in it. A file whose data is unchanged is
+  still never rewritten; the first data change to an existing file puts its long strings on one
+  line, once.
+
+- **An acronym ends before the word after it, in ids (issue 1184).** `deriveElementId` (`dr add`,
+  `model_add`, extraction) now splits a run of capitals before its last capital when a lowercase
+  letter follows, as it already split camelCase and a digit before a capitalised word:
+  `HTTPServer` → `http-server` (was `httpserver`), `OpenAPIExporter` → `open-api-exporter` (was
+  `open-apiexporter`), `Vector3DPoint` → `vector3d-point` (was `vector3dpoint`), so a name gives
+  the same id with or without a space at that break. A plural acronym stays whole (`URLs` → `urls`,
+  `getIDsForUser` → `get-ids-for-user`). A mixed-case word splits as camelCase does: `OAuth` →
+  `o-auth`, as `GitHub` → `git-hub`; likewise `IPv4Address` → `i-pv4-address` and `SaaSApp` →
+  `saa-s-app`. An acronym before `Is` or `As` and a capital is read as a plural, as before:
+  `URLIsValid` → `urlis-valid`. `toKebabCase` also gives extraction's default `operationId` and
+  the analyzer's suggested names, so re-extracting a route whose path joins an acronym to a word
+  can propose a different `operationId` for an existing operation. Existing ids are never
+  rewritten: the 0.7.x rule is in `EARLIER_ID_RULES` as `derive-0.7`, so adding an existing
+  element's name again (50 in DR's own model, such as `AIEvaluator` at `aievaluator`) still finds
+  that element.
+
+- **Required attributes are shown before a refusal, and a refusal gives their values (issue 1153).**
+  A page of `codebase_extract` cards carries `undecided.requiredAttributes`: once per type that its
+  cards name (candidates, hint, Tier 1's type), the attributes it requires and the values each
+  takes, so the first `model_add` from the cards can be valid. A refused single `model_add` and a
+  refused `dr add` now name the type's required attributes and their allowed values, as a refused
+  `model_add` batch already did (0.7.0). One helper, `cli/src/utils/required-attributes.ts`, serves
+  all three.
+
+- **MCP `model_validate` says when the spec reference is not installed (issue 1168).** In a fresh
+  clone or git worktree, where `.dr/` is gitignored and absent, the result carries `specReference`:
+  one line saying the reference is missing (or for another spec version), that validation is
+  unaffected because it runs against the spec dr carries, and that `project_upgrade` installs it:
+  preview first, then, once the user approves, `apply: true, modelOnly: true`, which writes nothing
+  else outside the model (a model behind the spec is migrated too). `dr validate` already said this
+  in 0.7.0; it is now tested end to end with `.dr/` removed (same report, one line more, no schema
+  errors).
+
+- **`npm install -g` no longer pulls an incompatible WebSocket adapter.** `@hono/node-ws` is pinned to
+  `1.3.1`. Its 1.3.2 (published 2026-11-21) requires `@hono/node-server` 2.x, while the CLI and the
+  MCP SDK use 1.x, so a fresh global install of 0.7.1 warned `ERESOLVE overriding peer dependency`
+  and ran the viewer's WebSocket on an unsupported pairing.
+- **`changeset_brief` with `since` lists each element once (issue 1291).** The delta's
+  `elements.added` and `elements.removed` now go by whether the element exists in the plan, as
+  `relationships.added` and `removed` do: `added` holds elements that exist now and did not then (a
+  planned add, or a planned delete unstaged), `removed` the reverse (a planned delete, or a planned
+  add unstaged). A base element a pass only updates, or whose update is unstaged, is listed under
+  `updated` alone; it was also listed under `added` (or `removed`). An element added since and
+  edited again stays under `added` only.
+
+## [0.7.1] - 2026-11-21
+
+**Specification Support:** v0.14.0
+
+This release ships viewer 0.14.0 with the CLI. `dr visualize` and `review_open` now open the
+Architecture view (the model as C4 diagrams, with any changeset laid over them) and show drift the
+way 0.7.0 lands it. The CLI's commands, MCP tools and file formats are unchanged, and the spec is
+unchanged.
+
+### Changed
+
+- **Bundled viewer bumped to v0.14.0**: `documentation_robotics_viewer` moves `0.13.0` → `0.14.0`
+  (`cli/scripts/download-viewer.sh`). In the viewer:
+  - A new Architecture view draws the model as C4 System Context, Container and Component diagrams,
+    with drill-down, a breadcrumb and a details drawer whose model elements open in the Model view.
+  - Any changeset can be laid over those diagrams (a staged one applied, a committed one reverted):
+    boxes and arrows added, removed or changed are marked with a label as well as colour, removed ones
+    are drawn back faded, and each mark traces to its changes in the Changesets review.
+  - Drift follows this CLI's 0.7.0 contract: a drifted plan is flagged and its overlaps' consequences
+    are listed before Apply, instead of the viewer predicting a refusal.
+
 ## [0.7.0] - 2026-11-20
 
 **Specification Support:** v0.14.0

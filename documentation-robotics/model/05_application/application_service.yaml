@@ -5,8 +5,7 @@ application.applicationservice.progress-tracker:
   type: applicationservice
   layer_id: application
   name: ProgressTracker
-  description: Tracks progress of AI evaluation operations, enabling resume
-    support for interrupted or long-running evaluation pipelines.
+  description: Tracks progress of AI evaluation operations, enabling resume support for interrupted or long-running evaluation pipelines.
   attributes:
     serviceType: synchronous
   source_reference:
@@ -440,9 +439,7 @@ application.applicationservice.chat-command:
   type: applicationservice
   layer_id: application
   name: chatCommand
-  description: Chat command implementation Launches an interactive conversation
-    with an AI chat client Supports Claude Code CLI and GitHub Copilot CLI with
-    auto-detection
+  description: Chat command implementation Launches an interactive conversation with an AI chat client Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
   attributes:
     serviceType: synchronous
   source_reference:
@@ -572,7 +569,7 @@ application.applicationservice.farm-add-command:
   type: applicationservice
   layer_id: application
   name: farmAddCommand
-  description: Add a project to the farm
+  description: "Add a project to the user farm through the project registry: the codebase path is resolved to its repository's main checkout, so adding a worktree path adds (or finds) its project, never a project per worktree."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -758,6 +755,7 @@ application.applicationservice.mcp-command:
   type: applicationservice
   layer_id: application
   name: mcpCommand
+  description: "dr mcp: over stdio, the McpStdioBridge to the user's central process (started when absent); --http serves the MCP interface in the central process itself."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1072,6 +1070,7 @@ application.applicationservice.visualize-command:
   type: applicationservice
   layer_id: application
   name: visualizeCommand
+  description: "dr visualize [path]: ensures the central process runs and opens the shared viewer at the project and checkout the path resolves to. --list shows the central process with its loaded checkouts and any old per-project viewers; --stop stops them."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1774,6 +1773,7 @@ application.applicationservice.project-status-handler:
   type: applicationservice
   layer_id: application
   name: projectStatusHandler
+  description: "project_status: names the project and checkout the session resolves to, lists the project's other checkouts (branch, head, state, active changeset, staged count; paged), and gives the viewer link for this checkout."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1864,7 +1864,7 @@ application.applicationservice.create-review-open-handler:
   type: applicationservice
   layer_id: application
   name: createReviewOpenHandler
-  description: Builds the review_open handler
+  description: "review_open: resolves the session's project and checkout through the registry and returns a ViewerLink to the changeset in the central process, which serves the session; it never starts a viewer."
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1919,9 +1919,7 @@ application.applicationservice.changeset-commit-preview-handler:
   type: applicationservice
   layer_id: application
   name: changesetCommitPreviewHandler
-  description:
-    Checks a staged changeset for landing without writing anything and
-    returns the landing summary with a confirmation token
+  description: Checks a staged changeset for landing without writing anything and returns the landing summary with a confirmation token
   attributes:
     serviceType: synchronous
   source_reference:
@@ -1932,4 +1930,194 @@ application.applicationservice.changeset-commit-preview-handler:
   metadata:
     created_at: 2026-11-20T15:08:59.540Z
     updated_at: 2026-11-20T15:08:59.540Z
+    version: 1
+application.applicationservice.list-viewers-command:
+  id: 3527cc7b-7000-431d-acad-336973cc5a98
+  path: application.applicationservice.list-viewers-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: listViewersCommand
+  description: "dr visualize --list: prints each running viewer with its project, port, pid, CLI version and start time, from the registry and a process scan (--json for a machine-readable list). It ends with how many viewers it found and where, and what reading the registry removed; when the process table cannot be read it says that viewers the registry has lost are not shown."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/visualize-viewers.ts
+        symbol: listViewersCommand
+  metadata:
+    created_at: 2026-11-20T16:31:40.308Z
+    updated_at: 2026-11-20T16:31:40.308Z
+    version: 1
+application.applicationservice.stop-viewers-command:
+  id: 6bae33d5-f374-48c2-ac66-c69e0f586e1c
+  path: application.applicationservice.stop-viewers-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: stopViewersCommand
+  description: "dr visualize --stop [project] [--all] [--port n] [--include-unrecorded]: stops the viewers this registry records for the current or named project, one port, or all; viewers found only in the process table are named and left unless --include-unrecorded is given. Only pids confirmed to be the viewer's are signalled. It says how many were running, matched and stopped, names each one not stopped with its pid and why, and exits 1 when a matching viewer is still running."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/visualize-viewers.ts
+        symbol: stopViewersCommand
+  metadata:
+    created_at: 2026-11-20T16:31:40.309Z
+    updated_at: 2026-11-20T16:31:40.309Z
+    version: 1
+application.applicationservice.dr-bot-conversation:
+  id: cd17f44a-c212-4965-956f-0aadd85088b7
+  path: application.applicationservice.dr-bot-conversation
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: DrBot conversation
+  description: "DrBot over the viewer websocket: a message to a checkout's conversation, answered by a sub-process running in that checkout."
+  attributes:
+    serviceType: asynchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: chat.send
+  metadata:
+    created_at: 2026-11-21T17:14:10.905Z
+    updated_at: 2026-11-21T17:14:10.905Z
+    version: 1
+application.applicationservice.viewer-api:
+  id: 618d1e7e-7a29-46dd-8cfd-1275b4f77ba4
+  path: application.applicationservice.viewer-api
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: Viewer API
+  description: "The viewer's HTTP API on the central process: GET /api/projects and every project data route under /api/projects/:project/checkouts/:checkout/, all requiring the one token."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/central-server.ts
+        symbol: startCentralServer
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.serve-command:
+  id: e1fa4704-8156-4ecc-abe3-2b53f9187cd8
+  path: application.applicationservice.serve-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: serveCommand
+  description: "dr serve: runs the user's central DR process in the foreground (dr mcp and dr visualize start it detached)."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/serve.ts
+        symbol: serveCommand
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.project-list-handler:
+  id: 3c02e03e-1902-4b69-9f81-75dd24da6a33
+  path: application.applicationservice.project-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: projectListHandler
+  description: "MCP project_list: every registered project with its checkouts (ProjectListEntry), paged."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/mcp/tools/project-list.ts
+        symbol: projectListHandler
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.farm-migrate-command:
+  id: eb0daade-a3db-462a-94d0-f85ac14a2f7f
+  path: application.applicationservice.farm-migrate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farmMigrateCommand
+  description: "dr farm migrate [--apply]: previews the dr-farm-v2 migration of the user farm, and writes it with --apply."
+  attributes:
+    serviceType: batch
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: migrate
+  metadata:
+    created_at: 2026-11-21T17:14:10.906Z
+    updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationservice.farm-farm-migrate-command:
+  id: 9ada36da-34b3-4299-b57d-1fe1d77ceef9
+  path: application.applicationservice.farm-farm-migrate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farm farmMigrateCommand
+  description: "dr farm migrate: preview the dr-farm-v1 to dr-farm-v2 migration of the farm in use, and write it with --apply (`application.applicationservice.farm-migrate-command`)."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmMigrateCommand
+  metadata:
+    created_at: 2026-11-24T21:42:21.516Z
+    updated_at: 2026-11-24T21:42:21.516Z
+    version: 1
+application.applicationservice.stop-command:
+  id: 94fe879e-a17f-4675-8365-53b02bd6cf78
+  path: application.applicationservice.stop-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: stopCommand
+  description: "`dr visualize --stop`: stops the farm's central process with `dr serve --stop`'s confirmed stop. With `--all`, then stops every legacy per-project viewer whose pids are confirmed (and, with `--include-unrecorded`, the ones found only in the process table). Throws (exit 1) when..."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/visualize-viewers.ts
+        symbol: stopCommand
+  metadata:
+    created_at: 2026-11-24T21:42:21.516Z
+    updated_at: 2026-11-24T21:42:21.516Z
+    version: 1
+application.applicationservice.create-project-list-handler:
+  id: eaf6860a-335d-4186-915c-426bdf4219b1
+  path: application.applicationservice.create-project-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createProjectListHandler
+  description: Builds the project_list handler; tests inject the registry.
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-list.ts
+        symbol: createProjectListHandler
+  metadata:
+    created_at: 2026-11-24T21:42:21.516Z
+    updated_at: 2026-11-24T21:42:21.516Z
     version: 1

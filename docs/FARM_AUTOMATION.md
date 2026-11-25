@@ -10,6 +10,43 @@ Automation support for the `dr farm` command group enables unattended operation 
 - **Lightweight status checks** using commit comparison instead of full diffs
 - **Standardized exit codes** (0 = success, 1 = issues found, 2 = error)
 
+## Which farm, and its format
+
+Every `dr farm` command uses the farm in use: the folder `DR_FARM_PATH` names, else a `farm.yaml`
+found upward from the working directory, else the **user farm** at
+`$XDG_CONFIG_HOME/dr/farm.yaml` (`~/.config/dr/farm.yaml`), created empty the first time
+`dr farm add` writes to it.
+
+`farm.yaml` is `dr-farm-v2`: one project per git repository.
+
+```yaml
+schema: dr-farm-v2
+name: my-farm
+projects:
+  auth-service:
+    name: auth-service
+    repository: ../auth-service # the main checkout: farm-relative or absolute
+    model: ../auth-service/documentation-robotics/model
+    remote: https://github.com/org/auth-service.git
+```
+
+Checkouts are not recorded: the main worktree (`main`) and every linked worktree (git's own
+worktree name) are discovered from `git worktree list`. A model inside the main checkout is
+followed into each checkout at the same path. `dr farm sync` and `dr farm pull` act on the main
+checkout. The user farm records paths outside its folder as absolute paths.
+
+A `dr-farm-v1` farm (one entry per checkout, with `source` and `branch`) is still read, with a
+notice on stderr, but nothing writes to it until it is migrated:
+
+```bash
+dr farm migrate            # preview: projects, the checkout each v1 entry becomes, dropped names
+dr farm migrate --apply    # write dr-farm-v2 (and commit it in a folder farm's git repository)
+```
+
+Entries are grouped by repository; the entry whose `source` is the main checkout names the
+project (else the main checkout's folder name in kebab case does). Every other entry's name is
+dropped, not kept as an alias, so fix scripts that use them first. A second run changes nothing.
+
 ## Exit Codes
 
 All farm commands follow the standard exit code convention:
@@ -29,8 +66,15 @@ JSON output includes a `code` field that mirrors the exit code.
 ### `dr farm add`
 
 ```bash
-dr farm add <name> [--codebase <path>] [--remote <url>] [--model <path>] [--new-model] [--format json]
+dr farm add [name] [--codebase <path>] [--remote <url>] [--model <path>] [--new-model] [--format json]
 ```
+
+A codebase in git is its repository's project: a path inside a linked worktree resolves to the
+main checkout, so adding it finds the project that already holds the repository (`created:
+false`, nothing written) or adds the repository under its main checkout (`resolved_from` names
+the path given). Without `[name]` the project is named after the main checkout's folder in kebab
+case; a name another repository already holds is refused, and the error names the explicit-name
+call.
 
 Registers a project. Before scaffolding `<name>-model`, the command looks for a model the
 codebase already carries, in this order: `<codebase>/documentation-robotics/model/manifest.yaml`,
@@ -41,7 +85,7 @@ other farm command reads and writes that model where it is.
 
 Options:
 
-- `--codebase <path>` — Codebase folder, relative to the farm root (defaults to `<name>`; may lie outside the farm root unless `--remote` is used)
+- `--codebase <path>` — Codebase folder, relative to the farm root (defaults to `<name>`; may lie outside the farm root unless `--remote` is used). In the user farm it is relative to the working directory and recorded absolute; there a repository without a model has `documentation-robotics/model` recorded (created by `dr init`), and `--remote` and `--new-model` are refused
 - `--remote <url>` — Clone the repository to the codebase path first (a clone that self-hosts a model is adopted too)
 - `--model <path>` — Register the model at this path (relative to the farm root, resolved with the same lookup order) instead of detecting or scaffolding one; an error if no model is there
 - `--new-model` — Always scaffold a fresh `<name>-model`, even when the codebase holds a model (a warning says the codebase's own model is ignored)
@@ -463,7 +507,9 @@ belongs to another repository (adopted model; `git_warning` as above).
 {
   "status": "ok",
   "project": "auth-service",
-  "source": "../auth-service",
+  "repository": "../auth-service",
+  "created": true,
+  "farm": "/repos/farm/farm.yaml",
   "model": "../auth-service/documentation-robotics/model",
   "model_path": "/repos/auth-service/documentation-robotics/model",
   "model_adopted": true,

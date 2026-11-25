@@ -1,61 +1,55 @@
 /**
- * Visualize command - Launch visualization server
+ * `dr visualize [path]`: open the shared viewer at the checkout `path` (default: the working
+ * directory) resolves to (issue 1279, slice 4A; `docs/design/USER_LEVEL_DR.md` section 7).
+ *
+ * It ensures the farm's central DR process runs (`ensureCentralServer`, which starts `dr serve`
+ * detached when none does) and opens the browser at the `ViewerLink` for that checkout. A path
+ * no project owns yet is registered first, as an MCP root or `dr farm add` would. It never
+ * starts a per-project server and writes no per-project viewer record.
+ *
+ * `--port`, `--viewer-path`, `--with-danger`, `--read-only` and `--with-changesets` apply only
+ * when this call starts the process; when one already runs, a notice says which were not applied.
+ * `--no-auth` and `--token` are refused: every route of the central process requires its token
+ * (ruling 3). `--list` and `--stop` are in visualize-viewers.ts.
+ *
+ * (`application.applicationservice.visualize-command`)
  */
 
-import ansis from "ansis"
-import { spawn } from "child_process"
-import { randomUUID } from "node:crypto"
-import { fileURLToPath } from "node:url"
-import { dirname } from "node:path"
-import { Model } from "../core/model.js"
-import { logVerbose, logDebug } from "../utils/globals.js"
-import { CLIError } from "../utils/errors.js"
-import { getSpecReferencePath, getModelPath } from "../utils/project-paths.js"
-import { getErrorMessage } from "../utils/errors.js"
-import {
-  EXIT_WITH_PARENT_ENV,
-  VIEWER_STARTED_BY_ENV,
-  describeSweep,
-  describeUnreadable,
-  removeViewerRecord,
-  removeViewerRecordSync,
-  writeViewerRecord,
-} from "../server/viewer-registry.js"
-import { hasExited, stopChildProcess } from "../utils/stop-child-process.js"
-import { watchParent } from "../utils/parent-watch.js"
-import { getCliVersion } from "../utils/spec-version.js"
-
-// Conditional telemetry import based on compile-time flag
-declare const TELEMETRY_ENABLED: boolean | undefined
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== "undefined" ? TELEMETRY_ENABLED : false
+import ansis from "ansis";
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import type { ResolvedCheckout } from "../core/checkout-types.js";
+import { ProjectRegistry } from "../core/project-registry.js";
+import type { CentralStartOptions, EnsureCentralServer } from "../server/central-mcp-contract.js";
+import { viewerUrl } from "../server/viewer-link.js";
+import { CLIError, getErrorMessage } from "../utils/errors.js";
+import { isJson, logVerbose } from "../utils/globals.js";
+import { findProjectRoot } from "../utils/project-paths.js";
 
 export interface VisualizeOptions {
-  port?: number
-  noBrowser?: boolean
-  noAuth?: boolean
-  token?: string
-  verbose?: boolean
-  debug?: boolean
-  withDanger?: boolean
-  /** The old name for the default (changeset staging); accepted and ignored. */
-  withChangesets?: boolean
-  /** Limit the chat agent to reading the model: no changeset staging. */
-  readOnly?: boolean
-  viewerPath?: string
-  /** Hours without a browser tab or a request after which the viewer exits (0 or absent: never). */
-  idleExit?: string | number
-  /** Exit when the process that started this one is gone. */
-  exitWithParent?: boolean
-}
-
-/** Parses --idle-exit: hours as a number, 0 for never. Throws on anything else. */
-export function parseIdleExitHours(value: string | number | undefined): number {
-  if (value === undefined || value === "") return 0
-  const hours = Number(value)
-  if (!Number.isFinite(hours) || hours < 0) {
-    throw new Error(`Invalid --idle-exit value: ${value}. Give a number of hours (0 means never).`)
-  }
-  return hours
+  /** The folder whose checkout to open (default: the working directory). */
+  path?: string;
+  /** Where the port search starts (start only). */
+  port?: string | number;
+  noBrowser?: boolean;
+  /** Refused: every route requires the token. */
+  noAuth?: boolean;
+  /** Refused: the process makes its own token. */
+  token?: string;
+  /** Start only. */
+  withDanger?: boolean;
+  /** The old name for the default (changeset staging); start only, and changes nothing. */
+  withChangesets?: boolean;
+  /** Limit the chat agent to reading the model: no changeset staging (start only). */
+  readOnly?: boolean;
+  /** Start only. */
+  viewerPath?: string;
+  /** Refused: the central process has its own idle exit (DR_VIEWER_IDLE_HOURS). */
+  idleExit?: string | number;
+  /** Refused: the central process is shared, so no one caller's exit ends it. */
+  exitWithParent?: boolean;
+  json?: boolean;
 }
 
 /**
@@ -64,574 +58,231 @@ export function parseIdleExitHours(value: string | number | undefined): number {
  * both. --with-changesets is the old name for the default and changes nothing.
  */
 export function resolveChatMode(options: Pick<VisualizeOptions, "withDanger" | "readOnly">): {
-  withDanger: boolean
-  withChangesets: boolean
+  withDanger: boolean;
+  withChangesets: boolean;
 } {
-  const withDanger = options.withDanger || false
-  return { withDanger, withChangesets: !withDanger && !options.readOnly }
+  const withDanger = options.withDanger || false;
+  return { withDanger, withChangesets: !withDanger && !options.readOnly };
 }
 
-/** How long the server process gets to exit on a signal before it is force-killed. */
-const SERVER_SHUTDOWN_TIMEOUT_MS = 3000
-
 /**
- * Addresses a port must be free on before the viewer takes it. The server binds the loopback
+ * Addresses a port must be free on before the central process takes it. It binds the loopback
  * addresses; the wildcards are checked too, because on macOS a loopback bind succeeds while
  * another process holds `*:<port>`, and the two would then share localhost traffic.
  */
-const PROBE_HOSTS = ["127.0.0.1", "::1", "0.0.0.0", "::"] as const
+const PROBE_HOSTS = ["127.0.0.1", "::1", "0.0.0.0", "::"] as const;
 
 /** Errors that mean "this machine has no such address" (no IPv6), not "the port is taken". */
-const NO_ADDRESS_CODES = new Set(["EADDRNOTAVAIL", "EAFNOSUPPORT"])
+const NO_ADDRESS_CODES = new Set(["EADDRNOTAVAIL", "EAFNOSUPPORT"]);
 
 /** Whether nothing listens on the port on any loopback or wildcard address. */
 export async function isPortFree(port: number): Promise<boolean> {
-  const { createServer } = await import("net")
+  const { createServer } = await import("net");
   for (const host of PROBE_HOSTS) {
-    const result = await new Promise<"free" | "taken" | "no-address">((resolve) => {
-      const server = createServer()
+    const result = await new Promise<"free" | "taken" | "no-address">((resolvePort) => {
+      const server = createServer();
       server.once("error", (error: NodeJS.ErrnoException) =>
-        resolve(NO_ADDRESS_CODES.has(error.code ?? "") ? "no-address" : "taken")
-      )
-      server.once("listening", () => server.close(() => resolve("free")))
-      server.listen(port, host)
-    })
-    if (result === "taken") return false
+        resolvePort(NO_ADDRESS_CODES.has(error.code ?? "") ? "no-address" : "taken")
+      );
+      server.once("listening", () => server.close(() => resolvePort("free")));
+      server.listen(port, host);
+    });
+    if (result === "taken") return false;
   }
-  return true
+  return true;
 }
 
 /** The first port from startPort that is free on every address isPortFree checks. */
 export async function findAvailablePort(startPort: number): Promise<number> {
   for (let port = startPort; port <= 65535; port++) {
-    if (await isPortFree(port)) return port
+    if (await isPortFree(port)) return port;
   }
-  throw new Error("No available ports found")
+  throw new Error("No available ports found");
 }
 
-export async function visualizeCommand(
-  options: VisualizeOptions & { port?: string }
-): Promise<void> {
+/** Everything `dr visualize` touches outside itself, injected for tests. */
+export interface VisualizeDeps {
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  ensure: EnsureCentralServer;
+  openRegistry: (cwd: string, env: NodeJS.ProcessEnv) => Promise<ProjectRegistry>;
+  /** Whether a folder holds a DR model (its project root, or null). */
+  findProjectRoot: (path: string) => Promise<string | null>;
+  openBrowser: (url: string) => void;
+  out: (line: string) => void;
+}
+
+function defaultOpenBrowser(url: string): void {
+  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
   try {
-    logDebug("Loading model for validation...")
-
-    // Load model to validate it exists (without full content to be quick)
-    const model = await Model.load(process.cwd(), { lazyLoad: true })
-
-    logVerbose(`Model validated: ${model.manifest.name}`)
-
-    // Parse and validate port
-    let port = 8080
-    if (options.port) {
-      const portNum = parseInt(String(options.port), 10)
-      if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-        throw new Error(`Invalid port number: ${options.port}. Port must be between 1 and 65535.`)
-      }
-      port = portNum
-    }
-
-    const idleExitHours = parseIdleExitHours(options.idleExit)
-    const exitWithParent = options.exitWithParent || process.env[EXIT_WITH_PARENT_ENV] === "1"
-    const startedBy = process.env[VIEWER_STARTED_BY_ENV] === "review_open" ? "review_open" : "cli"
-    // This viewer's id: in its registry record and on its server's /health, so a reader can tell
-    // this viewer from another one that later holds its port or its pid.
-    const viewerId = randomUUID()
-
-    // Find an available port starting from the requested port
-    port = await findAvailablePort(port)
-    if (port !== (options.port ? parseInt(String(options.port), 10) : 8080)) {
-      console.log(ansis.yellow(`   Port ${options.port ?? 8080} is in use, using port ${port} instead`))
-    }
-
-    // Determine auth settings
-    const authEnabled = !options.noAuth // Auth enabled by default unless --no-auth flag
-    const authToken = options.token // Optional token for testing
-    const { withDanger, withChangesets } = resolveChatMode(options)
-
-    logDebug(`Starting visualization server on port ${port}`)
-    logDebug(`Authentication: ${authEnabled ? "enabled" : "disabled"}`)
-    if (authEnabled && authToken) {
-      logDebug(`Using provided token for authentication`)
-    } else if (authEnabled) {
-      logDebug(`Token will be auto-generated`)
-    }
-    if (withDanger) {
-      logDebug(`Danger mode enabled - chat permissions will be skipped`)
-    }
-
-    // Get the directory where this command file is located (dist/commands/)
-    const commandDir = dirname(fileURLToPath(import.meta.url))
-    const distDir = dirname(commandDir) // Go up to dist/
-    const serverEntryPath = `${distDir}/server-entry.js`
-
-    logDebug(`Server entry path: ${serverEntryPath}`)
-
-    // Create telemetry span for server startup
-    let serverStartupSpan: any = null
-    if (isTelemetryEnabled) {
-      logDebug("[Telemetry] Creating visualize.server.startup span")
-      const { startSpan } = await import("../telemetry/index.js")
-      serverStartupSpan = startSpan("visualize.server.startup", {
-        "server.port": port,
-        "server.auth_enabled": authEnabled,
-        "server.with_danger": withDanger,
-      })
-      logDebug(`[Telemetry] Span created: ${serverStartupSpan ? "success" : "failed"}`)
-    } else {
-      logDebug("[Telemetry] TELEMETRY_ENABLED is false - no spans will be created")
-    }
-
-    // Build environment variables for the server subprocess
-    const env: Record<string, string> = {
-      ...process.env,
-      DR_VISUALIZE_PORT: String(port),
-      DR_PROJECT_PATH: process.cwd(),
-      DR_AUTH_ENABLED: String(authEnabled),
-      DR_WITH_DANGER: String(withDanger),
-      DR_WITH_CHANGESETS: String(withChangesets),
-      DR_VIEWER_IDLE_EXIT_HOURS: String(idleExitHours),
-      DR_VIEWER_ID: viewerId,
-    }
-
-    // Pass debug/verbose flags to subprocess
-    // The CLI --debug flag sets globalOptions.debug, but subprocess checks process.env.DEBUG
-    const { isDebug: getDebugState, isVerbose } = await import("../utils/globals.js")
-    if (getDebugState()) {
-      env.DEBUG = "1"
-      env.DR_TELEMETRY_DEBUG = "1" // Enable telemetry exporter debug logging
-      logDebug("Passing DEBUG=1 and DR_TELEMETRY_DEBUG=1 to subprocess")
-    }
-    if (isVerbose()) {
-      env.VERBOSE = "1"
-      logDebug("Passing VERBOSE=1 to subprocess")
-    }
-
-    // Only set auth token if provided
-    if (authToken) {
-      env.DR_AUTH_TOKEN = authToken
-    }
-
-    // Set custom viewer path if provided
-    if (options.viewerPath) {
-      env.DR_VIEWER_PATH = options.viewerPath
-      logDebug(`Using custom viewer from: ${options.viewerPath}`)
-    }
-
-    // Reuse whichever runtime is currently executing the CLI (node or bun) to launch
-    // the server subprocess. server-entry.ts has no Bun-specific dependencies (see #800),
-    // so this works identically under Node.js or Bun — and unlike spawning a literal
-    // "bun" binary, process.execPath is guaranteed to exist since it's already running.
-    const serverProcess = spawn(process.execPath, [serverEntryPath], {
-      cwd: process.cwd(),
-      stdio: ["pipe", "pipe", "pipe"],
-      env,
-    })
-
-    let authTokenFromServer = ""
-    let serverOutput = ""
-    let serverStartupShown = false
-
-    // Record this viewer (port, token) in the user's state directory once it is listening, so
-    // tools like review_open can reuse it; removed again on exit. The record is this viewer's
-    // own (it names this pid): another viewer for the same project keeps its own.
-    const projectRoot = model.rootPath
-    // Written (atomically) once the server is listening and the token is known, and awaited before
-    // the startup lines are printed; shutdown waits for a write in flight, so no half-written,
-    // token-bearing temp file is left behind.
-    let serverListening = false
-    let recordWrite: Promise<void> | null = null
-    const recordViewer = (): Promise<void> => {
-      if (recordWrite) return recordWrite
-      if (!serverListening || (authEnabled && !authTokenFromServer)) return Promise.resolve()
-      recordWrite = writeViewerRecord({
-        pid: process.pid,
-        port,
-        token: authEnabled ? authTokenFromServer : null,
-        projectRoot,
-        startedAt: new Date().toISOString(),
-        withChangesets,
-        viewerId,
-        cliVersion: getCliVersion(),
-        ...(serverProcess.pid ? { serverPid: serverProcess.pid } : {}),
-        startedBy,
-        ...(idleExitHours > 0 ? { idleExitHours } : {}),
-      }, process.env, (swept) =>
-        logVerbose(
-          [
-            describeSweep(swept) && `Removed ${describeSweep(swept)} that viewers no longer running left in the viewer registry.`,
-            describeUnreadable(swept),
-          ]
-            .filter(Boolean)
-            .join(" ")
-        )
-      )
-        .then((path) => logDebug(`Viewer record written: ${path}`))
-        .catch((error) => logVerbose(`Could not write the viewer record: ${getErrorMessage(error)}`))
-      return recordWrite
-    }
-    // Removes this process's record and any temp file it left; another viewer's record is kept.
-    const forgetViewer = () => removeViewerRecordSync(projectRoot, { pid: process.pid })
-    process.on("exit", forgetViewer)
-
-    // Capture output from server process
-    if (serverProcess.stdout) {
-      serverProcess.stdout.on("data", async (data) => {
-        const chunk = data.toString()
-        serverOutput += chunk
-
-        // Process each line individually: stdio pipe buffering can batch multiple
-        // console.log calls (e.g. "running at" + "TOKEN:") into a single data event,
-        // regardless of runtime.
-        // Using startsWith/substring on the whole chunk would either miss the TOKEN line
-        // (when "running at" is first) or extract a malformed token (when trailing lines
-        // are appended), causing the browser to open with the wrong token and get a 403.
-        const lines = chunk.split("\n")
-        for (const rawLine of lines) {
-          const line = rawLine.trim()
-          if (!line) continue
-
-          // Extract token from output
-          if (line.startsWith("TOKEN:")) {
-            authTokenFromServer = line.substring(6)
-            logDebug(`Received auth token from server: ${authTokenFromServer.substring(0, 8)}...`)
-            await recordViewer()
-
-            // If we haven't shown startup info yet and now have the token, show it
-            if (serverStartupShown && authEnabled && authTokenFromServer) {
-              // Update the URL display with actual token
-              console.log(
-                ansis.cyan(`   Access URL: http://localhost:${port}?token=${authTokenFromServer}`)
-              )
-              console.log(ansis.dim(`   Auth token: ${authTokenFromServer}`))
-
-              // Now that we have the token, open browser if needed
-              if (!options.noBrowser) {
-                try {
-                  const command = getOpenCommand()
-                  const url = `http://localhost:${port}?token=${authTokenFromServer}`
-                  logDebug(`Opening browser with command: ${command} ${url}`)
-                  spawn(command, [url], {
-                    detached: true,
-                    stdio: "ignore",
-                  })
-                } catch (error) {
-                  logVerbose("Could not auto-open browser (not critical)")
-                }
-              }
-            }
-          }
-
-          // Server started message - defer detailed output if auth enabled
-          if (line.includes("running at http://localhost")) {
-            serverListening = true
-            await recordViewer()
-            serverStartupShown = true
-
-            // End telemetry span for server startup
-            if (isTelemetryEnabled && serverStartupSpan) {
-              logDebug(
-                "[Telemetry] Ending visualize.server.startup span (server started successfully)"
-              )
-              const { endSpan } = await import("../telemetry/index.js")
-              endSpan(serverStartupSpan)
-              serverStartupSpan = null
-              logDebug("[Telemetry] Span ended")
-            }
-
-            console.log(ansis.green(`✓ Visualization server started`))
-
-            // Display access information (but may be incomplete if auth enabled and token not yet received)
-            if (authEnabled) {
-              const token = authTokenFromServer || authToken || "(pending)"
-              if (authTokenFromServer) {
-                // Token already received (same chunk), show full info immediately
-                console.log(ansis.cyan(`   Access URL: http://localhost:${port}?token=${token}`))
-                console.log(ansis.dim(`   Auth token: ${token}`))
-              } else {
-                // Token not yet received, just show port for now
-                console.log(ansis.dim(`   Open http://localhost:${port} in your browser`))
-                logDebug(`   (waiting for auth token...)`)
-              }
-            } else {
-              console.log(ansis.dim(`   Open http://localhost:${port} in your browser`))
-              console.log(ansis.yellow(`   ⚠ Authentication disabled`))
-            }
-
-            if (withDanger) {
-              console.log(
-                ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`)
-              )
-              if (options.withChangesets || options.readOnly) {
-                console.log(
-                  ansis.dim(
-                    `   (${options.readOnly ? "--read-only" : "--with-changesets"} ignored: danger mode already allows all writes)`
-                  )
-                )
-              }
-            } else if (withChangesets) {
-              console.log(
-                ansis.dim(
-                  `   Chat can stage model changes in a changeset (no commit/apply/delete; Claude Code only, Copilot stays read-only); --read-only turns that off`
-                )
-              )
-            } else {
-              console.log(ansis.dim(`   Chat is read-only (--read-only): it cannot change the model`))
-              if (options.withChangesets) {
-                console.log(ansis.dim(`   (--with-changesets ignored: --read-only was given)`))
-              }
-            }
-
-            console.log(ansis.blueBright(`Model name: ${model.manifest.name}`))
-            const drFolder = await getSpecReferencePath()
-            console.log(
-              `DR folder:    ${ansis.cyan(drFolder || "Not found")}`
-            )
-            console.log(`Model path:   ${ansis.cyan((await getModelPath()) || "Not found")}`)
-
-            // Optionally open browser
-            // If auth is enabled, delay opening until we have the token
-            const shouldOpenBrowser = !options.noBrowser
-            logDebug(
-              `Browser auto-open: ${shouldOpenBrowser ? "enabled" : "disabled"} (noBrowser=${options.noBrowser})`
-            )
-
-            if (shouldOpenBrowser && !authEnabled) {
-              // Auth disabled: open immediately
-              try {
-                const command = getOpenCommand()
-                const url = `http://localhost:${port}`
-                logDebug(`Opening browser with command: ${command} ${url}`)
-                spawn(command, [url], {
-                  detached: true,
-                  stdio: "ignore",
-                })
-              } catch (error) {
-                logVerbose("Could not auto-open browser (not critical)")
-              }
-            } else if (shouldOpenBrowser && authEnabled && !authTokenFromServer) {
-              // Auth enabled but token not yet in this chunk: will open when TOKEN line is processed
-              logDebug("Browser auto-open deferred until token is received")
-            } else {
-              logDebug("Browser auto-open disabled")
-            }
-          }
-
-          // Why the server is ending on its own (idle, project folder gone, launcher gone)
-          if (line.startsWith("[viewer] ")) {
-            console.log(ansis.yellow(line.substring("[viewer] ".length)))
-          }
-
-          // Log other output
-          if (!line.startsWith("TOKEN:")) {
-            logDebug(`[server] ${line}`)
-          }
-        }
-      })
-    }
-
-    // Capture stderr
-    if (serverProcess.stderr) {
-      serverProcess.stderr.on("data", (data) => {
-        const output = data.toString().trim()
-        if (output) {
-          serverOutput += output + "\n"
-          // Log stderr at debug level so --debug flag shows telemetry exporter logs
-          logDebug(`[server stderr] ${output}`)
-        }
-      })
-    }
-
-    // Handle process close (fires after all stdio streams have closed)
-    let rejectKeepAlive: ((reason: Error) => void) | null = null
-    let resolveKeepAlive: (() => void) | null = null
-    let shuttingDown = false
-    let flushInterval: NodeJS.Timeout | null = null
-    let parentWatch: ReturnType<typeof watchParent> | null = null
-
-    serverProcess.on("close", (code) => {
-      // The server is gone, whatever the code: this viewer no longer answers.
-      if (recordWrite) {
-        recordWrite.then(() => removeViewerRecord(projectRoot, { pid: process.pid })).catch(() => {})
-      }
-      if (code !== 0) {
-        // Include server output in error message if available (avoid separate logDebug to prevent minification issues)
-        const message = serverOutput
-          ? `Server exited with code ${code}\nServer output:\n${serverOutput}`
-          : `Server exited with code ${code}`
-
-        // Record error in startup span if still active
-        if (isTelemetryEnabled && serverStartupSpan) {
-          (async () => {
-            const { endSpan } = await import("../telemetry/index.js")
-            if ("recordException" in serverStartupSpan) {
-              (serverStartupSpan as any).recordException(new Error(message));
-              (serverStartupSpan as any).setStatus({ code: 2, message }) // ERROR
-            }
-            endSpan(serverStartupSpan)
-            serverStartupSpan = null
-          })()
-        }
-
-        // Print error before rejecting (CLI wrapper expects CLIError messages to be pre-printed)
-        console.error(message)
-        const error = new CLIError(message, code || 1)
-        if (rejectKeepAlive) {
-          rejectKeepAlive(error)
-        }
-      } else if (!shuttingDown) {
-        // The server ended on its own (idle, or its project folder is gone): this launcher has
-        // nothing left to run. Without this it would stay behind, serving nothing.
-        logDebug("Server exited on its own; exiting")
-        forgetViewer()
-        if (flushInterval) {
-          clearInterval(flushInterval)
-          flushInterval = null
-        }
-        parentWatch?.stop()
-        resolveKeepAlive?.()
-      }
-    })
-
-    // Handle process errors
-    serverProcess.on("error", (error) => {
-      const errorCode = (error as NodeJS.ErrnoException).code
-      let message: string
-      let suggestions: string[] | undefined
-
-      // The server subprocess is launched via process.execPath (the same node/bun
-      // binary already running this CLI), so it's always present - ENOENT here would
-      // indicate something unusual about the runtime environment rather than a missing
-      // dependency (see #800: this used to hard-depend on a separately installed `bun`).
-      if (errorCode === "EACCES") {
-        message = `dr visualize could not run the visualization server: permission denied executing ${process.execPath}.`
-        suggestions = [`Check that ${process.execPath} is executable (chmod +x).`]
-      } else {
-        message = `Failed to start visualization server: ${error.message}`
-      }
-
-      // Record error in startup span if still active
-      if (isTelemetryEnabled && serverStartupSpan) {
-        (async () => {
-          const { endSpan } = await import("../telemetry/index.js")
-          if ("recordException" in serverStartupSpan) {
-            (serverStartupSpan as any).recordException(error);
-            (serverStartupSpan as any).setStatus({ code: 2, message }) // ERROR
-          }
-          endSpan(serverStartupSpan)
-          serverStartupSpan = null
-        })()
-      }
-
-      // Don't print here: rejecting propagates this CLIError up through the catch block
-      // below to the top-level CLI handler, which prints `.format()` (including
-      // `suggestions`) exactly once. Printing here too would duplicate the whole block.
-      const cliError = new CLIError(message, 1, suggestions)
-      if (rejectKeepAlive) {
-        rejectKeepAlive(cliError)
-      }
-    })
-
-    // Setup periodic telemetry flushing for long-running command
-    // Since the visualize command never completes (keep-alive pattern),
-    // the cli.execute span would never end and export. We flush periodically
-    // to ensure active spans are exported to the telemetry backend.
-    if (isTelemetryEnabled) {
-      logDebug("[Telemetry] Setting up periodic flush (every 15 seconds)")
-      const { flushTelemetry } = await import("../telemetry/index.js")
-
-      flushInterval = setInterval(async () => {
-        logDebug("[Telemetry] Periodic flush: flushing pending spans...")
-        try {
-          await flushTelemetry()
-          logDebug("[Telemetry] Periodic flush complete")
-        } catch (error) {
-          // Silently ignore flush errors - telemetry should never break the app
-          logDebug(`[Telemetry] Periodic flush failed: ${error}`)
-        }
-      }, 15000) // Flush every 15 seconds
-    }
-
-    // Handle graceful shutdown on SIGINT (Ctrl-C) and SIGTERM
-    const handleShutdown = async (signal: string) => {
-      if (shuttingDown) return
-      shuttingDown = true
-      parentWatch?.stop()
-      logDebug(`\n[${signal}] Shutting down visualization server gracefully...`)
-
-      // Clear periodic flush interval
-      if (flushInterval) {
-        logDebug("[Telemetry] Stopping periodic flush")
-        clearInterval(flushInterval)
-        flushInterval = null
-      }
-
-      // Forward the signal to the server process, and force-kill it if it has not exited in time.
-      // A server that hangs in its own shutdown must not outlive this process (#1235).
-      if (serverProcess && !hasExited(serverProcess)) {
-        logDebug("Sending termination signal to server process...")
-        const outcome = await stopChildProcess(
-          serverProcess,
-          signal as NodeJS.Signals,
-          SERVER_SHUTDOWN_TIMEOUT_MS
-        )
-        if (outcome === "force-killed") {
-          logDebug("Server shutdown timeout, forced exit")
-        }
-      }
-
-      logDebug("Visualization server stopped")
-      // Let a record write in flight finish, so its temp file is renamed and then removed.
-      if (recordWrite) await recordWrite
-      forgetViewer()
-      process.exit(0)
-    }
-
-    // Register signal handlers. SIGHUP (a closing terminal) is left alone, so `nohup dr visualize`
-    // still works; a launcher it ends leaves a record the next registry read sweeps, and its
-    // server exits when it sees the launcher gone.
-    process.on("SIGINT", () => handleShutdown("SIGINT"))
-    process.on("SIGTERM", () => handleShutdown("SIGTERM"))
-
-    // With --exit-with-parent, stop when whatever started this viewer is gone (a test run that
-    // was interrupted, a script that died), instead of running on with nobody to stop it.
-    if (exitWithParent) {
-      parentWatch = watchParent(() => {
-        console.log(ansis.yellow("The process that started this viewer is gone; stopping"))
-        void handleShutdown("SIGTERM")
-      })
-    }
-
-    // Keep parent process alive - reject promise if server fails, resolve if it ends on its own
-    await new Promise<void>((resolve, reject) => {
-      resolveKeepAlive = resolve
-      rejectKeepAlive = reject
-    })
-  } catch (error) {
-    // Throw CLIError instead of process.exit to allow telemetry shutdown
-    // Note: Avoid side effects (like logDebug) before throw to prevent minification issues
-    if (error instanceof CLIError) {
-      // CLIError should have already printed its message
-      throw error
-    }
-    // Non-CLIError needs to be printed and wrapped
-    const message = getErrorMessage(error)
-    console.error(message)
-    throw new CLIError(message, 1)
+    const child = spawn(command, [url], { detached: true, stdio: "ignore", shell: process.platform === "win32" });
+    child.on("error", () => logVerbose("Could not open the browser (not critical)"));
+    child.unref();
+  } catch {
+    logVerbose("Could not open the browser (not critical)");
   }
+}
+
+async function defaultDeps(): Promise<VisualizeDeps> {
+  const { ensureCentralServer } = await import("../server/ensure-central-server.js");
+  return {
+    cwd: process.cwd(),
+    env: process.env,
+    ensure: ensureCentralServer,
+    openRegistry: (cwd, env) => ProjectRegistry.open({ cwd, env }),
+    findProjectRoot,
+    openBrowser: defaultOpenBrowser,
+    out: (line) => console.log(line),
+  };
+}
+
+/** Options that `dr visualize` no longer takes, with why: thrown before anything starts. */
+export function refusedVisualizeOptions(options: VisualizeOptions): string[] {
+  const refused: string[] = [];
+  if (options.noAuth) {
+    refused.push("--no-auth: the DR process serves every project, and every route requires its token.");
+  }
+  if (options.token !== undefined) {
+    refused.push("--token: the DR process makes its own token; the link it opens carries it.");
+  }
+  if (options.idleExit !== undefined) {
+    refused.push("--idle-exit: the DR process exits after DR_VIEWER_IDLE_HOURS (default 24) with nothing using it.");
+  }
+  if (options.exitWithParent) {
+    refused.push("--exit-with-parent: the DR process is shared; stop it with dr visualize --stop.");
+  }
+  return refused;
+}
+
+/** The start-only options given, by flag. */
+export function startOnlyFlags(options: VisualizeOptions): string[] {
+  return [
+    options.port !== undefined && "--port",
+    options.viewerPath !== undefined && "--viewer-path",
+    options.withDanger && "--with-danger",
+    options.readOnly && "--read-only",
+    options.withChangesets && "--with-changesets",
+  ].filter((flag): flag is string => typeof flag === "string");
+}
+
+function parsePort(raw: string | number | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const text = String(raw).trim();
+  const port = Number(text);
+  if (!/^\d+$/.test(text) || port < 1 || port > 65535) {
+    throw new CLIError(`Invalid port number: ${raw}. Port must be between 1 and 65535.`);
+  }
+  return port;
+}
+
+/** The checkout `target` is in, registering its repository first when no project owns it. */
+async function resolveTarget(target: string, deps: VisualizeDeps): Promise<ResolvedCheckout> {
+  let registry: ProjectRegistry;
+  try {
+    registry = await deps.openRegistry(target, deps.env);
+  } catch (error) {
+    throw new CLIError(`Could not read the project registry: ${getErrorMessage(error)}`);
+  }
+  let resolved = await registry.resolvePath(target);
+  if (!resolved) {
+    // Register only a folder with a model: a repository without one has nothing to show.
+    if (!(await deps.findProjectRoot(target))) {
+      throw new CLIError(`No DR model at ${target}.`, 1, [
+        "Run dr visualize inside a project (or name one: dr visualize <path>).",
+        "dr init creates a model.",
+      ]);
+    }
+    try {
+      resolved = await registry.resolveOrRegister(target);
+    } catch (error) {
+      throw new CLIError(`Could not add ${target} to the project registry: ${getErrorMessage(error)}`, 1, [
+        "dr farm add <path> registers a project by hand; dr farm list shows the farm.",
+      ]);
+    }
+  }
+  return resolved;
 }
 
 /**
- * Get the appropriate command to open a URL
+ * `dr visualize [path]`: ensure the central process runs and open (or, with --no-browser, print)
+ * the link to the checkout `path` resolves to.
  */
-function getOpenCommand(): string {
-  const platform = process.platform
+export async function visualizeCommand(options: VisualizeOptions, overrides: Partial<VisualizeDeps> = {}): Promise<void> {
+  const deps: VisualizeDeps = { ...(await defaultDeps()), ...overrides };
+  const json = options.json ?? isJson();
 
-  if (platform === "darwin") {
-    return "open"
+  const refused = refusedVisualizeOptions(options);
+  if (refused.length > 0) {
+    throw new CLIError(`dr visualize no longer takes ${refused.length === 1 ? "this option" : "these options"}:\n  ${refused.join("\n  ")}`);
   }
-  if (platform === "win32") {
-    return "start"
+  const port = parsePort(options.port);
+  const target = resolve(deps.cwd, options.path ?? ".");
+  if (!existsSync(target)) throw new CLIError(`No such folder: ${target}`);
+
+  const resolved = await resolveTarget(target, deps);
+  const start: CentralStartOptions = {
+    ...(port !== undefined ? { port } : {}),
+    ...(options.viewerPath !== undefined ? { viewerPath: resolve(deps.cwd, options.viewerPath) } : {}),
+    ...(options.withDanger ? { withDanger: true } : {}),
+    ...(options.readOnly ? { readOnly: true } : {}),
+  };
+  let ensured;
+  try {
+    ensured = await deps.ensure({ cwd: target, env: deps.env, start });
+  } catch (error) {
+    throw new CLIError(`Could not start the DR process: ${getErrorMessage(error)}`, 1, [
+      "dr serve --status shows the process for this farm.",
+    ]);
   }
-  // Linux and others
-  return "xdg-open"
+  const link = viewerUrl(ensured.record, resolved.ref, {}, ensured.token);
+  const notApplied = ensured.started ? [] : startOnlyFlags(options);
+
+  if (json) {
+    deps.out(
+      JSON.stringify(
+        {
+          url: link.url,
+          project: link.project,
+          checkout: link.checkout,
+          pid: ensured.record.pid,
+          port: ensured.record.port,
+          started: ensured.started,
+          ...(notApplied.length > 0 ? { notApplied } : {}),
+          ...(ensured.notice ? { notice: ensured.notice } : {}),
+        },
+        null,
+        2
+      )
+    );
+  } else {
+    const { pid, port: listening } = ensured.record;
+    deps.out(
+      ensured.started
+        ? ansis.green(`✓ Started the DR process (pid ${pid}, port ${listening})`)
+        : `The DR process is running (pid ${pid}, port ${listening})`
+    );
+    deps.out(`  ${link.project} / ${link.checkout}: ${link.url}`);
+    if (ensured.started) {
+      const { withDanger, withChangesets } = resolveChatMode(start);
+      deps.out(
+        ansis.dim(
+          withDanger
+            ? "  Danger mode: chat may land and delete changesets"
+            : withChangesets
+              ? "  Chat can stage model changes in a changeset; --read-only turns that off"
+              : "  Chat is read-only (--read-only)"
+        )
+      );
+    }
+    if (notApplied.length > 0) {
+      deps.out(
+        ansis.yellow(
+          `  Not applied (the DR process was already running): ${notApplied.join(", ")}. ` +
+            "dr visualize --stop, then run this again, to start it with them."
+        )
+      );
+    }
+    if (ensured.notice) deps.out(ansis.yellow(`  ${ensured.notice}`));
+  }
+  if (!options.noBrowser) deps.openBrowser(link.url);
 }

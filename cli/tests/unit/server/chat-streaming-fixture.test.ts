@@ -31,7 +31,11 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { mkdirSync, rmSync } from "fs";
 import { randomUUID } from "crypto";
-import { createFakeWs, createServerWithoutChatDetection, waitFor } from "./helpers.js";
+import { createFakeWs, waitFor } from "./helpers.js";
+import { startTestFarmServer, type TestFarmServer } from "../../helpers/test-farm-server.js";
+
+/** Each test server's farm, stopped by cleanupTestServer. */
+const farms = new Map<VisualizationServer, TestFarmServer>();
 
 /**
  * Helper to create a VisualizationServer with injection override
@@ -56,20 +60,28 @@ async function createTestServer(
   );
 
   // These tests launch the fixture directly and never use the detected client; detecting the
-  // real CLIs would block the process for seconds (see createServerWithoutChatDetection).
-  const server = createServerWithoutChatDetection(model, { authEnabled: false });
+  // real CLIs would block the process for seconds (the helper stubs detection out).
+  const t = await startTestFarmServer(testDir);
+  const server = t.server;
+  farms.set(server, t);
 
   // Set the injection override
-  (server as any)[overrideProp] = overrideCmd;
+  (server as any).drBot[overrideProp] = overrideCmd;
 
-  return { server, model, testDir };
+  // The launch runs in the checkout's context (what a chat.send in it would pass)
+  const ctx = await t.context();
+
+  return { server, model, testDir, ctx };
 }
 
 /**
  * Clean up test server and temp directory
  */
 async function cleanupTestServer(server: VisualizationServer, testDir: string) {
-  server.stop();
+  const t = farms.get(server);
+  farms.delete(server);
+  if (t) await t.stop();
+  else server.stop();
   try {
     rmSync(testDir, { recursive: true, force: true });
   } catch (e) {
@@ -82,7 +94,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   const mockClaudeScriptPath = join(import.meta.dir, "../../fixtures/mock-claude-stream.cjs");
 
   it("happy path: emits ordered chat.response.chunk, chat.tool.invoke, chat.response.complete notifications", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
     ]);
@@ -90,7 +102,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-happy-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-1");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-1");
 
     // Wait for completion response
     const completion = await waitFor(() =>
@@ -125,12 +137,12 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     expect(notifications.some((m) => m.method === "chat.tool.result")).toBe(false);
 
     // Cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect(ctx.chatProcesses.has(conversationId)).toBe(false);
     await cleanupTestServer(server, testDir);
   });
 
   it("full_response equals concatenation of all emitted assistant text blocks", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
     ]);
@@ -138,7 +150,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-concat-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-2");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-2");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-2" && m.result)
@@ -155,7 +167,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("split-chunk buffering: JSON event split across two stdout writes yields exactly one notification", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--split-chunks",
@@ -164,7 +176,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-split-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-3");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-3");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-3" && m.result)
@@ -190,7 +202,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("no-trailing-newline handling: final unterminated JSON event is still handled", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--no-final-newline",
@@ -199,7 +211,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-no-newline-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-4");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-4");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-4" && m.result)
@@ -217,7 +229,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("non-JSON line fallback: unparseable line is forwarded as raw text chunk", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--emit-non-json",
@@ -226,7 +238,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-non-json-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-5");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-5");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-5" && m.result)
@@ -247,7 +259,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("non-zero exit code: final result has status error and matching exit_code", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--exit-code",
@@ -257,7 +269,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-exit-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-6");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-6");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-6" && m.result)
@@ -270,7 +282,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("process cleanup: activeChatProcesses.has(conversationId) is false after successful run", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
     ]);
@@ -278,25 +290,25 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const conversationId = `conv-cleanup-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", "req-7");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", "req-7");
 
     // Wait for completion
     await waitFor(() => ws.sent.find((m) => m.id === "req-7" && m.result));
 
     // Verify cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect(ctx.chatProcesses.has(conversationId)).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });
 
   it("tool status: each tool_use is executing, then completed by the same tool_use_id", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-tools-${randomUUID()}`, "hi", "req-tools");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-tools-${randomUUID()}`, "hi", "req-tools");
     await waitFor(() => ws.sent.find((m) => m.id === "req-tools" && m.result));
 
     const updates = ws.sent
@@ -314,13 +326,13 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("tool status: a call denied at the permission prompt reports as failed", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-denied-${randomUUID()}`, "hi", "req-denied");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-denied-${randomUUID()}`, "hi", "req-denied");
     await waitFor(() => ws.sent.find((m) => m.id === "req-denied" && m.result));
 
     const updates = ws.sent
@@ -337,7 +349,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("tool status: a denied call says which rule refused it and how to allow it (#1241)", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--denial-text",
@@ -345,7 +357,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-explained-${randomUUID()}`, "hi", "req-explained");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-explained-${randomUUID()}`, "hi", "req-explained");
     await waitFor(() => ws.sent.find((m) => m.id === "req-explained" && m.result));
 
     const failed = ws.sent
@@ -367,7 +379,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("tool status: a denial in wording the server doesn't know is explained once the turn lists it", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--denial-text",
@@ -375,7 +387,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-late-${randomUUID()}`, "hi", "req-late");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-late-${randomUUID()}`, "hi", "req-late");
     await waitFor(() => ws.sent.find((m) => m.id === "req-late" && m.result));
 
     const updates = ws.sent
@@ -395,7 +407,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   it("tool status: a refusal that already says why (the chat's hook, or dr itself) is not explained twice", async () => {
     const hookText =
       "PreToolUse:Bash hook error: Blocked by DrBot's permissions (read-only mode): `head` is piped. Nobody was asked to approve it and no prompt is coming.";
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--denial-text",
@@ -403,7 +415,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-hook-${randomUUID()}`, "hi", "req-hook");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-hook-${randomUUID()}`, "hi", "req-hook");
     await waitFor(() => ws.sent.find((m) => m.id === "req-hook" && m.result));
 
     const failed = ws.sent
@@ -420,14 +432,14 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("tool status: a tool's own failure is not called a permission refusal", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--unanswered-tool",
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-own-${randomUUID()}`, "hi", "req-own");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-own-${randomUUID()}`, "hi", "req-own");
     await waitFor(() => ws.sent.find((m) => m.id === "req-own" && m.result));
 
     const failed = ws.sent
@@ -442,14 +454,14 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("tool status: a tool with no result by the end of the reply reports as failed", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
       "--unanswered-tool",
     ]);
     const ws = createFakeWs();
 
-    await (server as any).launchClaudeCodeChat(ws, `conv-pending-${randomUUID()}`, "hi", "req-pending");
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, `conv-pending-${randomUUID()}`, "hi", "req-pending");
     const completion = await waitFor(() => ws.sent.find((m) => m.id === "req-pending" && m.result));
 
     const updates = ws.sent
@@ -466,7 +478,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
   });
 
   it("JSON-RPC response id matches request id", async () => {
-    const { server, testDir } = await createTestServer("_testClaudeCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testClaudeCmdOverride", [
       "node",
       mockClaudeScriptPath,
     ]);
@@ -475,7 +487,7 @@ describe("VisualizationServer Claude Code chat streaming with fixtures", () => {
     const ws = createFakeWs();
     const requestId = "req-match-123";
 
-    await (server as any).launchClaudeCodeChat(ws, conversationId, "test message", requestId);
+    await (server as any).drBot.launchClaudeCodeChat(ctx, ws, conversationId, "test message", requestId);
 
     const completion = await waitFor(() => ws.sent.find((m) => m.id === requestId && m.result));
 
@@ -491,7 +503,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
   const mockCopilotScriptPath = join(import.meta.dir, "../../fixtures/mock-copilot-stream.cjs");
 
   it("happy path: emits chat.response.chunk notifications with concatenated content", async () => {
-    const { server, testDir } = await createTestServer("_testCopilotCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testCopilotCmdOverride", [
       "node",
       mockCopilotScriptPath,
     ]);
@@ -499,7 +511,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-happy-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-1");
+    await (server as any).drBot.launchCopilotChat(ctx, ws, conversationId, "test message", "req-1");
 
     // Wait for completion response
     const completion = await waitFor(() =>
@@ -524,12 +536,12 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     ).toBe(true);
 
     // Cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect(ctx.chatProcesses.has(conversationId)).toBe(false);
     await cleanupTestServer(server, testDir);
   });
 
   it("full_response accumulation matches fixture's full text output", async () => {
-    const { server, testDir } = await createTestServer("_testCopilotCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testCopilotCmdOverride", [
       "node",
       mockCopilotScriptPath,
     ]);
@@ -537,7 +549,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-concat-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-2");
+    await (server as any).drBot.launchCopilotChat(ctx, ws, conversationId, "test message", "req-2");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-2" && m.result)
@@ -555,7 +567,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
   });
 
   it("non-zero exit code: status is error with matching exit_code", async () => {
-    const { server, testDir } = await createTestServer("_testCopilotCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testCopilotCmdOverride", [
       "node",
       mockCopilotScriptPath,
       "--exit-code",
@@ -565,7 +577,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-exit-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-3");
+    await (server as any).drBot.launchCopilotChat(ctx, ws, conversationId, "test message", "req-3");
 
     const completion = await waitFor(() =>
       ws.sent.find((m) => m.id === "req-3" && m.result)
@@ -578,7 +590,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
   });
 
   it("process cleanup: activeChatProcesses is empty after successful run", async () => {
-    const { server, testDir } = await createTestServer("_testCopilotCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testCopilotCmdOverride", [
       "node",
       mockCopilotScriptPath,
     ]);
@@ -586,19 +598,19 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const conversationId = `conv-copilot-cleanup-${randomUUID()}`;
     const ws = createFakeWs();
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", "req-4");
+    await (server as any).drBot.launchCopilotChat(ctx, ws, conversationId, "test message", "req-4");
 
     // Wait for completion
     await waitFor(() => ws.sent.find((m) => m.id === "req-4" && m.result));
 
     // Verify cleanup
-    expect((server as any).activeChatProcesses.has(conversationId)).toBe(false);
+    expect(ctx.chatProcesses.has(conversationId)).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });
 
   it("JSON-RPC response id matches request id", async () => {
-    const { server, testDir } = await createTestServer("_testCopilotCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testCopilotCmdOverride", [
       "node",
       mockCopilotScriptPath,
     ]);
@@ -607,7 +619,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     const ws = createFakeWs();
     const requestId = "req-copilot-match-456";
 
-    await (server as any).launchCopilotChat(ws, conversationId, "test message", requestId);
+    await (server as any).drBot.launchCopilotChat(ctx, ws, conversationId, "test message", requestId);
 
     const completion = await waitFor(() => ws.sent.find((m) => m.id === requestId && m.result));
 
@@ -618,7 +630,7 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
   });
 
   it("concurrent runs with unique conversation IDs don't interfere", async () => {
-    const { server, testDir } = await createTestServer("_testCopilotCmdOverride", [
+    const { server, testDir, ctx } = await createTestServer("_testCopilotCmdOverride", [
       "node",
       mockCopilotScriptPath,
     ]);
@@ -630,8 +642,8 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
 
     // Launch both concurrently
     await Promise.all([
-      (server as any).launchCopilotChat(ws1, conversationId1, "message 1", "req-c1"),
-      (server as any).launchCopilotChat(ws2, conversationId2, "message 2", "req-c2"),
+      (server as any).drBot.launchCopilotChat(ctx, ws1, conversationId1, "message 1", "req-c1"),
+      (server as any).drBot.launchCopilotChat(ctx, ws2, conversationId2, "message 2", "req-c2"),
     ]);
 
     // Wait for both to complete
@@ -642,8 +654,8 @@ describe("VisualizationServer Copilot chat streaming with fixtures", () => {
     expect(completion2.result.status).toBe("complete");
 
     // Both should be cleaned up
-    expect((server as any).activeChatProcesses.has(conversationId1)).toBe(false);
-    expect((server as any).activeChatProcesses.has(conversationId2)).toBe(false);
+    expect(ctx.chatProcesses.has(conversationId1)).toBe(false);
+    expect(ctx.chatProcesses.has(conversationId2)).toBe(false);
 
     await cleanupTestServer(server, testDir);
   });

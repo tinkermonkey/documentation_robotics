@@ -1,32 +1,7 @@
-import { spyOn } from "bun:test";
-import type { Model } from "../../../src/core/model.js";
-import {
-  VisualizationServer,
-  type VisualizationServerOptions,
-} from "../../../src/server/server.js";
-
 /**
- * Constructs a VisualizationServer without detecting the installed chat CLIs.
- *
- * The constructor starts `initializeChatClients()`, which probes the real binaries with
- * `spawnSync` (`which claude`, then `copilot --version`, about 3 s where Copilot is installed).
- * A `spawnSync` freezes the whole test process, so under `bun test --concurrent` one probe per
- * test adds up, and tests that wait on a fixture subprocess time out. The stub only covers the
- * synchronous constructor call, so tests running at the same time are unaffected.
+ * Small fakes for the server tests. A server for a test comes from startTestFarmServer
+ * (tests/helpers/test-farm-server.ts), which also stubs out chat-client detection.
  */
-export function createServerWithoutChatDetection(
-  model: Model,
-  options?: VisualizationServerOptions
-): VisualizationServer {
-  const detect = spyOn(VisualizationServer.prototype as any, "initializeChatClients").mockResolvedValue(
-    undefined
-  );
-  try {
-    return new VisualizationServer(model, options);
-  } finally {
-    detect.mockRestore();
-  }
-}
 
 /** Minimal stand-in for HonoWSContext that just records what would've been sent. */
 export function createFakeWs() {

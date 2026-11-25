@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 
 /**
- * Generate OpenAPI specification from visualization server
+ * Generate OpenAPI specification from the visualization server (in central mode, so it lists the
+ * project- and checkout-scoped routes too)
  * Exports the spec to docs/api-spec.yaml for documentation and static serving
  *
  * Usage: npm run generate:openapi [-- --out <path>]
@@ -13,7 +14,8 @@
 
 import { mkdir, writeFile } from "fs/promises";
 import { VisualizationServer } from "../src/server/server.js";
-import { Model } from "../src/core/model.js";
+import { FarmManifest } from "../src/core/farm-manifest.js";
+import { ProjectRegistry } from "../src/core/project-registry.js";
 import { fileURLToPath } from "url";
 import { dirname, join, resolve } from "path";
 import * as YAML from "yaml";
@@ -47,20 +49,18 @@ async function generateOpenAPISpec() {
     const outputPath = resolveOutputPath(process.argv.slice(2), process.env);
     console.log("🔨 Generating OpenAPI specification...");
 
-    // Load model
-    let model: Model;
-    try {
-      console.log("📦 Loading model...");
-      model = await Model.load(projectRoot, { lazyLoad: true });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("❌ Failed to load model:", message);
-      throw error;
-    }
-
-    // Create server instance
+    // The server's routes: the project routes, every project-data route under
+    // /api/projects/{project}/checkouts/{checkout}/, health, the spec, the docs, the websocket and
+    // MCP (issue 1279). The retired unscoped paths answer 410 and are not documented. Its farm is
+    // empty: building the routes reads no project.
     console.log("🚀 Creating server instance...");
-    const server = new VisualizationServer(model, { authEnabled: false });
+    const registry = ProjectRegistry.fromManifest(
+      { root: projectRoot, file: join(projectRoot, "farm.yaml"), source: "folder" },
+      FarmManifest.create("openapi")
+    );
+    const server = new VisualizationServer({
+      central: { registry, defaultCheckout: null },
+    });
 
     // Get the OpenAPI spec from the server using public API
     // Note: getOpenAPIDocument always returns 3.1.0 regardless of the openapi parameter

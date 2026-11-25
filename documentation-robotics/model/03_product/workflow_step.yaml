@@ -56,9 +56,7 @@ product.workflowstep.onboard-a-project-choose-how-the-model-starts:
   description: Chooses to bootstrap from the code or to let the model grow with each change
   attributes:
     sequence: 4
-    action:
-      Chooses to bootstrap from the code or to let the model grow with each
-      change
+    action: Chooses to bootstrap from the code or to let the model grow with each change
     outcome: The agent continues with that path
   metadata:
     created_at: 2026-11-09T22:04:40.625Z
@@ -204,9 +202,7 @@ product.workflowstep.plan-a-change-agent-orients-in-the-model:
   attributes:
     sequence: 3
     action: Points the agent at related parts of the system if it asks
-    outcome:
-      The agent knows what exists and what the spec allows each new element
-      to carry and connect to
+    outcome: The agent knows what exists and what the spec allows each new element to carry and connect to
   metadata:
     created_at: 2026-11-09T22:04:43.258Z
     updated_at: 2026-11-09T22:04:43.258Z
@@ -464,8 +460,7 @@ product.workflowstep.verify-a-build-against-its-plan-settle-each-difference:
   attributes:
     sequence: 3
     action: Decides whether the code or the plan is wrong for each difference
-    outcome: The code or the plan is fixed until they match or the difference is
-      explained
+    outcome: The code or the plan is fixed until they match or the difference is explained
   metadata:
     created_at: 2026-11-09T22:04:49.954Z
     updated_at: 2026-11-09T22:04:49.954Z
@@ -493,14 +488,10 @@ product.workflowstep.land-a-change-confirm-landing-it:
   type: workflowstep
   layer_id: product
   name: "Land a change: Confirm landing it"
-  description: Confirms in the dialog, approves the commit in Claude Code's
-    permission prompt after reading the landing summary, or presses Apply in the
-    viewer
+  description: Confirms in the dialog, approves the commit in Claude Code's permission prompt after reading the landing summary, or presses Apply in the viewer
   attributes:
     sequence: 2
-    action:
-      Confirms in the dialog, approves the commit in Claude Code's permission
-      prompt after reading the landing summary, or presses Apply in the viewer
+    action: Confirms in the dialog, approves the commit in Claude Code's permission prompt after reading the landing summary, or presses Apply in the viewer
     outcome: The base model now describes what was built
   metadata:
     created_at: 2026-11-09T22:04:51.217Z
@@ -749,4 +740,94 @@ product.workflowstep.upgrade-a-model-to-a-new-spec-apply-the-migration:
   metadata:
     created_at: 2026-11-09T22:05:00.616Z
     updated_at: 2026-11-09T22:05:00.616Z
+    version: 1
+product.workflowstep.work-across-projects-and-worktrees-open-any-project-from-the-session:
+  id: 056991e2-64da-4c3f-8194-3dfcefc4f6d6
+  path: product.workflowstep.work-across-projects-and-worktrees-open-any-project-from-the-session
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Work across projects and worktrees: Open any project from the session"
+  description: Opens the link the agent gives; it lands in the shared viewer on the session's project and checkout
+  attributes:
+    sequence: 1
+    action: Opens the link the agent gives
+  metadata:
+    created_at: 2026-11-21T17:14:10.886Z
+    updated_at: 2026-11-21T17:14:10.886Z
+    version: 1
+product.workflowstep.work-across-projects-and-worktrees-pick-another-project-or-checkout:
+  id: 61d2f1a5-c225-41dd-9fd9-ef3b6e74b13a
+  path: product.workflowstep.work-across-projects-and-worktrees-pick-another-project-or-checkout
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Work across projects and worktrees: Pick another project or checkout"
+  description: Switches project or checkout in the viewer's picker; the URL names both
+  attributes:
+    sequence: 2
+    action: Picks a project, then one of its checkouts
+  metadata:
+    created_at: 2026-11-21T17:14:10.887Z
+    updated_at: 2026-11-21T17:14:10.887Z
+    version: 1
+product.workflowstep.work-across-projects-and-worktrees-review-a-plan-staged-in-a-worktree:
+  id: 3af4f278-74f5-4ad5-a7e5-71765725b067
+  path: product.workflowstep.work-across-projects-and-worktrees-review-a-plan-staged-in-a-worktree
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Work across projects and worktrees: Review a plan staged in a worktree"
+  description: Reviews and comments on a changeset staged in a worktree, which DrBot answers in that worktree
+  attributes:
+    sequence: 3
+    action: Comments on the worktree's plan and asks DrBot about it
+  metadata:
+    created_at: 2026-11-21T17:14:10.887Z
+    updated_at: 2026-11-21T17:14:10.887Z
+    version: 1
+product.workflowstep.move-to-user-level-dr-preview-the-farm-migration:
+  id: ee839b07-1753-4bd8-8fc3-a3859ff89f64
+  path: product.workflowstep.move-to-user-level-dr-preview-the-farm-migration
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Move to user-level DR: Preview the farm migration"
+  description: Reads which farm entries become one project with checkouts and which names are dropped
+  attributes:
+    sequence: 1
+    action: Asks the agent to preview the farm migration
+  metadata:
+    created_at: 2026-11-21T17:21:59.655Z
+    updated_at: 2026-11-21T17:21:59.655Z
+    version: 1
+product.workflowstep.move-to-user-level-dr-apply-the-farm-migration:
+  id: 910e2c7c-65d7-451b-9a98-9472312c2a0d
+  path: product.workflowstep.move-to-user-level-dr-apply-the-farm-migration
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Move to user-level DR: Apply the farm migration"
+  description: Approves writing the dr-farm-v2 user farm
+  attributes:
+    sequence: 2
+    action: Approves the migration
+  metadata:
+    created_at: 2026-11-21T17:21:59.655Z
+    updated_at: 2026-11-21T17:21:59.655Z
+    version: 1
+product.workflowstep.move-to-user-level-dr-stop-the-old-viewers:
+  id: 18100d12-95b9-45ce-a568-475469f62161
+  path: product.workflowstep.move-to-user-level-dr-stop-the-old-viewers
+  spec_node_id: product.workflowstep
+  type: workflowstep
+  layer_id: product
+  name: "Move to user-level DR: Stop the old viewers"
+  description: Sees which per-project viewers the central process stopped and stops the rest
+  attributes:
+    sequence: 3
+    action: Stops the old per-project viewers the sweep reports
+  metadata:
+    created_at: 2026-11-21T17:21:59.655Z
+    updated_at: 2026-11-21T17:21:59.655Z
     version: 1

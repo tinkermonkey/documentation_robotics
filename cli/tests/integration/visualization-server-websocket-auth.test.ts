@@ -3,11 +3,10 @@
  * Tests WebSocket connections with authentication enabled to ensure token handling works correctly
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { Model } from "../../src/core/model.js";
+import { describe, it, expect, beforeAll, afterAll, spyOn } from "bun:test";
 import { VisualizationServer } from "../../src/server/server.js";
-import { portAllocator } from "../helpers/port-allocator.js";
 import { createTestModel } from "../helpers/test-model.js";
+import { startTestFarmServer, type TestFarmServer } from "../helpers/test-farm-server.js";
 import * as fs from "fs/promises";
 import { tmpdir } from "os";
 
@@ -68,30 +67,23 @@ function waitForMessage(ws: WebSocket, expectedType: string, timeout: number = 5
 }
 
 describe.serial("WebSocket Authentication", () => {
-  let server: VisualizationServer;
-  let model: Model;
+  let t: TestFarmServer;
   let port: number;
   let authToken: string;
   let testDir: string;
 
   beforeAll(async () => {
-    port = await portAllocator.allocatePort();
     testDir = getTestDir();
-    model = await createTestModel(testDir);
+    await createTestModel(testDir);
 
-    // Create server with authentication enabled and custom token
+    // A server with a custom token (every server authenticates)
     authToken = "test-token-12345";
-    server = new VisualizationServer(model, {
-      authEnabled: true,
-      authToken,
-    });
-
-    await server.start(port);
+    t = await startTestFarmServer(testDir, { listen: true, token: authToken });
+    port = t.port;
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(port);
+    await t?.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
@@ -155,7 +147,10 @@ describe.serial("WebSocket Authentication", () => {
 
     await waitForEvent(ws, "open");
 
-    // Send subscribe message
+    // Subscribe to the checkout's feed, then send the feed subscribe message
+    const subscribed = waitForMessage(ws, "subscribed");
+    ws.send(JSON.stringify({ action: "subscribe", project: t.project, checkout: t.checkout }));
+    expect(await subscribed).toMatchObject({ project: t.project, checkout: t.checkout });
     ws.send(JSON.stringify({ type: "subscribe" }));
 
     // Should not receive error
@@ -174,6 +169,11 @@ describe.serial("WebSocket Authentication", () => {
     const ws = new WebSocket(wsUrl);
 
     await waitForEvent(ws, "open");
+
+    // A socket's messages run in its checkout: subscribe first
+    const subscribed = waitForMessage(ws, "subscribed");
+    ws.send(JSON.stringify({ action: "subscribe", project: t.project, checkout: t.checkout }));
+    await subscribed;
 
     // Send ping
     ws.send(JSON.stringify({ type: "ping" }));
@@ -197,30 +197,94 @@ describe.serial("WebSocket Authentication", () => {
 
     ws.close();
   });
+
+  it("should accept the token as a Sec-WebSocket-Protocol pair", async () => {
+    const ws = new WebSocket(`ws://localhost:${port}/ws`, ["token", authToken]);
+
+    await waitForEvent(ws, "open");
+
+    expect(ws.readyState).toBe(WebSocket.OPEN);
+    expect(ws.protocol).toBe("token");
+
+    ws.close();
+  });
+
+  it("should reject a Sec-WebSocket-Protocol pair with the wrong token", async () => {
+    const ws = new WebSocket(`ws://localhost:${port}/ws`, ["token", "wrong-token"]);
+
+    const result = await Promise.race([
+      waitForEvent(ws, "open").then(() => "opened"),
+      waitForEvent(ws, "close").then(() => "closed"),
+      waitForEvent(ws, "error").then(() => "error"),
+    ]);
+
+    expect(result).not.toBe("opened");
+
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+  });
+
+  it("should accept the token as an Authorization Bearer header", async () => {
+    const ws = new WebSocket(`ws://localhost:${port}/ws`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    } as any);
+
+    await waitForEvent(ws, "open");
+
+    expect(ws.readyState).toBe(WebSocket.OPEN);
+
+    ws.close();
+  });
+
+  it("should reject an Authorization Bearer header with the wrong token", async () => {
+    const ws = new WebSocket(`ws://localhost:${port}/ws`, {
+      headers: { Authorization: "Bearer wrong-token" },
+    } as any);
+
+    const result = await Promise.race([
+      waitForEvent(ws, "open").then(() => "opened"),
+      waitForEvent(ws, "close").then(() => "closed"),
+      waitForEvent(ws, "error").then(() => "error"),
+    ]);
+
+    expect(result).not.toBe("opened");
+
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+  });
 });
 
 describe.serial("WebSocket Authentication Edge Cases", () => {
+  let farm: TestFarmServer;
   let server: VisualizationServer;
-  let model: Model;
   let port: number;
   let testDir: string;
 
   beforeAll(async () => {
-    port = await portAllocator.allocatePort();
     testDir = getTestDir();
-    model = await createTestModel(testDir);
+    await createTestModel(testDir);
 
-    // Server with authentication but no custom token (auto-generated)
-    server = new VisualizationServer(model, {
-      authEnabled: true,
-    });
+    // The helper always passes a token: use its farm (not listening), and start a server of
+    // our own over it with no token, so the server generates one.
+    farm = await startTestFarmServer(testDir);
+    const detect = spyOn(VisualizationServer.prototype as any, "initializeChatClients").mockResolvedValue(undefined);
+    try {
+      server = new VisualizationServer({
+        central: { registry: farm.registry, defaultCheckout: farm.ref, removalCheckMs: 0 },
+      });
+    } finally {
+      detect.mockRestore();
+    }
 
-    await server.start(port);
+    await server.start(0);
+    port = server.listeningPort()!;
   });
 
   afterAll(async () => {
-    server.stop();
-    portAllocator.releasePort(port);
+    await server?.stopCentral();
+    await farm?.stop();
     await fs.rm(testDir, { recursive: true, force: true });
   });
 

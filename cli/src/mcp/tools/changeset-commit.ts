@@ -56,8 +56,10 @@ import {
   type OverlapKind,
 } from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
+import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
+import { changesetLinkIfRunning } from "./central-viewer.js";
 import {
   jsonResult,
   loadModel,
@@ -97,10 +99,13 @@ export const OVERLAPS_NAMED_PER_KIND = 10;
  * How the user can land the changeset without this tool: the viewer, or an interactive session.
  * Never the CLI: the developer types no dr command (round 3 found agents passing it on).
  */
-export function otherWaysToLand(): string[] {
+export function otherWaysToLand(viewerUrl?: string): string[] {
   return [
-    "Ask the user to commit it in the viewer: call review_open, give them its url, and they press Apply on the " +
-      "changeset (Apply lands a drifted changeset too)",
+    viewerUrl
+      ? `Ask the user to commit it in the viewer: give them ${viewerUrl} (it opens the changeset), and they press Apply ` +
+        "on it (Apply lands a drifted changeset too)"
+      : "Ask the user to commit it in the viewer: call review_open, give them its url, and they press Apply on the " +
+        "changeset (Apply lands a drifted changeset too)",
     "Or ask them to run changeset_commit again from an interactive Claude Code session, where the confirmation dialog can be shown",
   ];
 }
@@ -463,7 +468,7 @@ function tokenRefusal(name: string, check: Exclude<TokenCheck, "ok">): CLIError 
 }
 
 /** The ways to land when the dialog can't be used: the preview and token first, from Claude Code. */
-function landingRoutes(server: McpToolContext["server"]): string[] {
+function landingRoutes(server: McpToolContext["server"], viewerUrl?: string): string[] {
   return [
     ...(asksBeforeEachCall(server)
       ? [
@@ -471,8 +476,27 @@ function landingRoutes(server: McpToolContext["server"]): string[] {
             "the user approves that call in Claude Code's permission prompt",
         ]
       : []),
-    ...otherWaysToLand(),
+    ...otherWaysToLand(viewerUrl),
   ];
+}
+
+/**
+ * The viewer link to the changeset a refusal is about, when the central DR process runs: the
+ * refusal hands it to the user. Never starts the process, and never fails a refusal (undefined).
+ */
+async function landingLink(args: { changeset: string; rootPath?: string }): Promise<string | undefined> {
+  try {
+    const model = await loadModel(args.rootPath);
+    let id: string | undefined;
+    try {
+      id = (await resolveChangeset(new StagingAreaManager(model.rootPath, model), args.changeset, "changeset")).id;
+    } catch {
+      id = undefined;
+    }
+    return (await changesetLinkIfRunning(model.rootPath, id))?.url;
+  } catch {
+    return undefined;
+  }
 }
 
 async function askForConfirmation(context: McpToolContext, message: string): Promise<ElicitResult> {
@@ -596,7 +620,7 @@ export async function changesetCommitHandler(
       throw refusal(
         `This session can't commit a changeset: it is in changeset-only mode (${CHANGESET_ONLY_ENV}), ` +
           "where no person can confirm the commit.",
-        ["Tell the user the changeset is ready to land", ...otherWaysToLand()]
+        ["Tell the user the changeset is ready to land", ...otherWaysToLand(await landingLink(args))]
       );
     }
 
@@ -607,7 +631,7 @@ export async function changesetCommitHandler(
       throw refusal(
         "A confirmToken stands in for the confirmation dialog only from a client that asks the person before " +
           "every changeset_commit call (Claude Code). This client confirms in the dialog. Nothing was written.",
-        ["Call changeset_commit again without confirmToken; the user confirms in the dialog", ...otherWaysToLand()]
+        ["Call changeset_commit again without confirmToken; the user confirms in the dialog", ...otherWaysToLand(await landingLink(args))]
       );
     }
 
@@ -616,7 +640,7 @@ export async function changesetCommitHandler(
       throw refusal(
         `Changeset '${args.changeset}' was not committed: committing needs a person to confirm it, and this client ` +
           "can't show a confirmation dialog (it does not support MCP elicitation).",
-        landingRoutes(server)
+        landingRoutes(server, await landingLink(args))
       );
     }
 
@@ -644,7 +668,7 @@ export async function changesetCommitHandler(
       } catch (error) {
         throw refusal(
           `Changeset '${changeset.name}' was not committed: the confirmation could not be shown (${getErrorMessage(error)}).`,
-          landingRoutes(server)
+          landingRoutes(server, await landingLink(args))
         );
       }
       if (answer.action !== "accept" && Date.now() - askedAt < confirmationTiming.instantDeclineMs) {
@@ -653,7 +677,7 @@ export async function changesetCommitHandler(
           `Changeset '${changeset.name}' was not committed: the confirmation dialog could not be shown. The client ` +
             `answered "${answer.action}" at once, before anyone could read it (Claude Code does this in print mode, ` +
             "as in the Claude desktop app). Nothing was written.",
-          landingRoutes(server)
+          landingRoutes(server, await landingLink(args))
         );
       }
       if (answer.action === "cancel") {
@@ -662,7 +686,7 @@ export async function changesetCommitHandler(
           `Changeset '${changeset.name}' was not committed: no confirmation came back. The dialog was cancelled or ` +
             "closed without an answer, and may not have been shown to the user (it does not reach a person following " +
             "the session over Remote Control or in the Claude desktop app). Nothing was written.",
-          ["Ask the user whether they saw a confirmation dialog. If they did not, use a route that needs none:", ...landingRoutes(server)]
+          ["Ask the user whether they saw a confirmation dialog. If they did not, use a route that needs none:", ...landingRoutes(server, await landingLink(args))]
         );
       }
       if (answer.action === "decline") {
@@ -674,7 +698,7 @@ export async function changesetCommitHandler(
           [
             "If the user declined, ask what should change before landing it, or leave it staged",
             "If they saw no dialog, use a route that needs none:",
-            ...landingRoutes(server),
+            ...landingRoutes(server, await landingLink(args)),
           ]
         );
       }
@@ -706,13 +730,21 @@ export async function changesetCommitHandler(
           ['Show the user the changeset as it is now ("changeset_brief"), then ask again with changeset_commit']
         );
       }
+      // In the central process, the checkout's open viewers see the commit's progress (issue 1361).
+      const progress = createCommitProgressReporter(model.rootPath, changeset.id);
       let landed;
       try {
-        landed = await manager.commit(model, changeset.id, { validate: true });
+        landed = await manager.commit(model, changeset.id, { validate: true, onProgress: progress.onProgress });
       } catch (error) {
+        progress.fail();
         throw commitError(error, changeset.name);
       }
-      await reloadModel(args.rootPath);
+      progress.phase("reloading");
+      try {
+        await reloadModel(args.rootPath);
+      } finally {
+        progress.finish();
+      }
       return { result: landed, model };
     });
     if (result.deactivationError) {

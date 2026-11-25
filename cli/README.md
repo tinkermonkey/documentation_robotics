@@ -99,10 +99,10 @@ dr show api-endpoint-create-order
 ### 3. Visualize Your Architecture
 
 ```bash
-# Launch interactive visualization
+# Open the viewer at this project (starts the DR process for your farm if it isn't running)
 dr visualize
 
-# Opens in your browser at http://localhost:8080
+# Opens in your browser at http://127.0.0.1:8080/#/p/<project>/c/<checkout>/
 # - Explore layers and relationships
 # - Search and filter elements
 # - Chat with Claude about your model
@@ -303,18 +303,19 @@ dr chat github-copilot                   # Use GitHub Copilot, save as preferenc
 
 ### MCP Server
 
-`dr mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio, exposing the architecture model (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat) as tools an MCP-aware AI client can call directly.
+`dr mcp` connects an MCP-aware AI client to the [Model Context Protocol](https://modelcontextprotocol.io/) interface of your DR process, exposing the architecture model (list/show/search/add/update/delete/validate/export/trace elements, changesets, chat) as tools the client can call directly.
 
 ```bash
-# Start the server (run by your MCP client, not typically by hand)
+# The stdio bridge (run by your MCP client, not typically by hand)
 dr mcp
 
-# Rotate the API key: generates a new key, overwrites it at the configured
-# storage path, and prints it — without touching the server process
-dr mcp --regenerate-key
+# Find or start the DR process and print its MCP endpoint and token file
+dr mcp --http
 ```
 
-**Which project**: the server serves the project the client has open. It asks the client for its MCP roots after connecting and moves to the first root inside a DR project (or the first root, if none has a model yet). `DR_MCP_ROOT_PATH` pins it to one model instead, and tool calls can pass `rootPath`.
+**One process for every project**: MCP is served by the DR process for your farm (`dr serve`), the same process that serves the viewer. `dr mcp` over stdio is a bridge: it finds that process from its server record, starts it detached when none runs (or replaces one older than this CLI when nothing is using it), and forwards the client's messages to its `/mcp` endpoint with the process's token. The client's configuration holds no token.
+
+**Which checkout**: each MCP session serves its own checkout, resolved through the farm's project registry: `DR_MCP_ROOT_PATH` when set, else the first of the client's MCP roots inside a registered project's checkout, else the first root (whose repository is then registered in the farm). Tool calls can still pass `rootPath`. Every tool result names the `project` and `checkout` it ran in. Nothing changes a process's working directory, so sessions in different checkouts never see each other's model.
 
 **Configuring an MCP client**: in Claude Code, install the `dr` plugin (see [MCP_SERVER.md](../integrations/claude_code/docs/MCP_SERVER.md)). Other clients point at the `dr` binary:
 
@@ -329,11 +330,9 @@ dr mcp --regenerate-key
 }
 ```
 
-**API key (HTTP transport only)**: over stdio the client starts the server as your own user, so there is no key. `dr mcp --transport http` requires the key as a bearer token:
+**HTTP**: `dr mcp --http` (or `--transport http`) prints `http://127.0.0.1:<port>/mcp` and the `0600` file holding the process's token, then exits; the process keeps serving. Send the token as `Authorization: Bearer <token>`. The port and token change when the process restarts, which is why the stdio bridge is the default. `--port` and `--host` no longer apply (`dr serve --port` sets the port when it starts the process), and `--regenerate-key` only rotates the old standalone key, which nothing uses now.
 
-- On first launch it generates a random key and stores it with `0600` permissions. Interactive sessions are prompted for a storage path; non-interactive launches default to `~/.dr-mcp-key`. The path is recorded under `mcp.api_key_path` in `~/.dr-config.yaml` (or the path from `DR_CONFIG_PATH`).
-- Every HTTP launch prints the key to stderr (`DR_MCP_QUIET_KEY=1` suppresses it).
-- `dr mcp --regenerate-key` rotates it: it overwrites the key at its configured path, updates `~/.dr-config.yaml`, prints the new key and exits without starting the server.
+**In process**: `DR_MCP_IN_PROCESS=1 dr mcp` serves the tools in the `dr mcp` process itself, for one session, without the DR process or the farm's registry, for a client that must not start a background process.
 
 ## Configuration
 
@@ -521,76 +520,68 @@ The chat functionality supports two AI CLI tools. You need at least one installe
 
 ### Visualization Server
 
+One DR process per farm serves the viewer for every project and checkout (`dr serve`).
+`dr visualize` makes sure it runs, starting it in the background when none does, and opens the
+viewer at the checkout the path (default: the working directory) is in. A repository with a model
+that no project owns yet is added to the farm first, as `dr farm add` would.
+
 ```bash
-# Launch with default embedded viewer
+# Open the viewer at this checkout (starts the DR process when it isn't running)
 dr visualize
 
-# Custom port
-dr visualize --port 3000
+# Another project, or a worktree: same process, its own checkout
+dr visualize ../other-project
 
-# Don't auto-open browser
+# Print the link instead of opening the browser
 dr visualize --no-browser
 
-# Load custom viewer build (useful for development or custom distributions)
+# Start-only options: used when dr visualize starts the process
+dr visualize --port 3000 --read-only
 dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
 
-# Combined example: custom viewer on custom port without browser
-dr visualize --viewer-path ./my-viewer --port 3000 --no-browser
-
-# See every viewer running on this machine: project, port, pid, CLI version, started at
+# The DR process (pid, port, CLI version, tabs, MCP sessions, DrBot turns) and any older per-project viewers
 dr visualize --list
 
-# Stop the current project's viewers, another project's, one port's, or all of them
+# Stop the DR process; --all also stops older per-project viewers
 dr visualize --stop
-dr visualize --stop ../other-project
-dr visualize --stop --port 8084
 dr visualize --stop --all
 ```
 
-**Running viewers**:
-
-A viewer runs until it is stopped. One that an agent's `review_open` starts runs in the background, so
-nothing on screen says it is there:
-
-- `dr visualize --list` shows all of them, including viewers the registry has no record of (it also reads
-  the process table). `--json` gives the list to a script. A viewer keeps the code it started with, so after a
-  CLI upgrade the list marks the ones that are older than the installed CLI.
-- `dr visualize --stop` stops viewers and waits for each to exit. It acts on the viewers this registry
-  records. A viewer found only in the process table (its record was lost, or a session with another
-  `DR_STATE_DIR` started it) is named and left running unless you add `--include-unrecorded`.
-- `--stop` signals a process only when it is confirmed to be the viewer. Where the process table can be
-  read, it decides: the recorded pid started no later than its record, is a `dr visualize` launcher, and has a
-  server under it whose script is the dr CLI's (when the viewer also names itself on `/health`, that server
-  must be the one it names). Where it cannot be read, the viewer must name itself on `/health`: its id, its
-  pid and its launcher's, which it tells only to a caller with its auth token (taken from its record). A
-  viewer started with `--no-auth` tells nobody, so without a process table it is never stopped from here.
-  Before a SIGKILL, and before signalling a server after its launcher, the start time is read again; a pid
-  that was reused while `--stop` waited is not signalled, and one whose start time cannot be read is not
-  killed (reported as "did not exit in time"). Anything else (a reused pid, another program's
-  `dist/server-entry.js`, another user's viewer) is reported and left alone.
-- A `review_open` viewer exits on its own after 24 hours with no browser tab connected and no authenticated
-  API request; an open tab keeps it alive. Idle time is wall-clock time, so hours the machine sleeps count
-  for a viewer with no tab open. `DR_VIEWER_IDLE_HOURS` changes the period, and `0` means never; the `dr mcp`
-  server reads it when `review_open` starts a viewer, so a change applies to viewers started after it.
-  `--idle-exit <hours>` gives any `dr visualize` the same limit.
-- `review_open` replaces a viewer older than the CLI only when `review_open` started it and it reports no
-  browser tab connected, both when it first looks and again just before stopping it. Otherwise it returns the
-  link with a notice, and `restart: true` replaces it. A viewer from before 0.7.0 does not name itself, so it
-  is reused only when the process table shows the record's own process serving its port; otherwise
-  `review_open` starts a new viewer rather than risk a link to another project's.
-- Any viewer exits when its project's `documentation-robotics/` folder is removed.
-- `--exit-with-parent` makes `dr visualize` exit when the process that started it is gone, for scripts and
-  test runs that must not leave a server behind.
+- **The link** is `http://127.0.0.1:<port>/#/p/<project>/c/<checkout>/?token=<token>`. The token is
+  in the fragment, which a browser never sends. Every route but `/` and `/health` requires it, so
+  `--no-auth` and `--token` are refused.
+- **Start-only options.** `--port` (where the port search starts), `--viewer-path`,
+  `--with-danger`, `--read-only` and `--with-changesets` apply only when `dr visualize` starts the
+  process; it passes them to `dr serve`. When the process is already running, a notice says which
+  were not applied: `dr visualize --stop`, then run it again, to start it with them.
+- **Lifetime.** The process exits after `DR_VIEWER_IDLE_HOURS` (24; `0` means never) with no
+  browser tab, MCP session or DrBot turn, and no request. `--idle-exit` and `--exit-with-parent`
+  no longer apply and are refused.
+- **`--list`** shows the process for the farm in use, from its server record and its `/health`.
+  Below it, it lists the per-project viewers that CLI 0.7.x and earlier left running, each with the
+  reason the process's start-up sweep kept it: started from a terminal, a browser tab connected,
+  its tabs could not be read, or its pids could not be confirmed (an unused one that `review_open`
+  started is stopped by the next start). `--json` gives the same to a script.
+- **`--stop`** stops the process with the same confirmed stop as `dr serve --stop`.
+  **`--stop --all`** also stops every per-project viewer whose pids are confirmed. A viewer found
+  only in the process table (its record was lost, or a session with another `DR_STATE_DIR` started
+  it) is named and left running unless you add `--include-unrecorded`.
+- `--stop` signals an old per-project viewer only when it is confirmed to be that viewer. Where the
+  process table can be read, it decides: the recorded pid started no later than its record, is a
+  `dr visualize` launcher, and has a server under it whose script is the dr CLI's. Where it cannot be
+  read, the viewer must name itself on `/health`, which it does only for a caller with its token.
+  Before a SIGKILL the start time is read again; a reused pid is never signalled.
 
 Neither command gives a partial answer as if it were whole:
 
-- `--list` ends with how many viewers it found and where (the registry, the process table), what reading the
-  registry removed (stale records, old logs), and what it leaves out: viewers the registry has lost when the
-  process table cannot be read (no `ps`, or `DR_VIEWER_PROCESS_SCAN=off`), processes it could not confirm to
-  be dr's, other users' viewers, and registry records it could not read (left in place). `--json` carries the
-  same as `caveats`, `processScan`, `counts` and `swept`. It never claims to be complete.
-- `--stop` ends with how many viewers were running, how many matched and how many it stopped. It names each
-  one it did not stop, with its pid and why, and exits 1 when any matching viewer is still running.
+- `--list` ends with how many per-project viewers it found and where (the registry, the process
+  table), what reading the registry removed (stale records, old logs), and what it leaves out:
+  viewers the registry has lost when the process table cannot be read (no `ps`, or
+  `DR_VIEWER_PROCESS_SCAN=off`), processes it could not confirm to be dr's, other users' viewers, and
+  registry records it could not read. `--json` carries the same as `caveats`, `processScan`,
+  `counts` and `swept`. It never claims to be complete.
+- `--stop --all` ends with how many per-project viewers were running and how many it stopped. It
+  names each one it did not stop, with its pid and why, and exits 1 when any is still running.
 
 **Time limits** are settings, each with a default and an environment variable. `dr visualize --list --json`
 prints the values in effect (`settings`), and a value that cannot be used is reported instead of being
@@ -598,13 +589,13 @@ replaced quietly.
 
 | Variable                             | Default | What it sets                                                                              |
 | ------------------------------------ | ------- | ----------------------------------------------------------------------------------------- |
-| `DR_VIEWER_IDLE_HOURS`               | 24      | Idle time before a `review_open` viewer exits. `0` means never.                           |
+| `DR_VIEWER_IDLE_HOURS`               | 24      | Idle time before the DR process exits. `0` means never.                                   |
 | `DR_VIEWER_HEALTH_TIMEOUT_MS`        | 1500    | How long a viewer gets to answer its health check.                                        |
 | `DR_VIEWER_HEALTH_RETRY_TIMEOUT_MS`  | 5000    | The second try, made when none answered, before `review_open` calls a viewer unreachable. |
 | `DR_VIEWER_STATUS_HEALTH_TIMEOUT_MS` | 500     | How long `project_status` gives a viewer to answer (the retry twice that), to stay fast.  |
 | `DR_VIEWER_STOP_TIMEOUT_MS`          | 8000    | How long a viewer gets to exit after SIGTERM before `--stop` or a restart kills it.       |
 | `DR_VIEWER_LOG_KEEP_DAYS`            | 7       | How long the log of a viewer that is gone is kept.                                        |
-| `DR_VIEWER_LIFETIME_CHECK_MS`        | 30000   | How often a viewer checks for idleness and for its project folder (gone after two).       |
+| `DR_VIEWER_LIFETIME_CHECK_MS`        | 30000   | How often the DR process checks whether it is idle.                                       |
 
 `DR_VIEWER_PROCESS_SCAN=off` makes `--list` and `--stop` use the registry alone and never read the process
 table; they say so.

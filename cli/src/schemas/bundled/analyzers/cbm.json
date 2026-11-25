@@ -1,7 +1,7 @@
 {
   "name": "cbm",
-  "version": "0.14.0",
-  "source_version": "0.14.0",
+  "version": "0.15.0",
+  "source_version": "0.15.0",
   "analyzer": {
     "name": "cbm",
     "display_name": "codebase-memory-mcp",

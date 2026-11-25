@@ -101,8 +101,12 @@ interface CachedModel {
 
 const modelCache = new Map<string, CachedModel>();
 
+/**
+ * A call that names no rootPath reads the project its MCP session serves (mcp/project-root.ts), so
+ * its key is that root: two sessions in two checkouts never share an entry.
+ */
 function modelCacheKey(rootPath?: string): string {
-  return rootPath ?? "";
+  return rootPath ?? `session:${path.resolve(currentProjectRoot().root)}`;
 }
 
 /** Test-only escape hatch: clears the module-private model cache between test cases. */
@@ -259,7 +263,9 @@ function readIntoCache(key: string, rootPath: string | undefined, root: string):
       while (modelWritesInFlight(root) > 0) await whenModelWritesSettled(root);
       const generation = modelWriteGeneration(root);
       entry.fingerprint = modelFingerprint(root);
-      const model = await readModelFromDisk(rootPath);
+      // Never Model.load(undefined): that reads the process's working directory, which is no
+      // session's project. A call without rootPath reads the root its session serves.
+      const model = await readModelFromDisk(rootPath ?? root);
       if (modelWriteGeneration(root) !== generation) continue;
       entry.model = model;
       const readFrom = (model as Partial<Model>).rootPath;

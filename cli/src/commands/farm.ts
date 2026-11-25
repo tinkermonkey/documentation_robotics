@@ -5,9 +5,19 @@
 import ansis from "ansis";
 import { Command } from "commander";
 import path from "path";
-import { rm } from "fs/promises";
-import { FarmManifest } from "../core/farm-manifest.js";
-import { findFarmRoot, resolveModelDirectory } from "../utils/project-paths.js";
+import { realpath, rm } from "fs/promises";
+import { FarmManifest, farmPathFor, resolveFarmPath } from "../core/farm-manifest.js";
+import {
+  ProjectRegistry,
+  deriveProjectName,
+  DEFAULT_MODEL_FOLDER,
+  loadFarm,
+  resolveFarm,
+  resolveRepository,
+  type FarmLocation,
+} from "../core/project-registry.js";
+import { migrateFarmManifest, type FarmMigrationPlan } from "../core/farm-migration.js";
+import { resolveModelDirectory } from "../utils/project-paths.js";
 import { fileExists } from "../utils/file-io.js";
 import { execSync, execFileSync } from "child_process";
 import * as prompts from "@clack/prompts";
@@ -41,7 +51,7 @@ interface FarmSyncResultEntry {
 
 interface ProjectStatus {
   name: string;
-  source: string;
+  repository: string;
   model: string;
   remote?: string;
   last_sync_commit: string | undefined;
@@ -132,13 +142,18 @@ interface ModelRegistration {
   ignoredModelPath?: string;
   /** User-facing warning attached to the registration (also carried in JSON output) */
   warning?: string;
+  /** True when the model folder is recorded but not created (the user farm, a repository with no model yet) */
+  notCreated?: boolean;
 }
 
 /**
  * A path relative to the farm root, using forward slashes so farm.yaml stays portable.
  * Returns "." for the farm root itself.
  */
-function farmRelativePath(farmRoot: string, target: string): string {
+function farmRelativePath(farmRoot: string, target: string, absoluteOutside = false): string {
+  if (absoluteOutside) {
+    return farmPathFor(farmRoot, target);
+  }
   const rel = path.relative(farmRoot, target);
   return rel === "" ? "." : rel.split(path.sep).join("/");
 }
@@ -167,12 +182,15 @@ async function resolveProjectModel(
     codebaseFullPath: string;
     explicitModel?: string;
     forceNewModel: boolean;
+    /** Record a path outside the farm root as absolute (the user farm) instead of farm-relative. */
+    absoluteOutside?: boolean;
   }
 ): Promise<ModelRegistration> {
   const { farmRoot, codebaseFullPath, explicitModel, forceNewModel } = input;
+  const absoluteOutside = input.absoluteOutside ?? false;
 
   if (explicitModel) {
-    const explicitFullPath = path.resolve(farmRoot, explicitModel);
+    const explicitFullPath = absoluteOutside ? path.resolve(explicitModel) : path.resolve(farmRoot, explicitModel);
     const resolved = await resolveModelDirectory(explicitFullPath, { requireManifest: true });
     if (!resolved) {
       throw new Error(
@@ -182,7 +200,7 @@ async function resolveProjectModel(
       );
     }
     return {
-      modelFolder: farmRelativePath(farmRoot, resolved.modelDir),
+      modelFolder: farmRelativePath(farmRoot, resolved.modelDir, absoluteOutside),
       modelFullPath: resolved.modelDir,
       adopted: true,
     };
@@ -198,10 +216,20 @@ async function resolveProjectModel(
 
   if (detected && !forceNewModel) {
     return {
-      modelFolder: farmRelativePath(farmRoot, detected.modelDir),
+      modelFolder: farmRelativePath(farmRoot, detected.modelDir, absoluteOutside),
       modelFullPath: detected.modelDir,
       adopted: true,
     };
+  }
+
+  if (absoluteOutside) {
+    // The user farm keeps no model folders of its own: a repository without a model gets one
+    // recorded at its default place (documentation-robotics/model), created by `dr init` there.
+    if (forceNewModel) {
+      throw new Error("--new-model scaffolds <name>-model inside a folder farm; the user farm keeps no model folders");
+    }
+    const modelFullPath = path.join(codebaseFullPath, DEFAULT_MODEL_FOLDER);
+    return { modelFolder: modelFullPath, modelFullPath, adopted: false, notCreated: true };
   }
 
   // Scaffold (or reuse) <farm>/<name>-model
@@ -217,8 +245,39 @@ async function resolveProjectModel(
     modelFolder,
     modelFullPath,
     adopted: false,
-    ...(detected ? { ignoredModelPath: farmRelativePath(farmRoot, detected.modelDir) } : {}),
+    ...(detected ? { ignoredModelPath: farmRelativePath(farmRoot, detected.modelDir, absoluteOutside) } : {}),
   };
+}
+
+/** The farm in use, loaded. */
+interface OpenFarm {
+  location: FarmLocation;
+  farmRoot: string;
+  farmYamlPath: string;
+  manifest: FarmManifest;
+}
+
+/**
+ * Open the farm in use (DR_FARM_PATH, else a farm found upward, else the user farm). A
+ * dr-farm-v1 farm is read with a notice on stderr naming `dr farm migrate`. The user farm is
+ * written on first use only when `create` is true; otherwise it is read as empty.
+ */
+async function openFarm(options: { create?: boolean } = {}): Promise<OpenFarm> {
+  const location = await resolveFarm();
+  const manifest = await loadFarm(location, { create: options.create ?? false });
+  const notice = manifest.legacyNotice();
+  if (notice) {
+    console.error(ansis.yellow(`Notice: ${notice}`));
+  }
+  return { location, farmRoot: location.root, farmYamlPath: location.file, manifest };
+}
+
+/** Refuse a write to a dr-farm-v1 farm, before anything else is changed. */
+function refuseLegacyWrite(manifest: FarmManifest): void {
+  const notice = manifest.legacyNotice();
+  if (notice) {
+    throw new Error(notice);
+  }
 }
 
 /**
@@ -331,7 +390,7 @@ export async function farmInitCommand(options: {
  * Add a project to the farm
  */
 export async function farmAddCommand(
-  name: string,
+  nameArg: string | undefined,
   options: {
     remote?: string;
     codebase?: string;
@@ -340,7 +399,7 @@ export async function farmAddCommand(
     format?: string;
   }
 ): Promise<void> {
-  const span = isTelemetryEnabled ? startSpan("farm.add", { "project.name": name }) : null;
+  const span = isTelemetryEnabled ? startSpan("farm.add", { "project.name": nameArg ?? "" }) : null;
   const useJson = options.format === "json" || isJson();
 
   try {
@@ -349,25 +408,33 @@ export async function farmAddCommand(
         "--model and --new-model cannot be combined: --model registers an existing model, --new-model scaffolds a fresh one"
       );
     }
-
-    // Find farm root
-    const farmRoot = await findFarmRoot();
-    if (!farmRoot) {
-      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
+    if (!nameArg && !options.codebase) {
+      throw new Error("Name the project or its codebase: dr farm add <name> [--codebase <path>], or dr farm add --codebase <path>");
+    }
+    if (!nameArg && options.remote) {
+      throw new Error("--remote clones into <name>: name the project (dr farm add <name> --remote <url>)");
     }
 
-    const farmYamlPath = path.join(farmRoot, "farm.yaml");
-    const manifest = await FarmManifest.load(farmYamlPath);
+    // The farm in use: DR_FARM_PATH, else a farm found upward, else the user farm.
+    const { location, farmRoot, farmYamlPath, manifest } = await openFarm();
+    refuseLegacyWrite(manifest);
 
-    // Check if project already exists
-    if (manifest.getProject(name)) {
-      throw new Error(`Project '${name}' already exists in this farm`);
+    const userFarm = location.source === "user";
+    if (userFarm && options.remote) {
+      throw new Error(
+        `--remote clones into a folder farm. The farm in use is the user farm (${farmYamlPath}): ` +
+          `clone the repository yourself, then 'dr farm add --codebase <path>'.`
+      );
     }
 
-    // Determine codebase path
-    let codebasePath = options.codebase || name;
+    // Determine codebase path. In the user farm a relative --codebase is relative to the working
+    // directory and recorded absolute; in a folder farm it is relative to the farm root.
+    let codebasePath = options.codebase || (nameArg as string);
+    if (userFarm) {
+      codebasePath = path.resolve(codebasePath);
+    }
 
-    const codebaseFullPath = path.resolve(path.join(farmRoot, codebasePath));
+    let codebaseFullPath = resolveFarmPath(farmRoot, codebasePath);
     const farmRootResolved = path.resolve(farmRoot);
 
     // Clone if remote URL provided
@@ -399,6 +466,39 @@ export async function farmAddCommand(
       }
     }
 
+    // A codebase in git is its repository's project: a worktree path resolves to the main
+    // checkout, so adding a worktree finds (or adds) its project, never a project per worktree.
+    const repository = await resolveRepository(codebaseFullPath);
+    let resolvedFromWorktree: string | undefined;
+    if (repository && repository.mainCheckout !== (await realPathOf(codebaseFullPath))) {
+      resolvedFromWorktree = codebasePath;
+      codebaseFullPath = repository.mainCheckout;
+      codebasePath = farmPathFor(farmRoot, repository.mainCheckout);
+    }
+
+    if (repository) {
+      const registry = ProjectRegistry.fromManifest(location, manifest);
+      const existing = await registry.projectForRepository(repository);
+      if (existing) {
+        if (nameArg && nameArg !== existing.name) {
+          throw new Error(
+            `Repository ${repository.mainCheckout} is already in the farm as project '${existing.name}'`
+          );
+        }
+        reportExistingProject(existing.name, existing.repository, existing.model, resolvedFromWorktree, useJson);
+        if (span) endSpan(span);
+        return;
+      }
+    }
+
+    const holders = new Map(
+      manifest.getAllProjects().map((p) => [p.name, resolveFarmPath(farmRoot, p.repository)] as const)
+    );
+    if (nameArg && manifest.getProject(nameArg)) {
+      throw new Error(`Project '${nameArg}' already exists in this farm`);
+    }
+    const name = deriveProjectName(codebaseFullPath, (n) => holders.get(n), nameArg);
+
     // Decide which model the project uses: an explicit --model path, the codebase's own
     // self-hosted model (adopted in place), or a fresh scaffold at <name>-model.
     const registration = await resolveProjectModel(name, {
@@ -406,6 +506,7 @@ export async function farmAddCommand(
       codebaseFullPath,
       explicitModel: options.model,
       forceNewModel: options.newModel ?? false,
+      absoluteOutside: userFarm,
     });
     const modelFolder = registration.modelFolder;
 
@@ -420,6 +521,11 @@ export async function farmAddCommand(
     if (registration.adopted) {
       if (!useJson) {
         handleInfo(`Using existing model at ${registration.modelFullPath}; nothing was created`);
+      }
+    } else if (registration.notCreated) {
+      registration.warning = `No model yet at ${registration.modelFullPath}; run 'dr init' in ${codebaseFullPath} to create it`;
+      if (!useJson) {
+        handleWarning(registration.warning);
       }
     } else if (!(await fileExists(registration.modelFullPath))) {
       // Initialize model with manifest and layer structure
@@ -444,9 +550,9 @@ export async function farmAddCommand(
     // Add project to manifest
     manifest.addProject(name, {
       name,
-      source: codebasePath,
+      repository: codebasePath,
       model: modelFolder,
-      remote: options.remote,
+      ...((options.remote ?? repository?.remote) ? { remote: options.remote ?? repository?.remote } : {}),
     });
 
     await manifest.save(farmYamlPath);
@@ -484,7 +590,10 @@ export async function farmAddCommand(
         JSON.stringify({
           status: "ok",
           project: name,
-          source: codebasePath,
+          repository: codebasePath,
+          ...(resolvedFromWorktree ? { resolved_from: resolvedFromWorktree } : {}),
+          created: true,
+          farm: farmYamlPath,
           model: modelFolder,
           model_path: registration.modelFullPath,
           model_adopted: registration.adopted,
@@ -496,8 +605,9 @@ export async function farmAddCommand(
       );
     } else {
       const modelNote = registration.adopted ? " (existing model, adopted in place)" : "";
+      const worktreeNote = resolvedFromWorktree ? ` (main checkout of ${resolvedFromWorktree})` : "";
       handleSuccess(
-        `Project added to farm: ${ansis.bold(name)}\n  Codebase: ${codebasePath}\n  Model: ${modelFolder}${modelNote}`
+        `Project added to farm: ${ansis.bold(name)}\n  Codebase: ${codebasePath}${worktreeNote}\n  Model: ${modelFolder}${modelNote}\n  Farm: ${farmYamlPath}`
       );
     }
 
@@ -519,6 +629,39 @@ export async function farmAddCommand(
   }
 }
 
+async function realPathOf(p: string): Promise<string> {
+  try {
+    return await realpath(p);
+  } catch {
+    return path.resolve(p);
+  }
+}
+
+/** Report a `dr farm add` whose repository is already a project: nothing is written. */
+function reportExistingProject(
+  name: string,
+  repository: string,
+  model: string,
+  resolvedFrom: string | undefined,
+  useJson: boolean
+): void {
+  if (useJson) {
+    console.log(
+      JSON.stringify({
+        status: "ok",
+        project: name,
+        repository,
+        ...(resolvedFrom ? { resolved_from: resolvedFrom } : {}),
+        model,
+        created: false,
+      })
+    );
+  } else {
+    const from = resolvedFrom ? `${resolvedFrom} is a checkout of ` : "";
+    handleInfo(`${from}project ${ansis.bold(name)} (${repository}), already in the farm; nothing was changed`);
+  }
+}
+
 /**
  * Remove a project from the farm
  */
@@ -534,13 +677,8 @@ export async function farmRemoveCommand(
 
   try {
     // Find farm root
-    const farmRoot = await findFarmRoot();
-    if (!farmRoot) {
-      throw new Error("Not in a farm directory.");
-    }
-
-    const farmYamlPath = path.join(farmRoot, "farm.yaml");
-    const manifest = await FarmManifest.load(farmYamlPath);
+    const { farmRoot, farmYamlPath, manifest } = await openFarm();
+    refuseLegacyWrite(manifest);
 
     // Check if project exists
     const project = manifest.getProject(name);
@@ -554,15 +692,15 @@ export async function farmRemoveCommand(
     let modelDeleted = false;
     let modelKeptReason: string | undefined;
     if (options.deleteModel) {
-      const modelFullPath = path.resolve(path.join(farmRoot, project.model));
+      const modelFullPath = resolveFarmPath(farmRoot, project.model);
       const farmRootResolved = path.resolve(farmRoot);
-      const codebaseFullPath = path.resolve(path.join(farmRoot, project.source));
+      const codebaseFullPath = resolveFarmPath(farmRoot, project.repository);
 
       if (!modelFullPath.startsWith(farmRootResolved + path.sep)) {
         // Traversal guard: never delete anything outside the farm root
         modelKeptReason = `model '${project.model}' lies outside the farm root and is not managed by the farm`;
       } else if (isWithinPath(modelFullPath, codebaseFullPath)) {
-        modelKeptReason = `model '${project.model}' is the codebase's own model (inside '${project.source}')`;
+        modelKeptReason = `model '${project.model}' is the codebase's own model (inside '${project.repository}')`;
       }
 
       if (modelKeptReason) {
@@ -658,13 +796,7 @@ export async function farmStatusCommand(options: {
 
   try {
     // Find farm root
-    const farmRoot = await findFarmRoot();
-    if (!farmRoot) {
-      throw new Error("Not in a farm directory.");
-    }
-
-    const farmYamlPath = path.join(farmRoot, "farm.yaml");
-    const manifest = await FarmManifest.load(farmYamlPath);
+    const { farmRoot, manifest } = await openFarm();
 
     const projects = manifest.getAllProjects();
     const engine = new FarmSyncEngine(farmRoot);
@@ -676,7 +808,7 @@ export async function farmStatusCommand(options: {
       projects.map(async (p) => {
         const result: ProjectStatus = {
           name: p.name,
-          source: p.source,
+          repository: p.repository,
           model: p.model,
           remote: p.remote,
           last_sync_commit: undefined,
@@ -688,7 +820,7 @@ export async function farmStatusCommand(options: {
         // synced (loadOrCreate returns an empty state); anything else is a real error.
         let lastSyncCommit: string | undefined;
         try {
-          const syncStatePath = path.join(farmRoot, p.model, ".farm-sync.yaml");
+          const syncStatePath = path.join(resolveFarmPath(farmRoot, p.model), ".farm-sync.yaml");
           const syncState = await FarmSyncState.loadOrCreate(syncStatePath, p.name);
           lastSyncCommit = syncState.lastSyncCommit;
           result.last_sync_commit = lastSyncCommit;
@@ -709,7 +841,7 @@ export async function farmStatusCommand(options: {
         // Step 2: codebase HEAD. A missing codebase directory is an error on the project,
         // never "not synced yet".
         try {
-          const currentCommit = await engine.getCurrentCommit(p.source);
+          const currentCommit = await engine.getCurrentCommit(await engine.mainCheckoutPath(p));
           result.current_commit = currentCommit;
           result.has_pending_changes = !!(lastSyncCommit && lastSyncCommit !== currentCommit);
         } catch (error) {
@@ -757,7 +889,7 @@ export async function farmStatusCommand(options: {
       } else {
         projectsWithStatus.forEach((project) => {
           console.log(`  ${ansis.cyan(project.name)}`);
-          console.log(`    Codebase: ${project.source}`);
+          console.log(`    Codebase: ${project.repository}`);
           console.log(`    Model:    ${project.model}`);
           if (project.remote) {
             console.log(`    Remote:   ${project.remote}`);
@@ -808,6 +940,141 @@ export async function farmStatusCommand(options: {
 }
 
 /**
+ * dr farm migrate: preview the dr-farm-v1 to dr-farm-v2 migration of the farm in use, and
+ * write it with --apply (`application.applicationservice.farm-migrate-command`).
+ */
+export async function farmMigrateCommand(options: { apply?: boolean; format?: string }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan("farm.migrate") : null;
+  const useJson = options.format === "json" || isJson();
+
+  try {
+    const location = await resolveFarm();
+    const manifest = await loadFarm(location, { create: false });
+    const plan = await migrateFarmManifest(manifest, location.root);
+
+    let applied = false;
+    let gitCommitted = false;
+    let gitWarning: string | undefined;
+    if (options.apply && !plan.upToDate) {
+      if (plan.conflicts.length > 0 || !plan.manifest) {
+        throw new Error(
+          `Not migrated: ${plan.conflicts.map((c) => c.message).join("; ")}`
+        );
+      }
+      await plan.manifest.save(location.file);
+      applied = true;
+
+      const gitCheck = checkGitRepository(location.root);
+      if (gitCheck.error) {
+        gitWarning = uncommittedChangeWarning("farm.yaml", location.root, gitCheck.error);
+      } else if (gitCheck.isRepo && location.source !== "user") {
+        // A folder farm is versioned with its farm.yaml; the user farm's folder may sit in an
+        // unrelated dotfiles repository, which is not ours to commit to.
+        try {
+          execFileSync("git", ["add", "farm.yaml"], { cwd: location.root, stdio: "pipe" });
+          execFileSync("git", ["commit", "-m", "Migrate farm.yaml to dr-farm-v2"], {
+            cwd: location.root,
+            stdio: "pipe",
+          });
+          gitCommitted = true;
+        } catch (commitError) {
+          const errorMsg = getErrorMessage(commitError);
+          if (!errorMsg.includes("nothing to commit")) {
+            gitWarning = `farm.yaml was migrated but not committed: ${errorMsg.trim()}`;
+          }
+        }
+      }
+    }
+
+    if (useJson) {
+      console.log(JSON.stringify(migrationJson(plan, location.file, applied, gitCommitted, gitWarning)));
+    } else {
+      printMigrationPlan(plan, location.file, applied, options.apply ?? false);
+      if (gitWarning) handleWarning(gitWarning);
+    }
+
+    if (span) endSpan(span);
+    if (plan.conflicts.length > 0) {
+      process.exit(1);
+    }
+  } catch (error) {
+    if (useJson) {
+      console.log(JSON.stringify({ status: "error", code: 1, message: getErrorMessage(error) }));
+    } else {
+      console.error(ansis.red(`Error: ${getErrorMessage(error)}`));
+    }
+    if (span) endSpan(span);
+    process.exit(1);
+  }
+}
+
+function migrationJson(
+  plan: FarmMigrationPlan,
+  file: string,
+  applied: boolean,
+  gitCommitted: boolean,
+  gitWarning: string | undefined
+): Record<string, unknown> {
+  return {
+    status: plan.conflicts.length > 0 ? "error" : "ok",
+    farm: file,
+    from: plan.from,
+    to: plan.to,
+    up_to_date: plan.upToDate,
+    applied,
+    ...(applied ? { git_committed: gitCommitted } : {}),
+    ...(gitWarning ? { git_warning: gitWarning } : {}),
+    projects: plan.projects.map((p) => ({
+      ...p.project,
+      name_derived: p.nameDerived,
+      checkouts: p.entries,
+    })),
+    dropped: plan.dropped,
+    not_in_git: plan.notInGit,
+    conflicts: plan.conflicts,
+  };
+}
+
+function printMigrationPlan(plan: FarmMigrationPlan, file: string, applied: boolean, apply: boolean): void {
+  if (plan.upToDate) {
+    handleSuccess(`${file} is already ${plan.to}; nothing to migrate`);
+    return;
+  }
+  console.log(ansis.bold(`${applied ? "Migrated" : "Migration preview"}: ${file} (${plan.from} → ${plan.to})`));
+  console.log(`Projects: ${plan.projects.length}\n`);
+  for (const migrated of plan.projects) {
+    const p = migrated.project;
+    const derived = migrated.nameDerived ? ansis.dim(" (named after the main checkout's folder)") : "";
+    console.log(`  ${ansis.cyan(p.name)}${derived}`);
+    console.log(`    Repository: ${p.repository}`);
+    console.log(`    Model:      ${p.model}`);
+    if (p.remote) console.log(`    Remote:     ${p.remote}`);
+    for (const e of migrated.entries) {
+      const key = e.checkout ? `checkout ${e.checkout}` : "not a git checkout";
+      const kept = e.entry === p.name ? "" : ansis.yellow(" (name dropped)");
+      console.log(`    - ${e.entry}: ${e.source} → ${key}${kept}`);
+    }
+  }
+  if (plan.dropped.length > 0) {
+    console.log(ansis.yellow(`\nDropped names (${plan.dropped.length}): not kept as aliases; update scripts that use them`));
+    for (const d of plan.dropped) {
+      console.log(`  ${d.name} → project ${d.project}${d.checkout ? `, checkout ${d.checkout}` : ""}`);
+    }
+  }
+  if (plan.notInGit.length > 0) {
+    console.log(ansis.dim(`\nNot in git, kept as projects of their own: ${plan.notInGit.join(", ")}`));
+  }
+  if (plan.conflicts.length > 0) {
+    console.error(ansis.red(`\nCannot migrate (${plan.conflicts.length}):`));
+    for (const c of plan.conflicts) console.error(ansis.red(`  ${c.message}`));
+    return;
+  }
+  if (!applied && !apply) {
+    console.log(`\nRun ${ansis.bold("dr farm migrate --apply")} to write it.`);
+  }
+}
+
+/**
  * Validate a farm project or all projects using composed scope
  */
 export async function farmValidateCommand(options: {
@@ -821,13 +1088,7 @@ export async function farmValidateCommand(options: {
 
   try {
     // Find farm root
-    const farmRoot = await findFarmRoot();
-    if (!farmRoot) {
-      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
-    }
-
-    const farmYamlPath = path.join(farmRoot, "farm.yaml");
-    const farmManifest = await FarmManifest.load(farmYamlPath);
+    const { farmRoot, manifest: farmManifest } = await openFarm();
     const useJson = options.format === "json" || isJson();
 
     // Determine which projects to validate
@@ -877,7 +1138,7 @@ export async function farmValidateCommand(options: {
 
     // Validate each project
     for (const project of projectsToValidate) {
-      const modelPath = path.join(farmRoot, project.model);
+      const modelPath = resolveFarmPath(farmRoot, project.model);
 
       // Check if model folder exists
       if (!(await fileExists(modelPath))) {
@@ -1141,13 +1402,7 @@ export async function farmPullCommand(options: {
 
   try {
     // Find farm root
-    const farmRoot = await findFarmRoot();
-    if (!farmRoot) {
-      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
-    }
-
-    const farmYamlPath = path.join(farmRoot, "farm.yaml");
-    const manifest = await FarmManifest.load(farmYamlPath);
+    const { farmRoot, manifest } = await openFarm();
 
     // Determine which projects to pull
     let projectsToPull = manifest.getAllProjects();
@@ -1176,7 +1431,7 @@ export async function farmPullCommand(options: {
     // Pull each project
     for (const project of projectsToPull) {
       try {
-        const commit = await engine.pullCodebase(project.source);
+        const commit = await engine.pullCodebase(await engine.mainCheckoutPath(project));
 
         results.push({
           project: project.name,
@@ -1257,13 +1512,7 @@ export async function farmSyncCommand(options: {
 
   try {
     // Find farm root
-    const farmRoot = await findFarmRoot();
-    if (!farmRoot) {
-      throw new Error("Not in a farm directory. Run 'dr farm init' first.");
-    }
-
-    const farmYamlPath = path.join(farmRoot, "farm.yaml");
-    const manifest = await FarmManifest.load(farmYamlPath);
+    const { farmRoot, manifest } = await openFarm();
 
     // Determine which projects to sync
     let projectsToSync = manifest.getAllProjects();
@@ -1312,7 +1561,7 @@ export async function farmSyncCommand(options: {
     // Process projects with concurrency control
     const processSyncProject = async (project: typeof projectsToSync[0]) => {
       try {
-        const modelPath = path.join(farmRoot, project.model);
+        const modelPath = resolveFarmPath(farmRoot, project.model);
 
         if (!(await fileExists(modelPath))) {
           throw new Error(`Model folder not found for project '${project.name}' at ${modelPath}`);
@@ -1588,8 +1837,10 @@ Notes:
     });
 
   farmGroup
-    .command("add <name>")
-    .description("Add a project to the farm")
+    .command("add [name]")
+    .description(
+      "Add a project to the farm in use (a folder farm found upward, else the user farm ~/.config/dr/farm.yaml)"
+    )
     .option("--remote <url>", "Git remote URL to clone")
     .option(
       "--codebase <path>",
@@ -1615,6 +1866,16 @@ Examples:
   $ dr farm add my-service --codebase ../my-service --new-model
   $ dr farm add my-service --model ../shared-models/my-service
   $ dr farm add my-service --format json
+  $ dr farm add --codebase ~/work/my-service   # name derived from the main checkout's folder
+
+Worktrees:
+  A codebase in git is one project per repository. A path inside a linked worktree resolves to
+  the repository's main checkout: adding it finds the project that already holds the repository,
+  or adds the repository under its main checkout. Checkouts are discovered from git, never added.
+
+Naming:
+  Without <name>, the project is named after the main checkout's folder, in kebab case. A name
+  another repository already holds is refused; pass an explicit <name> instead.
 
 Model detection:
   If the codebase already holds a model (documentation-robotics/model/manifest.yaml, model/manifest.yaml
@@ -1624,6 +1885,33 @@ Model detection:
     )
     .action(async (name, options) => {
       await farmAddCommand(name, options);
+    });
+
+  farmGroup
+    .command("migrate")
+    .description("Move a dr-farm-v1 farm.yaml to dr-farm-v2 (preview by default; --apply writes it)")
+    .option("--apply", "Write the migrated farm.yaml")
+    .option("--format <format>", "Output format: text, json", "text")
+    .addHelpText(
+      "after",
+      `
+dr-farm-v1 has one entry per checkout; dr-farm-v2 has one project per git repository, and
+checkouts (the main worktree and every linked worktree) are discovered from git.
+
+  1. Entries are grouped by repository (the git common directory of each entry's source).
+  2. The entry whose source is the main checkout names the project; if none is, the main
+     checkout's folder name (kebab case) does.
+  3. Every other entry in the group is one of that project's checkouts: its name is dropped,
+     not kept as an alias. The preview lists dropped names so scripts can be fixed first.
+  4. branch is dropped. A second run changes nothing.
+
+Examples:
+  $ dr farm migrate
+  $ dr farm migrate --apply
+  $ dr farm migrate --format json`
+    )
+    .action(async (options) => {
+      await farmMigrateCommand(options);
     });
 
   farmGroup
