@@ -729,6 +729,7 @@ describe("codebase_extract output and decide (CLI 0.9.0)", () => {
     expect(Object.keys(kept).indexOf("ruleWarnings")).toBeLessThan(Object.keys(kept).indexOf("budget"));
     expect(kept.ruleWarnings).toEqual([expect.stringContaining("Rule 'not-tests' says none, but 1 symbol(s) it matches were decided by Tier 0 as elements (testing.testcasesketch: 1)")]);
     expect(kept.ruleWarnings[0]).toContain("would be staged");
+    expect(kept.ruleWarnings[0]).toContain("To keep rejecting these 1 symbol(s), add overrideTier0: true to the decide item 'not-tests'");
     expect(kept.decide.results[0]).toMatchObject({ status: "no-match", tier0Kept: 1 });
     expect(kept.decide.results[0].reason).toContain("overrideTier0: true takes them");
     expect(kept.wouldStage.byLayer.testing).toMatchObject({ adds: 1 });
@@ -744,6 +745,20 @@ describe("codebase_extract output and decide (CLI 0.9.0)", () => {
     expect(run.decide.counts).toEqual({ kept: 1 });
     expect(await readFile(projectRulesPath(rootPath), "utf-8")).toContain("overrideTier0: true");
     expect(run.ruleWarnings[0]).toContain("they are not staged");
+
+    // A rule kept before CLI 0.9.0 (no overrideTier0) leaves them to Tier 0, and the warning names the file and the key.
+    await writeFile(
+      projectRulesPath(rootPath),
+      "version: 1\nrules:\n  - name: not-tests\n    where: { files: src/test/ }\n    as: none\n    reason: test helpers are not product code\n",
+      "utf-8"
+    );
+    const old = ok(await handler({ changeset: "after-upgrade", rootPath }));
+    expect(old.ruleWarnings).toEqual([
+      expect.stringContaining(
+        "To keep rejecting these 1 symbol(s), add overrideTier0: true to rule 'not-tests' in documentation-robotics/extraction-rules.yaml"
+      ),
+    ]);
+    expect(old.ruleWarnings[0]).toContain("they stay Tier 0's and are staged");
   }, SLOW);
 
   it("a files reject leaves out cards an element names now and what except names, and says so (#1254)", async () => {

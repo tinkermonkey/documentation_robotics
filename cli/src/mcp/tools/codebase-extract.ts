@@ -3887,7 +3887,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           ? { decide: batchReport(decideResults, { verbose: args.verbose, limit: args.limit, written: ["applied", "kept", "would-apply"] }) }
           : {};
         // What a none rule did to Tier 0's decisions, where the answer starts, never only as a nested count (#1424).
-        const warnings = ruleWarnings(ruleReports, tier0KeptTypes, preview || heldForWarming);
+        const warnings = ruleWarnings(ruleReports, tier0KeptTypes, preview || heldForWarming, new Set(fileRules.map((r) => r.rule.name)));
         const helpersSection = (listLimit?: number) =>
           helpers.helpers.length
             ? {

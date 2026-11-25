@@ -16,6 +16,7 @@ import { strictItem } from "../strict-schema.js";
 import type { ExtractionGraph } from "../../analyzers/cards/extract.js";
 import type { ElementPlan, UndecidedCard } from "../../analyzers/extraction-plan.js";
 import {
+  PROJECT_RULES_FILE,
   PROJECT_RULE_PREFIX,
   compileRule,
   parseDecision,
@@ -329,16 +330,25 @@ function typeCounts(types: Record<string, number> | undefined): string {
  * matched symbols Tier 0 decided as elements and left them to Tier 0 (they are staged), and one that
  * took them because it says `overrideTier0` (they are not). Never only a nested count: a rule that
  * removes Tier 0's deterministic results, or is kept from it, is said where the answer starts.
- * `keptTypes` gives, per rule, the types Tier 0 staged the kept symbols as.
+ * `keptTypes` gives, per rule, the types Tier 0 staged the kept symbols as; `inFile` names the rules
+ * kept in documentation-robotics/extraction-rules.yaml, whose warning says where to add the key (a
+ * kept rule that rejected these before CLI 0.9.0 needs it to go on doing so).
  */
-export function ruleWarnings(reports: readonly RuleReport[], keptTypes: ReadonlyMap<string, Record<string, number>>, preview: boolean): string[] {
+export function ruleWarnings(
+  reports: readonly RuleReport[],
+  keptTypes: ReadonlyMap<string, Record<string, number>>,
+  preview: boolean,
+  inFile: ReadonlySet<string> = new Set()
+): string[] {
   const out: string[] = [];
   for (const r of reports) {
     if (r.tier0Kept) {
+      const where = inFile.has(r.rule) ? `to rule '${r.rule}' in documentation-robotics/${PROJECT_RULES_FILE}` : `to the decide item '${r.rule}'`;
       out.push(
         `Rule '${r.rule}' says none, but ${r.tier0Kept} symbol(s) it matches were decided by Tier 0 as elements (${typeCounts(keptTypes.get(r.rule))}): ` +
-          `they stay Tier 0's and ${preview ? "would be" : "are"} staged. If the rule should take them, add overrideTier0: true to it (preview: true first shows what that removes); ` +
-          "otherwise narrow its where so it covers only what Tier 0 left open."
+          `they stay Tier 0's and ${preview ? "would be" : "are"} staged. To keep rejecting these ${r.tier0Kept} symbol(s), add overrideTier0: true ${where} ` +
+          "(a none rule takes what Tier 0 decided only with it, since CLI 0.9.0; preview: true first shows what it removes). " +
+          "Otherwise narrow the rule's where so it covers only what Tier 0 left open."
       );
     }
     if (r.overrodeTier0?.decided) {

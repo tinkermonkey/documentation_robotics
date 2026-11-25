@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Behaviour change, codebase_extract rules and Tier 0 (#1424):** a project rule that says `none`
+  no longer takes a symbol Tier 0 decided as an element. Such symbols stay Tier 0's and are staged,
+  unless the rule says `overrideTier0: true`, a new key on `decide` items and on rules in
+  `documentation-robotics/extraction-rules.yaml`. A Tier 0 decision that can't be staged (a
+  needs-attributes or ambiguous card) is still the rule's. Every run and preview leads with
+  `ruleWarnings`: per rule, how many such symbols it matched (left to Tier 0) or took (with the key),
+  by type.
+
+  **Migration:** this applies to rules already kept in a project's file. A kept `none` rule that
+  relied on removing what Tier 0 decided (a fixture folder's routes, a test folder's test cases)
+  now leaves those symbols staged. The first run after upgrading names each such rule in
+  `ruleWarnings` ("To keep rejecting these N symbol(s), add overrideTier0: true to rule '<name>' in
+  documentation-robotics/extraction-rules.yaml"). Add the key to
+  that rule and commit the file, or narrow the rule's `where` if it was never meant to cover them.
 - **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.
@@ -19,15 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   protocol guidance, and the testing layer skill lists a coverage target covering an application
   function.
 
-### Extract output and decide (CLI 0.9.0, Tool ergonomics)
+### Fixed
 
-- **codebase_extract, rules and Tier 0 (#1424):** a project rule that says `none` no longer takes a
-  symbol Tier 0 decided as an element. Those stay Tier 0's (staged) unless the rule says
-  `overrideTier0: true` (a new key on `decide` items and in `extraction-rules.yaml`). A Tier 0
-  decision that can't be staged (a needs-attributes or ambiguous card) is still the rule's. Every run
-  and preview leads with `ruleWarnings`: per rule, how many such symbols it matched or took, by type.
-  This applies to rules already kept in a project's file: one that relied on overriding Tier 0 (a
-  fixture folder's routes) needs `overrideTier0: true` added, and the warning names it.
+Extract output and decide (CLI 0.9.0, Tool ergonomics):
+
 - **codebase_verify (#1414):** applies the project's kept rules as codebase_extract does, on every
   layer (routes too). What a rule says is not an element is listed under the layer's `ignored` with
   the rule, and a new `rules` block says how many rules were read and applied (or why none could be).

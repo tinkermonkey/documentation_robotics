@@ -37,7 +37,8 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
   `keep: true` records a rule in `documentation-robotics/extraction-rules.yaml`: commit that file.
   A `none` rule leaves what Tier 0 decided as an element to Tier 0 unless it says
   `overrideTier0: true`; `ruleWarnings`, at the top of the answer, names each rule and how many such
-  symbols it matched, so read it before applying. `where.name` matches the bare name, `where.symbol`
+  symbols it matched, so read it before applying. A rule kept before CLI 0.9.0 that should go on
+  rejecting them needs `overrideTier0: true` added in the rules file: the warning names the rule. `where.name` matches the bare name, `where.symbol`
   the card's `symbol` (`Class.method`). A typed item takes `attributes` for what its type requires
   and the code can't give. Add `view` to the call to get the cards it leaves.
   Read what is left with `view`.
