@@ -541,23 +541,6 @@ data-model.schemacomposition.tier1section:
     created_at: 2026-11-20T15:07:42.637Z
     updated_at: 2026-11-20T15:07:42.637Z
     version: 1
-data-model.schemacomposition.viewer-probe:
-  id: 5aa79ed7-1cd4-4486-9c95-3aef265894b0
-  path: data-model.schemacomposition.viewer-probe
-  spec_node_id: data-model.schemacomposition
-  type: schemacomposition
-  layer_id: data-model
-  name: ViewerProbe
-  description: What the registry knows about a project's viewer
-  source_reference:
-    provenance: extracted
-    locations:
-      - file: cli/src/server/viewer-registry.ts
-        symbol: ViewerProbe
-  metadata:
-    created_at: 2026-11-20T15:07:42.637Z
-    updated_at: 2026-11-20T15:07:42.637Z
-    version: 1
 data-model.schemacomposition.model-view-name:
   id: 0c4b909f-d053-4a0e-b129-75995042ed6d
   path: data-model.schemacomposition.model-view-name

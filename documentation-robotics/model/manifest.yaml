@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.8.0
 spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-24T21:28:46.538Z
+updated: 2026-11-25T02:07:40.984Z
 project:
   name: dr-codebase
   description: ""
@@ -50,11 +50,11 @@ layers:
     path: documentation-robotics/model/05_application/
     enabled: true
     elements:
-      applicationcomponent: 107
+      applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1348
+      applicationfunction: 1606
       applicationinterface: 2
-      applicationservice: 112
+      applicationservice: 115
       dataobject: 13
       message: 1
   technology:
@@ -74,15 +74,15 @@ layers:
     path: documentation-robotics/model/07_api/
     enabled: true
     elements:
-      operation: 28
+      operation: 52
   data-model:
     order: 8
     name: Data model
     path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
-      objectschema: 844
-      schemacomposition: 36
+      objectschema: 1007
+      schemacomposition: 35
       schemadefinition: 77
   data-store:
     order: 9
@@ -119,7 +119,7 @@ layers:
     path: documentation-robotics/model/13_testing/
     enabled: true
     elements:
-      testcasesketch: 16
+      testcasesketch: 2685
       testcoveragemodel: 1
       testcoveragetarget: 9
 changeset_history:
@@ -186,8 +186,11 @@ changeset_history:
   - name: commit-progress-notification
     committed_at: 2026-11-24T21:28:46.537Z
     action: committed
+  - name: extract-723c609..5b32f88
+    committed_at: 2026-11-25T02:07:40.672Z
+    action: committed
 reconciled:
-  changeset: bootstrap-code-layers
-  changeset_id: changeset-1795186667450-oi7puohc1
-  landed_at: 2026-11-20T15:38:19.277Z
-  code_commit: 723c609aa3776e41c8d5af29a2232e404b6f5b53
+  changeset: extract-723c609..5b32f88
+  changeset_id: changeset-1795556396619-vwixit0e6
+  landed_at: 2026-11-25T02:07:40.672Z
+  code_commit: 5b32f8853c12eced2bf98d6e41f94647a3a67ad4

@@ -2029,3 +2029,60 @@ application.applicationcomponent.mcp-stdio-bridge:
     created_at: 2026-11-21T17:14:10.905Z
     updated_at: 2026-11-21T17:14:10.905Z
     version: 1
+application.applicationcomponent.central-mcp-endpoint:
+  id: 3e62321a-662f-40f2-9f74-2f6301738b4c
+  path: application.applicationcomponent.central-mcp-endpoint
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: CentralMcpEndpoint
+  description: "The central process's /mcp endpoint: one MCP server per session over streamable HTTP, each session resolving its own checkout (pinned root, client roots, or the process's default checkout); counts open sessions and sweeps idle ones."
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/central-mcp.ts
+        symbol: CentralMcpEndpoint
+  metadata:
+    created_at: 2026-11-24T21:43:21.601Z
+    updated_at: 2026-11-24T21:43:21.601Z
+    version: 1
+application.applicationcomponent.mcp-session:
+  id: 8381bed7-a4c8-47a1-b298-42601c444857
+  path: application.applicationcomponent.mcp-session
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: McpSession
+  description: "One MCP session's state on the central process: its root, its session environment (DrBot's limits) and the checkout each tool call runs in."
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/mcp-session.ts
+        symbol: McpSession
+  metadata:
+    created_at: 2026-11-24T21:43:21.601Z
+    updated_at: 2026-11-24T21:43:21.601Z
+    version: 1
+application.applicationcomponent.mcp-session-root:
+  id: f8cc38a0-27a8-45e0-9f4b-147b791a6c91
+  path: application.applicationcomponent.mcp-session-root
+  spec_node_id: application.applicationcomponent
+  type: applicationcomponent
+  layer_id: application
+  name: McpSessionRoot
+  description: "Which directory and checkout an MCP session serves: a pinned root (DR_MCP_ROOT_PATH) wins, else the client's roots, else the fallback; resolved through the project registry."
+  attributes:
+    type: internal
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/project-root.ts
+        symbol: McpSessionRoot
+  metadata:
+    created_at: 2026-11-24T21:43:21.601Z
+    updated_at: 2026-11-24T21:43:21.601Z
+    version: 1
