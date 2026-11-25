@@ -213,6 +213,33 @@ describe("codebase_extract indexes first (#1347)", () => {
   });
 });
 
+describe("codebase_extract where an index can't be built", () => {
+  it("outside a git repository it starts no run and says why, and what to do", async () => {
+    const h = harness();
+    (h.head as { value: string | null }).value = null;
+    const error = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(error.error).toContain("The code was not indexed, and it can't be indexed here");
+    expect(error.error).toContain(`${rootPath} has no git HEAD`);
+    expect(error.suggestions[0]).toContain("git init");
+    expect(error.suggestions[0]).toContain("then call codebase_extract again");
+    expect(h.spawns).toHaveLength(0);
+    // Nothing written: no .cbmignore, no analyzer selected.
+    expect(await Bun.file(join(rootPath, ".cbmignore")).exists()).toBe(false);
+    expect(await Bun.file(join(rootPath, ".dr", "analyzers", "session.json")).exists()).toBe(false);
+  });
+
+  it("with no analyzer installed it names the index-first step, with the install steps", async () => {
+    const h = harness();
+    h.deps.discover = async () => ({
+      found: [{ name: "cbm", display_name: "codebase-memory-mcp", description: "", homepage: "https://example.test/cbm", installed: false }],
+    });
+    const error = fail(await createCodebaseExtractHandler(h.deps)({ rootPath }));
+    expect(error.error).toBe("The code was not indexed, and codebase_extract couldn't index it first: No code analyzer is installed");
+    expect(error.suggestions.join("\n")).toContain("npm install -g codebase-memory-mcp");
+    expect(h.spawns).toHaveLength(0);
+  });
+});
+
 describe("codebase_extract calls that don't extract never index first (review)", () => {
   it("a preview, page, view, list or reject-only call starts no run and waits for none: it is refused as before", async () => {
     const h = harness();
