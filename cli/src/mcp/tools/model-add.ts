@@ -28,7 +28,7 @@ import {
 import { StagingAreaManager } from "../../core/staging-area.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
-import { typeNotInDeclaredSpec } from "../../core/declared-spec.js";
+import { specAheadNote, typeNotInDeclaredSpec } from "../../core/declared-spec.js";
 import { requiredAttributesLine, requiredAttributesOf } from "../../utils/required-attributes.js";
 import { compactId, deriveElementId, existingElementsIn, existingUnderEarlierId, generateUUID } from "../../utils/id-generator.js";
 import { buildSourceReference, resolveSourceReferenceOptions } from "../../utils/source-reference.js";
@@ -157,6 +157,9 @@ async function prepareElement(spec: ElementSpec, specVersion?: string): Promise<
     const similar = findSimilar(spec.type, typeNames, 3);
     const suggestions: string[] = [`Valid types for ${spec.layer}: ${formatValidOptions(typeNames)}`];
     if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+    // A model on a newer spec may use a type this dr doesn't know yet
+    const ahead = specAheadNote(specVersion);
+    if (ahead) suggestions.unshift(ahead);
     throw new CLIError(`Invalid element type "${spec.type}" for layer "${spec.layer}"`, ErrorCategory.USER, suggestions);
   }
 

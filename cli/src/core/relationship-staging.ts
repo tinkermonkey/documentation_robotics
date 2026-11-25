@@ -17,7 +17,7 @@ import type { ChangesetGraph, GraphRelationship } from "./changeset-graph.js";
 import type { Changeset, StagedChange } from "./changeset.js";
 import type { StagingAreaManager } from "./staging-area.js";
 import { RelationshipCatalog } from "./relationship-catalog.js";
-import { relationshipNotInDeclaredSpec, type DeclaredSpecGap } from "./declared-spec.js";
+import { relationshipNotInDeclaredSpec, specAheadNote, type DeclaredSpecGap } from "./declared-spec.js";
 import {
   getValidRelationships,
   getValidPredicatesForSource,
@@ -240,6 +240,10 @@ export function validateRelationshipCombination(
       );
     }
   }
+
+  // A model on a newer spec may use a relationship type this dr doesn't know yet
+  const ahead = specAheadNote(modelSpecVersion);
+  if (ahead) suggestions.unshift(ahead);
 
   return { valid: false, suggestions };
 }

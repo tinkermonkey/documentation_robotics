@@ -540,13 +540,15 @@ function relayoutReport(scan: UpgradeScan): { relayout?: Record<string, unknown>
       files: items,
       ...rest,
       ...(pending.skipped.length > 0 ? { leftAlone: pending.skipped } : {}),
+      dataUnchanged: true,
       note: planned
-        ? `The relayout step lays out these ${pending.files.length} file(s) as this dr writes them, data unchanged. ` +
-          "Commit them on their own, so later landings carry only their own changes."
+        ? `The relayout step lays out these ${pending.files.length} file(s) as this dr writes them, data unchanged: ` +
+          "each file is written only when its new text parses to the same data. Commit them on their own, apart " +
+          "from any plan, so later landings carry only their own changes."
         : `${pending.files.length} model file(s) are in an earlier dr's layout (long strings folded at 80 columns): ` +
           "the next landing that writes to one lays it out anew, so its diff shows every line. project_upgrade with " +
           "relayout: true (and apply: true, once the user approves) lays them all out now, data unchanged, to commit " +
-          "on its own.",
+          "on its own, apart from any plan.",
     },
   };
 }

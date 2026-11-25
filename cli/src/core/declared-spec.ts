@@ -127,3 +127,17 @@ export function relationshipNotInDeclaredSpec(
     history
   );
 }
+
+/**
+ * One line when the model declares a spec newer than this CLI's: a type or relationship that spec
+ * added is unknown here, not invalid. Staging adds it to a refusal that would otherwise read as a
+ * mistake in the model; nothing else is refused for it. Null when the model is not ahead.
+ */
+export function specAheadNote(modelVersion: string | null | undefined): string | null {
+  const bundled = getCliBundledSpecVersion();
+  if (!modelVersion || compareSpecVersions(modelVersion, bundled) <= 0) return null;
+  return (
+    `The model is on spec ${modelVersion}, newer than the ${bundled} this dr carries: a type or relationship ` +
+    "that spec added is unknown here, not invalid. Update the dr CLI, then restart the session's dr server."
+  );
+}

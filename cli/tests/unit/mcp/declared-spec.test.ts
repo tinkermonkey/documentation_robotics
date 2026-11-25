@@ -18,6 +18,8 @@ import { relationshipAddHandler } from "../../../src/mcp/tools/relationship-tool
 import { modelValidateHandler } from "../../../src/mcp/tools/model-validate.js";
 import { changesetCreateHandler } from "../../../src/mcp/tools/changeset-lifecycle.js";
 import { changesetCommitPreviewHandler } from "../../../src/mcp/tools/changeset-commit.js";
+import { modelShowHandler } from "../../../src/mcp/tools/model-show.js";
+import { modelExportHandler } from "../../../src/mcp/tools/model-export.js";
 import { getCliBundledSpecVersion } from "../../../src/utils/spec-version.js";
 
 const SERVICE = "application.applicationservice.proposal-service";
@@ -134,6 +136,25 @@ describe("staging checks the spec the model declares (#1411)", () => {
   });
 });
 
+describe("a model on a spec newer than this dr's (#1411)", () => {
+  it("is not refused what this dr knows, and a refusal says the spec is newer rather than the model wrong", async () => {
+    await setUp("99.0.0");
+    // Nothing this dr knows is refused for it
+    expect(parse(await relationshipAddHandler({ source: SERVICE, predicate: "accesses", target: SCHEMA, rootPath })).status).toBe(
+      "added"
+    );
+
+    // A type or relationship type this dr doesn't know: unknown here, not invalid
+    const type = await modelAddHandler({ layer: "application", type: "futuretype", name: "x", rootPath });
+    expect(type.isError).toBe(true);
+    expect(parse(type).suggestions[0]).toContain("The model is on spec 99.0.0, newer than the");
+    const relationship = parse(
+      await relationshipAddHandler({ relationships: [{ source: SCHEMA, predicate: "serves", target: SERVICE }], rootPath })
+    );
+    expect(relationship.attention[0].suggestions[0]).toContain("unknown here, not invalid");
+  });
+});
+
 describe("model_validate and the landing check the spec the model declares (#1411)", () => {
   it("model_validate reports a relationship the model's spec lacks as an error", async () => {
     await setUp("0.13.0");
@@ -167,6 +188,34 @@ describe("model_validate and the landing check the spec the model declares (#141
     const preview = await changesetCommitPreviewHandler({ rootPath, changeset: "cross-context-rule" });
     expect(preview.isError).toBe(true);
     expect(JSON.stringify(parse(preview))).toContain("is not in spec 0.13.0");
+  });
+
+  it("a model that already holds one still loads, reads, exports and takes unrelated changes; only validation names it", async () => {
+    await setUp("0.13.0");
+    const model = await loadModel(rootPath);
+    model.relationships.add({ source: SERVICE, predicate: "accesses", target: SCHEMA, layer: "application", targetLayer: "data-model" });
+    await model.saveRelationships();
+    clearModelCache();
+
+    // Reads
+    const shown = parse(await modelShowHandler({ id: SERVICE, rootPath }));
+    expect(shown.relationships.outgoing.some((r: any) => r.target === SCHEMA && r.predicate === "accesses")).toBe(true);
+    const exported = await modelExportHandler({ format: "markdown", rootPath });
+    expect(exported.isError).toBeFalsy();
+
+    // An unrelated change stages and lands; the relationship already there is not counted against it
+    await changesetCreateHandler({ name: "unrelated", rootPath });
+    expect(parse(await relationshipAddHandler({ source: COMPONENT, predicate: "accesses", target: SCHEMA, rootPath })).status).toBe(
+      "staged"
+    );
+    const preview = parse(await changesetCommitPreviewHandler({ rootPath, changeset: "unrelated" }));
+    expect(preview.summary ?? JSON.stringify(preview)).toContain("already in the base model are not counted");
+
+    // model_validate names the element ids, so it can be found and removed
+    const data = parse(await modelValidateHandler({ rootPath }));
+    const named = data.errors.filter((e: any) => e.message.includes(`${SERVICE} --[accesses]--> ${SCHEMA}`));
+    expect(named).toHaveLength(1);
+    expect(named[0].elementId).toBe(SERVICE);
   });
 
   it("checks nothing for a model on the bundled spec", async () => {

@@ -17,7 +17,7 @@ import { Layer } from "../../core/layer.js";
 import { MutationHandler } from "../../core/mutation-handler.js";
 import { setStagedSourceReference } from "../../core/staged-source-reference.js";
 import { getNodeTypesForLayer, isValidNodeType, normalizeNodeType } from "../../generated/node-types.js";
-import { typeNotInDeclaredSpec } from "../../core/declared-spec.js";
+import { specAheadNote, typeNotInDeclaredSpec } from "../../core/declared-spec.js";
 import { findElementLayer } from "../../utils/element-utils.js";
 import {
   buildSourceReference,
@@ -257,6 +257,9 @@ async function updateElement(model: Model, args: UpdateSpec): Promise<UpdateOutc
         const similar = findSimilar(args.type!, typeNames, 3);
         const suggestions: string[] = [`Valid types for ${layerName}: ${formatValidOptions(typeNames)}`];
         if (similar.length > 0) suggestions.unshift(`Did you mean: ${similar.join(" or ")}?`);
+        // A model on a newer spec may use a type this dr doesn't know yet
+        const ahead = specAheadNote(model.manifest?.specVersion);
+        if (ahead) suggestions.unshift(ahead);
         throw new CLIError(`Invalid element type "${args.type}" for layer "${layerName}"`, ErrorCategory.USER, suggestions);
       }
       resolvedNewType = normalizeNodeType(layerName, args.type);

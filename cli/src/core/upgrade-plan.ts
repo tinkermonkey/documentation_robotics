@@ -254,7 +254,8 @@ function relayoutAction(relayout: RelayoutResult, toVersion: string): UpgradeAct
     toVersion,
     details: [
       `${files.length} of ${relayout.total} element files are in an earlier dr's layout (long strings folded at 80 ` +
-        "columns). Re-laying them out now keeps that out of later landings: commit it on its own.",
+        "columns). Data unchanged: each is written only when its new text parses to the same data. Commit it on " +
+        "its own, apart from any plan, so later landings carry only their own changes.",
       ...files.slice(0, RELAYOUT_FILES_NAMED),
       ...(files.length > RELAYOUT_FILES_NAMED
         ? [

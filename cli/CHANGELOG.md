@@ -34,7 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   --[accesses]--> data-model.objectschema is not in spec 0.13.0, the model's version; it exists
   from spec 0.14.0. Run project_upgrade first". What each released spec had comes from a table
   generated from the released catalogs in git (`cli/scripts/generate-spec-catalog-history.ts`,
-  0.8.0 on); a unit test fails when a spec release leaves it behind.
+  0.8.0 on); a unit test fails when a spec release leaves it behind, naming the command that
+  regenerates it. A model that already holds such a relationship still loads, reads and exports,
+  and takes unrelated changes: `model_validate` names the element ids so it can be found and
+  removed, and a landing counts it with the errors already in the base. A model on a spec newer
+  than dr's is refused nothing extra, and a type or relationship dr doesn't know is reported as
+  unknown here, with the update to make, rather than as a mistake in the model.
 - **`model_validate` with `layers` no longer reports links into other layers as not found
   (#1259).** A relationship that names its ends by UUID was placed in a layer by its id, which a
   UUID doesn't have, so every such link leaving the scope was an error (33 on the viewer's model).
@@ -58,7 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   previewed step of its own, on a model already on this spec too, to commit apart from any plan.
   Without it, an upgrade only counts those files (`relayout` in the result, a line in
   `dr upgrade`'s output), since it writes no model file whose data does not change.
-  `changeset_commit_preview` names the files a landing would lay out anew and points at the step.
+  `changeset_commit_preview` names the files a landing would lay out anew and says to run the
+  relayout first, on its own, and commit it apart from the plan, so the plan's pull request shows
+  only its own changes.
   `cli/scripts/relayout-model-files.ts` now runs the same code.
 
 ## [0.8.0] - 2026-11-24

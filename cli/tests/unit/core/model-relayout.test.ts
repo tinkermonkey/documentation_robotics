@@ -88,6 +88,7 @@ describe("the files a landing would lay out anew (#1439)", () => {
     const note = await landingRelayoutNote(root, [{ type: "delete", elementId: "motivation.driver.b", layerName: "motivation" }]);
     expect(note).toContain("lays out 1 model file(s) an earlier dr wrote");
     expect(note).toContain("documentation-robotics/model/01_motivation/driver.yaml");
-    expect(note).toContain("project_upgrade with relayout: true first");
+    expect(note).toContain("Run the relayout first, on its own: project_upgrade with relayout: true");
+    expect(note).toContain("commit it apart from this plan");
   }));
 });

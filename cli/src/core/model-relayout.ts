@@ -155,7 +155,8 @@ export async function landingRelayoutNote(projectRoot: string, changes: readonly
   return (
     `Layout: landing this also lays out ${files.length} model file(s) an earlier dr wrote (long strings folded at ` +
     `80 columns) as this dr writes them, data unchanged: ${named}${rest}. Its diff will show every line of them. ` +
-    "To keep that out of this landing, run project_upgrade with relayout: true first (preview, then apply with the " +
-    "user's approval; dr upgrade --relayout in a terminal) and commit the re-layout on its own."
+    "Run the relayout first, on its own: project_upgrade with relayout: true (preview, then apply with the user's " +
+    "approval; dr upgrade --relayout in a terminal), and commit it apart from this plan, so the plan's pull request " +
+    "shows only its own changes."
   );
 }

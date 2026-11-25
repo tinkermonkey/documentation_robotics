@@ -98,11 +98,15 @@ describe("declared-spec check (#1411)", () => {
 
 describe("spec catalog history table", () => {
   it("ends at the released version the bundled spec migrates from (regenerate it after a spec release)", () => {
-    // When this fails, the spec version moved past the table: from cli/, run
-    //   bun scripts/generate-spec-catalog-history.ts
     const previous = new MigrationRegistry().getMigrationPath("0.5.0", bundled).at(-1)?.fromVersion;
-    expect(SPEC_CATALOG_HISTORY.versions.at(-1)).toBe(previous);
-    expect(SPEC_CATALOG_HISTORY.versions).not.toContain(bundled);
+    const last = SPEC_CATALOG_HISTORY.versions.at(-1);
+    if (last !== previous || SPEC_CATALOG_HISTORY.versions.includes(bundled)) {
+      throw new Error(
+        `cli/src/core/spec-catalog-history.ts ends at spec ${last}, but the bundled spec ${bundled} migrates from ` +
+          `${previous}: the spec moved past the table. Regenerate it from cli/ with ` +
+          "bun scripts/generate-spec-catalog-history.ts, and commit the result."
+      );
+    }
   });
 
   it("is ordered oldest first, with one mask character per version", () => {

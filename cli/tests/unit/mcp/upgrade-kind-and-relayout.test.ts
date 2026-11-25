@@ -173,7 +173,8 @@ describe("relayout as an upgrade step (#1439)", () => {
 
     const preview = parse(await projectUpgradeHandler({ rootPath: dir, relayout: true }));
     expect(preview.status).toBe("preview");
-    expect(preview.relayout.note).toContain("The relayout step lays out these 1 file(s)");
+    expect(preview.relayout).toMatchObject({ count: 1, dataUnchanged: true });
+    expect(preview.relayout.note).toContain("The relayout step lays out these 1 file(s) as this dr writes them, data unchanged");
     const relayout = preview.actions.find((action: any) => action.type === "relayout");
     expect(relayout.description).toContain("Lay out 1 model file(s)");
     expect(relayout.details).toContain("documentation-robotics/model/01_motivation/goal.yaml");
@@ -205,7 +206,8 @@ describe("relayout as an upgrade step (#1439)", () => {
     const summary = JSON.stringify(preview);
     expect(summary).toContain("lays out 1 model file(s) an earlier dr wrote");
     expect(summary).toContain("documentation-robotics/model/01_motivation/goal.yaml");
-    expect(summary).toContain("project_upgrade with relayout: true first");
+    expect(summary).toContain("Run the relayout first, on its own: project_upgrade with relayout: true");
+    expect(summary).toContain("commit it apart from this plan");
   });
 
   it("changeset_commit_preview says nothing about layout when the files are in dr's layout", async () => {
