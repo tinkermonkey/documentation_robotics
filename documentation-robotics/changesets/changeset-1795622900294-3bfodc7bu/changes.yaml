@@ -117,17 +117,6 @@
   timestamp: 2026-11-25T16:08:53.905Z
   sequenceNumber: 5
 - type: relationship-add
-  elementId: application.applicationfunction.index-first::depends-on::application.applicationfunction.assess-index
-  layerName: application
-  after:
-    source: application.applicationfunction.index-first
-    target: application.applicationfunction.assess-index
-    predicate: depends-on
-    layer: application
-    category: structural
-  timestamp: 2026-11-25T16:08:53.905Z
-  sequenceNumber: 6
-- type: relationship-add
   elementId: application.applicationfunction.index-first::depends-on::application.applicationfunction.read-index-job
   layerName: application
   after:
@@ -639,7 +628,12 @@
       created_at: 2026-11-25T17:00:03.724Z
       updated_at: 2026-11-25T17:00:03.724Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/session-state.ts
+          symbol: removeIndexMeta
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 33
 - type: add
   elementId: application.applicationfunction.assess-selected-index
@@ -656,7 +650,12 @@
       created_at: 2026-11-25T17:00:03.724Z
       updated_at: 2026-11-25T17:00:03.724Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-shared.ts
+          symbol: assessSelectedIndex
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 34
 - type: add
   elementId: application.applicationfunction.index-first-deadline
@@ -673,7 +672,12 @@
       created_at: 2026-11-25T17:00:03.724Z
       updated_at: 2026-11-25T17:00:03.724Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-index.ts
+          symbol: indexFirstDeadline
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 35
 - type: add
   elementId: data-model.objectschema.indexed-first
@@ -692,7 +696,12 @@
       created_at: 2026-11-25T17:00:03.724Z
       updated_at: 2026-11-25T17:00:03.724Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-shared.ts
+          symbol: IndexedFirst
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 36
 - type: add
   elementId: data-model.objectschema.index-assessment
@@ -711,7 +720,12 @@
       created_at: 2026-11-25T17:00:03.724Z
       updated_at: 2026-11-25T17:00:03.724Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-shared.ts
+          symbol: IndexAssessment
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 37
 - type: add
   elementId: data-model.objectschema.cbm-ignore-result
@@ -730,7 +744,12 @@
       created_at: 2026-11-25T17:00:03.724Z
       updated_at: 2026-11-25T17:00:03.724Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: CbmIgnoreResult
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 38
 - type: add
   elementId: data-model.objectschema.index-count-tools
@@ -749,7 +768,12 @@
       created_at: 2026-11-25T17:00:03.725Z
       updated_at: 2026-11-25T17:00:03.725Z
       version: 1
-  timestamp: 2026-11-25T17:00:03.738Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: IndexCountTools
+  timestamp: 2026-11-25T17:06:27.310Z
   sequenceNumber: 39
 - type: relationship-add
   elementId: application.applicationfunction.cbm-analyzer-index::depends-on::application.applicationfunction.remove-index-meta

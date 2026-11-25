@@ -428,7 +428,7 @@ export async function indexFirst(
 ): Promise<{ assessment: IndexAssessment; indexedFirst: IndexedFirst | null }> {
   const { projectRoot, codebaseRoot } = roots;
   const began = Date.now();
-  const judge = () => assessSelectedIndex(projectRoot, codebaseRoot, deps, { uncommittedEdits: options.uncommittedEdits === true });
+  const judging = { uncommittedEdits: options.uncommittedEdits === true };
   let job = await readIndexJob(projectRoot, { isAlive: deps.isAlive });
   let why: string;
   let started = false;
@@ -436,7 +436,7 @@ export async function indexFirst(
   if (job?.state === "running") {
     why = `an index run was in flight (started ${job.startedAt})`;
   } else {
-    const before = await judge();
+    const before = await assessSelectedIndex(projectRoot, codebaseRoot, deps, judging);
     const { freshness, judgement } = before;
     if (before.analyzer && freshness.indexed && judgement && judgement.state !== "stale") return { assessment: before, indexedFirst: null };
     why = !before.analyzer || !freshness.indexed || !judgement ? "the code was not indexed" : `the index was stale: ${judgement.reason ?? "by the freshness rule"}`;
@@ -469,7 +469,7 @@ export async function indexFirst(
     );
   }
   return {
-    assessment: await judge(),
+    assessment: await assessSelectedIndex(projectRoot, codebaseRoot, deps, judging),
     indexedFirst: { why, jobId: settled.jobId, started, seconds, ...(ignoreFile ? { ignoreFile } : {}) },
   };
 }
