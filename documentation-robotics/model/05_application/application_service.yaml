@@ -2064,3 +2064,60 @@ application.applicationservice.farm-migrate-command:
     created_at: 2026-11-21T17:14:10.906Z
     updated_at: 2026-11-21T17:14:10.906Z
     version: 1
+application.applicationservice.farm-farm-migrate-command:
+  id: 9ada36da-34b3-4299-b57d-1fe1d77ceef9
+  path: application.applicationservice.farm-farm-migrate-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: farm farmMigrateCommand
+  description: "dr farm migrate: preview the dr-farm-v1 to dr-farm-v2 migration of the farm in use, and write it with --apply (`application.applicationservice.farm-migrate-command`)."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/farm.ts
+        symbol: farmMigrateCommand
+  metadata:
+    created_at: 2026-11-24T21:42:21.516Z
+    updated_at: 2026-11-24T21:42:21.516Z
+    version: 1
+application.applicationservice.stop-command:
+  id: 94fe879e-a17f-4675-8365-53b02bd6cf78
+  path: application.applicationservice.stop-command
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: stopCommand
+  description: "`dr visualize --stop`: stops the farm's central process with `dr serve --stop`'s confirmed stop. With `--all`, then stops every legacy per-project viewer whose pids are confirmed (and, with `--include-unrecorded`, the ones found only in the process table). Throws (exit 1) when..."
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/commands/visualize-viewers.ts
+        symbol: stopCommand
+  metadata:
+    created_at: 2026-11-24T21:42:21.516Z
+    updated_at: 2026-11-24T21:42:21.516Z
+    version: 1
+application.applicationservice.create-project-list-handler:
+  id: eaf6860a-335d-4186-915c-426bdf4219b1
+  path: application.applicationservice.create-project-list-handler
+  spec_node_id: application.applicationservice
+  type: applicationservice
+  layer_id: application
+  name: createProjectListHandler
+  description: Builds the project_list handler; tests inject the registry.
+  attributes:
+    serviceType: synchronous
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/project-list.ts
+        symbol: createProjectListHandler
+  metadata:
+    created_at: 2026-11-24T21:42:21.516Z
+    updated_at: 2026-11-24T21:42:21.516Z
+    version: 1

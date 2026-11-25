@@ -151,7 +151,7 @@ api.operation.post-mcp:
   source_reference:
     provenance: extracted
     locations:
-      - file: cli/src/mcp/http-transport.ts
+      - file: docs/api-spec.yaml
         symbol: POST /mcp
   metadata:
     created_at: 2026-11-20T15:14:47.627Z
@@ -172,10 +172,10 @@ api.operation.get-mcp:
     http_method: GET
     http_path: /mcp
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/mcp/http-transport.ts
-        symbol: GET /mcp
+      - file: cli/src/mcp/central-mcp.ts
+        symbol: CentralMcpEndpoint.handle
   metadata:
     created_at: 2026-11-20T15:14:47.628Z
     updated_at: 2026-11-20T15:14:47.628Z
@@ -195,10 +195,10 @@ api.operation.delete-mcp:
     http_method: DELETE
     http_path: /mcp
   source_reference:
-    provenance: extracted
+    provenance: manual
     locations:
-      - file: cli/src/mcp/http-transport.ts
-        symbol: DELETE /mcp
+      - file: cli/src/mcp/central-mcp.ts
+        symbol: CentralMcpEndpoint.handle
   metadata:
     created_at: 2026-11-20T15:14:47.628Z
     updated_at: 2026-11-20T15:14:47.628Z
@@ -639,4 +639,532 @@ api.operation.post-api-projects-project-checkouts-checkout-annotations-annotatio
   metadata:
     created_at: 2026-11-21T17:14:54.806Z
     updated_at: 2026-11-21T17:14:54.806Z
+    version: 1
+api.operation.api-spec-delete-api-projects-project-checkouts-checkout-annotations-annotation-id:
+  id: a574e1e3-917b-48d5-913f-df651957facf
+  path: api.operation.api-spec-delete-api-projects-project-checkouts-checkout-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec DELETE /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  attributes:
+    operationId: delete-api-projects-project-checkouts-checkout-annotations-annotation-id
+    summary: DELETE /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+    tags: api
+    http_method: DELETE
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: DELETE /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-delete-mcp:
+  id: 96ab7811-c3b8-4852-8033-b504ae312056
+  path: api.operation.api-spec-delete-mcp
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec DELETE /mcp
+  attributes:
+    operationId: delete-mcp
+    summary: DELETE /mcp
+    tags: mcp
+    http_method: DELETE
+    http_path: /mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: DELETE /mcp
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.get-api-spec-yaml:
+  id: e7571d82-7d13-43d4-a186-79d8cef20214
+  path: api.operation.get-api-spec-yaml
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api-spec.yaml
+  attributes:
+    operationId: get-api-specyaml
+    summary: GET /api-spec.yaml
+    tags: api-spec.yaml
+    http_method: GET
+    http_path: /api-spec.yaml
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api-spec.yaml
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects:
+  id: bd2d4854-6fab-41b3-9c5a-1197617a2936
+  path: api.operation.api-spec-get-api-projects
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects
+  attributes:
+    operationId: get-api-projects
+    summary: GET /api/projects
+    tags: api
+    http_method: GET
+    http_path: /api/projects
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project:
+  id: c2a69eed-17bf-4ca1-b640-27817348cfa7
+  path: api.operation.api-spec-get-api-projects-project
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}
+  attributes:
+    operationId: get-api-projects-project
+    summary: GET /api/projects/{project}
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts:
+  id: 443a675c-35fe-40ca-8692-472682311e38
+  path: api.operation.api-spec-get-api-projects-project-checkouts
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts
+  attributes:
+    operationId: get-api-projects-project-checkouts
+    summary: GET /api/projects/{project}/checkouts
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-annotations:
+  id: 9e4fc6dd-d2d6-4e96-9242-d58552be3eb4
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-annotations
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/annotations
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-annotations
+    summary: GET /api/projects/{project}/checkouts/{checkout}/annotations
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/annotations
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-annotations-annotation-id:
+  id: 447a6fdc-5ec8-45db-98ba-91f8ee49d217
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-annotations-annotation-id
+    summary: GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-annotations-annotation-id-replies:
+  id: d46f3a1e-157c-4354-9f17-da02fd5167c9
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+    summary: GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-changesets:
+  id: 5d7c2820-67af-4fe5-8fdc-aca80e908a5e
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-changesets
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/changesets
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-changesets
+    summary: GET /api/projects/{project}/checkouts/{checkout}/changesets
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/changesets
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/changesets
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-changesets-changeset-id:
+  id: 8b75eb37-7213-4d9c-b9cf-0666204211cb
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-changesets-changeset-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-changesets-changeset-id
+    summary: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.get-api-projects-project-checkouts-checkout-changesets-changeset-id-verification:
+  id: 27d8277b-4e42-4e44-90c0-71f2b213d5ff
+  path: api.operation.get-api-projects-project-checkouts-checkout-changesets-changeset-id-verification
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/verification
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-changesets-changeset-id-verification
+    summary: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/verification
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/verification
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/verification
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-layers-layer-name:
+  id: 80b0ea6a-88d8-4ec7-8b8e-9df6a29998a8
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-layers-layer-name
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-layers-layer-name
+    summary: GET /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/layers/{layerName}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-model:
+  id: 28324c13-e869-42b7-9e7d-36db5ad2e41a
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-model
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/model
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-model
+    summary: GET /api/projects/{project}/checkouts/{checkout}/model
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/model
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/model
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-api-projects-project-checkouts-checkout-tier1:
+  id: 7922bf2d-bc28-42cf-b7db-bcee18889b9c
+  path: api.operation.api-spec-get-api-projects-project-checkouts-checkout-tier1
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /api/projects/{project}/checkouts/{checkout}/tier1
+  attributes:
+    operationId: get-api-projects-project-checkouts-checkout-tier1
+    summary: GET /api/projects/{project}/checkouts/{checkout}/tier1
+    tags: api
+    http_method: GET
+    http_path: /api/projects/{project}/checkouts/{checkout}/tier1
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /api/projects/{project}/checkouts/{checkout}/tier1
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-get-mcp:
+  id: 190f0b4a-133d-4cbd-a282-ebaf3e5d3995
+  path: api.operation.api-spec-get-mcp
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec GET /mcp
+  attributes:
+    operationId: get-mcp
+    summary: GET /mcp
+    tags: mcp
+    http_method: GET
+    http_path: /mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: GET /mcp
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-patch-api-projects-project-checkouts-checkout-annotations-annotation-id:
+  id: 1f44d31b-16f5-4b6e-b5db-ae95ffdbbf5d
+  path: api.operation.api-spec-patch-api-projects-project-checkouts-checkout-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec PATCH /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  attributes:
+    operationId: patch-api-projects-project-checkouts-checkout-annotations-annotation-id
+    summary: PATCH /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+    tags: api
+    http_method: PATCH
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: PATCH /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-post-api-projects-project-checkouts-checkout-annotations:
+  id: d436aacd-5f32-4da7-bd91-3290b4019775
+  path: api.operation.api-spec-post-api-projects-project-checkouts-checkout-annotations
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec POST /api/projects/{project}/checkouts/{checkout}/annotations
+  attributes:
+    operationId: post-api-projects-project-checkouts-checkout-annotations
+    summary: POST /api/projects/{project}/checkouts/{checkout}/annotations
+    tags: api
+    http_method: POST
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/projects/{project}/checkouts/{checkout}/annotations
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-post-api-projects-project-checkouts-checkout-annotations-annotation-id-replies:
+  id: 5dc53b2c-c72e-4e9a-9b23-deef1892d544
+  path: api.operation.api-spec-post-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec POST /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  attributes:
+    operationId: post-api-projects-project-checkouts-checkout-annotations-annotation-id-replies
+    summary: POST /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+    tags: api
+    http_method: POST
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}/replies
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-post-api-projects-project-checkouts-checkout-changesets-changeset-id-commit:
+  id: 82623c54-8cef-4ff0-ac14-e6724a5b92cd
+  path: api.operation.api-spec-post-api-projects-project-checkouts-checkout-changesets-changeset-id-commit
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+  attributes:
+    operationId: post-api-projects-project-checkouts-checkout-changesets-changeset-id-commit
+    summary: POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+    tags: api
+    http_method: POST
+    http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/commit
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-post-api-projects-project-checkouts-checkout-changesets-changeset-id-discard:
+  id: 4639ad72-ee73-4df6-9dff-f7b2e04cefd8
+  path: api.operation.api-spec-post-api-projects-project-checkouts-checkout-changesets-changeset-id-discard
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+  attributes:
+    operationId: post-api-projects-project-checkouts-checkout-changesets-changeset-id-discard
+    summary: POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+    tags: api
+    http_method: POST
+    http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/discard
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-post-mcp:
+  id: 4d42cd08-b075-44db-a8a1-dd09fbb20610
+  path: api.operation.api-spec-post-mcp
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec POST /mcp
+  attributes:
+    operationId: post-mcp
+    summary: POST /mcp
+    tags: mcp
+    http_method: POST
+    http_path: /mcp
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: POST /mcp
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-put-api-projects-project-checkouts-checkout-annotations-annotation-id:
+  id: 7977dcb6-6252-4037-9ea9-7f88d42edede
+  path: api.operation.api-spec-put-api-projects-project-checkouts-checkout-annotations-annotation-id
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec PUT /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  attributes:
+    operationId: put-api-projects-project-checkouts-checkout-annotations-annotation-id
+    summary: PUT /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+    tags: api
+    http_method: PUT
+    http_path: /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: PUT /api/projects/{project}/checkouts/{checkout}/annotations/{annotationId}
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
+    version: 1
+api.operation.api-spec-put-api-projects-project-checkouts-checkout-changesets-changeset-id-review:
+  id: 3550c2a2-0cab-45c6-b482-eb4b51a7dd13
+  path: api.operation.api-spec-put-api-projects-project-checkouts-checkout-changesets-changeset-id-review
+  spec_node_id: api.operation
+  type: operation
+  layer_id: api
+  name: api-spec PUT /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+  attributes:
+    operationId: put-api-projects-project-checkouts-checkout-changesets-changeset-id-review
+    summary: PUT /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+    tags: api
+    http_method: PUT
+    http_path: /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: docs/api-spec.yaml
+        symbol: PUT /api/projects/{project}/checkouts/{checkout}/changesets/{changesetId}/review
+  metadata:
+    created_at: 2026-11-24T21:39:56.349Z
+    updated_at: 2026-11-24T21:39:56.349Z
     version: 1
