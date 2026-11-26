@@ -12787,7 +12787,7 @@ application.applicationfunction.compute-unwired:
   type: applicationfunction
   layer_id: application
   name: computeUnwired
-  description: Unwired connections of every added or updated element
+  description: Unwired connections of every added or updated element, each flagged expected (required, high-strength, or carried by an existing element of the type) or optional; updated elements that keep their type and relationships are marked preexisting.
   source_reference:
     provenance: extracted
     locations:
@@ -12974,7 +12974,7 @@ application.applicationfunction.unwired-counts:
   type: applicationfunction
   layer_id: application
   name: unwiredCounts
-  description: Unwired connections counted per other-end layer, across every added or updated element.
+  description: "Unwired connections of added and updated elements: expected links counted per other-end layer, with the optional triples and the preexisting ones counted apart."
   source_reference:
     provenance: extracted
     locations:
@@ -28533,6 +28533,39 @@ application.applicationfunction.recorded-purpose:
   metadata:
     created_at: 2026-11-26T14:41:00.489Z
     updated_at: 2026-11-26T14:41:00.489Z
+application.applicationfunction.is-expected-link:
+  id: 4bd18094-78bd-48a6-976a-2308f677c8a5
+  path: application.applicationfunction.is-expected-link
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isExpectedLink
+  description: "Whether the catalog itself expects an element of the type to have a link: marked required, or of high or critical strength. computeUnwired adds the links existing elements of the type carry."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: isExpectedLink
+  metadata:
+    created_at: 2026-11-26T14:34:26.026Z
+    updated_at: 2026-11-26T14:34:26.026Z
+    version: 1
+application.applicationfunction.is-preexisting:
+  id: a246714a-7eba-4e14-aae5-7772567f986e
+  path: application.applicationfunction.is-preexisting
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isPreexisting
+  description: Whether an updated element keeps its type and relationships, so its unwired connections predate the change and are counted apart.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: isPreexisting
+  metadata:
+    created_at: 2026-11-26T14:34:26.027Z
+    updated_at: 2026-11-26T14:34:26.027Z
     version: 1
 application.applicationfunction.collect-sibling-plans:
   id: cc97eafc-c7f0-4fb4-b9f7-b675eda4bf28

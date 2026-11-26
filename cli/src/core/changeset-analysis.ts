@@ -19,6 +19,7 @@ import {
   getValidRelationships,
   RELATIONSHIPS_BY_DESTINATION,
   RELATIONSHIPS_BY_SOURCE,
+  type RelationshipSpec,
 } from "../generated/relationship-index.js";
 import type { Annotation } from "./annotation-store.js";
 import { originLabel } from "./changeset.js";
@@ -302,6 +303,12 @@ export interface UnwiredEntry {
   existingCount: number;
   /** Elements of `otherType` the changeset adds (the element itself not counted). */
   addedCount: number;
+  /**
+   * An element of this type is expected to have the link: the catalog marks it required or of high
+   * strength, or an existing element of the type in the model has it. The rest are optional catalog
+   * triples that nothing of the type carries.
+   */
+  expected: boolean;
 }
 
 /** One added or updated element's unwired connections, as computed (every layer). */
@@ -309,8 +316,13 @@ export interface ElementUnwired {
   element: string;
   /** Spec node id of the element's type. */
   type: string;
-  /** By the other end's layer, in layer order. */
+  /** By the other end's layer, in layer order. Expected links come before optional ones in a layer. */
   byLayer: Array<{ layer: string; entries: UnwiredEntry[] }>;
+  /**
+   * An updated element whose changed fields include neither its type nor its relationships: its
+   * unwired connections predate the change, so they are counted apart from the headline.
+   */
+  preexisting?: true;
   /**
    * Connections the catalog defines that the element has accepted as gaps (its `accepted_gaps`):
    * not counted or listed as unwired.
@@ -341,6 +353,9 @@ export interface BriefAcceptedGap extends AcceptedGapView {
 }
 
 /**
+ * Counts are of expected links; optional catalog triples are counted apart. Entries listed are
+ * expected links, except in `full`, which lists the optional ones too (flagged `expected: false`).
+ *
  * - `summary` (default): per element, a count per layer, with the entries for the layers the change
  *   already reaches (and for any layer named in `unwiredLayers`). Only entries whose other type the
  *   projected model has (existing or added) are listed; the rest are counted per layer as
@@ -352,6 +367,13 @@ export type UnwiredMode = "summary" | "full" | "none";
 
 export interface BriefUnwired {
   mode: Exclude<UnwiredMode, "none">;
+  /**
+   * Over the layers shown: `expected` links (required or rule-backed) the added and changed elements
+   * lack, which is the headline; `optional` catalog triples, counted and never listed by default;
+   * `preexisting` expected links of updated elements the change does not touch the type or
+   * relationships of, left out of `expected`.
+   */
+  totals: { expected: number; optional: number; preexisting: number };
   /** The layer filter, when one was given. */
   layers?: string[];
   /** Filter layers that are not layers of the model. */
@@ -359,12 +381,18 @@ export interface BriefUnwired {
   elements: Array<{
     element: string;
     type: string;
-    /** Unwired connections across the layers shown. */
+    /** Expected unwired connections across the layers shown. */
     total: number;
+    /** Optional catalog triples across the layers shown, counted only. */
+    optional: number;
+    /** Set on an updated element whose unwired connections predate the change (see `ElementUnwired`). */
+    preexisting?: true;
     byLayer: Array<{
       layer: string;
-      /** Unwired connections in this layer, listed or not. */
+      /** Expected unwired connections in this layer, listed or not. */
       count: number;
+      /** Optional catalog triples in this layer, not counted in `count` and listed only in `full`. */
+      optional?: number;
       entries?: UnwiredEntry[];
       /**
        * Summary mode: unwired connections in this layer whose other type the projected model has no
@@ -1124,6 +1152,19 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
     counts.set(type, (counts.get(type) ?? 0) + 1);
   }
 
+  // Connections the model already carries: `type|direction|predicate|otherType` for each base
+  // relationship (one the change deletes included), from both ends. A link some existing element of the type has is one the type is
+  // expected to have in this model; a catalog triple none carries is optional.
+  const carried = new Set<string>();
+  for (const rel of graph.relationships()) {
+    if (rel.status === "added") continue;
+    const source = graph.getElement(rel.source);
+    const target = graph.getElement(rel.target);
+    if (!source || !target) continue;
+    carried.add(`${specNodeId(source)}|out|${rel.predicate}|${specNodeId(target)}`);
+    carried.add(`${specNodeId(target)}|in|${rel.predicate}|${specNodeId(source)}`);
+  }
+
   const result: ElementUnwired[] = [];
   for (const element of graph.changedElements()) {
     if (element.status !== "added" && element.status !== "updated") continue;
@@ -1137,7 +1178,7 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
 
     const entries = new Map<string, UnwiredEntry>();
     const accepted = new Map<string, AcceptedUnwired>();
-    const consider = (direction: "out" | "in", predicate: string, otherType: string) => {
+    const consider = (direction: "out" | "in", predicate: string, otherType: string, spec: RelationshipSpec) => {
       const key = `${direction}|${predicate}|${otherType}`;
       if (have.has(key) || entries.has(key) || accepted.has(key)) return;
       // Accepted as a gap: decided against, so listed apart with the reason and not counted.
@@ -1149,10 +1190,10 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
       const self = otherType === type ? 1 : 0;
       const existingCount = (existing.get(otherType) ?? 0) - (element.status === "added" ? 0 : self);
       const addedCount = (added.get(otherType) ?? 0) - (element.status === "added" ? self : 0);
-      entries.set(key, { direction, predicate, otherType, existingCount, addedCount });
+      entries.set(key, { direction, predicate, otherType, existingCount, addedCount, expected: isExpectedLink(spec) || carried.has(`${type}|${key}`) });
     };
-    for (const spec of RELATIONSHIPS_BY_SOURCE.get(type) ?? []) consider("out", spec.predicate, spec.destinationSpecNodeId);
-    for (const spec of RELATIONSHIPS_BY_DESTINATION.get(type) ?? []) consider("in", spec.predicate, spec.sourceSpecNodeId);
+    for (const spec of RELATIONSHIPS_BY_SOURCE.get(type) ?? []) consider("out", spec.predicate, spec.destinationSpecNodeId, spec);
+    for (const spec of RELATIONSHIPS_BY_DESTINATION.get(type) ?? []) consider("in", spec.predicate, spec.sourceSpecNodeId, spec);
 
     const layerOf = (specId: string) => specId.split(".")[0];
     const all = [...entries.values()];
@@ -1162,14 +1203,41 @@ export function computeUnwired(graph: ChangesetGraph): ElementUnwired[] {
         .filter((e) => layerOf(e.otherType) === layer)
         .sort(
           (a, b) =>
+            Number(b.expected) - Number(a.expected) ||
             (a.direction === b.direction ? 0 : a.direction === "out" ? -1 : 1) ||
             a.predicate.localeCompare(b.predicate) ||
             a.otherType.localeCompare(b.otherType)
         ),
     }));
-    result.push({ element: element.id, type, byLayer, ...(accepted.size > 0 ? { accepted: [...accepted.values()] } : {}) });
+    result.push({
+      element: element.id,
+      type,
+      byLayer,
+      ...(isPreexisting(graph, element) ? { preexisting: true as const } : {}),
+      ...(accepted.size > 0 ? { accepted: [...accepted.values()] } : {}),
+    });
   }
   return result;
+}
+
+/**
+ * A link the catalog itself expects of an element of the type: marked required, or of high or
+ * critical strength. The layer rules have no structured form yet, so this is what the spec carries;
+ * `computeUnwired` adds the links the model's existing elements of the type already have.
+ */
+function isExpectedLink(spec: RelationshipSpec): boolean {
+  return spec.required || spec.strength === "high" || spec.strength === "critical";
+}
+
+/**
+ * An updated element the change leaves with the connections it had: its type is unchanged and no
+ * relationship of it is added or deleted. What is unwired on it was unwired before the change.
+ */
+function isPreexisting(graph: ChangesetGraph, element: GraphElement): boolean {
+  if (element.status !== "updated") return false;
+  const beforeType = element.before?.type;
+  if (typeof beforeType === "string" && beforeType !== element.type) return false;
+  return graph.neighbors(element.id, { includeDeleted: true }).every((n) => n.relationship.status === "unchanged");
 }
 
 /** Shapes computed unwired connections for the brief: see `UnwiredMode`. */
@@ -1183,39 +1251,63 @@ function presentUnwired(
   const filter = layerFilter ? new Set(layerFilter) : undefined;
   const unknownLayers = layerFilter?.filter((l) => !known.has(l)) ?? [];
 
-  const elements = computed.map(({ element, type, byLayer, accepted }) => {
+  const elements = computed.map(({ element, type, byLayer, accepted, preexisting }) => {
     const acceptedShown = (accepted ?? []).filter((a) => !filter || filter.has(a.otherType.split(".")[0]));
+    let optional = 0;
     const shown = byLayer
       .filter((l) => !filter || filter.has(l.layer))
       .map((l) => {
-        const count = l.entries.length;
-        if (mode === "full") return { layer: l.layer, count, entries: l.entries };
-        // Summary: list only connections to types the projected model has; count the rest.
-        const inModel = l.entries.filter((e) => e.existingCount + e.addedCount > 0);
+        const expected = l.entries.filter((e) => e.expected);
+        const count = expected.length;
+        const optionalCount = l.entries.length - count;
+        optional += optionalCount;
+        const optionalNote = optionalCount > 0 ? { optional: optionalCount } : {};
+        if (mode === "full") return { layer: l.layer, count, ...optionalNote, entries: l.entries };
+        // Summary: list only expected connections to types the projected model has; count the rest.
+        const inModel = expected.filter((e) => e.existingCount + e.addedCount > 0);
         const typesNotInModel = count - inModel.length;
         const withEntries = reachedLayers.has(l.layer) || !!filter?.has(l.layer);
         return {
           layer: l.layer,
           count,
+          ...optionalNote,
           ...(withEntries ? { entries: inModel } : {}),
           ...(typesNotInModel > 0 ? { typesNotInModel } : {}),
         };
-      });
+      })
+      // A layer with only optional triples has nothing to list or count as expected.
+      .filter((l) => l.count > 0 || mode === "full");
     return {
       element,
       type,
       total: shown.reduce((sum, l) => sum + l.count, 0),
+      optional,
+      ...(preexisting ? { preexisting } : {}),
       byLayer: shown,
       ...(acceptedShown.length > 0 ? { accepted: acceptedShown } : {}),
     };
   });
+  // Elements whose changes bring the links come first; the pre-existing ones after, in their order.
+  elements.sort((a, b) => Number(!!a.preexisting) - Number(!!b.preexisting));
 
   return {
     mode,
+    totals: unwiredTotals(elements),
     ...(layerFilter ? { layers: layerFilter } : {}),
     ...(unknownLayers.length > 0 ? { unknownLayers } : {}),
     elements,
   };
+}
+
+/** The brief's unwired totals over some elements (all of them, or the ones a filter keeps). */
+export function unwiredTotals(elements: BriefUnwired["elements"]): BriefUnwired["totals"] {
+  const totals = { expected: 0, optional: 0, preexisting: 0 };
+  for (const e of elements) {
+    totals.optional += e.optional;
+    if (e.preexisting) totals.preexisting += e.total;
+    else totals.expected += e.total;
+  }
+  return totals;
 }
 
 /** Key of one unwired entry of one element, for comparing two briefs. */

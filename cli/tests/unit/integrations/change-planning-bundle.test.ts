@@ -101,7 +101,9 @@ describe("change-planning integration", () => {
 
       it("asks the compact brief for what it needs, and reads verify's unverifiable items right", () => {
         expect(text).toMatch(/`sections: \["unwired"\], unwiredLayers: \[/);
-        expect(text).toMatch(/always pass a filter/i);
+        // Only expected links count; optional and preexisting ones are counted apart (#1293, #1442).
+        expect(text).toMatch(/optional/);
+        expect(text).toMatch(/preexisting/);
         expect(text).toContain('`sections: ["changes"]`');
         expect(text).toContain("`byLayer`");
         expect(text).not.toContain('sections: ["layers"]');

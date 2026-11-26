@@ -21,6 +21,7 @@ import { getAllLayerIds } from "../generated/layer-registry.js";
 import { elementFilter, unknownFilterNote } from "./element-filter.js";
 import { nextPageCall } from "./paging.js";
 import type { BriefDelta } from "./changeset-brief-delta.js";
+import { unwiredTotals } from "./changeset-analysis.js";
 import type { BriefAcceptedGap, BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./changeset-analysis.js";
 
 /**
@@ -215,7 +216,7 @@ export interface CompactBrief {
   /** Intent: counts, and the ids of what does not trace (see `compactIntent`). */
   intent: CompactIntent;
   /** Unwired connections of added and updated elements, counted per other-end layer (listed when asked for). */
-  unwired?: { total: number; byLayer: Record<string, number> } | ChangesetBrief["unwired"];
+  unwired?: UnwiredCounts | ChangesetBrief["unwired"];
   /**
    * Every changed element. Left out of a brief with a delta, and of a large plan's (which has
    * `changesByType`); `sections: ["changes"]` lists them.
@@ -304,20 +305,40 @@ export function gapLines(gaps: BriefGap[], options: { group?: boolean; limit?: n
 }
 const cut = (text: string, limit: number) => (text.length > limit ? `${text.slice(0, limit - 1)}…` : text);
 
-/** Unwired connections counted per other-end layer, across every added or updated element. */
-export function unwiredCounts(unwired: ElementUnwired[]): { total: number; byLayer: Record<string, number> } {
+/**
+ * Unwired connections of added and updated elements. `total` and `byLayer` count the expected links
+ * (required or rule-backed) of elements the change touches; `optional` counts the other catalog
+ * triples, never listed by default; `preexisting` counts the expected links of updated elements whose
+ * type and relationships the change leaves alone, which are not part of `total`.
+ */
+export interface UnwiredCounts {
+  total: number;
+  byLayer: Record<string, number>;
+  optional: number;
+  preexisting: number;
+}
+
+export function unwiredCounts(unwired: ElementUnwired[]): UnwiredCounts {
   const counts = new Map<string, number>();
   let total = 0;
+  let optional = 0;
+  let preexisting = 0;
   for (const element of unwired) {
     for (const { layer, entries } of element.byLayer) {
-      counts.set(layer, (counts.get(layer) ?? 0) + entries.length);
-      total += entries.length;
+      const expected = entries.filter((e) => e.expected).length;
+      optional += entries.length - expected;
+      if (element.preexisting) {
+        preexisting += expected;
+        continue;
+      }
+      if (expected > 0) counts.set(layer, (counts.get(layer) ?? 0) + expected);
+      total += expected;
     }
   }
   const order = getAllLayerIds();
   const rank = (layer: string) => (order.includes(layer) ? order.indexOf(layer) : order.length);
   const byLayer = Object.fromEntries([...counts].sort(([a], [b]) => rank(a) - rank(b)));
-  return { total, byLayer };
+  return { total, byLayer, optional, preexisting };
 }
 
 /** How many ids of a list are of one `layer.type`. */
@@ -972,12 +993,14 @@ function unwiredByType(elements: NonNullable<ChangesetBrief["unwired"]>["element
     const group: Group = groups.get(element.type) ?? { elements: 0, layers: new Map() };
     group.elements += 1;
     for (const l of element.byLayer) {
+      // Optional triples (full mode lists them) are not expected links: the summary leaves them out.
+      if (l.count === 0) continue;
       const layer = group.layers.get(l.layer) ?? { count: 0, typesNotInModel: 0 };
       layer.count = Math.max(layer.count, l.count);
       layer.typesNotInModel = Math.max(layer.typesNotInModel, l.typesNotInModel ?? 0);
       if (l.entries && entries) {
         layer.entries ??= new Map();
-        for (const e of l.entries) {
+        for (const e of l.entries.filter((x) => x.expected)) {
           const key = `${e.direction} ${e.predicate} ${e.otherType}`;
           const entry = layer.entries.get(key) ?? { line: `${key} (${e.existingCount} existing, ${e.addedCount} added)`, elements: 0 };
           entry.elements += 1;
@@ -1077,7 +1100,12 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
       }
     : brief.intent;
   const unwired =
-    brief.unwired && filter ? { ...brief.unwired, elements: brief.unwired.elements.filter((e) => keep(e.element)) } : brief.unwired;
+    brief.unwired && filter
+      ? (() => {
+          const kept = brief.unwired.elements.filter((e) => keep(e.element));
+          return { ...brief.unwired, totals: unwiredTotals(kept), elements: kept };
+        })()
+      : brief.unwired;
   const offset = Math.max(0, options.offset ?? 0);
   const maxConnections = options.maxConnections ?? CONNECTIONS_PER_GROUP;
   const values = out as unknown as Record<string, unknown>;
