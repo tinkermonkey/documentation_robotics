@@ -183,9 +183,11 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
 
   const flatten = (list: ElementUnwired[]) => {
     const map = new Map<string, UnwiredDeltaEntry>();
-    for (const { element, byLayer } of list) {
+    for (const { element, byLayer, preexisting } of list) {
+      // Pre-existing links are not this change's; optional triples are not in the headline: neither is tracked.
+      if (preexisting) continue;
       for (const { layer, entries } of byLayer) {
-        for (const entry of entries) map.set(unwiredKey(element, entry), { element, layer, ...entry });
+        for (const entry of entries.filter((e) => e.expected)) map.set(unwiredKey(element, entry), { element, layer, ...entry });
       }
     }
     return map;
@@ -232,8 +234,8 @@ export function diffBriefs(then: BriefSide, now: BriefSide, since: number, extra
         .filter(([k, e]) => !thenUnwired.has(k) && thenScoped.has(e.element) && !reopenedSince.has(k))
         .map(([, e]) => e),
       newElements: now.unwired
-        .filter((u) => !thenScoped.has(u.element))
-        .map((u) => ({ element: u.element, count: u.byLayer.reduce((sum, l) => sum + l.entries.length, 0) })),
+        .filter((u) => !thenScoped.has(u.element) && !u.preexisting)
+        .map((u) => ({ element: u.element, count: u.byLayer.reduce((sum, l) => sum + l.entries.filter((e) => e.expected).length, 0) })),
     },
     reach: {
       newlyReached: now.brief.reach.touched.filter((l) => !thenReach.has(l)),

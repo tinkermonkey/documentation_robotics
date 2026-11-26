@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1686
+      applicationfunction: 1688
       applicationinterface: 4
       applicationservice: 116
       dataobject: 13
@@ -227,6 +227,9 @@ changeset_history:
     action: committed
   - name: cli010-x1-checkouts
     committed_at: 2026-11-26T16:16:34.312Z
+    action: committed
+  - name: cli010-b1-unwired-expected-links
+    committed_at: 2026-11-26T15:11:00.565Z
     action: committed
   - name: split-central-server-interfaces
     committed_at: 2026-11-26T16:21:04.058Z

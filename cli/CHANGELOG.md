@@ -76,6 +76,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   predicate as a group, such as `{files: "packages/render/test/**", predicate: "tests"}`. It covers
   the links extraction staged, not ones already in the model, and takes no `keep`.
 
+- `changeset_brief`'s unwired count covers only the links an element of its type is expected to
+  have: marked required or high-strength in the catalog, or carried by an existing element of the
+  type in the model (issue 1293). The other catalog triples are an `optional` count, listed only
+  with `unwired: "full"`, so `sections: ["unwired"]` lists the expected links first and stays small
+  on a large changeset. An updated element whose type and relationships the change leaves alone has
+  its unwired links counted apart as `preexisting`, not in the headline (issue 1442). The server
+  instructions, the `dr_change_planning` skill and `/dr-plan` say the same. The layer rules have no
+  structured form yet, so rule-backed links are not marked separately.
+
 ## [0.9.0] - 2026-11-25
 
 **Specification Support:** v0.16.0

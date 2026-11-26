@@ -142,12 +142,15 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    - Pass the last brief's `revisionToken` as `since`; read the `delta` first. It covers unstages
      too (`unstaged`). If it warns (a hand-edited `changes.yaml`, or a reach back past the last 200
      unstages), read the brief itself.
-   - Work through `unwired` for each element you added or changed. The default brief only counts
-     it per layer, and `sections` returns only the sections it names, so list the entries with
+   - Work through `unwired` for each element you added or changed. It counts only the links an
+     element of that type is expected to have (required, high-strength, or carried by existing elements of the type); the other
+     catalog triples come as a separate `optional` count and are not listed by default. An updated
+     element whose type and relationships the change leaves alone is counted apart as `preexisting`:
+     not this change's gap. The default brief only counts per layer, and `sections` returns only the
+     sections it names, so list the expected links with
      `sections: ["unwired"], unwiredLayers: [<the layers the change reaches>]`, narrowed further with
-     `layers` or `ids` if you like. Always pass a filter: unfiltered it runs to hundreds of KB on a
-     large model. Where `existingCount` is above 0, link an existing element; otherwise decide
-     whether the change needs a new one.
+     `layers` or `ids` if you like; it pages with a true total. Where `existingCount` is above 0,
+     link an existing element; otherwise decide whether the change needs a new one.
    - Walk `changeset_impact` with `from` set to what you just added, not the whole changeset.
    - Read the plan with `changeset_show`: one line per change by default, narrowed with `layers`,
      `types` or `operations` and paged with `limit` and `offset`; not `detail: "full"`, which

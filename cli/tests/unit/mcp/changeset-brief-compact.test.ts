@@ -221,7 +221,8 @@ describe("changeset_brief compact (D2)", () => {
     const full = await brief({ detail: "full" });
     expect(compact.json.changes).toHaveLength(15);
     expect(compact.bytes).toBeLessThan(20_000);
-    expect(compact.bytes * 3).toBeLessThan(full.bytes);
+    // The full brief no longer lists optional catalog triples, so it is smaller than it was (#1293).
+    expect(compact.bytes * 2).toBeLessThan(full.bytes);
   });
 
   it("sections: changes is the build view, and layers or ids narrow it (PR 1066 review: layers ~3 KB per element)", async () => {

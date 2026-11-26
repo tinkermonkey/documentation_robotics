@@ -1,0 +1,15 @@
+id: changeset-1795703657942-9ggr4t6tf
+name: cli010-b1-unwired-expected-links
+description: "changeset_brief's unwired count covers only the links an element of its type is expected to have (required, high-strength, or carried by existing elements of the type); optional catalog triples are a separate count, and an updated element that keeps its type and relationships is counted apart as preexisting. Closes #1293 and #1442."
+created: 2026-11-26T14:34:18.031Z
+modified: 2026-11-26T15:11:00.558Z
+status: committed
+baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 2
+  modifications: 2
+  deletions: 0
+lastSequence: 3

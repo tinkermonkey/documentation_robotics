@@ -460,6 +460,7 @@ describe("changeset_brief unwired counts", () => {
       otherType: "data-model.objectschema",
       existingCount: 0,
       addedCount: 1,
+      expected: false,
     });
     // The function's own add is not counted for its own type; the base has none.
     const opEntries = allEntries(findElement(result.unwired, OPERATION));
@@ -474,22 +475,31 @@ describe("changeset_brief unwired counts", () => {
 // ---------------------------------------------------------------------------
 
 describe("changeset_brief unwired summary size", () => {
-  it("lists entries only for types in the projected model and counts the rest per layer", async () => {
+  it("lists only expected links for types in the projected model, and counts optional ones apart", async () => {
     await planExportOrders();
     const summary = await brief();
     const full = await brief({ unwired: "full" });
 
     const op = findElement(summary.unwired, OPERATION);
-    const apiLayer = op.byLayer.find((l: any) => l.layer === "api");
-    // The model has no other API element, so nothing in the api layer is listed.
-    for (const entry of apiLayer.entries) expect(entry.existingCount + entry.addedCount).toBeGreaterThan(0);
-    const fullApi = findElement(full.unwired, OPERATION).byLayer.find((l: any) => l.layer === "api");
-    expect(apiLayer.typesNotInModel).toBe(fullApi.entries.filter((e: any) => e.existingCount + e.addedCount === 0).length);
-    expect(apiLayer.typesNotInModel).toBeGreaterThan(0);
-    expect(apiLayer.count).toBe(fullApi.count);
-    // full keeps everything.
-    expect(fullApi.entries).toHaveLength(fullApi.count);
-    expect(fullApi.typesNotInModel).toBeUndefined();
+    const fullOp = findElement(full.unwired, OPERATION);
+    // Summary entries are expected links to types the model has; nothing optional is listed.
+    for (const layer of op.byLayer) {
+      for (const entry of layer.entries ?? []) {
+        expect(entry.expected).toBe(true);
+        expect(entry.existingCount + entry.addedCount).toBeGreaterThan(0);
+      }
+    }
+    // Full lists the optional catalog triples too, flagged, expected ones first in a layer.
+    const fullApi = fullOp.byLayer.find((l: any) => l.layer === "api");
+    expect(fullApi.entries.some((e: any) => e.expected === false)).toBe(true);
+    const flags = fullApi.entries.map((e: any) => e.expected);
+    expect(flags).toEqual([...flags].sort((a: boolean, b: boolean) => Number(b) - Number(a)));
+    expect(fullApi.optional).toBe(fullApi.entries.filter((e: any) => !e.expected).length);
+    expect(fullApi.count).toBe(fullApi.entries.filter((e: any) => e.expected).length);
+    // The optional triples are counted per element and in the totals.
+    expect(op.optional).toBe(fullOp.optional);
+    expect(op.optional).toBeGreaterThan(0);
+    expect(summary.unwired.totals.optional).toBeGreaterThan(0);
     expect(JSON.stringify(summary).length).toBeLessThan(JSON.stringify(full).length);
   });
 
@@ -500,7 +510,7 @@ describe("changeset_brief unwired summary size", () => {
     const data = JSON.parse(text);
     expect(compactJson(data)).toBe(text);
     expect(text).toContain(
-      '{"direction":"out","predicate":"supports","otherType":"motivation.goal","existingCount":1,"addedCount":0}'
+      '{"direction":"out","predicate":"supports","otherType":"motivation.goal","existingCount":1,"addedCount":0,"expected":false}'
     );
     expect(text.length).toBeLessThan(JSON.stringify(data, null, 2).length);
   });
