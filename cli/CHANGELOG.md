@@ -368,6 +368,10 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   as every other tool names a type, and so does `element` alone. A `layer` that disagrees with the
   dotted id is refused, and a call with neither says how to name the type. Carries #1288 by
   jiangyuer018.
+- **The analyzer client survives an analyzer that has exited.** A write to `codebase-memory-mcp`
+  after it exits fails late, with `EPIPE` on its input. Nothing handled that, so the error was
+  thrown; it was most likely when closing the client. A request still waiting now fails with the
+  error, and one raised during shutdown is ignored.
 
 Extract output and decide (CLI 0.9.0, Tool ergonomics):
 
