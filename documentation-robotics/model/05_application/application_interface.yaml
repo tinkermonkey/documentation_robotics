@@ -1,22 +1,3 @@
-application.applicationinterface.central-server-http-endpoint:
-  id: 177776a8-703f-4980-ab96-5f7159602166
-  path: application.applicationinterface.central-server-http-endpoint
-  spec_node_id: application.applicationinterface
-  type: applicationinterface
-  layer_id: application
-  name: Central server HTTP endpoint
-  description: "127.0.0.1:<port> of the central process: /mcp (streamable HTTP MCP), /api/... (viewer API), the viewer's pages and /health. Token required on all but /health."
-  attributes:
-    protocol: HTTP
-  source_reference:
-    provenance: manual
-    locations:
-      - file: cli/src/server/central-server.ts
-        symbol: startCentralServerWith
-  metadata:
-    created_at: 2026-11-21T17:14:10.906Z
-    updated_at: 2026-11-21T17:14:10.906Z
-    version: 1
 application.applicationinterface.central-server-websocket:
   id: a382ef2d-7a68-4d2c-a3e2-058988c1e510
   path: application.applicationinterface.central-server-websocket
@@ -36,4 +17,63 @@ application.applicationinterface.central-server-websocket:
   metadata:
     created_at: 2026-11-21T17:14:10.906Z
     updated_at: 2026-11-21T17:14:10.906Z
+    version: 1
+application.applicationinterface.central-server-mcp-endpoint:
+  id: 738b00dd-0323-4527-af71-98d97468cdab
+  path: application.applicationinterface.central-server-mcp-endpoint
+  spec_node_id: application.applicationinterface
+  type: applicationinterface
+  layer_id: application
+  name: Central server MCP endpoint
+  description: "/mcp on the central process (127.0.0.1:<port>): MCP over streamable HTTP, one MCP server per session, each resolving its own checkout (pinned root, client roots, or the process's default checkout). Every DR MCP tool is reached here; dr mcp over stdio forwards to it. Requires the token."
+  attributes:
+    interfaceType: api
+    protocol: MCP
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.handleMcp
+  metadata:
+    created_at: 2026-11-26T15:16:47.798Z
+    updated_at: 2026-11-26T15:16:47.798Z
+    version: 1
+application.applicationinterface.central-server-http-api:
+  id: c5710b7b-cad8-4d19-aaf2-0a3d76fa5dfe
+  path: application.applicationinterface.central-server-http-api
+  spec_node_id: application.applicationinterface
+  type: applicationinterface
+  layer_id: application
+  name: Central server HTTP API
+  description: "The viewer's HTTP API on the central process (127.0.0.1:<port>): GET /api/projects and every project-data route under /api/projects/:project/checkouts/:checkout/, the retired unscoped routes answering 410, the OpenAPI document (/api-spec.yaml) and its docs page (/api-docs), and /health. Every /api/ route requires the token; /health answers without it and reports more with it."
+  attributes:
+    interfaceType: api
+    protocol: HTTP
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.setupRoutes
+  metadata:
+    created_at: 2026-11-26T15:16:47.812Z
+    updated_at: 2026-11-26T15:16:47.812Z
+    version: 1
+application.applicationinterface.central-server-viewer-pages:
+  id: e43bb9e3-0d9e-4259-ac05-3e9faa46b8cd
+  path: application.applicationinterface.central-server-viewer-pages
+  spec_node_id: application.applicationinterface
+  type: applicationinterface
+  layer_id: application
+  name: Central server viewer pages
+  description: "The viewer on the central process (127.0.0.1:<port>): / and the deep links /p/<project>/c/<checkout>/... load the bundled viewer's index.html, and any other path not taken by /api/, /mcp, /ws, /health or the API docs is one of the viewer's files. The pages need no token: the viewer carries it in the URL fragment and sends it on its API and socket calls."
+  attributes:
+    interfaceType: user-interface
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/server/server.ts
+        symbol: VisualizationServer.setupRoutes
+  metadata:
+    created_at: 2026-11-26T15:16:47.812Z
+    updated_at: 2026-11-26T15:16:47.812Z
     version: 1
