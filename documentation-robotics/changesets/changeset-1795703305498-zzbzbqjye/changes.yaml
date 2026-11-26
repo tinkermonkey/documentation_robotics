@@ -21,28 +21,6 @@
   timestamp: 2026-11-26T14:28:32.347Z
   sequenceNumber: 0
 - type: add
-  elementId: application.applicationfunction.read-route-definition
-  layerName: application
-  after:
-    id: b77653de-97b4-4550-8d98-dfe2102006c6
-    path: application.applicationfunction.read-route-definition
-    spec_node_id: application.applicationfunction
-    type: applicationfunction
-    layer_id: application
-    name: readRouteDefinition
-    description: Reads operationId, summary and tags from a Hono createRoute / OpenAPI route definition; fields it cannot read stay unset.
-    source_reference:
-      provenance: manual
-      locations:
-        - file: cli/src/analyzers/cards/hand-routes.ts
-          symbol: readRouteDefinition
-    metadata:
-      created_at: 2026-11-26T14:28:31.863Z
-      updated_at: 2026-11-26T14:28:31.863Z
-      version: 1
-  timestamp: 2026-11-26T14:28:32.347Z
-  sequenceNumber: 1
-- type: add
   elementId: application.applicationfunction.is-route-path
   layerName: application
   after:
@@ -64,3 +42,69 @@
       version: 1
   timestamp: 2026-11-26T14:28:32.347Z
   sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.read-route-definitions
+  layerName: application
+  after:
+    id: dc9727f5-4d9c-40f5-9353-0ef4ba7c077f
+    path: application.applicationfunction.read-route-definitions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readRouteDefinitions
+    description: Reads operationId, summary and tags from Hono createRoute / OpenAPI route definitions; a field it can't read stays unset.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/hand-routes.ts
+          symbol: readRouteDefinitions
+    metadata:
+      created_at: 2026-11-26T14:43:40.522Z
+      updated_at: 2026-11-26T14:43:40.522Z
+      version: 1
+  timestamp: 2026-11-26T14:43:40.531Z
+  sequenceNumber: 4
+- type: add
+  elementId: application.applicationfunction.collect-hand-routes
+  layerName: application
+  after:
+    id: 648374cf-a186-402a-a086-8df00cd5dde5
+    path: application.applicationfunction.collect-hand-routes
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: collectHandRoutes
+    description: The hand-routed routes of a project's files and the files read only in part.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/hand-routes.ts
+          symbol: collectHandRoutes
+    metadata:
+      created_at: 2026-11-26T14:43:40.522Z
+      updated_at: 2026-11-26T14:43:40.522Z
+      version: 1
+  timestamp: 2026-11-26T14:43:40.531Z
+  sequenceNumber: 5
+- type: add
+  elementId: application.applicationfunction.definition-for
+  layerName: application
+  after:
+    id: 9764c7a5-f3a6-4bab-92e5-d087b554afbb
+    path: application.applicationfunction.definition-for
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: definitionFor
+    description: The route definition for a method and path.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/hand-routes.ts
+          symbol: definitionFor
+    metadata:
+      created_at: 2026-11-26T14:43:40.522Z
+      updated_at: 2026-11-26T14:43:40.522Z
+      version: 1
+  timestamp: 2026-11-26T14:43:40.531Z
+  sequenceNumber: 6
