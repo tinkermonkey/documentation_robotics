@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-26T15:11:00.061Z
+# Last updated: 2026-11-26T16:21:03.870Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -25145,16 +25145,6 @@
   layer: application
   targetLayer: product
   category: structural
-- source: application.applicationinterface.central-server-http-endpoint
-  target: application.applicationservice.viewer-api
-  predicate: assigned-to
-  layer: application
-  category: structural
-- source: application.applicationinterface.central-server-http-endpoint
-  target: application.applicationservice.project-list-handler
-  predicate: assigned-to
-  layer: application
-  category: structural
 - source: application.applicationinterface.central-server-websocket
   target: application.applicationservice.dr-bot-conversation
   predicate: assigned-to
@@ -25219,11 +25209,6 @@
   target: motivation.requirement.links-into-the-shared-viewer-start-no-process
   predicate: influence
   layer: motivation
-  category: structural
-- source: application.applicationcomponent.visualization-server
-  target: application.applicationinterface.central-server-http-endpoint
-  predicate: provides
-  layer: application
   category: structural
 - source: application.applicationcomponent.visualization-server
   target: application.applicationinterface.central-server-websocket
@@ -31391,11 +31376,6 @@
   predicate: realizes
   layer: application
   category: structural
-- source: application.applicationinterface.central-server-http-endpoint
-  target: application.applicationfunction.visualization-server-start
-  predicate: depends-on
-  layer: application
-  category: structural
 - source: application.applicationservice.annotation-create-handler
   target: data-model.objectschema.mcp-tool-definition
   predicate: accesses
@@ -33826,12 +33806,6 @@
   category: structural
 - source: testing.testcasesketch.central-process-env-drops-what-describes-one-session-and-keeps-the-rest
   target: application.applicationfunction.ensure-central-server
-  predicate: tests
-  layer: testing
-  targetLayer: application
-  category: structural
-- source: testing.testcasesketch.central-server-never-evicts-a-subscribed-checkout
-  target: application.applicationinterface.central-server-http-endpoint
   predicate: tests
   layer: testing
   targetLayer: application
@@ -67048,16 +67022,6 @@
   predicate: depends-on
   layer: application
   category: structural
-- source: application.applicationinterface.central-server-http-endpoint
-  target: application.applicationfunction.default-checkout-for
-  predicate: depends-on
-  layer: application
-  category: structural
-- source: application.applicationinterface.central-server-http-endpoint
-  target: application.applicationfunction.visualization-server-listening-port
-  predicate: depends-on
-  layer: application
-  category: structural
 - source: application.applicationservice.create-project-list-handler
   target: data-model.objectschema.central-deps
   predicate: accesses
@@ -75345,6 +75309,340 @@
   category: structural
 - source: testing.testcasesketch.tests-links-from-calls-a-test-that-calls-into-its-own-package-and-another-keeps-the-own-packages
   target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: application.applicationcomponent.visualization-server
+  target: application.applicationinterface.central-server-mcp-endpoint
+  predicate: provides
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationfunction.visualization-server-start
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationfunction.visualization-server-listening-port
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationcomponent.visualization-server
+  target: application.applicationinterface.central-server-http-api
+  predicate: provides
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-http-api
+  target: application.applicationfunction.visualization-server-start
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-http-api
+  target: application.applicationfunction.visualization-server-listening-port
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationcomponent.visualization-server
+  target: application.applicationinterface.central-server-viewer-pages
+  predicate: provides
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-viewer-pages
+  target: application.applicationfunction.visualization-server-start
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-viewer-pages
+  target: application.applicationfunction.visualization-server-listening-port
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationfunction.default-checkout-for
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationfunction.central-mcp-endpoint-handle
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationcomponent.central-mcp-endpoint
+  target: application.applicationinterface.central-server-mcp-endpoint
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.annotation-create-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.annotation-delete-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.annotation-get-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.annotation-list-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.annotation-reply-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.annotation-update-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-adopt-source-references-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-impact-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-brief-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-commit-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-update-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-unstage-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-discard-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-create-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-activate-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-deactivate-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-list-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-show-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-verify-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.chat-launch-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.chat-status-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.create-codebase-extract-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.create-codebase-index-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.create-codebase-verify-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.gap-accept-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.gap-reopen-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-add-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-delete-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-export-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-info-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-list-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-reload-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-search-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-show-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-stats-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-trace-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-update-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.model-validate-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.project-status-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.project-init-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.project-upgrade-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.relationship-add-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.relationship-delete-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.create-review-open-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.spec-type-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.create-tier1status-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.changeset-commit-preview-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-mcp-endpoint
+  target: application.applicationservice.project-list-handler
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationinterface.central-server-http-api
+  target: application.applicationservice.viewer-api
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: testing.testcasesketch.central-server-never-evicts-a-subscribed-checkout
+  target: application.applicationinterface.central-server-http-api
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.central-server-requires-the-token-on-every-route-except-health
+  target: application.applicationinterface.central-server-http-api
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: application.applicationinterface.central-server-viewer-pages
+  target: application.applicationfunction.visualization-server-serve-custom-viewer
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: testing.testcasesketch.the-viewers-deep-link-paths-leave-the-viewers-own-files-the-api-mcp-and-health-to-their-routes
+  target: application.applicationinterface.central-server-viewer-pages
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.visualization-server-health-and-status-should-serve-viewer-html-at-root
+  target: application.applicationinterface.central-server-viewer-pages
   predicate: tests
   layer: testing
   targetLayer: application

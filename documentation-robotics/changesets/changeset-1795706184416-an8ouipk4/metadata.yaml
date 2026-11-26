@@ -14,8 +14,8 @@ description: |-
 
   **Done when:** the three interfaces replace the old one with every link placed as above, model_validate reports no errors, and the maintainer lands it with the PR.
 created: 2026-11-26T15:16:24.472Z
-modified: 2026-11-26T15:17:08.749Z
-status: staged
+modified: 2026-11-26T16:21:04.059Z
+status: committed
 baseSnapshot: v2:sha256:d94fbb8d27a884cd78bbb466cbe38e2758c74a44e0b36629017201c902ca12dc
 origin:
   kind: plan
