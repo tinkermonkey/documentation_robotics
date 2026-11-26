@@ -1662,7 +1662,7 @@ export function planRelationships(
     }
     // A test's call to a member of a class it never refers to is the index matching a name, not
     // the test exercising that class.
-    if (ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
+    if (!inferred && ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
       return;
     }
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple, edge.evidence?.strategy ? { strategy: edge.evidence.strategy } : undefined);
@@ -1705,6 +1705,11 @@ export function planRelationships(
   // A helper many test files call and none is named after is not their subject (#1412).
   const filesOfElement = new Map<string, Set<string>>();
   for (const m of [declaredIn, sourcedIn]) for (const [file, ids] of m) for (const id of ids) add(filesOfElement, id, file);
+  // Also every symbol an element stands for (a method's or route's element is in no top-level map).
+  for (const s of extraction.symbols) {
+    const id = elementOf.get(s.qualifiedName);
+    if (id && s.card.file_path) add(filesOfElement, id, s.card.file_path);
+  }
   const testFileOf = new Map<string, string>();
   for (const s of extraction.symbols) {
     const id = elementOf.get(s.qualifiedName);
@@ -1737,7 +1742,8 @@ export function planRelationships(
   const afterHelpers = found.filter(keepLink);
   const insidePackage = (file: string, id: string) => {
     const pkg = packageOf(file);
-    return !pkg || [...(filesOfElement.get(id) ?? [])].some((f) => f.startsWith(pkg + "/"));
+    const files = filesOfElement.get(id);
+    return !pkg || !files?.size || [...files].some((f) => f.startsWith(pkg + "/"));
   };
   const ownPackageHit = new Set<string>();
   for (const r of afterHelpers) {
@@ -1766,6 +1772,7 @@ export function planRelationships(
     (filesByStem.get(stem) ?? filesByStem.set(stem, new Set()).get(stem)!).add(file);
   }
   const fileElements = (file: string): string[] => [...new Set([...(declaredIn.get(file) ?? []), ...(sourcedIn.get(file) ?? [])])].filter((id) => elements.get(id)?.layer !== "testing");
+  const namedCandidates = new Set<string>();
   const unwired = new Map<string, number>();
   let inferredTests = 0;
   for (const s of extraction.symbols) {
@@ -1780,7 +1787,10 @@ export function planRelationships(
     const pkg = packageOf(file);
     const own = pkg ? all.filter((f) => f.startsWith(pkg + "/")) : all;
     const named = own.length ? own : pkg ? [] : all;
-    for (const f of all) for (const e of fileElements(f)) candidate(file, e);
+    if (!namedCandidates.has(file)) {
+      namedCandidates.add(file);
+      for (const f of all) for (const e of fileElements(f)) candidate(file, e);
+    }
     const owner = named.length === 1 ? fileOwner(named[0]) : undefined;
     const target = owner ? elements.get(owner) : undefined;
     const triple = target ? `testing.testcasesketch.tests.${target.layer}.${target.type}` : "";

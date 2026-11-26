@@ -92,6 +92,26 @@ describe("tests links from calls", () => {
   });
 });
 
+describe("an own-package element that is a method keeps its link", () => {
+  it("is known by its symbol's file, not only by top-level declarations", () => {
+    const c = symbol("p.t.case", "case", "packages/a/test/x.test.ts");
+    const top = symbol("p.a.A", "A", "packages/a/src/a.ts", "Class");
+    const method = { qualifiedName: "p.a.A2.m", card: { label: "Method", name: "m", file_path: "packages/a/src/b.ts", parent_class: "p.a.A2" }, tier0: null } as any;
+    const ids = new Map([
+      ["p.t.case", "testing.testcasesketch.x"],
+      ["p.a.A", "application.applicationcomponent.a"],
+      ["p.a.A2.m", "application.applicationcomponent.m"],
+    ]);
+    const els = new Map<string, any>([
+      ["testing.testcasesketch.x", CASE],
+      ["application.applicationcomponent.a", APP],
+      ["application.applicationcomponent.m", APP],
+    ]);
+    const plan = planRelationships(graph([c, top, method], [call(c, top), call(c, method)]), EMPTY, ids, els, hasTriple);
+    expect(plan.relationships.map((r) => r.target).sort()).toEqual(["application.applicationcomponent.a", "application.applicationcomponent.m"]);
+  });
+});
+
 describe("tests links from a test file's name", () => {
   const els = new Map<string, any>([
     ["testing.testcasesketch.renders", CASE],

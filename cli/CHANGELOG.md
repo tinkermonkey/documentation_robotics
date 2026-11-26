@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `testLinks.sharedHelpers`). When a test's calls reach only symbols a rule rejected, they are
   followed to the element that owns the rejected symbol's file (or, with no owner, the few
   elements the symbol calls), with origin rule `edge:TEST_CALL_VIA_REJECTED`. Each test file still
-  unwired lists its `candidates` for the agent to check and wire.
+  unwired lists its `candidates` for the agent to check and wire. A test folder with no source of its
+  own package (`service/tests/test_orders.py` for `lib/orders.py`) no longer links by name alone.
 - `codebase_extract reject` takes `{files, predicate}` to reject a file's relationships of that
-  predicate as a group, such as `{files: "packages/render/test/**", predicate: "tests"}`.
+  predicate as a group, such as `{files: "packages/render/test/**", predicate: "tests"}`. It covers
+  the links extraction staged, not ones already in the model, and takes no `keep`.
 
 ## [0.9.0] - 2026-11-25
 

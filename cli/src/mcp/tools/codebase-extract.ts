@@ -2017,8 +2017,8 @@ function splitRejects(items: RejectItem[]) {
   const problems: RejectProblem[] = [];
   items.forEach((item, index) => {
     if (item.predicate !== undefined) {
-      if (item.files === undefined || item.card !== undefined || item.relationship !== undefined || item.except !== undefined) {
-        problems.push({ index, item: `predicate: ${item.predicate}`, status: "malformed", message: "predicate goes with files alone (no card, relationship or except): files plus predicate rejects a file's relationships of that predicate" });
+      if (item.files === undefined || item.card !== undefined || item.relationship !== undefined || item.except !== undefined || item.keep) {
+        problems.push({ index, item: `predicate: ${item.predicate}`, status: "malformed", message: "predicate goes with files alone (no card, relationship, except or keep): files plus predicate rejects the relationships of that predicate staged now, in this checkout" });
       } else groups.push({ files: item.files, predicate: item.predicate, reason: item.reason, index });
       return;
     }
@@ -2243,7 +2243,8 @@ function relationshipsInFiles(graph: ChangesetGraph, files: string, predicate: s
   const match = filesMatcher(files);
   const out: RelationshipRef[] = [];
   for (const r of graph.relationships()) {
-    if (r.predicate !== predicate || r.status === "deleted") continue;
+    // Links the base model already has (wired by hand, or landed) are not extraction's to reject as a group.
+    if (r.predicate !== predicate || r.status === "deleted" || r.status === "unchanged") continue;
     const source = graph.getElement(r.source);
     const hit = (source?.sourceReference?.locations ?? []).some((l) => typeof l.file === "string" && match(normFile(l.file) ?? ""));
     if (hit) out.push({ source: r.source, predicate: r.predicate, target: r.target });
