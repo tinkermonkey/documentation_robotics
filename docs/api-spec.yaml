@@ -1296,6 +1296,16 @@ paths:
                         remote:
                           type: string
                           description: origin's URL, when it has one
+                        missing:
+                          type: boolean
+                          enum:
+                            - true
+                          description:
+                            "Set when the repository folder is gone: the project stays in the
+                            farm until it is removed"
+                        remove:
+                          type: string
+                          description: "With missing: the call that drops the project from the farm"
                         checkouts:
                           type: array
                           items:
@@ -1383,6 +1393,16 @@ paths:
                   remote:
                     type: string
                     description: origin's URL, when it has one
+                  missing:
+                    type: boolean
+                    enum:
+                      - true
+                    description:
+                      "Set when the repository folder is gone: the project stays in the
+                      farm until it is removed"
+                  remove:
+                    type: string
+                    description: "With missing: the call that drops the project from the farm"
                   checkouts:
                     type: array
                     items:
@@ -2573,6 +2593,7 @@ paths:
                             - staged
                             - committed
                             - discarded
+                            - recorded
                         created:
                           type: string
                         changes_count:
@@ -2642,8 +2663,8 @@ paths:
                           description:
                             "The moves its purpose and status allow now: commit and discard
                             while staged, discard only for a verification record
-                            or an upgrade record, none once committed or
-                            discarded"
+                            or an upgrade record, and for a recorded one (its
+                            plan landed); none once committed or discarded"
                         drift:
                           $ref: "#/components/schemas/ChangesetDriftSummary"
                         revision:
@@ -2790,6 +2811,7 @@ paths:
                       - staged
                       - committed
                       - discarded
+                      - recorded
                   created:
                     type: string
                   modified:
@@ -2889,9 +2911,17 @@ paths:
                     description:
                       "The moves its purpose and status allow now: commit and discard
                       while staged, discard only for a verification record or an
-                      upgrade record, none once committed or discarded"
+                      upgrade record, and for a recorded one (its plan landed);
+                      none once committed or discarded"
                   drift:
                     $ref: "#/components/schemas/ChangesetDrift"
+                  stillWriting:
+                    type: string
+                    description:
+                      "Staged changesets only: evidence that something is still writing
+                      into it (its lock held by a write, or another process
+                      staged into it in the last 30 s). Show it before Apply: a
+                      write that arrives while it lands is refused."
                   unstaged:
                     type: array
                     items:
@@ -3963,6 +3993,7 @@ paths:
                       - staged
                       - committed
                       - discarded
+                      - recorded
                   committed:
                     type: number
                     description: Changes applied to the model (commit only)
@@ -4258,6 +4289,7 @@ paths:
                       - staged
                       - committed
                       - discarded
+                      - recorded
                   committed:
                     type: number
                     description: Changes applied to the model (commit only)

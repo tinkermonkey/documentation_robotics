@@ -482,6 +482,8 @@ export type ChangesetsSection =
       /** With `pages`: what is shown, of how many, and the call for the rest. */
       more?: string;
       committed: number;
+      /** Verification records whose plan landed: kept in git, not staged work. */
+      recorded: number;
       discarded: number;
       /** Set when base drift could not be checked. */
       driftUnknown?: string;
@@ -644,6 +646,7 @@ export async function collectChangesets(ctx: StatusContext): Promise<ChangesetsS
     staged: stagedEntries,
     committed: changesets.filter((changeset) => changeset.status === "committed").length,
     discarded: changesets.filter((changeset) => changeset.status === "discarded").length,
+    recorded: changesets.filter((changeset) => changeset.status === "recorded").length,
     ...(driftUnknown ? { driftUnknown } : {}),
     ...(legacyMarker ? { legacyMarker } : {}),
   };

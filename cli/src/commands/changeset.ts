@@ -169,7 +169,7 @@ export async function changesetListCommand(options: { model?: string } = {}): Pr
       const statusColor =
         changeset.status === "committed"
           ? ansis.green
-          : changeset.status === "discarded"
+          : changeset.status === "discarded" || changeset.status === "recorded"
             ? ansis.gray
             : ansis.yellow; // "staged" status shows yellow
 
@@ -1756,7 +1756,7 @@ function throwIfRecord(refusal: RecordLandingError | null, changesetName: string
     const plan = refusal.plan;
     throw new CLIError(refusal.message, ErrorCategory.USER, [
       plan ? `Land the plan instead: dr changeset commit "${plan.name}"` : "Land the plan it verifies instead",
-      `Keep this record (it stays staged and is committed to git with the plan), or discard it: dr changeset delete "${changesetName}"`,
+      `Keep this record (landing the plan marks it recorded, and it is committed to git with the plan), or discard it: dr changeset delete "${changesetName}"`,
       "To reconcile the model with code drift, extract without a plan active and land that changeset",
     ]);
   }

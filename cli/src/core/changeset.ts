@@ -194,8 +194,11 @@ export function withSequenceNumbers(changes: Change[], floor = 0): StagedChange[
  * - 'staged': Created and active for staging changes (can accept new changes)
  * - 'committed': Changes have been committed to base model
  * - 'discarded': Changes were discarded without committing
+ * - 'recorded': A verification record whose plan landed (changeset-purpose.ts): kept in git with
+ *   the plan as the record of what was built, no longer staged work. It never lands; a discard
+ *   still removes it.
  */
-export type ChangesetStatus = "staged" | "committed" | "discarded";
+export type ChangesetStatus = "staged" | "committed" | "discarded" | "recorded";
 
 /**
  * Changeset data with staging semantics and metadata.
@@ -435,6 +438,15 @@ export class Changeset {
    */
   markCommitted(): void {
     this.status = "committed";
+    this.updateModified();
+  }
+
+  /**
+   * Mark a staged verification record as recorded: its plan landed, so it is kept as the record
+   * of what was built and is no longer staged work.
+   */
+  markRecorded(): void {
+    this.status = "recorded";
     this.updateModified();
   }
 
