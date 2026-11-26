@@ -1496,7 +1496,8 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   for (const planned of live) {
     const mapping = elementMap.get(planned.id);
     if (!mapping) {
-      if (markUnverifiable(planned) || markDeclared(planned)) continue;
+      // Elements of its type were staged in its file: they are the candidates, not a symbol the text shows.
+      if (markUnverifiable(planned) || (!ambiguous.has(planned.id) && markDeclared(planned))) continue;
       const candidates = ambiguous.get(planned.id);
       report.elements.missing.push({
         planned: planned.id,
@@ -1786,7 +1787,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     const unplaced = [planned.source, planned.target]
       .filter((id, i, all) => all.indexOf(id) === i)
       .filter((id) => {
-        const element = plannedById.get(id) ?? builtById.get(elementMap.get(id)?.built ?? id);
+        const element = builtById.get(elementMap.get(id)?.built ?? "") ?? plannedById.get(id) ?? builtById.get(id);
         return !!element && sourceFiles(element).length === 0;
       });
     const sourceHint =
@@ -1938,6 +1939,7 @@ export async function verifyChangesetInModel(
   // name string (unverifiable, not missing), and the files a planned add with no source reference
   // may live in (build-evidence.ts). Read only when the built side came from extraction.
   let buildFiles: BuildFile[] = [];
+  let changedBuildFiles = new Set<string>();
   /** Why the build's files were not all searched, when they were not. */
   let unsearched: string | undefined;
   /** Planned elements reported unverifiable only because a file's text may register them by name. */
@@ -1947,6 +1949,7 @@ export async function verifyChangesetInModel(
     const adds = plan.elements.filter((e) => e.op === "add");
     const read = await readBuildFiles(model.codebaseRoot, since, adds.flatMap((e) => sourceFiles(e)));
     buildFiles = read.files;
+    changedBuildFiles = read.changed;
     if (read.note) {
       notes.push(read.note);
       unsearched = read.note;
@@ -1987,7 +1990,7 @@ export async function verifyChangesetInModel(
     matchBySource: options.matchBySource,
     observability,
     defaultedFields,
-    ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles) } : {}),
+    ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles, changedBuildFiles) } : {}),
   });
   report.extraction = extraction;
   report.notes.push(...notes);
@@ -2010,6 +2013,14 @@ export async function verifyChangesetInModel(
       .replace(/^Everything extraction can see was found\./, "Apart from that, everything extraction can see was found.")
       .replace(/^Everything planned was found\./, "Apart from that, everything planned was found.");
     report.verdictText = `${lead} ${rest}`;
+  }
+  // "The build holds the symbol" is read from a file's text: never grounds for a clean match.
+  const declaredHits = report.elements.unverifiable.filter((u) => u.declaredSymbol);
+  if (declaredHits.length > 0) {
+    if (report.verdict === "match" || report.verdict === "unverifiable") report.verdict = "probable-match";
+    report.verdictText =
+      `${declaredHits.length} planned ${declaredHits.length === 1 ? "element is" : "elements are"} found only as a symbol in a file's text, with no element extraction staged for ` +
+      `${declaredHits.length === 1 ? "it" : "them"} (${declaredHits.map((u) => `${u.planned}: ${u.declaredSymbol!.file}#${u.declaredSymbol!.symbol}`).join("; ")}): confirm each in the code. ${report.verdictText}`;
   }
   // A missing element was looked for in the build's files too. When not all of them were searched,
   // "missing" may be "registered by name in a file that was not read": the verdict says so.

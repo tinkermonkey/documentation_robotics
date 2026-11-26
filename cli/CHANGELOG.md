@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exact match (the plan's name against the built symbol's name is a note, not a divergence), then by name, then by
   shared file (several in one file: the one whose description and name read most alike), then, when the plan names
   no file, by a like description: the last three are probable. A planned element whose source reference names a
-  symbol the build's file holds, but that extraction stages no element of its type for (a plain dict an object
-  schema describes), is unverifiable (`declaredSymbol`: file and line), never missing, and its links with it. A
+  symbol the build's changed file declares (read from its text), but that extraction stages no element of its type for (a plain dict an object
+  schema describes), is unverifiable (`declaredSymbol`: file and line), never missing, and its links with it; the verdict is never a clean `match` while one is open. A symbol several planned elements name is offered as probable. A
   missing element or link says when a missing source reference may be why, and to set `sourceFile` with
   `model_update`. `changeset_adopt_source_references` explains each id in `unknownIds` (`unknownIdReasons`) and its
   description says which matches it takes.

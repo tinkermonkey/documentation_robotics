@@ -32,8 +32,8 @@ export interface ElementPairing {
   /** Why a probable match was made. */
   reason?: string;
   /**
-   * Paired by where the code is (its source file, with or without the symbol), not by name: the
-   * planned name against the built symbol's name says nothing about whether it is the same element.
+   * Paired by the source symbol the plan and the build both name (not by name): the planned name
+   * against the built symbol's name says nothing about whether it is the same element.
    */
   bySource?: boolean;
 }
@@ -212,7 +212,6 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
         test: (p, c) => p.layer === c.layer && sameType(p, c) && sharesSourceFile(p, c),
         reason: (p, c) => `same layer and type, shares source file ${sharedSourceFiles(p, c).join(", ")}`,
         match: "probable",
-        bySource: true,
         rank: likeness,
         minRank: FILE_PICK_MIN,
       }
@@ -224,7 +223,6 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
     reason: (_p, c) =>
       `same layer and type, and the description reads alike ("${(c.description ?? "").slice(0, 60)}${(c.description ?? "").length > 60 ? "…" : ""}")`,
     match: "probable",
-    bySource: true,
     rank: likeness,
     minRank: DESCRIPTION_MATCH,
   });
@@ -285,10 +283,19 @@ export function matchPlannedElements(plan: Plan, built: BuiltSide, options: Matc
       if (chosen.length === 1) {
         const candidate = chosen[0];
         claimed.add(candidate.id);
+        // A file and symbol that other planned elements name too does not tell which of them this
+        // built element is: the pair is offered as probable, never exact.
+        const sharers =
+          tier.match === "exact"
+            ? pending.filter((o) => o.id !== planned.id && !pairs.has(o.id) && o.layer === planned.layer && sameType(o, planned) && sharedSourceSymbols(o, candidate).length > 0)
+            : [];
+        const shared = sharers.length > 0;
         pairs.set(planned.id, {
           built: candidate.id,
-          match: tier.match,
-          reason: tier.reason(planned, candidate),
+          match: shared ? "probable" : tier.match,
+          reason: shared
+            ? `${tier.reason(planned, candidate)}, but ${sharers.map((o) => o.id).join(", ")} name${sharers.length === 1 ? "s" : ""} it too: confirm which is which`
+            : tier.reason(planned, candidate),
           ...(tier.bySource ? { bySource: true } : {}),
         });
         ambiguous.delete(planned.id);

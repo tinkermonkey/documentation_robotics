@@ -36,6 +36,17 @@ describe("matchPlannedElements", () => {
     expect(pairs.get("api.operation.upload")).toMatchObject({ built: "api.operation.b", match: "exact", bySource: true });
   });
 
+  it("offers a symbol several planned elements name as probable, never exact", () => {
+    const { pairs } = matchPlannedElements(
+      plan(el("api.operation.create-order", { file: "r.ts", symbol: "router" }), el("api.operation.list-orders", { file: "r.ts", symbol: "router" })),
+      built(el("api.operation.get-orders", { file: "r.ts", symbol: "router" }))
+    );
+    const taken = [...pairs.values()];
+    expect(taken).toHaveLength(1);
+    expect(taken[0].match).toBe("probable");
+    expect(taken[0].reason).toContain("confirm which is which");
+  });
+
   it("does not pair on a symbol alone: another file is another element", () => {
     const { pairs } = matchPlannedElements(
       plan(el("api.operation.upload", { file: "s.ts", symbol: "putFile" })),
@@ -101,5 +112,22 @@ describe("declaredSymbol, quoted names", () => {
   it("does not take a quoted string for the symbol", () => {
     const element = { id: "a.b.c", name: "c", sourceReference: { provenance: "manual" as const, locations: [{ file: "s.ts", symbol: "AuditLog" }] } };
     expect(declaredSymbol(element, [{ file: "s.ts", text: 'log("AuditLog")' }])).toBeNull();
+  });
+});
+
+describe("declaredSymbol, declarations only", () => {
+  const sym = (symbol: string) => ({ id: "a.b.c", name: "c", sourceReference: { provenance: "manual" as const, locations: [{ file: "s.ts", symbol }] } });
+  it("takes a declaration, not an import or a call", () => {
+    expect(declaredSymbol(sym("formatDate"), [{ file: "s.ts", text: "import { formatDate } from './util';\nformatDate(x);\n" }])).toBeNull();
+    expect(declaredSymbol(sym("formatDate"), [{ file: "s.ts", text: "export function formatDate(d) {}\n" }])).toMatchObject({ line: 1 });
+  });
+  it("needs a qualified symbol's qualifier, and a declaration of its last segment", () => {
+    expect(declaredSymbol(sym("OrderService.cancel"), [{ file: "s.ts", text: "if (o.cancel) return;\n" }])).toBeNull();
+    expect(declaredSymbol(sym("OrderService.cancel"), [{ file: "s.ts", text: "class OrderService {\n  async cancel(id) {}\n}\n" }])).toMatchObject({ line: 2 });
+  });
+  it("takes only files the build changed when it knows them", () => {
+    const files = [{ file: "s.ts", text: "export function formatDate(d) {}\n" }];
+    expect(declaredSymbol(sym("formatDate"), files, new Set(["other.ts"]))).toBeNull();
+    expect(declaredSymbol(sym("formatDate"), files, new Set(["s.ts"]))).not.toBeNull();
   });
 });

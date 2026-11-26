@@ -294,12 +294,9 @@ describe("verifyChangeset against an as-built changeset", () => {
       addEl("application.applicationfunction.csv-download", { file: "./src/orders/export.ts" }),
     ]);
     const report = verifyChangeset(plan, built);
-    // Paired by where the code is: the planned name against the built symbol's is a note (#1348).
-    expect(report.elements.divergent).toHaveLength(0);
-    expect(report.elements.matched).toHaveLength(1);
-    expect(report.elements.matched[0].match).toBe("probable");
-    expect(report.elements.matched[0].reason).toContain("src/orders/export.ts");
-    expect(report.elements.matched[0].notes?.map((f) => f.field)).toEqual(["name"]);
+    expect(report.elements.divergent).toHaveLength(1);
+    expect(report.elements.divergent[0].reason).toContain("src/orders/export.ts");
+    expect(report.elements.divergent[0].fields.map((f) => f.field)).toEqual(["name"]);
 
     const off = verifyChangeset(plan, built, { matchBySource: false });
     expect(off.elements.missing.map((m) => m.planned)).toEqual([FN]);
@@ -335,7 +332,7 @@ describe("verifyChangeset against an as-built changeset", () => {
       addEl("application.applicationfunction.csv-download", { file: "src/orders/export.ts", symbol: "csvDownload", description: "Exports the orders as CSV for download" }),
     ]);
     const report = verifyChangeset(plan, built);
-    expect(report.elements.matched[0]).toMatchObject({ planned: FN, built: "application.applicationfunction.csv-download", match: "probable" });
+    expect(report.elements.divergent[0]).toMatchObject({ planned: FN, built: "application.applicationfunction.csv-download", match: "probable" });
   });
 
   it("offers a same-type element with a like description as probable when the plan names no file (#1348)", async () => {
@@ -347,8 +344,16 @@ describe("verifyChangeset against an as-built changeset", () => {
       addEl("technology.artifact.logger", { file: "src/log.ts", description: "Writes structured log lines" }),
     ]);
     const report = verifyChangeset(plan, built);
-    expect(report.elements.matched[0]).toMatchObject({ planned: "technology.artifact.server-entry-js", built: "technology.artifact.serve-entry", match: "probable" });
-    expect(report.elements.matched[0].reason).toContain("description");
+    expect(report.elements.divergent[0]).toMatchObject({ planned: "technology.artifact.server-entry-js", built: "technology.artifact.serve-entry", match: "probable" });
+    expect(report.elements.divergent[0].reason).toContain("description");
+  });
+
+  it("keeps the name difference of a description-only pair a divergence, not a source-file note", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl("technology.artifact.server-entry-js", { description: "Server entry point script that starts the central server" })]));
+    const built = await asBuilt([addEl("technology.artifact.serve-entry", { file: "src/serve-entry.ts", description: "Entry point script that starts the central server" })]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.divergent[0]?.fields.map((f) => f.field)).toContain("name");
+    expect(report.notes.join(" ")).not.toContain("paired by source file");
   });
 
   it("does not guess between several fuzzy candidates; lists them instead", async () => {
@@ -606,7 +611,7 @@ describe("dogfood regressions", () => {
       p.baseElementIds = [...existing.map((e) => e.id), SVC];
       const renamed = { ...existing[0], id: "api.operation.sugiyama-layout", name: "sugiyama-layout" };
       const report = verifyChangeset(p, base([renamed]));
-      expect(report.elements.matched.find((d) => d.planned === NEW_OP)).toMatchObject({
+      expect(report.elements.divergent.find((d) => d.planned === NEW_OP)).toMatchObject({
         built: "api.operation.sugiyama-layout",
         match: "probable",
       });
@@ -618,7 +623,7 @@ describe("dogfood regressions", () => {
         plan(),
         base([renamed], [{ source: "api.operation.sugiyama-layout", predicate: "realizes", target: FN }])
       );
-      expect(report.elements.matched.find((d) => d.planned === NEW_OP)?.built).toBe("api.operation.sugiyama-layout");
+      expect(report.elements.divergent.find((d) => d.planned === NEW_OP)?.built).toBe("api.operation.sugiyama-layout");
       expect(report.notes.join(" ")).toContain("No base index was recorded");
 
       const none = verifyChangeset(plan(), base());

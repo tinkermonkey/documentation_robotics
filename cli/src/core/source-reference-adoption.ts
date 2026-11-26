@@ -304,7 +304,11 @@ export function explainUnknownId(id: string, elements: VerifyReport["elements"] 
       ? `its match to ${matched.built} is exact and the plan already names every source location it has: nothing to copy`
       : `its match to ${matched.built} is probable, but that element names no source file and symbol the plan lacks: nothing to copy. If it is the element, set sourceFile and sourceSymbol on the plan with model_update`;
   }
-  if (elements.missing.some((m) => m.planned === id) || elements.unverifiable.some((u) => u.planned === id)) {
+  const unverifiable = elements.unverifiable.find((u) => u.planned === id);
+  if (unverifiable?.op === "update") {
+    return "it is matched, but only fields extraction doesn't write were compared: nothing to copy";
+  }
+  if (elements.missing.some((m) => m.planned === id) || unverifiable) {
     return "it has no as-built match to copy from: pass the file and symbol you confirmed in the code in references ({id, sourceFile, sourceSymbol})";
   }
   return "it is not a planned element verify compared (check the id as changeset_verify lists it)";
