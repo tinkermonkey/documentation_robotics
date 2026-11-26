@@ -5,7 +5,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { CheckoutRef } from "../core/checkout-types.js";
+import type { McpResultCheckout } from "../server/central-mcp-contract.js";
 import type { SessionEnvValues } from "../core/session-env.js";
 import { McpSessionRoot, type SessionCheckoutResolver } from "./project-root.js";
 
@@ -47,13 +47,18 @@ export class McpSession {
   /**
    * The checkout a call resolved to: the one `rootPath` is in (through the registry, without
    * registering anything), else the session's. Null when the registry knows no checkout there.
+   * The branch is read now, not remembered from when the session's root was resolved: a checkout
+   * can change branch under a long session (#1422).
    */
-  async checkoutFor(rootPath: string | undefined): Promise<CheckoutRef | null> {
+  async checkoutFor(rootPath: string | undefined): Promise<McpResultCheckout | null> {
     if (rootPath !== undefined && rootPath !== "") {
       const resolved = (await this.resolver?.resolve(rootPath, { register: false })) ?? null;
-      return resolved ? { ...resolved.ref } : null;
+      return resolved ? { ...resolved.ref, branch: resolved.checkout.branch } : null;
     }
     await this.root.whenSettled();
-    return this.root.get().checkout ?? null;
+    const served = this.root.get();
+    if (!served.checkout) return null;
+    const fresh = (await this.resolver?.resolve(served.root, { register: false }).catch(() => null)) ?? null;
+    return { ...served.checkout, ...(fresh ? { branch: fresh.checkout.branch } : {}) };
   }
 }

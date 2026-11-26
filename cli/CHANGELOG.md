@@ -19,9 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they did. Documented in `docs/CHANGE_MODELING.md`, `/dr-plan` and the `dr_change_planning` skills.
 - **`codebase_extract` `purpose` argument (#1370):** with `since`, `purpose: "reconcile"` or
   `"verification"` overrides the rule below.
+- **Plans staged in other checkouts are listed and warned about (#1368):** `changeset_create` reads the
+  staged plans in the project's other checkouts (worktrees) from the farm before it creates, and its
+  result lists them (`siblingPlans`). When one has the same or a similar name, cites the same issue, or
+  states a similar intent, the result carries `siblingWarning`; nothing is refused. `project_status`
+  lists them under `checkout.siblingPlans` (paged with `list: "siblingPlans"`). When the farm can't
+  list them (no project owns the folder, the registry failed) the result says so instead of showing none.
 
 ### Changed
 
+- **The branch sits beside the checkout key in every result (#1422):** `main` is the farm's key for a
+  project's primary folder, whatever branch that folder is on, so results now carry `branch` beside
+  `checkout` (null when detached), read at call time, and under `_meta["dr/checkout"]`. A landing names
+  it too: `changeset_commit_preview` returns `landsOn`, the confirmation summary leads with it, and
+  `changeset_commit` returns `landedOn` ("Lands on branch X in checkout main"). `review_open` returns
+  `branch`. The `checkout` key is unchanged.
 - **`codebase_extract` picks the purpose of a `since` run by rule (#1370):** with no plan active, a
   `since` equal to the manifest's `reconciled` code commit makes a reconcile; any other `since`
   makes a verification record (never landed), and the result's `purposeNote` says which plan it

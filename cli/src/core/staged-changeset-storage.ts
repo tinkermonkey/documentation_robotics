@@ -101,6 +101,14 @@ const STATUS_LINE = /^status:[ \t]*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s#'"][^\s#]*))
  * counted, where load() skips it too: text that is not YAML, or not a mapping (an empty file, say,
  * read mid-write).
  */
+/** A staged changeset as its metadata.yaml names it. */
+export interface StagedSummary {
+  id: string;
+  name: string;
+  description?: string;
+  purpose?: string;
+}
+
 export function readMetadataStatus(text: string): string | null {
   const matches = [...text.matchAll(STATUS_LINE)];
   if (matches.length === 1) {
@@ -410,6 +418,31 @@ export class StagedChangesetStorage {
       });
     }
     return statuses;
+  }
+
+  /**
+   * Every staged changeset's id, name, description and purpose, from metadata.yaml alone (never
+   * changes.yaml, which runs to megabytes). A folder whose metadata can't be read is skipped.
+   */
+  async listStagedSummaries(): Promise<StagedSummary[]> {
+    const out: StagedSummary[] = [];
+    for (const id of await this.listIds()) {
+      try {
+        const parsed = yaml.parse(await readFile(path.join(this.changesetsDir, id, "metadata.yaml"), "utf-8")) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+        const meta = parsed as Record<string, unknown>;
+        if ((typeof meta.status === "string" ? meta.status : "staged") !== "staged") continue;
+        out.push({
+          id: typeof meta.id === "string" ? meta.id : id,
+          name: typeof meta.name === "string" ? meta.name : id,
+          ...(typeof meta.description === "string" && meta.description.trim() ? { description: meta.description } : {}),
+          ...(typeof meta.purpose === "string" ? { purpose: meta.purpose } : {}),
+        });
+      } catch {
+        // Unreadable or half-written: not listed.
+      }
+    }
+    return out;
   }
 
   /** The changeset folder names on disk (no file is read). */

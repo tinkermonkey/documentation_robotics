@@ -73,8 +73,8 @@ const inputSchema = {
     .describe(
       "Return one of the lists the status shortens, in full and paged, instead of the status: stagedChangesets, " +
         "changedSourceFiles and uncommittedSourceFiles (each file with every element that references it), " +
-        "unreferencedFiles, landedSince (latest first), changedSinceIndex, uncommittedEdits or otherCheckouts (the project's " +
-        "other checkouts). The status's more lines name the call."
+        "unreferencedFiles, landedSince (latest first), changedSinceIndex, uncommittedEdits, otherCheckouts (the project's " +
+        "other checkouts) or siblingPlans (plans staged in them). The status's more lines name the call."
     ),
   limit: z
     .number()
@@ -241,6 +241,7 @@ const LIST_SECTION: Record<StatusList, "changesets" | "codeIndex" | "codeDrift" 
   changedSinceIndex: "codeIndex",
   uncommittedEdits: "codeIndex",
   otherCheckouts: "checkout",
+  siblingPlans: "checkout",
 };
 
 /**
@@ -896,7 +897,7 @@ export const projectStatusTool: McpToolDefinition<typeof inputSchema> = {
     "Where this repo stands with DR, and what to do next: the project root and how it was found, whether a model exists, its spec version against this CLI's, whether this dr server is older than the CLI installed now (then it needs a restart, not an update), the active changeset (in this checkout: the marker is per checkout, in .dr/; an old documentation-robotics/changesets/.active still on disk or in git is reported as legacyMarker, with what to commit) and the staged changesets (for one whose base moved: its drift state, what a landing does about it and the call that lists what moved; for the active one also what changed under it and what overlaps), whether the code index exists and is fresh (and any indexing run in progress), code changed since the model was last reconciled with it (counted from the code the last as-built landing read, from git; landed plans do not reconcile; changed files no element references are counted apart; the changed files are counted per folder and their elements per layer in changedSourceSummary), the farm project and checkout this folder is (checkout) with the project's other checkouts (branch, head, state, active changeset, staged count), the central DR process serving the shared viewer with this checkout's link when it runs (it never starts it: review_open does), and Tier 1 (the opt-in decision model codebase_extract asks): its state (warming, with progress, while the codebase_index job fills its answer cache) and this month's spend against the cap (tier1_status has more). Ends with nextStep: a sentence and the tool to call. Pass task (plan, review or reconcile) to say what the session is for: while planning or reviewing, code drift and the index go in nextStep.info, not the step. The status is kept small, so its lists show their first entries by default: " +
     `${LIST_DEFAULTS.stagedChangesets} staged changesets, ${LIST_DEFAULTS.changedSourceFiles} changed source files with ${LIST_DEFAULTS.elementsPerFile} elements each, ` +
     `${LIST_DEFAULTS.unreferencedFiles} unreferenced files, the ${LIST_DEFAULTS.landedSince} latest changesets landed since, ${LIST_DEFAULTS.changedSinceIndex} files changed since the index, ` +
-    `${LIST_DEFAULTS.otherCheckouts} other checkouts, ` +
+    `${LIST_DEFAULTS.otherCheckouts} other checkouts, ${LIST_DEFAULTS.siblingPlans} plans staged in them (siblingPlans: work already planned in another worktree; siblingPlansUnavailable says when the farm could not list them), ` +
     "and 3 overlapping changes per drifted changeset (changeset_brief with sections: [\"drift\"] lists those). Each shortened list has its true count beside it, its page (total, returned, offset, nextOffset) under pages, and a more line naming the call for the rest: " +
     `list returns any of them in full, paged with limit (default ${LIST_PAGE_DEFAULT}, no upper bound) and offset, as items and page. Every status, count and nextStep is computed over the whole lists, never over what is shown. ` +
     "Reads local files and git only. Call it first in a session.",

@@ -173,13 +173,18 @@ export function registeredInputSchema(toolName: string, shape: ZodRawShape) {
 export const RESULT_CHECKOUT_META = "dr/checkout";
 
 /**
- * Names the checkout a call resolved to on its result: `project` and `checkout` as the first
+ * Names the checkout a call resolved to on its result: `project`, `checkout` and `branch` as the first
  * fields of a JSON object result (unless the tool set them itself), else as a text item of their
  * own; and under `_meta["dr/checkout"]` either way. A checkout the registry doesn't know is named
  * as null.
  */
 export function withResultCheckout(result: CallToolResult, ref: McpResultCheckout | null): CallToolResult {
-  const named = { project: ref?.project ?? null, checkout: ref?.checkout ?? null };
+  // The branch beside the checkout key (#1422): `main` names a project's primary folder, not a branch.
+  const named: { project: string | null; checkout: string | null; branch?: string | null } = {
+    project: ref?.project ?? null,
+    checkout: ref?.checkout ?? null,
+    ...(ref === null || ref.branch !== undefined ? { branch: ref?.branch ?? null } : {}),
+  };
   const meta = { ...(result._meta ?? {}), [RESULT_CHECKOUT_META]: named };
   const content = [...(result.content ?? [])];
   const first = content[0];
@@ -199,11 +204,13 @@ export function withResultCheckout(result: CallToolResult, ref: McpResultCheckou
         // Insert the fields after the opening brace, keeping the tool's own layout.
         const p = JSON.stringify(named.project);
         const c = JSON.stringify(named.checkout);
+        // A tool with a `branch` field of its own keeps it: a second key would shadow it.
+        const b = "branch" in named && !("branch" in fields) ? JSON.stringify(named.branch) : undefined;
         const rest = first.text.slice(1);
         const empty = Object.keys(fields).length === 0;
         const text = first.text.startsWith("{\n")
-          ? `{\n  "project": ${p},\n  "checkout": ${c},${rest}`
-          : `{"project":${p},"checkout":${c}${empty ? "" : ","}${rest}`;
+          ? `{\n  "project": ${p},\n  "checkout": ${c},${b !== undefined ? `\n  "branch": ${b},` : ""}${rest}`
+          : `{"project":${p},"checkout":${c}${b !== undefined ? `,"branch":${b}` : ""}${empty ? "" : ","}${rest}`;
         content[0] = { ...first, text };
         merged = true;
       }

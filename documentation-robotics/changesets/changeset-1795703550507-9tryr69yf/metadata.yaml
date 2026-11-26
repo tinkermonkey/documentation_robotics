@@ -1,0 +1,15 @@
+id: changeset-1795703550507-9tryr69yf
+name: cli010-x1-checkouts
+description: 'Fix #1422 and #1368. Every MCP result names the branch beside the checkout key, and a landing says "Lands on branch X in checkout main". changeset_create and project_status list staged plans in the project''s other checkouts and warn (never refuse) when one matches by name, issue or intent; when the farm can''t list them the result says so.'
+created: 2026-11-26T14:32:30.553Z
+modified: 2026-11-26T14:32:38.263Z
+status: staged
+baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 3
+  modifications: 0
+  deletions: 0
+lastSequence: 2

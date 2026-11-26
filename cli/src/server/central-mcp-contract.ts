@@ -62,8 +62,12 @@ export interface EnsuredCentralServer {
  */
 export type EnsureCentralServer = (options?: EnsureCentralServerOptions) => Promise<EnsuredCentralServer>;
 
-/** What every MCP tool result names: the checkout the call resolved to. 3A adds it to every result. */
-export type McpResultCheckout = CheckoutRef;
+/**
+ * What every MCP tool result names: the checkout the call resolved to, and the branch it is on (#1422:
+ * `main` is the farm's key for a project's primary folder, whatever branch that folder has checked
+ * out). `branch` is null when the checkout is detached; absent when the caller doesn't know it.
+ */
+export type McpResultCheckout = CheckoutRef & { branch?: string | null };
 
 /**
  * Identifies a DrBot conversation in the central process. The same conversation id in another
