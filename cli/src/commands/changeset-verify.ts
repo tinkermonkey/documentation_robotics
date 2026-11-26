@@ -9,7 +9,7 @@
 import ansis from "ansis";
 import { Model } from "../core/model.js";
 import { StagingAreaManager } from "../core/staging-area.js";
-import { verifyChangesetInModel, type VerifyReport } from "../core/changeset-verify.js";
+import { TESTS_LINKS_TO_CHECK_NOTE, verifyChangesetInModel, type VerifyReport } from "../core/changeset-verify.js";
 import type { Changeset } from "../core/changeset.js";
 import {
   adoptVerifiedSourceReferences,
@@ -254,6 +254,11 @@ export function formatVerifyReport(report: VerifyReport): string {
         (m.candidates ? `\n      candidates: ${m.candidates.map(rel).join(", ")}` : "")
     )
   );
+  section(
+    "Planned tests links to check (not missing)",
+    (report.relationships.testsToCheck ?? []).map((m) => `${ansis.yellow("?")} ${rel(m.planned)}: ${m.reason}`)
+  );
+  if (report.relationships.testsToCheck?.length) lines.push("", ansis.dim(TESTS_LINKS_TO_CHECK_NOTE));
   section(
     "Unverifiable relationships (extraction can't see them)",
     report.relationships.unverifiable.map((u) => `${ansis.dim("?")} ${rel(u.planned)}: ${u.reason}`)

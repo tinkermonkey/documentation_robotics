@@ -701,6 +701,7 @@ export const VERIFY_SECTIONS = [
   "probable",
   "matched",
   "unverifiable",
+  "testsToCheck",
   "unplanned",
   "deletionsNotDone",
   "sourceReferences",
@@ -845,6 +846,8 @@ export interface VerifySectionsReport extends VerifyHeader {
   probable?: Pair<ElementMatch | DivergentElement, RelationshipMatch | DivergentRelationship>;
   matched?: Pair<ElementMatch, RelationshipMatch>;
   unverifiable?: Pair<UnverifiableElement, UnverifiableRelationship>;
+  /** Planned tests links to check (see TESTS_LINKS_TO_CHECK_NOTE). */
+  testsToCheck?: { note: string; relationships: MissingRelationship[] };
   unplanned?: Pair<UnplannedElement, UnplannedRelationship>;
   deletionsNotDone?: Pair<DeletionNotDone, RelationshipDeletionNotDone>;
   sourceReferences?: SourceReferenceGaps;
@@ -1282,6 +1285,7 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     (unverifiable.some((line) => line.includes(" more)")) || missing.some((line) => line.includes(" more]"))
       ? `A line that groups several items shows its first ${IDS_PER_LINE} ids (sections: ["unverifiable"] or ["missing"] lists every one). `
       : "") +
+    (report.relationships.testsToCheck?.length ? 'sections: ["testsToCheck"] lists the planned tests links to check, with the note on what checking means. ' : "") +
     `Pass detail: "full" for the whole report, or sections: [...] for only some sections, in full (${VERIFY_SECTIONS.join(", ")}).`;
   return out;
 }
@@ -1348,6 +1352,15 @@ export function verifySections(
         break;
       case "unverifiable":
         out.unverifiable = paged("unverifiable", pick(e.unverifiable, r.unverifiable, (u) => [u.planned], (u) => [u.planned]));
+        break;
+      case "testsToCheck":
+        out.testsToCheck = {
+          note: TESTS_LINKS_TO_CHECK_NOTE,
+          relationships: pager.list(
+            "testsToCheck",
+            (r.testsToCheck ?? []).filter((m) => keepRel(m.planned))
+          ),
+        };
         break;
       case "unplanned":
         out.unplanned = paged("unplanned", pick(e.unplanned, r.unplanned, (u) => [u.id], (u) => [u]));
@@ -2976,7 +2989,8 @@ export function thinAsBuiltWarning(report: VerifyReport, built: BuiltSide, share
   if (share && handStagedFromCards(share)) return undefined;
   const found = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
   const builtIds = new Set(built.elements.map((e) => e.id));
-  const missing = report.relationships.missing;
+  // A tests link to check with an end that has no as-built element is as unanchored as a missing one.
+  const missing = [...report.relationships.missing, ...(report.relationships.testsToCheck ?? [])];
   const unanchored = missing.filter(({ planned }) =>
     [planned.source, planned.target].some((id) => !found.has(id) && !builtIds.has(id))
   ).length;
@@ -3299,25 +3313,30 @@ function decideVerdict(report: VerifyReport): { verdict: Verdict; text: string }
           .join(" and ")} can't be seen by extraction (unverifiable, not counted): check them in the code or the review.`
       : "";
 
-  if (e.planned + r.planned === unverifiable && e.unplanned + r.unplanned === 0) {
+  const toCheck = r.testsToCheck ?? 0;
+  const toCheckText = toCheck > 0 ? ` ${toCheck} planned tests ${plural(toCheck, "link", "links")} the build doesn't show to check (testsToCheck says how): not counted as missing.` : "";
+
+  if (e.planned + r.planned === unverifiable + toCheck && e.unplanned + r.unplanned === 0 && unverifiable > 0) {
     return {
       verdict: "unverifiable",
-      text: `Nothing in the plan can be checked against extracted code.${unverifiableText}`,
+      text: `Nothing in the plan can be checked against extracted code.${unverifiableText}${toCheckText}`,
     };
   }
   if (e.missing + r.missing + e.deletionsNotDone + r.deletionsNotDone > 0) {
-    return { verdict: "incomplete", text: `The build is incomplete: ${parts.join(", ")}.${probableText}${unverifiableText}` };
+    return { verdict: "incomplete", text: `The build is incomplete: ${parts.join(", ")}.${probableText}${unverifiableText}${toCheckText}` };
   }
   if (e.divergent + r.divergent + e.unplanned + r.unplanned > 0) {
-    return { verdict: "diverges", text: `The build diverges from the plan: ${parts.join(", ")}.${probableText}${unverifiableText}` };
+    return { verdict: "diverges", text: `The build diverges from the plan: ${parts.join(", ")}.${probableText}${unverifiableText}${toCheckText}` };
   }
   const scope = unverifiable > 0 ? "Everything extraction can see was found." : "Everything planned was found.";
   if (probable > 0) {
-    return { verdict: "probable-match", text: `${scope}${probableText}${unverifiableText}` };
+    return { verdict: "probable-match", text: `${scope}${probableText}${unverifiableText}${toCheckText}` };
   }
   return {
     verdict: "match",
-    text: unverifiable > 0 ? `The build matches what extraction can see of the plan.${unverifiableText}` : "The build matches the plan.",
+    text:
+      (unverifiable > 0 || toCheck > 0 ? `The build matches what extraction can see of the plan.${unverifiableText}` : "The build matches the plan.") +
+      toCheckText,
   };
 }
 

@@ -459,6 +459,14 @@ describe("relationship matching", () => {
     expect(report.summary.relationships.testsToCheck).toBe(1);
   });
 
+  it("a plan of only tests links to check is not read as an exact match (#1413)", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(FN), addEl(SVC), addRel(FN, "tests", SVC)]));
+    const report = verifyChangeset(plan, await asBuilt([addEl(FN), addEl(SVC)]));
+    expect(report.relationships.missing).toHaveLength(0);
+    expect(report.verdictText).toContain("tests link");
+    expect(report.verdictText).not.toBe("The build matches the plan.");
+  });
+
   it("without the build's changes, a pre-existing relationship is a candidate, not the build's version", () => {
     const plan = planFromChangeset(changeset("plan", [addRel(FN, "serves", SVC)]));
     const elements = [
