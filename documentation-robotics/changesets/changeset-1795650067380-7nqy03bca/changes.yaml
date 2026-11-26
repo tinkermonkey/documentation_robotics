@@ -1,0 +1,1016 @@
+- type: relationship-delete
+  elementId: application.applicationfunction.review-step::depends-on::application.applicationfunction.collect-changesets
+  layerName: application
+  before:
+    source: application.applicationfunction.review-step
+    target: application.applicationfunction.collect-changesets
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-25T23:41:20.769Z
+  sequenceNumber: 0
+- type: relationship-delete
+  elementId: application.applicationfunction.drift-as-information::depends-on::application.applicationfunction.collect-code-drift
+  layerName: application
+  before:
+    source: application.applicationfunction.drift-as-information
+    target: application.applicationfunction.collect-code-drift
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-25T23:41:22.064Z
+  sequenceNumber: 1
+- type: relationship-delete
+  elementId: application.applicationfunction.with-legacy-marker-note::depends-on::application.applicationfunction.collect-legacy-marker
+  layerName: application
+  before:
+    source: application.applicationfunction.with-legacy-marker-note
+    target: application.applicationfunction.collect-legacy-marker
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-25T23:41:23.211Z
+  sequenceNumber: 2
+- type: relationship-delete
+  elementId: application.applicationfunction.intent-fields::realizes::application.applicationservice.changeset-create-handler
+  layerName: application
+  before:
+    source: application.applicationfunction.intent-fields
+    target: application.applicationservice.changeset-create-handler
+    predicate: realizes
+    layer: application
+  timestamp: 2026-11-25T23:41:24.382Z
+  sequenceNumber: 3
+- type: relationship-delete
+  elementId: application.applicationfunction.intent-fields::realizes::application.applicationservice.changeset-update-handler
+  layerName: application
+  before:
+    source: application.applicationfunction.intent-fields
+    target: application.applicationservice.changeset-update-handler
+    predicate: realizes
+    layer: application
+  timestamp: 2026-11-25T23:41:25.589Z
+  sequenceNumber: 4
+- type: relationship-delete
+  elementId: application.applicationfunction.id-note-kind::depends-on::application.applicationfunction.derive-element-id
+  layerName: application
+  before:
+    source: application.applicationfunction.id-note-kind
+    target: application.applicationfunction.derive-element-id
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-25T23:41:26.813Z
+  sequenceNumber: 5
+- type: relationship-delete
+  elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.batch-causes
+  layerName: application
+  before:
+    source: application.applicationfunction.delete-relationship-batch
+    target: application.applicationfunction.batch-causes
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-25T23:41:27.992Z
+  sequenceNumber: 6
+- type: relationship-delete
+  elementId: application.applicationfunction.delete-element-batch::depends-on::application.applicationfunction.batch-causes
+  layerName: application
+  before:
+    source: application.applicationfunction.delete-element-batch
+    target: application.applicationfunction.batch-causes
+    predicate: depends-on
+    layer: application
+  timestamp: 2026-11-25T23:41:29.391Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.review-step::accesses::data-model.objectschema.sections
+  layerName: application
+  after:
+    source: application.applicationfunction.review-step
+    target: data-model.objectschema.sections
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T23:41:34.434Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationfunction.drift-as-information::accesses::data-model.objectschema.sections
+  layerName: application
+  after:
+    source: application.applicationfunction.drift-as-information
+    target: data-model.objectschema.sections
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T23:41:34.434Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.with-legacy-marker-note::accesses::data-model.objectschema.legacy-marker-state
+  layerName: application
+  after:
+    source: application.applicationfunction.with-legacy-marker-note
+    target: data-model.objectschema.legacy-marker-state
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-25T23:41:34.434Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationfunction.delete-relationship-batch::depends-on::application.applicationfunction.batch-report
+  layerName: application
+  after:
+    source: application.applicationfunction.delete-relationship-batch
+    target: application.applicationfunction.batch-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T23:41:34.434Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.delete-element-batch::depends-on::application.applicationfunction.batch-report
+  layerName: application
+  after:
+    source: application.applicationfunction.delete-element-batch
+    target: application.applicationfunction.batch-report
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-25T23:41:34.434Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationservice.model-update-handler::realizes::product.feature.declared-spec-check
+  layerName: application
+  after:
+    source: application.applicationservice.model-update-handler
+    target: product.feature.declared-spec-check
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-25T23:41:34.434Z
+  sequenceNumber: 13
+- type: update
+  elementId: application.applicationfunction.project-registry-repository-of
+  layerName: application
+  before:
+    id: adb10d69-c8d8-46d5-a0e3-c25d14ed89bb
+    path: application.applicationfunction.project-registry-repository-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ProjectRegistry.repositoryOf
+    description: "The repository of a project, from git; null when its folder is not a git working tree. Only a repository found is cached: a null is asked again, so a repository cloned again, a git init after registering or one failed git call doesn't stick until a restart."
+    source_reference: &a1
+      provenance: extracted
+      locations:
+        - file: cli/src/core/project-registry.ts
+          symbol: ProjectRegistry.repositoryOf
+    metadata: &a2
+      created_at: 2026-11-24T21:42:21.516Z
+      updated_at: 2026-11-24T21:42:21.516Z
+      version: 1
+  after:
+    id: adb10d69-c8d8-46d5-a0e3-c25d14ed89bb
+    path: application.applicationfunction.project-registry-repository-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ProjectRegistry.repositoryOf
+    description: The repository of a project, from git; null when its folder is not a git working tree. A repository found is cached. A null is cached only while the folder exists with no .git in it, so a plain folder costs no git call per listing; a git init or a clone there, or a repository whose git call failed once, is asked again.
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-25T23:41:43.268Z
+  sequenceNumber: 14
+- type: update
+  elementId: application.applicationfunction.ensure-central-server
+  layerName: application
+  before:
+    id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+    path: application.applicationfunction.ensure-central-server
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCentralServer
+    description: The central DR process for the farm in use, started when there is none, returned once its record is written and its /health answers. A recorded process that does not answer /health within three tries is still returned, with a notice naming its pid, port and log, rather than a link said to be starting (#1282). A timed-out wait for another caller's start names the log too. A process older than this CLI is replaced only when nothing uses it.
+    source_reference: &a3
+      provenance: manual
+      locations:
+        - file: cli/src/server/ensure-central-server.ts
+          symbol: ensureCentralServer
+    metadata: &a4
+      created_at: 2026-11-21T17:14:10.905Z
+      updated_at: 2026-11-21T17:14:10.905Z
+      version: 1
+  after:
+    id: 6cd17e45-e90a-430a-a5db-ab92c8c10c0a
+    path: application.applicationfunction.ensure-central-server
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCentralServer
+    description: The central DR process for the farm in use, started when there is none and returned once its record is written (a process writes it only once it listens). A process already recorded, at this CLI's version or newer, that does not answer /health within three tries is still returned, with a notice naming its pid, port and log, rather than a link said to be starting (#1282). A timed-out wait for another caller's start names the log too. A process older than this CLI is replaced only when nothing uses it.
+    source_reference: *a3
+    metadata: *a4
+  timestamp: 2026-11-25T23:41:43.281Z
+  sequenceNumber: 15
+- type: update
+  elementId: data-model.objectschema.project-list-entry
+  layerName: data-model
+  before:
+    id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+    path: data-model.objectschema.project-list-entry
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectListEntry
+    description: "One farm project as every interface lists it: name, repository (the main checkout's path), model folder, remote, and its checkouts with their state, active changeset and staged count. missing: true, with remove (the dr farm remove call), when the repository folder is gone (#1438)."
+    attributes: &a5
+      type: object
+    source_reference: &a6
+      provenance: manual
+      locations:
+        - file: cli/src/core/checkout-types.ts
+          symbol: ProjectListEntry
+    metadata: &a7
+      created_at: 2026-11-21T17:14:10.890Z
+      updated_at: 2026-11-21T17:14:10.890Z
+      version: 1
+  after:
+    id: dbc11bf6-c1be-4261-97d8-52f0abaed443
+    path: data-model.objectschema.project-list-entry
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectListEntry
+    description: "One farm project as project_list, GET /api/projects and GET /api/projects/{project} list it: name, repository (the main checkout's path), model folder, remote, and its checkouts with their state, active changeset and staged count. missing: true, with remove (the dr farm remove call), when the repository folder is gone (#1438)."
+    attributes: *a5
+    source_reference: *a6
+    metadata: *a7
+  timestamp: 2026-11-25T23:41:43.307Z
+  sequenceNumber: 16
+- type: update
+  elementId: product.feature.stage-element-changes
+  layerName: product
+  before:
+    id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+    path: product.feature.stage-element-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage element changes
+    description: "MCP: model_add, model_update (attributePatch), model_delete; stage into the active changeset. model_add, model_update and model_delete take a list, inline or in a JSON file, and answer summary first: counts, then the items that need attention grouped by cause (one entry per cause with its true count, items listed up to limit), and id-derivation notes once each with a count and sample ids. A re-sent element that matches what is there is unchanged, not refused, so a batch can be retried. model_add places a product workflow step after or before another, rewiring flows-to and renumbering sequence. model_update gives a hand-set source file 'manual' and adds or removes one source location with addSourceLocation / removeSourceLocation. A write aimed at a changeset that landed or is landing fails naming it, never falling through to the base model. CLI: dr add/update/delete."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: 'MCP: model_add, model_update (attributePatch), model_delete; stage into the active changeset. CLI: dr add/update/delete. With no changeset active the write goes to the base model. A base write from a model that was loaded while a changeset was active, when that changeset has since stopped being staged, fails with "The change was not saved" instead of reporting success and storing nothing (#1218, cli/src/core/mutation-handler.ts). Batches (CLI 0.7.0): model_add takes elements (with relationships) and model_update takes updates, inline or in a JSON file named by file (one object holding the tool''s lists under their own names; the file must be inside the project the call addresses, links resolved). A batch returns total, counts by status and attention: only the items not written as sent, or elements written with a warning or a note, up to limit in full (default 50, failures first) and every one past that by position under its reason with what its message named (attentionNotListed), so one response accounts for every item; verbose: true returns every item (#1182, #1217). A refused model_add batch lists what each refused type requires (#1153). sourceFile without sourceProvenance gets ''manual'' with no warning over MCP (#1233). Ids: dr add, model_add and extraction derive an id from a name with one function, deriveElementId in cli/src/utils/id-generator.ts (#1225): camelCase and a digit before a capitalised word are word breaks (#1184), dots, slashes and braces are word breaks, a leading digit gets the prefix n- (#1212), and a name over 100 characters is cut with a hash. An id is derived once and never rewritten: an add is refused, naming the element, when an element of the same name sits at an id an earlier release derived for that name (earlierElementIds) or at one that differs only by hyphens; a test sweeps this repository''s model for it.'
+    source_reference: &a8
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-update.ts
+    metadata: &a9
+      created_at: 2026-11-09T21:54:57.057Z
+      updated_at: 2026-11-09T21:54:57.057Z
+      version: 1
+  after:
+    id: ab6e7c50-5dec-4c85-9363-8c4588f30a26
+    path: product.feature.stage-element-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage element changes
+    description: "MCP: model_add, model_update (attributePatch), model_delete; stage into the active changeset. model_add, model_update and model_delete take a list, inline or in a JSON file, and answer summary first: counts, then the items that need attention grouped by cause (one entry per cause with its true count, items listed up to limit), and, from model_add, id-derivation notes once each with a count and sample ids. A re-sent element that matches what is there is unchanged, not refused, so a batch can be retried. model_add places a product workflow step after or before another, rewiring flows-to and renumbering sequence. model_update gives a hand-set source file 'manual' and adds or removes one source location with addSourceLocation / removeSourceLocation. A write aimed at a changeset that landed or is landing fails naming it, never falling through to the base model. CLI: dr add/update/delete."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: 'MCP: model_add, model_update (attributePatch), model_delete; stage into the active changeset. CLI: dr add/update/delete. With no changeset active the write goes to the base model, except after a landing of the active changeset in this checkout: then it is refused until a changeset is activated or created, or changeset_deactivate is called (#1437). A base write from a model that was loaded while a changeset was active, when that changeset has since stopped being staged, fails with "The change was not saved" instead of reporting success and storing nothing (#1218, cli/src/core/mutation-handler.ts). Batches (CLI 0.7.0): model_add takes elements (with relationships) and model_update takes updates, inline or in a JSON file named by file (one object holding the tool''s lists under their own names; the file must be inside the project the call addresses, links resolved). A batch returns total, counts by status, attentionTotal and causes: the items not written as sent, or elements written with a warning or a note, grouped by cause with each cause''s true count (failures first, then the largest), listed by position up to limit across the causes (default 50, one of every cause first; limit caps the causes too, with causesTotal), and notListed counts the rest, so one response accounts for every item; verbose: true returns every item (#1182, #1217, #1295). A refused model_add batch lists what each refused type requires (#1153). sourceFile without sourceProvenance gets ''manual'' with no warning over MCP, except that model_update keeps the element''s provenance for a file it already references (#1233, #1260). Ids: dr add, model_add and extraction derive an id from a name with one function, deriveElementId in cli/src/utils/id-generator.ts (#1225): camelCase and a digit before a capitalised word are word breaks (#1184), dots, slashes and braces are word breaks, a leading digit gets the prefix n- (#1212), and a name over 100 characters is cut with a hash. An id is derived once and never rewritten: an add is refused, naming the element, when an element of the same name sits at an id an earlier release derived for that name (earlierElementIds) or at one that differs only by hyphens; a test sweeps this repository''s model for it.'
+    source_reference: *a8
+    metadata: *a9
+  timestamp: 2026-11-25T23:42:42.451Z
+  sequenceNumber: 17
+- type: update
+  elementId: product.feature.changeset-commit
+  layerName: product
+  before:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why and names the route that works: declined, no confirmation came back, or the dialog could not be shown. Drift does not refuse it: the confirmation and the result name each staged change the base overlaps and what landing does about it, and force is accepted and ignored. A landing holds the changeset's lock from its read to its status save, so a write staged meanwhile either lands with it or is refused naming the changeset; after a landing of the active changeset, writes refuse until a changeset is activated, created or deactivated, instead of falling through to the base model. Viewer: Apply, which lands a drifted changeset too. CLI: dr changeset commit, which lists the overlaps and asks at a terminal; with no terminal it refuses a real overlap unless --force is passed, and lands with no overlap."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why: declined, the dialog could not be shown, or drift. Viewer: Apply. CLI: dr changeset commit. A landing clears the active-changeset marker; if the marker cannot be cleared the landing stands and the result warns that the marker is ignored, since a committed changeset is never the active one (#1218)."
+    source_reference: &a10
+      provenance: manual
+      locations:
+        - file: cli/src/core/staging-area.ts
+    metadata: &a11
+      created_at: 2026-11-09T21:54:57.863Z
+      updated_at: 2026-11-09T21:54:57.863Z
+      version: 1
+  after:
+    id: fdde0a71-d00b-4c56-ae39-db5f2139741e
+    path: product.feature.changeset-commit
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset commit
+    description: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why and names the route that works: declined, no confirmation came back, or the dialog could not be shown. Drift does not refuse it: the confirmation gives the true count of staged changes the base overlaps and what landing does about each kind, naming up to 10 of each kind, the result names every one, and force is accepted and ignored. A landing holds the changeset's lock from its read to its status save, so a write staged meanwhile either lands with it or is refused naming the changeset; after a landing of the active changeset, writes refuse until a changeset is activated, created or deactivated, instead of falling through to the base model. Viewer: Apply, which lands a drifted changeset too. CLI: dr changeset commit, which lists the overlaps and asks at a terminal; with no terminal it refuses a real overlap unless --force is passed, and lands with no overlap."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: "MCP: changeset_commit, which asks the person to confirm through an MCP elicitation dialog, or takes a confirmation token from Claude Code (see Commit confirmation token). It is refused when no person can answer, and a refusal says why: declined, no confirmation came back, or the dialog could not be shown; drift does not refuse it. Viewer: Apply. CLI: dr changeset commit. A landing clears the active-changeset marker; if the marker cannot be cleared the landing stands and the result warns that the marker is ignored, since a committed changeset is never the active one (#1218)."
+    source_reference: *a10
+    metadata: *a11
+  timestamp: 2026-11-25T23:42:42.573Z
+  sequenceNumber: 18
+- type: update
+  elementId: application.applicationfunction.batch-report
+  layerName: application
+  before:
+    id: f12ba987-ebf6-4d4e-881b-9e18ba0560d2
+    path: application.applicationfunction.batch-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: batchReport
+    description: "Builds a batch's report summary first: counts by status, then the items that need attention grouped by cause with true counts (items listed up to limit), or every item with verbose"
+    source_reference: &a12
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/batch-result.ts
+          symbol: batchReport
+    metadata: &a13
+      created_at: 2026-11-20T16:36:37.954Z
+      updated_at: 2026-11-20T16:36:37.954Z
+      version: 1
+  after:
+    id: f12ba987-ebf6-4d4e-881b-9e18ba0560d2
+    path: application.applicationfunction.batch-report
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: batchReport
+    description: "Builds a batch's report summary first: counts by status, then the items that need attention: with byCause, grouped by cause with true counts (items listed up to limit); without it, in full up to limit and the rest grouped by reason (attentionNotListed); or every item with verbose"
+    source_reference: *a12
+    metadata: *a13
+  timestamp: 2026-11-25T23:42:42.650Z
+  sequenceNumber: 19
+- type: update
+  elementId: application.applicationservice.changeset-commit-preview-handler
+  layerName: application
+  before:
+    id: a009f07a-c024-4483-9e33-cd7aced97a7d
+    path: application.applicationservice.changeset-commit-preview-handler
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: changesetCommitPreviewHandler
+    description: Checks a staged changeset for landing without writing anything and returns the landing summary with a confirmation token; reports a changeset already landed as a result, and changes staged into it moments ago as a warning
+    attributes: &a14
+      serviceType: synchronous
+    source_reference: &a15
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a16
+      created_at: 2026-11-20T15:08:59.540Z
+      updated_at: 2026-11-20T15:08:59.540Z
+      version: 1
+  after:
+    id: a009f07a-c024-4483-9e33-cd7aced97a7d
+    path: application.applicationservice.changeset-commit-preview-handler
+    spec_node_id: application.applicationservice
+    type: applicationservice
+    layer_id: application
+    name: changesetCommitPreviewHandler
+    description: Checks a staged changeset for landing without writing anything and returns the landing summary, with a confirmation token when the client is Claude Code 2.1.199 or later; reports a changeset already landed as a result, and changes staged into it moments ago as a warning
+    attributes: *a14
+    source_reference: *a15
+    metadata: *a16
+  timestamp: 2026-11-25T23:42:42.671Z
+  sequenceNumber: 20
+- type: update
+  elementId: product.feature.commit-confirmation-token
+  layerName: product
+  before:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id, force, a 10-minute expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout, with project_upgrade relayout: true as the way to do that first in a commit of its own (#1439)."
+    source_reference: &a17
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-commit.ts
+          symbol: changesetCommitPreviewHandler
+    metadata: &a18
+      created_at: 2026-11-17T20:42:52.469Z
+      updated_at: 2026-11-17T20:42:52.469Z
+      version: 1
+  after:
+    id: 024c8984-3141-4664-848d-87f229d7a22a
+    path: product.feature.commit-confirmation-token
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Commit confirmation token
+    description: "MCP: changeset_commit_preview checks a changeset for landing without writing anything and returns the landing summary (intent, counts, layers, drift with the true count of overlaps and what landing does about each kind, validation) with a token bound to the changeset's confirmed state, and says when changes were staged into it moments ago. A changeset already landed is reported as a result (when it landed, the files it wrote, whether they are committed to git), not an error. Claude Code shows the summary, and the person approves the changeset_commit call carrying the token in Claude Code's permission prompt, which anthropic/requiresUserInteraction forces. changeset_commit accepts the token only from Claude Code (v2.1.199 or later) and refuses it once used, expired (one hour: long enough for an answer relayed through another session, too short for yesterday's preview to land today), or when the changeset or base model changed since the preview. An expired token is reported as expired, not as a decline. The token does not bind force, which is ignored. Other clients still confirm in the elicitation dialog."
+    attributes:
+      priority: high
+      status: developing
+      size: s
+      documentation: "Token: an HMAC, keyed per server process, over the changeset id, a one-hour expiry and the confirmedState fingerprint (staged changes and base model); good once. The preview tool is not flagged, so landing takes one approval. Permission modes (checked 2026-11-17 against the Claude Code docs): the prompt is forced in acceptEdits, auto and bypassPermissions (so --dangerously-skip-permissions too), allow rules and PreToolUse hooks don't skip it, and dontAsk, --permission-prompt-tool and runs without a prompt callback deny the call. The server can't see the mode and doesn't need to. changeset_commit_preview's validation also refuses a type or relationship the changeset adds that the model's declared spec lacks (#1411), and its summary names the model files the landing would lay out anew from an earlier dr's layout, with project_upgrade relayout: true as the way to do that first in a commit of its own (#1439)."
+    source_reference: *a17
+    metadata: *a18
+  timestamp: 2026-11-25T23:44:17.240Z
+  sequenceNumber: 21
+- type: update
+  elementId: product.feature.stage-relationship-changes
+  layerName: product
+  before:
+    id: a5c62b62-6de7-4435-b545-73944e15a9e7
+    path: product.feature.stage-relationship-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage relationship changes
+    description: "MCP: relationship_add, relationship_delete, validated against the catalog and against the spec version the model declares: a relationship type only a newer spec has is refused, naming both versions and project_upgrade (#1411). Both take a list, inline or in a JSON file, and answer summary first: counts, then failures grouped by cause (one missing element is one entry with the count of relationships it affects). A re-sent relationship already there is unchanged. A refused relationship names the predicates the catalog allows between the two types, in both directions. CLI: dr relationship add/delete (same staging code)."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: 'MCP: relationship_add, relationship_delete, validated against the catalog. CLI: dr relationship add/delete (same staging code). Batches (CLI 0.7.0): relationship_add takes relationships inline or in a JSON file inside the project named by file ({"relationships": [...]}), staged in one write. It returns total, counts by status and attention: the items that are invalid (with the reason), duplicate or restored, up to limit in full (default 50) and every one past that by position under its reason with what its message named (attentionNotListed); verbose: true returns every item (#1182, #1217). An end that is not an exact id is read as the one element it names by its name or its id without hyphens, among the elements the call adds and the model as the active changeset leaves it, in a list (model_add''s relationships too) and in the single form; more than one match is refused, naming the candidates and which the call adds; a list reports the readings once, as readByName (#1230). An end that is not found is offered the id that starts the same (#1225).'
+    source_reference: &a19
+      provenance: manual
+      locations:
+        - file: cli/src/core/relationship-staging.ts
+    metadata: &a20
+      created_at: 2026-11-09T21:54:57.127Z
+      updated_at: 2026-11-09T21:54:57.127Z
+      version: 1
+  after:
+    id: a5c62b62-6de7-4435-b545-73944e15a9e7
+    path: product.feature.stage-relationship-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Stage relationship changes
+    description: "MCP: relationship_add, relationship_delete, validated against the catalog and against the spec version the model declares: a relationship type only a newer spec has is refused, naming both versions and project_upgrade (#1411). Both take a list, inline or in a JSON file, and answer summary first: counts, then failures grouped by cause (one missing element is one entry with the count of relationships it affects). A re-sent relationship already there is unchanged. A refused relationship names the predicates the catalog allows between the two types, in both directions. CLI: dr relationship add/delete (same staging code)."
+    attributes:
+      priority: critical
+      status: delivered
+      documentation: 'MCP: relationship_add, relationship_delete, validated against the catalog. CLI: dr relationship add/delete (same staging code). Batches (CLI 0.7.0): relationship_add takes relationships inline or in a JSON file inside the project named by file ({"relationships": [...]}), staged in one write. It returns total, counts by status, attentionTotal and causes: the items that are invalid (with the reason), duplicate or restored, grouped by cause, each with its true count and its items by position, up to limit items across the causes (default 50, one of every cause first; limit caps the causes too, with causesTotal), the rest counted in notListed; verbose: true returns every item (#1182, #1217, #1295). An end that is not an exact id is read as the one element it names by its name or its id without hyphens, among the elements the call adds and the model as the active changeset leaves it, in a list (model_add''s relationships too) and in the single form; more than one match is refused, naming the candidates and which the call adds; a list reports the readings once, as readByName (#1230). An end that is not found is offered the id that starts the same (#1225).'
+    source_reference: *a19
+    metadata: *a20
+  timestamp: 2026-11-25T23:44:17.280Z
+  sequenceNumber: 22
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan (project_upgrade at the top level, legacyMarker, with a next line), and remove it when applied: when the checkout has no marker in .dr/, the changeset it names becomes active only if it is still staged, else nothing is made active and the stale id is said. The preview's migration.kind is manifest-only when the migration changes nothing but the spec version in manifest.yaml, and says so plainly (#1435). relayout: true (dr upgrade --relayout) lays out model files an earlier dr wrote (long strings folded at 80 columns) in dr's layout, data unchanged, as a previewed step of its own, also on a model already on this spec; without it the result only counts them, so later landings carry only their own changes once it is run (#1439). A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts), previews the migration unless apply is set; leaves installed integrations alone and says when a project still has them. CLI: dr upgrade (cli/src/commands/upgrade.ts), which also brings installed integration files up to date. Model writes skip unchanged files (writeLayer, cli/src/core/model.ts). Issues #1246, #1165, #1168."
+    source_reference: &a21
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a22
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan (project_upgrade at the top level, legacyMarker, with a next line when it is the only thing pending), and remove it when applied: when the checkout has no marker in .dr/, the changeset it names becomes active only if it is still staged, else nothing is made active and the stale id is said. The preview's migration.kind is manifest-only when the migration changes nothing but the spec version in manifest.yaml, and says so plainly (#1435). relayout: true (dr upgrade --relayout) lays out model files an earlier dr wrote (long strings folded at 80 columns) in dr's layout, data unchanged, as a previewed step of its own, also on a model already on this spec; without it the result only counts them, so later landings carry only their own changes once it is run (#1439). A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts), previews the migration unless apply is set; reports installed integrations and upgrades them only with upgradeIntegrations and apply. CLI: dr upgrade (cli/src/commands/upgrade.ts), which also brings installed integration files up to date. Model writes skip unchanged files (writeLayer, cli/src/core/model.ts). Issues #1246, #1165, #1168."
+    source_reference: *a21
+    metadata: *a22
+  timestamp: 2026-11-25T23:44:17.303Z
+  sequenceNumber: 23
+- type: update
+  elementId: data-model.objectschema.project-upgrade-args
+  layerName: data-model
+  before:
+    id: 7ecff9ce-41b3-4b99-b0d1-4a9d94d6a2ae
+    path: data-model.objectschema.project-upgrade-args
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectUpgradeArgs
+    description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, and upgradeIntegrations (with apply: bring the per-project integration files an older dr installed up to this dr, as dr upgrade does; refused with modelOnly)."
+    attributes: &a23
+      type: object
+    source_reference: &a24
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/project-tools.ts
+          symbol: ProjectUpgradeArgs
+    metadata: &a25
+      created_at: 2026-11-20T15:05:47.924Z
+      updated_at: 2026-11-20T15:05:47.924Z
+      version: 1
+  after:
+    id: 7ecff9ce-41b3-4b99-b0d1-4a9d94d6a2ae
+    path: data-model.objectschema.project-upgrade-args
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ProjectUpgradeArgs
+    description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, upgradeIntegrations (with apply: bring the per-project integration files an older dr installed up to this dr, as dr upgrade does; refused with modelOnly), and relayout (lay out model files an earlier dr wrote in dr's layout, data unchanged, as a step of its own)."
+    attributes: *a23
+    source_reference: *a24
+    metadata: *a25
+  timestamp: 2026-11-25T23:44:17.348Z
+  sequenceNumber: 24
+- type: update
+  elementId: product.feature.model-validation
+  layerName: product
+  before:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. layers narrows what is checked, and a link into another layer is placed by its id or, for an end named by UUID, by the layer its relationship row records, so it is never reported as not found (#1259). A type or relationship the model''s declared spec lacks is an error naming both versions (#1411). CLI: dr validate, dr conformance.'
+    attributes: &a26
+      priority: high
+      status: delivered
+      documentation: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. CLI: dr validate, dr conformance.'
+    source_reference: &a27
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-validate.ts
+    metadata: &a28
+      created_at: 2026-11-09T21:54:57.405Z
+      updated_at: 2026-11-09T21:54:57.405Z
+      version: 1
+  after:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. layers narrows what is checked, and a link into another layer is placed by its id or, for an end named by UUID, by the layer its relationship row records, so it is reported as not found only when no layer of the model has it (#1259). A type or relationship the model''s declared spec lacks is an error naming both versions (#1411). CLI: dr validate, dr conformance.'
+    attributes: *a26
+    source_reference: *a27
+    metadata: *a28
+  timestamp: 2026-11-25T23:44:17.364Z
+  sequenceNumber: 25
+- type: update
+  elementId: product.feature.project-status
+  layerName: product
+  before:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status, naming the project and checkout the session resolves to, with the project's other checkouts and this checkout's viewer link. task (plan, review or reconcile) says what the session is for: while planning or reviewing, code drift and the index are information beside the step, not the step. Changed source files are counted per folder and their elements per layer, with the first five files listed. It reports a leftover documentation-robotics/changesets/.active, whether git still tracks it and whether it decides the active changeset, and asks for its deletion to be committed."
+    attributes: &a29
+      priority: critical
+      status: delivered
+      documentation: "MCP: project_status (cli/src/mcp/tools/project-status.ts, sections in project-status-collectors.ts). Where this repo stands with DR: model present, spec version against the CLI, active and staged changesets, code index present and fresh (and any indexing run in flight), code drift, viewer running, Tier 1 state, and nextStep, a sentence and the tool to call. Code drift is counted from the last as-built landing; a model with none counts from its last commit that is not a spec migration. Reads local files and git only. The server instructions tell the agent to call it first."
+    source_reference: &a30
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/project-status.ts
+    metadata: &a31
+      created_at: 2026-11-09T22:04:38.150Z
+      updated_at: 2026-11-09T22:04:38.150Z
+      version: 1
+  after:
+    id: e3de59af-bd7a-44b4-ad8c-abe777fbd163
+    path: product.feature.project-status
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Project status
+    description: "MCP: project_status, naming the project and checkout the session resolves to, with the project's other checkouts and this checkout's viewer link. task (plan, review or reconcile) says what the session is for: while planning or reviewing, code drift and the index are information beside the step, not the step. Changed source files are counted per folder and their elements per layer, with the first five files listed. It reports a leftover documentation-robotics/changesets/.active, whether git still tracks it and whether it decides the active changeset, and asks for it to be deleted, and the deletion committed while git tracks it."
+    attributes: *a29
+    source_reference: *a30
+    metadata: *a31
+  timestamp: 2026-11-25T23:44:17.383Z
+  sequenceNumber: 26
+- type: update
+  elementId: application.applicationfunction.clear-active-marker
+  layerName: application
+  before:
+    id: 0d4274d2-6697-49aa-9b68-f0523d8408fe
+    path: application.applicationfunction.clear-active-marker
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: clearActiveMarker
+    description: Leave .dr/active-changeset empty (no active changeset), remove the marker from the old place so a restored legacy file can't make a changeset active again, and remove the landed note with it unless keepLandedNote is set.
+    source_reference: &a32
+      provenance: extracted
+      locations:
+        - file: cli/src/core/active-changeset-marker.ts
+          symbol: clearActiveMarker
+    metadata: &a33
+      created_at: 2026-11-20T15:06:32.643Z
+      updated_at: 2026-11-20T15:06:32.643Z
+      version: 1
+  after:
+    id: 0d4274d2-6697-49aa-9b68-f0523d8408fe
+    path: application.applicationfunction.clear-active-marker
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: clearActiveMarker
+    description: Leave .dr/active-changeset empty (no active changeset, and a legacy file restored from git is never read again), remove the marker from the old place, and remove the landed note with it unless keepLandedNote is set.
+    source_reference: *a32
+    metadata: *a33
+  timestamp: 2026-11-25T23:44:17.403Z
+  sequenceNumber: 27
+- type: update
+  elementId: application.applicationfunction.cbm-analyzer-status
+  layerName: application
+  before:
+    id: 94526835-0d27-40eb-9818-560b8cc9836c
+    path: application.applicationfunction.cbm-analyzer-status
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: CbmAnalyzer status
+    description: Get the current status of the analyzer for a project. Fresh only at the indexed commit, with the same analyzer version, and when the index holds code (indexHoldsNoCode), so the background run re-indexes an empty index instead of skipping it (#1345).
+    source_reference: &a34
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: CbmAnalyzer.status
+    metadata: &a35
+      created_at: 2026-11-20T15:06:35.166Z
+      updated_at: 2026-11-20T15:06:35.166Z
+      version: 1
+  after:
+    id: 94526835-0d27-40eb-9818-560b8cc9836c
+    path: application.applicationfunction.cbm-analyzer-status
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: CbmAnalyzer status
+    description: Get the current status of the analyzer for a project. Fresh only at the indexed commit, with the same analyzer version, and when the index holds code and was not joined from another process's run (indexUntrusted), so the background run re-indexes such an index instead of skipping it (#1345).
+    source_reference: *a34
+    metadata: *a35
+  timestamp: 2026-11-25T23:47:21.450Z
+  sequenceNumber: 28
+- type: update
+  elementId: application.applicationfunction.ensure-cbm-ignore
+  layerName: application
+  before:
+    id: 28403604-d960-4d49-a436-5a6fb28a6ff3
+    path: application.applicationfunction.ensure-cbm-ignore
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCbmIgnore
+    description: Makes sure codebase-memory-mcp leaves DR's own folders (documentation-robotics/, .dr/) out of the index without changing the tree as git sees it (#1300). Whose file it is goes by DR's heading alone, since the exclude entry is shared by every worktree. With no .cbmignore, or DR's own untracked one, it hides the file through the repository's local exclude first (excludeFromGit) and then writes the lines, so a failure leaves no untracked file. A .cbmignore the developer tracks or wrote is never edited; the lines it lacks come back as missing, for the developer to add and commit with git add -f.
+    source_reference: &a36
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cbm-analyzer.ts
+          symbol: ensureCbmIgnore
+    metadata: &a37
+      created_at: 2026-11-20T15:07:11.555Z
+      updated_at: 2026-11-20T15:07:11.555Z
+      version: 1
+  after:
+    id: 28403604-d960-4d49-a436-5a6fb28a6ff3
+    path: application.applicationfunction.ensure-cbm-ignore
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: ensureCbmIgnore
+    description: Makes sure codebase-memory-mcp leaves DR's own folders (documentation-robotics/, .dr/) out of the index without changing the tree as git sees it (#1300). Whose file it is goes by DR's heading and whether git tracks it, never by whether git ignores it, since the exclude entry is shared by every worktree. With no .cbmignore, or DR's own untracked one, it hides the file through the repository's local exclude first (excludeFromGit) and then writes the lines, so a failure leaves no untracked file. A .cbmignore the developer tracks or wrote is never edited; the lines it lacks come back as missing, for the developer to add and commit with git add -f.
+    source_reference: *a36
+    metadata: *a37
+  timestamp: 2026-11-25T23:47:21.523Z
+  sequenceNumber: 29
+- type: update
+  elementId: product.feature.model-search-and-read
+  layerName: product
+  before:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: 'MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_show takes ids: [...] for several elements at once, one compact card each (name, short description, change status, connections as lines), paged; detail: "full" gives each as the one-element form does. model_search matches id and name by default, and descriptions and attribute values with fields; match: "all" or "any" matches the query''s words apart; name hits rank first; excludeLayers and excludeTypes leave layers and types out; results are compact entries a page at a time, with the true count and counts by layer and type. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info.'
+    attributes: &a38
+      priority: high
+      status: delivered
+      documentation: "MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info."
+    source_reference: &a39
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-search.ts
+    metadata: &a40
+      created_at: 2026-11-09T21:54:57.535Z
+      updated_at: 2026-11-09T21:54:57.535Z
+      version: 1
+  after:
+    id: e5b91444-0534-4aba-a21b-08e830ad6009
+    path: product.feature.model-search-and-read
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model search and read
+    description: 'MCP: model_list, model_show, model_search, model_trace, model_stats, model_info (changeset-aware). model_list can list orphans only, and pages its compact and full listings. model_show takes ids: [...] for several elements at once, one compact card each (name, short description, change status, connections as lines), paged; detail: "full" gives each as the one-element form does. model_search matches id and name by default, and descriptions and attribute values with fields; match: "all" or "any" matches the query''s words apart; an exact id or name ranks first, then more words matched, then name and id hits before description hits; excludeLayers and excludeTypes leave layers and types out; results are compact entries a page at a time, with the true count, and counts by layer and type when they run past one page. model_trace and dr trace read which end depends on the other from the predicate, by one rule: an element depends on what serves, realizes, satisfies, delivers or supports it, as on what it uses. model_trace reports only the changeset edges it walked and pages long lists with their true totals. model_stats validates the same view as model_validate, names it, and counts orphans by layer and type. CLI: dr list/show/search/trace/stats/info.'
+    attributes: *a38
+    source_reference: *a39
+    metadata: *a40
+  timestamp: 2026-11-25T23:47:21.572Z
+  sequenceNumber: 30
+- type: update
+  elementId: product.feature.unstage-and-discard-changes
+  layerName: product
+  before:
+    id: 3e811f2a-d8bc-47b1-b387-1f9b14c372e1
+    path: product.feature.unstage-and-discard-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Unstage and discard changes
+    description: 'MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete. changeset_unstage reports what it removed compactly: the count per operation and one line per change (the first 25 of each item, the rest counted); detail: "full" returns each removed change whole.'
+    attributes: &a41
+      priority: medium
+      status: delivered
+      documentation: "MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete."
+    source_reference: &a42
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-editing.ts
+    metadata: &a43
+      created_at: 2026-11-09T21:54:57.176Z
+      updated_at: 2026-11-09T21:54:57.176Z
+      version: 1
+  after:
+    id: 3e811f2a-d8bc-47b1-b387-1f9b14c372e1
+    path: product.feature.unstage-and-discard-changes
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Unstage and discard changes
+    description: 'MCP: changeset_unstage (element, relationship, or one end), changeset_discard (confirm: true). CLI: dr changeset unstage/discard/delete. changeset_unstage reports what it removed compactly: the count per operation and one line per change (the first 25 of each item, the rest counted); detail: "full" returns each removed change as an object (its type, element, layer and the relationship it names).'
+    attributes: *a41
+    source_reference: *a42
+    metadata: *a43
+  timestamp: 2026-11-25T23:47:21.633Z
+  sequenceNumber: 31
+- type: update
+  elementId: product.feature.changeset-brief
+  layerName: product
+  before:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. With since, the delta''s lists page with the rest, the changes unstaged since included. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: &a44
+      priority: critical
+      status: delivered
+      documentation: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page is sized to a 40 KB target the caller can change); detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    source_reference: &a45
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/changeset-analysis-tools.ts
+    metadata: &a46
+      created_at: 2026-11-09T21:54:57.359Z
+      updated_at: 2026-11-09T21:54:57.359Z
+      version: 1
+  after:
+    id: cee8625c-249f-4c63-ab7d-6bfb7afc9ce5
+    path: product.feature.changeset-brief
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset brief
+    description: 'MCP: changeset_brief (changes by layer, reach, gaps, unwired connections, intent trace, code touched, feedback, drift, ''since'' deltas). Also the build''s input. Compact by default; sections returns the named sections in a compact form, every list a page with its true total and the next offset (offset, limit; the page stays near a 40 KB target the caller can change, limit included, and says when it holds fewer than the limit); every top-level block of the compact brief is a section (summary, byLayer, reach, changesByType, neighborFiles among them), and a part cut outside the pages (changesByType''s ids, the compact drift''s lists) names the call that lists it whole. layers, types and ids narrow the element sections, and a layer or type that is not one is named; with ids, an element''s incoming staged relationships from elements the answer leaves out are listed on it, and named elements the plan does not change come back as unchanged cards, with their connections as the plan leaves them, paged with the other lists. The drift is named once: the changeset section leaves it out when drift is asked for and carries it compact otherwise, and the drift section''s base-change lists page with the answer''s other lists. With since and delta among the sections, the delta''s lists page with the rest, the changes unstaged since included; otherwise the delta comes with its first entries and its counts. detail: "full" returns everything, or the named sections in full. Intent traces a part through the whole that composes it and an element through what it realizes, names the walk''s bounds and what the hub rule leaves untraced, and counts types with no catalog route to intent apart from untraced.'
+    attributes: *a44
+    source_reference: *a45
+    metadata: *a46
+  timestamp: 2026-11-25T23:47:21.709Z
+  sequenceNumber: 32
+- type: update
+  elementId: application.applicationfunction.plan-decisions
+  layerName: application
+  before:
+    id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+    path: application.applicationfunction.plan-decisions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compileDecide
+    description: Resolves decide items to the cards they cover (a card item by cardId, symbol or file#symbol, among the last run's cards and then this run's symbols) and to what staging or rejecting them would do, with a count and a sample per item for a preview.
+    source_reference: &a47
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract-decide.ts
+          symbol: compileDecide
+    metadata: &a48
+      created_at: 2026-11-20T16:56:25.765Z
+      updated_at: 2026-11-20T16:56:25.765Z
+      version: 1
+  after:
+    id: f8805747-b7a1-4d1d-bff9-4b9846ee893e
+    path: application.applicationfunction.plan-decisions
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: compileDecide
+    description: "Checks the decide items and turns them into rules: a where or relationship item becomes a compiled rule, and a card item is resolved to the one card it names (by cardId, symbol or file#symbol, among the last run's cards and then this run's symbols) with its decision. An item that can't apply as sent (none or several of where, card and relationship; a card no card or several match; keep on a card item; a type that is not one) comes back as a problem, and the other items still apply. What each rule covers, with a count and a sample, is reported after planning (ruleReport)."
+    source_reference: *a47
+    metadata: *a48
+  timestamp: 2026-11-25T23:47:21.749Z
+  sequenceNumber: 33
+- type: update
+  elementId: product.feature.code-to-model-verification
+  layerName: product
+  before:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer (api, data-store, technology, testing) states its status first: checked and in step, checked and drifted, or not checked with why and what would make it checkable. API operations are compared with served routes and with the routes an OpenAPI file declares; recorded rejections are applied and reported; every list is a page with its true total."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads with status (in_step, drifted, not_checked) and coverage; a layer that compared nothing is never in step. API: served routes, and the routes an OpenAPI file declares against operations sourced to it. Testing: test functions and methods, and JS/TS it()/test() cases. Technology: infrastructure, and system software sourced to a dependency manifest against what it lists. Elements that could not be compared are listed by reason under not_checked. Recorded codebase_extract rejections and the project's kept rules (documentation-robotics/extraction-rules.yaml, applied as codebase_extract applies them) leave entries out of in_graph_only, listed under ignored with the rule or rejection; rejections and rules say how many were read and applied. Lists page with limit and offset (default 50, lowered near 40 KB); page.totals gives true lengths. An element sourced at a whole file is checked by its file alone."
+    source_reference: &a49
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/verify-engine.ts
+    metadata: &a50
+      created_at: 2026-11-09T21:54:58.119Z
+      updated_at: 2026-11-09T21:54:58.119Z
+      version: 1
+  after:
+    id: 9febeada-0c2e-4dd0-8b31-387b12ded0a1
+    path: product.feature.code-to-model-verification
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Code-to-model verification
+    description: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer (api, data-store, technology, testing) states its status first: checked and in step, checked and drifted, or not checked with why and what would make it checkable. API operations are compared with served routes and with the routes an OpenAPI file declares; recorded rejections are applied and reported; every list is a page with its true total."
+    attributes:
+      priority: medium
+      status: delivered
+      documentation: "MCP: codebase_verify. CLI: dr analyzer verify. Each layer leads with status (in_step, drifted, not_checked) and coverage; a layer that compared nothing is never in step. API: served routes, and the routes an OpenAPI file declares against operations sourced to it. Testing: test functions and methods, and JS/TS it()/test() cases. Technology: infrastructure, and system software sourced to a dependency manifest against what it lists. Elements that could not be compared are listed by reason under not_checked. Recorded codebase_extract rejections and the project's kept rules (documentation-robotics/extraction-rules.yaml, applied as codebase_extract applies them) leave entries out of in_graph_only, listed under ignored with the rule or rejection; rejections and rules say how many were read and applied. Lists page with limit and offset (by default as many entries per list as keep the result near 40 KB, from 10 to 1,000); page.totals gives true lengths."
+    source_reference: *a49
+    metadata: *a50
+  timestamp: 2026-11-25T23:47:21.775Z
+  sequenceNumber: 34
+- type: update
+  elementId: product.feature.changeset-verify
+  layerName: product
+  before:
+    id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+    path: product.feature.changeset-verify
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset verify
+    description: "MCP: changeset_verify against an as-built changeset or the base, and changeset_adopt_source_references. CLI: dr changeset verify. What extraction can't see is unverifiable with its reason, never missing; a service or operation the build may register by a name string is named in the verdict, which is never a clean match while one is unconfirmed. Planned adds with no source reference come with candidate files, and adopt takes the references the agent confirmed. Every list is a page with its true total."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_verify (limit and offset page every list; without limit the page is as long as keeps the answer near 40 KB; page.totals gives true lengths) and changeset_adopt_source_references (references: {id, sourceFile, sourceSymbol} for elements with no as-built match, stored root-relative with provenance manual; result counts over everything, items past limit still accounted for). CLI: dr changeset verify. Unverifiable: intent, re-exports, planned JS/TS test cases, relationships no code edge maps to, and a planned service, interface, function, event, process or operation a code file names only as a call argument or name property (reason gives file and line; verdict at best probable-match)."
+    source_reference: &a51
+      provenance: manual
+      locations:
+        - file: cli/src/core/changeset-verify.ts
+    metadata: &a52
+      created_at: 2026-11-09T21:54:57.790Z
+      updated_at: 2026-11-09T21:54:57.790Z
+      version: 1
+  after:
+    id: 21a1374f-9a3b-4120-a8a8-65d5701fc5c6
+    path: product.feature.changeset-verify
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Changeset verify
+    description: "MCP: changeset_verify against an as-built changeset or the base, and changeset_adopt_source_references. CLI: dr changeset verify. Against an as-built changeset (or the base with extracted: true), what extraction can't see is unverifiable with its reason, not missing; a call extraction gives to another function (one made in a closure or through an unmodelled helper) is still reported missing (#1464). A service or operation the build may register by a name string is named in the verdict, which is never a clean match while one is unconfirmed. Planned adds with no source reference come with candidate files, and adopt takes the references the agent confirmed. Every list is a page with its true total."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: changeset_verify (limit and offset page every list; without limit a page holds the default (30 lines of the compact report, 50 items of a section), fewer when that would take the answer past about 40 KB, and sized says so; page.totals gives true lengths) and changeset_adopt_source_references (references: {id, sourceFile, sourceSymbol} for elements with no as-built match, stored root-relative with provenance manual; result counts over everything, items past limit still accounted for). CLI: dr changeset verify. Unverifiable: intent, re-exports, planned JS/TS test cases, relationships no code edge maps to, and a planned service, interface, function, event, process or operation a code file names only as a call argument or name property (reason gives file and line; verdict at best probable-match)."
+    source_reference: *a51
+    metadata: *a52
+  timestamp: 2026-11-25T23:47:21.807Z
+  sequenceNumber: 35
+- type: update
+  elementId: product.feature.extraction-triage-by-rule
+  layerName: product
+  before:
+    id: 2c5c136e-48cf-4365-b756-9b1089dd00a1
+    path: product.feature.extraction-triage-by-rule
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction triage by rule
+    description: "MCP: codebase_extract. A run returns its undecided cards as groups with a decision count; decide takes decisions in bulk by a stated rule (previewed with a sample), stages or rejects what it covers, and keep: true records the rule in documentation-robotics/extraction-rules.yaml for every later run and checkout."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Each card carries facts read from the code: visibility, whether it is nested in another function, and the element its class or file already has. A run with more cards than a page answers with groups (folder and file, kind and visibility, folders no element names, functions many services share) and the number of decisions needed; view filters and pages the cards, states a candidate list several cards share once (candidateLists), and groups them by file with groupBy. decide: [{where | card, as: layer.type | none, reason, keep, attributes, overrideTier0}] decides cards by rule; where.name matches the bare name and where.symbol the card's symbol (Class.method); a card item takes a cardId, a symbol or file#symbol of this run; attributes supply what a type requires; with preview: true it returns each rule's count and a sample and changes nothing; with view it answers with that view's page after applying. A none rule leaves a symbol Tier 0 decided as an element to Tier 0 unless it says overrideTier0, and ruleWarnings says so at the top with counts. Kept rules are applied before cards are made, in this order: an element that names the symbol, a decision on that one card, a rule that says none, Tier 0, a rule that names a type. A since run lists the symbols its range changed and counts the rest; with a plan active it lists planned elements with no as-built candidate and marks cards the plan's elements name (planned). reject records what is not an element locally (it says so), skips cards an element now names, applies after the call's decide items, takes except on a files item, and with keep: true writes a rule instead; a kept decide rule that covers recorded rejections retires them; a preview of reject or clearRejected records nothing and says would-record. reject and decide take their items from a JSON file (file) and answer with counts and the items that need attention. The impacted list comes in full only when it changed since the last run."
+    metadata: &a53
+      created_at: 2026-11-20T16:56:25.762Z
+      updated_at: 2026-11-20T16:56:25.762Z
+      version: 1
+  after:
+    id: 2c5c136e-48cf-4365-b756-9b1089dd00a1
+    path: product.feature.extraction-triage-by-rule
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Extraction triage by rule
+    description: "MCP: codebase_extract. A run returns its undecided cards as groups with a decision count; decide takes decisions in bulk by a stated rule (previewed with a sample), stages or rejects what it covers, and keep: true records the rule in documentation-robotics/extraction-rules.yaml for every later run and checkout."
+    attributes:
+      priority: high
+      status: delivered
+      documentation: "MCP: codebase_extract. Each card carries facts read from the code: visibility, whether it is nested in another function, and, for a member, the element its class already has (owner). A run with more cards than a page answers with groups (folder and file, kind and visibility, folders no element names, functions many services share) and the number of decisions needed; view filters and pages the cards, states a candidate list several cards share once (candidateLists), and groups them by file with groupBy. decide: [{where | card, as: layer.type | none, reason, keep, attributes, overrideTier0}] decides cards by rule; where.name matches the bare name and where.symbol the card's symbol (Class.method); a card item takes a cardId, a symbol or file#symbol of this run; attributes supply what a type requires; with preview: true it returns each rule's count and a sample and changes nothing; with view it answers with that view's page after applying. A none rule leaves a symbol Tier 0 decided as an element to Tier 0 unless it says overrideTier0, and ruleWarnings says so at the top with counts. Kept rules are applied before cards are made, in this order: an element that names the symbol, a decision on that one card, a rule that says none, Tier 0, a rule that names a type. A since run lists the symbols its range changed and counts the rest; with a plan active it lists the planned elements with no as-built element yet, with the cards that could be them (planCoverage), and marks cards the plan's elements name (planned). reject records what is not an element locally (it says so), skips cards an element now names, applies after the call's decide items, takes except on a files item, and with keep: true writes a rule instead; a kept decide rule that covers recorded rejections retires them; a preview of reject or clearRejected records nothing and says would-record. reject and decide take their items from a JSON file (file) and answer with counts and the items that need attention. The impacted list comes in full only when it changed since the last run."
+    metadata: *a53
+  timestamp: 2026-11-25T23:47:21.842Z
+  sequenceNumber: 36
+- type: update
+  elementId: product.feature.declared-spec-check
+  layerName: product
+  before:
+    id: 0866f6c4-2665-498b-8b6b-3c1dd995ce99
+    path: product.feature.declared-spec-check
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Declared-spec check
+    description: 'relationship_add, model_add, model_update, model_validate and changeset_commit_preview check a type or relationship against the spec the model''s manifest declares, not only the CLI''s own catalog. One that exists only in a newer spec is refused: "<type or triple> is not in spec 0.13.0, the model''s version; it exists from 0.14.0. Run project_upgrade first." A model that already holds one still loads and reads; model_validate names its element ids, and a landing counts it with the errors already in the base. A model on a spec newer than dr''s is refused nothing extra, and a type dr doesn''t know is reported as unknown here, with the update to make. The versions come from a table generated from the released spec catalogs (0.8.0 on) and committed with the CLI (#1411).'
+    attributes: &a54
+      priority: high
+      status: developing
+    source_reference: &a55
+      provenance: manual
+      locations:
+        - file: cli/src/core/declared-spec.ts
+    metadata: &a56
+      created_at: 2026-11-25T16:09:06.301Z
+      updated_at: 2026-11-25T16:09:06.301Z
+      version: 1
+  after:
+    id: 0866f6c4-2665-498b-8b6b-3c1dd995ce99
+    path: product.feature.declared-spec-check
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Declared-spec check
+    description: 'relationship_add, model_add, model_update, model_validate and changeset_commit_preview check a type or relationship against the spec the model''s manifest declares, not only the CLI''s own catalog. One that exists only in a newer spec is refused: "<type or triple> is not in spec 0.13.0, the model''s version; it exists from 0.14.0. Run project_upgrade first." codebase_extract doesn''t stage one and lists it under declaredSpec.notStaged. A model that already holds one still loads and reads; model_validate names its element ids, and a landing counts it with the errors already in the base. A model on a spec newer than dr''s is refused nothing extra, and a type dr doesn''t know is reported as unknown here, with the update to make. The versions come from a table generated from the released spec catalogs (0.8.0 on) and committed with the CLI (#1411).'
+    attributes: *a54
+    source_reference: *a55
+    metadata: *a56
+  timestamp: 2026-11-25T23:47:21.876Z
+  sequenceNumber: 37
+- type: relationship-add
+  elementId: application.applicationservice.create-codebase-extract-handler::realizes::product.feature.declared-spec-check
+  layerName: application
+  after:
+    source: application.applicationservice.create-codebase-extract-handler
+    target: product.feature.declared-spec-check
+    predicate: realizes
+    layer: application
+    targetLayer: product
+    category: structural
+  timestamp: 2026-11-25T23:47:23.075Z
+  sequenceNumber: 38
