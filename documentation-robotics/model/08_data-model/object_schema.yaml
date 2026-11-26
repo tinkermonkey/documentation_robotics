@@ -7378,7 +7378,7 @@ data-model.objectschema.project-upgrade-args:
   type: objectschema
   layer_id: data-model
   name: ProjectUpgradeArgs
-  description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, and upgradeIntegrations (with apply: bring the per-project integration files an older dr installed up to this dr, as dr upgrade does; refused with modelOnly)."
+  description: "project_upgrade's input: rootPath, apply, force, modelOnly, gitignore, detail, upgradeIntegrations (with apply: bring the per-project integration files an older dr installed up to this dr, as dr upgrade does; refused with modelOnly), and relayout (lay out model files an earlier dr wrote in dr's layout, data unchanged, as a step of its own)."
   attributes:
     type: object
   source_reference:
@@ -15411,7 +15411,7 @@ data-model.objectschema.project-list-entry:
   type: objectschema
   layer_id: data-model
   name: ProjectListEntry
-  description: "One farm project as every interface lists it: name, repository (the main checkout's path), model folder, remote, and its checkouts with their state, active changeset and staged count. missing: true, with remove (the dr farm remove call), when the repository folder is gone (#1438)."
+  description: "One farm project as project_list, GET /api/projects and GET /api/projects/{project} list it: name, repository (the main checkout's path), model folder, remote, and its checkouts with their state, active changeset and staged count. missing: true, with remove (the dr farm remove call), when the repository folder is gone (#1438)."
   attributes:
     type: object
   source_reference:

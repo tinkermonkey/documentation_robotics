@@ -11,8 +11,8 @@ description: |-
 
   **Done when:** every changed link and description matches the code at 13bfdd08, model_validate reports no errors, and the maintainer lands it with the PR.
 created: 2026-11-25T23:41:07.425Z
-modified: 2026-11-25T23:47:34.801Z
-status: staged
+modified: 2026-11-26T14:25:11.832Z
+status: committed
 baseSnapshot: v2:sha256:bf7aaab1bf8e8ab6c817655599b290112ff3a4e5ec7739ca774794e1a525b283
 origin:
   kind: plan

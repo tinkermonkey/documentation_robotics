@@ -10623,7 +10623,7 @@ application.applicationfunction.clear-active-marker:
   type: applicationfunction
   layer_id: application
   name: clearActiveMarker
-  description: Leave .dr/active-changeset empty (no active changeset), remove the marker from the old place so a restored legacy file can't make a changeset active again, and remove the landed note with it unless keepLandedNote is set.
+  description: Leave .dr/active-changeset empty (no active changeset, and a legacy file restored from git is never read again), remove the marker from the old place, and remove the landed note with it unless keepLandedNote is set.
   source_reference:
     provenance: extracted
     locations:
@@ -11568,7 +11568,7 @@ application.applicationfunction.cbm-analyzer-status:
   type: applicationfunction
   layer_id: application
   name: CbmAnalyzer status
-  description: Get the current status of the analyzer for a project. Fresh only at the indexed commit, with the same analyzer version, and when the index holds code (indexHoldsNoCode), so the background run re-indexes an empty index instead of skipping it (#1345).
+  description: Get the current status of the analyzer for a project. Fresh only at the indexed commit, with the same analyzer version, and when the index holds code and was not joined from another process's run (indexUntrusted), so the background run re-indexes such an index instead of skipping it (#1345).
   source_reference:
     provenance: extracted
     locations:
@@ -13651,7 +13651,7 @@ application.applicationfunction.ensure-cbm-ignore:
   type: applicationfunction
   layer_id: application
   name: ensureCbmIgnore
-  description: Makes sure codebase-memory-mcp leaves DR's own folders (documentation-robotics/, .dr/) out of the index without changing the tree as git sees it (#1300). Whose file it is goes by DR's heading alone, since the exclude entry is shared by every worktree. With no .cbmignore, or DR's own untracked one, it hides the file through the repository's local exclude first (excludeFromGit) and then writes the lines, so a failure leaves no untracked file. A .cbmignore the developer tracks or wrote is never edited; the lines it lacks come back as missing, for the developer to add and commit with git add -f.
+  description: Makes sure codebase-memory-mcp leaves DR's own folders (documentation-robotics/, .dr/) out of the index without changing the tree as git sees it (#1300). Whose file it is goes by DR's heading and whether git tracks it, never by whether git ignores it, since the exclude entry is shared by every worktree. With no .cbmignore, or DR's own untracked one, it hides the file through the repository's local exclude first (excludeFromGit) and then writes the lines, so a failure leaves no untracked file. A .cbmignore the developer tracks or wrote is never edited; the lines it lacks come back as missing, for the developer to add and commit with git add -f.
   source_reference:
     provenance: extracted
     locations:
@@ -21370,7 +21370,7 @@ application.applicationfunction.batch-report:
   type: applicationfunction
   layer_id: application
   name: batchReport
-  description: "Builds a batch's report summary first: counts by status, then the items that need attention grouped by cause with true counts (items listed up to limit), or every item with verbose"
+  description: "Builds a batch's report summary first: counts by status, then the items that need attention: with byCause, grouped by cause with true counts (items listed up to limit); without it, in full up to limit and the rest grouped by reason (attentionNotListed); or every item with verbose"
   source_reference:
     provenance: extracted
     locations:
@@ -21744,7 +21744,7 @@ application.applicationfunction.plan-decisions:
   type: applicationfunction
   layer_id: application
   name: compileDecide
-  description: Resolves decide items to the cards they cover (a card item by cardId, symbol or file#symbol, among the last run's cards and then this run's symbols) and to what staging or rejecting them would do, with a count and a sample per item for a preview.
+  description: "Checks the decide items and turns them into rules: a where or relationship item becomes a compiled rule, and a card item is resolved to the one card it names (by cardId, symbol or file#symbol, among the last run's cards and then this run's symbols) with its decision. An item that can't apply as sent (none or several of where, card and relationship; a card no card or several match; keep on a card item; a type that is not one) comes back as a problem, and the other items still apply. What each rule covers, with a count and a sample, is reported after planning (ruleReport)."
   source_reference:
     provenance: manual
     locations:
@@ -22473,7 +22473,7 @@ application.applicationfunction.ensure-central-server:
   type: applicationfunction
   layer_id: application
   name: ensureCentralServer
-  description: The central DR process for the farm in use, started when there is none, returned once its record is written and its /health answers. A recorded process that does not answer /health within three tries is still returned, with a notice naming its pid, port and log, rather than a link said to be starting (#1282). A timed-out wait for another caller's start names the log too. A process older than this CLI is replaced only when nothing uses it.
+  description: The central DR process for the farm in use, started when there is none and returned once its record is written (a process writes it only once it listens). A process already recorded, at this CLI's version or newer, that does not answer /health within three tries is still returned, with a notice naming its pid, port and log, rather than a link said to be starting (#1282). A timed-out wait for another caller's start names the log too. A process older than this CLI is replaced only when nothing uses it.
   source_reference:
     provenance: manual
     locations:
@@ -24289,7 +24289,7 @@ application.applicationfunction.project-registry-repository-of:
   type: applicationfunction
   layer_id: application
   name: ProjectRegistry.repositoryOf
-  description: "The repository of a project, from git; null when its folder is not a git working tree. Only a repository found is cached: a null is asked again, so a repository cloned again, a git init after registering or one failed git call doesn't stick until a restart."
+  description: The repository of a project, from git; null when its folder is not a git working tree. A repository found is cached. A null is cached only while the folder exists with no .git in it, so a plain folder costs no git call per listing; a git init or a clone there, or a repository whose git call failed once, is asked again.
   source_reference:
     provenance: extracted
     locations:

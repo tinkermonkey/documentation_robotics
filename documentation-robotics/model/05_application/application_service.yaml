@@ -1925,7 +1925,7 @@ application.applicationservice.changeset-commit-preview-handler:
   type: applicationservice
   layer_id: application
   name: changesetCommitPreviewHandler
-  description: Checks a staged changeset for landing without writing anything and returns the landing summary with a confirmation token; reports a changeset already landed as a result, and changes staged into it moments ago as a warning
+  description: Checks a staged changeset for landing without writing anything and returns the landing summary, with a confirmation token when the client is Claude Code 2.1.199 or later; reports a changeset already landed as a result, and changes staged into it moments ago as a warning
   attributes:
     serviceType: synchronous
   source_reference:
