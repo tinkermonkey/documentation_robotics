@@ -68,6 +68,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`codebase_extract` no longer stages relationships from name collisions (#1326):** a field write
+  or usage the index resolved by name (`WRITES`, `USAGE`, or a `unique_name` / `suffix_match` call)
+  onto a member of a class (`Xform.pts`) is staged only when the caller's file imports, calls or
+  names that class, or sits in the class's own file; a call resolved through types or imports
+  (`lsp_*`, `import_map`, `same_module`) is still believed. The rest is listed under
+  `unchanged.weakCallPairs` (reason `name-matched` or `member-of-unreferenced-class`, paged with
+  `list: "weakCalls"`) as hints to check against the code; `unchanged.weakCalls` is their count. A
+  call from a component to an application service keeps its direction, service `serves` caller.
 - `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
   `http.createServer` handler, and route tables or anchored regexes (`matchRoute` over a ROUTES
   table) where the path is readable. A hand-routed file it could only read in part is listed under

@@ -3541,6 +3541,9 @@ describe("codebase_extract call-edge evidence and OTEL exporters (#1086)", () =>
     const { result, rels } = await runWith({ strategy: "suffix_match", confidence: 0.28, candidates: 3, callee: "showOwner", importance: 4 });
     expect(rels).not.toContain(TESTS_HANDLER);
     expect(result.unchanged.weakCalls).toBe(1);
+    // Listed as a hint for the agent to check, with the count the list is of.
+    expect(result.unchanged.weakCallPairs.items).toEqual([expect.objectContaining({ predicate: "tests", edge: "CALLS", reason: "name-matched" })]);
+    expect(result.unchanged.weakCallsNote).toContain("hints, not drift");
   });
 
   it("keeps a low-confidence call its file imports from the callee's file, or from an index above it", async () => {
