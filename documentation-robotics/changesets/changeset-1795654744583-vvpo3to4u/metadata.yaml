@@ -1,0 +1,21 @@
+id: changeset-1795654744583-vvpo3to4u
+name: cli090-release-protocols-and-epipe
+description: |-
+  What the CLI 0.9.0 release PR (#1467) adds beyond the milestone's seven tranches:
+  - **The 0.15.0 → 0.16.0 migration step.** It rewrites an application interface's `protocol` of REST or HTTPS as HTTP. Where the old value says what the interface is, it sets `interfaceType`: api for REST, gRPC, GraphQL, SOAP and WebSocket, and message-channel for AMQP. An `interfaceType` already set is kept, and running the step again changes nothing. Its code: `migrateInterfaceProtocols`, plus `migratedInterfaceAttributes` in `core/interface-protocol.ts`.
+  - **A semantic validator warning** for a `protocol` outside the recommended vocabulary: `validateInterfaceProtocols`, using `recommendedProtocol`.
+  - **StdioClient handles EPIPE on the analyzer's stdin.** A request still waiting fails with the error, and an error after `close()` is ignored. `rejectPending` is shared by the exit, error and close paths.
+
+  Done looks like: these functions are in the model, wired to what calls them, and the upgrade and validation features say what they now do.
+created: 2026-11-26T00:59:04.623Z
+modified: 2026-11-26T01:01:02.259Z
+status: staged
+baseSnapshot: v2:sha256:bf7aaab1bf8e8ab6c817655599b290112ff3a4e5ec7739ca774794e1a525b283
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 19
+  modifications: 4
+  deletions: 0
+lastSequence: 22
