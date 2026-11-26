@@ -123,5 +123,22 @@ export async function changesetLinkIfRunning(
   }
 }
 
+/**
+ * Where a write to the model in `dir` lands, in words: "Lands on branch X in checkout main" (#1422).
+ * `main` is the farm's key for a project's primary folder, whatever branch that folder is on, so a
+ * landing result says the branch beside it. Best effort: null when the farm doesn't know the folder.
+ */
+export async function landsOnSentence(dir: string, deps: CentralDeps = DEFAULT_CENTRAL_DEPS): Promise<string | null> {
+  try {
+    const session = await resolveSessionCheckout(dir, { deps });
+    if (!session) return null;
+    const { ref, checkout } = session.resolved;
+    const branch = checkout.branch ? `branch ${checkout.branch}` : "a detached HEAD (no branch)";
+    return `Lands on ${branch} in checkout ${ref.checkout} (project ${ref.project}).`;
+  } catch {
+    return null;
+  }
+}
+
 /** The real `EnsureCentralServer` (slice 3A of issue 1279): finds the farm's central process or starts one. */
 export const loadedEnsureCentralServer: EnsureCentralServer = ensureCentralServer;

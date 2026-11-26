@@ -122,6 +122,8 @@ export function createReviewOpenHandler(overrides: Partial<ReviewOpenDeps> = {})
         link,
         project: ref.project,
         checkout: ref.checkout,
+        // `main` is the key of a project's primary folder, whatever branch it is on (#1422).
+        branch: session.resolved.checkout.branch,
         changesetId: changeset.id,
         changesetName: changeset.name,
         port: ensured.record.port,
