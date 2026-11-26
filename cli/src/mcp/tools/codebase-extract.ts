@@ -528,6 +528,8 @@ interface StagedBySymbol {
   name?: string;
   /** The attributes it was staged with, when it had any. */
   attributes?: Record<string, unknown>;
+  /** Attributes whose staged value is a placeholder extraction made up, not read from the code (changeset_verify doesn't compare them). */
+  defaulted?: string[];
   /**
    * Who decided it: the origin of the add extraction staged (Tier 0's rule, or Tier 1's decision
    * with its model and probabilities), or `agent` for a card the agent staged. Absent in older records.
@@ -4397,6 +4399,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               symbol: sourceSymbolOf(a.symbol),
               label: a.symbol.card.label,
               ...stagedAs(a.name, a.attributes),
+              ...(a.defaulted?.length ? { defaulted: a.defaulted } : {}),
               origin: addOrigins.get(a.id)!,
             });
           }

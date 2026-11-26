@@ -1033,7 +1033,9 @@ describe("codebase_verify wording (D6)", () => {
     const report = await new VerifyEngine().computeReport(rootPath, [], { layers: ["api"] }, "cbm", META, async (files) =>
       new Map(files.filter((f) => f.startsWith("src/legacy/")).map((f) => [f, "the analyzer does not index it (excluded subtree)"]))
     );
-    expect(report.buckets.in_model_only.map((e) => e.source_file)).toEqual(["src/handlers/users.ts"]);
+    // users.ts is indexed but the analyzer reads no route from it: for the agent to check, not drift (#1321).
+    expect(report.buckets.in_model_only).toEqual([]);
+    expect(report.buckets.not_checked?.flatMap((g) => g.ids)).toEqual(["api.operation.get-users"]);
     expect(report.buckets.not_indexed).toEqual([
       {
         id: expect.any(String),
@@ -1045,9 +1047,9 @@ describe("codebase_verify wording (D6)", () => {
         name: "get-legacy",
       },
     ]);
-    // In the model only says why: the file is there and no longer names the operation.
-    expect(report.buckets.in_model_only[0].reason).toContain("doesn't name its path or symbol any more");
-    expect(report.summary).toMatchObject({ drift_count: 1, not_indexed_count: 1, total_model_entries: 2 });
+    // The file is there and no longer names the operation: still for the agent to check, not drift.
+    expect(report.buckets.not_checked?.[0].reason).toContain("no longer names its path or symbol literally");
+    expect(report.summary).toMatchObject({ drift_count: 0, elements_not_checked: 1, not_indexed_count: 1, total_model_entries: 2 });
     expect(apiLayerReport(report).buckets.not_indexed.map((e) => e.files)).toEqual([["src/legacy/old.ts"]]);
   });
 });

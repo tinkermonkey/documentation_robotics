@@ -1,0 +1,66 @@
+- type: add
+  elementId: application.applicationfunction.read-hand-routes
+  layerName: application
+  after:
+    id: a60fbc34-8937-429b-b355-de813cae20ba
+    path: application.applicationfunction.read-hand-routes
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readHandRoutes
+    description: Reads method+path routes from hand-routed Node servers (http.createServer handlers comparing method and path) and route tables (matchRoute over a ROUTES array, anchored regex paths); lists files it could not read.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cards/hand-routes.ts
+          symbol: readHandRoutes
+    metadata:
+      created_at: 2026-11-26T14:28:31.862Z
+      updated_at: 2026-11-26T14:28:31.862Z
+      version: 1
+  timestamp: 2026-11-26T14:28:32.347Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.read-route-definition
+  layerName: application
+  after:
+    id: b77653de-97b4-4550-8d98-dfe2102006c6
+    path: application.applicationfunction.read-route-definition
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: readRouteDefinition
+    description: Reads operationId, summary and tags from a Hono createRoute / OpenAPI route definition; fields it cannot read stay unset.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cards/hand-routes.ts
+          symbol: readRouteDefinition
+    metadata:
+      created_at: 2026-11-26T14:28:31.863Z
+      updated_at: 2026-11-26T14:28:31.863Z
+      version: 1
+  timestamp: 2026-11-26T14:28:32.347Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.is-route-path
+  layerName: application
+  after:
+    id: d3ff1878-94df-4b73-94b5-3719633df60f
+    path: application.applicationfunction.is-route-path
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: isRoutePath
+    description: Whether a Route name's path is a URL path (not JSX text, a comment or a source path); with the test-file and method-ANY checks it drops false routes.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/cards/routes.ts
+          symbol: isRoutePath
+    metadata:
+      created_at: 2026-11-26T14:28:31.863Z
+      updated_at: 2026-11-26T14:28:31.863Z
+      version: 1
+  timestamp: 2026-11-26T14:28:32.347Z
+  sequenceNumber: 2

@@ -114,6 +114,15 @@ export function namedRoutePath(path: string, cbmName: unknown, handlerSource: st
 export const TEST_PATH =
   /(^|\/)(tests?|__tests__)(\/|$)|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*\.py$|_test\.(py|go)$|Tests?\.(java|kt|cs)$|_spec\.rb$|Spec\.(kt|groovy|scala)$/;
 
+/**
+ * Whether a route's path is a URL path the code could serve: it starts with `/` and is made of URL
+ * characters. CBM also names Route nodes after text that only looks like one (JSX's `/>`, a
+ * comment's `/ *`, a path with `..`), which no server routes.
+ */
+export function isRoutePath(p: string): boolean {
+  return /^\/[\w\-.~%!$&'()*+,;=:@/{}?#\[\]]*$/.test(p) && !/(^|\/)\.\.(\/|$)/.test(p);
+}
+
 const METHODS = "get|post|put|patch|delete";
 const PATH_ARG = `\\(\\s*["'\`](\\/[^"'\`\\s]*)["'\`]`;
 /** An HTTP or test client's call: `mockMvc.perform(get(...))` aside, `client.get("/x")`, `request(app).post('/x')`. */

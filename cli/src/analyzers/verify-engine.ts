@@ -60,6 +60,11 @@ export interface ApiVerifyContext {
    * "in the code only", as codebase_extract applies it; null when none does (#1414).
    */
   ruleExcluded?: (route: DiscoveredRoute) => string | null;
+  /**
+   * Files that route by hand and that the analyzer's own reading of them is partial (a regex, a
+   * path built at run time): an operation in one that no route matched can't be called drift.
+   */
+  partialFiles?: ReadonlySet<string>;
 }
 
 /** Why an operation with no source reference can't be checked, and what would make it checkable. */
@@ -536,22 +541,26 @@ export class VerifyEngine {
       const gap = gaps.get(e.file);
       if (gap) {
         notIndexedEntries.push({ id: e.id, type: "operation", source_file: e.file, source_symbol: e.symbol, reason: gap, path: e.path, name: e.name });
-      } else if (filesWithRoutes.has(e.file)) {
+      } else if (filesWithRoutes.has(e.file) && !context.partialFiles?.has(e.file)) {
         drifted.push({ ...e, reason: "the analyzer reads routes from its source file and none is this one" });
       } else {
+        // The analyzer reads no route from this file (a framework or a routing style it can't read: a
+        // hand-written router, a regex). What it can't see it can't call drift, whether or not the
+        // file still names the path: it is for the agent to check in the code (#1321).
         const text = await textOf(e.file);
         const symbolIsRoute = !!routeKey(e.symbol);
         const named = text === null || (e.literal ? text.includes(e.literal) : false) || (!symbolIsRoute && !!e.symbol && namesSymbol(text, e.symbol));
         const nothingToLookFor = !e.literal && (symbolIsRoute || !e.symbol);
-        if (named || nothingToLookFor) {
-          notChecked.push({
-            id: e.path,
-            reason: "sourced to a code file the analyzer reads no HTTP route from (a framework or a routing style it can't read)",
-            to_check: "nothing to change in the model: check these routes in the code by hand, or source them to an OpenAPI file that declares them",
-          });
-        } else {
-          drifted.push({ ...e, reason: "the analyzer reads no route from its source file, and the file doesn't name its path or symbol any more" });
-        }
+        const gone = !(named || nothingToLookFor);
+        notChecked.push({
+          id: e.path,
+          reason:
+            "sourced to a code file the analyzer reads no HTTP route from (a framework or a routing style it can't read)" +
+            (gone ? ", and the file no longer names its path or symbol literally" : ""),
+          to_check: gone
+            ? "check by hand whether the route is still served (a regex or a path built at run time may serve it) before treating it as gone; if it is gone, remove the operation"
+            : "nothing to change in the model: check these routes in the code by hand, or source them to an OpenAPI file that declares them",
+        });
       }
     }
 

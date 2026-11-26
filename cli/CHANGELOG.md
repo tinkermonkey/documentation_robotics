@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
+  `http.createServer` handler, and route tables or anchored regexes (`matchRoute` over a ROUTES
+  table) where the path is readable. A hand-routed file it could only read in part is listed under
+  `handRoutesPartial` for the agent to check, never counted as routes missing (#1321).
+- URL strings in test files, `ANY`-method URLs nothing handles, and text that only looks like a path
+  (JSX's `/>`) are no longer routes this code serves, in extraction, `codebase_verify` and endpoint
+  discovery. They stay as unhandled cards at most (#1321, #1303 C1; the ADR-detection and `rows_refs`
+  parts of #1303 stay open).
+- Extraction reads `operationId`, `summary` and `tags` from a Hono `createRoute` (or OpenAPI route
+  object) definition. Where it can't read one it stages a placeholder to keep the element valid, records
+  it as one, and `changeset_verify` reports the plan's value as unverifiable instead of divergent (#1349).
+- `codebase_verify` lists an operation sourced to a code file the analyzer reads no route from (a
+  hand-written router, a regex) as not checked, whether or not the file still names its path, and
+  says what to check by hand. It is no longer drift. Hand-routed routes are read in verify too (#1321).
+
 ## [0.9.0] - 2026-11-25
 
 **Specification Support:** v0.16.0

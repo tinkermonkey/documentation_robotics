@@ -112,6 +112,8 @@ export interface PlannedElement {
   /** The symbol it came from. */
   symbol: ExtractedSymbol;
   rule: string;
+  /** Attributes whose value is a placeholder extraction made up, not read from the code (`operationId`, ...). */
+  defaulted?: string[];
 }
 
 export interface PlannedUpdate {
@@ -441,7 +443,7 @@ export function deriveAttributes(
   s: ExtractedSymbol,
   /** For an environment variable: the values the same container declares, by key ({@link containerEnv}). */
   siblings?: ReadonlyMap<string, string>
-): { facts: Record<string, unknown>; defaults: Record<string, unknown> } {
+): { facts: Record<string, unknown>; defaults: Record<string, unknown>; defaulted?: string[] } {
   const key = `${layer}.${type}`;
   const route = parseRouteName(s.card.name);
   switch (key) {
@@ -450,13 +452,20 @@ export function deriveAttributes(
       const p = routePathOf(s, route);
       const segment = p.split("/").find((x) => x && !x.startsWith("{") && !x.startsWith(":")) ?? "default";
       const words = p.replace(/[/{}:]+/g, " ").trim();
+      // What the route's definition states is read (and compared on a re-run). What it doesn't state
+      // gets a placeholder so the element is valid, and is recorded as one: verify never compares
+      // a value made up from the path with what the plan says (#1349).
+      const read = s.definition ?? {};
+      const placeholders = {
+        operationId: toKebabCase(`${route.method} ${words || "root"}`),
+        summary: `${route.method} ${p}`,
+        tags: segment,
+      };
+      const missing = (Object.keys(placeholders) as Array<keyof typeof placeholders>).filter((k) => !read[k]);
       return {
-        facts: { http_method: route.method, http_path: p },
-        defaults: {
-          operationId: toKebabCase(`${route.method} ${words || "root"}`),
-          summary: `${route.method} ${p}`,
-          tags: segment,
-        },
+        facts: { http_method: route.method, http_path: p, ...read },
+        defaults: Object.fromEntries(missing.map((k) => [k, placeholders[k]])),
+        ...(missing.length ? { defaulted: missing } : {}),
       };
     }
     case "testing.testcasesketch":
@@ -1021,7 +1030,7 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       tally(isProjectRule(tier0.rule) ? "ruleStaged" : "tier0Staged");
       continue;
     }
-    const { facts, defaults } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
+    const { facts, defaults, defaulted } = deriveAttributes(tier0.layer, tier0.type, s, siblingsOf(env, s));
     const base = baseNameOf(s);
     const name = uniqueName(base, s, tier0.layer, tier0.type, taken);
     const id = extractedElementId(tier0.layer, tier0.type, name);
@@ -1036,6 +1045,10 @@ export function planElements(extraction: ExtractionGraph, existing: ChangesetGra
       ...(description ? { description } : {}),
       // What the agent gave (a decide item's attributes) fills what the code can't; the code's own facts win.
       attributes: { ...defaults, ...(tier0.attributes ?? {}), ...facts },
+      // A placeholder the agent's own attributes replaced is theirs, not made up.
+      ...(defaulted?.filter((k) => !(tier0.attributes && k in tier0.attributes)).length
+        ? { defaulted: defaulted.filter((k) => !(tier0.attributes && k in tier0.attributes)) }
+        : {}),
       ...(file ? { sourceReference: { provenance: "extracted" as const, locations: [{ file, symbol }] } } : {}),
       symbol: s,
       rule: tier0.rule,

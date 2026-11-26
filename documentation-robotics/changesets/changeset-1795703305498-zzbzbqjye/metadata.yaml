@@ -1,0 +1,15 @@
+id: changeset-1795703305498-zzbzbqjye
+name: cli010-t2-routes
+description: "Tier 0 route recognition (#1321, #1349, #1303 C1): read hand-routed http.createServer and route-table routes; drop test-file/ANY/non-path false routes; read createRoute operationId/summary/tags instead of making them up (verify ignores defaulted fields); codebase_verify lists operations in unreadable files as not_checked, never drift."
+created: 2026-11-26T14:28:25.626Z
+modified: 2026-11-26T14:28:32.353Z
+status: staged
+baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 3
+  modifications: 0
+  deletions: 0
+lastSequence: 2
