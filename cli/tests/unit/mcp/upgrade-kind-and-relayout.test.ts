@@ -76,6 +76,8 @@ describe("migration kind (#1435)", () => {
   it("the registry calls a path of version stamps manifest-only, and one with a catalog step model", () => {
     const registry = new MigrationRegistry();
     expect(registry.migrationKind("0.14.0", "0.15.0")).toBe("manifest-only");
+    // 0.16.0 rewrites application interfaces' protocol and interfaceType (Context Studio 43f52ae5)
+    expect(registry.migrationKind("0.15.0", "0.16.0")).toBe("model");
     expect(registry.migrationKind("0.5.0", "0.8.4")).toBe("manifest-only");
     expect(registry.migrationKind("0.13.0", "0.15.0")).toBe("model");
     expect(registry.migrationKind("0.8.4", "0.9.0")).toBe("model");

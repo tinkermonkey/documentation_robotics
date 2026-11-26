@@ -204,25 +204,34 @@ export class StdioClient {
       });
     }
 
+    // A write to an analyzer that has exited, or closed its input, fails after write() returns:
+    // stdin emits EPIPE as an 'error' event, which no try/catch around the write can see and which
+    // throws when nothing listens. Requests still waiting fail with it. The listener stays on
+    // after close(), so the shutdown notification's write can't throw either, and it ignores a
+    // process this client no longer runs.
+    const proc = this.proc;
+    proc.stdin?.on("error", (error: Error) => {
+      if (this.proc === proc) this.rejectPending(error);
+    });
+
     // Handle process exit
     this.proc.on("exit", (code: number | null, signal: string | null) => {
       this.proc = null;
-      // Reject all pending requests
-      for (const [, { reject, timeout }] of this.pendingRequests) {
-        clearTimeout(timeout);
-        reject(new Error(`Process exited with code ${code} (signal: ${signal})`));
-      }
-      this.pendingRequests.clear();
+      this.rejectPending(new Error(`Process exited with code ${code} (signal: ${signal})`));
     });
 
     this.proc.on("error", (error: Error) => {
-      // Reject all pending requests
-      for (const [, { reject, timeout }] of this.pendingRequests) {
-        clearTimeout(timeout);
-        reject(error);
-      }
-      this.pendingRequests.clear();
+      this.rejectPending(error);
     });
+  }
+
+  /** Fail every request still waiting for an answer, with `error`. */
+  private rejectPending(error: Error): void {
+    for (const [, { reject, timeout }] of this.pendingRequests) {
+      clearTimeout(timeout);
+      reject(error);
+    }
+    this.pendingRequests.clear();
   }
 
   /**
@@ -366,7 +375,8 @@ export class StdioClient {
     const procToClose = this.proc;
     this.proc = null;
 
-    // Send shutdown notification
+    // Send shutdown notification. A write the analyzer can no longer read fails later, on stdin's
+    // 'error' listener (spawn), and is ignored there.
     try {
       const notification: JsonRpcNotification = {
         jsonrpc: "2.0",
@@ -379,11 +389,7 @@ export class StdioClient {
     }
 
     // Clean up pending requests
-    for (const [, { reject, timeout }] of this.pendingRequests) {
-      clearTimeout(timeout);
-      reject(new Error("Client closed"));
-    }
-    this.pendingRequests.clear();
+    this.rejectPending(new Error("Client closed"));
 
     // Remove listeners
     if (procToClose.stdout) {

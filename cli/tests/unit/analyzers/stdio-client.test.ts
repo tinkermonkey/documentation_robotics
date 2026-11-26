@@ -14,6 +14,7 @@ import {
   InitTimeoutConfigError,
   resolveInitTimeoutMs,
 } from "../../../src/analyzers/stdio-client.js";
+import type { ChildProcess } from "child_process";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -63,6 +64,33 @@ describe("StdioClient", () => {
       client.close();
       // Should not throw
       client.close();
+    });
+  });
+
+  describe("a write the analyzer can't read (EPIPE)", () => {
+    // A write to an analyzer that has exited fails after write() returns, as an 'error' event on
+    // its stdin; unhandled, the event throws. How soon it comes depends on the runtime and on
+    // timing (Bun 1.4.5 raised it in "should close gracefully" about one run in four), so these
+    // tests emit it on the stream the client wrote to.
+    const stdinOf = (c: StdioClient): ChildProcess["stdin"] => (c as unknown as { proc: ChildProcess }).proc.stdin;
+    const epipe = (): Error => Object.assign(new Error("EPIPE: broken pipe, write"), { code: "EPIPE" });
+
+    it("fails the waiting requests with the write error instead of throwing it", async () => {
+      client.spawn("node", ["-e", "setTimeout(() => {}, 5000)"]);
+      const stdin = stdinOf(client)!;
+      const request = client.callTool("echo", {}, { timeout: 5000 });
+
+      stdin.emit("error", epipe());
+
+      await expect(request).rejects.toThrow("EPIPE");
+    });
+
+    it("ignores the shutdown notification's write error after close", () => {
+      client.spawn("node", ["-e", "setTimeout(() => {}, 5000)"]);
+      const stdin = stdinOf(client)!;
+      client.close();
+
+      expect(() => stdin.emit("error", epipe())).not.toThrow();
     });
   });
 

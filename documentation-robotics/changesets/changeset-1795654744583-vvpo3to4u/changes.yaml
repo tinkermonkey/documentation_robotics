@@ -1,0 +1,410 @@
+- type: add
+  elementId: application.applicationfunction.recommended-protocol
+  layerName: application
+  after:
+    id: c82290c9-8b70-44c6-9b80-8b536a2bb437
+    path: application.applicationfunction.recommended-protocol
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: recommendedProtocol
+    description: The recommended spelling of an application interface protocol value, or the rewrite spec 0.16.0 asks for (REST and HTTPS are written HTTP); null when the value is in neither (case-insensitive). The validator's advice reads it.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/interface-protocol.ts
+          symbol: recommendedProtocol
+    metadata:
+      created_at: 2026-11-26T00:59:19.289Z
+      updated_at: 2026-11-26T00:59:19.289Z
+      version: 1
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.migrated-interface-attributes
+  layerName: application
+  after:
+    id: 2d6d927c-0aee-45d7-87a6-7ee4c39f4ffa
+    path: application.applicationfunction.migrated-interface-attributes
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: migratedInterfaceAttributes
+    description: "An application interface's attributes as spec 0.16.0 has them: protocol REST or HTTPS becomes HTTP, and interfaceType is set where the old protocol value says it (api for REST, gRPC, GraphQL, SOAP and WebSocket; message-channel for AMQP; none for HTTP or HTTPS, which may also serve pages). An interfaceType already set is kept. Null when nothing changes, so running it again changes nothing."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/interface-protocol.ts
+          symbol: migratedInterfaceAttributes
+    metadata:
+      created_at: 2026-11-26T00:59:19.289Z
+      updated_at: 2026-11-26T00:59:19.289Z
+      version: 1
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.migrate-interface-protocols
+  layerName: application
+  after:
+    id: fe283f2c-771f-493f-bae3-539f9db74beb
+    path: application.applicationfunction.migrate-interface-protocols
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: migrateInterfaceProtocols
+    description: "The 0.15.0 -> 0.16.0 migration step: rewrites each application interface in the model's application layer files with migratedInterfaceAttributes, and updates the loaded model to match. Returns the files written, the element ids changed (by path) and any errors. Not stamp-only, so migrationKind reports model."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/core/migration-registry.ts
+          symbol: migrateInterfaceProtocols
+    metadata:
+      created_at: 2026-11-26T00:59:19.289Z
+      updated_at: 2026-11-26T00:59:19.289Z
+      version: 1
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.semantic-validator-validate-interface-protocols
+  layerName: application
+  after:
+    id: 192fd2f0-5f2f-4e68-be8f-bd93af652d4f
+    path: application.applicationfunction.semantic-validator-validate-interface-protocols
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: SemanticValidator validateInterfaceProtocols
+    description: "Warns, never errs, on an application interface whose protocol differs from recommendedProtocol: the spelling to use (with a dr update --attribute-patch fix), or, for a value outside the recommended vocabulary, to name the highest-level protocol the interface speaks."
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/validators/semantic-validator.ts
+          symbol: SemanticValidator.validateInterfaceProtocols
+    metadata:
+      created_at: 2026-11-26T00:59:19.289Z
+      updated_at: 2026-11-26T00:59:19.289Z
+      version: 1
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 3
+- type: add
+  elementId: application.applicationfunction.stdio-client-reject-pending
+  layerName: application
+  after:
+    id: 984d3660-bba8-4188-9b43-745af0a735e0
+    path: application.applicationfunction.stdio-client-reject-pending
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StdioClient rejectPending
+    description: Fails every request still waiting for an analyzer answer with the given error. The process's exit and error handlers, stdin's error listener and close() share it.
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/src/analyzers/stdio-client.ts
+          symbol: StdioClient.rejectPending
+    metadata:
+      created_at: 2026-11-26T00:59:19.289Z
+      updated_at: 2026-11-26T00:59:19.289Z
+      version: 1
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 4
+- type: relationship-add
+  elementId: application.applicationfunction.migrate-interface-protocols::depends-on::application.applicationfunction.migrated-interface-attributes
+  layerName: application
+  after:
+    source: application.applicationfunction.migrate-interface-protocols
+    target: application.applicationfunction.migrated-interface-attributes
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 5
+- type: relationship-add
+  elementId: application.applicationfunction.migration-registry-apply-migrations::depends-on::application.applicationfunction.migrate-interface-protocols
+  layerName: application
+  after:
+    source: application.applicationfunction.migration-registry-apply-migrations
+    target: application.applicationfunction.migrate-interface-protocols
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 6
+- type: relationship-add
+  elementId: application.applicationfunction.semantic-validator-validate-interface-protocols::depends-on::application.applicationfunction.recommended-protocol
+  layerName: application
+  after:
+    source: application.applicationfunction.semantic-validator-validate-interface-protocols
+    target: application.applicationfunction.recommended-protocol
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 7
+- type: relationship-add
+  elementId: application.applicationfunction.semantic-validator-validate-model::depends-on::application.applicationfunction.semantic-validator-validate-interface-protocols
+  layerName: application
+  after:
+    source: application.applicationfunction.semantic-validator-validate-model
+    target: application.applicationfunction.semantic-validator-validate-interface-protocols
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 8
+- type: relationship-add
+  elementId: application.applicationcomponent.semantic-validator::assigned-to::application.applicationfunction.semantic-validator-validate-interface-protocols
+  layerName: application
+  after:
+    source: application.applicationcomponent.semantic-validator
+    target: application.applicationfunction.semantic-validator-validate-interface-protocols
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.semantic-validator-validate-interface-protocols::accesses::application.dataobject.validation-result
+  layerName: application
+  after:
+    source: application.applicationfunction.semantic-validator-validate-interface-protocols
+    target: application.dataobject.validation-result
+    predicate: accesses
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: application.applicationcomponent.stdio-client::assigned-to::application.applicationfunction.stdio-client-reject-pending
+  layerName: application
+  after:
+    source: application.applicationcomponent.stdio-client
+    target: application.applicationfunction.stdio-client-reject-pending
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: application.applicationfunction.stdio-client-spawn::depends-on::application.applicationfunction.stdio-client-reject-pending
+  layerName: application
+  after:
+    source: application.applicationfunction.stdio-client-spawn
+    target: application.applicationfunction.stdio-client-reject-pending
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: application.applicationfunction.stdio-client-close::depends-on::application.applicationfunction.stdio-client-reject-pending
+  layerName: application
+  after:
+    source: application.applicationfunction.stdio-client-close
+    target: application.applicationfunction.stdio-client-reject-pending
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:19.305Z
+  sequenceNumber: 13
+- type: update
+  elementId: application.applicationfunction.stdio-client-spawn
+  layerName: application
+  before:
+    id: d37dcf01-69d8-4a0a-95d3-9b4ee2d2e41f
+    path: application.applicationfunction.stdio-client-spawn
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StdioClient spawn
+    description: Spawn an analyzer process
+    source_reference: &a1
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/stdio-client.ts
+          symbol: StdioClient.spawn
+    metadata: &a2
+      created_at: 2026-11-20T15:05:21.254Z
+      updated_at: 2026-11-20T15:05:21.254Z
+      version: 1
+  after:
+    id: d37dcf01-69d8-4a0a-95d3-9b4ee2d2e41f
+    path: application.applicationfunction.stdio-client-spawn
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StdioClient spawn
+    description: "Spawn an analyzer process and listen to it: JSON-RPC lines on stdout settle the pending requests, stderr is logged, and the process's exit or error fails what is still waiting. An error on its stdin (EPIPE, when a write reaches an analyzer that has exited) fails the waiting requests while the client still runs that process, and is ignored after close() or once another process is spawned, so it is never thrown."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-26T00:59:33.520Z
+  sequenceNumber: 14
+- type: update
+  elementId: application.applicationfunction.stdio-client-close
+  layerName: application
+  before:
+    id: 1c4924a5-d71f-46af-add6-1889c7306da9
+    path: application.applicationfunction.stdio-client-close
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StdioClient close
+    source_reference: &a3
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/stdio-client.ts
+          symbol: StdioClient.close
+    metadata: &a4
+      created_at: 2026-11-20T15:05:21.254Z
+      updated_at: 2026-11-20T15:05:21.254Z
+      version: 1
+  after:
+    id: 1c4924a5-d71f-46af-add6-1889c7306da9
+    path: application.applicationfunction.stdio-client-close
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StdioClient close
+    source_reference: *a3
+    metadata: *a4
+    description: "Close the connection: write a shutdown notification (a write the analyzer can no longer read fails later, on stdin's error listener, and is ignored), fail the waiting requests with 'Client closed', drop the process's listeners, end stdin and send SIGTERM, then SIGKILL after a second if it is still running."
+  timestamp: 2026-11-26T00:59:33.543Z
+  sequenceNumber: 15
+- type: update
+  elementId: product.feature.model-upgrade
+  layerName: product
+  before:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan (project_upgrade at the top level, legacyMarker, with a next line), and remove it when applied: when the checkout has no marker in .dr/, the changeset it names becomes active only if it is still staged, else nothing is made active and the stale id is said. The preview's migration.kind is manifest-only when the migration changes nothing but the spec version in manifest.yaml, and says so plainly (#1435). relayout: true (dr upgrade --relayout) lays out model files an earlier dr wrote (long strings folded at 80 columns) in dr's layout, data unchanged, as a previewed step of its own, also on a model already on this spec; without it the result only counts them, so later landings carry only their own changes once it is run (#1439). A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier."
+    attributes: &a5
+      priority: high
+      status: delivered
+      documentation: "MCP: project_upgrade (cli/src/mcp/tools/project-tools.ts), previews the migration unless apply is set; leaves installed integrations alone and says when a project still has them. CLI: dr upgrade (cli/src/commands/upgrade.ts), which also brings installed integration files up to date. Model writes skip unchanged files (writeLayer, cli/src/core/model.ts). Issues #1246, #1165, #1168."
+    source_reference: &a6
+      provenance: manual
+      locations:
+        - file: cli/src/commands/upgrade.ts
+    metadata: &a7
+      created_at: 2026-11-09T21:54:58.555Z
+      updated_at: 2026-11-09T21:54:58.555Z
+      version: 1
+  after:
+    id: 070a96d6-d702-43c6-8e3c-d025813127b7
+    path: product.feature.model-upgrade
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model upgrade
+    description: "MCP: project_upgrade, previews the migration unless apply is set (from a rehearsal on a copy: the model files it would write, the values it would derive, what it would leave empty). It reports each per-project integration installed (.claude/, .github/): whether an older dr installed it and what its upgrade would change (the edited files it would replace named), and for Claude Code which installed files the dr plugin also carries and which it doesn't; upgradeIntegrations with apply upgrades the ones an older dr installed, as dr upgrade does, even when the model is already current. CLI: dr upgrade, which also brings installed integration files up to date unless --model-only, and names its drop record by the dr changeset show call that reads it. Both name the active-changeset marker left in its old place (documentation-robotics/changesets/.active) in their plan (project_upgrade at the top level, legacyMarker, with a next line), and remove it when applied: when the checkout has no marker in .dr/, the changeset it names becomes active only if it is still staged, else nothing is made active and the stale id is said. The preview's migration.kind is manifest-only when the migration changes nothing but the spec version in manifest.yaml, and says so plainly (#1435). relayout: true (dr upgrade --relayout) lays out model files an earlier dr wrote (long strings folded at 80 columns) in dr's layout, data unchanged, as a previewed step of its own, also on a model already on this spec; without it the result only counts them, so later landings carry only their own changes once it is run (#1439). A model file whose data does not change keeps its bytes, and documentation-robotics/ is listed in .prettierignore when the project uses prettier. Upgrading to spec 0.16.0 rewrites an application interface's protocol REST or HTTPS as HTTP, and sets interfaceType where the old value says it (api, or message-channel for AMQP), keeping one already set."
+    attributes: *a5
+    source_reference: *a6
+    metadata: *a7
+  timestamp: 2026-11-26T00:59:33.558Z
+  sequenceNumber: 16
+- type: update
+  elementId: product.feature.model-validation
+  layerName: product
+  before:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. layers narrows what is checked, and a link into another layer is placed by its id or, for an end named by UUID, by the layer its relationship row records, so it is never reported as not found (#1259). A type or relationship the model''s declared spec lacks is an error naming both versions (#1411). CLI: dr validate, dr conformance.'
+    attributes: &a8
+      priority: high
+      status: delivered
+      documentation: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. CLI: dr validate, dr conformance.'
+    source_reference: &a9
+      provenance: manual
+      locations:
+        - file: cli/src/mcp/tools/model-validate.ts
+    metadata: &a10
+      created_at: 2026-11-09T21:54:57.405Z
+      updated_at: 2026-11-09T21:54:57.405Z
+      version: 1
+  after:
+    id: 31045ac1-665d-4e36-9e1d-f799c68b42b6
+    path: product.feature.model-validation
+    spec_node_id: product.feature
+    type: feature
+    layer_id: product
+    name: Model validation
+    description: 'MCP: model_validate over the base model or the active changeset''s projection, naming the view. The default is a summary: validity, a page of errors whole, and warnings counted by kind, layer and type; warnings: [...] lists a kind, orphans: true reports orphans alone, detail: "full" returns every warning. The list a call returns is paged with limit and offset, and the verdict and counts are of the whole model. Motivation, business and product elements are not asked for a source reference. layers narrows what is checked, and a link into another layer is placed by its id or, for an end named by UUID, by the layer its relationship row records, so it is never reported as not found (#1259). A type or relationship the model''s declared spec lacks is an error naming both versions (#1411). An application interface protocol spelled another way than the recommended vocabulary (REST and HTTPS are written HTTP), or outside it, is a warning with the spelling to use or what to name (spec 0.16.0). CLI: dr validate, dr conformance.'
+    attributes: *a8
+    source_reference: *a9
+    metadata: *a10
+  timestamp: 2026-11-26T00:59:33.571Z
+  sequenceNumber: 17
+- type: relationship-add
+  elementId: application.applicationcomponent.migration-registry::assigned-to::application.applicationfunction.migrate-interface-protocols
+  layerName: application
+  after:
+    source: application.applicationcomponent.migration-registry
+    target: application.applicationfunction.migrate-interface-protocols
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T00:59:44.279Z
+  sequenceNumber: 18
+- type: add
+  elementId: application.applicationfunction.migration-registry-register-migrations
+  layerName: application
+  after:
+    id: f1f5bcc9-8bed-4a72-a77d-6c1835d80318
+    path: application.applicationfunction.migration-registry-register-migrations
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: MigrationRegistry registerMigrations
+    description: Registers each version-to-version migration step with its migrate function, in order. A stampsOnly step only stamps the spec version; the 0.15.0 -> 0.16.0 step runs migrateInterfaceProtocols.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/migration-registry.ts
+          symbol: MigrationRegistry.registerMigrations
+    metadata:
+      created_at: 2026-11-26T01:01:02.241Z
+      updated_at: 2026-11-26T01:01:02.241Z
+      version: 1
+  timestamp: 2026-11-26T01:01:02.257Z
+  sequenceNumber: 19
+- type: relationship-add
+  elementId: application.applicationcomponent.migration-registry::assigned-to::application.applicationfunction.migration-registry-register-migrations
+  layerName: application
+  after:
+    source: application.applicationcomponent.migration-registry
+    target: application.applicationfunction.migration-registry-register-migrations
+    predicate: assigned-to
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T01:01:02.257Z
+  sequenceNumber: 20
+- type: relationship-add
+  elementId: application.applicationfunction.migrate-interface-protocols::depends-on::application.applicationfunction.stringify-dr-yaml
+  layerName: application
+  after:
+    source: application.applicationfunction.migrate-interface-protocols
+    target: application.applicationfunction.stringify-dr-yaml
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T01:01:02.257Z
+  sequenceNumber: 21
+- type: relationship-add
+  elementId: application.applicationfunction.migrate-interface-protocols::depends-on::application.applicationfunction.get-error-message
+  layerName: application
+  after:
+    source: application.applicationfunction.migrate-interface-protocols
+    target: application.applicationfunction.get-error-message
+    predicate: depends-on
+    layer: application
+    category: structural
+  timestamp: 2026-11-26T01:01:02.257Z
+  sequenceNumber: 22

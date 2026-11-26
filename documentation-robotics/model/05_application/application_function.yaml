@@ -5357,7 +5357,7 @@ application.applicationfunction.stdio-client-spawn:
   type: applicationfunction
   layer_id: application
   name: StdioClient spawn
-  description: Spawn an analyzer process
+  description: "Spawn an analyzer process and listen to it: JSON-RPC lines on stdout settle the pending requests, stderr is logged, and the process's exit or error fails what is still waiting. An error on its stdin (EPIPE, when a write reaches an analyzer that has exited) fails the waiting requests while the client still runs that process, and is ignored after close() or once another process is spawned, so it is never thrown."
   source_reference:
     provenance: extracted
     locations:
@@ -5425,6 +5425,7 @@ application.applicationfunction.stdio-client-close:
   type: applicationfunction
   layer_id: application
   name: StdioClient close
+  description: "Close the connection: write a shutdown notification (a write the analyzer can no longer read fails later, on stdin's error listener, and is ignored), fail the waiting requests with 'Client closed', drop the process's listeners, end stdin and send SIGTERM, then SIGKILL after a second if it is still running."
   source_reference:
     provenance: extracted
     locations:
@@ -28345,4 +28346,106 @@ application.applicationfunction.unstaged-element-add:
   metadata:
     created_at: 2026-11-25T17:21:47.505Z
     updated_at: 2026-11-25T17:21:47.505Z
+    version: 1
+application.applicationfunction.recommended-protocol:
+  id: c82290c9-8b70-44c6-9b80-8b536a2bb437
+  path: application.applicationfunction.recommended-protocol
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: recommendedProtocol
+  description: The recommended spelling of an application interface protocol value, or the rewrite spec 0.16.0 asks for (REST and HTTPS are written HTTP); null when the value is in neither (case-insensitive). The validator's advice reads it.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/interface-protocol.ts
+        symbol: recommendedProtocol
+  metadata:
+    created_at: 2026-11-26T00:59:19.289Z
+    updated_at: 2026-11-26T00:59:19.289Z
+    version: 1
+application.applicationfunction.migrated-interface-attributes:
+  id: 2d6d927c-0aee-45d7-87a6-7ee4c39f4ffa
+  path: application.applicationfunction.migrated-interface-attributes
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: migratedInterfaceAttributes
+  description: "An application interface's attributes as spec 0.16.0 has them: protocol REST or HTTPS becomes HTTP, and interfaceType is set where the old protocol value says it (api for REST, gRPC, GraphQL, SOAP and WebSocket; message-channel for AMQP; none for HTTP or HTTPS, which may also serve pages). An interfaceType already set is kept. Null when nothing changes, so running it again changes nothing."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/interface-protocol.ts
+        symbol: migratedInterfaceAttributes
+  metadata:
+    created_at: 2026-11-26T00:59:19.289Z
+    updated_at: 2026-11-26T00:59:19.289Z
+    version: 1
+application.applicationfunction.migrate-interface-protocols:
+  id: fe283f2c-771f-493f-bae3-539f9db74beb
+  path: application.applicationfunction.migrate-interface-protocols
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: migrateInterfaceProtocols
+  description: "The 0.15.0 -> 0.16.0 migration step: rewrites each application interface in the model's application layer files with migratedInterfaceAttributes, and updates the loaded model to match. Returns the files written, the element ids changed (by path) and any errors. Not stamp-only, so migrationKind reports model."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/migration-registry.ts
+        symbol: migrateInterfaceProtocols
+  metadata:
+    created_at: 2026-11-26T00:59:19.289Z
+    updated_at: 2026-11-26T00:59:19.289Z
+    version: 1
+application.applicationfunction.semantic-validator-validate-interface-protocols:
+  id: 192fd2f0-5f2f-4e68-be8f-bd93af652d4f
+  path: application.applicationfunction.semantic-validator-validate-interface-protocols
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: SemanticValidator validateInterfaceProtocols
+  description: "Warns, never errs, on an application interface whose protocol differs from recommendedProtocol: the spelling to use (with a dr update --attribute-patch fix), or, for a value outside the recommended vocabulary, to name the highest-level protocol the interface speaks."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/validators/semantic-validator.ts
+        symbol: SemanticValidator.validateInterfaceProtocols
+  metadata:
+    created_at: 2026-11-26T00:59:19.289Z
+    updated_at: 2026-11-26T00:59:19.289Z
+    version: 1
+application.applicationfunction.stdio-client-reject-pending:
+  id: 984d3660-bba8-4188-9b43-745af0a735e0
+  path: application.applicationfunction.stdio-client-reject-pending
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: StdioClient rejectPending
+  description: Fails every request still waiting for an analyzer answer with the given error. The process's exit and error handlers, stdin's error listener and close() share it.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/stdio-client.ts
+        symbol: StdioClient.rejectPending
+  metadata:
+    created_at: 2026-11-26T00:59:19.289Z
+    updated_at: 2026-11-26T00:59:19.289Z
+    version: 1
+application.applicationfunction.migration-registry-register-migrations:
+  id: f1f5bcc9-8bed-4a72-a77d-6c1835d80318
+  path: application.applicationfunction.migration-registry-register-migrations
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: MigrationRegistry registerMigrations
+  description: Registers each version-to-version migration step with its migrate function, in order. A stampsOnly step only stamps the spec version; the 0.15.0 -> 0.16.0 step runs migrateInterfaceProtocols.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/migration-registry.ts
+        symbol: MigrationRegistry.registerMigrations
+  metadata:
+    created_at: 2026-11-26T01:01:02.241Z
+    updated_at: 2026-11-26T01:01:02.241Z
     version: 1
