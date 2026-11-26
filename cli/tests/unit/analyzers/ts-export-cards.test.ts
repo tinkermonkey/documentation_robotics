@@ -28,6 +28,14 @@ const NODES: N[] = [
   // a forwardRef component, a memo component, an arrow memo, a function component with callbacks, a hook
   node("Variable", "BranchMap", BOX, 3, 5, "export const BranchMap = React.forwardRef<HTMLDivElement, Props>((props, ref) => {\n  return <div ref={ref} />;\n});"),
   node("Variable", "Chip", BOX, 7, 9, "export const Chip = React.memo(function Chip(p: Props) {\n  return <span>{p.a}</span>;\n});"),
+  node("Variable", "Wrapped", "src/components/Wrapped.tsx", 1, 7, "export const Wrapped = React.forwardRef<HTMLDivElement, Props>((props, ref) => {\n  const onPick = () => 1;\n  return <div ref={ref} onClick={onPick} />;\n});"),
+  node("Function", "onPick", "src/components/Wrapped.tsx", 2, 2, "const onPick = () => 1;"),
+  node("Function", "Identity", BOX, 30, 30, "export function Identity<T>(x: T): T { return x; }"),
+  node("Variable", "COLUMNS", BOX, 32, 32, "export const COLUMNS = [{ render: (r) => <b>{r}</b> }];"),
+  node("Variable", "isAdmin", HANDLER, 40, 40, 'export const isAdmin = role === "admin";'),
+  node("Variable", "TestWrapper", "src/components/Box.test.tsx", 1, 1, "export const TestWrapper = memo(() => <div />);"),
+  node("Variable", "buttonVariants", "src/components/ui/button.tsx", 1, 1, "export const buttonVariants = cva(\"x\");"),
+  node("Variable", "Button", "src/components/ui/button.tsx", 3, 3, "export const Button = React.forwardRef<HTMLButtonElement, Props>(() => <button />);"),
   node("Variable", "Tag", BOX, 11, 11, "export const Tag = memo((p: Props) => <span>{p.a}</span>);"),
   node("Function", "Panel", BOX, 13, 20, "export function Panel(p: Props) {\n  const onClick = () => 1;\n  return <div onClick={onClick}>{p.a}</div>;\n}"),
   node("Function", "onClick", BOX, 14, 14, "const onClick = () => 1;"),
@@ -113,9 +121,35 @@ describe("extraction of exported TypeScript symbols", () => {
     const by = new Map(x.symbols.map((s) => [s.card.name, s]));
     expect(by.get("onClick")?.tier0).toMatchObject({ kind: "reject", rule: "nested-in-react-unit" });
     expect(by.get("cb")?.tier0).toMatchObject({ kind: "reject", rule: "nested-in-react-unit" });
+    // inside a Variable component too (forwardRef), the case that has no Function container
+    expect(by.get("onPick")?.tier0).toMatchObject({ kind: "reject", rule: "nested-in-react-unit" });
     expect(by.get("Panel")?.tier0?.kind).toBe("narrow");
-    expect(x.summary.rejected).toBe(2);
+    expect(x.summary.rejected).toBe(4);
     expect(x.summary.cards).toBe(x.summary.decided + x.summary.rejected + x.summary.narrowed + x.summary.undecided);
+  });
+
+  it("does not mistake type arguments, JSX tables or comparisons for components or primitives", async () => {
+    const x = await collectExtraction(graph(), CONFIG, "cbm", {});
+    const by = new Map(x.symbols.map((s) => [s.card.name, s]));
+    expect(by.get("Identity")?.tier0).toBeNull();
+    expect(by.has("COLUMNS") && by.get("COLUMNS")?.tier0 !== null).toBe(false);
+    expect(by.has("isAdmin")).toBe(true);
+  });
+
+  it("rejects a Variable in a test file, and narrows a ui-library component but not its variants helper", async () => {
+    const x = await collectExtraction(graph(), CONFIG, "cbm", {});
+    const by = new Map(x.symbols.map((s) => [s.card.name, s]));
+    expect(by.get("TestWrapper")?.tier0?.kind).toBe("reject");
+    const t = by.get("Button")?.tier0;
+    expect(t?.kind === "narrow" ? t.candidates.map((c) => c.type) : t).toEqual(["librarycomponent", "actioncomponent"]);
+    expect(by.get("buttonVariants")?.tier0).toBeNull();
+  });
+
+  it("classify's limit counts cards, not the Variables dropped before them", async () => {
+    const all = await classifyTier0(graph(), RULES, "cbm", {});
+    const some = await classifyTier0(graph(), RULES, "cbm", { limit: 5 });
+    expect(all.results.length).toBeGreaterThan(5);
+    expect(some.results).toHaveLength(5);
   });
 
   it("classifies the same cards", async () => {

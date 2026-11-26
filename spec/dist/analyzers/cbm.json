@@ -1503,7 +1503,7 @@
         "rule": "An interface, type, enum or function in a generated file (*.gen.ts, client/core/) is generator output, not a modelled element; the published API it was generated from is",
         "parameters": {
           "tier0": {
-            "labels": ["Interface", "Type", "Enum", "Function"],
+            "labels": ["Interface", "Type", "Enum", "Function", "Variable"],
             "when": {
               "file": "(\\.gen\\.[cm]?[jt]sx?$|(^|/)client/core/)"
             },
@@ -1566,7 +1566,7 @@
         "rule": "A helper, fixture, setup method or test class in a test file (tests/ and fixtures/ directories, test_*.py, conftest.py, *_test.go, *.test.ts, *.spec.ts, *Tests.java) supports the test cases. The testing layer has no element for it, and the production code under test belongs to the layer it implements. Test cases themselves are caught by the two rules before this one, except JavaScript and TypeScript ones: their anonymous it() and test() callbacks have no graph node, so extraction reads them from the test file's text and makes a test-case card for each.",
         "parameters": {
           "tier0": {
-            "labels": ["Function", "Method", "Class"],
+            "labels": ["Function", "Method", "Class", "Variable"],
             "when": {
               "file": "((^|/)(tests?|__tests__|__fixtures__|fixtures?)/|(^|/)test_[^/]*\\.py$|(^|/)conftest\\.py$|_test\\.(go|py)$|\\.(test|spec)\\.[cm]?[jt]sx?$|Tests?\\.(java|kt)$)"
             },
@@ -1886,7 +1886,7 @@
         "rule": "A component in a shared UI library directory (components/ui, packages/*/ui, design-system) is a reusable library component or a single action trigger, not a placed view",
         "parameters": {
           "tier0": {
-            "labels": ["Function", "Variable", "Class"],
+            "labels": ["Function", "Class"],
             "when": {
               "file": "(^|/)(components/ui|packages/[^/]+/ui|design-system|ui-kit)/[^/]+\\.(tsx|jsx|vue|svelte)$"
             },
@@ -1907,9 +1907,53 @@
         "rule": "A component or class declared in a file-based routing directory (routes/ or pages/, or a Next.js app/ page, layout or route file) is reached by navigation: a view, a subview placed in a layout, or the route itself",
         "parameters": {
           "tier0": {
-            "labels": ["Function", "Variable", "Class"],
+            "labels": ["Function", "Class"],
             "when": {
               "file": "((^|/)(src/)?(routes|pages)/.+|(^|/)app/(.+/)?(page|layout|route|template|loading|error|not-found|default))\\.(tsx|jsx|vue|svelte)$"
+            },
+            "narrow": [
+              "ux.view",
+              "ux.subview",
+              "navigation.route",
+              "navigation.navigationgraph"
+            ],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_ui_library_component",
+        "description": "A forwardRef or memo component in a shared UI library directory is a library component",
+        "applies_to": ["ux.librarycomponent", "ux.actioncomponent"],
+        "rule": "An exported const holding a component (forwardRef, memo, or a function returning JSX) in a shared UI library directory is a reusable library component or an action trigger. A const that is not a component (a variants helper, a constant) is not matched",
+        "parameters": {
+          "tier0": {
+            "labels": ["Variable"],
+            "when": {
+              "file": "(^|/)(components/ui|packages/[^/]+/ui|design-system|ui-kit)/[^/]+\\.(tsx|jsx|vue|svelte)$",
+              "shape": "^react-component$"
+            },
+            "narrow": ["ux.librarycomponent", "ux.actioncomponent"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_file_route_component",
+        "description": "A component const in a file-based route file is a view or route",
+        "applies_to": [
+          "ux.view",
+          "ux.subview",
+          "navigation.route",
+          "navigation.navigationgraph"
+        ],
+        "rule": "An exported const holding a component in a file-based routing directory is reached by navigation: a view, a subview, or the route itself. A route's loader, meta or handle const is not matched",
+        "parameters": {
+          "tier0": {
+            "labels": ["Variable"],
+            "when": {
+              "file": "((^|/)(src/)?(routes|pages)/.+|(^|/)app/(.+/)?(page|layout|route|template|loading|error|not-found|default))\\.(tsx|jsx|vue|svelte)$",
+              "shape": "^react-component$"
             },
             "narrow": [
               "ux.view",

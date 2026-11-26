@@ -19,10 +19,15 @@ const JSX_FILE = /\.[jt]sx$/i;
 const UNIT_LABELS: ReadonlySet<string> = new Set(["Function", "Variable"]);
 /** The initializer wraps a component: `forwardRef(...)`, `React.memo(...)`, `memo(forwardRef(...))`. */
 const COMPONENT_WRAPPER = /=\s*(?:React\.)?(?:forwardRef|memo)\b\s*[<(]/;
-/** A JSX element or a createElement call in the source. */
-const RENDERS = /<[A-Za-z][\w.]*(?:\s[^<>]*)?\/?>|<>|\bcreateElement\s*\(/;
+/**
+ * A function that returns JSX: `return <div/>`, `return (\n <X>`, `=> <span>` or a fragment, or a
+ * createElement call. Not a bare `<T>` in the text: a type argument is not an element.
+ */
+const RENDERS = /(?:\breturn|=>)\s*\(?\s*(?:<[A-Za-z][\w.]*[\s/>]|<>)|\bcreateElement\s*\(/;
+/** A const initialized with a function: `= (a) =>`, `= async x =>`, `= function`. */
+const FUNCTION_INIT = /=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*(?::[^=]+)?=>|[\w$]+\s*=>)/;
 /** A primitive literal initializer: `export const LIMIT = 5` is a value, not a unit of the design. */
-const PRIMITIVE_CONST = /=\s*(?:-?\d[\d_.eE+-]*n?|"[^"]*"|'[^']*'|`[^`$]*`|true|false|null|undefined)\s*(?:as\s+const\s*)?;?\s*$/;
+const PRIMITIVE_CONST = /^export\s+(?:declare\s+)?const\s+[\w$]+\s*(?::[^=]+)?=\s*(?:-?\d[\d_.eE+-]*n?|"[^"]*"|'[^']*'|`[^`$]*`|true|false|null|undefined)\s*(?:as\s+const\s*)?;?\s*$/;
 
 /** The shapes a JS/TS declaration has, [] for other languages. */
 export function declarationShapesOf(card: ShapeCard): CardShape[] {
@@ -33,7 +38,10 @@ export function declarationShapesOf(card: ShapeCard): CardShape[] {
   if (!UNIT_LABELS.has(card.label)) return shapes;
   if (/^use[A-Z0-9]/.test(card.name)) shapes.push("react-hook");
   else if (/^[A-Z]/.test(card.name)) {
-    if (COMPONENT_WRAPPER.test(declaration) || (JSX_FILE.test(card.file_path) && RENDERS.test(card.source ?? ""))) shapes.push("react-component");
+    const rendersJsx = JSX_FILE.test(card.file_path) && RENDERS.test(card.source ?? "");
+    // A const is a component only when it wraps one or is itself a function: a table or a map holding JSX is not.
+    const isUnit = card.label === "Function" || FUNCTION_INIT.test(declaration);
+    if (COMPONENT_WRAPPER.test(declaration) || (isUnit && rendersJsx)) shapes.push("react-component");
   }
   return shapes;
 }

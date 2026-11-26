@@ -331,7 +331,7 @@ function rejectReactInternals(symbols: ExtractedSymbol[], summary: { undecided: 
   if (!units.size) return;
   for (const s of symbols) {
     const { file_path: file, start_line: start, end_line: end } = s.card;
-    if (s.tier0 || s.card.label !== "Function" || !s.triage?.nested || !file || start === null) continue;
+    if (s.tier0 || s.card.label !== "Function" || !file || start === null) continue;
     const end2 = end ?? start;
     if (!(units.get(file) ?? []).some((u) => u.start <= start && u.end >= end2 && (u.start < start || u.end > end2))) continue;
     s.tier0 = { kind: "reject", rule: "nested-in-react-unit", confidence: "high" };
