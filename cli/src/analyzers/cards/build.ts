@@ -17,11 +17,12 @@ import type { CardGraph, GraphNode, SymbolCard } from "./types.js";
  * classifications can be told apart.
  *
  * 2: callers, callees and imports sorted before they are capped.
+ * 3: exported JS/TS Variables (consts holding handlers, forwardRef and memo components) are cards.
  */
-export const CARD_VERSION = 2;
+export const CARD_VERSION = 3;
 
 /** CBM labels that become cards in the harness's card sets (classify adds the rules' labels). */
-export const CARD_LABELS: readonly string[] = Object.freeze(["Class", "Interface", "Function", "Method", "Route"]);
+export const CARD_LABELS: readonly string[] = Object.freeze(["Class", "Interface", "Function", "Method", "Route", "Variable"]);
 
 /**
  * Labels of the graph's file nodes. A file is where an element was found, recorded as its source
@@ -39,6 +40,7 @@ export const CARD_FIELDS: Readonly<Record<string, string[]>> = Object.freeze({
   Function: ["signature", "docstring", "is_exported", "is_entry_point", "complexity", "return_type", "start_line", "end_line"],
   Method: ["signature", "docstring", "parent_class", "is_exported", "is_entry_point", "complexity", "return_type", "start_line", "end_line"],
   Route: ["method", "source"],
+  Variable: ["signature", "is_exported", "start_line", "end_line"],
   Type: ["docstring", "is_exported", "start_line", "end_line"],
   Enum: ["docstring", "is_exported", "start_line", "end_line"],
   Trait: ["docstring", "is_exported", "start_line", "end_line"],
@@ -130,6 +132,8 @@ export function isCandidate(node: GraphNode, label: string, exclude: RegExp = VE
   if (!node.file_path) return false;
   if (!SOURCE_EXT.test(node.file_path) || node.file_path.startsWith("<")) return false;
   if (exclude.test(node.file_path)) return false;
+  // A Variable is a module-level const: only JS/TS ones, and only exported non-primitive ones (shapes.ts) become cards.
+  if (label === "Variable" && !/\.[cm]?[jt]sx?$/i.test(node.file_path)) return false;
   if (label === "Method" && /^(constructor|__init__|__str__|__repr__)$/.test(node.name)) return false;
   if (label === "Function" && /^(anonymous|arrow|lambda|<anonymous>)$/i.test(node.name)) return false;
   return true;

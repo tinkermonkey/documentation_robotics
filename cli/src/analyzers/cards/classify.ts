@@ -9,6 +9,7 @@
  */
 import { matchPattern } from "../heuristic-utils.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
+import { isDeclaredVariable } from "./shapes.js";
 import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, FILE_LABELS, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
@@ -164,6 +165,7 @@ export async function classifyTier0(
 
   for (const node of selected) {
     const card = await builder.build(node);
+    if (!isDeclaredVariable(card)) continue;
     const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
     record(card, facts, tier0ForCard(card, facts, rules));
   }
