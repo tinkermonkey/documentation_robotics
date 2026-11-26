@@ -37,7 +37,15 @@ function lineOf(text: string, index: number): number {
   return n;
 }
 
-export function readIpcHandlers(text: string): IpcHandlersRead {
+/** Comments blanked (lines kept), so a commented-out registration is not read. */
+function withoutComments(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/^[ \t]*\/\/.*$/gm, (m) => " ".repeat(m.length));
+}
+
+export function readIpcHandlers(source: string): IpcHandlersRead {
+  const text = withoutComments(source);
   const found = new Map<string, IpcHandler>();
   let partial = false;
   for (const m of text.matchAll(REGISTRATION)) {
@@ -63,13 +71,19 @@ export function collectIpcHandlers(
   text: (file: string) => string | null
 ): { handlers: FileIpcHandler[]; partialFiles: string[] } {
   const handlers: FileIpcHandler[] = [];
+  // One element per channel: the same channel in two files (or as handle and on) is read once, at its first file.
+  const seen = new Set<string>();
   const partialFiles: string[] = [];
-  for (const file of files) {
+  for (const file of [...files].sort()) {
     if (!/\.[cm]?[jt]sx?$/.test(file) || TEST_PATH.test(file) || VENDOR_EXCLUDE.test(file)) continue;
     const source = text(file);
     if (!source || !source.includes("ipcMain")) continue;
     const read = readIpcHandlers(source);
-    for (const h of read.handlers) handlers.push({ ...h, file });
+    for (const h of read.handlers) {
+      if (seen.has(h.channel)) continue;
+      seen.add(h.channel);
+      handlers.push({ ...h, file });
+    }
     if (read.partial) partialFiles.push(file);
   }
   return { handlers, partialFiles };

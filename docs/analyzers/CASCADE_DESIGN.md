@@ -85,7 +85,7 @@ rendered into the state, so the card carries them mainly for the rules, for Tier
 ### 2. Tier 0: rules (`cli/src/analyzers/tier0-rules.ts`)
 
 Built. A rule is a heuristic whose `parameters.tier0` names CBM labels, `when` conditions (regular
-expressions over decorator names, the declaration, the file path and the symbol name) and either
+expressions over decorator names, the declaration, the file path, the symbol name and its visibility) and either
 `decide` (`layer.type`, or `none` for "not an element") or `narrow` (a list of `layer.type` or
 `layer.*`); unknown keys are rejected. First match wins. The engine returns one of three actions:
 _decide_ (an element type, no model asked), _reject_ (not an element, no model asked) or _narrow_

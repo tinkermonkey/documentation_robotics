@@ -180,6 +180,7 @@ export const RULE_LABELS: readonly string[] = [
   "Function",
   "Method",
   "Route",
+  "IpcHandler",
   "Type",
   "Enum",
   "Trait",

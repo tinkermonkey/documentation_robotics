@@ -126,6 +126,11 @@ describe("CommonJS exports are read from the file's text", () => {
     ["module.exports.a = a;", "a", true],
     ["exports.alias = a;", "a", true],
     ["module.exports = { alias: a };", "a", true],
+    ["module.exports = {\n  a() { return 1; },\n  b() { return { x: 1 }; },\n  c,\n};", "c", true],
+    ["module.exports = { nested: { a }, other };", "a", false],
+    ["Object.assign(module.exports, { a });", "a", true],
+    ["module.exports = wrap(a);", "a", true],
+    ["exports.x = a || b;", "a", true],
     ["module.exports = { b };", "a", false],
     ["// exports.a = 1\nconst x = 1;", "x", false],
   ])("%s exports %s: %s", (text, name, exported) => {
@@ -133,7 +138,23 @@ describe("CommonJS exports are read from the file's text", () => {
   });
 });
 
+describe("when the file cannot be read, not exported is unknown", () => {
+  it("never rejects a CommonJS function without a source root", async () => {
+    const files = { "src/main.js": MAIN };
+    const extraction = await collectExtraction(graph(files), CONFIG, "cbm", {});
+    const read = extraction.symbols.find((s) => s.card.name === "readFile")!;
+    expect(read.tier0).toBeNull();
+  });
+});
+
 describe("ipcMain registrations are application services", () => {
+  it("ignores commented-out registrations and reads a channel once across files", () => {
+    const commented = "// ipcMain.handle('old:one', f)\n/* ipcMain.on('old:two', f) */\nipcMain.handle('live', f);";
+    expect(readIpcHandlers(commented).handlers.map((h) => h.channel)).toEqual(["live"]);
+    const text = () => "ipcMain.handle('same', f);";
+    expect(collectIpcHandlers(["b.js", "a.js"], text).handlers.map((h) => h.file)).toEqual(["a.js"]);
+  });
+
   it("reads handle and on registrations with a literal channel, and says when a channel isn't one", () => {
     const read = readIpcHandlers(MAIN);
     expect(read.handlers).toEqual([

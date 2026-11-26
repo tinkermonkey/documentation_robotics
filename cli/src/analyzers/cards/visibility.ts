@@ -43,16 +43,54 @@ function escapeRegExp(s: string): string {
  * `export default name`, `module.exports = name`, `exports.name = ...` or `module.exports.name = ...`
  * (also `exports.alias = name`).
  */
+/** The text of the balanced `{...}` that starts at `open` (an index of `{`), nested braces blanked, or null when unbalanced. */
+function topLevelOfObject(text: string, open: number): string | null {
+  let depth = 0;
+  let out = "";
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (c === "{") depth++;
+    if (depth === 1) out += c;
+    if (c === "}" && --depth === 0) return out;
+  }
+  return null;
+}
+
+/** Whether `name` appears at the top level of an object literal that follows a match of `before`. */
+function inObjectAfter(fileText: string, before: RegExp, name: string): boolean {
+  const n = new RegExp(`(?:^|[^\\w$.])${escapeRegExp(name)}(?![\\w$])`);
+  for (const m of fileText.matchAll(before)) {
+    const body = topLevelOfObject(fileText, (m.index ?? 0) + m[0].length - 1);
+    if (body && n.test(body)) return true;
+  }
+  return false;
+}
+
 export function exportedElsewhere(fileText: string, name: string): boolean {
   const n = escapeRegExp(name);
   return (
     new RegExp(`export\\s*(?:type\\s*)?\\{[^}]*(?:^|[\\s,{])${n}(?:\\s+as\\s+[\\w$]+)?\\s*(?:,|\\})`, "m").test(fileText) ||
     new RegExp(`export\\s+default\\s+${n}\\b`).test(fileText) ||
-    new RegExp(`module\\.exports\\s*=\\s*(?:\\{[^}]*\\b${n}\\b|${n}\\b)`).test(fileText) ||
+    new RegExp(`module\\.exports\\s*=\\s*${n}\\b`).test(fileText) ||
+    // `module.exports = { a, b() {}, c: a }` (names at the object's top level) and `Object.assign(module.exports, { a })`
+    inObjectAfter(fileText, /module\.exports\s*=\s*\{/g, name) ||
+    inObjectAfter(fileText, /Object\.assign\(\s*(?:module\.)?exports\s*,\s*\{/g, name) ||
+    // `module.exports = wrap(name)`
+    new RegExp(`module\\.exports\\s*=\\s*[\\w$.]+\\(\\s*${n}\\b`).test(fileText) ||
     new RegExp(`(?:^|[^\\w$.])(?:module\\.)?exports\\.${n}\\s*=`, "m").test(fileText) ||
     // `exports.alias = name` and `module.exports.alias = name`: exported under another name
-    new RegExp(`(?:^|[^\\w$.])(?:module\\.)?exports\\.[\\w$]+\\s*=\\s*${n}\\s*[;,\\n]`, "m").test(fileText)
+    new RegExp(`(?:^|[^\\w$.])(?:module\\.)?exports\\.[\\w$]+\\s*=\\s*${n}(?![\\w$])`, "m").test(fileText)
   );
+}
+
+/**
+ * The visibility a Tier-0 rule may go by. A JS/TS declaration with no `export` of its own is `local`
+ * only once its file's text has been read: when the text is unavailable (no source root, an
+ * unreadable file) "not exported" is unknown, not a fact, so no visibility is given.
+ */
+export function tier0Visibility(card: Pick<SymbolCard, "file_path">, visibility: Visibility | undefined, textOf: ((file: string) => string | null) | undefined): Visibility | undefined {
+  if (visibility === "local" && card.file_path && JS.test(card.file_path) && !(textOf && textOf(card.file_path) !== null)) return undefined;
+  return visibility;
 }
 
 /**

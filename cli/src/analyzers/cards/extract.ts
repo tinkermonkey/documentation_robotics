@@ -41,7 +41,7 @@ import { TEST_PATH, namedRoutePath, normRoutePath, routesCalledIn } from "./rout
 import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
-import { cardFacts, type TriageFacts } from "./visibility.js";
+import { cardFacts, tier0Visibility, type TriageFacts } from "./visibility.js";
 
 /** Files whose symbols one query lists. */
 const CHECK_FILES_PER_QUERY = 200;
@@ -507,16 +507,20 @@ export async function collectExtraction(
     built.push({ node, card, facts: factsFor(factsIndex, node.qualified_name, card.file_path) });
   }
   const earlySourceRoot = options.sourceRoot ? path.resolve(options.sourceRoot) : null;
-  const visibilityOf = cardFacts(
-    built.map((b) => b.card),
-    earlySourceRoot ? (file) => readUnder(earlySourceRoot, file) : undefined
-  );
+  const sourceTexts = new Map<string, string | null>();
+  const sourceText = earlySourceRoot
+    ? (file: string): string | null => {
+        if (!sourceTexts.has(file)) sourceTexts.set(file, readUnder(earlySourceRoot, file));
+        return sourceTexts.get(file) ?? null;
+      }
+    : undefined;
+  const visibilityOf = cardFacts(built.map((b) => b.card), sourceText);
   for (const { node, card, facts } of built) {
     const route = card.label === "Route" ? parseRouteName(card.name) : null;
     // A route with no file of its own and no HANDLES edge: a URL that test or client code calls,
     // whoever the callers are.
     const unhandled = !!route && !handled(node);
-    let tier0 = unhandled ? null : tier0ForCard(card, facts, config.rules, visibilityOf.get(card)?.visibility);
+    let tier0 = unhandled ? null : tier0ForCard(card, facts, config.rules, tier0Visibility(card, visibilityOf.get(card)?.visibility, sourceText));
     const byLabel = config.labelDecisions[card.label];
     if (!tier0 && byLabel && !unhandled) {
       tier0 = { kind: "decide", layer: byLabel.layer, type: byLabel.type, rule: `node-mapping:${card.label}`, confidence: "high" };
@@ -642,10 +646,11 @@ export async function collectExtraction(
       });
     }
     // Electron IPC registrations: cards of their own (no graph node), decided by their rule.
-    const ipc = collectIpcHandlers(options.files ? files.filter((f) => options.files!.has(f)) : files, textOf);
+    const wantIpc = !options.labels?.length || options.labels.includes(IPC_HANDLER_LABEL);
+    const ipc = wantIpc ? collectIpcHandlers(options.files ? files.filter((f) => options.files!.has(f)) : files, textOf) : { handlers: [], partialFiles: [] };
     ipcPartial.push(...ipc.partialFiles);
     for (const h of ipc.handlers) {
-      const qn = `__ipc__${h.kind}__${h.channel}`;
+      const qn = `__ipc__${h.channel}`;
       const text = (textOf(h.file) ?? "").split("\n");
       const card: SymbolCard = {
         id: cardId(graph.project, `${qn}@${h.file}`),
@@ -693,7 +698,7 @@ export async function collectExtraction(
   // declaration has no export on its own line).
   const triage = cardFacts(
     symbols.map((s) => s.card),
-    earlySourceRoot ? (file) => readUnder(earlySourceRoot, file) : undefined
+    sourceText
   );
   for (const s of symbols) {
     const facts = triage.get(s.card);

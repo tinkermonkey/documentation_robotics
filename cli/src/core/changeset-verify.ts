@@ -2554,7 +2554,7 @@ export function handStagedNote(report: VerifyReport, built: BuiltSide, share: As
   return (
     `The as-built changeset was staged by hand from extraction's own cards (${share.elements.fromCards} of ${share.elements.total} elements), ` +
     `so it is as wide as the cards extraction offered, not a measure of the build. ${unanchored} missing planned relationship(s) have an end ` +
-    "with no as-built element: extraction offered no card for it, so verify could not compare it with the code. Check each in the code."
+    "with no as-built element: extraction offered no card for it, or the card was not staged, so verify could not compare it with the code. Check each in the code."
   );
 }
 
