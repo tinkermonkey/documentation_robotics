@@ -586,9 +586,10 @@ export interface VerifyOptions {
   /**
    * When the built side came from extraction: attributes (by as-built element id) whose value is a
    * placeholder extraction made up from the code's path, not read from it. They are not compared:
-   * the plan's value for one is unverifiable, never divergent (#1349).
+   * the plan's value for one is unverifiable, never divergent (#1349). Each maps the attribute to the
+   * placeholder staged: a build that has since changed it to something else is compared.
    */
-  defaultedFields?: ReadonlyMap<string, ReadonlySet<string>>;
+  defaultedFields?: ReadonlyMap<string, ReadonlyMap<string, unknown>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -1584,7 +1585,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     const madeUp = options.defaultedFields?.get(builtElement.id);
     const unverifiableFields = fields.filter(
       (f) =>
-        (f.field.startsWith("attributes.") && !!madeUp?.has(f.field.slice("attributes.".length))) ||
+        (f.field.startsWith("attributes.") && !!madeUp?.has(f.field.slice("attributes.".length)) && madeUp.get(f.field.slice("attributes.".length)) === f.built) ||
         (!!observability?.field && !observability.field(planned, f.field) && buildLeft(planned, builtElement, f))
     );
     if (unverifiableFields.length > 0) {
@@ -1880,7 +1881,7 @@ export async function verifyChangesetInModel(
   let built: BuiltSide;
   let extraction: VerifyExtraction;
   let observability: ObservabilityCheck | undefined;
-  let defaultedFields: Map<string, Set<string>> | undefined;
+  let defaultedFields: Map<string, Map<string, unknown>> | undefined;
   let warning: string | undefined;
   if ("changeset" in options.against) {
     const asBuilt = options.against.changeset;
@@ -1907,7 +1908,9 @@ export async function verifyChangesetInModel(
         );
       }
     } else {
-      defaultedFields = new Map(record.staged.filter((st) => st.defaulted?.length).map((st) => [st.id, new Set(st.defaulted)]));
+      defaultedFields = new Map(
+        record.staged.filter((st) => st.defaulted?.length).map((st) => [st.id, new Map(st.defaulted!.map((k) => [k, st.attributes?.[k]]))])
+      );
       const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
       const rule = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract");
       ({ extraction, observability } = rule);

@@ -724,10 +724,15 @@ describe("values extraction made up are not compared (#1349)", () => {
   });
 
   it("leaves the fields extraction made up out of the comparison, and says which it couldn't check", async () => {
-    const report = verifyChangeset(plan(), await built(), { defaultedFields: new Map([[OP, new Set(["operationId", "summary", "tags"])]]) });
+    const report = verifyChangeset(plan(), await built(), { defaultedFields: new Map([[OP, new Map<string, unknown>([["operationId", "get-orders-export"], ["summary", "GET /orders/export"], ["tags", "orders"]])]]) });
     expect(report.elements.divergent).toEqual([]);
     expect(report.elements.matched).toHaveLength(1);
     expect(report.elements.matched[0].unverifiableFields?.map((f) => f.field)).toEqual(["attributes.operationId", "attributes.summary"]);
     expect(report.verdict).toBe("match");
+  });
+
+  it("compares a field the build has since changed from the placeholder", async () => {
+    const report = verifyChangeset(plan(), await built(), { defaultedFields: new Map([[OP, new Map<string, unknown>([["operationId", "was-a-placeholder"], ["summary", "GET /orders/export"]])]]) });
+    expect(report.elements.divergent.map((d) => d.fields.map((f) => f.field))).toEqual([["attributes.operationId"]]);
   });
 });

@@ -26,6 +26,16 @@ const server = http.createServer(async (req, res) => {
     expect(read.partial).toBe(true);
   });
 
+  test("pairs each path with the method beside it, not every method with every path", () => {
+    const read = readHandRoutes(`http.createServer(h);\nif (req.method === 'GET' && route === '/a' || req.method === 'POST' && route === '/b') {}\nif (route === '/c' && req.method === 'PUT') {}`);
+    expect(read.routes.map((r) => `${r.method} ${r.path}`)).toEqual(["GET /a", "POST /b", "PUT /c"]);
+  });
+
+  test("a file that only has a `routes` variable and a client's { method } options is not partial", () => {
+    const read = readHandRoutes(`const routes = Router();\nrouter.get('/a', h);\nfetch(u, { method: 'POST', body: x });`);
+    expect(read).toEqual({ routes: [], partial: false });
+  });
+
   test("takes the method from the block the line before opens", () => {
     const read = readHandRoutes(`http.createServer((req, res) => {\n  if (req.method === 'DELETE') {\n    if (pathname === '/x/y') return z();\n  }\n});`);
     expect(read.routes.map((r) => `${r.method} ${r.path}`)).toEqual(["DELETE /x/y"]);

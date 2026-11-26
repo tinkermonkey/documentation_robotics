@@ -120,7 +120,9 @@ export const TEST_PATH =
  * comment's `/ *`, a path with `..`), which no server routes.
  */
 export function isRoutePath(p: string): boolean {
-  return /^\/[\w\-.~%!$&'()*+,;=:@/{}?#\[\]]*$/.test(p) && !/(^|\/)\.\.(\/|$)/.test(p);
+  // Flask-style `<int:id>` parameters are balanced; a lone `>` (JSX's `/>`) is not.
+  const plain = p.replace(/<[\w:]+>/g, "x");
+  return /^\/[\w\-.~%!$&'()*+,;=:@/{}?#\[\]]*$/.test(plain) && !/(^|\/)\.\.(\/|$)/.test(plain);
 }
 
 const METHODS = "get|post|put|patch|delete";

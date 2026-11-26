@@ -98,8 +98,8 @@ function lineOf(text: string, index: number): number {
   return n;
 }
 
-function methodsIn(s: string): string[] {
-  return [...s.matchAll(METHOD_ONLY)].map((m) => (m[1] ?? m[2]).toUpperCase());
+function methodsAt(s: string): Array<{ method: string; index: number }> {
+  return [...s.matchAll(METHOD_ONLY)].map((m) => ({ method: (m[1] ?? m[2]).toUpperCase(), index: m.index ?? 0 }));
 }
 
 /**
@@ -110,7 +110,7 @@ function methodsIn(s: string): string[] {
  */
 export function readHandRoutes(text: string): HandRoutesRead {
   const server = /\bcreateServer\s*\(/.test(text);
-  const table = /\b(?:matchRoute|ROUTES|routes)\b/.test(text);
+  const table = /\b(?:matchRoute|ROUTES)\b|\b(?:const|let|var)\s+\w*[Rr]outes\w*\s*(?::[^=]+)?=\s*[\[{]/.test(text);
   if (!server && !table) return { routes: [], partial: false };
   const found = new Map<string, HandRoute>();
   const add = (method: string, path: string, line: number, handler?: string) => {
@@ -126,21 +126,30 @@ export function readHandRoutes(text: string): HandRoutesRead {
     let previousMethods: string[] = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const here = methodsIn(line);
-      const paths: string[] = [];
-      for (const m of line.matchAll(PATH_EQ)) paths.push(m[2] ?? m[4]);
+      if (line.length > 2000) {
+        // Minified or generated: not read, and said so.
+        if (/\b(?:req|request)\.method\b/.test(line)) unread = true;
+        continue;
+      }
+      const hereAt = methodsAt(line);
+      const here = hereAt.map((m) => m.method);
+      const paths: Array<{ path: string; index: number }> = [];
+      for (const m of line.matchAll(PATH_EQ)) paths.push({ path: m[2] ?? m[4], index: m.index ?? 0 });
       for (const re of [REGEX_TEST, REGEX_MATCH]) {
         for (const m of line.matchAll(re)) {
           const p = regexRoutePath(m[1]);
-          if (p) paths.push(p);
+          if (p) paths.push({ path: p, index: m.index ?? 0 });
           else if (/^\/\^/.test(m[1])) unread = true;
         }
       }
-      if (paths.length) {
-        // The method in the same condition, else the one the line before opens a block for.
-        const methods = here.length ? here : /\{\s*$/.test(lines[i - 1] ?? "") ? previousMethods : [];
+      for (const { path: p, index } of paths) {
+        // The method it is compared with in the same condition: the nearest one before it on the
+        // line, else the first after it (`route === '/x' && req.method === 'GET'`); else the one
+        // the line before opens a block for.
+        const before = hereAt.filter((m) => m.index < index).pop() ?? hereAt.find((m) => m.index >= index);
+        const methods = before ? [before.method] : /\{\s*$/.test(lines[i - 1] ?? "") ? previousMethods : [];
         if (methods.length === 0) unread = true;
-        else for (const p of paths) for (const method of new Set(methods)) if (!add(method, p, i + 1)) unread = true;
+        else for (const method of new Set(methods)) if (!add(method, p, i + 1)) unread = true;
       }
       if (line.trim()) previousMethods = /\{\s*$/.test(line) ? here : previousMethods;
     }
@@ -151,6 +160,8 @@ export function readHandRoutes(text: string): HandRoutesRead {
     const body = m[0];
     const method = new RegExp(`\\bmethod\\s*:\\s*['"\`](${METHODS})['"\`]`, "i").exec(body)?.[1]?.toUpperCase();
     if (!method) continue;
+    // A `{ method: 'POST', body }` (a client's options) is no table entry: it has no path key.
+    if (!/\b(?:path|pattern|url|route|regex|re)\s*:/.test(body)) continue;
     const handler = /\bhandler\s*:\s*([A-Za-z_$][\w$.]*)/.exec(body)?.[1];
     const lit = /\b(?:path|url|route)\s*:\s*['"`](\/[^'"`\s]*)['"`]/.exec(body)?.[1];
     const re = new RegExp(`\\b(?:pattern|regex|re|path|route)\\s*:\\s*(${RE_LITERAL})`).exec(body)?.[1];
