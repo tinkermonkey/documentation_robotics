@@ -25,6 +25,7 @@
 
 import * as path from "path";
 import { CLIError, ErrorCategory } from "../utils/errors.js";
+import { TEST_PATH } from "./cards/routes.js";
 import type { ChangedSymbol, DetectedChanges, ImpactedSymbol } from "./types.js";
 
 /**
@@ -460,6 +461,10 @@ export function isServedRoute(node: CbmGraphNode): boolean {
   const external = prop("external");
   if (external === true || external === "true") return false;
   if (prop("source") === "openapi") return false;
+  // A URL string in a test file, or a route of unknown method (`ANY`, which CBM gives a URL it only
+  // saw as text) with no handler, is a call or text, not a route this code serves (#1303, #1321).
+  const method = String(prop("method") ?? /^__route__([A-Z]+)__/.exec(String(node.qualified_name ?? ""))?.[1] ?? "");
+  if (!props.handler_name && (method.toUpperCase() === "ANY" || (!!node.file_path && TEST_PATH.test(node.file_path)))) return false;
   return !!node.file_path || !!props.handler_name;
 }
 

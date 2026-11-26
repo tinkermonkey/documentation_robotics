@@ -162,14 +162,14 @@ describe("API check on a frontend: routes described only by an OpenAPI file (#11
     expect(report.buckets.matched).toEqual([]);
     // Not in the code only either: the model has an operation for it.
     expect(report.buckets.in_graph_only).toEqual([]);
-    expect(report.buckets.in_model_only.map((e) => e.reason)).toEqual([
-      "the analyzer reads no route from its source file, and the file doesn't name its path or symbol any more",
-    ]);
+    // The analyzer reads no route from that file: for the agent to check, not drift (#1321).
+    expect(report.buckets.in_model_only).toEqual([]);
+    expect(report.buckets.not_checked!.flatMap((g) => g.ids)).toEqual(["api.operation.get-model"]);
   });
 });
 
 describe("operations sourced to code the analyzer reads no route from", () => {
-  it("is not checked while the file still names the route, and drift once it doesn't", async () => {
+  it("is not checked, never drift, whether or not the file still names the route (#1321)", async () => {
     await writeModel([
       { name: "get-ws", method: "GET", path: "/ws", file: "src/server.ts", symbol: "GET /ws" },
       { name: "post-mcp", method: "POST", path: "/mcp", file: "src/server.ts", symbol: "GET /mcp" },
@@ -179,19 +179,32 @@ describe("operations sourced to code the analyzer reads no route from", () => {
     await file("src/server.ts", 'app.get("/ws", upgrade);\nclass Server { listUsers() {} }\napp.get("/", home);\n');
 
     const report = await new VerifyEngine().computeReport(root, [], { changesetAware: false });
-    expect(report.buckets.in_model_only.map((e) => e.path)).toEqual(["api.operation.post-mcp"]);
-    expect(report.buckets.not_checked).toEqual([
-      {
-        reason: "sourced to a code file the analyzer reads no HTTP route from (a framework or a routing style it can't read)",
-        to_check: expect.stringContaining("check these routes in the code by hand"),
-        count: 3,
-        // `/` has nothing to look for in the text: it can't be shown gone either.
-        ids: ["api.operation.get-ws", "api.operation.get-handler", "api.operation.get-root"],
-      },
-    ]);
+    expect(report.buckets.in_model_only).toEqual([]);
+    const groups = report.buckets.not_checked!;
+    expect(groups.reduce((n, g) => n + g.count, 0)).toBe(4);
+    const unnamed = groups.find((g) => g.ids.includes("api.operation.post-mcp"))!;
+    expect(unnamed.reason).toContain("no longer names its path");
+    expect(unnamed.to_check).toContain("check by hand whether the route is still served");
+    const named = groups.find((g) => g.ids.includes("api.operation.get-ws"))!;
+    expect(named.ids).toEqual(["api.operation.get-ws", "api.operation.get-handler", "api.operation.get-root"]);
+    expect(unnamed.ids).toEqual(["api.operation.post-mcp"]);
+    expect(named.to_check).toContain("check these routes in the code by hand");
     const layer = apiLayerReport(report);
-    expect(layer.status).toBe("drifted");
-    expect(layer.coverage).toEqual({ model_elements: 4, checked: 1, not_checked: 3, code_entries: 0 });
+    expect(layer.status).not.toBe("drifted");
+    expect(layer.coverage).toEqual({ model_elements: 4, checked: 0, not_checked: 4, code_entries: 0 });
+  });
+
+  it("is not checked in a hand-routed file whose reading is partial, even when it has some routes", async () => {
+    await writeModel([
+      { name: "get-health", method: "GET", path: "/health", file: "src/gateway.ts", symbol: "GET /health" },
+      { name: "post-revert", method: "POST", path: "/api/projects/{id}/revert", file: "src/gateway.ts", symbol: "POST /api/projects/{id}/revert" },
+    ]);
+    await file("src/gateway.ts", "// routes by regex\n");
+    const routes: DiscoveredRoute[] = [{ id: "src/gateway.ts:GET /health", http_method: "GET", http_path: "/health", source_file: "src/gateway.ts", source_symbol: "GET /health" }];
+    const report = await new VerifyEngine().computeReport(root, routes, { changesetAware: false }, undefined, undefined, undefined, { partialFiles: new Set(["src/gateway.ts"]) });
+    expect(report.buckets.matched.map((m) => m.path)).toEqual(["api.operation.get-health"]);
+    expect(report.buckets.in_model_only).toEqual([]);
+    expect(report.buckets.not_checked!.flatMap((g) => g.ids)).toEqual(["api.operation.post-revert"]);
   });
 
   it("is drift in a file the analyzer does read routes from", async () => {

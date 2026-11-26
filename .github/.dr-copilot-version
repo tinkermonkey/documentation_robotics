@@ -1,5 +1,5 @@
-version: 0.8.0
-installed_at: 2026-11-24T20:33:01.782Z
+version: 0.9.0
+installed_at: 2026-11-26T14:26:41.668Z
 components:
   agents:
     dr-advisor.md:
@@ -22,7 +22,7 @@ components:
       hash: 65f4b6d4
       modified: false
     dr_05_application_layer/SKILL.md:
-      hash: 012bcc35
+      hash: 93a3f167
       modified: false
     dr_06_technology_layer/SKILL.md:
       hash: 671e7f75
@@ -46,10 +46,10 @@ components:
       hash: 7870c2a6
       modified: false
     dr_13_testing_layer/SKILL.md:
-      hash: bedb8419
+      hash: 04f573af
       modified: false
     dr_change_planning/SKILL.md:
-      hash: 0deacf8f
+      hash: 6b6ecd14
       modified: false
     dr_changeset_reviewer/SKILL.md:
       hash: "78519395"

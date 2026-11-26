@@ -580,12 +580,12 @@ describe("codebase_extract", () => {
     const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "owner-page", against: { changeset: extraction.changeset.id }, rootPath }));
     expect(report.against.kind).toBe("changeset");
     expect(report.summary.elements).toMatchObject({ planned: 2, matched: 2, missing: 0 });
-    expect(report.elements.matched.map((m: any) => m.built)).toEqual([SCHEMA]);
+    expect(report.elements.matched.map((m: any) => m.built)).toEqual([OPERATION, SCHEMA]);
     // The operation matches by id: model_add and extraction derive the same one from the route's
-    // name (#1225). Its summary differs (the plan wrote one, extraction defaults it).
-    expect(report.elements.divergent).toEqual([
-      expect.objectContaining({ planned: OPERATION, built: OPERATION, match: "exact", fields: [{ field: "attributes.summary", planned: "Show an owner", built: "GET /owners/{ownerId}" }] }),
-    ]);
+    // name (#1225). Its summary differs, but extraction made its own up from the path (the code
+    // states none), so it is not compared: unverifiable, never divergent (#1349).
+    expect(report.elements.divergent).toEqual([]);
+    expect(report.elements.matched[0].unverifiableFields).toEqual([{ field: "attributes.summary", planned: "Show an owner", built: "GET /owners/{ownerId}" }]);
     expect(report.verdict).toBe("diverges");
     // What the build has that the plan didn't: the handler, the interface and the test.
     expect(report.summary.elements.unplanned).toBe(3);

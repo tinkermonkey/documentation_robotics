@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { EdgeIndex } from "./edge-index.js";
+import { TEST_PATH, isRoutePath } from "./routes.js";
 import type { CardGraph, GraphNode, SymbolCard } from "./types.js";
 
 /**
@@ -116,6 +117,9 @@ export function cardId(scope: string, qualifiedName: string): string {
 export function isCandidate(node: GraphNode, label: string, exclude: RegExp = VENDOR_EXCLUDE): boolean {
   if (label === "Route") {
     if (!/^__route__[A-Z]+__\//.test(node.name) || /\.(ts|js|py|json)$/.test(node.name)) return false;
+    // A URL string in a test (or text that only looks like a path) is a call or nothing, not a route served here.
+    if (!isRoutePath(node.name.replace(/^__route__[A-Z]+__/, ""))) return false;
+    if (node.file_path && TEST_PATH.test(node.file_path)) return false;
     return !(node.file_path && exclude.test(node.file_path));
   }
   // Infrastructure is declared outside source files, and images and processes have no file.

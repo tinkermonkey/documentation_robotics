@@ -392,7 +392,7 @@ export interface ExtractionRecord {
    * `origin.by` says who decided each: `tier0` or `tier1` for an add extraction staged itself,
    * `agent` for a card the agent staged that a later run carried over. Absent in older records.
    */
-  staged: Array<OfferedSymbol & { id: string; attributes?: Record<string, unknown>; origin?: { by?: string } }>;
+  staged: Array<OfferedSymbol & { id: string; attributes?: Record<string, unknown>; defaulted?: string[]; origin?: { by?: string } }>;
   cards: OfferedSymbol[];
   /** Cards earlier runs returned that the agent has since modelled. */
   earlierCards: OfferedSymbol[];
@@ -583,6 +583,13 @@ export interface VerifyOptions {
    * see that the build lacks is reported as unverifiable, not missing, and left out of the verdict.
    */
   observability?: ObservabilityCheck;
+  /**
+   * When the built side came from extraction: attributes (by as-built element id) whose value is a
+   * placeholder extraction made up from the code's path, not read from it. They are not compared:
+   * the plan's value for one is unverifiable, never divergent (#1349). Each maps the attribute to the
+   * placeholder staged: a build that has since changed it to something else is compared.
+   */
+  defaultedFields?: ReadonlyMap<string, ReadonlyMap<string, unknown>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -1573,11 +1580,14 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
       ...(mapping.reason ? { reason: mapping.reason } : {}),
     };
 
-    // Fields extraction never writes, that the build left as they were (or doesn't have): it can't
-    // show them either way.
-    const unverifiableFields = observability?.field
-      ? fields.filter((f) => !observability.field!(planned, f.field) && buildLeft(planned, builtElement, f))
-      : [];
+    // A value extraction made up (a placeholder) can't be compared with the plan's; nor can a field
+    // extraction never writes that the build left as it was (or doesn't have).
+    const madeUp = options.defaultedFields?.get(builtElement.id);
+    const unverifiableFields = fields.filter(
+      (f) =>
+        (f.field.startsWith("attributes.") && !!madeUp?.has(f.field.slice("attributes.".length)) && madeUp.get(f.field.slice("attributes.".length)) === f.built) ||
+        (!!observability?.field && !observability.field(planned, f.field) && buildLeft(planned, builtElement, f))
+    );
     if (unverifiableFields.length > 0) {
       match.unverifiableFields = unverifiableFields;
       fields = fields.filter((f) => !unverifiableFields.includes(f));
@@ -1871,6 +1881,7 @@ export async function verifyChangesetInModel(
   let built: BuiltSide;
   let extraction: VerifyExtraction;
   let observability: ObservabilityCheck | undefined;
+  let defaultedFields: Map<string, Map<string, unknown>> | undefined;
   let warning: string | undefined;
   if ("changeset" in options.against) {
     const asBuilt = options.against.changeset;
@@ -1897,6 +1908,9 @@ export async function verifyChangesetInModel(
         );
       }
     } else {
+      defaultedFields = new Map(
+        record.staged.filter((st) => st.defaulted?.length).map((st) => [st.id, new Map(st.defaulted!.map((k) => [k, st.attributes?.[k]]))])
+      );
       const codeFiles = [...new Set((built.changedElements ?? []).flatMap((e) => sourceFiles(e)))];
       const rule = await extractionRule(model, options, codeFiles, "The as-built changeset came from codebase_extract");
       ({ extraction, observability } = rule);
@@ -1992,7 +2006,7 @@ export async function verifyChangesetInModel(
     }
   }
 
-  const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability });
+  const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability, defaultedFields });
   report.extraction = extraction;
   report.notes.push(...notes);
   // "May be registered by name" is read from a file's text. It keeps the element out of "missing",

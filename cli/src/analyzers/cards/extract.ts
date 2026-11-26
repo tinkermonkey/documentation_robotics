@@ -35,7 +35,8 @@ import { CbmToolError, cellNumber } from "../cbm-responses.js";
 import { buildDocIndex, collectDecisionRecords, docsFor, readMentions, type DecisionRecord, type DocEvidence, type DocIndex } from "./docs.js";
 import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
-import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
+import { collectHandRoutes, definitionFor, readRouteDefinitions, type RouteDefinition } from "./hand-routes.js";
+import { TEST_PATH, namedRoutePath, normRoutePath, routesCalledIn } from "./routes.js";
 import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
@@ -204,6 +205,14 @@ export interface ExtractedSymbol {
    * client or test code calls, not one this code serves, so it is never decided.
    */
   unhandled?: true;
+  /**
+   * For a route: what its route definition states (a Hono `createRoute`, an OpenAPI route object):
+   * only the fields the code gives. Absent when no definition was found; a field it doesn't state is
+   * unset, never made up from the path.
+   */
+  definition?: Pick<RouteDefinition, "operationId" | "summary" | "tags">;
+  /** For a route no framework registration names: it was read from a server's own method and path comparisons, or a route table (cards/hand-routes.ts). */
+  handRouted?: true;
   /** Doc sections that mention the symbol or name its file: description evidence (cards/docs.ts). */
   docs?: DocEvidence[];
   /** With `clusters`: the cross-file component candidate CBM put the symbol in. Evidence only. */
@@ -244,6 +253,14 @@ export interface ExtractionGraph {
   decisions?: DecisionRecord[];
   /** Why the documentation evidence (decision records, doc sections) couldn't be read, when it couldn't. */
   docsError?: string;
+  /**
+   * Files that route by hand (a server comparing method and path itself, a route table) whose routes
+   * could not all be read: a path built at run time, a regex that is more than literal segments. The
+   * routes read from them are in `symbols`; there may be more, for the agent to read from the file.
+   */
+  handRoutesPartial?: string[];
+  /** Why the project's files couldn't be listed to look for hand-routed routes, when they couldn't. */
+  handRoutesError?: string;
   summary: { cards: number; decided: number; rejected: number; narrowed: number; undecided: number; no_source: number };
   /**
    * JavaScript and TypeScript test files whose suites and cases were read from their text
@@ -438,7 +455,14 @@ export async function collectExtraction(
   const builder = new CardBuilder(graph, edgeIndex, { scope: graph.project, sourceRoot: options.sourceRoot });
 
   // A route is served here when it has a file of its own or a HANDLES edge.
-  const handled = (n: GraphNode) => !!n.file_path || (edgeIndex.routeHandlers.get(n.qualified_name) ?? []).length > 0;
+  // A file of its own in test code, or an `ANY` method (CBM's name for a URL it saw only as text),
+  // is not enough: a URL string a test or client holds is a call, not a route (#1303, #1321).
+  const handled = (n: GraphNode) => {
+    const handlers = (edgeIndex.routeHandlers.get(n.qualified_name) ?? []).length > 0;
+    if (handlers) return true;
+    if (!n.file_path || TEST_PATH.test(n.file_path)) return false;
+    return !/^__route__ANY__/.test(n.qualified_name);
+  };
   const served = routeNodes
     .filter(handled)
     .map((n) => ({ name: n.qualified_name, ...parseRouteName(n.qualified_name)! }))
@@ -486,6 +510,109 @@ export async function collectExtraction(
       ...(unhandled ? { unhandled: true as const } : {}),
       ...(docs.length ? { docs } : {}),
     });
+  }
+
+  // What the routes' definitions say, and the routes a server routes by hand (the graph has none).
+  const handPartial: string[] = [];
+  let handRoutesError: string | undefined;
+  if (options.sourceRoot) {
+    const root = path.resolve(options.sourceRoot);
+    const texts = new Map<string, string | null>();
+    const textOf = (file: string): string | null => {
+      if (!texts.has(file)) {
+        const abs = path.resolve(root, file);
+        let text: string | null = null;
+        if (abs.startsWith(root + path.sep)) {
+          try {
+            text = readFileSync(abs, "utf-8");
+          } catch {
+            text = null;
+          }
+        }
+        texts.set(file, text);
+      }
+      return texts.get(file) ?? null;
+    };
+    const definitions = new Map<string, RouteDefinition[]>();
+    const definitionsIn = (file: string) => {
+      if (!definitions.has(file)) definitions.set(file, readRouteDefinitions(textOf(file) ?? ""));
+      return definitions.get(file)!;
+    };
+    for (const s of symbols) {
+      const route = parseRouteName(s.card.name);
+      if (!route || s.unhandled || !s.card.file_path) continue;
+      const def = definitionFor(definitionsIn(s.card.file_path), route.method, s.routePath ?? route.path);
+      if (def && (def.operationId || def.summary || def.tags)) {
+        s.definition = { ...(def.operationId ? { operationId: def.operationId } : {}), ...(def.summary ? { summary: def.summary } : {}), ...(def.tags ? { tags: def.tags } : {}) };
+      }
+    }
+    const routeDecision = config.labelDecisions.Route;
+    let files: string[] = [];
+    try {
+      files = [...new Set((await graph.rows("MATCH (f:File) RETURN f.file_path")).map(([f]) => f).filter((f): f is string => typeof f === "string"))];
+    } catch (error) {
+      // An analyzer that can't list its files gives no hand-routed routes: said, not swallowed.
+      handRoutesError = error instanceof Error ? error.message : String(error);
+    }
+    const hand = collectHandRoutes(options.files ? files.filter((f) => options.files!.has(f)) : files, textOf);
+    handPartial.push(...hand.partialFiles);
+    const have = new Set(served.map((r) => `${r.method} ${normRoutePath(r.path)}`));
+    for (const r of hand.routes) {
+      if (have.has(`${r.method} ${normRoutePath(r.path)}`)) continue;
+      have.add(`${r.method} ${normRoutePath(r.path)}`);
+      const qn = `__route__${r.method}__${r.path}`;
+      const card: SymbolCard = {
+        id: cardId(graph.project, `${qn}@${r.file}`),
+        label: "Route",
+        name: qn,
+        qualified_name: qn,
+        file_path: r.file,
+        start_line: r.line,
+        end_line: r.line,
+        signature: null,
+        docstring: null,
+        is_exported: null,
+        is_entry_point: null,
+        complexity: null,
+        parent_class: null,
+        base_classes: [],
+        return_type: null,
+        callers: r.handler ? [r.handler] : [],
+        callees: [],
+        callers_total: r.handler ? 1 : 0,
+        callees_total: 0,
+        imports: [],
+        env_vars: [],
+        routes_handled: [r.path],
+        http_calls: [],
+        inherits: [],
+        implements: [],
+        route_method: r.method,
+        source: (textOf(r.file) ?? "").split("\n").slice(Math.max(0, r.line - 3), r.line + 12).join("\n") || null,
+        source_lines_total: null,
+        source_truncated: false,
+      };
+      const facts = factsFor(factsIndex, qn, r.file);
+      const tier0: Tier0Outcome | null = routeDecision
+        ? { kind: "decide", layer: routeDecision.layer, type: routeDecision.type, rule: "node-mapping:Route", confidence: "high" }
+        : null;
+      summary.cards++;
+      if (tier0) summary.decided++;
+      else summary.undecided++;
+      for (const spelling of [`${r.method} ${r.path}`, qn]) routes.add(spelling);
+      const def = definitionFor(definitionsIn(r.file), r.method, r.path);
+      symbols.push({
+        qualifiedName: qn,
+        card,
+        facts,
+        tier0,
+        routePath: r.path,
+        handRouted: true,
+        ...(def && (def.operationId || def.summary || def.tags)
+          ? { definition: { ...(def.operationId ? { operationId: def.operationId } : {}), ...(def.summary ? { summary: def.summary } : {}), ...(def.tags ? { tags: def.tags } : {}) } }
+          : {}),
+      });
+    }
   }
 
   // Visibility and nesting, read from the declarations (a file's text only when a JS/TS
@@ -684,6 +811,8 @@ export async function collectExtraction(
     ...(decisions.length ? { decisions } : {}),
     ...(docsError ? { docsError } : {}),
     summary,
+    ...(handPartial.length ? { handRoutesPartial: handPartial } : {}),
+    ...(handRoutesError ? { handRoutesError } : {}),
     ...(testCases ? { testFiles: testCases.filesRead } : {}),
     ...(testCases?.stats.files ? { testCases: testCases.stats } : {}),
     ...(clusters ? { clusters } : {}),
