@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-26T14:26:39.053Z
+updated: 2026-11-26T15:10:54.263Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1678
+      applicationfunction: 1683
       applicationinterface: 2
       applicationservice: 116
       dataobject: 13
@@ -81,7 +81,7 @@ layers:
     path: documentation-robotics/model/08_data-model/
     enabled: true
     elements:
-      objectschema: 1020
+      objectschema: 1021
       schemacomposition: 35
       schemadefinition: 77
   data-store:
@@ -221,6 +221,9 @@ changeset_history:
     action: committed
   - name: cli09-plan-corrections
     committed_at: 2026-11-26T14:25:11.838Z
+    action: committed
+  - name: cli010-a1-purpose-recorded
+    committed_at: 2026-11-26T15:10:54.263Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

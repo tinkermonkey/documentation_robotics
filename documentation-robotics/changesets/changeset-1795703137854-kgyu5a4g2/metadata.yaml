@@ -2,8 +2,8 @@ id: changeset-1795703137854-kgyu5a4g2
 name: cli010-a1-purpose-recorded
 description: "#1171 + #1370: add the `recorded` changeset status (landing a plan moves the verification records that verify it to recorded; hidden from changeset_list default, project_status staged work/nextStep, and the viewer API), and have codebase_extract pick the purpose by rule when since is given with no plan active (since == manifest reconciled code commit → reconcile, otherwise verification record naming the plan it verifies or none; explicit purpose overrides). Done = tests for both branches and that a since-scoped verification landing cannot stamp reconciled; lifecycle documented."
 created: 2026-11-26T14:25:37.911Z
-modified: 2026-11-26T14:41:00.533Z
-status: staged
+modified: 2026-11-26T15:10:54.261Z
+status: committed
 baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
 origin:
   kind: plan
