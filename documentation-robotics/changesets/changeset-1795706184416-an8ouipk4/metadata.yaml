@@ -1,0 +1,27 @@
+id: changeset-1795706184416-an8ouipk4
+name: split-central-server-interfaces
+description: |-
+  Splits `application.applicationinterface.central-server-http-endpoint` into one interface per channel the central process serves on its port, so each is modelled with its own kind, protocol and services (the maintainer's call on 2026-11-26, after spec 0.16.0 added `interfaceType`).
+
+  **In scope:**
+  - `central-server-mcp-endpoint`: `/mcp`, interfaceType `api`, protocol MCP. Assigned to the 48 MCP tool services (every `*-handler` service in `cli/src/mcp/tools/`; `create-project-list-handler` is only the builder of `project_list`'s handler and is left out). `dr mcp` over stdio forwards to it, so it is how every DR MCP tool is reached.
+  - `central-server-http-api`: `/api/...` with `/health`, `/api-spec.yaml` and `/api-docs`, interfaceType `api`, protocol HTTP. Assigned to `viewer-api`.
+  - `central-server-viewer-pages`: `/`, the `/p/<project>/c/<checkout>/...` deep links and the viewer's files, interfaceType `user-interface`, no protocol (the spec leaves it unset for a user interface).
+  - The old element's links move to the interface they belong to: `project-list-handler` (the MCP `project_list` tool) and `default-checkout-for` (the MCP fallback root) to the MCP endpoint; `viewer-api` and the eviction test to the HTTP API; `visualization-server-start`, `visualization-server-listening-port` and `visualization-server provides` to all three. Then the old element is deleted.
+  - New links the code shows: the MCP endpoint depends on `central-mcp-endpoint-handle` and the `central-mcp-endpoint` component is assigned to it; the pages depend on `visualization-server-serve-custom-viewer`; three existing test sketches that exercise these routes test the interface they exercise.
+
+  `central-server-websocket` (`/ws`) is already its own interface and is unchanged.
+
+  **Done when:** the three interfaces replace the old one with every link placed as above, model_validate reports no errors, and the maintainer lands it with the PR.
+created: 2026-11-26T15:16:24.472Z
+modified: 2026-11-26T15:17:08.749Z
+status: staged
+baseSnapshot: v2:sha256:d94fbb8d27a884cd78bbb466cbe38e2758c74a44e0b36629017201c902ca12dc
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 69
+  modifications: 0
+  deletions: 8
+lastSequence: 76
