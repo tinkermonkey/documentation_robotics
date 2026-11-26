@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.8.0
 spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-26T14:25:11.838Z
+updated: 2026-11-26T15:11:00.593Z
 project:
   name: dr-codebase
   description: ""
@@ -119,7 +119,7 @@ layers:
     path: documentation-robotics/model/13_testing/
     enabled: true
     elements:
-      testcasesketch: 2685
+      testcasesketch: 2695
       testcoveragemodel: 1
       testcoveragetarget: 9
 changeset_history:
@@ -221,6 +221,9 @@ changeset_history:
     action: committed
   - name: cli09-plan-corrections
     committed_at: 2026-11-26T14:25:11.838Z
+    action: committed
+  - name: cli010-t3-test-subjects
+    committed_at: 2026-11-26T15:11:00.593Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

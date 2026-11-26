@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-26T14:25:11.630Z
+# Last updated: 2026-11-26T15:11:00.061Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -75294,4 +75294,58 @@
   predicate: realizes
   layer: application
   targetLayer: product
+  category: structural
+- source: testing.testcasesketch.tests-links-from-calls-a-helper-called-from-several-test-files-none-of-which-is-named-after-it-is-1ac83296
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.tests-links-from-a-test-files-name-prefers-the-file-in-the-tests-own-package
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-follows-the-rejected-symbols-own-calls-to-the-f1204640
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.codebase-extract-rejecting-relationships-and-files-1095-1097-rejects-a-test-files-links-as-a-group-e13d857b
+  target: application.applicationservice.create-codebase-extract-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-goes-to-the-element-owning-the-rejected-acfd4831
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-lists-the-case-unwired-when-the-rejected-7e5a8054
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.tests-links-from-a-test-files-name-a-name-match-in-another-package-alone-is-a-candidate-not-a-link
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.tests-links-from-calls-a-test-file-named-after-the-helper-keeps-its-link
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.tests-links-from-calls-a-test-that-calls-into-its-own-package-and-another-keeps-the-own-packages
+  target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
   category: structural

@@ -48300,3 +48300,183 @@ testing.testcasesketch.verify-engine-with-dual-root-source-file-resolution-in-de
     created_at: 2026-11-24T21:39:56.349Z
     updated_at: 2026-11-24T21:39:56.349Z
     version: 1
+testing.testcasesketch.package-of-is-the-package-or-app-folder-or-the-folder-above-a-test-folder:
+  id: d992be5c-dbbf-4429-9772-e0c882e9b4c8
+  path: testing.testcasesketch.package-of-is-the-package-or-app-folder-or-the-folder-above-a-test-folder
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: packageOf > is the package or app folder, or the folder above a test folder
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: packageOf > is the package or app folder, or the folder above a test folder
+  metadata:
+    created_at: 2026-11-26T14:32:20.142Z
+    updated_at: 2026-11-26T14:32:20.142Z
+    version: 1
+testing.testcasesketch.tests-links-from-calls-a-helper-called-from-several-test-files-none-of-which-is-named-after-it-is-1ac83296:
+  id: 684097a0-8eae-49b5-a5a8-ceab2a18c00d
+  path: testing.testcasesketch.tests-links-from-calls-a-helper-called-from-several-test-files-none-of-which-is-named-after-it-is-1ac83296
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: tests links from calls > a helper called from several test files none of which is named after it is no subject
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: tests links from calls > a helper called from several test files none of which is named after it is no subject
+  metadata:
+    created_at: 2026-11-26T14:32:20.142Z
+    updated_at: 2026-11-26T14:32:20.142Z
+    version: 1
+testing.testcasesketch.tests-links-from-a-test-files-name-prefers-the-file-in-the-tests-own-package:
+  id: 75c8f0fc-227e-4207-bfe0-5a3db982a08c
+  path: testing.testcasesketch.tests-links-from-a-test-files-name-prefers-the-file-in-the-tests-own-package
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: tests links from a test file's name > prefers the file in the test's own package
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: tests links from a test file's name > prefers the file in the test's own package
+  metadata:
+    created_at: 2026-11-26T14:32:20.142Z
+    updated_at: 2026-11-26T14:32:20.142Z
+    version: 1
+testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-follows-the-rejected-symbols-own-calls-to-the-f1204640:
+  id: 2c45edc4-aafe-4e28-a091-3537110960f8
+  path: testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-follows-the-rejected-symbols-own-calls-to-the-f1204640
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a test whose calls reach only a rejected symbol (#1443) > follows the rejected symbol's own calls to the element that owns the code, marked as inferred
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: a test whose calls reach only a rejected symbol (#1443) > follows the rejected symbol's own calls to the element that owns the code, marked as inferred
+  metadata:
+    created_at: 2026-11-26T14:32:20.142Z
+    updated_at: 2026-11-26T14:32:20.142Z
+    version: 1
+testing.testcasesketch.codebase-extract-rejecting-relationships-and-files-1095-1097-rejects-a-test-files-links-as-a-group-e13d857b:
+  id: 0bb24edd-5585-45c3-a3d8-a4c2b7384cf6
+  path: testing.testcasesketch.codebase-extract-rejecting-relationships-and-files-1095-1097-rejects-a-test-files-links-as-a-group-e13d857b
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: "codebase_extract: rejecting relationships and files (#1095, #1097) > rejects a test file's links as a group: files plus predicate (#1412)"
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/mcp/codebase-extract.test.ts
+        symbol: "codebase_extract: rejecting relationships and files (#1095, #1097) > rejects a test file's links as a group: files plus predicate (#1412)"
+  metadata:
+    created_at: 2026-11-26T14:32:20.142Z
+    updated_at: 2026-11-26T14:32:20.142Z
+    version: 1
+testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-goes-to-the-element-owning-the-rejected-acfd4831:
+  id: 8e2a8884-c6a8-4409-8dea-d7c86159dca1
+  path: testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-goes-to-the-element-owning-the-rejected-acfd4831
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a test whose calls reach only a rejected symbol (#1443) > goes to the element owning the rejected symbol's own file when it has one
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: a test whose calls reach only a rejected symbol (#1443) > goes to the element owning the rejected symbol's own file when it has one
+  metadata:
+    created_at: 2026-11-26T14:32:40.594Z
+    updated_at: 2026-11-26T14:32:40.594Z
+    version: 1
+testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-lists-the-case-unwired-when-the-rejected-7e5a8054:
+  id: f1aa1c02-11ea-4046-b71a-a8b0628a2562
+  path: testing.testcasesketch.a-test-whose-calls-reach-only-a-rejected-symbol-1443-lists-the-case-unwired-when-the-rejected-7e5a8054
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a test whose calls reach only a rejected symbol (#1443) > lists the case unwired when the rejected symbol reaches too many elements
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: a test whose calls reach only a rejected symbol (#1443) > lists the case unwired when the rejected symbol reaches too many elements
+  metadata:
+    created_at: 2026-11-26T14:32:40.594Z
+    updated_at: 2026-11-26T14:32:40.594Z
+    version: 1
+testing.testcasesketch.tests-links-from-a-test-files-name-a-name-match-in-another-package-alone-is-a-candidate-not-a-link:
+  id: 39b88ec7-c8c1-43e0-8f08-c44c1a6a0300
+  path: testing.testcasesketch.tests-links-from-a-test-files-name-a-name-match-in-another-package-alone-is-a-candidate-not-a-link
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: tests links from a test file's name > a name match in another package alone is a candidate, not a link
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: tests links from a test file's name > a name match in another package alone is a candidate, not a link
+  metadata:
+    created_at: 2026-11-26T14:32:40.594Z
+    updated_at: 2026-11-26T14:32:40.594Z
+    version: 1
+testing.testcasesketch.tests-links-from-calls-a-test-file-named-after-the-helper-keeps-its-link:
+  id: bde90a65-59c1-42b5-84b8-db8273360ec7
+  path: testing.testcasesketch.tests-links-from-calls-a-test-file-named-after-the-helper-keeps-its-link
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: tests links from calls > a test file named after the helper keeps its link
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: tests links from calls > a test file named after the helper keeps its link
+  metadata:
+    created_at: 2026-11-26T14:32:40.594Z
+    updated_at: 2026-11-26T14:32:40.594Z
+    version: 1
+testing.testcasesketch.tests-links-from-calls-a-test-that-calls-into-its-own-package-and-another-keeps-the-own-packages:
+  id: 2d9c5ca5-0169-4fae-b470-06b29e93155a
+  path: testing.testcasesketch.tests-links-from-calls-a-test-that-calls-into-its-own-package-and-another-keeps-the-own-packages
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: tests links from calls > a test that calls into its own package and another keeps the own package's
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/test-subjects.test.ts
+        symbol: tests links from calls > a test that calls into its own package and another keeps the own package's
+  metadata:
+    created_at: 2026-11-26T14:32:40.594Z
+    updated_at: 2026-11-26T14:32:40.594Z
+    version: 1
