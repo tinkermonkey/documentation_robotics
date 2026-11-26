@@ -103,8 +103,9 @@ describe("changeset_brief unwired connections", () => {
       expect(layer.entries !== undefined).toBe(reached);
       if (reached) expect(layer.entries).toHaveLength(layer.count - (layer.typesNotInModel ?? 0));
     }
-    // At least one layer the change does not reach is summarized by count alone.
-    expect(fn.byLayer.some((l: any) => !result.reach.touched.includes(l.layer) && l.count > 0)).toBe(true);
+    // The optional catalog triples are counted apart, not listed, and a layer holding only those is left out.
+    expect(fn.optional).toBeGreaterThan(0);
+    expect(fn.byLayer.every((l: any) => l.count > 0)).toBe(true);
   });
 
   it("lists only catalog triples the element does not already satisfy, with existing counts", async () => {
@@ -137,13 +138,14 @@ describe("changeset_brief unwired connections", () => {
       otherType: "data-model.objectschema",
       existingCount: 0,
       addedCount: 0,
+      expected: false,
     });
 
     const op = allEntries(findElement(result.unwired, OPERATION));
     // The model has one goal, one function (already wired) and no other operations than this one.
-    expect(op).toContainEqual({ direction: "out", predicate: "supports", otherType: "motivation.goal", existingCount: 1, addedCount: 0 });
-    // Every layer is listed in full.
-    for (const layer of findElement(result.unwired, OPERATION).byLayer) expect(layer.entries).toHaveLength(layer.count);
+    expect(op).toContainEqual({ direction: "out", predicate: "supports", otherType: "motivation.goal", existingCount: 1, addedCount: 0, expected: false });
+    // Every layer is listed in full: the expected links and the optional ones.
+    for (const layer of findElement(result.unwired, OPERATION).byLayer) expect(layer.entries).toHaveLength(layer.count + (layer.optional ?? 0));
   });
 
   it("filters by layer, lists those layers' entries, and reports unknown layers", async () => {
@@ -177,7 +179,78 @@ describe("changeset_brief unwired connections", () => {
       otherType: "motivation.goal",
       existingCount: 0,
       addedCount: 0,
+      // The service carried this link in the base, so an element of its type is expected to have it.
+      expected: true,
     });
+  });
+});
+
+describe("changeset_brief expected, optional and preexisting unwired (#1293, #1442)", () => {
+  const OTHER_GOAL = "motivation.goal.cheaper-checkout";
+
+  it("counts a link some element of the type carries as expected, and the rest as optional", async () => {
+    await add({ layer: "motivation", type: "goal", name: "cheaper-checkout", attributes: { priority: "low" } });
+    await changesetCreateHandler({ name: "expected-links", rootPath });
+    await add({ layer: "motivation", type: "goal", name: "faster-delivery", attributes: { priority: "low" } });
+    const result = await brief({ unwired: "full" });
+    const goal = findElement(result.unwired, "motivation.goal.faster-delivery");
+    const entries = allEntries(goal);
+    // The checkout service realizes the base goal, so a goal is expected to be realized by a service.
+    expect(entries).toContainEqual(
+      expect.objectContaining({ direction: "in", predicate: "realizes", otherType: "application.applicationservice", expected: true })
+    );
+    expect(entries.some((e: any) => !e.expected)).toBe(true);
+    expect(goal.total).toBe(entries.filter((e: any) => e.expected).length);
+    expect(goal.optional).toBe(entries.filter((e: any) => !e.expected).length);
+    // Expected links come first within a layer.
+    for (const layer of goal.byLayer) {
+      const flags = layer.entries.map((e: any) => e.expected);
+      expect(flags).toEqual([...flags].sort((a: boolean, b: boolean) => Number(b) - Number(a)));
+    }
+    // The headline counts expected links only; the compact brief reports the optional count beside it.
+    const compact = parse(await changesetBriefHandler({ rootPath }));
+    expect(compact.unwired.total).toBe(result.unwired.totals.expected);
+    expect(compact.unwired.optional).toBe(result.unwired.totals.optional);
+    expect(compact.unwired.optional).toBeGreaterThan(0);
+  });
+
+  it("counts an updated element's old unwired links apart when only its fields change", async () => {
+    await add({ layer: "motivation", type: "goal", name: "cheaper-checkout", attributes: { priority: "low" } });
+    await changesetCreateHandler({ name: "reword-goal", rootPath });
+    parse(await modelUpdateHandler({ id: OTHER_GOAL, description: "Cheaper, reworded", rootPath } as any));
+
+    const result = await brief({ unwired: "full" });
+    const goal = findElement(result.unwired, OTHER_GOAL);
+    expect(goal.preexisting).toBe(true);
+    expect(goal.total).toBeGreaterThan(0);
+    expect(result.unwired.totals.expected).toBe(0);
+    expect(result.unwired.totals.preexisting).toBe(goal.total);
+    const compact = parse(await changesetBriefHandler({ rootPath }));
+    expect(compact.unwired.total).toBe(0);
+    expect(compact.unwired.preexisting).toBe(goal.total);
+
+    // Staging a relationship of the element makes the update one that reshapes its connections.
+    await relate(SERVICE, "realizes", OTHER_GOAL);
+    const after = await brief({ unwired: "full" });
+    expect(findElement(after.unwired, OTHER_GOAL).preexisting).toBeUndefined();
+    expect(after.unwired.totals.preexisting).toBe(0);
+  });
+
+  it("keeps the count of an added element, and lists expected links first when it pages", async () => {
+    await changesetCreateHandler({ name: "paging", rootPath });
+    for (let i = 0; i < 30; i++) {
+      await add({ layer: "motivation", type: "goal", name: `goal-${i}`, attributes: { priority: "low" } });
+    }
+    parse(await modelUpdateHandler({ id: GOAL, description: "Reworded", rootPath } as any));
+    const page = parse(await changesetBriefHandler({ sections: ["unwired"], limit: 10, rootPath }));
+    expect(page.page.totals.unwired).toBe(31);
+    expect(page.page.returned.unwired).toBe(10);
+    expect(page.page.nextOffset).toBe(10);
+    // The preexisting update comes last, after the added elements.
+    const last = parse(await changesetBriefHandler({ sections: ["unwired"], limit: 10, offset: 30, rootPath }));
+    const listed = JSON.stringify(last.unwired);
+    expect(listed).not.toContain("goal-0");
+    expect(listed).toContain(GOAL);
   });
 });
 
