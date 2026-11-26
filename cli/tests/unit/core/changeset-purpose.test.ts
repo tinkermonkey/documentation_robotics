@@ -15,6 +15,7 @@ import { resolveOrigin } from "../../../src/core/changeset-review.js";
 import {
   allowedActions,
   creationPurpose,
+  decideExtractionPurpose,
   extractionPurpose,
   purposeOf,
   readPurpose,
@@ -55,6 +56,7 @@ describe("readPurpose and allowedActions", () => {
       scope: { since: "main", codeCommit: "abc" },
     });
     expect(readPurpose({ purpose: "verification", verifies: 3, scope: { codeCommit: "abc" } })).toEqual({ purpose: "verification" });
+    // `recorded` is a status, not a purpose.
     expect(readPurpose({ purpose: "recorded" })).toBeUndefined();
     expect(readPurpose({})).toBeUndefined();
     expect(readPurpose(null)).toBeUndefined();
@@ -69,6 +71,8 @@ describe("readPurpose and allowedActions", () => {
       expect(allowedActions("plan", status)).toEqual([]);
       expect(allowedActions("verification", status)).toEqual([]);
     }
+    // A recorded verification record can still be discarded, by an explicit move (#1171).
+    expect(allowedActions("verification", "recorded")).toEqual(["discard"]);
   });
 
   it("gives an extraction run's purpose by its since and the plan active before", () => {
@@ -256,7 +260,7 @@ describe("StagingAreaManager.commit refuses a verification record", () => {
         );
         expect(error.suggestions).toEqual([
           "Land the plan 'add-goal' instead",
-          "Keep this record (it stays staged and is committed to git with the plan) or discard it",
+          "Keep this record (landing the plan marks it recorded, and it is committed to git with the plan) or discard it",
           "To reconcile the model with code drift, extract without a plan active and land that changeset",
         ]);
         expect(error.plan).toEqual({ id: plan.id, name: "add-goal" });
@@ -286,6 +290,123 @@ describe("StagingAreaManager.commit refuses a verification record", () => {
       const refusal = await manager.landingRefusal((await manager.load(record.id))!);
       expect(refusal?.message).toContain("compared with plan 'gone-plan'");
       expect(await manager.landingRefusal((await manager.create("a-plan", "x"))!)).toBeNull();
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("decideExtractionPurpose (#1370)", () => {
+  const plan = { id: "cs-plan", name: "the-plan" };
+  const base = { since: "main", gitHead: "h", stagedPlans: [] as Array<{ id: string; name: string }> };
+
+  it("is a bootstrap with no since", () => {
+    expect(decideExtractionPurpose({ ...base, since: null }).declaration).toEqual({ purpose: "bootstrap" });
+  });
+
+  it("makes a since equal to the reconciled commit a reconcile, with no plan active", () => {
+    const d = decideExtractionPurpose({ ...base, sinceCommit: "abc1234def", reconciledCommit: "abc1234def" });
+    expect(d.declaration).toEqual({ purpose: "reconcile" });
+    expect(d.note).toContain("reconcile");
+    // An abbreviated commit on either side is the same commit.
+    expect(decideExtractionPurpose({ ...base, sinceCommit: "abc1234def5678", reconciledCommit: "abc1234" }).declaration.purpose).toBe("reconcile");
+  });
+
+  it("makes any other since a verification record that names the one staged plan, or says it found none", () => {
+    const one = decideExtractionPurpose({ ...base, sinceCommit: "ffff", reconciledCommit: "abc", stagedPlans: [plan] });
+    expect(one.declaration).toEqual({ purpose: "verification", verifies: "cs-plan", scope: { since: "main", codeCommit: "h" } });
+    expect(one.note).toContain("verifies the plan 'the-plan'");
+
+    const none = decideExtractionPurpose({ ...base, sinceCommit: "ffff", reconciledCommit: "abc" });
+    expect(none.declaration.purpose).toBe("verification");
+    expect(none.declaration.verifies).toBeUndefined();
+    expect(none.note).toContain("found no staged plan");
+
+    const many = decideExtractionPurpose({ ...base, sinceCommit: "ffff", reconciledCommit: "abc", stagedPlans: [plan, { id: "cs-2", name: "other" }] });
+    expect(many.declaration.verifies).toBeUndefined();
+    expect(many.note).toContain("2 are staged");
+  });
+
+  it("is a verification record when the model was never reconciled, or since doesn't resolve", () => {
+    expect(decideExtractionPurpose({ ...base, sinceCommit: "abc" }).declaration.purpose).toBe("verification");
+    expect(decideExtractionPurpose({ ...base, reconciledCommit: "abc" }).declaration.purpose).toBe("verification");
+  });
+
+  it("verifies the plan active, whatever since is", () => {
+    const d = decideExtractionPurpose({ ...base, previousActive: plan, sinceCommit: "abc", reconciledCommit: "abc" });
+    expect(d.declaration).toMatchObject({ purpose: "verification", verifies: "cs-plan" });
+  });
+
+  it("lets an explicit purpose override the rule, both ways", () => {
+    expect(decideExtractionPurpose({ ...base, explicit: "reconcile", sinceCommit: "ffff", reconciledCommit: "abc", previousActive: plan }).declaration).toEqual({ purpose: "reconcile" });
+    expect(
+      decideExtractionPurpose({ ...base, explicit: "verification", sinceCommit: "abc", reconciledCommit: "abc", stagedPlans: [plan] }).declaration
+    ).toMatchObject({ purpose: "verification", verifies: "cs-plan" });
+  });
+});
+
+describe("recorded (#1171)", () => {
+  async function planAndRecord(manager: StagingAreaManager, model: Model, rootPath: string) {
+    const plan = await manager.create("the-plan", "a plan");
+    await manager.setActive(plan.id!);
+    clearModelCache();
+    const added = await modelAddHandler({ layer: "motivation", type: "goal", name: "Ship it", attributes: { priority: "high" }, rootPath });
+    expect(added.isError).toBeFalsy();
+    const record = await manager.create("the-plan-as-built", MARKER, { kind: "extract" }, { purpose: "verification", verifies: plan.id, scope: { since: "main" } });
+    const other = await manager.create("other-record", MARKER, { kind: "extract" }, { purpose: "verification", verifies: "cs-another-plan", scope: { since: "main" } });
+    const unverified = await manager.create("loose-record", MARKER, { kind: "extract" }, { purpose: "verification", scope: { since: "main" } });
+    return { plan, record, other, unverified };
+  }
+
+  it("moves the records that verify a plan to recorded when it lands, and nothing else", async () => {
+    const { rootPath, manager, model } = await newProject();
+    try {
+      const { plan, record, other, unverified } = await planAndRecord(manager, model, rootPath);
+      clearModelCache();
+      const fresh = await Model.load(rootPath, { lazyLoad: false });
+      const landing = new StagingAreaManager(fresh.rootPath, fresh);
+      await landing.commit(fresh, plan.id!, { validate: false, force: true });
+
+      expect((await landing.load(plan.id!))!.status).toBe("committed");
+      expect((await landing.load(record.id!))!.status).toBe("recorded");
+      // A record of another plan, and one with no plan, stay staged work.
+      expect((await landing.load(other.id!))!.status).toBe("staged");
+      expect((await landing.load(unverified.id!))!.status).toBe("staged");
+      // It is still a verification record, and it can be discarded by an explicit move.
+      expect((await landing.purposeOf((await landing.load(record.id!))!)).purpose).toBe("verification");
+      await landing.discard(record.id!);
+      expect(await landing.load(record.id!)).toBeNull();
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  it("reads a recorded changeset back from disk as recorded", async () => {
+    const { rootPath, manager, model } = await newProject();
+    try {
+      const { plan, record } = await planAndRecord(manager, model, rootPath);
+      clearModelCache();
+      const fresh = await Model.load(rootPath, { lazyLoad: false });
+      const landing = new StagingAreaManager(fresh.rootPath, fresh);
+      await landing.commit(fresh, plan.id!, { validate: false, force: true });
+      const raw = yaml.parse(await readFile(join(rootPath, "documentation-robotics", "changesets", record.id!, "metadata.yaml"), "utf-8"));
+      expect(raw.status).toBe("recorded");
+      expect(raw.purpose).toBe("verification");
+      expect(raw.verifies).toBe(plan.id);
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
+  it("a since-scoped verification record can't be landed and never stamps reconciled (#1370)", async () => {
+    const { rootPath, manager, model } = await newProject();
+    try {
+      // The declaration decideExtractionPurpose gives for a since that isn't the reconciled commit.
+      const decided = decideExtractionPurpose({ since: "feature-base", gitHead: "h", sinceCommit: "ffff", reconciledCommit: "abc", stagedPlans: [] });
+      const record = await manager.create("verify-run", MARKER, { kind: "extract" }, decided.declaration);
+      expect(await reconciliationStamp(rootPath, (await manager.load(record.id!))!)).toBeNull();
+      await expect(manager.commit(model, record.id!, { validate: false, force: true })).rejects.toBeInstanceOf(VerificationRecordLandingError);
+      expect((await Model.load(rootPath)).manifest.reconciled).toBeUndefined();
     } finally {
       await rm(rootPath, { recursive: true, force: true });
     }

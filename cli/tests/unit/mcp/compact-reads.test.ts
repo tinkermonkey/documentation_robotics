@@ -107,7 +107,7 @@ describe("changeset_list: staged by default, counted by status, paged (#1250)", 
 
       const list = parse(await changesetListHandler({ rootPath }));
       expect(list.status).toBe("staged");
-      expect(list.counts).toEqual({ staged: 2, committed: 1, discarded: 0 });
+      expect(list.counts).toEqual({ staged: 2, committed: 1, discarded: 0, recorded: 0 });
       expect(Object.values(list.changesets).map((c: any) => c.name).sort()).toEqual(["open-a", "open-b"]);
       expect(list.page).toEqual({ total: 2, returned: 2, offset: 0 });
       expect(list.more).toContain("Not listed: 1 committed");

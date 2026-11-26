@@ -9,8 +9,8 @@
  * | `plan`         | changeset_create, `dr changeset create`             | Lands with the code                      |
  * | `chat`         | DrBot (changeset_create or `dr` under `dr visualize`) | Lands after review                     |
  * | `bootstrap`    | codebase_extract without `since`                    | Lands; reconciles code drift             |
- * | `reconcile`    | codebase_extract with `since` and no plan active    | Lands; reconciles code drift             |
- * | `verification` | codebase_extract with `since` while a plan is active | Never lands: compared with the plan, then kept as a record (it stays staged and is committed to git with the plan) or discarded |
+ * | `reconcile`    | codebase_extract with `since` equal to the manifest's reconciled commit, no plan active | Lands; reconciles code drift |
+ * | `verification` | codebase_extract with `since` while a plan is active, or any `since` other than the reconciled commit (decideExtractionPurpose) | Never lands: compared with the plan, then kept as a record (staged until the plan lands, then `recorded`; committed to git with the plan) or discarded |
  * | `upgrade-record` | `dr upgrade`, project_upgrade (upgrade-drop-record.ts) | Never lands: lists the relationships a spec migration dropped, to review and restore from by hand, then discarded |
  *
  * The purpose is declared when the changeset is made, in its `metadata.yaml` (committed with the
@@ -20,10 +20,16 @@
  * inferred from what was recorded then: the extraction record or the description codebase_extract
  * writes (extractionOrigin), and `origin.kind`. `purposeOf` is the one place that answers.
  *
+ * A verification record's lifecycle: staged while its plan is, then `recorded` (a status, not a
+ * purpose) when the plan lands (StagingAreaManager.recordVerificationsOf). A recorded record is
+ * kept, committed to git with the plan, and no longer counts as staged work; discarding it stays
+ * an explicit move. An older record whose plan landed before `recorded` existed stays staged.
+ *
  * The extraction record is read here too (extractionOrigin), so StagingAreaManager.commit, which
  * the CLI, the MCP tool and the viewer's Apply share, can tell without importing the MCP layer.
  */
 
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ChangesetOrigin } from "./changeset-review.js";
@@ -107,6 +113,7 @@ export function purposeFields(declaration: PurposeDeclaration | undefined): Part
 
 /** The moves allowed from a changeset's state: a record (verification or upgrade) is never committed. */
 export function allowedActions(purpose: ChangesetPurpose, status: string): ChangesetAction[] {
+  if (status === "recorded") return ["discard"];
   if (status !== "staged") return [];
   return isRecordPurpose(purpose) ? ["discard"] : ["commit", "discard"];
 }
@@ -124,6 +131,9 @@ interface ExtractionRecordFile {
   pending?: unknown;
   since?: unknown;
   previousActive?: unknown;
+  /** The purpose the run declared (decideExtractionPurpose), kept so the changeset made for it later declares the same. */
+  purpose?: unknown;
+  verifies?: unknown;
 }
 
 /** What extractionOrigin reads about the changeset's extraction from its record. */
@@ -135,12 +145,22 @@ export interface ExtractionOrigin {
   since?: string;
   /** The changeset that was active when extraction started this one (a plan, for a verify). */
   previousActive?: { id: string; name: string };
+  /** The purpose the run declared, when it recorded one (a run before #1370 did not). */
+  declared?: PurposeDeclaration;
 }
 
 /** The record's fields, read leniently. */
 function originOf(record: ExtractionRecordFile): Omit<ExtractionOrigin, "asBuilt"> {
   const previous = record.previousActive as { id?: unknown; name?: unknown } | null | undefined;
+  const declared = readPurpose({
+    purpose: record.purpose,
+    verifies: record.verifies,
+    ...(typeof record.since === "string" && record.since
+      ? { scope: { since: record.since, ...(typeof record.gitHead === "string" ? { codeCommit: record.gitHead } : {}) } }
+      : {}),
+  });
   return {
+    ...(declared && EXTRACTION_PURPOSES.includes(declared.purpose) ? { declared } : {}),
     ...(typeof record.gitHead === "string" && record.gitHead ? { gitHead: record.gitHead } : {}),
     ...(typeof record.since === "string" && record.since ? { since: record.since } : {}),
     ...(previous && typeof previous === "object" && typeof previous.id === "string" && previous.id
@@ -200,7 +220,14 @@ export function isVerificationRecord(origin: ExtractionOrigin): boolean {
  * was active (it names the plan and its scope), `reconcile` when scoped with `since` alone, else
  * `bootstrap`.
  */
-export function extractionPurpose(run: { since?: string | null; gitHead?: string | null; previousActive?: { id: string } | null }): PurposeDeclaration {
+export function extractionPurpose(run: {
+  since?: string | null;
+  gitHead?: string | null;
+  previousActive?: { id: string } | null;
+  /** The purpose the run declared (decideExtractionPurpose): used as it is. */
+  declared?: PurposeDeclaration;
+}): PurposeDeclaration {
+  if (run.declared) return run.declared;
   if (run.since && run.previousActive) {
     return {
       purpose: "verification",
@@ -209,6 +236,81 @@ export function extractionPurpose(run: { since?: string | null; gitHead?: string
     };
   }
   return { purpose: run.since ? "reconcile" : "bootstrap" };
+}
+
+/** The purposes codebase_extract declares for the changesets it stages. */
+const EXTRACTION_PURPOSES: readonly ChangesetPurpose[] = ["bootstrap", "reconcile", "verification"];
+
+/** What an explicit `purpose` argument of codebase_extract may ask for (with `since`). */
+export const EXTRACTION_PURPOSE_ARGS = ["reconcile", "verification"] as const;
+export type ExtractionPurposeArg = (typeof EXTRACTION_PURPOSE_ARGS)[number];
+
+/** The purpose codebase_extract declared for a run, and how it got there. */
+export interface ExtractionPurposeDecision {
+  declaration: PurposeDeclaration;
+  /** One sentence for the result: the purpose, why, and for a verification record which plan it verifies or that it found none. */
+  note: string;
+}
+
+/** The git commit `ref` names in `dir`, or undefined when it names none (or git is missing). */
+export function resolveCommit(dir: string, ref: string): string | undefined {
+  try {
+    const r = spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], { cwd: dir, stdio: "pipe", encoding: "utf-8", timeout: 10_000 });
+    return r.status === 0 ? r.stdout.trim() || undefined : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The purpose of a `since` run (#1370). An explicit `purpose` overrides the rule. Otherwise: with a
+ * plan active the run is its verification record; with no plan active, a `since` that is the
+ * manifest's reconciled code commit is a reconcile (the catch-up project_status asks for), and any
+ * other `since` is a verification record (a branch's build, compared with its plan), naming the one
+ * staged plan it verifies, or none when there is no plan or several (the note says so). A run with
+ * no `since` is a bootstrap.
+ *
+ * `sinceCommit` is what `since` resolves to; `reconciledCommit` the manifest's `reconciled.code_commit`.
+ * Either unknown means `since` is not known to be the reconciled commit, so the run is a verification record.
+ */
+export function decideExtractionPurpose(run: {
+  since?: string | null;
+  gitHead?: string | null;
+  explicit?: ExtractionPurposeArg;
+  previousActive?: { id: string; name: string } | null;
+  sinceCommit?: string;
+  reconciledCommit?: string;
+  stagedPlans: Array<{ id: string; name: string }>;
+}): ExtractionPurposeDecision {
+  if (!run.since) return { declaration: { purpose: "bootstrap" }, note: "A bootstrap: it reads the whole code and reconciles the model with it when landed." };
+  const scope = { since: run.since, ...(run.gitHead ? { codeCommit: run.gitHead } : {}) };
+  const verification = (why: string): ExtractionPurposeDecision => {
+    const plan = run.previousActive ?? (run.stagedPlans.length === 1 ? run.stagedPlans[0] : undefined);
+    const planNote = plan
+      ? `It verifies the plan '${plan.name}'.`
+      : run.stagedPlans.length > 1
+        ? `It found no one plan to verify (${run.stagedPlans.length} are staged: ${run.stagedPlans.map((p) => `'${p.name}'`).join(", ")}); it records what was built and verifies none.`
+        : "It found no staged plan to verify; it records what was built and verifies none.";
+    return {
+      declaration: { purpose: "verification", ...(plan ? { verifies: plan.id } : {}), scope },
+      note: `A verification record (${why}), never landed. ${planNote}`,
+    };
+  };
+  if (run.explicit === "verification") return verification("purpose: verification was asked for");
+  if (run.explicit === "reconcile") return { declaration: { purpose: "reconcile" }, note: "A reconcile (purpose: reconcile was asked for): landing it reconciles the model with the code it read." };
+  if (run.previousActive) return verification(`a plan is active and since: ${run.since} scopes the run`);
+  const reconciled =
+    !!run.sinceCommit &&
+    !!run.reconciledCommit &&
+    (run.sinceCommit === run.reconciledCommit || run.sinceCommit.startsWith(run.reconciledCommit) || run.reconciledCommit.startsWith(run.sinceCommit));
+  if (reconciled) {
+    return { declaration: { purpose: "reconcile" }, note: `A reconcile: since is the code commit the model was last reconciled with (${run.reconciledCommit!.slice(0, 7)}); landing it reconciles the model with the code.` };
+  }
+  return verification(
+    run.reconciledCommit
+      ? `since: ${run.since} is not the commit the model was last reconciled with, ${run.reconciledCommit.slice(0, 7)}`
+      : `since: ${run.since} and the model has never been reconciled with the code`
+  );
 }
 
 /**
@@ -231,7 +333,7 @@ export async function purposeOf(projectRoot: string, changeset: PurposeSubject):
   if (origin.asBuilt || changeset.origin?.kind === "extract") {
     // Without a record, the description still says whether the run was scoped with since.
     const since = origin.since ?? /files changed since (.+)\. Staged by codebase_extract/.exec(changeset.description ?? "")?.[1];
-    return { ...extractionPurpose({ since, gitHead: origin.gitHead, previousActive: origin.previousActive }), declared: false };
+    return { ...extractionPurpose({ since, gitHead: origin.gitHead, previousActive: origin.previousActive, declared: origin.declared }), declared: false };
   }
   return { purpose: changeset.origin?.kind === "chat" ? "chat" : "plan", declared: false };
 }
@@ -286,7 +388,7 @@ export class VerificationRecordLandingError extends RecordLandingError {
         `${planText}. A verification record is never landed.`,
       [
         plan ? `Land the plan '${plan.name}' instead` : "Land the plan it verifies instead",
-        "Keep this record (it stays staged and is committed to git with the plan) or discard it",
+        "Keep this record (landing the plan marks it recorded, and it is committed to git with the plan) or discard it",
         "To reconcile the model with code drift, extract without a plan active and land that changeset",
       ]
     );

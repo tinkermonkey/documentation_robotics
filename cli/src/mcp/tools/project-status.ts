@@ -848,12 +848,13 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
     };
   }
   if (asBuilt.purpose === "verification") {
-    // Its plan landed (or was discarded): the record stays as it is and is never landed.
+    // No plan is staged: it was discarded, or landed before a landing recorded its verification
+    // records (changeset-purpose.ts, `recorded`). The record is never landed.
     const of = asBuilt.previousActive ? ` of the plan "${asBuilt.previousActive.name}"` : "";
     return {
       summary:
         `${intro} It is the verification record${of}, and no plan is staged: it is never landed. Ask the user whether ` +
-        "to keep it as a record (it stays staged and is committed to git with the plan) or discard it, and deactivate " +
+        "to discard it (a landing records the verification records of its plan, so this one's plan was discarded or landed before that), and deactivate " +
         "it with changeset_deactivate so writes don't stage into it. To reconcile the model with code drift, run " +
         "codebase_extract with no plan active.",
       tool: "changeset_deactivate",

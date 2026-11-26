@@ -427,6 +427,34 @@ export class StagingAreaManager {
     return this.storage.declarePurpose(changeset.id, declaration);
   }
 
+  /**
+   * After a plan lands: moves the staged verification records that name it (`verifies`) to
+   * `recorded`, so they stop showing as staged work. A record is kept (committed to git with the
+   * plan) or discarded; discarding stays an explicit move. Returns the names it moved. A failure
+   * is logged, not thrown: the plan has landed, and the record can be discarded by hand.
+   */
+  async recordVerificationsOf(plan: Changeset): Promise<string[]> {
+    const recorded: string[] = [];
+    try {
+      for (const candidate of await this.storage.list()) {
+        if (candidate.status !== "staged" || candidate.id === plan.id) continue;
+        const info = await purposeOf(this.rootPath, candidate);
+        if (info.purpose !== "verification" || !info.verifies || info.verifies !== plan.id) continue;
+        candidate.markRecorded();
+        await this.storage.save(candidate);
+        if ((await this.readActiveMarker()) === candidate.id) await this.clearActive();
+        recorded.push(candidate.name);
+      }
+    } catch (error) {
+      // The plan has landed; a record that stays staged can be recorded or discarded by hand.
+      emitLog(SeverityNumber.WARN, "Failed to move a landed plan's verification records to recorded", {
+        "changeset.id": plan.id,
+        "error.message": getErrorMessage(error),
+      });
+    }
+    return recorded;
+  }
+
   /** The changeset's purpose: declared, or inferred for one made before purposes were declared. */
   async purposeOf(changeset: Changeset): Promise<ChangesetPurposeInfo> {
     return purposeOf(this.rootPath, changeset);
@@ -1576,6 +1604,9 @@ export class StagingAreaManager {
         await this.cleanupBackup(backup);
         // Its last writer is forgotten: a landed changeset takes no writes (#1437).
         await clearChangesetWrites(this.rootPath, changeset.id!);
+
+        // The plan has landed: the verification records that name it are kept as records now.
+        await this.recordVerificationsOf(changeset);
 
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);

@@ -1855,7 +1855,7 @@ describe("suggestNextStep", () => {
       expect(step.tool).toBe("changeset_deactivate");
       expect(step.summary).toContain('verification record of the plan "plan-a"');
       expect(step.summary).toContain("never landed");
-      expect(step.summary).toContain("keep it as a record");
+      expect(step.summary).toContain("discard it");
       expect(step.summary).not.toContain("changeset_commit");
     });
 
