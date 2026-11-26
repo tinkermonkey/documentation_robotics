@@ -381,6 +381,23 @@ describe("recorded (#1171)", () => {
     }
   });
 
+  it("refuses writes that would fall through to the base model when the record was active at landing", async () => {
+    const { rootPath, manager, model } = await newProject();
+    try {
+      const { plan, record } = await planAndRecord(manager, model, rootPath);
+      await manager.setActive(record.id!);
+      clearModelCache();
+      const fresh = await Model.load(rootPath, { lazyLoad: false });
+      const landing = new StagingAreaManager(fresh.rootPath, fresh);
+      await landing.commit(fresh, plan.id!, { validate: false, force: true });
+      expect((await landing.load(record.id!))!.status).toBe("recorded");
+      expect(await landing.getActiveId()).toBeNull();
+      await expect(landing.getWriteTarget()).rejects.toThrow(/the-plan-as-built/);
+    } finally {
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
+
   it("reads a recorded changeset back from disk as recorded", async () => {
     const { rootPath, manager, model } = await newProject();
     try {

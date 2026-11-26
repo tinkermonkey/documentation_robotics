@@ -498,7 +498,7 @@ function pickNextStep(s: Sections, root: string, task?: StatusTask): NextStep {
         ? `run codebase_extract with since: "${from.slice(0, 7)}" and no plan active, and land the reconcile changeset it makes when ` +
           "the user asks. If it stages nothing, create the changeset under the name it gives: any other name makes a plan, " +
           "which does not clear this."
-        : `model the changes with codebase_extract since ${from.slice(0, 7)}.`;
+        : `model the changes with codebase_extract since ${from.slice(0, 7)} and purpose: "reconcile" (the model has no reconciled commit to match since against, so a since run alone makes a verification record), and no plan active.`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {
       const index =
@@ -519,7 +519,10 @@ function pickNextStep(s: Sections, root: string, task?: StatusTask): NextStep {
     return {
       summary: `${drift} To clear it, check the model against the code with codebase_verify, then ${clear}${taskHint}`,
       tool: "codebase_verify",
-      then: { tool: "codebase_extract", ...(partial ? {} : { args: { since: from } }) },
+      then: {
+        tool: "codebase_extract",
+        ...(partial ? {} : { args: { since: from, ...(codeDrift.basis === "last-reconciling-commit" && codeDrift.reconciledBy?.codeCommit ? {} : { purpose: "reconcile" }) } }),
+      },
     };
   }
 
@@ -819,7 +822,8 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
     `Changeset "${asBuilt.name}" is active, with ${changes}: it is the as-built changeset codebase_extract staged ` +
     "from the code, not a plan. Don't build from it or edit it as a plan.";
   const plans = staged.filter((entry) => entry.id !== asBuilt.id && !entry.asBuilt && entry.purpose !== "upgrade-record");
-  const fromRecord = asBuilt.previousActive ? plans.find((entry) => entry.id === asBuilt.previousActive!.id) : undefined;
+  const planId = asBuilt.previousActive?.id ?? asBuilt.verifies;
+  const fromRecord = planId ? plans.find((entry) => entry.id === planId) : undefined;
   const plan = fromRecord ?? (plans.length === 1 ? plans[0] : undefined);
 
   if (plan) {
@@ -854,7 +858,7 @@ function asBuiltStep(asBuilt: ChangesetEntry, staged: ChangesetEntry[]): NextSte
     return {
       summary:
         `${intro} It is the verification record${of}, and no plan is staged: it is never landed. Ask the user whether ` +
-        "to discard it (a landing records the verification records of its plan, so this one's plan was discarded or landed before that), and deactivate " +
+        "to discard it or keep it staged (a landing records the verification records of its plan; this one's plan was discarded or landed before that), and deactivate " +
         "it with changeset_deactivate so writes don't stage into it. To reconcile the model with code drift, run " +
         "codebase_extract with no plan active.",
       tool: "changeset_deactivate",

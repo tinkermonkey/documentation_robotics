@@ -287,7 +287,7 @@ export function decideExtractionPurpose(run: {
   const verification = (why: string): ExtractionPurposeDecision => {
     const plan = run.previousActive ?? (run.stagedPlans.length === 1 ? run.stagedPlans[0] : undefined);
     const planNote = plan
-      ? `It verifies the plan '${plan.name}'.`
+      ? `It verifies the plan '${plan.name}'${run.previousActive ? "" : " (the one plan staged; if this build is for another, call again with that plan active)"}.`
       : run.stagedPlans.length > 1
         ? `It found no one plan to verify (${run.stagedPlans.length} are staged: ${run.stagedPlans.map((p) => `'${p.name}'`).join(", ")}); it records what was built and verifies none.`
         : "It found no staged plan to verify; it records what was built and verifies none.";
@@ -302,13 +302,17 @@ export function decideExtractionPurpose(run: {
   const reconciled =
     !!run.sinceCommit &&
     !!run.reconciledCommit &&
-    (run.sinceCommit === run.reconciledCommit || run.sinceCommit.startsWith(run.reconciledCommit) || run.reconciledCommit.startsWith(run.sinceCommit));
+    (run.sinceCommit === run.reconciledCommit ||
+      (run.reconciledCommit.length >= 7 && run.sinceCommit.startsWith(run.reconciledCommit)) ||
+      (run.sinceCommit.length >= 7 && run.reconciledCommit.startsWith(run.sinceCommit)));
   if (reconciled) {
     return { declaration: { purpose: "reconcile" }, note: `A reconcile: since is the code commit the model was last reconciled with (${run.reconciledCommit!.slice(0, 7)}); landing it reconciles the model with the code.` };
   }
   return verification(
     run.reconciledCommit
-      ? `since: ${run.since} is not the commit the model was last reconciled with, ${run.reconciledCommit.slice(0, 7)}`
+      ? run.sinceCommit
+        ? `since: ${run.since} is not the commit the model was last reconciled with, ${run.reconciledCommit.slice(0, 7)}`
+        : `since: ${run.since} could not be resolved to a commit, so it is not known to be the one the model was last reconciled with, ${run.reconciledCommit.slice(0, 7)}`
       : `since: ${run.since} and the model has never been reconciled with the code`
   );
 }

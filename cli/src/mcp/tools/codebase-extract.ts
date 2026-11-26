@@ -1656,6 +1656,8 @@ async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaMana
     layers: waiting.layers ?? null,
     baseModified: waiting.baseModified,
     previousActive: waiting.previousActive,
+    ...(waiting.purpose ? { purpose: waiting.purpose } : {}),
+    ...(waiting.verifies ? { verifies: waiting.verifies } : {}),
     createdAt: waiting.createdAt,
     cards: [],
     staged: [],
@@ -2558,6 +2560,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (args.since !== undefined && args.since !== (stored.since ?? undefined)) {
           conflicts.push(`since: ${args.since} (its run had since: ${stored.since ?? "none"})`);
         }
+        if (args.purpose && stored.purpose && args.purpose !== stored.purpose) {
+          conflicts.push(`purpose: ${args.purpose} (its run was a ${stored.purpose})`);
+        }
         if (argLayers && !sameLayers(stored.layers, argLayers)) {
           conflicts.push(`layers: ${argLayers.join(", ")} (its run had layers: ${stored.layers?.join(", ") ?? "all"})`);
         }
@@ -2569,6 +2574,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         since = stored.since ?? undefined;
         layers = stored.layers ?? undefined;
+      }
+      // Refused before anything runs, spends or writes (a preview included).
+      if (args.purpose && !since) {
+        throw new CLIError("codebase_extract: purpose says what a since run is for; this run has no since (it is a bootstrap)", ErrorCategory.USER, [
+          "Pass since (the ref the work started from), or leave purpose out",
+        ]);
       }
 
       // The scope: every file, or the files changed since a ref (a run, or a default name to find).
@@ -2659,7 +2670,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const decisions = await readDecisions(projectRoot);
         const allChangesets = await manager.list();
         const stagedIds = new Set(allChangesets.filter((c) => c.status === "staged").map((c) => c.id));
-        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed").map((c) => c.id));
+        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed" || c.status === "recorded").map((c) => c.id));
         let pruned = false;
         // An unstaged element or relationship stays decided once its changeset lands without it;
         // discarding the changeset drops the decision.
@@ -4302,13 +4313,10 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // record, so a changeset created later for waiting cards declares the same. A run into a
         // changeset that already holds one keeps the purpose recorded then.
         let purposeDecision: ExtractionPurposeDecision | undefined;
-        if (args.purpose && !since) {
-          throw new CLIError("codebase_extract: purpose says what a since run is for; this run has no since (it is a bootstrap)", ErrorCategory.USER, [
-            "Pass since (the ref the work started from), or leave purpose out",
-          ]);
-        }
         if (since) {
-          const earlier = stored?.purpose ? readPurpose({ purpose: stored.purpose, verifies: stored.verifies }) : undefined;
+          const earlier = stored?.purpose
+            ? readPurpose({ purpose: stored.purpose, verifies: stored.verifies, scope: stored.since ? { since: stored.since, codeCommit: stored.gitHead } : undefined })
+            : undefined;
           const planNamed = (id?: string) => (id ? { id, name: allKnownNames.get(id) ?? id } : undefined);
           const allKnownNames = new Map<string, string>();
           const stagedPlans: Array<{ id: string; name: string }> = [];

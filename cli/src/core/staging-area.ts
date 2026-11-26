@@ -435,24 +435,56 @@ export class StagingAreaManager {
    */
   async recordVerificationsOf(plan: Changeset): Promise<string[]> {
     const recorded: string[] = [];
+    let staged: string[] = [];
     try {
-      for (const candidate of await this.storage.list()) {
-        if (candidate.status !== "staged" || candidate.id === plan.id) continue;
-        const info = await purposeOf(this.rootPath, candidate);
-        if (info.purpose !== "verification" || !info.verifies || info.verifies !== plan.id) continue;
-        candidate.markRecorded();
-        await this.storage.save(candidate);
-        if ((await this.readActiveMarker()) === candidate.id) await this.clearActive();
-        recorded.push(candidate.name);
-      }
+      // Statuses only (metadata.yaml): no changes.yaml is read, and a lock directory beside a
+      // changeset (the landing's own) is not mistaken for a changeset.
+      staged = (await this.storage.listStatuses()).filter((e) => e.status === "staged" && e.id !== plan.id).map((e) => e.id);
     } catch (error) {
-      // The plan has landed; a record that stays staged can be recorded or discarded by hand.
-      emitLog(SeverityNumber.WARN, "Failed to move a landed plan's verification records to recorded", {
-        "changeset.id": plan.id,
-        "error.message": getErrorMessage(error),
-      });
+      this.warnRecordFailure(plan, error);
+    }
+    for (const id of staged) {
+      try {
+        // Under the record's own lock, on a fresh read: a write staging into it meanwhile is not
+        // overwritten, and a record that is no longer staged is left alone.
+        const candidate = await new FileLock(this.storage.getChangesetPath(id)).withLock(
+          async () => {
+            const loaded = await this.storage.load(id);
+            if (!loaded || loaded.status !== "staged") return null;
+            const info = await purposeOf(this.rootPath, loaded);
+            if (info.purpose !== "verification" || info.verifies !== plan.id) return null;
+            loaded.markRecorded();
+            await this.storage.save(loaded);
+            return loaded;
+          },
+          { refuseWhenHeldBy: refuseWhileLanding(id) }
+        );
+        if (!candidate) continue;
+        recorded.push(candidate.name);
+        // It was the active changeset: it takes no more writes, and they must not fall through to the
+        // base model when the agent next writes (the landed note refuses them until told otherwise).
+        if ((await this.readActiveMarker()) === id) {
+          if (!(await readLandedNote(this.rootPath))) {
+            await writeLandedNote(this.rootPath, { id, name: candidate.name, landedAt: new Date().toISOString() });
+          }
+          await this.clearActive({ keepLandedNote: true });
+        }
+      } catch (error) {
+        // One record failing doesn't stop the others; it stays staged, and can be discarded.
+        this.warnRecordFailure(plan, error, id);
+      }
     }
     return recorded;
+  }
+
+  /** The plan has landed; a verification record that couldn't be moved to recorded stays staged. Said, not hidden. */
+  private warnRecordFailure(plan: Changeset, error: unknown, recordId?: string): void {
+    const message = `The plan '${plan.name}' landed, but ${recordId ? `its verification record ${recordId}` : "its verification records"} could not be moved to recorded: ${getErrorMessage(error)}. It stays staged; discard it if it is not wanted.`;
+    console.warn(message);
+    emitLog(SeverityNumber.WARN, "Failed to move a landed plan's verification records to recorded", {
+      "changeset.id": plan.id,
+      "error.message": message,
+    });
   }
 
   /** The changeset's purpose: declared, or inferred for one made before purposes were declared. */
