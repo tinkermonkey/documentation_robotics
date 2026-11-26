@@ -2279,6 +2279,25 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(ok(await handler({ changeset: "as-built-2", rootPath })).staged.relationships).toBe(1);
   }, SLOW);
 
+  it("rejects a test file's links as a group: files plus predicate (#1412)", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(await relationshipIds(first.changeset.id)).toContain(INFERRED_TEST);
+
+    // Nothing in that folder tests anything with another predicate; a typo records nothing.
+    expect(fail(await handler({ reject: [{ files: "src/nowhere/**", predicate: "tests", reason: "x" }], rootPath })).error).toContain("predicate: tests");
+    expect(fail(await handler({ reject: [{ files: TEST_FILE, predicate: "tests", card: "x", reason: "x" }], rootPath })).error).toContain("predicate");
+    expect(existsSync(decisionsFile())).toBe(false);
+
+    const rejected = ok(await handler({ reject: [{ files: TEST_FILE, predicate: "tests", reason: "named the same, a different thing" }], verbose: true, rootPath }));
+    expect(rejected.unstagedRelationships.items).toEqual([INFERRED_TEST]);
+    expect(await relationshipIds(first.changeset.id)).not.toContain(INFERRED_TEST);
+    const stored = JSON.parse(await readFile(decisionsFile(), "utf-8"));
+    expect(Object.keys(stored.notRelationships)).toEqual([INFERRED_TEST]);
+  }, SLOW);
+
   it("review: a reject that names an end by UUID is keyed by the dotted id, unstaged, and skipped later", async () => {
     await indexed();
     const h = harness();

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `codebase_extract` picks better subjects for `tests` links (#1412, #1443). A test's calls into its
+  own package win over calls elsewhere, and a name match in another package alone (a
+  `packages/render/test/render.test.ts` and an `apps/render-gpu/render.py`) is no longer a link. A
+  helper that three or more test files call, none named after it, is not their subject (listed in
+  `testLinks.sharedHelpers`). When a test's calls reach only symbols a rule rejected, they are
+  followed to the element that owns the rejected symbol's file (or, with no owner, the few
+  elements the symbol calls), with origin rule `edge:TEST_CALL_VIA_REJECTED`. Each test file still
+  unwired lists its `candidates` for the agent to check and wire.
+- `codebase_extract reject` takes `{files, predicate}` to reject a file's relationships of that
+  predicate as a group, such as `{files: "packages/render/test/**", predicate: "tests"}`.
+
 ## [0.9.0] - 2026-11-25
 
 **Specification Support:** v0.16.0
