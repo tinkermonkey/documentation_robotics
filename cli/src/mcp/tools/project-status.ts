@@ -496,9 +496,9 @@ function pickNextStep(s: Sections, root: string, task?: StatusTask): NextStep {
       ? "run codebase_extract with no since and no plan active, so code that changed before the commits this repository has is " +
         "read too, and land the changeset it makes when the user asks. A since run would leave that code unchecked."
       : codeDrift.basis === "last-reconciling-commit"
-        ? `run codebase_extract with since: "${from.slice(0, 7)}" and no plan active, and land the reconcile changeset it makes when ` +
-          "the user asks. If it stages nothing, create the changeset under the name it gives: any other name makes a plan, " +
-          "which does not clear this."
+        ? `run codebase_extract with since: "${from.slice(0, 7)}", an intent (what the user confirms it is for) and no plan active, and land the reconcile changeset it makes when ` +
+          "the user asks. With an intent it makes the changeset even when it stages nothing, and an empty one lands as the record that the model " +
+          "matches the code (changeset_commit_preview says it moves the drift baseline). Don't make it with changeset_create: that makes a plan, which does not clear this."
         : `model the changes with codebase_extract since ${from.slice(0, 7)} and purpose: "reconcile" (the model has no reconciled commit to match since against, so a since run alone makes a verification record), and no plan active.`;
     // codebase_verify refuses without a fresh index, so build or refresh it first.
     if (codeIndex.status !== "fresh") {

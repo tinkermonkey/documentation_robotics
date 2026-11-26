@@ -56,6 +56,7 @@ import {
   type OverlapKind,
 } from "../../core/changeset-base-index.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
+import { checkUncommitted, extractionOrigin, landsEmpty, reconciliationStamp } from "../../core/reconciliation.js";
 import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
@@ -290,7 +291,8 @@ export function confirmationMessage(
   drift: ChangesetDrift | undefined,
   hash: DriftReport,
   preExistingErrors: number,
-  warnings: string[] = []
+  warnings: string[] = [],
+  emptyLine?: string
 ): string {
   const { byOperation, layers } = summarizeChangeset(changeset);
   const counts = Object.entries(byOperation)
@@ -301,7 +303,7 @@ export function confirmationMessage(
     "",
     ...warnings.flatMap((warning) => [warning, ""]),
     `Intent: ${changeset.description?.trim() || "(no description)"}`,
-    `Changes: ${changeset.changes.length} (${counts})`,
+    emptyLine ? `Changes: ${emptyLine}` : `Changes: ${changeset.changes.length} (${counts})`,
     `Layers: ${layers.join(", ") || "none"}`,
     ...driftLines(drift, hash, changeset.name),
     preExistingErrors > 0
@@ -557,11 +559,46 @@ async function describeDriftSafely(target: LandingTarget, toolName: string): Pro
 }
 
 /**
+ * When the extraction this changeset holds read source files with uncommitted changes (#1330): the
+ * landing would be recorded against a HEAD that lacks that code, so committing the code afterwards
+ * would show drift that isn't there. Nothing once those files are committed as they were read.
+ */
+async function uncommittedCodeWarning(target: LandingTarget): Promise<string | undefined> {
+  const origin = await extractionOrigin(target.rootPath, target.changeset);
+  if (!origin.uncommitted || Object.keys(origin.uncommitted).length === 0) return undefined;
+  const check = await checkUncommitted(target.model.codebaseRoot ?? target.rootPath, origin.uncommitted);
+  if (check.settled) return undefined;
+  const files = [...check.pending, ...check.changed];
+  const listed = files.length > 5 ? `${files.slice(0, 5).join(", ")} and ${files.length - 5} more` : files.join(", ");
+  const read = origin.gitHead ? ` at ${origin.gitHead.slice(0, 7)}` : "";
+  return (
+    `Commit the code first, then land. The extraction read ${Object.keys(origin.uncommitted).length} source file(s) with uncommitted changes` +
+    `${read}; ${check.pending.length ? `${check.pending.length} still uncommitted` : ""}` +
+    `${check.pending.length && check.changed.length ? ", " : ""}${check.changed.length ? `${check.changed.length} committed with other content than it read` : ""} ` +
+    `(${listed}). Landing now is recorded against a HEAD that lacks that code, and once the code is committed project_status shows drift that isn't real. ` +
+    "Landing after the code is committed as it was read records the commit that holds it."
+  );
+}
+
+/** The line of the landing summary for a landing that stages nothing, and where it moves the drift baseline. */
+async function emptyReconcileLine(target: LandingTarget): Promise<string | undefined> {
+  if (target.changeset.changes.length > 0) return undefined;
+  const stamp = await reconciliationStamp(target.rootPath, target.changeset, target.model.codebaseRoot ?? target.rootPath);
+  const from = target.model.manifest.reconciled?.code_commit;
+  const to = stamp?.code_commit;
+  return (
+    `0 changes: records that the model matches the code it read, and moves the drift baseline ` +
+    `${from ? `from ${from.slice(0, 7)} ` : ""}${to ? `to ${to.slice(0, 7)}` : "to the code's HEAD at landing"}.`
+  );
+}
+
+/**
  * What the person should know before landing: an as-built changeset landing while the plan is
  * staged (the plan should land instead), the files the landing would re-lay out, and evidence that
  * something is still writing into it.
  */
 async function landingWarnings(target: LandingTarget): Promise<string[]> {
+  const uncommitted = await uncommittedCodeWarning(target);
   const asBuiltFirst = await asBuiltFirstWarning(target.manager, target.rootPath, target.changeset);
   // Files an earlier dr laid out, which the landing lays out anew (#1439): never refuses it
   const relayout = await landingRelayoutNote(target.rootPath, target.changeset.changes).catch((error) => {
@@ -570,6 +607,7 @@ async function landingWarnings(target: LandingTarget): Promise<string[]> {
   });
   const stillWriting = await target.manager.writeActivityWarning(target.changeset);
   return [
+    ...(uncommitted ? [uncommitted] : []),
     ...(asBuiltFirst ? [asBuiltFirst] : []),
     ...(relayout ? [relayout] : []),
     ...(stillWriting ? [stillWriting] : []),
@@ -603,7 +641,9 @@ async function prepareLanding(
   // A record (verification or upgrade) never lands (StagingAreaManager.commit refuses it too).
   const purposeRefusal = await manager.landingRefusal(changeset);
   if (purposeRefusal) throw purposeRefusal;
-  if (changeset.changes.length === 0) {
+  // A reconcile or bootstrap with nothing staged still lands: it records that the model matches the
+  // code it read, and moves the drift baseline there (#1331). Any other purpose has nothing to land.
+  if (changeset.changes.length === 0 && !(await landsEmpty(rootPath, changeset))) {
     return { result: jsonResult({ id: changeset.id, name: changeset.name, status: "nothing-to-commit", stagedChanges: 0 }) };
   }
 
@@ -628,7 +668,8 @@ async function summarizeLanding(target: LandingTarget, toolName: string): Promis
   const warnings = await landingWarnings(target);
   const { total, named } = overlapSummary(drift, OVERLAPS_NAMED_PER_KIND);
   const landsOn = await landsOnSentence(target.rootPath);
-  const message = confirmationMessage(changeset, drift, hash, preExistingErrors, warnings);
+  const emptyLine = await emptyReconcileLine(target);
+  const message = confirmationMessage(changeset, drift, hash, preExistingErrors, warnings, emptyLine);
   return {
     warnings,
     // The whole changeset and the whole base, whatever part of the overlaps the summary names.

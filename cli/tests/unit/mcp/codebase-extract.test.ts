@@ -3797,6 +3797,28 @@ describe("codebase_extract: the purpose of a since run by rule (#1370)", () => {
     expect(created.purpose).toBe("verification");
   }, SLOW);
 
+  it("makes an empty reconcile for an intent or a named changeset, though nothing stages (#1331)", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": RECONCILED });
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE) };
+    const handler = createCodebaseExtractHandler(h.deps);
+    // The first run's card is rejected, so the next run has nothing to stage or decide.
+    const first = ok(await handler({ since: "release-base", rootPath }));
+    expect(first.changeset).toBeNull();
+    const card = JSON.parse(await readFile(PENDING(), "utf-8")).cards[0];
+    ok(await handler({ reject: [{ card: card.cardId, reason: "wiring" }], rootPath }));
+
+    const empty = ok(await handler({ since: "release-base", intent: "Reconcile after the release", rootPath }));
+    expect(empty.changeset).toMatchObject({ created: true, active: true, purpose: "reconcile" });
+    expect(empty.message).toContain("landing it as it is records that the model matches the code");
+    expect(await changesetOf(empty.changeset.id)).toMatchObject({ purpose: "reconcile" });
+
+    // A verification record of nothing is not made: there is nothing to record.
+    const verification = ok(await handler({ since: "release-base", purpose: "verification", intent: "x", changeset: "none-to-record", rootPath }));
+    expect(verification.changeset).toBeNull();
+  }, SLOW);
+
   it("refuses a purpose with no since", async () => {
     await indexed();
     const result = fail(await createCodebaseExtractHandler(harness().deps)({ purpose: "reconcile", rootPath }));

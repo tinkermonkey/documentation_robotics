@@ -134,6 +134,7 @@ interface ExtractionRecordFile {
   /** The purpose the run declared (decideExtractionPurpose), kept so the changeset made for it later declares the same. */
   purpose?: unknown;
   verifies?: unknown;
+  uncommitted?: unknown;
 }
 
 /** What extractionOrigin reads about the changeset's extraction from its record. */
@@ -147,6 +148,8 @@ export interface ExtractionOrigin {
   previousActive?: { id: string; name: string };
   /** The purpose the run declared, when it recorded one (a run before #1370 did not). */
   declared?: PurposeDeclaration;
+  /** Source files with uncommitted changes when the run read the code, with their content hashes: the model may describe code no commit holds (#1330). */
+  uncommitted?: Record<string, string | null>;
 }
 
 /** The record's fields, read leniently. */
@@ -161,6 +164,9 @@ function originOf(record: ExtractionRecordFile): Omit<ExtractionOrigin, "asBuilt
   });
   return {
     ...(declared && EXTRACTION_PURPOSES.includes(declared.purpose) ? { declared } : {}),
+    ...(record.uncommitted && typeof record.uncommitted === "object" && !Array.isArray(record.uncommitted) && Object.keys(record.uncommitted).length > 0
+      ? { uncommitted: record.uncommitted as Record<string, string | null> }
+      : {}),
     ...(typeof record.gitHead === "string" && record.gitHead ? { gitHead: record.gitHead } : {}),
     ...(typeof record.since === "string" && record.since ? { since: record.since } : {}),
     ...(previous && typeof previous === "object" && typeof previous.id === "string" && previous.id

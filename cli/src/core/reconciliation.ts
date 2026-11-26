@@ -17,6 +17,9 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import type { ReconciledStamp } from "../types/index.js";
 import { extractionOrigin, purposeOf, RECONCILING_PURPOSES, type PurposeSubject } from "./changeset-purpose.js";
 
@@ -32,6 +35,64 @@ function gitHead(dir: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** A hash of each file's content under `codeRoot`; null for one that is gone. */
+export async function hashFiles(codeRoot: string, files: readonly string[]): Promise<Record<string, string | null>> {
+  const hashes: Record<string, string | null> = {};
+  for (const file of files) {
+    try {
+      hashes[file] = createHash("sha1").update(await readFile(path.join(codeRoot, file))).digest("hex");
+    } catch {
+      hashes[file] = null;
+    }
+  }
+  return hashes;
+}
+
+/** Whether git reports no uncommitted change to `file` (null when git can't say). */
+function isCommitted(codeRoot: string, file: string): boolean | null {
+  try {
+    const r = spawnSync("git", ["status", "--porcelain", "--untracked-files=all", "--", file], { cwd: codeRoot, stdio: "pipe", encoding: "utf-8", timeout: 10_000 });
+    return r.status === 0 ? r.stdout.trim() === "" : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether `ancestor` is an ancestor of (or is) `descendant` in the repository at `codeRoot`. */
+function isAncestor(codeRoot: string, ancestor: string, descendant: string): boolean {
+  try {
+    return spawnSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], { cwd: codeRoot, stdio: "pipe", timeout: 10_000 }).status === 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Where the uncommitted files an extraction read stand now (#1330). */
+export interface UncommittedCheck {
+  /** Files still uncommitted, or that git could not check. */
+  pending: string[];
+  /** Files committed with other content than the extraction read (edited again, or reverted). */
+  changed: string[];
+  /** Every file was committed as the extraction read it: HEAD now holds that code. */
+  settled: boolean;
+}
+
+/**
+ * Where the files an extraction read with uncommitted changes (`recorded`, with their content
+ * hashes) stand now: still uncommitted, committed as they were read, or committed with other content.
+ */
+export async function checkUncommitted(codeRoot: string, recorded: Readonly<Record<string, string | null>>): Promise<UncommittedCheck> {
+  const files = Object.keys(recorded);
+  const now = await hashFiles(codeRoot, files);
+  const pending: string[] = [];
+  const changed: string[] = [];
+  for (const file of files) {
+    if (isCommitted(codeRoot, file) !== true) pending.push(file);
+    else if (now[file] !== recorded[file]) changed.push(file);
+  }
+  return { pending, changed, settled: files.length > 0 && pending.length === 0 && changed.length === 0 };
 }
 
 /**
@@ -51,13 +112,29 @@ export async function reconciliationStamp(
   const { purpose } = await purposeOf(projectRoot, changeset);
   if (!RECONCILING_PURPOSES.includes(purpose)) return null;
   const origin = await extractionOrigin(projectRoot, changeset);
-  const codeCommit = origin.gitHead ?? gitHead(codeRoot) ?? undefined;
+  let codeCommit = origin.gitHead ?? gitHead(codeRoot) ?? undefined;
+  // The extraction read uncommitted code (#1330). Once every such file is committed as it was read,
+  // HEAD holds the code the model was built from, and the stamp is that HEAD, not the commit before it.
+  if (origin.uncommitted && Object.keys(origin.uncommitted).length > 0 && codeCommit) {
+    const head = gitHead(codeRoot);
+    if (head && head !== codeCommit && isAncestor(codeRoot, codeCommit, head) && (await checkUncommitted(codeRoot, origin.uncommitted)).settled) {
+      codeCommit = head;
+    }
+  }
   return {
     changeset: changeset.name,
     changeset_id: changeset.id,
     landed_at: landedAt,
     ...(codeCommit ? { code_commit: codeCommit } : {}),
   };
+}
+
+/**
+ * Whether the changeset may land with no staged changes: a reconcile or bootstrap, whose landing
+ * is the record that the model matches the code it read (#1331). Any other purpose has nothing to land.
+ */
+export async function landsEmpty(projectRoot: string, changeset: PurposeSubject): Promise<boolean> {
+  return RECONCILING_PURPOSES.includes((await purposeOf(projectRoot, changeset)).purpose);
 }
 
 /** A manifest's `reconciled` block, read leniently: null when absent or malformed. */

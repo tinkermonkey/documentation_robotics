@@ -61,6 +61,8 @@ export interface CodebaseToolDeps {
   rangeSize?: (codebaseRoot: string, base: string, wantSteps?: (commits: number) => boolean) => RangeSize | null;
   /** Source files with uncommitted edits newer than a time (defaults to git status and mtimes). */
   sourceEdits?: (codebaseRoot: string, sinceMs: number, isSource: (file: string) => boolean) => Promise<string[]>;
+  /** Every source file with uncommitted changes now (defaults to git status), for the files an index read that no commit holds. */
+  sourceDirty?: (codebaseRoot: string, isSource: (file: string) => boolean) => Promise<string[]>;
   /**
    * Files changed between two commits, relative to the codebase root; null when git can't say
    * (defaults to git diff). Index freshness reads it when HEAD has moved since the index.
@@ -330,6 +332,13 @@ export interface IndexJudgement {
   committedSince: string[];
   /** Source files with uncommitted edits written after the index was taken. */
   editedSince: string[];
+  /**
+   * Source files with uncommitted changes the index did read (they were already there when it was
+   * taken, and have not changed since). The index describes them, but no commit does: an
+   * extraction from this index is recorded against a HEAD that lacks that code (#1330). Does not
+   * change `state`; `editedSince` (changes the index has not seen) does.
+   */
+  uncommittedRead?: string[];
   /** Set when the calling tool indexed the code before judging it (codebase-index.ts indexFirst). */
   indexedFirst?: IndexedFirst;
 }
@@ -353,6 +362,8 @@ export interface IndexProbe {
   changedBetween(from: string, to: string): Promise<string[] | null>;
   /** Source files with uncommitted edits written after `sinceMs`, relative to the codebase root. */
   editedSince(sinceMs: number): Promise<string[]>;
+  /** Every source file with uncommitted changes now, seen by the index or not; absent when not asked. */
+  dirtyFiles?(): Promise<string[]>;
 }
 
 /**
@@ -365,7 +376,7 @@ export interface IndexProbe {
  */
 export function indexProbe(
   codebaseRoot: string,
-  options: { git?: GitRunner; snapshot?: WorktreeSnapshot | null } & Pick<CodebaseToolDeps, "committedChanges" | "sourceEdits"> = {}
+  options: { git?: GitRunner; snapshot?: WorktreeSnapshot | null } & Pick<CodebaseToolDeps, "committedChanges" | "sourceEdits" | "sourceDirty"> = {}
 ): IndexProbe {
   const git = options.git ?? runGit;
   return {
@@ -373,6 +384,10 @@ export function indexProbe(
       if (options.committedChanges) return options.committedChanges(codebaseRoot, from, to);
       const result = await git(["diff", "--name-only", "--no-renames", "-z", "--relative", from, to, "--"], codebaseRoot);
       return result.ok ? result.stdout.split("\0").filter((file) => file.length > 0) : null;
+    },
+    async dirtyFiles() {
+      if (options.sourceDirty) return options.sourceDirty(codebaseRoot, isIndexedSource);
+      return [...new Set((await workingChanges(git, codebaseRoot))?.map((c) => c.file) ?? [])].sort();
     },
     async editedSince(sinceMs) {
       if (options.sourceEdits) return options.sourceEdits(codebaseRoot, sinceMs, isIndexedSource);
@@ -477,7 +492,8 @@ export async function judgeIndex(
       editedSince,
     };
   }
-  return { state: "fresh", ...(moved ? { reason: moved } : {}), committedSince, editedSince };
+  const uncommittedRead = probe.dirtyFiles ? (await probe.dirtyFiles()).filter((f) => !editedSince.includes(f)) : [];
+  return { state: "fresh", ...(moved ? { reason: moved } : {}), committedSince, editedSince, ...(uncommittedRead.length ? { uncommittedRead } : {}) };
 }
 
 /**
@@ -508,7 +524,7 @@ export async function assessIndex(
       joined: freshness.meta.joined,
     },
     freshness.currentGitHead,
-    options.uncommittedEdits === false ? { ...probe, editedSince: async () => [] } : probe,
+    options.uncommittedEdits === false ? { ...probe, editedSince: async () => [], dirtyFiles: undefined } : probe,
     installedVersion
   );
   return { freshness, judgement };
@@ -533,6 +549,15 @@ export async function assessSelectedIndex(
   return { analyzer, ...(await assessIndex(projectRoot, analyzer, codebaseRoot, deps, options)) };
 }
 
+/** What to say when the index read source files that no commit holds yet (#1330). */
+export function uncommittedReadNote(files: readonly string[]): string {
+  const n = files.length;
+  return (
+    `${n} source file${n === 1 ? " has" : "s have"} uncommitted changes the index read (${listed([...files])}). Code extracted from it ` +
+    "exists in no commit: commit it before landing what you model, or the landing is recorded against a HEAD that lacks that code."
+  );
+}
+
 /**
  * The index part of a codebase tool result. `fresh` is true only for the `fresh` state. Without a
  * judgement it never judges by HEAD equality: it reports the freshness it was given, which
@@ -552,6 +577,7 @@ export function describeIndex(freshness: IndexFreshness, judgement?: IndexJudgem
     state,
     ...(judgement?.reason ? { reason: judgement.reason } : {}),
     ...(judgement?.editedSince.length ? { uncommittedEdits: judgement.editedSince } : {}),
+    ...(judgement?.uncommittedRead?.length ? { uncommittedInIndex: judgement.uncommittedRead, uncommittedNote: uncommittedReadNote(judgement.uncommittedRead) } : {}),
     lastIndexed: freshness.meta.timestamp,
     gitHead: freshness.meta.git_head,
     currentGitHead: freshness.currentGitHead,
