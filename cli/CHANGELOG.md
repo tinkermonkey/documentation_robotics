@@ -76,6 +76,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unchanged.weakCallPairs` (reason `name-matched` or `member-of-unreferenced-class`, paged with
   `list: "weakCalls"`) as hints to check against the code; `unchanged.weakCalls` is their count. A
   call from a component to an application service keeps its direction, service `serves` caller.
+- **`changeset_brief` intent and gaps (#1329, #1391, #1392):** an added requirement, feature or capability
+  that realizes, satisfies or supports a goal or outcome, added or not, now anchors the intent trace, and
+  an added goal or outcome ends it, so a bootstrap that writes its motivation, business and product layers
+  in the same changeset reports traced elements. An accepted gap the plan wires anyway is listed under
+  `gaps` as `contradicted-accepted`, with the `gap_reopen` call. Peer-pattern gaps skip elements marked
+  `external` or `headless` (`type`, `kind` or `role` attribute) and connections that two or more elements
+  of the type have accepted as absent. The path shown for a traced element prefers realizes, serves,
+  satisfies, supports and composes chains to a route through a shared neighbour.
 - `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
   `http.createServer` handler, and route tables or anchored regexes (`matchRoute` over a ROUTES
   table) where the path is readable. A hand-routed file it could only read in part is listed under
