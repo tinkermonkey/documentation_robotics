@@ -709,3 +709,30 @@ describe("unverifiable planned changes (D1)", () => {
     expect(report.verdictText).toContain("Nothing in the plan can be checked");
   });
 });
+
+describe("values extraction made up are not compared (#1349)", () => {
+  const plan = () =>
+    planFromChangeset(
+      changeset("plan", [addEl(OP, { attributes: { http_method: "GET", http_path: "/orders/export", operationId: "exportOrders", summary: "Export orders", tags: "orders" } })])
+    );
+  const built = () =>
+    asBuilt([addEl(OP, { attributes: { http_method: "GET", http_path: "/orders/export", operationId: "get-orders-export", summary: "GET /orders/export", tags: "orders" } })]);
+
+  it("flags a planned operationId that differs from the one the code states", async () => {
+    const report = verifyChangeset(plan(), await built());
+    expect(report.elements.divergent.map((d) => d.fields.map((f) => f.field))).toEqual([["attributes.operationId", "attributes.summary"]]);
+  });
+
+  it("leaves the fields extraction made up out of the comparison, and says which it couldn't check", async () => {
+    const report = verifyChangeset(plan(), await built(), { defaultedFields: new Map([[OP, new Map<string, unknown>([["operationId", "get-orders-export"], ["summary", "GET /orders/export"], ["tags", "orders"]])]]) });
+    expect(report.elements.divergent).toEqual([]);
+    expect(report.elements.matched).toHaveLength(1);
+    expect(report.elements.matched[0].unverifiableFields?.map((f) => f.field)).toEqual(["attributes.operationId", "attributes.summary"]);
+    expect(report.verdict).toBe("match");
+  });
+
+  it("compares a field the build has since changed from the placeholder", async () => {
+    const report = verifyChangeset(plan(), await built(), { defaultedFields: new Map([[OP, new Map<string, unknown>([["operationId", "was-a-placeholder"], ["summary", "GET /orders/export"]])]]) });
+    expect(report.elements.divergent.map((d) => d.fields.map((f) => f.field))).toEqual([["attributes.operationId"]]);
+  });
+});

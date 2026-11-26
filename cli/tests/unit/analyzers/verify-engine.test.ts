@@ -435,8 +435,11 @@ get-products:
 `;
       await writeFile(join(modelDir, "operations.yaml"), apiYaml);
 
-      // No routes discovered
-      const routes: DiscoveredRoute[] = [];
+      // The analyzer reads another route from the operation's file, and none is this one. (A file it
+      // reads no route from at all is not_checked, never drift: #1321.)
+      const routes: DiscoveredRoute[] = [
+        { id: "other", http_method: "GET", http_path: "/other", source_file: "src/handlers/products.ts", source_symbol: "ProductsHandler.other" },
+      ];
 
       const engine = new VerifyEngine();
       const report = await engine.computeReport(testProjectRoot, routes, {
@@ -728,6 +731,8 @@ ignore:
           source_file: "src/handlers/products.ts",
           source_symbol: "ProductsHandler.getProducts",
         },
+        // The file the ignored operation is sourced to has a route the analyzer reads (so the operation is drift, then ignored).
+        { id: "route-3", http_method: "GET", http_path: "/elsewhere", source_file: "src/handlers/deprecated.ts", source_symbol: "DeprecatedHandler.x" },
       ];
 
       const engine = new VerifyEngine();
@@ -816,6 +821,7 @@ ignore:
           id: "route-unmatched",
           http_method: "DELETE",
           http_path: "/data",
+          source_file: "src/handlers/api.ts",
         },
       ];
 

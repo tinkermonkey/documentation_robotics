@@ -39,6 +39,8 @@ import type { MappingLoader } from "./mapping-loader.js";
 import { analyzerChanged, binaryVersion, getCliVersion, parseVersion } from "./version.js";
 import { StagingAreaManager } from "../core/staging-area.js";
 import { DR_OWN_DIRS } from "./code-changes.js";
+import { collectHandRoutes } from "./cards/hand-routes.js";
+import { isRoutePath, normRoutePath } from "./cards/routes.js";
 import { VerifyEngine, apiLayerReport, type DiscoveredRoute } from "./verify-engine.js";
 import { LAYER_CHECKS, readRecordedDecisions, rejectionsApplied, rulesApplied, verifyLayers, type RecordedDecisions } from "./layer-verify.js";
 import { loadProjectRules, type CompiledRule } from "./project-rules.js";
@@ -124,6 +126,7 @@ function isLikelyHttpRoute(qualifiedName: string): boolean {
   // Reject source-code file paths, internal DR paths, and spec artifact paths
   // (e.g. /schemas/motivation/goal from test fixtures or openapi schema refs)
   return !SOURCE_CODE_EXT_RE.test(httpPath)
+    && isRoutePath(httpPath)
     && !httpPath.startsWith("/.dr/")
     && !httpPath.startsWith("/schemas/");
 }
@@ -2529,6 +2532,38 @@ export class CbmAnalyzer implements AnalyzerBackend {
         .map((node) => this.shapeRoute(node))
         .filter((r) => r.source_file);
 
+      // Routes a server routes by hand (an http.createServer handler, a route table or regexes): the
+      // graph has none of them. Read from the files' text, and the files whose reading is partial are
+      // kept apart: what the model has there that no route matched is for the agent to check, not drift.
+      const partialFiles = new Set<string>();
+      try {
+        const files = (await cbmCardGraph(tools, projectName).rows("MATCH (f:File) RETURN f.file_path"))
+          .map(([f]) => f)
+          .filter((f): f is string => typeof f === "string");
+        const hand = collectHandRoutes(files, (file) => {
+          try {
+            return readFileSync(path.join(effectiveCodebaseRoot, file), "utf-8");
+          } catch {
+            return null;
+          }
+        });
+        for (const file of hand.partialFiles) partialFiles.add(file);
+        const have = new Set(routes.map((r) => `${r.http_method} ${normRoutePath(r.http_path)}`));
+        for (const r of hand.routes) {
+          if (have.has(`${r.method} ${normRoutePath(r.path)}`)) continue;
+          routes.push({
+            id: `${r.file}:${r.method} ${r.path}`,
+            http_method: r.method,
+            http_path: r.path,
+            handler: r.handler ?? "",
+            source_file: r.file,
+            source_symbol: `${r.method} ${r.path}`,
+          });
+        }
+      } catch (error) {
+        handleWarning(`Could not read hand-written routes from the project's files: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
       // Routes an OpenAPI file declares (CBM `source: "openapi"`, with the file as their own):
       // kept apart from the served ones, and compared only with the operations sourced to that
       // file, as codebase_extract stages them. A frontend that consumes an API has only these.
@@ -2599,6 +2634,7 @@ export class CbmAnalyzer implements AnalyzerBackend {
       };
       const report = await engine.computeReport(projectRoot, routes, options, analyzerName, indexMeta, notIndexed, {
         declaredRoutes,
+        partialFiles,
         notElements: recorded.notElements,
         ruleExcluded,
       });

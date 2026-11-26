@@ -1,0 +1,40 @@
+id: changeset-1795703305498-zzbzbqjye
+name: cli010-t2-routes
+description: "Tier 0 route recognition (#1321, #1349, #1303 C1): read hand-routed http.createServer and route-table routes; drop test-file/ANY/non-path false routes; read createRoute operationId/summary/tags instead of making them up (verify ignores defaulted fields); codebase_verify lists operations in unreadable files as not_checked, never drift."
+created: 2026-11-26T14:28:25.626Z
+modified: 2026-11-26T14:43:40.531Z
+status: staged
+baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 5
+  modifications: 0
+  deletions: 0
+lastSequence: 6
+unstaged:
+  - sequence: 1
+    removedAt: 3
+    change:
+      type: add
+      elementId: application.applicationfunction.read-route-definition
+      layerName: application
+      after:
+        id: b77653de-97b4-4550-8d98-dfe2102006c6
+        path: application.applicationfunction.read-route-definition
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: readRouteDefinition
+        description: Reads operationId, summary and tags from a Hono createRoute / OpenAPI route definition; fields it cannot read stay unset.
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/src/analyzers/cards/hand-routes.ts
+              symbol: readRouteDefinition
+        metadata:
+          created_at: 2026-11-26T14:28:31.863Z
+          updated_at: 2026-11-26T14:28:31.863Z
+          version: 1
+      timestamp: 2026-11-26T14:28:32.347Z
