@@ -1,0 +1,76 @@
+id: changeset-1795703137854-kgyu5a4g2
+name: cli010-a1-purpose-recorded
+description: "#1171 + #1370: add the `recorded` changeset status (landing a plan moves the verification records that verify it to recorded; hidden from changeset_list default, project_status staged work/nextStep, and the viewer API), and have codebase_extract pick the purpose by rule when since is given with no plan active (since == manifest reconciled code commit → reconcile, otherwise verification record naming the plan it verifies or none; explicit purpose overrides). Done = tests for both branches and that a since-scoped verification landing cannot stamp reconciled; lifecycle documented."
+created: 2026-11-26T14:25:37.911Z
+modified: 2026-11-26T14:41:00.533Z
+status: staged
+baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 6
+  modifications: 0
+  deletions: 0
+lastSequence: 8
+unstaged:
+  - sequence: 2
+    removedAt: 3
+    change:
+      type: add
+      elementId: application.applicationfunction.changeset-mark-recorded
+      layerName: application
+      after:
+        id: 2acc00cf-6733-46a3-88f5-e65c1ece111d
+        path: application.applicationfunction.changeset-mark-recorded
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: Changeset markRecorded
+        description: "Sets a staged verification record's status to recorded: kept in git with the plan, no longer staged work."
+        metadata:
+          created_at: 2026-11-26T14:25:59.293Z
+          updated_at: 2026-11-26T14:25:59.293Z
+          version: 1
+      timestamp: 2026-11-26T14:25:59.656Z
+    rewritten: true
+  - sequence: 0
+    removedAt: 4
+    change:
+      type: add
+      elementId: application.applicationfunction.decide-extraction-purpose
+      layerName: application
+      after:
+        id: 74d48a98-4f28-4f40-9576-120c8f62ed71
+        path: application.applicationfunction.decide-extraction-purpose
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: decideExtractionPurpose
+        description: "The purpose codebase_extract declares for the changeset it makes: an explicit purpose argument wins; with a plan active a since run is its verification record; with no plan active a since equal to the manifest's reconciled code commit is a reconcile and any other since a verification record naming the one staged plan it verifies, or none."
+        metadata:
+          created_at: 2026-11-26T14:25:59.286Z
+          updated_at: 2026-11-26T14:25:59.286Z
+          version: 1
+      timestamp: 2026-11-26T14:25:59.656Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 5
+    change:
+      type: add
+      elementId: application.applicationfunction.staging-area-manager-record-verifications-of
+      layerName: application
+      after:
+        id: d1831c1b-7ae4-438e-a6fa-4286c6a40906
+        path: application.applicationfunction.staging-area-manager-record-verifications-of
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: StagingAreaManager recordVerificationsOf
+        description: On landing a plan, moves the staged verification records that name it (verifies) to the recorded status. Discarding a record stays an explicit move.
+        metadata:
+          created_at: 2026-11-26T14:25:59.291Z
+          updated_at: 2026-11-26T14:25:59.291Z
+          version: 1
+      timestamp: 2026-11-26T14:25:59.656Z
+    rewritten: true
