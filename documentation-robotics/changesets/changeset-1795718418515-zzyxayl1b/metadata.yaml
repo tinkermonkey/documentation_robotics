@@ -1,0 +1,177 @@
+id: changeset-1795718418515-zzyxayl1b
+name: cli010-b2-intent-gaps
+description: |-
+  Make `changeset_brief` trustworthy for bootstraps and long plans (#1329, #1391, #1392).
+
+  **In scope:** intent tracing treats an added requirement/feature/capability that realizes, satisfies or supports a goal or outcome (added or not) as an anchor; contradicted accepted gaps are listed under `gaps` with the `gap_reopen` call; peer-pattern gaps skip external/headless elements and learn from accepted gaps of the same type; shown traced paths prefer realizes/serves chains over hubs.
+
+  **Done when:** cabinet-sheets and toland-cad-shaped bootstraps report traced elements, and tests cover each change.
+created: 2026-11-26T18:40:18.560Z
+modified: 2026-11-26T18:45:23.402Z
+status: staged
+baseSnapshot: v2:sha256:440d553c6129cdbb5bfa188b1e6a5020a929c3bd525183dfeea350a86b02670b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 12
+  modifications: 0
+  deletions: 0
+lastSequence: 17
+unstaged:
+  - sequence: 0
+    removedAt: 12
+    change:
+      type: add
+      elementId: testing.testcasesketch.changeset-brief-lists-a-contradicted-accepted-gap-under-gaps-with-the-gap-reopen-call-1391
+      layerName: testing
+      after:
+        id: 8d9323c8-6b24-42ae-849f-8214818b66c0
+        path: testing.testcasesketch.changeset-brief-lists-a-contradicted-accepted-gap-under-gaps-with-the-gap-reopen-call-1391
+        spec_node_id: testing.testcasesketch
+        type: testcasesketch
+        layer_id: testing
+        name: changeset-brief-lists-a-contradicted-accepted-gap-under-gaps-with-the-gap-reopen-call-1391
+        attributes:
+          status: automated
+          implementationFormat: automated
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/tests/unit/mcp/accepted-gaps.test.ts
+        metadata:
+          created_at: 2026-11-26T18:45:00.866Z
+          updated_at: 2026-11-26T18:45:00.866Z
+          version: 1
+      timestamp: 2026-11-26T18:45:00.925Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 13
+    change:
+      type: add
+      elementId: testing.testcasesketch.changeset-brief-peer-patterns-skip-an-external-element-and-learn-from-accepted-gaps-of-the-same-a1878606
+      layerName: testing
+      after:
+        id: 5c754fc9-4a88-472a-b3a9-7bfd578f9844
+        path: testing.testcasesketch.changeset-brief-peer-patterns-skip-an-external-element-and-learn-from-accepted-gaps-of-the-same-a1878606
+        spec_node_id: testing.testcasesketch
+        type: testcasesketch
+        layer_id: testing
+        name: changeset-brief-peer-patterns-skip-an-external-element-and-learn-from-accepted-gaps-of-the-same-type-1392
+        attributes:
+          status: automated
+          implementationFormat: automated
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/tests/unit/mcp/accepted-gaps.test.ts
+        metadata:
+          created_at: 2026-11-26T18:45:00.866Z
+          updated_at: 2026-11-26T18:45:00.866Z
+          version: 1
+      timestamp: 2026-11-26T18:45:00.925Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 14
+    change:
+      type: add
+      elementId: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-requirement-that-satisfies-an-added-requirement-e0b1dd3c
+      layerName: testing
+      after:
+        id: c98d3fb8-cac2-4852-ab4c-da431adf24ca
+        path: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-requirement-that-satisfies-an-added-requirement-e0b1dd3c
+        spec_node_id: testing.testcasesketch
+        type: testcasesketch
+        layer_id: testing
+        name: intent-tracing-in-a-bootstrap-1329-anchors-an-added-requirement-that-satisfies-an-added-requirement-that-realizes-the-goal
+        attributes:
+          status: automated
+          implementationFormat: automated
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/tests/unit/mcp/changeset-brief-bootstrap-intent.test.ts
+        metadata:
+          created_at: 2026-11-26T18:45:00.866Z
+          updated_at: 2026-11-26T18:45:00.866Z
+          version: 1
+      timestamp: 2026-11-26T18:45:00.925Z
+    rewritten: true
+  - sequence: 3
+    removedAt: 15
+    change:
+      type: add
+      elementId: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-leaves-a-requirement-that-reaches-no-goal-unanchored
+      layerName: testing
+      after:
+        id: a9c578df-f613-4bef-b933-8ef46c3ffa5e
+        path: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-leaves-a-requirement-that-reaches-no-goal-unanchored
+        spec_node_id: testing.testcasesketch
+        type: testcasesketch
+        layer_id: testing
+        name: intent-tracing-in-a-bootstrap-1329-leaves-a-requirement-that-reaches-no-goal-unanchored
+        attributes:
+          status: automated
+          implementationFormat: automated
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/tests/unit/mcp/changeset-brief-bootstrap-intent.test.ts
+        metadata:
+          created_at: 2026-11-26T18:45:00.866Z
+          updated_at: 2026-11-26T18:45:00.866Z
+          version: 1
+      timestamp: 2026-11-26T18:45:00.925Z
+    rewritten: true
+  - sequence: 4
+    removedAt: 16
+    change:
+      type: add
+      elementId: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-shows-a-realizes-chain-as-the-path-not-a-route-through-a-13b2d827
+      layerName: testing
+      after:
+        id: 56ba34c8-e323-4dcc-85e2-752d58d2452f
+        path: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-shows-a-realizes-chain-as-the-path-not-a-route-through-a-13b2d827
+        spec_node_id: testing.testcasesketch
+        type: testcasesketch
+        layer_id: testing
+        name: intent-tracing-in-a-bootstrap-1329-shows-a-realizes-chain-as-the-path-not-a-route-through-a-neighbour-it-merely-uses-1392
+        attributes:
+          status: automated
+          implementationFormat: automated
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/tests/unit/mcp/changeset-brief-bootstrap-intent.test.ts
+        metadata:
+          created_at: 2026-11-26T18:45:00.866Z
+          updated_at: 2026-11-26T18:45:00.866Z
+          version: 1
+      timestamp: 2026-11-26T18:45:00.925Z
+    rewritten: true
+  - sequence: 5
+    removedAt: 17
+    change:
+      type: add
+      elementId: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-traces-code-through-an-added-requirement-that-realizes-an-added-8da7cefc
+      layerName: testing
+      after:
+        id: 2a4e2f1b-ac27-4821-8cc5-aa04166c9c0f
+        path: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-traces-code-through-an-added-requirement-that-realizes-an-added-8da7cefc
+        spec_node_id: testing.testcasesketch
+        type: testcasesketch
+        layer_id: testing
+        name: intent-tracing-in-a-bootstrap-1329-traces-code-through-an-added-requirement-that-realizes-an-added-goal
+        attributes:
+          status: automated
+          implementationFormat: automated
+        source_reference:
+          provenance: manual
+          locations:
+            - file: cli/tests/unit/mcp/changeset-brief-bootstrap-intent.test.ts
+        metadata:
+          created_at: 2026-11-26T18:45:00.866Z
+          updated_at: 2026-11-26T18:45:00.866Z
+          version: 1
+      timestamp: 2026-11-26T18:45:00.925Z
+    rewritten: true
