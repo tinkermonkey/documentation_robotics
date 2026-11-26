@@ -13,6 +13,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { Model } from "../../../src/core/model.js";
 import { StagingAreaManager } from "../../../src/core/staging-area.js";
 import { clearModelCache } from "../../../src/mcp/tools/shared.js";
@@ -2279,6 +2280,25 @@ describe("codebase_extract: rejecting relationships and files (#1095, #1097)", (
     expect(ok(await handler({ changeset: "as-built-2", rootPath })).staged.relationships).toBe(1);
   }, SLOW);
 
+  it("rejects a test file's links as a group: files plus predicate (#1412)", async () => {
+    await indexed();
+    const h = harness();
+    const handler = createCodebaseExtractHandler(h.deps);
+    const first = ok(await handler({ rootPath }));
+    expect(await relationshipIds(first.changeset.id)).toContain(INFERRED_TEST);
+
+    // Nothing in that folder tests anything with another predicate; a typo records nothing.
+    expect(fail(await handler({ reject: [{ files: "src/nowhere/**", predicate: "tests", reason: "x" }], rootPath })).error).toContain("predicate: tests");
+    expect(fail(await handler({ reject: [{ files: TEST_FILE, predicate: "tests", card: "x", reason: "x" }], rootPath })).error).toContain("predicate");
+    expect(existsSync(decisionsFile())).toBe(false);
+
+    const rejected = ok(await handler({ reject: [{ files: TEST_FILE, predicate: "tests", reason: "named the same, a different thing" }], verbose: true, rootPath }));
+    expect(rejected.unstagedRelationships.items).toEqual([INFERRED_TEST]);
+    expect(await relationshipIds(first.changeset.id)).not.toContain(INFERRED_TEST);
+    const stored = JSON.parse(await readFile(decisionsFile(), "utf-8"));
+    expect(Object.keys(stored.notRelationships)).toEqual([INFERRED_TEST]);
+  }, SLOW);
+
   it("review: a reject that names an end by UUID is keyed by the dotted id, unstaged, and skipped later", async () => {
     await indexed();
     const h = harness();
@@ -2787,7 +2807,8 @@ describe("codebase_extract: decisions after landing, orphans, and waiting cards"
   /** A run that stages nothing (a since run over the service file), and the changeset the agent makes for its cards. */
   async function waitingCardsInAChangeset(handler: ReturnType<typeof createCodebaseExtractHandler>, h: Harness) {
     h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE) };
-    const run = ok(await handler({ since: "HEAD", rootPath }));
+    // purpose: reconcile says what a since run at an unstamped model is (by the rule it is a verification record, #1370).
+    const run = ok(await handler({ since: "HEAD", purpose: "reconcile", rootPath }));
     expect(run.changeset).toBeNull();
     const name = `extract-${HEAD.slice(0, 7)}+worktree`;
     const created = ok(await changesetCreateHandler({ name, description: "The agent's own words", rootPath }));
@@ -3689,4 +3710,93 @@ describe("codebase_extract clusters", () => {
     expect(calls).toEqual([]);
     expect(preview.clusters).toBeUndefined();
   });
+});
+
+describe("codebase_extract: the purpose of a since run by rule (#1370)", () => {
+  const SLOW = 120_000;
+  const RECONCILED = "2".repeat(40);
+
+  /** A since run over one file; intent makes the changeset even though the rules stage nothing. */
+  function sinceRun(h: Harness, extra: Record<string, unknown> = {}) {
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE) };
+    return createCodebaseExtractHandler(h.deps)({ since: "release-base", intent: "What was built", rootPath, ...extra });
+  }
+
+  /** Stamps the manifest as a reconciling landing would, and makes `ref` resolve to commits. */
+  async function reconciledAt(h: Harness, commit: string, resolves: Record<string, string>) {
+    const manifestPath = join(rootPath, "documentation-robotics/model/manifest.yaml");
+    const manifest = parseYaml(await readFile(manifestPath, "utf-8"));
+    manifest.reconciled = { changeset: "earlier", changeset_id: "cs-earlier", landed_at: "2026-01-01T00:00:00.000Z", code_commit: commit };
+    await writeFile(manifestPath, stringifyYaml(manifest));
+    clearModelCache();
+    h.deps.resolveCommit = (_root, ref) => resolves[ref];
+  }
+
+  it("makes a since equal to the reconciled commit a reconcile", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": RECONCILED });
+    const result = ok(await sinceRun(h));
+    expect(result.changeset.purpose).toBe("reconcile");
+    expect(result.purposeNote).toContain("reconcile");
+    expect(await changesetOf(result.changeset.id)).toMatchObject({ purpose: "reconcile" });
+  }, SLOW);
+
+  it("makes any other since a verification record, and says there is no plan to verify", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": "3".repeat(40) });
+    const result = ok(await sinceRun(h));
+    expect(result.changeset.purpose).toBe("verification");
+    expect(result.purposeNote).toContain("found no staged plan");
+    const made = await changesetOf(result.changeset.id);
+    expect(made.verifies).toBeUndefined();
+    expect(made.scope).toMatchObject({ since: "release-base", codeCommit: HEAD });
+  }, SLOW);
+
+  it("names the one staged plan a since record verifies, though none is active", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": "3".repeat(40) });
+    const plan = ok(await changesetCreateHandler({ name: "the-plan", rootPath }));
+    clearModelCache();
+    const manager = new StagingAreaManager(rootPath, await Model.load(rootPath));
+    await manager.clearActive();
+    const result = ok(await sinceRun(h));
+    expect(result.changeset.purpose).toBe("verification");
+    expect(result.purposeNote).toContain("verifies the plan 'the-plan'");
+    expect((await changesetOf(result.changeset.id)).verifies).toBe(plan.id);
+  }, SLOW);
+
+  it("lets an explicit purpose override the rule, either way", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": RECONCILED });
+    const verification = ok(await sinceRun(h, { purpose: "verification", changeset: "as-verification" }));
+    expect(verification.changeset.purpose).toBe("verification");
+
+    await reconciledAt(h, "4".repeat(40), { "release-base": "3".repeat(40) });
+    const reconcile = ok(await sinceRun(h, { purpose: "reconcile", changeset: "as-reconcile" }));
+    expect(reconcile.changeset.purpose).toBe("reconcile");
+  }, SLOW);
+
+  it("keeps the decision for a changeset the agent creates for waiting cards", async () => {
+    await indexed();
+    const h = harness();
+    await reconciledAt(h, RECONCILED, { "release-base": RECONCILED });
+    h.changes.value = { base: HEAD, changed: new Set([SERVICE_FILE]), deleted: new Map(), hunks: allLines(SERVICE_FILE) };
+    // No intent, and nothing the rules stage: cards wait for the changeset the agent creates.
+    const run = ok(await createCodebaseExtractHandler(h.deps)({ since: "release-base", purpose: "verification", rootPath }));
+    expect(run.changeset).toBeNull();
+    expect(run.purposeNote).toContain("verification record");
+    const created = ok(await changesetCreateHandler({ name: `extract-${HEAD.slice(0, 7)}+worktree`, rootPath }));
+    // The rule alone would say reconcile; the run was asked for a verification record.
+    expect(created.purpose).toBe("verification");
+  }, SLOW);
+
+  it("refuses a purpose with no since", async () => {
+    await indexed();
+    const result = fail(await createCodebaseExtractHandler(harness().deps)({ purpose: "reconcile", rootPath }));
+    expect(result.error).toContain("no since");
+  }, SLOW);
 });

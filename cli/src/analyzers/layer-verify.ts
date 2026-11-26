@@ -290,7 +290,7 @@ export async function readRecordedDecisions(
   try {
     const stored = JSON.parse(text);
     const staged = new Set((changesets ?? []).filter((c) => c.status === "staged").map((c) => c.id));
-    const landed = new Set((changesets ?? []).filter((c) => c.status === "committed").map((c) => c.id));
+    const landed = new Set((changesets ?? []).filter((c) => c.status === "committed" || c.status === "recorded").map((c) => c.id));
     const keys = (o: unknown, holds: (changesetId: string | undefined) => boolean) =>
       new Set(
         o && typeof o === "object"

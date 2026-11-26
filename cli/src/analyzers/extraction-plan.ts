@@ -1443,7 +1443,13 @@ export interface RelationshipPlan {
    * Test cases this run has an element for that test nothing: no call into an element, no element
    * they already test, and no source file their file is named after. By test file, most first.
    */
-  unwiredTests: Array<{ file: string; cases: number }>;
+  unwiredTests: Array<{ file: string; cases: number; candidates?: string[] }>;
+  /**
+   * Elements that test files reach by call but that are shared helpers (called from several test
+   * files none of which is named after them): no `tests` link is staged for them, they are not
+   * the subject. By files reached, most first.
+   */
+  sharedTestHelpers: Array<{ id: string; files: number }>;
   /** `tests` links inferred from a test file's name ({@link INFERRED_TEST_EDGE}), among `relationships` and `present`. */
   inferredTests: number;
   /**
@@ -1461,6 +1467,34 @@ export interface RelationshipPlan {
  * inference from the name, marked as such by this edge on the staged relationship's origin.
  */
 export const INFERRED_TEST_EDGE = "TEST_FILE_NAME";
+
+/**
+ * The edge a `tests` link has when the test's calls reached only symbols no element stands for (a
+ * rule rejected them): the link goes to the element that owns the file the rejected symbol is in,
+ * or, when that file has no owner, to the elements the rejected symbol itself calls (#1443).
+ */
+export const INFERRED_TEST_CALL_EDGE = "TEST_CALL_VIA_REJECTED";
+
+/** A helper called from at least this many test files, none named after it, is not any one test's subject (#1412). */
+export const SHARED_TEST_HELPER_FILES = 3;
+/** A rejected symbol that reaches more elements than this is not followed: the case is listed with them as candidates. */
+const MAX_FOLLOWED_SUBJECTS = 3;
+const MAX_CANDIDATES = 5;
+
+/**
+ * The package or app a file belongs to: the folder under `packages/`, `apps/`, `libs/`, `services/`,
+ * `modules/` or `plugins/` it is in, else the folder above a `test`, `tests`, `__tests__`, `spec`
+ * or `e2e` folder (`packages/render/test/x.test.ts` is `packages/render`). Null when the file is in
+ * none (a repository's single top-level test folder), which says nothing about its subject.
+ */
+export function packageOf(file: string): string | null {
+  const f = file.replace(/\\/g, "/");
+  const root = /^((?:[^/]+\/)*?(?:packages|apps|libs|services|modules|plugins)\/[^/]+)\//.exec(f);
+  if (root) return root[1];
+  const parts = f.split("/").slice(0, -1);
+  const at = parts.findIndex((seg) => /^(?:__tests__|tests?|spec|e2e)$/.test(seg));
+  return at > 0 ? parts.slice(0, at).join("/") : null;
+}
 
 /**
  * The source-file stem a test file is named after: `uiStore.spec.ts` and `uiStore.test.tsx` are
@@ -1604,24 +1638,31 @@ export function planRelationships(
   type Found = { sourceId: string; destinationId: string; relationship: EdgeRelationship; edge: string };
   const found: Found[] = [];
   const weakPairs = new Map<string, Found>();
-  for (const edge of extraction.edges) {
-    const m = mappings.get(edge.type);
-    if (!m) continue;
+  // What a symbol calls, for the test calls that reach a symbol no element stands for (#1443).
+  const callsFrom = new Map<string, ExtractedEdge[]>();
+  for (const e of extraction.edges) {
+    if (!mappings.has(e.type) || e.from.file == null) continue;
+    (callsFrom.get(e.from.qualifiedName) ?? callsFrom.set(e.from.qualifiedName, []).get(e.from.qualifiedName)!).push(e);
+  }
+  // Candidate subjects per test file, for the cases left unwired (work for the agent to check).
+  const candidatesOf = new Map<string, Set<string>>();
+  const candidate = (file: string | null | undefined, id: string | undefined) => {
+    if (file && id) (candidatesOf.get(file) ?? candidatesOf.set(file, new Set()).get(file)!).add(id);
+  };
+  type Resolved = NonNullable<ReturnType<typeof resolve>>;
+  const consider = (edge: ExtractedEdge, m: (typeof extraction.config.edgeMappings)[number], ra: Resolved, rb: Resolved, inferred: boolean) => {
     const isWeak = weak(edge);
-    const fileJoined = FILE_JOINED_EDGES.has(edge.type);
-    const ra = resolve(edge.from, fileJoined);
-    const rb = resolve(edge.to, fileJoined);
-    if (!ra || !rb) continue;
     // A member rolled up to its class says nothing about that class's own members.
-    if ((ra.rolledUp && edge.to.qualifiedName.startsWith(ra.rolledUp + ".")) || (rb.rolledUp && edge.from.qualifiedName.startsWith(rb.rolledUp + "."))) continue;
+    if (ra.rolledUp && edge.to.qualifiedName.startsWith(ra.rolledUp + ".")) return;
+    if (rb.rolledUp && edge.from.qualifiedName.startsWith(rb.rolledUp + ".")) return;
     // Two symbols of one file that both count as its owner say nothing about the owner.
-    if (ra.viaFile && rb.viaFile && edge.from.file === edge.to.file) continue;
+    if (ra.viaFile && rb.viaFile && edge.from.file === edge.to.file) return;
     const a = ra.id;
     let b = rb.id;
-    if (a === b) continue;
+    if (a === b) return;
     const ea = elements.get(a);
     let eb = elements.get(b);
-    if (!ea || !eb) continue;
+    if (!ea || !eb) return;
     // A test's call into code that a cross-cutting element (security, technology, APM) cites is a
     // test of the element that implements that code, when the file has one (#1181).
     if (ea.layer === "testing" && CROSS_CUTTING.has(eb.layer)) {
@@ -1634,18 +1675,102 @@ export function planRelationships(
     }
     // A test's call to a member of a class it never refers to is the index matching a name, not
     // the test exercising that class.
-    if (ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
-      continue;
+    if (!inferred && ea.layer === "testing" && rb.rolledUp && !(edge.from.file && refersToClass(referencedIn.get(edge.from.file), rb.rolledUp))) {
+      return;
     }
     const rel = relationshipFor(m, `${ea.layer}.${ea.type}`, `${eb.layer}.${eb.type}`, hasTriple, edge.evidence?.strategy ? { strategy: edge.evidence.strategy } : undefined);
-    if (!rel) continue;
+    if (!rel) return;
     const [sourceId, destinationId] = rel.inverted ? [b, a] : [a, b];
+    // A test that reached its subject only through code no element stands for: marked as inferred.
+    const label = inferred || (ea.layer === "testing" && rb.viaFile && rel.predicate === "tests") ? INFERRED_TEST_CALL_EDGE : edge.type;
     if (isWeak) {
       const key = `${sourceId}|${rel.id}|${destinationId}`;
       if (!weakPairs.has(key)) weakPairs.set(key, { sourceId, destinationId, relationship: rel, edge: edge.type });
+      return;
+    }
+    found.push({ sourceId, destinationId, relationship: rel, edge: label });
+  };
+  for (const edge of extraction.edges) {
+    const m = mappings.get(edge.type);
+    if (!m) continue;
+    const fileJoined = FILE_JOINED_EDGES.has(edge.type);
+    const ra = resolve(edge.from, fileJoined);
+    if (!ra) continue;
+    const rb = resolve(edge.to, fileJoined);
+    if (rb) {
+      consider(edge, m, ra, rb, false);
       continue;
     }
-    found.push({ sourceId, destinationId, relationship: rel, edge: edge.type });
+    // A test whose call reaches a symbol no element stands for, in a file with no owner: follow
+    // the symbol's own calls to the elements they reach (one hop), when they are few (#1443).
+    const from = elements.get(ra.id);
+    if (from?.layer !== "testing" || fileJoined || weak(edge)) continue;
+    const reached = new Map<string, { edge: ExtractedEdge; rb: Resolved }>();
+    for (const onward of callsFrom.get(edge.to.qualifiedName) ?? []) {
+      const next = resolve(onward.to, FILE_JOINED_EDGES.has(onward.type));
+      if (next && next.id !== ra.id && !weak(onward) && elements.get(next.id)?.layer !== "testing") reached.set(next.id, { edge: onward, rb: next });
+    }
+    if (reached.size > MAX_FOLLOWED_SUBJECTS) {
+      for (const id of reached.keys()) candidate(edge.from.file, id);
+    } else for (const { rb: next } of reached.values()) consider(edge, m, ra, next, true);
+  }
+
+  // A helper many test files call and none is named after is not their subject (#1412).
+  const filesOfElement = new Map<string, Set<string>>();
+  for (const m of [declaredIn, sourcedIn]) for (const [file, ids] of m) for (const id of ids) add(filesOfElement, id, file);
+  // Also every symbol an element stands for (a method's or route's element is in no top-level map).
+  for (const s of extraction.symbols) {
+    const id = elementOf.get(s.qualifiedName);
+    if (id && s.card.file_path) add(filesOfElement, id, s.card.file_path);
+  }
+  const testFileOf = new Map<string, string>();
+  for (const s of extraction.symbols) {
+    const id = elementOf.get(s.qualifiedName);
+    if (id && s.card.file_path && elements.get(id)?.layer === "testing") testFileOf.set(id, s.card.file_path);
+  }
+  const namedAfter = (testFile: string, id: string) => {
+    const stem = testedStem(testFile);
+    if (!stem) return false;
+    const k = toKebabCase(stem);
+    return [...(filesOfElement.get(id) ?? [])].some((f) => toKebabCase(path.posix.basename(f).replace(/\.[^.]+$/, "")) === k);
+  };
+  const reachedFrom = new Map<string, Set<string>>();
+  for (const r of found) {
+    const file = r.relationship.predicate === "tests" ? testFileOf.get(r.sourceId) : undefined;
+    if (file) (reachedFrom.get(r.destinationId) ?? reachedFrom.set(r.destinationId, new Set()).get(r.destinationId)!).add(file);
+  }
+  const helperIds = new Set([...reachedFrom].filter(([, files]) => files.size >= SHARED_TEST_HELPER_FILES).map(([id]) => id));
+  const sharedTestHelpers = [...helperIds].map((id) => ({ id, files: reachedFrom.get(id)!.size })).sort((x, y) => y.files - x.files || x.id.localeCompare(y.id));
+  // A test's calls into several packages: the ones in its own package are the subject.
+  const keepLink = (r: Found): boolean => {
+    if (r.relationship.predicate !== "tests") return true;
+    const file = testFileOf.get(r.sourceId);
+    if (!file) return true;
+    if (helperIds.has(r.destinationId) && !namedAfter(file, r.destinationId)) {
+      candidate(file, r.destinationId);
+      return false;
+    }
+    return true;
+  };
+  const afterHelpers = found.filter(keepLink);
+  const insidePackage = (file: string, id: string) => {
+    const pkg = packageOf(file);
+    const files = filesOfElement.get(id);
+    return !pkg || !files?.size || [...files].some((f) => f.startsWith(pkg + "/"));
+  };
+  const ownPackageHit = new Set<string>();
+  for (const r of afterHelpers) {
+    const file = r.relationship.predicate === "tests" ? testFileOf.get(r.sourceId) : undefined;
+    if (file && packageOf(file) && insidePackage(file, r.destinationId)) ownPackageHit.add(r.sourceId);
+  }
+  found.length = 0;
+  for (const r of afterHelpers) {
+    const file = r.relationship.predicate === "tests" ? testFileOf.get(r.sourceId) : undefined;
+    if (file && ownPackageHit.has(r.sourceId) && !insidePackage(file, r.destinationId)) {
+      candidate(file, r.destinationId);
+      continue;
+    }
+    found.push(r);
   }
   // Test cases no call links to anything: fall back to the element that owns the source file the
   // test file is named after, when exactly one file has that name and it has an owner (#1181). A
@@ -1659,6 +1784,8 @@ export function planRelationships(
     const stem = toKebabCase(path.posix.basename(file).replace(/\.[^.]+$/, ""));
     (filesByStem.get(stem) ?? filesByStem.set(stem, new Set()).get(stem)!).add(file);
   }
+  const fileElements = (file: string): string[] => [...new Set([...(declaredIn.get(file) ?? []), ...(sourcedIn.get(file) ?? [])])].filter((id) => elements.get(id)?.layer !== "testing");
+  const namedCandidates = new Set<string>();
   const unwired = new Map<string, number>();
   let inferredTests = 0;
   for (const s of extraction.symbols) {
@@ -1667,8 +1794,17 @@ export function planRelationships(
     const file = s.card.file_path;
     if (!id || !file || element?.layer !== "testing" || element.type !== "testcasesketch" || tested.has(id)) continue;
     const stem = testedStem(file);
-    const named = stem ? filesByStem.get(toKebabCase(stem)) : undefined;
-    const owner = named?.size === 1 ? fileOwner([...named][0]) : undefined;
+    const all = stem ? [...(filesByStem.get(toKebabCase(stem)) ?? [])] : [];
+    // Prefer the file in the test's own package; a name match in another package alone is only a
+    // candidate (render.test.ts in packages/render is not about apps/render-gpu/render.py).
+    const pkg = packageOf(file);
+    const own = pkg ? all.filter((f) => f.startsWith(pkg + "/")) : all;
+    const named = own.length ? own : pkg ? [] : all;
+    if (!namedCandidates.has(file)) {
+      namedCandidates.add(file);
+      for (const f of all) for (const e of fileElements(f)) candidate(file, e);
+    }
+    const owner = named.length === 1 ? fileOwner(named[0]) : undefined;
     const target = owner ? elements.get(owner) : undefined;
     const triple = target ? `testing.testcasesketch.tests.${target.layer}.${target.type}` : "";
     if (owner && target && hasTriple(triple)) {
@@ -1682,7 +1818,12 @@ export function planRelationships(
       inferredTests++;
     } else unwired.set(file, (unwired.get(file) ?? 0) + 1);
   }
-  const unwiredTests = [...unwired].map(([file, cases]) => ({ file, cases })).sort((x, y) => y.cases - x.cases || x.file.localeCompare(y.file));
+  const unwiredTests = [...unwired]
+    .map(([file, cases]) => {
+      const candidates = [...(candidatesOf.get(file) ?? [])].sort().slice(0, MAX_CANDIDATES);
+      return { file, cases, ...(candidates.length ? { candidates } : {}) };
+    })
+    .sort((x, y) => y.cases - x.cases || x.file.localeCompare(y.file));
 
   const kept = dedupeRelationships(found);
   const keptKeys = new Set(kept.map((r) => `${r.sourceId}|${r.relationship.id}|${r.destinationId}`));
@@ -1728,7 +1869,7 @@ export function planRelationships(
     relationships.push(planned);
   }
   relationships.sort((x, y) => x.source.localeCompare(y.source) || x.predicate.localeCompare(y.predicate) || x.target.localeCompare(y.target));
-  return { relationships, alreadyPresent, weakCalls, unwiredTests, inferredTests, ...(options.includePresent ? { present } : {}) };
+  return { relationships, alreadyPresent, weakCalls, unwiredTests, sharedTestHelpers, inferredTests, ...(options.includePresent ? { present } : {}) };
 }
 
 // ---------------------------------------------------------------------------

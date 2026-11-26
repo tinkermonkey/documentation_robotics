@@ -257,6 +257,30 @@ describe("changeset commit/discard API", () => {
     expect(landed[planId]).toMatchObject({ status: "committed", actions: [] });
   });
 
+  it("moves a plan's verification record to recorded when the plan lands, and the record can still be discarded (#1171)", async () => {
+    const planId = await stageOneAdd();
+    expect((await runDr(["changeset", "deactivate"], { cwd: dir })).exitCode).toBe(0);
+    const manager = new StagingAreaManager(dir, await Model.load(dir, { lazyLoad: false }));
+    const record = await manager.create(
+      "review-test-as-built",
+      "As-built extraction of the code at abc1234, files changed since main. Staged by codebase_extract.",
+      { kind: "extract" },
+      extractionPurpose({ since: "main", gitHead: "abc1234", previousActive: { id: planId } })
+    );
+
+    expect((await post(`/changesets/${planId}/commit`)).status).toBe(200);
+    const server = await serve();
+    const list = (await (await server.request("/changesets")).json()).changesets;
+    expect(list[planId]).toMatchObject({ status: "committed" });
+    // No longer staged work: its own status, with discard the only move left.
+    expect(list[record.id!]).toMatchObject({ status: "recorded", purpose: "verification", verifies: planId, actions: ["discard"] });
+    expect((await (await server.request(`/changesets/${record.id}`)).json()).status).toBe("recorded");
+    expect((await server.request(`/changesets/${record.id}/commit`, { method: "POST" })).status).toBe(409);
+
+    expect((await post(`/changesets/${record.id}/discard`)).status).toBe(200);
+    expect((await (await (await serve()).request("/changesets")).json()).changesets[record.id!]).toBeUndefined();
+  });
+
   it("returns 404 for an unknown changeset", async () => {
     expect((await post(`/changesets/changeset-missing/commit`)).status).toBe(404);
     expect((await post(`/changesets/changeset-missing/discard`)).status).toBe(404);

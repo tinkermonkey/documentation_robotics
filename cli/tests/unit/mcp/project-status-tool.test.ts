@@ -1371,7 +1371,7 @@ describe("project_status", () => {
         expect(data.codeIndex.status).toBe("fresh");
         expect(data.nextStep.tool).toBe("codebase_verify");
         expect(data.nextStep.args).toEqual({ rootPath });
-        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, purpose: "reconcile", rootPath } });
       });
 
       describe("a session that says what it is for (task, #1301)", () => {
@@ -1502,7 +1502,7 @@ describe("project_status", () => {
         // One commit changed code; the two that only rewrote the model are not code drift.
         expect(data.codeDrift.commitsSince).toBe(1);
         expect(data.codeDrift.changedSourceFiles.map((f: any) => f.file)).toEqual(["src/checkout.ts"]);
-        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, rootPath } });
+        expect(data.nextStep.then).toEqual({ tool: "codebase_extract", args: { since: modelSha, purpose: "reconcile", rootPath } });
       });
 
       it("counts from an ordinary model commit, such as a catch-up that only edits a description (review)", async () => {
@@ -1855,7 +1855,7 @@ describe("suggestNextStep", () => {
       expect(step.tool).toBe("changeset_deactivate");
       expect(step.summary).toContain('verification record of the plan "plan-a"');
       expect(step.summary).toContain("never landed");
-      expect(step.summary).toContain("keep it as a record");
+      expect(step.summary).toContain("discard it");
       expect(step.summary).not.toContain("changeset_commit");
     });
 

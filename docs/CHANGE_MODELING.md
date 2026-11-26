@@ -131,15 +131,22 @@ Every changeset declares its purpose when it is made, in its `metadata.yaml` (co
 changeset), apart from `origin.kind`, which says who made it. The purpose decides what can happen
 to it:
 
-| Purpose          | Made by                                                                              | What happens to it                                                                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `plan`           | `changeset_create`, `dr changeset create`                                            | Lands with the code.                                                                                                                                         |
-| `chat`           | DrBot (`changeset_create` or `dr` under `dr visualize`)                              | Lands after review.                                                                                                                                          |
-| `bootstrap`      | `codebase_extract` without `since`                                                   | Lands, and reconciles code drift.                                                                                                                            |
-| `reconcile`      | `codebase_extract` with `since` and no plan active                                   | Lands, and reconciles code drift.                                                                                                                            |
-| `verification`   | `codebase_extract` with `since` while a plan is active (verify mode)                 | Never lands. `changeset_verify` compares the plan with it; then it is discarded, or kept as a record: it stays staged and is committed to git with the plan. |
-| `upgrade-record` | `dr upgrade`, `project_upgrade` with `apply`, when the migration drops relationships | Never lands. It lists the relationships a spec migration dropped; the user restores what still applies by hand, then discards it.                            |
+| Purpose          | Made by                                                                                                        | What happens to it                                                                                                                                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan`           | `changeset_create`, `dr changeset create`                                                                      | Lands with the code.                                                                                                                                                                    |
+| `chat`           | DrBot (`changeset_create` or `dr` under `dr visualize`)                                                        | Lands after review.                                                                                                                                                                     |
+| `bootstrap`      | `codebase_extract` without `since`                                                                             | Lands, and reconciles code drift.                                                                                                                                                       |
+| `reconcile`      | `codebase_extract` with `since` equal to the model's reconciled commit, no plan active                         | Lands, and reconciles code drift.                                                                                                                                                       |
+| `verification`   | `codebase_extract` with `since` while a plan is active (verify mode), or any other `since` with no plan active | Never lands. `changeset_verify` compares the plan with it; then it is discarded, or kept as a record: staged until its plan lands, then `recorded`, and committed to git with the plan. |
+| `upgrade-record` | `dr upgrade`, `project_upgrade` with `apply`, when the migration drops relationships                           | Never lands. It lists the relationships a spec migration dropped; the user restores what still applies by hand, then discards it.                                                       |
 
+- With `since` and no plan active, `codebase_extract` picks the purpose by rule: a `since` that is
+  the manifest's `reconciled` code commit (`project_status` `codeDrift.reconciledBy.codeCommit`)
+  makes a `reconcile`, any other `since` a `verification` record. The result's `purposeNote` says
+  which, and for a verification record which plan it verifies (the one staged plan) or that it
+  found none. An explicit `purpose: "reconcile"` or `"verification"` overrides the rule, with or
+  without a plan active. A verification record never lands, so a `since` run can't stamp
+  `reconciled` unless it is a reconcile.
 - A verification record also carries the plan it verifies (`verifies`, the plan's changeset id)
   and what its extraction read (`scope: {since, codeCommit}`).
 - The changeset `codebase_extract` asks the agent to create for its waiting cards (a run that
@@ -152,8 +159,19 @@ to it:
 - `changeset_list`, `changeset_show`, `project_status` and the viewer API
   (`GET /api/changesets`, `GET /api/changesets/:id`) report each changeset's `purpose`, and
   `actions`: the moves its state allows. A staged changeset offers `commit` and `discard`, a
-  record (a verification record or an upgrade record) only `discard`, and a committed or discarded
-  one nothing.
+  record (a verification record or an upgrade record) only `discard`, a `recorded` one `discard`,
+  and a committed or discarded one nothing.
+- **A verification record's lifecycle.** It is staged while its plan is. Landing the plan (the
+  CLI, `changeset_commit` or the viewer's Apply) moves the records that name it (`verifies`) to
+  the status `recorded`: kept, committed to git with the plan, and no longer staged work. There is
+  no tool for this; it is part of the landing. `recorded` is a status, like `committed`, not a
+  purpose. `changeset_list` lists staged changesets by default and counts `recorded` ones
+  (`status: "recorded"` lists them), `project_status` counts them apart from the staged ones (so
+  its `nextStep` never asks about one), and the viewer API reports `status: "recorded"` with
+  `actions: ["discard"]`. Discarding a record stays an explicit move (`changeset_discard` with
+  `confirm: true`). A record made before this, or one whose plan landed before it, stays staged and
+  reads as it did; a record that verifies no plan (none was staged when it was made) stays staged
+  until discarded.
 - The viewer API reports base drift on the same two endpoints, with no commit attempt (`drift`,
   from `cli/src/core/changeset-drift-status.ts`), so the viewer can show it before Apply. Its
   `state` is `none`, `content-free` (the base changed, as when another changeset lands, but it
@@ -1261,8 +1279,9 @@ Then `/dr-plan <change>` runs the loop:
    the code or in the plan, and copy the source references the report lists
    (`changeset_adopt_source_references`), then `changeset_activate` the plan again. Then ask
    whether to discard the as-built changeset (`changeset_discard`) or keep it as a record, and
-   discard it only if the human chooses that. A kept record stays staged, and its directory is
-   committed beside the plan's directory in the same PR. It is never landed.
+   discard it only if the human chooses that. A kept record stays staged until the plan lands,
+   when it becomes `recorded` (kept, no longer staged work), and its directory is committed beside
+   the plan's directory in the same PR. It is never landed.
 8. The human commits the plan in the PR that ships the code: they ask the agent to land it
    (`changeset_commit`) and confirm in the dialog (from Claude Code, approve the commit call that
    carries `changeset_commit_preview`'s token), or commit it in the viewer or the CLI. Once

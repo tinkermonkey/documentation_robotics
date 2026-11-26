@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`recorded` changeset status (#1171):** landing a plan moves the verification records that name it
+  (`verifies`) to `recorded`, with no new tool. A recorded record is kept (committed to git with the
+  plan) and no longer shows as staged work: `changeset_list` lists staged changesets by default and
+  counts `recorded` ones (`status: "recorded"` lists them), `project_status` counts them apart from
+  the staged ones so its `nextStep` never asks about one, and the viewer API reports
+  `status: "recorded"` with `actions: ["discard"]`. Discarding a record stays an explicit move
+  (`changeset_discard`, the viewer, `dr changeset delete`). Records made before this still read as
+  they did. Documented in `docs/CHANGE_MODELING.md`, `/dr-plan` and the `dr_change_planning` skills.
+- **`codebase_extract` `purpose` argument (#1370):** with `since`, `purpose: "reconcile"` or
+  `"verification"` overrides the rule below.
+
+### Changed
+
+- **`codebase_extract` picks the purpose of a `since` run by rule (#1370):** with no plan active, a
+  `since` equal to the manifest's `reconciled` code commit makes a reconcile; any other `since`
+  makes a verification record (never landed), and the result's `purposeNote` says which plan it
+  verifies (the one staged plan) or that it found none. Before, every `since` run with no plan
+  active was a reconcile, so a branch's build could be landed as if it reconciled the whole model.
+  With a plan active the run is still its verification record. Pass `purpose: "reconcile"` to
+  reconcile from another `since`.
+
 ### Fixed
 
 - `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
@@ -23,6 +46,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `codebase_verify` lists an operation sourced to a code file the analyzer reads no route from (a
   hand-written router, a regex) as not checked, whether or not the file still names its path, and
   says what to check by hand. It is no longer drift. Hand-routed routes are read in verify too (#1321).
+- `changeset_discard` and the viewer's discard refused a recorded verification record; they take it.
+
+### Changed
+
+- `codebase_extract` picks better subjects for `tests` links (#1412, #1443). A test's calls into its
+  own package win over calls elsewhere, and a name match in another package alone (a
+  `packages/render/test/render.test.ts` and an `apps/render-gpu/render.py`) is no longer a link. A
+  helper that three or more test files call, none named after it, is not their subject (listed in
+  `testLinks.sharedHelpers`). When a test's calls reach only symbols a rule rejected, they are
+  followed to the element that owns the rejected symbol's file (or, with no owner, the few
+  elements the symbol calls), with origin rule `edge:TEST_CALL_VIA_REJECTED`. Each test file still
+  unwired lists its `candidates` for the agent to check and wire. A test folder with no source of its
+  own package (`service/tests/test_orders.py` for `lib/orders.py`) no longer links by name alone.
+- `codebase_extract reject` takes `{files, predicate}` to reject a file's relationships of that
+  predicate as a group, such as `{files: "packages/render/test/**", predicate: "tests"}`. It covers
+  the links extraction staged, not ones already in the model, and takes no `keep`.
 
 ## [0.9.0] - 2026-11-25
 

@@ -427,6 +427,66 @@ export class StagingAreaManager {
     return this.storage.declarePurpose(changeset.id, declaration);
   }
 
+  /**
+   * After a plan lands: moves the staged verification records that name it (`verifies`) to
+   * `recorded`, so they stop showing as staged work. A record is kept (committed to git with the
+   * plan) or discarded; discarding stays an explicit move. Returns the names it moved. A failure
+   * is logged, not thrown: the plan has landed, and the record can be discarded by hand.
+   */
+  async recordVerificationsOf(plan: Changeset): Promise<string[]> {
+    const recorded: string[] = [];
+    let staged: string[] = [];
+    try {
+      // Statuses only (metadata.yaml): no changes.yaml is read, and a lock directory beside a
+      // changeset (the landing's own) is not mistaken for a changeset.
+      staged = (await this.storage.listStatuses()).filter((e) => e.status === "staged" && e.id !== plan.id).map((e) => e.id);
+    } catch (error) {
+      this.warnRecordFailure(plan, error);
+    }
+    for (const id of staged) {
+      try {
+        // Under the record's own lock, on a fresh read: a write staging into it meanwhile is not
+        // overwritten, and a record that is no longer staged is left alone.
+        const candidate = await new FileLock(this.storage.getChangesetPath(id)).withLock(
+          async () => {
+            const loaded = await this.storage.load(id);
+            if (!loaded || loaded.status !== "staged") return null;
+            const info = await purposeOf(this.rootPath, loaded);
+            if (info.purpose !== "verification" || info.verifies !== plan.id) return null;
+            loaded.markRecorded();
+            await this.storage.save(loaded);
+            return loaded;
+          },
+          { refuseWhenHeldBy: refuseWhileLanding(id) }
+        );
+        if (!candidate) continue;
+        recorded.push(candidate.name);
+        // It was the active changeset: it takes no more writes, and they must not fall through to the
+        // base model when the agent next writes (the landed note refuses them until told otherwise).
+        if ((await this.readActiveMarker()) === id) {
+          if (!(await readLandedNote(this.rootPath))) {
+            await writeLandedNote(this.rootPath, { id, name: candidate.name, landedAt: new Date().toISOString() });
+          }
+          await this.clearActive({ keepLandedNote: true });
+        }
+      } catch (error) {
+        // One record failing doesn't stop the others; it stays staged, and can be discarded.
+        this.warnRecordFailure(plan, error, id);
+      }
+    }
+    return recorded;
+  }
+
+  /** The plan has landed; a verification record that couldn't be moved to recorded stays staged. Said, not hidden. */
+  private warnRecordFailure(plan: Changeset, error: unknown, recordId?: string): void {
+    const message = `The plan '${plan.name}' landed, but ${recordId ? `its verification record ${recordId}` : "its verification records"} could not be moved to recorded: ${getErrorMessage(error)}. It stays staged; discard it if it is not wanted.`;
+    console.warn(message);
+    emitLog(SeverityNumber.WARN, "Failed to move a landed plan's verification records to recorded", {
+      "changeset.id": plan.id,
+      "error.message": message,
+    });
+  }
+
   /** The changeset's purpose: declared, or inferred for one made before purposes were declared. */
   async purposeOf(changeset: Changeset): Promise<ChangesetPurposeInfo> {
     return purposeOf(this.rootPath, changeset);
@@ -1576,6 +1636,9 @@ export class StagingAreaManager {
         await this.cleanupBackup(backup);
         // Its last writer is forgotten: a landed changeset takes no writes (#1437).
         await clearChangesetWrites(this.rootPath, changeset.id!);
+
+        // The plan has landed: the verification records that name it are kept as records now.
+        await this.recordVerificationsOf(changeset);
 
         (span as any).setAttribute("commit.success", true);
         (span as any).setAttribute("commit.committed", result.committed);

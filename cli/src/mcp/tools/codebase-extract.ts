@@ -85,6 +85,7 @@ import {
   planElements,
   planRelationships,
   INFERRED_TEST_EDGE,
+  INFERRED_TEST_CALL_EDGE,
   sortUndecided,
   sourceSymbolOf,
   symbolChangedInRange,
@@ -106,7 +107,16 @@ import { Element } from "../../core/element.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { extractionPurpose, type ChangesetPurpose } from "../../core/changeset-purpose.js";
+import {
+  decideExtractionPurpose,
+  EXTRACTION_PURPOSE_ARGS,
+  extractionPurpose,
+  purposeOf,
+  readPurpose,
+  resolveCommit,
+  type ChangesetPurpose,
+  type ExtractionPurposeDecision,
+} from "../../core/changeset-purpose.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { validatePlannedAdds } from "../../analyzers/validate-planned.js";
 import { getValidRelationships } from "../../generated/relationship-index.js";
@@ -231,6 +241,13 @@ const rejectItemSchema = strictItem("A reject[] item", {
         })
           .optional()
           .describe("A relationship extraction staged (or would stage) that the code doesn't have."),
+        predicate: z
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            "With files: not the cards in those files but the relationships with this predicate whose source element is sourced there, as a group (files plus predicate \"tests\" is every test link of a test file or folder)."
+          ),
         except: z
           .array(z.string().min(1))
           .optional()
@@ -286,6 +303,15 @@ const inputSchema = {
     .describe(
       "A git ref (branch, tag or commit). Extract only the files changed since its merge base with HEAD, plus " +
         "uncommitted ones. To verify a branch's build, pass the branch it started from."
+    ),
+  purpose: z
+    .enum(EXTRACTION_PURPOSE_ARGS)
+    .optional()
+    .describe(
+      "With since: what the changeset this run makes is for, overriding the rule. By the rule, with a plan active the run is its verification record; with " +
+        "no plan active, a since that is the model's last reconciled code commit (project_status codeDrift.reconciledBy.codeCommit) makes a reconcile " +
+        "(landing it reconciles the model with the code), and any other since makes a verification record (never landed; it names the staged plan it " +
+        "verifies, or says it found none). Use reconcile or verification to say otherwise."
     ),
   layers: z.array(z.string()).optional().describe("Only these layers (canonical names). Default: every layer."),
   pageSize: z
@@ -468,6 +494,9 @@ interface StoredCards {
   /** The base model's manifest timestamp when the cards were read. */
   baseModified?: string;
   previousActive?: { id: string; name: string } | null;
+  /** The purpose the run declared, and for a verification record the plan it verifies (core/changeset-purpose.ts). */
+  purpose?: ChangesetPurpose;
+  verifies?: string;
   createdAt: string;
   cards: UndecidedCard[];
   /** The elements extraction staged into this changeset, by the symbol they came from. */
@@ -1017,7 +1046,7 @@ function relationshipChange(r: PlannedRelationship, origin: ChangeOrigin): Omit<
  */
 function relationshipOrigin(r: PlannedRelationship, addOrigins: ReadonlyMap<string, ChangeOrigin>): ChangeOrigin {
   // A tests link inferred from a test file's name says so, whoever decided its ends.
-  if (r.edge === INFERRED_TEST_EDGE) return { by: "tier0", rule: `edge:${r.edge}` };
+  if (r.edge === INFERRED_TEST_EDGE || r.edge === INFERRED_TEST_CALL_EDGE) return { by: "tier0", rule: `edge:${r.edge}` };
   const ends = [addOrigins.get(r.source), addOrigins.get(r.target)].filter((o): o is ChangeOrigin => !!o);
   return structuredClone(ends.find((o) => o.by === "tier1") ?? ends[0] ?? { by: "tier0", rule: `edge:${r.edge}` });
 }
@@ -1635,6 +1664,8 @@ async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaMana
     layers: waiting.layers ?? null,
     baseModified: waiting.baseModified,
     previousActive: waiting.previousActive,
+    ...(waiting.purpose ? { purpose: waiting.purpose } : {}),
+    ...(waiting.verifies ? { verifies: waiting.verifies } : {}),
     createdAt: waiting.createdAt,
     cards: [],
     staged: [],
@@ -1652,12 +1683,19 @@ async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaMana
 async function declareExtractionPurpose(
   manager: StagingAreaManager,
   changeset: Changeset,
-  record: Pick<StoredCards, "since" | "gitHead" | "previousActive">
+  record: Pick<StoredCards, "since" | "gitHead" | "previousActive" | "purpose" | "verifies">
 ): Promise<void> {
   if (changeset.purpose && EXTRACTION_PURPOSES.has(changeset.purpose)) return;
-  const declaration = extractionPurpose(record);
+  const declared = record.purpose && EXTRACTION_PURPOSES.has(record.purpose) ? readPurpose({ purpose: record.purpose, verifies: record.verifies, scope: record.since ? { since: record.since, codeCommit: record.gitHead } : undefined }) : undefined;
+  const declaration = extractionPurpose({ ...record, declared });
   await manager.declarePurpose(changeset.id!, declaration);
   Object.assign(changeset, { purpose: declaration.purpose, verifies: declaration.verifies, scope: declaration.scope });
+}
+
+/** The purpose fields a run's record keeps (StoredCards.purpose, .verifies); none for a run with no since. */
+function recordedPurpose(decision: ExtractionPurposeDecision | undefined): Pick<StoredCards, "purpose" | "verifies"> {
+  if (!decision) return {};
+  return { purpose: decision.declaration.purpose, ...(decision.declaration.verifies ? { verifies: decision.declaration.verifies } : {}) };
 }
 
 /** The purposes of the changesets codebase_extract stages. */
@@ -2006,8 +2044,16 @@ function splitRejects(items: RejectItem[]) {
   const cards: Array<{ card: string; reason: string; index: number }> = [];
   const files: FilesRef[] = [];
   const relationships: Array<{ relationship: RelationshipRef; reason: string; index: number }> = [];
+  /** `files` plus `predicate`: every relationship with the predicate whose source is sourced in those files. */
+  const groups: Array<{ files: string; predicate: string; reason: string; index: number }> = [];
   const problems: RejectProblem[] = [];
   items.forEach((item, index) => {
+    if (item.predicate !== undefined) {
+      if (item.files === undefined || item.card !== undefined || item.relationship !== undefined || item.except !== undefined || item.keep) {
+        problems.push({ index, item: `predicate: ${item.predicate}`, status: "malformed", message: "predicate goes with files alone (no card, relationship, except or keep): files plus predicate rejects the relationships of that predicate staged now, in this checkout" });
+      } else groups.push({ files: item.files, predicate: item.predicate, reason: item.reason, index });
+      return;
+    }
     const named = (["card", "files", "relationship"] as const).filter((k) => item[k] !== undefined);
     if (named.length !== 1) {
       problems.push({
@@ -2034,7 +2080,7 @@ function splitRejects(items: RejectItem[]) {
     else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason, index, ...(item.except ? { except: item.except } : {}) });
     else relationships.push({ relationship: item.relationship!, reason: item.reason, index });
   });
-  return { cards, files, relationships, problems };
+  return { cards, files, relationships, groups, problems };
 }
 
 /** A `files` reject item: the pattern, and the cards it must leave out (`except`). */
@@ -2219,6 +2265,23 @@ function relationshipsToReject(
     }
   }
   return { found, problems };
+}
+
+/**
+ * The live relationships with `predicate` whose source element names code in `files` (a path or
+ * glob): a file's test links as a group (#1412).
+ */
+function relationshipsInFiles(graph: ChangesetGraph, files: string, predicate: string): RelationshipRef[] {
+  const match = filesMatcher(files);
+  const out: RelationshipRef[] = [];
+  for (const r of graph.relationships()) {
+    // Links the base model already has (wired by hand, or landed) are not extraction's to reject as a group.
+    if (r.predicate !== predicate || r.status === "deleted" || r.status === "unchanged") continue;
+    const source = graph.getElement(r.source);
+    const hit = (source?.sourceReference?.locations ?? []).some((l) => typeof l.file === "string" && match(normFile(l.file) ?? ""));
+    if (hit) out.push({ source: r.source, predicate: r.predicate, target: r.target });
+  }
+  return out;
 }
 
 function notRelationshipsResult(
@@ -2530,6 +2593,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (args.since !== undefined && args.since !== (stored.since ?? undefined)) {
           conflicts.push(`since: ${args.since} (its run had since: ${stored.since ?? "none"})`);
         }
+        if (args.purpose && stored.purpose && args.purpose !== stored.purpose) {
+          conflicts.push(`purpose: ${args.purpose} (its run was a ${stored.purpose})`);
+        }
         if (argLayers && !sameLayers(stored.layers, argLayers)) {
           conflicts.push(`layers: ${argLayers.join(", ")} (its run had layers: ${stored.layers?.join(", ") ?? "all"})`);
         }
@@ -2541,6 +2607,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         since = stored.since ?? undefined;
         layers = stored.layers ?? undefined;
+      }
+      // Refused before anything runs, spends or writes (a preview included).
+      if (args.purpose && !since) {
+        throw new CLIError("codebase_extract: purpose says what a since run is for; this run has no since (it is a bootstrap)", ErrorCategory.USER, [
+          "Pass since (the ref the work started from), or leave purpose out",
+        ]);
       }
 
       // The scope: every file, or the files changed since a ref (a run, or a default name to find).
@@ -2631,7 +2703,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const decisions = await readDecisions(projectRoot);
         const allChangesets = await manager.list();
         const stagedIds = new Set(allChangesets.filter((c) => c.status === "staged").map((c) => c.id));
-        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed").map((c) => c.id));
+        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed" || c.status === "recorded").map((c) => c.id));
         let pruned = false;
         // An unstaged element or relationship stays decided once its changeset lands without it;
         // discarding the changeset drops the decision.
@@ -2735,10 +2807,22 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const extractionChangeset = changeset && stored ? changeset : null;
           const graph = extractionChangeset ? await ChangesetGraph.build(model, extractionChangeset) : null;
           // Everything is checked before anything is recorded.
-          const relationshipGraph = rejects.relationships.length ? (graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset()))) : null;
+          const relationshipGraph = rejects.relationships.length || rejects.groups.length ? (graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset()))) : null;
+          // A files + predicate item stands for each relationship of that predicate whose source element is sourced in those files.
+          const groupProblems: RejectProblem[] = [];
+          const groupRefs: typeof rejects.relationships = [];
+          for (const g of rejects.groups) {
+            const hits = relationshipGraph ? relationshipsInFiles(relationshipGraph, g.files, g.predicate) : [];
+            if (!hits.length) {
+              groupProblems.push({ index: g.index, item: `files: ${g.files}, predicate: ${g.predicate}`, status: "no-match", message: `no '${g.predicate}' relationship of '${changesetLabel}' or the model has a source element in '${g.files}'` });
+            }
+            for (const relationship of hits) groupRefs.push({ relationship, reason: g.reason, index: g.index });
+          }
           const fromRelationships = relationshipGraph
-            ? relationshipsToReject(rejects.relationships, stored, changeset, relationshipGraph, decisions, changesetLabel)
+            ? relationshipsToReject([...rejects.relationships, ...groupRefs], stored, changeset, relationshipGraph, decisions, changesetLabel)
             : { found: [], problems: [] };
+          fromRelationships.problems.push(...groupProblems);
+          for (const r of fromRelationships.found) if (rejects.groups.some((g) => g.index === r.index)) rejectedPerItem.set(r.index, (rejectedPerItem.get(r.index) ?? 0) + 1);
           // The code an element names now, in the extraction changeset (or the base) and in the
           // active changeset when it is another (a plan): a files item leaves those cards out, and
           // the cards a plan's elements name (card.planned).
@@ -4270,6 +4354,41 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (first?.status === "staged") recordedPrevious = { id: first.id!, name: first.name };
         }
 
+        // The purpose of the changeset this run makes (#1370): decided once and kept in the run's
+        // record, so a changeset created later for waiting cards declares the same. A run into a
+        // changeset that already holds one keeps the purpose recorded then.
+        let purposeDecision: ExtractionPurposeDecision | undefined;
+        if (since) {
+          const earlier = stored?.purpose
+            ? readPurpose({ purpose: stored.purpose, verifies: stored.verifies, scope: stored.since ? { since: stored.since, codeCommit: stored.gitHead } : undefined })
+            : undefined;
+          const planNamed = (id?: string) => (id ? { id, name: allKnownNames.get(id) ?? id } : undefined);
+          const allKnownNames = new Map<string, string>();
+          const stagedPlans: Array<{ id: string; name: string }> = [];
+          for (const other of await manager.list()) {
+            allKnownNames.set(other.id!, other.name);
+            if (other.status !== "staged" || other.id === changeset?.id) continue;
+            if ((await purposeOf(projectRoot, other)).purpose === "plan") stagedPlans.push({ id: other.id!, name: other.name });
+          }
+          purposeDecision = earlier
+            ? {
+                declaration: earlier,
+                note:
+                  earlier.purpose === "verification"
+                    ? `A verification record, never landed.${earlier.verifies ? ` It verifies the plan '${planNamed(earlier.verifies)!.name}'.` : " It found no staged plan to verify."}`
+                    : "A reconcile: landing it reconciles the model with the code it read.",
+              }
+            : decideExtractionPurpose({
+                since,
+                gitHead: head,
+                explicit: args.purpose,
+                previousActive: recordedPrevious,
+                sinceCommit: (deps.resolveCommit ?? resolveCommit)(codebaseRoot, since),
+                reconciledCommit: model.manifest.reconciled?.code_commit,
+                stagedPlans,
+              });
+        }
+
         // A run makes a changeset only to stage into it: a run that stages nothing leaves its cards
         // and candidate deletes for the agent without creating or activating an empty changeset
         // (which would then sit in project_status as the next thing to resume).
@@ -4287,7 +4406,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               name,
               args.intent ?? `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`,
               { kind: "extract" },
-              extractionPurpose({ since, gitHead: head, previousActive: recordedPrevious })
+              purposeDecision?.declaration ?? extractionPurpose({ since, gitHead: head, previousActive: recordedPrevious })
             );
             created = true;
           }
@@ -4412,6 +4531,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive: recordedPrevious,
+            ...recordedPurpose(purposeDecision),
             createdAt: now,
             cards: undecided,
             staged,
@@ -4435,6 +4555,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive,
+            ...recordedPurpose(purposeDecision),
             createdAt: now,
             cards: undecided,
             staged: [],
@@ -4530,6 +4651,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             changeset: changesetRef ? { ...changesetRef, created, active, ...(changeset?.purpose ? { purpose: changeset.purpose } : {}) } : null,
             previousActive,
             ...(message ? { message } : {}),
+            ...(purposeDecision ? { purposeNote: purposeDecision.note } : {}),
             ...(warnings.length ? { ruleWarnings: warnings } : {}),
             ...fitNotes(fit),
             ...(edited.length
@@ -4689,18 +4811,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   },
                   layout
                 ),
-            ...(planned.unwiredTests.length || planned.inferredTests
+            ...(planned.unwiredTests.length || planned.inferredTests || planned.sharedTestHelpers.length
               ? {
                   testLinks: {
                     ...(planned.inferredTests ? { inferredFromFileName: planned.inferredTests } : {}),
+                    ...(planned.sharedTestHelpers.length ? { sharedHelpers: { total: planned.sharedTestHelpers.length, listed: planned.sharedTestHelpers.slice(0, 20) } } : {}),
                     unwired: {
                       cases: planned.unwiredTests.reduce((n, f) => n + f.cases, 0),
                       files: capped(planned.unwiredTests, Math.min(fit.listLimit ?? 20, 20), "unwiredTests"),
                     },
                     note:
                       "Test cases with an element that test nothing: no call from the test reaches an element, and no source file is named as the test file is. " +
-                      "inferredFromFileName counts links made from the name alone (foo.spec.ts tests the element that owns foo.ts; origin rule edge:TEST_FILE_NAME). " +
-                      "Wire an unwired file's cases with relationship_add (testcasesketch tests <element>), one file at a time.",
+                      "inferredFromFileName counts links made from the name alone (foo.spec.ts tests the element that owns foo.ts; origin rule edge:TEST_FILE_NAME); a link made by following a test's calls through a symbol a rule rejected has origin rule edge:TEST_CALL_VIA_REJECTED. " +
+                      "sharedHelpers are elements many test files call and none is named after: no tests link was staged for them. " +
+                      "Each unwired file lists candidates, the elements its calls or its name point at: work for you to check, then wire with relationship_add (testcasesketch tests <element>). " +
+                      "A wrong group of test links goes in reject as {files: <test file or glob>, predicate: \"tests\", reason}.",
                   },
                 }
               : {}),
@@ -4807,7 +4932,7 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "unstaged; or files (a path or glob) for every undecided card in them, except what an element or the plan names, what except lists, and, " +
     "with decide in the call, what decide decided. keep: true writes a reject as a rule instead of this checkout's record (not for a files item that left out " +
     "planned or decided cards, a decision record or a card with no file: those are recorded, and notKept says why). A wrong relationship goes in reject as " +
-    "relationship: {source, predicate, target}. Kept until clearRejected in this checkout, later runs leave them out. An element " +
+    "relationship: {source, predicate, target}, or a file's links of one predicate as a group in files + predicate (a test file's tests links). Kept until clearRejected in this checkout, later runs leave them out. An element " +
     "or relationship it staged that you unstage from a changeset is also left out, while that changeset is staged and " +
     "after it lands; discarding it forgets that. reject and decide items can come from a JSON file (file); their results are counts and the items " +
     "that need attention (verbose: true for every item). sharedHelpers lists functions that realize more services than sharedBy: decide their relationship none if they are shared helpers. " +

@@ -3675,7 +3675,8 @@ export class VisualizationServer {
     if (!changeset) {
       return c.json({ error: "Changeset not found" }, 404);
     }
-    if (changeset.status !== "staged") {
+    // A recorded verification record (its plan landed) can still be discarded: an explicit move.
+    if (changeset.status !== "staged" && !(action === "discard" && changeset.status === "recorded")) {
       return c.json({ error: `Changeset is already ${changeset.status}` }, 409);
     }
     if (action === "commit") {

@@ -19,14 +19,14 @@ import { jsonResult, loadModel, rootPathSchema, runTool, type McpToolDefinition 
 /** Changesets listed in one call by default. */
 export const CHANGESET_LIST_LIMIT = 50;
 
-const STATUSES = ["staged", "committed", "discarded"] as const;
+const STATUSES = ["staged", "committed", "discarded", "recorded"] as const;
 
 const inputSchema = {
   status: z
     .enum([...STATUSES, "all"])
     .optional()
     .describe(
-      'Which changesets to list: "staged" (default: the ones still open), "committed", "discarded" or "all". ' +
+      'Which changesets to list: "staged" (default: the ones still open), "committed", "discarded", "recorded" (verification records whose plan landed) or "all". ' +
         "counts always has every changeset by status."
     ),
   ...pagingFields("changesets", String(CHANGESET_LIST_LIMIT)),
@@ -58,7 +58,7 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
     const activeChangesetId = await manager.getActiveId();
     const status = args.status ?? "staged";
 
-    const counts: Record<string, number> = { staged: 0, committed: 0, discarded: 0 };
+    const counts: Record<string, number> = { staged: 0, committed: 0, discarded: 0, recorded: 0 };
     for (const changeset of changesets) counts[changeset.status] = (counts[changeset.status] ?? 0) + 1;
 
     const matching = changesets.filter((c) => status === "all" || c.status === status).sort(newestFirst);
@@ -86,7 +86,7 @@ export async function changesetListHandler(args: ChangesetListArgs): Promise<Cal
     if (others.length > 0) {
       notes.push(
         `Not listed: ${others.map((s) => `${counts[s]} ${s}`).join(", ")} (counts has them all); ` +
-          'status: "committed", "discarded" or "all" lists them.'
+          'status: "committed", "discarded", "recorded" or "all" lists them.'
       );
     }
 
@@ -106,7 +106,7 @@ export const changesetListTool: McpToolDefinition<typeof inputSchema> = {
   name: "changeset_list",
   description:
     "List the changesets, newest first: by default the staged ones (still open), with counts of every changeset " +
-    'by status; status: "committed", "discarded" or "all" lists those. Each has its purpose (plan, chat, ' +
+    'by status; status: "committed", "discarded", "recorded" (verification records whose plan landed: kept, not staged work) or "all" lists those. Each has its purpose (plan, chat, ' +
     "bootstrap, reconcile, verification or upgrade-record; a verification record names the plan it verifies; an " +
     "upgrade record lists the relationships a spec migration dropped) and the actions its state allows (commit, " +
     "discard): a verification record or an upgrade record is never committed. " +
