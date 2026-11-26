@@ -13,16 +13,21 @@
       created_at: 2026-11-26T18:41:38.539Z
       updated_at: 2026-11-26T18:41:38.539Z
       version: 1
-  timestamp: 2026-11-26T18:41:38.547Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-matching.ts
+          symbol: matchPlannedElements
+  timestamp: 2026-11-26T18:49:17.617Z
   sequenceNumber: 0
 - type: relationship-add
-  elementId: application.applicationfunction.match-planned-elements::realizes::application.applicationservice.changeset-verify-handler
+  elementId: application.applicationfunction.verify-changeset::depends-on::application.applicationfunction.match-planned-elements
   layerName: application
   after:
-    source: application.applicationfunction.match-planned-elements
-    target: application.applicationservice.changeset-verify-handler
-    predicate: realizes
+    source: application.applicationfunction.verify-changeset
+    target: application.applicationfunction.match-planned-elements
+    predicate: depends-on
     layer: application
     category: structural
-  timestamp: 2026-11-26T18:41:43.656Z
-  sequenceNumber: 1
+  timestamp: 2026-11-26T18:49:28.311Z
+  sequenceNumber: 4
