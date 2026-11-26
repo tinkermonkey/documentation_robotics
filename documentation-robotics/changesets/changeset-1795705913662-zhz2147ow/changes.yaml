@@ -1,0 +1,44 @@
+- type: add
+  elementId: application.applicationfunction.declaration-shapes-of
+  layerName: application
+  after:
+    id: e5dededb-a467-4d89-bdcb-db6515cc12f8
+    path: application.applicationfunction.declaration-shapes-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: declarationShapesOf
+    description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/shapes.ts
+          symbol: declarationShapesOf
+    metadata:
+      created_at: 2026-11-26T15:11:57.723Z
+      updated_at: 2026-11-26T15:11:57.723Z
+      version: 1
+  timestamp: 2026-11-26T15:11:57.730Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.is-declared-variable
+  layerName: application
+  after:
+    id: fe2e72b2-8328-419f-87b2-ccaa60702a39
+    path: application.applicationfunction.is-declared-variable
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: isDeclaredVariable
+    description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/cards/shapes.ts
+          symbol: isDeclaredVariable
+    metadata:
+      created_at: 2026-11-26T15:11:57.723Z
+      updated_at: 2026-11-26T15:11:57.723Z
+      version: 1
+  timestamp: 2026-11-26T15:11:57.730Z
+  sequenceNumber: 1
