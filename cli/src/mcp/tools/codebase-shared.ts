@@ -51,6 +51,8 @@ export interface CodebaseToolDeps {
   analyzerVersion?: (analyzer: string) => Promise<string | null>;
   /** Files a git range changed, for codebase_extract's `since` (defaults to git). */
   codeChanges?: (codebaseRoot: string, since: string) => Promise<CodeChangesResult>;
+  /** The commit a ref names, to tell whether `since` is the model's reconciled commit (defaults to git). */
+  resolveCommit?: (codebaseRoot: string, ref: string) => string | undefined;
   /**
    * How many commits a `since` range covers, and shorter ranges inside it (defaults to git), for
    * codebase_extract's long-range notice and `preview`. Null when git can't say. The shorter

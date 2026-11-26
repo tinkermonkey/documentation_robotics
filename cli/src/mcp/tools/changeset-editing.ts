@@ -609,7 +609,8 @@ export async function changesetDiscardHandler(args: ChangesetDiscardArgs): Promi
     const manager = new StagingAreaManager(model.rootPath, model);
     const named = changesetArg(args, { required: true, why: "discard is never implied" });
     const changeset = await resolveChangeset(manager, named);
-    requireStaged(changeset, "discard it");
+    // A recorded verification record (its plan landed) is discarded by this explicit move too.
+    if (changeset.status !== "recorded") requireStaged(changeset, "discard it");
 
     if (args.confirm !== true) {
       throw new CLIError(
@@ -645,7 +646,7 @@ export const changesetDiscardTool: McpToolDefinition<typeof discardInputSchema> 
   description:
     "Abandon a staged changeset: PERMANENTLY deletes it, its staged changes and its folder under " +
     "documentation-robotics/changesets/ (deactivating it if active); no record of it is kept. Not recoverable, so it " +
-    "requires confirm: true. The base model is not touched. To undo part of a plan use changeset_unstage; to pause " +
+    "requires confirm: true. A verification record kept after its plan landed (status recorded) is discarded the same way. The base model is not touched. To undo part of a plan use changeset_unstage; to pause " +
     "it use changeset_deactivate.",
   inputSchema: discardInputSchema,
   handler: changesetDiscardHandler,

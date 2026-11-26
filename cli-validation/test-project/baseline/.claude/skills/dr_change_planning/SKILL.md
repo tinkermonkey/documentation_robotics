@@ -268,9 +268,12 @@ graph checks the plan for you. The full design is `docs/CHANGE_MODELING.md` in t
    `force` or not. Ask the human whether to discard the as-built changeset or keep it as a
    record, and discard it only when they agree. To discard it, call
    `changeset_discard` with `confirm: true`. To keep it, leave it staged and
-   commit its directory with the plan's directory on the same branch and in the same PR. The
-   record is never landed, so it doesn't reconcile code drift (for that, `codebase_extract` with
-   no plan active). Until they decide, add only the plan's directory when you commit fixes.
+   commit its directory with the plan's directory on the same branch and in the same PR. Landing
+   the plan then moves the record to `recorded` (kept, no longer staged work; there is no tool for
+   it, and discarding stays your explicit move). The record is never landed, so it doesn't
+   reconcile code drift (for that, `codebase_extract` with no plan active, and `since` set to the
+   commit `project_status` says the model was last reconciled with: any other `since` makes a
+   verification record). Until they decide, add only the plan's directory when you commit fixes.
    If an as-built changeset was landed before DR refused it,
    `against: {"base": true, "extracted": true}` compares the plan with the model, with extraction's blind spots applied.
 8. **Land.** The PR carries the code and the staged plan, and the human commits the plan in it, not
