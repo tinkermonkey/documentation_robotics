@@ -24,7 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   result lists them (`siblingPlans`). When one has the same or a similar name, cites the same issue, or
   states a similar intent, the result carries `siblingWarning`; nothing is refused. `project_status`
   lists them under `checkout.siblingPlans` (paged with `list: "siblingPlans"`). When the farm can't
-  list them (no project owns the folder, the registry failed) the result says so instead of showing none.
+  list them (no project owns the folder, the registry failed), or a checkout or plan couldn't be read
+  (`siblingPlansNotRead`), the result says so instead of showing none.
 
 ### Changed
 
@@ -32,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   project's primary folder, whatever branch that folder is on, so results now carry `branch` beside
   `checkout` (null when detached), read at call time, and under `_meta["dr/checkout"]`. A landing names
   it too: `changeset_commit_preview` returns `landsOn`, the confirmation summary leads with it, and
-  `changeset_commit` returns `landedOn` ("Lands on branch X in checkout main"). `review_open` returns
+  `changeset_commit` returns `landedOn` ("Landed on branch X in checkout main"). `review_open` returns
   `branch`. The `checkout` key is unchanged.
 - **`codebase_extract` picks the purpose of a `since` run by rule (#1370):** with no plan active, a
   `since` equal to the manifest's `reconciled` code commit makes a reconcile; any other `since`

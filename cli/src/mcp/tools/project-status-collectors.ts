@@ -1677,7 +1677,7 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     const pages: ShortenedPages = {};
     const more: string[] = [];
     const otherCheckouts = cut("otherCheckouts", out.checkout.otherCheckouts, pages, more);
-    const siblingPlans = out.checkout.siblingPlans ? cut("siblingPlans", out.checkout.siblingPlans, pages, more) : undefined;
+    const siblingPlans = out.checkout.siblingPlans ? cut("siblingPlans", out.checkout.siblingPlans, pages, more).map(shortPlan) : undefined;
     if (more.length > 0) {
       out.checkout = { ...out.checkout, otherCheckouts, ...(siblingPlans ? { siblingPlans } : {}), ...said(pages, more) };
     }
@@ -1784,6 +1784,8 @@ export type CheckoutSection =
        */
       siblingPlans?: SiblingPlan[];
       siblingPlansUnavailable?: string;
+      /** What could not be read in the other checkouts: an empty siblingPlans is not "none" when this is set. */
+      siblingPlansNotRead?: string[];
       /** Set when the default answer shortened otherCheckouts: its page, and the call for the rest. */
       pages?: ShortenedPages;
       more?: string;
@@ -1805,8 +1807,11 @@ export async function collectCheckout(ctx: StatusContext): Promise<CheckoutSecti
   const entry = await session.registry.listProject(ref.project);
   let siblingPlans: SiblingPlan[] | undefined;
   let siblingPlansUnavailable: string | undefined;
+  let siblingPlansNotRead: string[] = [];
   try {
-    siblingPlans = await session.registry.siblingPlans(ref.project, ref.checkout);
+    const found = await session.registry.siblingPlans(ref.project, ref.checkout);
+    siblingPlans = found.plans;
+    siblingPlansNotRead = found.notes;
   } catch (error) {
     siblingPlansUnavailable = `The farm could not list the other checkouts' plans: ${getErrorMessage(error)}`;
   }
@@ -1819,7 +1824,8 @@ export async function collectCheckout(ctx: StatusContext): Promise<CheckoutSecti
     head: checkout.head,
     farm,
     otherCheckouts: (entry?.checkouts ?? []).filter((c) => c.key !== ref.checkout),
-    ...(siblingPlans ? { siblingPlans: siblingPlans.map(shortPlan) } : { siblingPlansUnavailable }),
+    ...(siblingPlans ? { siblingPlans } : { siblingPlansUnavailable }),
+    ...(siblingPlansNotRead.length > 0 ? { siblingPlansNotRead } : {}),
   };
 }
 

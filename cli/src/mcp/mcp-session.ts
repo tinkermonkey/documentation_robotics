@@ -59,6 +59,7 @@ export class McpSession {
     const served = this.root.get();
     if (!served.checkout) return null;
     const fresh = (await this.resolver?.resolve(served.root, { register: false }).catch(() => null)) ?? null;
-    return { ...served.checkout, ...(fresh ? { branch: fresh.checkout.branch } : {}) };
+    // Unresolvable now (removed, not a repository): the branch is unknown, said as null.
+    return { ...served.checkout, branch: fresh ? fresh.checkout.branch : null };
   }
 }

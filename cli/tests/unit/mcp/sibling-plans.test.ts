@@ -14,6 +14,7 @@ import { changesetCommitPreviewHandler } from "../../../src/mcp/tools/changeset-
 import { matchSiblingPlans } from "../../../src/core/sibling-plans.js";
 import { withResultCheckout } from "../../../src/mcp/tool-registry.js";
 import { jsonResult } from "../../../src/mcp/tools/shared.js";
+import path from "node:path";
 import { centralFarm, fakeFind, git, type CentralFarm } from "./central-farm-fixture.js";
 
 let farm: CentralFarm;
@@ -83,6 +84,23 @@ describe("project_status sibling plans", () => {
   });
 });
 
+describe("what the farm could not read", () => {
+  it("says so when a sibling's plan can't be read, instead of listing none", async () => {
+    await farm.register();
+    const other = await farm.addWorktree("other");
+    const mine = await farm.addWorktree("mine");
+    const made = created(await changesetCreateHandler({ name: "broken-plan", rootPath: other }));
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(path.join(other, "documentation-robotics", "changesets", made.id, "metadata.yaml"), "- not\n- a mapping\n");
+    const result = created(await changesetCreateHandler({ name: "viewer-dark-mode", rootPath: mine }));
+    expect(result.siblingPlansNotRead[0]).toContain("could not be read");
+    expect(result.siblingPlansNotRead[0]).toContain("other");
+    const options = { central: { ...deps(), findRunningServer: fakeFind(null), cliVersion: "999.0.0" } };
+    const s: any = await projectStatus({ rootPath: mine }, options);
+    expect(s.checkout.siblingPlansNotRead[0]).toContain("could not be read");
+  });
+});
+
 describe("the branch beside the checkout (#1422)", () => {
   it("names the branch in a landing sentence, even for the main checkout on a feature branch", async () => {
     await farm.register();
@@ -102,6 +120,15 @@ describe("the branch beside the checkout (#1422)", () => {
     expect(preview.status).toBe("ready-to-commit");
     expect(preview.landsOn).toBe("Lands on branch dr/landing-branch in checkout main (project project).");
     expect(preview.summary).toContain("Lands on branch dr/landing-branch in checkout main");
+  });
+
+  it("keeps a branch name with $ patterns intact in the confirmation summary", async () => {
+    await farm.register();
+    git(farm.project, "checkout", "-q", "-b", "x$&y");
+    await changesetCreateHandler({ name: "land-dollar", rootPath: farm.project });
+    await modelAddHandler({ layer: "motivation", type: "goal", name: "cheaper-checkout", attributes: { priority: "high" }, rootPath: farm.project });
+    const preview = JSON.parse(((await changesetCommitPreviewHandler({ changeset: "land-dollar", rootPath: farm.project })) as any).content[0].text);
+    expect(preview.summary).toContain("Lands on branch x$&y in checkout main");
   });
 
   it("returns null for a folder the farm doesn't know", async () => {
@@ -127,14 +154,18 @@ describe("matchSiblingPlans", () => {
     const plans = [
       plan("add-order-export"),
       plan("export-order-add-csv"),
-      plan("other", "fixes #77 properly"),
+      plan("other", "fixes #771 properly"),
       plan("viewer-dark-mode", "Dark theme for the viewer panes and the toolbar and the menus"),
     ];
     const hit = (name: string, description?: string) => matchSiblingPlans({ name, description }, plans).map((m) => m.plan.name);
     expect(hit("add-order-export")).toContain("add-order-export");
     expect(hit("order-export-csv")).toContain("export-order-add-csv");
-    expect(hit("something", "see issue #77")).toEqual(["other"]);
+    expect(hit("something", "see issue #771")).toEqual(["other"]);
     expect(hit("themes", "Dark theme for the viewer panes and the toolbar and the menus too")).toEqual(["viewer-dark-mode"]);
     expect(hit("billing-reports", "Quarterly billing")).toEqual([]);
+    // One shared word is not the same work, even against a one-word name; a colour or a step number is not an issue.
+    expect(matchSiblingPlans({ name: "viewer-dark" }, [plan("viewer-routes-checkout-scope")])).toEqual([]);
+    expect(matchSiblingPlans({ name: "export-csv-rows" }, [plan("export")])).toEqual([]);
+    expect(matchSiblingPlans({ name: "paint", description: "colour #123456 and step #10" }, [plan("x", "uses #123456, step #10")])).toEqual([]);
   });
 });

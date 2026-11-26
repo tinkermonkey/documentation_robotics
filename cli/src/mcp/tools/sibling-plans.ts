@@ -11,7 +11,7 @@ import { getErrorMessage } from "../../utils/errors.js";
 import { DEFAULT_CENTRAL_DEPS, resolveSessionCheckout, type CentralDeps } from "./central-viewer.js";
 
 export type SiblingPlansSection =
-  | { status: "ok"; plans: SiblingPlan[]; note?: string }
+  | { status: "ok"; plans: SiblingPlan[]; /** What could not be read: an empty `plans` is "none" only without these. */ notes: string[] }
   | { status: "unavailable"; reason: string };
 
 /** The staged plans in the other checkouts of the project `dir` is in. */
@@ -28,7 +28,8 @@ export async function collectSiblingPlans(
       };
     }
     const { ref } = session.resolved;
-    return { status: "ok", plans: await session.registry.siblingPlans(ref.project, ref.checkout) };
+    const { plans, notes } = await session.registry.siblingPlans(ref.project, ref.checkout);
+    return { status: "ok", plans, notes };
   } catch (error) {
     return {
       status: "unavailable",
@@ -45,7 +46,7 @@ export function siblingPlansWarning(matches: SiblingPlanMatch[]): string {
   );
   return (
     `A plan that looks like this one is already staged in another checkout: ${lines.join("; ")}. ` +
-    "Read it (its folder is under that checkout's documentation-robotics/changesets/) before planning the same work twice; " +
+    "Read it (in that checkout's changesets folder, under its path) before planning the same work twice; " +
     "if it is the same work, discard this plan (changeset_discard, with the user's say) and continue there. This is a warning: nothing was refused."
   );
 }
@@ -53,7 +54,7 @@ export function siblingPlansWarning(matches: SiblingPlanMatch[]): string {
 export { matchSiblingPlans };
 export type { PlanCandidate };
 
-/** The fields changeset_create adds for the plans staged in other checkouts: nothing when there are none. */
+/** The fields changeset_create adds for the plans staged in other checkouts: nothing when there are none and all was read. */
 export function siblingPlanFields(
   section: SiblingPlansSection,
   matches: SiblingPlanMatch[]
@@ -61,8 +62,10 @@ export function siblingPlanFields(
   if (section.status === "unavailable") {
     return { siblingPlans: { status: "unavailable", reason: section.reason } };
   }
-  if (section.plans.length === 0) return {};
+  const notes = section.notes.length > 0 ? { siblingPlansNotRead: section.notes } : {};
+  if (section.plans.length === 0) return notes;
   return {
+    ...notes,
     siblingPlans: section.plans.map(shortPlan),
     ...(matches.length > 0 ? { siblingWarning: siblingPlansWarning(matches) } : {}),
   };

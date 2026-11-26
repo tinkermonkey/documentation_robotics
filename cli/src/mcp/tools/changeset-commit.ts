@@ -634,7 +634,7 @@ async function summarizeLanding(target: LandingTarget, toolName: string): Promis
     // The whole changeset and the whole base, whatever part of the overlaps the summary names.
     state: await confirmedState(model, changeset),
     // The branch is named in the summary the person confirms (#1422).
-    message: landsOn ? message.replace("\n\n", `\n${landsOn}\n\n`) : message,
+    message: landsOn ? message.replace("\n\n", () => `\n${landsOn}\n\n`) : message,
     overlaps: { total, named },
   };
 }

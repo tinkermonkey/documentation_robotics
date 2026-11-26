@@ -18,6 +18,8 @@ export interface SiblingPlanMatch {
 }
 
 const NAME_OVERLAP = 0.5;
+/** One shared word (viewer, model, export) is no sign of the same work, whatever the name's length. */
+const NAME_SHARED_MIN = 2;
 /** Intents are long, so they must share a good part of their words (Jaccard), not just the shorter one's. */
 const INTENT_JACCARD = 0.4;
 /** Words this short or this common say nothing about what a plan is for. */
@@ -25,6 +27,12 @@ const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from",
 
 function nameWords(text: string): Set<string> {
   return new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP_WORDS.has(w)));
+}
+
+function sharedWords(a: Set<string>, b: Set<string>): number {
+  let shared = 0;
+  for (const word of a) if (b.has(word)) shared++;
+  return shared;
 }
 
 function overlap(a: Set<string>, b: Set<string>): number {
@@ -44,7 +52,7 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 /** The issue numbers a text cites: `#1368`, `issues/1368`, `issue 1368`. */
 export function issueRefs(text: string): Set<string> {
   const found = new Set<string>();
-  for (const m of text.matchAll(/(?:#|issues?\/|issues?\s+)(\d{2,6})\b/gi)) found.add(m[1]);
+  for (const m of text.matchAll(/(?:(?<![\w&])#|issues?\/|\bissues?\s+)(\d{3,5})\b/gi)) found.add(m[1]);
   return found;
 }
 
@@ -57,7 +65,7 @@ export function matchSiblingPlans(candidate: PlanCandidate, plans: SiblingPlan[]
     const reasons: string[] = [];
     if (plan.name.toLowerCase() === candidate.name.toLowerCase()) {
       reasons.push("the same name");
-    } else if (overlap(candName, nameWords(plan.name)) >= NAME_OVERLAP && candName.size > 1) {
+    } else if (sharedWords(candName, nameWords(plan.name)) >= NAME_SHARED_MIN && overlap(candName, nameWords(plan.name)) >= NAME_OVERLAP) {
       reasons.push(`a similar name ("${plan.name}")`);
     }
     const shared = [...issueRefs(`${plan.name} ${plan.description ?? ""}`)].filter((n) => candIssues.has(n));
