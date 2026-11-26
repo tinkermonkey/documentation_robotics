@@ -304,6 +304,42 @@ export function registeredByName(element: EvidenceElement, buildFiles: BuildFile
   return null;
 }
 
+/** A symbol a planned element's source reference names, found in the build's file (#1429). */
+export interface DeclaredSymbol {
+  file: string;
+  symbol: string;
+  /** The line of the first whole-word mention outside comments, 1-based. */
+  line: number;
+}
+
+/**
+ * The location of a planned element's own source reference (file and symbol) whose symbol the
+ * file's text names as a whole word outside comments, when one does. This is what an element
+ * extraction produces nothing of that type for (a plain dict an object schema describes, a shape
+ * checked by a function) has to show that its code is in the build. Evidence from the file's text,
+ * not the code graph: the caller reports the element as unverifiable with it, never as matched.
+ * A name that only a quoted string carries is not found. A qualified symbol (`Class.method`, `module::fn`) is looked for by its last segment.
+ */
+export function declaredSymbol(element: EvidenceElement, buildFiles: BuildFile[]): DeclaredSymbol | null {
+  for (const location of element.sourceReference?.locations ?? []) {
+    const symbol = typeof location?.symbol === "string" ? location.symbol.trim() : "";
+    const file = typeof location?.file === "string" ? location.file.replace(/\\/g, "/").replace(/^\.\//, "") : "";
+    if (!symbol || !file) continue;
+    const name = symbol.split(/[.#:/]+/).filter(Boolean).pop() ?? symbol;
+    const found = buildFiles.find((f) => f.file === file);
+    if (!found || !/^[\w$]+$/.test(name)) continue;
+    const text = withoutComments(file, found.text);
+    for (let at = text.indexOf(name); at !== -1; at = text.indexOf(name, at + name.length)) {
+      const before = text[at - 1];
+      // A quoted string names it as text (a registration, a key), which is no declaration of it.
+      if (!isWordChar(before) && !isWordChar(text[at + name.length]) && !(before !== undefined && QUOTES.includes(before))) {
+        return { file, symbol, line: text.slice(0, at).split("\n").length };
+      }
+    }
+  }
+  return null;
+}
+
 /** A file of the build that may hold a planned element's code. */
 export interface SourceCandidate {
   file: string;
