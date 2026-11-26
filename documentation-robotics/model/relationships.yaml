@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-26T13:41:32.444Z
+# Last updated: 2026-11-26T14:25:11.630Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -74378,31 +74378,6 @@
   predicate: depends-on
   layer: application
   category: structural
-- source: application.applicationfunction.review-step
-  target: application.applicationfunction.collect-changesets
-  predicate: depends-on
-  layer: application
-  category: structural
-- source: application.applicationfunction.drift-as-information
-  target: application.applicationfunction.collect-code-drift
-  predicate: depends-on
-  layer: application
-  category: structural
-- source: application.applicationfunction.with-legacy-marker-note
-  target: application.applicationfunction.collect-legacy-marker
-  predicate: depends-on
-  layer: application
-  category: structural
-- source: application.applicationfunction.intent-fields
-  target: application.applicationservice.changeset-create-handler
-  predicate: realizes
-  layer: application
-  category: structural
-- source: application.applicationfunction.intent-fields
-  target: application.applicationservice.changeset-update-handler
-  predicate: realizes
-  layer: application
-  category: structural
 - source: application.applicationfunction.intent-arg
   target: application.applicationservice.changeset-create-handler
   predicate: realizes
@@ -75074,19 +75049,9 @@
   predicate: realizes
   layer: application
   category: structural
-- source: application.applicationfunction.delete-relationship-batch
-  target: application.applicationfunction.batch-causes
-  predicate: depends-on
-  layer: application
-  category: structural
 - source: application.applicationfunction.delete-element-batch
   target: application.applicationservice.model-delete-handler
   predicate: realizes
-  layer: application
-  category: structural
-- source: application.applicationfunction.delete-element-batch
-  target: application.applicationfunction.batch-causes
-  predicate: depends-on
   layer: application
   category: structural
 - source: application.applicationfunction.settle-source-location-change
@@ -75112,11 +75077,6 @@
 - source: application.applicationfunction.id-note-kind
   target: application.applicationservice.model-add-handler
   predicate: realizes
-  layer: application
-  category: structural
-- source: application.applicationfunction.id-note-kind
-  target: application.applicationfunction.derive-element-id
-  predicate: depends-on
   layer: application
   category: structural
 - source: application.applicationfunction.batch-report
@@ -75294,4 +75254,44 @@
   target: application.applicationfunction.get-error-message
   predicate: depends-on
   layer: application
+  category: structural
+- source: application.applicationfunction.review-step
+  target: data-model.objectschema.sections
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: application.applicationfunction.drift-as-information
+  target: data-model.objectschema.sections
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: application.applicationfunction.with-legacy-marker-note
+  target: data-model.objectschema.legacy-marker-state
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: application.applicationfunction.delete-relationship-batch
+  target: application.applicationfunction.batch-report
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.delete-element-batch
+  target: application.applicationfunction.batch-report
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationservice.model-update-handler
+  target: product.feature.declared-spec-check
+  predicate: realizes
+  layer: application
+  targetLayer: product
+  category: structural
+- source: application.applicationservice.create-codebase-extract-handler
+  target: product.feature.declared-spec-check
+  predicate: realizes
+  layer: application
+  targetLayer: product
   category: structural

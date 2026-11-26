@@ -1,0 +1,24 @@
+id: changeset-1795650067380-7nqy03bca
+name: cli09-plan-corrections
+description: |-
+  Corrects what the seven landed CLI 0.9.0 tranche plans (cli09-*, landed in PR 1460) put in the model that no machine check confirmed: the planned links changeset_verify reported missing, and the hand-written description updates. Each missing link was traced in the code at origin/main (13bfdd08). A link stays only when the code makes that call or reads that data, whether directly or through a closure, a private helper, a wrapper, a dynamic import or a moved file.
+
+  **In scope:**
+  - Links that are not calls. `review-step` and `drift-as-information` read the status `Sections` and never call their collectors; `with-legacy-marker-note` reads the `LegacyMarkerState`. `intent-fields` builds the tools' input schemas, which the handlers never call. `id-note-kind` only matches the text of the notes `deriveElementId` writes.
+  - `delete-element-batch` and `delete-relationship-batch` call `batch-report` (which calls `batch-causes`), not `batch-causes` itself.
+  - `declared-spec-check` is realized by model_update's and codebase_extract's handlers too. Both run the check, and the plan left them out.
+  - 24 descriptions and `documentation` attributes that no longer say what their code does.
+
+  **Done when:** every changed link and description matches the code at 13bfdd08, model_validate reports no errors, and the maintainer lands it with the PR.
+created: 2026-11-25T23:41:07.425Z
+modified: 2026-11-26T14:25:11.832Z
+status: committed
+baseSnapshot: v2:sha256:bf7aaab1bf8e8ab6c817655599b290112ff3a4e5ec7739ca774794e1a525b283
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 7
+  modifications: 24
+  deletions: 8
+lastSequence: 38
