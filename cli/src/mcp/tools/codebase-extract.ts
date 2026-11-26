@@ -85,6 +85,7 @@ import {
   planElements,
   planRelationships,
   INFERRED_TEST_EDGE,
+  INFERRED_TEST_CALL_EDGE,
   sortUndecided,
   sourceSymbolOf,
   symbolChangedInRange,
@@ -240,6 +241,13 @@ const rejectItemSchema = strictItem("A reject[] item", {
         })
           .optional()
           .describe("A relationship extraction staged (or would stage) that the code doesn't have."),
+        predicate: z
+          .string()
+          .min(1)
+          .optional()
+          .describe(
+            "With files: not the cards in those files but the relationships with this predicate whose source element is sourced there, as a group (files plus predicate \"tests\" is every test link of a test file or folder)."
+          ),
         except: z
           .array(z.string().min(1))
           .optional()
@@ -1038,7 +1046,7 @@ function relationshipChange(r: PlannedRelationship, origin: ChangeOrigin): Omit<
  */
 function relationshipOrigin(r: PlannedRelationship, addOrigins: ReadonlyMap<string, ChangeOrigin>): ChangeOrigin {
   // A tests link inferred from a test file's name says so, whoever decided its ends.
-  if (r.edge === INFERRED_TEST_EDGE) return { by: "tier0", rule: `edge:${r.edge}` };
+  if (r.edge === INFERRED_TEST_EDGE || r.edge === INFERRED_TEST_CALL_EDGE) return { by: "tier0", rule: `edge:${r.edge}` };
   const ends = [addOrigins.get(r.source), addOrigins.get(r.target)].filter((o): o is ChangeOrigin => !!o);
   return structuredClone(ends.find((o) => o.by === "tier1") ?? ends[0] ?? { by: "tier0", rule: `edge:${r.edge}` });
 }
@@ -2036,8 +2044,16 @@ function splitRejects(items: RejectItem[]) {
   const cards: Array<{ card: string; reason: string; index: number }> = [];
   const files: FilesRef[] = [];
   const relationships: Array<{ relationship: RelationshipRef; reason: string; index: number }> = [];
+  /** `files` plus `predicate`: every relationship with the predicate whose source is sourced in those files. */
+  const groups: Array<{ files: string; predicate: string; reason: string; index: number }> = [];
   const problems: RejectProblem[] = [];
   items.forEach((item, index) => {
+    if (item.predicate !== undefined) {
+      if (item.files === undefined || item.card !== undefined || item.relationship !== undefined || item.except !== undefined || item.keep) {
+        problems.push({ index, item: `predicate: ${item.predicate}`, status: "malformed", message: "predicate goes with files alone (no card, relationship, except or keep): files plus predicate rejects the relationships of that predicate staged now, in this checkout" });
+      } else groups.push({ files: item.files, predicate: item.predicate, reason: item.reason, index });
+      return;
+    }
     const named = (["card", "files", "relationship"] as const).filter((k) => item[k] !== undefined);
     if (named.length !== 1) {
       problems.push({
@@ -2064,7 +2080,7 @@ function splitRejects(items: RejectItem[]) {
     else if (item.files !== undefined) files.push({ files: item.files, reason: item.reason, index, ...(item.except ? { except: item.except } : {}) });
     else relationships.push({ relationship: item.relationship!, reason: item.reason, index });
   });
-  return { cards, files, relationships, problems };
+  return { cards, files, relationships, groups, problems };
 }
 
 /** A `files` reject item: the pattern, and the cards it must leave out (`except`). */
@@ -2249,6 +2265,23 @@ function relationshipsToReject(
     }
   }
   return { found, problems };
+}
+
+/**
+ * The live relationships with `predicate` whose source element names code in `files` (a path or
+ * glob): a file's test links as a group (#1412).
+ */
+function relationshipsInFiles(graph: ChangesetGraph, files: string, predicate: string): RelationshipRef[] {
+  const match = filesMatcher(files);
+  const out: RelationshipRef[] = [];
+  for (const r of graph.relationships()) {
+    // Links the base model already has (wired by hand, or landed) are not extraction's to reject as a group.
+    if (r.predicate !== predicate || r.status === "deleted" || r.status === "unchanged") continue;
+    const source = graph.getElement(r.source);
+    const hit = (source?.sourceReference?.locations ?? []).some((l) => typeof l.file === "string" && match(normFile(l.file) ?? ""));
+    if (hit) out.push({ source: r.source, predicate: r.predicate, target: r.target });
+  }
+  return out;
 }
 
 function notRelationshipsResult(
@@ -2774,10 +2807,22 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           const extractionChangeset = changeset && stored ? changeset : null;
           const graph = extractionChangeset ? await ChangesetGraph.build(model, extractionChangeset) : null;
           // Everything is checked before anything is recorded.
-          const relationshipGraph = rejects.relationships.length ? (graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset()))) : null;
+          const relationshipGraph = rejects.relationships.length || rejects.groups.length ? (graph ?? (await ChangesetGraph.build(model, changeset ?? emptyChangeset()))) : null;
+          // A files + predicate item stands for each relationship of that predicate whose source element is sourced in those files.
+          const groupProblems: RejectProblem[] = [];
+          const groupRefs: typeof rejects.relationships = [];
+          for (const g of rejects.groups) {
+            const hits = relationshipGraph ? relationshipsInFiles(relationshipGraph, g.files, g.predicate) : [];
+            if (!hits.length) {
+              groupProblems.push({ index: g.index, item: `files: ${g.files}, predicate: ${g.predicate}`, status: "no-match", message: `no '${g.predicate}' relationship of '${changesetLabel}' or the model has a source element in '${g.files}'` });
+            }
+            for (const relationship of hits) groupRefs.push({ relationship, reason: g.reason, index: g.index });
+          }
           const fromRelationships = relationshipGraph
-            ? relationshipsToReject(rejects.relationships, stored, changeset, relationshipGraph, decisions, changesetLabel)
+            ? relationshipsToReject([...rejects.relationships, ...groupRefs], stored, changeset, relationshipGraph, decisions, changesetLabel)
             : { found: [], problems: [] };
+          fromRelationships.problems.push(...groupProblems);
+          for (const r of fromRelationships.found) if (rejects.groups.some((g) => g.index === r.index)) rejectedPerItem.set(r.index, (rejectedPerItem.get(r.index) ?? 0) + 1);
           // The code an element names now, in the extraction changeset (or the base) and in the
           // active changeset when it is another (a plan): a files item leaves those cards out, and
           // the cards a plan's elements name (card.planned).
@@ -4766,18 +4811,21 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
                   },
                   layout
                 ),
-            ...(planned.unwiredTests.length || planned.inferredTests
+            ...(planned.unwiredTests.length || planned.inferredTests || planned.sharedTestHelpers.length
               ? {
                   testLinks: {
                     ...(planned.inferredTests ? { inferredFromFileName: planned.inferredTests } : {}),
+                    ...(planned.sharedTestHelpers.length ? { sharedHelpers: { total: planned.sharedTestHelpers.length, listed: planned.sharedTestHelpers.slice(0, 20) } } : {}),
                     unwired: {
                       cases: planned.unwiredTests.reduce((n, f) => n + f.cases, 0),
                       files: capped(planned.unwiredTests, Math.min(fit.listLimit ?? 20, 20), "unwiredTests"),
                     },
                     note:
                       "Test cases with an element that test nothing: no call from the test reaches an element, and no source file is named as the test file is. " +
-                      "inferredFromFileName counts links made from the name alone (foo.spec.ts tests the element that owns foo.ts; origin rule edge:TEST_FILE_NAME). " +
-                      "Wire an unwired file's cases with relationship_add (testcasesketch tests <element>), one file at a time.",
+                      "inferredFromFileName counts links made from the name alone (foo.spec.ts tests the element that owns foo.ts; origin rule edge:TEST_FILE_NAME); a link made by following a test's calls through a symbol a rule rejected has origin rule edge:TEST_CALL_VIA_REJECTED. " +
+                      "sharedHelpers are elements many test files call and none is named after: no tests link was staged for them. " +
+                      "Each unwired file lists candidates, the elements its calls or its name point at: work for you to check, then wire with relationship_add (testcasesketch tests <element>). " +
+                      "A wrong group of test links goes in reject as {files: <test file or glob>, predicate: \"tests\", reason}.",
                   },
                 }
               : {}),
@@ -4884,7 +4932,7 @@ export const codebaseExtractTool: McpToolDefinition<typeof inputSchema> = {
     "unstaged; or files (a path or glob) for every undecided card in them, except what an element or the plan names, what except lists, and, " +
     "with decide in the call, what decide decided. keep: true writes a reject as a rule instead of this checkout's record (not for a files item that left out " +
     "planned or decided cards, a decision record or a card with no file: those are recorded, and notKept says why). A wrong relationship goes in reject as " +
-    "relationship: {source, predicate, target}. Kept until clearRejected in this checkout, later runs leave them out. An element " +
+    "relationship: {source, predicate, target}, or a file's links of one predicate as a group in files + predicate (a test file's tests links). Kept until clearRejected in this checkout, later runs leave them out. An element " +
     "or relationship it staged that you unstage from a changeset is also left out, while that changeset is staged and " +
     "after it lands; discarding it forgets that. reject and decide items can come from a JSON file (file); their results are counts and the items " +
     "that need attention (verbose: true for every item). sharedHelpers lists functions that realize more services than sharedBy: decide their relationship none if they are shared helpers. " +
