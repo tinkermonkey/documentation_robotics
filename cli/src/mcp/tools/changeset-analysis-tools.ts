@@ -471,7 +471,7 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     `hops (default ${INTENT_TRACE_DEPTH}) and not through an element with more than hubThreshold relationships (default ${DEFAULT_HUB_THRESHOLD}): ` +
     "intent.walk names both and counts the elements that rule leaves untraced; drift since " +
     "the changeset was created; unwired connections (catalog connections an added or updated element has no " +
-    "relationship for) counted per layer, only the links an element of its type is expected to have (required or backed by a layer rule), with the optional catalog triples and the pre-existing ones of updated elements counted apart; the files of the changed elements; open review annotations; and each " +
+    "relationship for) counted per layer, only the links an element of its type is expected to have (required, high-strength, or carried by existing elements of the type), with the optional catalog triples and the pre-existing ones of updated elements counted apart; the files of the changed elements; open review annotations; and each " +
     "changed element with its type, operation and connections as `predicate → id` lines (for a plan of more " +
     "than 60 elements, counts per type with the first ids of each, and long id lists counted per type). " +
     "sections: [...] returns only the sections named, with a small header, in compact forms. Long lists come a " +
