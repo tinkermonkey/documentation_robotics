@@ -888,7 +888,7 @@ const ANCHORING_PREDICATES = new Set(["realizes", "satisfies", "supports"]);
 const END_OF_INTENT = new Set(["goal", "outcome"]);
 
 /** Added intent elements that count as anchored once they reach an end of intent. */
-const ANCHOR_TYPES = new Set(["requirement", "feature", "capability"]);
+const ANCHOR_TYPES = new Set(["requirement", "feature", "businesscapability", "softwarecapability"]);
 
 const typeName = (element: GraphElement): string => specNodeId(element).split(".").pop() ?? "";
 

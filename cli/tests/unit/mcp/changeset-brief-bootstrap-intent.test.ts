@@ -122,4 +122,16 @@ describe("intent tracing in a bootstrap (#1329)", () => {
     const trace = result.traced.find((t: any) => t.element === worker);
     expect(trace.path).toEqual([worker, service, GOAL]);
   });
+
+  it("anchors an added capability that supports an added goal", async () => {
+    const capability = "product.softwarecapability.spec-checking";
+    const service = "application.applicationservice.spec-checking";
+    await add({ layer: "product", type: "softwarecapability", name: "spec-checking", attributes: { status: "planned" } });
+    await add({ layer: "application", type: "applicationservice", name: "spec-checking", attributes: { serviceType: "synchronous" } });
+    await relate(capability, "supports", GOAL);
+    await relate(service, "realizes", capability);
+    const result = await intent();
+    expect(result.untraced).not.toContain(service);
+    expect(result.traced.find((t: any) => t.element === service)).toMatchObject({ tracesTo: capability });
+  });
 });

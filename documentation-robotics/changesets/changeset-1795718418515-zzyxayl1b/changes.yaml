@@ -214,3 +214,39 @@
     category: structural
   timestamp: 2026-11-26T18:45:06.908Z
   sequenceNumber: 11
+- type: add
+  elementId: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-capability-that-supports-an-added-goal
+  layerName: testing
+  after:
+    id: 52718df0-8608-4f9b-94b0-e61a10aa2cde
+    path: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-capability-that-supports-an-added-goal
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: intent-tracing-in-a-bootstrap-1329-anchors-an-added-capability-that-supports-an-added-goal
+    attributes:
+      status: automated
+      implementationFormat: automated
+    source_reference:
+      provenance: manual
+      locations:
+        - file: cli/tests/unit/mcp/changeset-brief-bootstrap-intent.test.ts
+          symbol: intent tracing in a bootstrap (#1329) > anchors an added capability that supports an added goal
+    metadata:
+      created_at: 2026-11-26T18:48:42.845Z
+      updated_at: 2026-11-26T18:48:42.845Z
+      version: 1
+  timestamp: 2026-11-26T18:48:43.118Z
+  sequenceNumber: 18
+- type: relationship-add
+  elementId: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-capability-that-supports-an-added-goal::tests::application.applicationservice.changeset-brief-handler
+  layerName: testing
+  after:
+    source: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-capability-that-supports-an-added-goal
+    target: application.applicationservice.changeset-brief-handler
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:48:43.118Z
+  sequenceNumber: 19

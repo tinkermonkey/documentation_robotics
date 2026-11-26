@@ -7,17 +7,17 @@ description: |-
 
   **Done when:** cabinet-sheets and toland-cad-shaped bootstraps report traced elements, and tests cover each change.
 created: 2026-11-26T18:40:18.560Z
-modified: 2026-11-26T18:45:23.402Z
+modified: 2026-11-26T18:48:43.123Z
 status: staged
 baseSnapshot: v2:sha256:440d553c6129cdbb5bfa188b1e6a5020a929c3bd525183dfeea350a86b02670b
 origin:
   kind: plan
 purpose: plan
 stats:
-  additions: 12
+  additions: 14
   modifications: 0
   deletions: 0
-lastSequence: 17
+lastSequence: 19
 unstaged:
   - sequence: 0
     removedAt: 12
