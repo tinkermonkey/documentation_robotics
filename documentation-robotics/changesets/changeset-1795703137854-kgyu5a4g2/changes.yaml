@@ -1,0 +1,134 @@
+- type: add
+  elementId: application.applicationfunction.decide-extraction-purpose
+  layerName: application
+  after:
+    id: 74d48a98-4f28-4f40-9576-120c8f62ed71
+    path: application.applicationfunction.decide-extraction-purpose
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: decideExtractionPurpose
+    description: "The purpose codebase_extract declares for the changeset it makes: an explicit purpose argument wins; with a plan active a since run is its verification record; with no plan active a since equal to the manifest's reconciled code commit is a reconcile and any other since a verification record naming the one staged plan it verifies, or none."
+    metadata:
+      created_at: 2026-11-26T14:25:59.286Z
+      updated_at: 2026-11-26T14:25:59.286Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-purpose.ts
+          symbol: decideExtractionPurpose
+  timestamp: 2026-11-26T14:40:52.929Z
+  sequenceNumber: 0
+- type: add
+  elementId: application.applicationfunction.staging-area-manager-record-verifications-of
+  layerName: application
+  after:
+    id: d1831c1b-7ae4-438e-a6fa-4286c6a40906
+    path: application.applicationfunction.staging-area-manager-record-verifications-of
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: StagingAreaManager recordVerificationsOf
+    description: On landing a plan, moves the staged verification records that name it (verifies) to the recorded status. Discarding a record stays an explicit move.
+    metadata:
+      created_at: 2026-11-26T14:25:59.291Z
+      updated_at: 2026-11-26T14:25:59.291Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/staging-area.ts
+          symbol: StagingAreaManager.recordVerificationsOf
+  timestamp: 2026-11-26T14:40:52.929Z
+  sequenceNumber: 1
+- type: add
+  elementId: application.applicationfunction.changeset-mark-recorded
+  layerName: application
+  after:
+    id: 2acc00cf-6733-46a3-88f5-e65c1ece111d
+    path: application.applicationfunction.changeset-mark-recorded
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: Changeset markRecorded
+    description: "Sets a staged verification record's status to recorded: kept in git with the plan, no longer staged work."
+    metadata:
+      created_at: 2026-11-26T14:25:59.293Z
+      updated_at: 2026-11-26T14:25:59.293Z
+      version: 1
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset.ts
+          symbol: Changeset.markRecorded
+  timestamp: 2026-11-26T14:40:52.929Z
+  sequenceNumber: 2
+- type: add
+  elementId: application.applicationfunction.resolve-commit
+  layerName: application
+  after:
+    id: 933e4cf3-2a65-419f-b2e8-1a3db277e98a
+    path: application.applicationfunction.resolve-commit
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: resolveCommit
+    description: "The git commit a ref names in a directory, or undefined: how decideExtractionPurpose tells whether since is the reconciled commit."
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-purpose.ts
+          symbol: resolveCommit
+    metadata:
+      created_at: 2026-11-26T14:41:00.489Z
+      updated_at: 2026-11-26T14:41:00.489Z
+      version: 1
+  timestamp: 2026-11-26T14:41:00.531Z
+  sequenceNumber: 6
+- type: add
+  elementId: application.applicationfunction.recorded-purpose
+  layerName: application
+  after:
+    id: f2ab7557-ec3d-4614-905c-c7892a5bea3d
+    path: application.applicationfunction.recorded-purpose
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: recordedPurpose
+    description: The purpose fields a codebase_extract run's record keeps, so a changeset made later for waiting cards declares the same purpose.
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/codebase-extract.ts
+          symbol: recordedPurpose
+    metadata:
+      created_at: 2026-11-26T14:41:00.489Z
+      updated_at: 2026-11-26T14:41:00.489Z
+      version: 1
+  timestamp: 2026-11-26T14:41:00.531Z
+  sequenceNumber: 7
+- type: add
+  elementId: data-model.objectschema.extraction-purpose-decision
+  layerName: data-model
+  after:
+    id: 2aefc48f-b80c-41d5-aa0c-a8b7d03b72c3
+    path: data-model.objectschema.extraction-purpose-decision
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: ExtractionPurposeDecision
+    description: The purpose declaration codebase_extract chose for a run, with a note saying why and which plan a verification record verifies (or that none).
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/changeset-purpose.ts
+          symbol: ExtractionPurposeDecision
+    metadata:
+      created_at: 2026-11-26T14:41:00.489Z
+      updated_at: 2026-11-26T14:41:00.489Z
+      version: 1
+  timestamp: 2026-11-26T14:41:00.531Z
+  sequenceNumber: 8

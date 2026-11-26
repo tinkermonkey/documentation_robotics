@@ -28449,37 +28449,88 @@ application.applicationfunction.migration-registry-register-migrations:
     created_at: 2026-11-26T01:01:02.241Z
     updated_at: 2026-11-26T01:01:02.241Z
     version: 1
-application.applicationfunction.declaration-shapes-of:
-  id: e5dededb-a467-4d89-bdcb-db6515cc12f8
-  path: application.applicationfunction.declaration-shapes-of
+application.applicationfunction.decide-extraction-purpose:
+  id: 74d48a98-4f28-4f40-9576-120c8f62ed71
+  path: application.applicationfunction.decide-extraction-purpose
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: declarationShapesOf
-  description: Reads a JS/TS declaration's shapes (exported, react-hook, react-component) from its text, for Tier-0 rules' shape condition.
+  name: decideExtractionPurpose
+  description: "The purpose codebase_extract declares for the changeset it makes: an explicit purpose argument wins; with a plan active a since run is its verification record; with no plan active a since equal to the manifest's reconciled code commit is a reconcile and any other since a verification record naming the one staged plan it verifies, or none."
   source_reference:
     provenance: extracted
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: declarationShapesOf
+      - file: cli/src/core/changeset-purpose.ts
+        symbol: decideExtractionPurpose
   metadata:
-    created_at: 2026-11-26T15:11:57.723Z
-    updated_at: 2026-11-26T15:11:57.723Z
+    created_at: 2026-11-26T14:25:59.286Z
+    updated_at: 2026-11-26T14:25:59.286Z
     version: 1
-application.applicationfunction.is-declared-variable:
-  id: fe2e72b2-8328-419f-87b2-ccaa60702a39
-  path: application.applicationfunction.is-declared-variable
+application.applicationfunction.staging-area-manager-record-verifications-of:
+  id: d1831c1b-7ae4-438e-a6fa-4286c6a40906
+  path: application.applicationfunction.staging-area-manager-record-verifications-of
   spec_node_id: application.applicationfunction
   type: applicationfunction
   layer_id: application
-  name: isDeclaredVariable
-  description: "Whether a Variable card is worth a card: an exported, non-primitive JS/TS const."
+  name: StagingAreaManager recordVerificationsOf
+  description: On landing a plan, moves the staged verification records that name it (verifies) to the recorded status. Discarding a record stays an explicit move.
   source_reference:
     provenance: extracted
     locations:
-      - file: cli/src/analyzers/cards/shapes.ts
-        symbol: isDeclaredVariable
+      - file: cli/src/core/staging-area.ts
+        symbol: StagingAreaManager.recordVerificationsOf
   metadata:
-    created_at: 2026-11-26T15:11:57.723Z
-    updated_at: 2026-11-26T15:11:57.723Z
+    created_at: 2026-11-26T14:25:59.291Z
+    updated_at: 2026-11-26T14:25:59.291Z
+    version: 1
+application.applicationfunction.changeset-mark-recorded:
+  id: 2acc00cf-6733-46a3-88f5-e65c1ece111d
+  path: application.applicationfunction.changeset-mark-recorded
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: Changeset markRecorded
+  description: "Sets a staged verification record's status to recorded: kept in git with the plan, no longer staged work."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset.ts
+        symbol: Changeset.markRecorded
+  metadata:
+    created_at: 2026-11-26T14:25:59.293Z
+    updated_at: 2026-11-26T14:25:59.293Z
+    version: 1
+application.applicationfunction.resolve-commit:
+  id: 933e4cf3-2a65-419f-b2e8-1a3db277e98a
+  path: application.applicationfunction.resolve-commit
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: resolveCommit
+  description: "The git commit a ref names in a directory, or undefined: how decideExtractionPurpose tells whether since is the reconciled commit."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/changeset-purpose.ts
+        symbol: resolveCommit
+  metadata:
+    created_at: 2026-11-26T14:41:00.489Z
+    updated_at: 2026-11-26T14:41:00.489Z
+    version: 1
+application.applicationfunction.recorded-purpose:
+  id: f2ab7557-ec3d-4614-905c-c7892a5bea3d
+  path: application.applicationfunction.recorded-purpose
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: recordedPurpose
+  description: The purpose fields a codebase_extract run's record keeps, so a changeset made later for waiting cards declares the same purpose.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/codebase-extract.ts
+        symbol: recordedPurpose
+  metadata:
+    created_at: 2026-11-26T14:41:00.489Z
+    updated_at: 2026-11-26T14:41:00.489Z
     version: 1

@@ -10,7 +10,7 @@
 import { readFile, writeFile } from "fs/promises";
 import { fileExists } from "../utils/file-io.js";
 import yaml from "yaml";
-import { Changeset, type Change } from "./changeset.js";
+import { Changeset, type Change, type ChangesetStatus } from "./changeset.js";
 import { StagedChangesetStorage } from "./staged-changeset-storage.js";
 import type { Model } from "./model.js";
 import { BaseSnapshotManager } from "./base-snapshot-manager.js";
@@ -384,10 +384,10 @@ export class ChangesetExporter {
     const changesetSnapshot = typeof baseSnapshot === "string" ? baseSnapshot : "unknown";
 
     // Validate status against known values
-    if (!["staged", "committed", "discarded"].includes(String(status))) {
+    if (!["staged", "committed", "discarded", "recorded"].includes(String(status))) {
       throw new Error(
         `Invalid changeset status '${status}' from YAML import. ` +
-        `Expected: staged, committed, or discarded.`
+        `Expected: staged, committed, discarded, or recorded.`
       );
     }
 
@@ -397,7 +397,7 @@ export class ChangesetExporter {
       description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
-      status: status as "staged" | "committed" | "discarded",
+      status: status as ChangesetStatus,
       baseSnapshot: changesetSnapshot,
       changes: (changes as Change[]) || [],
       stats: changesetStats,
@@ -442,10 +442,10 @@ export class ChangesetExporter {
     const changesetSnapshot = typeof baseSnapshot === "string" ? baseSnapshot : "unknown";
 
     // Validate status against known values
-    if (!["staged", "committed", "discarded"].includes(String(status))) {
+    if (!["staged", "committed", "discarded", "recorded"].includes(String(status))) {
       throw new Error(
         `Invalid changeset status '${status}' from JSON import. ` +
-        `Expected: staged, committed, or discarded.`
+        `Expected: staged, committed, discarded, or recorded.`
       );
     }
 
@@ -455,7 +455,7 @@ export class ChangesetExporter {
       description: typeof description === "string" ? description : undefined,
       created: String(created),
       modified: String(modified),
-      status: status as "staged" | "committed" | "discarded",
+      status: status as ChangesetStatus,
       baseSnapshot: changesetSnapshot,
       changes: (changes as Change[]) || [],
       stats: changesetStats,

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`recorded` changeset status (#1171):** landing a plan moves the verification records that name it
+  (`verifies`) to `recorded`, with no new tool. A recorded record is kept (committed to git with the
+  plan) and no longer shows as staged work: `changeset_list` lists staged changesets by default and
+  counts `recorded` ones (`status: "recorded"` lists them), `project_status` counts them apart from
+  the staged ones so its `nextStep` never asks about one, and the viewer API reports
+  `status: "recorded"` with `actions: ["discard"]`. Discarding a record stays an explicit move
+  (`changeset_discard`, the viewer, `dr changeset delete`). Records made before this still read as
+  they did. Documented in `docs/CHANGE_MODELING.md`, `/dr-plan` and the `dr_change_planning` skills.
+- **`codebase_extract` `purpose` argument (#1370):** with `since`, `purpose: "reconcile"` or
+  `"verification"` overrides the rule below.
+
+### Changed
+
+- **`codebase_extract` picks the purpose of a `since` run by rule (#1370):** with no plan active, a
+  `since` equal to the manifest's `reconciled` code commit makes a reconcile; any other `since`
+  makes a verification record (never landed), and the result's `purposeNote` says which plan it
+  verifies (the one staged plan) or that it found none. Before, every `since` run with no plan
+  active was a reconcile, so a branch's build could be landed as if it reconciled the whole model.
+  With a plan active the run is still its verification record. Pass `purpose: "reconcile"` to
+  reconcile from another `since`.
+
 ### Fixed
 
 - `codebase_extract` reads routes a server routes by hand: method and path comparisons inside an
@@ -25,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   says what to check by hand. It is no longer drift. Hand-routed routes are read in verify too (#1321).
 - `codebase_extract` now gives exported TypeScript consts a card (#1344): `export const projectListHandler = ...`, and `React.forwardRef(...)` and `memo(...)` components, which the graph labels Variable and extraction never read. Primitive constants and module-private consts are still not cards.
 - Exported React hooks and components get cards narrowed to UX types (#1381, #1344): `useX` to `ux.dataconfig`, `ux.stateaction` or `ux.statepattern`; a function returning JSX, or a `forwardRef` or `memo` const, to `ux.view`, `ux.subview`, `ux.librarycomponent`, `ux.librarysubview` or `ux.actioncomponent`. The callbacks declared inside one are rejected as `nested-in-react-unit` unless a rule or a `decide` item says otherwise. Tier-0 rules can match a declaration's `shape` (`exported`, `react-hook`, `react-component`).
+- `changeset_discard` and the viewer's discard refused a recorded verification record; they take it.
 
 ## [0.9.0] - 2026-11-25
 

@@ -77,7 +77,8 @@ function planClause(plan: DriftSubject["plan"]): string {
 
 /** The status that needs no check, or undefined when the changeset's base has to be compared. */
 function withoutCheck({ changeset, purpose, plan }: DriftSubject): DriftStatus | undefined {
-  if (changeset.status !== "staged") {
+  // A recorded verification record reads as one (naming its plan, which has landed), not as a closed changeset.
+  if (changeset.status !== "staged" && !(changeset.status === "recorded" && purpose === "verification")) {
     return {
       state: "not-applicable",
       blocksCommit: false,

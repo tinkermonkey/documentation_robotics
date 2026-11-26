@@ -106,7 +106,16 @@ import { Element } from "../../core/element.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { extractionPurpose, type ChangesetPurpose } from "../../core/changeset-purpose.js";
+import {
+  decideExtractionPurpose,
+  EXTRACTION_PURPOSE_ARGS,
+  extractionPurpose,
+  purposeOf,
+  readPurpose,
+  resolveCommit,
+  type ChangesetPurpose,
+  type ExtractionPurposeDecision,
+} from "../../core/changeset-purpose.js";
 import { getAllLayerIds, isValidLayer } from "../../generated/layer-registry.js";
 import { validatePlannedAdds } from "../../analyzers/validate-planned.js";
 import { getValidRelationships } from "../../generated/relationship-index.js";
@@ -286,6 +295,15 @@ const inputSchema = {
     .describe(
       "A git ref (branch, tag or commit). Extract only the files changed since its merge base with HEAD, plus " +
         "uncommitted ones. To verify a branch's build, pass the branch it started from."
+    ),
+  purpose: z
+    .enum(EXTRACTION_PURPOSE_ARGS)
+    .optional()
+    .describe(
+      "With since: what the changeset this run makes is for, overriding the rule. By the rule, with a plan active the run is its verification record; with " +
+        "no plan active, a since that is the model's last reconciled code commit (project_status codeDrift.reconciledBy.codeCommit) makes a reconcile " +
+        "(landing it reconciles the model with the code), and any other since makes a verification record (never landed; it names the staged plan it " +
+        "verifies, or says it found none). Use reconcile or verification to say otherwise."
     ),
   layers: z.array(z.string()).optional().describe("Only these layers (canonical names). Default: every layer."),
   pageSize: z
@@ -468,6 +486,9 @@ interface StoredCards {
   /** The base model's manifest timestamp when the cards were read. */
   baseModified?: string;
   previousActive?: { id: string; name: string } | null;
+  /** The purpose the run declared, and for a verification record the plan it verifies (core/changeset-purpose.ts). */
+  purpose?: ChangesetPurpose;
+  verifies?: string;
   createdAt: string;
   cards: UndecidedCard[];
   /** The elements extraction staged into this changeset, by the symbol they came from. */
@@ -1635,6 +1656,8 @@ async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaMana
     layers: waiting.layers ?? null,
     baseModified: waiting.baseModified,
     previousActive: waiting.previousActive,
+    ...(waiting.purpose ? { purpose: waiting.purpose } : {}),
+    ...(waiting.verifies ? { verifies: waiting.verifies } : {}),
     createdAt: waiting.createdAt,
     cards: [],
     staged: [],
@@ -1652,12 +1675,19 @@ async function keepPendingAsRecord(projectRoot: string, manager: StagingAreaMana
 async function declareExtractionPurpose(
   manager: StagingAreaManager,
   changeset: Changeset,
-  record: Pick<StoredCards, "since" | "gitHead" | "previousActive">
+  record: Pick<StoredCards, "since" | "gitHead" | "previousActive" | "purpose" | "verifies">
 ): Promise<void> {
   if (changeset.purpose && EXTRACTION_PURPOSES.has(changeset.purpose)) return;
-  const declaration = extractionPurpose(record);
+  const declared = record.purpose && EXTRACTION_PURPOSES.has(record.purpose) ? readPurpose({ purpose: record.purpose, verifies: record.verifies, scope: record.since ? { since: record.since, codeCommit: record.gitHead } : undefined }) : undefined;
+  const declaration = extractionPurpose({ ...record, declared });
   await manager.declarePurpose(changeset.id!, declaration);
   Object.assign(changeset, { purpose: declaration.purpose, verifies: declaration.verifies, scope: declaration.scope });
+}
+
+/** The purpose fields a run's record keeps (StoredCards.purpose, .verifies); none for a run with no since. */
+function recordedPurpose(decision: ExtractionPurposeDecision | undefined): Pick<StoredCards, "purpose" | "verifies"> {
+  if (!decision) return {};
+  return { purpose: decision.declaration.purpose, ...(decision.declaration.verifies ? { verifies: decision.declaration.verifies } : {}) };
 }
 
 /** The purposes of the changesets codebase_extract stages. */
@@ -2530,6 +2560,9 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         if (args.since !== undefined && args.since !== (stored.since ?? undefined)) {
           conflicts.push(`since: ${args.since} (its run had since: ${stored.since ?? "none"})`);
         }
+        if (args.purpose && stored.purpose && args.purpose !== stored.purpose) {
+          conflicts.push(`purpose: ${args.purpose} (its run was a ${stored.purpose})`);
+        }
         if (argLayers && !sameLayers(stored.layers, argLayers)) {
           conflicts.push(`layers: ${argLayers.join(", ")} (its run had layers: ${stored.layers?.join(", ") ?? "all"})`);
         }
@@ -2541,6 +2574,12 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         }
         since = stored.since ?? undefined;
         layers = stored.layers ?? undefined;
+      }
+      // Refused before anything runs, spends or writes (a preview included).
+      if (args.purpose && !since) {
+        throw new CLIError("codebase_extract: purpose says what a since run is for; this run has no since (it is a bootstrap)", ErrorCategory.USER, [
+          "Pass since (the ref the work started from), or leave purpose out",
+        ]);
       }
 
       // The scope: every file, or the files changed since a ref (a run, or a default name to find).
@@ -2631,7 +2670,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         const decisions = await readDecisions(projectRoot);
         const allChangesets = await manager.list();
         const stagedIds = new Set(allChangesets.filter((c) => c.status === "staged").map((c) => c.id));
-        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed").map((c) => c.id));
+        const landedIds = new Set(allChangesets.filter((c) => c.status === "committed" || c.status === "recorded").map((c) => c.id));
         let pruned = false;
         // An unstaged element or relationship stays decided once its changeset lands without it;
         // discarding the changeset drops the decision.
@@ -4270,6 +4309,41 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
           if (first?.status === "staged") recordedPrevious = { id: first.id!, name: first.name };
         }
 
+        // The purpose of the changeset this run makes (#1370): decided once and kept in the run's
+        // record, so a changeset created later for waiting cards declares the same. A run into a
+        // changeset that already holds one keeps the purpose recorded then.
+        let purposeDecision: ExtractionPurposeDecision | undefined;
+        if (since) {
+          const earlier = stored?.purpose
+            ? readPurpose({ purpose: stored.purpose, verifies: stored.verifies, scope: stored.since ? { since: stored.since, codeCommit: stored.gitHead } : undefined })
+            : undefined;
+          const planNamed = (id?: string) => (id ? { id, name: allKnownNames.get(id) ?? id } : undefined);
+          const allKnownNames = new Map<string, string>();
+          const stagedPlans: Array<{ id: string; name: string }> = [];
+          for (const other of await manager.list()) {
+            allKnownNames.set(other.id!, other.name);
+            if (other.status !== "staged" || other.id === changeset?.id) continue;
+            if ((await purposeOf(projectRoot, other)).purpose === "plan") stagedPlans.push({ id: other.id!, name: other.name });
+          }
+          purposeDecision = earlier
+            ? {
+                declaration: earlier,
+                note:
+                  earlier.purpose === "verification"
+                    ? `A verification record, never landed.${earlier.verifies ? ` It verifies the plan '${planNamed(earlier.verifies)!.name}'.` : " It found no staged plan to verify."}`
+                    : "A reconcile: landing it reconciles the model with the code it read.",
+              }
+            : decideExtractionPurpose({
+                since,
+                gitHead: head,
+                explicit: args.purpose,
+                previousActive: recordedPrevious,
+                sinceCommit: (deps.resolveCommit ?? resolveCommit)(codebaseRoot, since),
+                reconciledCommit: model.manifest.reconciled?.code_commit,
+                stagedPlans,
+              });
+        }
+
         // A run makes a changeset only to stage into it: a run that stages nothing leaves its cards
         // and candidate deletes for the agent without creating or activating an empty changeset
         // (which would then sit in project_status as the next thing to resume).
@@ -4287,7 +4361,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               name,
               args.intent ?? `As-built extraction of the code at ${head.slice(0, 7)}${since ? `, files changed since ${since}` : ""}. Staged by codebase_extract.`,
               { kind: "extract" },
-              extractionPurpose({ since, gitHead: head, previousActive: recordedPrevious })
+              purposeDecision?.declaration ?? extractionPurpose({ since, gitHead: head, previousActive: recordedPrevious })
             );
             created = true;
           }
@@ -4412,6 +4486,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive: recordedPrevious,
+            ...recordedPurpose(purposeDecision),
             createdAt: now,
             cards: undecided,
             staged,
@@ -4435,6 +4510,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             layers: layers ?? null,
             baseModified,
             previousActive,
+            ...recordedPurpose(purposeDecision),
             createdAt: now,
             cards: undecided,
             staged: [],
@@ -4530,6 +4606,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
             changeset: changesetRef ? { ...changesetRef, created, active, ...(changeset?.purpose ? { purpose: changeset.purpose } : {}) } : null,
             previousActive,
             ...(message ? { message } : {}),
+            ...(purposeDecision ? { purposeNote: purposeDecision.note } : {}),
             ...(warnings.length ? { ruleWarnings: warnings } : {}),
             ...fitNotes(fit),
             ...(edited.length

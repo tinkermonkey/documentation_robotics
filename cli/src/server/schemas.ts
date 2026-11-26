@@ -394,7 +394,7 @@ export const ChangesetPurposeSchema = z.enum(['plan', 'bootstrap', 'reconcile', 
   );
 
 export const ChangesetActionsSchema = z.array(z.enum(['commit', 'discard'] as const))
-  .describe('The moves its purpose and status allow now: commit and discard while staged, discard only for a verification record or an upgrade record, none once committed or discarded');
+  .describe('The moves its purpose and status allow now: commit and discard while staged, discard only for a verification record or an upgrade record, and for a recorded one (its plan landed); none once committed or discarded');
 
 export const VerificationScopeSchema = z.object({
   since: z.string().describe('The git ref extraction read the changes since'),
@@ -589,7 +589,7 @@ const ChangesetDescriptionSchema = z
 export const ChangesetMetadataSchema = z.object({
   name: z.string(),
   description: ChangesetDescriptionSchema.optional(),
-  status: z.enum(['staged', 'committed', 'discarded'] as const),
+  status: z.enum(['staged', 'committed', 'discarded', 'recorded'] as const),
   created: z.string(),
   changes_count: z.number(),
   origin: ChangesetOriginSchema.optional(),
@@ -668,7 +668,7 @@ export const ChangesetCommitRequestSchema = z.object({
 export const ChangesetActionResultSchema = z.object({
   id: z.string(),
   name: z.string(),
-  status: z.enum(['staged', 'committed', 'discarded'] as const),
+  status: z.enum(['staged', 'committed', 'discarded', 'recorded'] as const),
   committed: z.number().optional().describe('Changes applied to the model (commit only)'),
   skipped: z.number().optional().describe('Changes skipped as already present (commit only)'),
   failed: z.number().optional().describe('Changes that failed to apply (commit only)'),
@@ -705,7 +705,7 @@ export const ChangesetDetailSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: ChangesetDescriptionSchema.optional(),
-  status: z.enum(['staged', 'committed', 'discarded'] as const),
+  status: z.enum(['staged', 'committed', 'discarded', 'recorded'] as const),
   created: z.string(),
   modified: z.string(),
   baseSnapshot: z.string().optional(),
