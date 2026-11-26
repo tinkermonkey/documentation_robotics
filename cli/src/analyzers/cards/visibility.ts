@@ -40,7 +40,8 @@ function escapeRegExp(s: string): string {
 
 /**
  * Whether a JS/TS file exports a name apart from its declaration: `export { a, b as c }`,
- * `export default name`, `module.exports = name` or `exports.name = ...`.
+ * `export default name`, `module.exports = name`, `exports.name = ...` or `module.exports.name = ...`
+ * (also `exports.alias = name`).
  */
 export function exportedElsewhere(fileText: string, name: string): boolean {
   const n = escapeRegExp(name);
@@ -48,7 +49,9 @@ export function exportedElsewhere(fileText: string, name: string): boolean {
     new RegExp(`export\\s*(?:type\\s*)?\\{[^}]*(?:^|[\\s,{])${n}(?:\\s+as\\s+[\\w$]+)?\\s*(?:,|\\})`, "m").test(fileText) ||
     new RegExp(`export\\s+default\\s+${n}\\b`).test(fileText) ||
     new RegExp(`module\\.exports\\s*=\\s*(?:\\{[^}]*\\b${n}\\b|${n}\\b)`).test(fileText) ||
-    new RegExp(`(?:^|[^\\w$.])exports\\.${n}\\s*=`, "m").test(fileText)
+    new RegExp(`(?:^|[^\\w$.])(?:module\\.)?exports\\.${n}\\s*=`, "m").test(fileText) ||
+    // `exports.alias = name` and `module.exports.alias = name`: exported under another name
+    new RegExp(`(?:^|[^\\w$.])(?:module\\.)?exports\\.[\\w$]+\\s*=\\s*${n}\\s*[;,\\n]`, "m").test(fileText)
   );
 }
 

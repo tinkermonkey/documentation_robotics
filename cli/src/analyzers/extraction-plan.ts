@@ -35,6 +35,7 @@ import {
   type ExtractionGraph,
 } from "./cards/extract.js";
 import { INFRA_LABELS } from "./cards/build.js";
+import { IPC_HANDLER_LABEL } from "./cards/ipc.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL } from "./cards/test-cases.js";
 import { TEST_PATH } from "./cards/routes.js";
 import type { ClusterEvidence } from "./cards/clusters.js";
@@ -668,12 +669,12 @@ function sortCards(cards: UndecidedCard[]): UndecidedCard[] {
 }
 
 /** Card labels the analyzer's changed symbols never cover: a route, and the cards DR makes itself. */
-const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", TEST_CASE_LABEL, TEST_SUITE_LABEL]);
+const LINE_RULE_LABELS: ReadonlySet<string> = new Set(["Route", IPC_HANDLER_LABEL, TEST_CASE_LABEL, TEST_SUITE_LABEL]);
 
 /**
  * Whether a `since` range changed a symbol: by the analyzer's changed symbols when it gave them,
  * else by the changed lines. The analyzer seeds only its own nodes: never a route, nor a card DR
- * makes itself (a TestCase or TestSuite from cards/test-cases.ts, whose qualified name is no CBM
+ * makes itself (an IpcHandler from cards/ipc.ts, a TestCase or TestSuite from cards/test-cases.ts, whose qualified name is no CBM
  * node's), so those keep the line rule.
  */
 export function symbolChangedInRange(

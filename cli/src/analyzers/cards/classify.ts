@@ -11,6 +11,9 @@ import { matchPattern } from "../heuristic-utils.js";
 import type { Tier0Outcome, Tier0Rule } from "../tier0-rules.js";
 import { CARD_FIELDS, CARD_LABELS, CARD_VERSION, CardBuilder, FILE_LABELS, VENDOR_EXCLUDE, cardId, isCandidate, withStoredNames } from "./build.js";
 import { buildEdgeIndex } from "./edge-index.js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { cardFacts } from "./visibility.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_CASE_LABEL, TEST_SUITE_LABEL, collectJsTestCases } from "./test-cases.js";
 import { tier0ForCard } from "./tier0.js";
@@ -165,10 +168,23 @@ export async function classifyTier0(
   for (const node of selected) {
     const card = await builder.build(node);
     const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
-    record(card, facts, tier0ForCard(card, facts, rules));
+    // Who can reach the symbol (a rule can go by it), read from its file under the source root.
+    const visibility = cardFacts([card], options.sourceRoot ? (file) => readUnderRoot(options.sourceRoot!, file) : undefined).get(card)?.visibility;
+    record(card, facts, tier0ForCard(card, facts, rules, visibility));
   }
 
   for (const s of tests) record(s.card, s.facts, s.tier0);
 
   return { analyzer, project: graph.project, mode: "tier0", card_version: CARD_VERSION, rules: rules.length, summary, results };
+}
+
+function readUnderRoot(root: string, file: string): string | null {
+  const base = path.resolve(root);
+  const abs = path.resolve(base, file);
+  if (!abs.startsWith(base + path.sep)) return null;
+  try {
+    return readFileSync(abs, "utf-8");
+  } catch {
+    return null;
+  }
 }

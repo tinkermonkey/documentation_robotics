@@ -8,16 +8,18 @@ import type { CardFacts } from "./types.js";
 /** The card fields Tier 0 reads (a harness card, with its corpus field, also fits). */
 export type Tier0Card = { label: string; name: string; file_path: string | null; source: string | null; signature: string | null };
 
-export function tier0SymbolOf(card: Tier0Card, facts: CardFacts | undefined): Tier0Symbol {
+export function tier0SymbolOf(card: Tier0Card, facts: CardFacts | undefined, visibility?: string): Tier0Symbol {
   return {
     label: card.label,
     name: card.name,
     file_path: card.file_path,
     declaration: declarationOf(card.source, card.signature),
     decorator_names: facts?.decorator_names ?? [],
+    ...(visibility ? { visibility } : {}),
   };
 }
 
-export function tier0ForCard(card: Tier0Card, facts: CardFacts | undefined, rules: Tier0Rule[]): Tier0Outcome | null {
-  return evaluateTier0(tier0SymbolOf(card, facts), rules);
+/** `visibility`: the card's visibility (cards/visibility.ts), for rules that go by who can reach the symbol. */
+export function tier0ForCard(card: Tier0Card, facts: CardFacts | undefined, rules: Tier0Rule[], visibility?: string): Tier0Outcome | null {
+  return evaluateTier0(tier0SymbolOf(card, facts, visibility), rules);
 }

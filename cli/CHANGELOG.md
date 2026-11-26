@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tier 0 on plain CommonJS and Electron code (#1320):** `codebase_extract` decided none of 338
+  symbols on a CommonJS and Electron codebase. Tier-0 rules can now go by a symbol's `visibility`
+  (read from the declaration and the file's exports, as project rules do), and a rule
+  (`tier0_js_unexported_function`) rejects a function a `.js`, `.cjs`, `.mjs` or `.jsx` module does not
+  export; exported functions stay for the agent to place. `module.exports.name = ...` and
+  `exports.alias = name` now count as exports. An `ipcMain.handle('ns:action', ...)` or
+  `ipcMain.on(...)` registration with a literal channel becomes an `IpcHandler` card named after the
+  channel and decided as `application.applicationservice`; a file with a channel held in a constant is
+  listed in `ipcPartial` for the agent to read. A module file is not made an element (a file is a
+  source link, not an element).
+- **`changeset_verify` no longer calls an as-built side staged from extraction's own cards "thin":**
+  when most as-built elements were staged by hand from cards, a note says the as-built side is as wide
+  as the cards and the unanchored relationships are for the agent to check in the code.
 - **`recorded` changeset status (#1171):** landing a plan moves the verification records that name it
   (`verifies`) to `recorded`, with no new tool. A recorded record is kept (committed to git with the
   plan) and no longer shows as staged work: `changeset_list` lists staged changesets by default and

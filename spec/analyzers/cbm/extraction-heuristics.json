@@ -246,6 +246,22 @@
       }
     },
     {
+      "name": "tier0_js_unexported_function",
+      "description": "A function its JavaScript module does not export is not an element",
+      "rule": "A function declaration in a .js, .cjs, .mjs or .jsx file that the module does not export (no `export`, no `module.exports = ...`, no `exports.name = ...`) is private to its module: a helper, not part of what the module offers. The module's exported functions are not decided here; they are the agent's to place. Whether it is exported is read from the file, never from the index's is_exported. An Electron ipcMain.handle or ipcMain.on registration is not a graph symbol: extraction reads it from the file's text (cards/ipc.ts) and decides it as an application service.",
+      "parameters": {
+        "tier0": {
+          "labels": ["Function"],
+          "when": {
+            "file": "\\.(js|cjs|mjs|jsx)$",
+            "visibility": "^local$"
+          },
+          "decide": "none",
+          "confidence": "medium"
+        }
+      }
+    },
+    {
       "name": "tier0_component_props",
       "description": "A component's props type belongs to the component",
       "rule": "An interface or type named ...Props in a .tsx or .jsx file declares a UI component's inputs and is part of that component, not an element of its own",
