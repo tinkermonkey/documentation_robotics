@@ -1,0 +1,15 @@
+id: changeset-1795703223641-xqkmfns6y
+name: cli010-t3-test-subjects
+description: "Better `tests` subjects from codebase_extract (#1412, #1443): prefer the test file's own package; skip shared helpers called by many test files; follow calls that only reach rejected symbols to the element owning their file (origin inferred); list still-unwired cases with candidate subjects; reject a file's test links as a group (files + predicate)."
+created: 2026-11-26T14:27:03.688Z
+modified: 2026-11-26T14:32:46.487Z
+status: staged
+baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 19
+  modifications: 0
+  deletions: 0
+lastSequence: 18
