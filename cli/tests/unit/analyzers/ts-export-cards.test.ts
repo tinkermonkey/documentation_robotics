@@ -7,7 +7,7 @@ import { describe, it, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { collectExtraction, extractionConfigFrom } from "@/analyzers/cards/extract";
-import { isDeclaredVariable, shapesOf } from "@/analyzers/cards/shapes";
+import { isDeclaredVariable, declarationShapesOf } from "@/analyzers/cards/shapes";
 import { classifyTier0, type CardGraph, type GraphNode } from "@/analyzers/cards/index";
 import { tier0RulesFrom } from "@/analyzers/tier0-rules";
 import type { AnalyzerHeuristic } from "@/analyzers/types";
@@ -66,16 +66,16 @@ function graph(): CardGraph {
 describe("shapes", () => {
   const card = (label: string, name: string, file: string, source: string) => ({ label, name, file_path: file, source });
   it("reads hooks and components from the declaration", () => {
-    expect(shapesOf(card("Function", "useX", "a.ts", "export function useX() {}"))).toEqual(["exported", "react-hook"]);
-    expect(shapesOf(card("Variable", "Box", "a.tsx", "export const Box = React.forwardRef<A, B>(() => null);"))).toEqual(["exported", "react-component"]);
-    expect(shapesOf(card("Variable", "Box", "a.ts", "export const Box = memo(() => null);"))).toEqual(["exported", "react-component"]);
-    expect(shapesOf(card("Function", "Panel", "a.tsx", "export function Panel() {\n  return <div />;\n}"))).toEqual(["exported", "react-component"]);
+    expect(declarationShapesOf(card("Function", "useX", "a.ts", "export function useX() {}"))).toEqual(["exported", "react-hook"]);
+    expect(declarationShapesOf(card("Variable", "Box", "a.tsx", "export const Box = React.forwardRef<A, B>(() => null);"))).toEqual(["exported", "react-component"]);
+    expect(declarationShapesOf(card("Variable", "Box", "a.ts", "export const Box = memo(() => null);"))).toEqual(["exported", "react-component"]);
+    expect(declarationShapesOf(card("Function", "Panel", "a.tsx", "export function Panel() {\n  return <div />;\n}"))).toEqual(["exported", "react-component"]);
   });
   it("is empty or only exported for the rest", () => {
-    expect(shapesOf(card("Function", "Panel", "a.tsx", "function Panel() {\n  return <div />;\n}"))).toEqual([]);
-    expect(shapesOf(card("Function", "render", "a.tsx", "export function render() {\n  return <div />;\n}"))).toEqual(["exported"]);
-    expect(shapesOf(card("Function", "Panel", "a.ts", "export function Panel() { return a < b; }"))).toEqual(["exported"]);
-    expect(shapesOf(card("Function", "Panel", "a.py", "def Panel(): pass"))).toEqual([]);
+    expect(declarationShapesOf(card("Function", "Panel", "a.tsx", "function Panel() {\n  return <div />;\n}"))).toEqual([]);
+    expect(declarationShapesOf(card("Function", "render", "a.tsx", "export function render() {\n  return <div />;\n}"))).toEqual(["exported"]);
+    expect(declarationShapesOf(card("Function", "Panel", "a.ts", "export function Panel() { return a < b; }"))).toEqual(["exported"]);
+    expect(declarationShapesOf(card("Function", "Panel", "a.py", "def Panel(): pass"))).toEqual([]);
   });
   it("keeps exported non-primitive consts only", () => {
     expect(isDeclaredVariable(card("Variable", "A", "a.ts", "export const A = 5;"))).toBe(false);
