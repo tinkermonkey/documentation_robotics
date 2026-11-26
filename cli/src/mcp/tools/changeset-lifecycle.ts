@@ -16,6 +16,7 @@ import { StagingAreaManager } from "../../core/staging-area.js";
 import { resolveOrigin } from "../../core/changeset-review.js";
 import { CLIError, ErrorCategory } from "../../utils/errors.js";
 import { jsonResult, loadModel, reloadModel, rootPathSchema, runTool, type McpToolDefinition } from "./shared.js";
+import { collectSiblingPlans, matchSiblingPlans, siblingPlanFields } from "./sibling-plans.js";
 import { changesetArg, changesetArgFields, intentArg, intentFields, resolveChangeset } from "./changeset-shared.js";
 
 // ---------------------------------------------------------------------------
@@ -49,10 +50,16 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       ]);
     }
 
+    // Plans already staged for the same work in the project's other checkouts (#1368): a warning,
+    // never a refusal. Read before creating so the warning is about the world this plan joins.
+    const siblings = await collectSiblingPlans(model.rootPath);
+    const intent = intentArg(args);
+    const siblingMatches = siblings.status === "ok" ? matchSiblingPlans({ name: args.name, description: intent }, siblings.plans) : [];
+
     // A plan, unless DrBot (in `dr visualize`) is the one creating it. Its purpose is declared by
     // StagingAreaManager.create: `plan`, `chat` for DrBot, or the extraction's when it is the
     // changeset codebase_extract's waiting cards name.
-    const changeset = await manager.create(args.name, intentArg(args), resolveOrigin("plan"));
+    const changeset = await manager.create(args.name, intent, resolveOrigin("plan"));
     const activate = args.activate ?? true;
     const previouslyActive = activate ? await manager.getActiveId() : null;
     if (activate) {
@@ -68,6 +75,7 @@ export async function changesetCreateHandler(args: ChangesetCreateArgs): Promise
       ...(changeset.purpose ? { purpose: changeset.purpose } : {}),
       active: activate,
       ...(previouslyActive && previouslyActive !== changeset.id ? { deactivated: previouslyActive } : {}),
+      ...siblingPlanFields(siblings, siblingMatches),
     });
   });
 }
@@ -79,7 +87,8 @@ export const changesetCreateTool: McpToolDefinition<typeof createInputSchema> = 
     "so model_add / model_update / model_delete / relationship_add / relationship_delete stage into it instead " +
     "of writing the model. Before calling it, propose the changeset's name and intent to the user and confirm both " +
     "with them. The intent is markdown, stored as the changeset's description (description is accepted for it too). Landing it is the user's step: changeset_commit commits only after they confirm " +
-    "it, or they commit it in the viewer.",
+    "it, or they commit it in the viewer. The result lists plans staged in the project's other checkouts (worktrees) and warns when " +
+    "one looks like the same work (siblingPlans, siblingWarning); when the farm can't list them it says so.",
   inputSchema: createInputSchema,
   handler: changesetCreateHandler,
 };

@@ -552,6 +552,7 @@ describe("project_status over MCP", () => {
       // Every result names its checkout; an in-process server has no farm registry to name one.
       project: null,
       checkout: null,
+      branch: null,
       list: "unreferencedFiles",
       items: [{ file: "src/lighting.ts", source: true, added: true }],
       page: { total: 1, returned: 1, offset: 0 },

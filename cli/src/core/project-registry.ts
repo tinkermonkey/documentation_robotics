@@ -27,7 +27,9 @@ import {
   type ProjectListEntry,
   type Repository,
   type ResolvedCheckout,
+  type SiblingPlan,
 } from "./checkout-types.js";
+import { getErrorMessage } from "../utils/errors.js";
 import { findFarmRoot, resolveModelDirectory } from "../utils/project-paths.js";
 
 const execFileAsync = promisify(execFile);
@@ -710,6 +712,50 @@ export class ProjectRegistry {
       this.projectListings.set(name, listing);
     }
     return listing;
+  }
+
+  /**
+   * The staged plans in the project's other checkouts (#1368), from each changeset's metadata.yaml.
+   * `except` is the checkout asking (its own plans are not siblings'). `notes` says what could not
+   * be looked at (a checkout that is missing, a plan whose metadata is unreadable), so an empty
+   * list is never mistaken for "none". Throws on an unknown project.
+   */
+  async siblingPlans(projectName: string, except: string): Promise<{ plans: SiblingPlan[]; notes: string[] }> {
+    const project = this.manifest.getProject(projectName);
+    if (!project) throw new Error(`Unknown project '${projectName}'`);
+    const checkouts = await this.checkouts(projectName);
+    const main = checkouts.find((c) => c.isMain)?.path ?? this.repositoryPath(project);
+    const rootOf = (checkout: Checkout) => projectRootOf(this.modelPathFor(project, checkout, main), checkout.path);
+    const own = checkouts.find((c) => c.key === except);
+    // A model kept outside the repository is one folder for every checkout: its plans are not siblings'.
+    const ownRoot = own ? rootOf(own) : null;
+    const plans: SiblingPlan[] = [];
+    const notes: string[] = [];
+    for (const checkout of checkouts) {
+      if (checkout.key === except) continue;
+      if (checkout.state !== "present") {
+        notes.push(`Checkout ${checkout.key} is ${checkout.state}, so its plans were not read.`);
+        continue;
+      }
+      const root = rootOf(checkout);
+      if (root === ownRoot) continue;
+      let active: string | null = null;
+      try {
+        active = await readActiveMarker(root);
+      } catch (error) {
+        notes.push(`Checkout ${checkout.key}: its active changeset could not be read (${getErrorMessage(error)}).`);
+      }
+      const { summaries, unreadable } = await new StagedChangesetStorage(root).listStagedSummaries();
+      if (unreadable.length > 0) {
+        notes.push(
+          `Checkout ${checkout.key}: ${unreadable.length} changeset folder(s) could not be read, so a plan there may be missing (${unreadable.slice(0, 3).join("; ")}).`
+        );
+      }
+      for (const summary of summaries) {
+        plans.push({ checkout: checkout.key, branch: checkout.branch, path: checkout.path, ...summary, active: summary.id === active });
+      }
+    }
+    return { plans, notes };
   }
 
   private async listEntry(project: FarmProject): Promise<ProjectListEntry> {
