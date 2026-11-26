@@ -1290,20 +1290,24 @@ function presentUnwired(
   // Elements whose changes bring the links come first; the pre-existing ones after, in their order.
   elements.sort((a, b) => Number(!!a.preexisting) - Number(!!b.preexisting));
 
+  return {
+    mode,
+    totals: unwiredTotals(elements),
+    ...(layerFilter ? { layers: layerFilter } : {}),
+    ...(unknownLayers.length > 0 ? { unknownLayers } : {}),
+    elements,
+  };
+}
+
+/** The brief's unwired totals over some elements (all of them, or the ones a filter keeps). */
+export function unwiredTotals(elements: BriefUnwired["elements"]): BriefUnwired["totals"] {
   const totals = { expected: 0, optional: 0, preexisting: 0 };
   for (const e of elements) {
     totals.optional += e.optional;
     if (e.preexisting) totals.preexisting += e.total;
     else totals.expected += e.total;
   }
-
-  return {
-    mode,
-    totals,
-    ...(layerFilter ? { layers: layerFilter } : {}),
-    ...(unknownLayers.length > 0 ? { unknownLayers } : {}),
-    elements,
-  };
+  return totals;
 }
 
 /** Key of one unwired entry of one element, for comparing two briefs. */

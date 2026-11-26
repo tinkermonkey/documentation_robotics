@@ -21,6 +21,7 @@ import { getAllLayerIds } from "../generated/layer-registry.js";
 import { elementFilter, unknownFilterNote } from "./element-filter.js";
 import { nextPageCall } from "./paging.js";
 import type { BriefDelta } from "./changeset-brief-delta.js";
+import { unwiredTotals } from "./changeset-analysis.js";
 import type { BriefAcceptedGap, BriefDrift, BriefGap, ChangesetBrief, ElementUnwired } from "./changeset-analysis.js";
 
 /**
@@ -992,12 +993,14 @@ function unwiredByType(elements: NonNullable<ChangesetBrief["unwired"]>["element
     const group: Group = groups.get(element.type) ?? { elements: 0, layers: new Map() };
     group.elements += 1;
     for (const l of element.byLayer) {
+      // Optional triples (full mode lists them) are not expected links: the summary leaves them out.
+      if (l.count === 0) continue;
       const layer = group.layers.get(l.layer) ?? { count: 0, typesNotInModel: 0 };
       layer.count = Math.max(layer.count, l.count);
       layer.typesNotInModel = Math.max(layer.typesNotInModel, l.typesNotInModel ?? 0);
       if (l.entries && entries) {
         layer.entries ??= new Map();
-        for (const e of l.entries) {
+        for (const e of l.entries.filter((x) => x.expected)) {
           const key = `${e.direction} ${e.predicate} ${e.otherType}`;
           const entry = layer.entries.get(key) ?? { line: `${key} (${e.existingCount} existing, ${e.addedCount} added)`, elements: 0 };
           entry.elements += 1;
@@ -1097,7 +1100,12 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
       }
     : brief.intent;
   const unwired =
-    brief.unwired && filter ? { ...brief.unwired, elements: brief.unwired.elements.filter((e) => keep(e.element)) } : brief.unwired;
+    brief.unwired && filter
+      ? (() => {
+          const kept = brief.unwired.elements.filter((e) => keep(e.element));
+          return { ...brief.unwired, totals: unwiredTotals(kept), elements: kept };
+        })()
+      : brief.unwired;
   const offset = Math.max(0, options.offset ?? 0);
   const maxConnections = options.maxConnections ?? CONNECTIONS_PER_GROUP;
   const values = out as unknown as Record<string, unknown>;

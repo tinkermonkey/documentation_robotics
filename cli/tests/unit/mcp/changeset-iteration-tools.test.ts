@@ -246,6 +246,11 @@ describe("changeset_brief expected, optional and preexisting unwired (#1293, #14
     expect(page.page.totals.unwired).toBe(31);
     expect(page.page.returned.unwired).toBe(10);
     expect(page.page.nextOffset).toBe(10);
+    // A filtered listing's totals are those of the elements it keeps.
+    const one = parse(await changesetBriefHandler({ sections: ["unwired"], ids: ["motivation.goal.goal-0"], rootPath }));
+    expect(one.unwired.elements).toHaveLength(1);
+    expect(one.unwired.totals.expected).toBe(one.unwired.elements[0].total);
+    expect(one.unwired.totals.preexisting).toBe(0);
     // The preexisting update comes last, after the added elements.
     const last = parse(await changesetBriefHandler({ sections: ["unwired"], limit: 10, offset: 30, rootPath }));
     const listed = JSON.stringify(last.unwired);
@@ -284,13 +289,8 @@ describe("changeset_brief deltas", () => {
     expect(third.delta.gaps.closed).toContainEqual(expect.objectContaining({ kind: "unconnected", element: SCHEMA }));
     expect(third.delta.intent.newlyTraced).toEqual([SCHEMA]);
     expect(third.delta.reach).toEqual({ newlyReached: [], noLongerReached: [] });
-    expect(third.delta.unwired.wired).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ element: FUNCTION, direction: "out", predicate: "accesses", otherType: "data-model.objectschema" }),
-        expect.objectContaining({ element: SCHEMA, direction: "in", predicate: "accesses", otherType: "application.applicationfunction" }),
-      ])
-    );
-    expect(third.delta.unwired.wired).toHaveLength(2);
+    // `accesses` is an optional catalog triple here (no element of the type carries it): wiring it is not tracked.
+    expect(third.delta.unwired.wired).toEqual([]);
 
     // Since the start: everything is new.
     const whole = await brief({ since: -1 });
