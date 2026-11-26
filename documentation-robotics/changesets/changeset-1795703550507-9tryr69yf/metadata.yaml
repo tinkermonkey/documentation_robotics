@@ -2,7 +2,7 @@ id: changeset-1795703550507-9tryr69yf
 name: cli010-x1-checkouts
 description: 'Fix #1422 and #1368. Every MCP result names the branch beside the checkout key, and a landing says "Lands on branch X in checkout main". changeset_create and project_status list staged plans in the project''s other checkouts and warn (never refuse) when one matches by name, issue or intent; when the farm can''t list them the result says so.'
 created: 2026-11-26T14:32:30.553Z
-modified: 2026-11-26T14:32:38.263Z
+modified: 2026-11-26T14:34:18.317Z
 status: staged
 baseSnapshot: v2:sha256:dc8877f84d7eaf0519e468988466159194b41746d15fe665ace52a066fa165d3
 origin:
@@ -12,4 +12,65 @@ stats:
   additions: 3
   modifications: 0
   deletions: 0
-lastSequence: 2
+lastSequence: 5
+unstaged:
+  - sequence: 0
+    removedAt: 3
+    change:
+      type: add
+      elementId: application.applicationfunction.collect-sibling-plans
+      layerName: application
+      after:
+        id: cc97eafc-c7f0-4fb4-b9f7-b675eda4bf28
+        path: application.applicationfunction.collect-sibling-plans
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: collectSiblingPlans
+        description: Lists staged plans in the project's other checkouts through the farm; says so when the farm can't tell.
+        metadata:
+          created_at: 2026-11-26T14:32:37.975Z
+          updated_at: 2026-11-26T14:32:37.975Z
+          version: 1
+      timestamp: 2026-11-26T14:32:38.257Z
+    rewritten: true
+  - sequence: 2
+    removedAt: 4
+    change:
+      type: add
+      elementId: application.applicationfunction.lands-on-sentence
+      layerName: application
+      after:
+        id: 7c50b778-1eca-438a-8e93-00da273a254a
+        path: application.applicationfunction.lands-on-sentence
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: landsOnSentence
+        description: "Words where a write lands: branch X in checkout Y."
+        metadata:
+          created_at: 2026-11-26T14:32:37.975Z
+          updated_at: 2026-11-26T14:32:37.975Z
+          version: 1
+      timestamp: 2026-11-26T14:32:38.257Z
+    rewritten: true
+  - sequence: 1
+    removedAt: 5
+    change:
+      type: add
+      elementId: application.applicationfunction.match-sibling-plans
+      layerName: application
+      after:
+        id: 4d533401-9400-4bb5-b8be-cd7a6a1b4dfd
+        path: application.applicationfunction.match-sibling-plans
+        spec_node_id: application.applicationfunction
+        type: applicationfunction
+        layer_id: application
+        name: matchSiblingPlans
+        description: Flags sibling plans whose name, cited issue or intent looks like a new plan's.
+        metadata:
+          created_at: 2026-11-26T14:32:37.975Z
+          updated_at: 2026-11-26T14:32:37.975Z
+          version: 1
+      timestamp: 2026-11-26T14:32:38.257Z
+    rewritten: true

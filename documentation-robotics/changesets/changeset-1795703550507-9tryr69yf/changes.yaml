@@ -13,7 +13,12 @@
       created_at: 2026-11-26T14:32:37.975Z
       updated_at: 2026-11-26T14:32:37.975Z
       version: 1
-  timestamp: 2026-11-26T14:32:38.257Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/sibling-plans.ts
+          symbol: collectSiblingPlans
+  timestamp: 2026-11-26T14:34:18.310Z
   sequenceNumber: 0
 - type: add
   elementId: application.applicationfunction.match-sibling-plans
@@ -30,7 +35,12 @@
       created_at: 2026-11-26T14:32:37.975Z
       updated_at: 2026-11-26T14:32:37.975Z
       version: 1
-  timestamp: 2026-11-26T14:32:38.257Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/core/sibling-plans.ts
+          symbol: matchSiblingPlans
+  timestamp: 2026-11-26T14:34:18.310Z
   sequenceNumber: 1
 - type: add
   elementId: application.applicationfunction.lands-on-sentence
@@ -47,5 +57,10 @@
       created_at: 2026-11-26T14:32:37.975Z
       updated_at: 2026-11-26T14:32:37.975Z
       version: 1
-  timestamp: 2026-11-26T14:32:38.257Z
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/mcp/tools/central-viewer.ts
+          symbol: landsOnSentence
+  timestamp: 2026-11-26T14:34:18.310Z
   sequenceNumber: 2
