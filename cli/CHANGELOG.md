@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `codebase_extract` now gives exported TypeScript consts a card (#1344): `export const projectListHandler = ...`, and `React.forwardRef(...)` and `memo(...)` components, which the graph labels Variable and extraction never read. Primitive constants and module-private consts are still not cards.
+- Exported React hooks and components get cards narrowed to UX types (#1381, #1344): `useX` to `ux.dataconfig`, `ux.stateaction` or `ux.statepattern`; a function returning JSX, or a `forwardRef` or `memo` const, to `ux.view`, `ux.subview`, `ux.librarycomponent`, `ux.librarysubview` or `ux.actioncomponent`. The callbacks declared inside one are rejected as `nested-in-react-unit` unless a rule or a `decide` item says otherwise. Tier-0 rules can match a declaration's `shape` (`exported`, `react-hook`, `react-component`).
+
 ## [0.9.0] - 2026-11-25
 
 **Specification Support:** v0.16.0

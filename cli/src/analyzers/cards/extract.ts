@@ -37,6 +37,7 @@ import { buildEdgeIndex } from "./edge-index.js";
 import { buildFactsIndex, factsFor } from "./facts.js";
 import { TEST_PATH, namedRoutePath, routesCalledIn } from "./routes.js";
 import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
+import { isDeclaredVariable, shapesOf } from "./shapes.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
 import { cardFacts, type TriageFacts } from "./visibility.js";
@@ -298,6 +299,31 @@ function str(v: unknown): string | null {
 const CLUSTER_DEADLINE_MARGIN_MS = 15_000;
 
 /**
+ * A function declared inside an exported React hook or component is its implementation (a handler,
+ * a callback, a render helper), not an element: the hook or the component is. Unless a rule
+ * decided it, it is rejected as nested, so a range that adds a component leaves one card, not the
+ * dozen callbacks inside it. A project rule or a `decide` item still overrides this.
+ */
+function rejectReactInternals(symbols: ExtractedSymbol[], summary: { undecided: number; rejected: number }): void {
+  const units = new Map<string, Array<{ start: number; end: number }>>();
+  for (const s of symbols) {
+    const { file_path: file, start_line: start, end_line: end } = s.card;
+    if (!file || start === null || !shapesOf(s.card).some((x) => x === "react-hook" || x === "react-component")) continue;
+    (units.get(file) ?? units.set(file, []).get(file)!).push({ start, end: end ?? start });
+  }
+  if (!units.size) return;
+  for (const s of symbols) {
+    const { file_path: file, start_line: start, end_line: end } = s.card;
+    if (s.tier0 || s.card.label !== "Function" || !s.triage?.nested || !file || start === null) continue;
+    const end2 = end ?? start;
+    if (!(units.get(file) ?? []).some((u) => u.start <= start && u.end >= end2 && (u.start < start || u.end > end2))) continue;
+    s.tier0 = { kind: "reject", rule: "nested-in-react-unit", confidence: "high" };
+    summary.undecided--;
+    summary.rejected++;
+  }
+}
+
+/**
  * Attach cluster evidence to the symbols and report it. Never throws: when CBM can't answer, or
  * is still computing when the wait runs out, the run goes on without evidence and says why.
  */
@@ -459,6 +485,7 @@ export async function collectExtraction(
     if (done % 50 === 0) checkDeadline("building cards");
     const card = await builder.build(node);
     options.onProgress?.(++done, nodes.length);
+    if (!isDeclaredVariable(card)) continue;
     if (options.files && !(card.file_path && options.files.has(card.file_path))) continue;
     const facts = factsFor(factsIndex, node.qualified_name, card.file_path);
     const route = card.label === "Route" ? parseRouteName(card.name) : null;
@@ -509,6 +536,7 @@ export async function collectExtraction(
     const facts = triage.get(s.card);
     if (facts) s.triage = facts;
   }
+  rejectReactInternals(symbols, summary);
 
   // Mapped edges with an end in scope (all of them when the whole project is in scope).
   const inScope = new Set(symbols.map((s) => s.qualifiedName));

@@ -11,6 +11,8 @@
  *                 declaration  matches the symbol's declaration (see declarationOf)
  *                 file         matches the symbol's file path
  *                 name         matches the symbol's name
+ *                 shape        matches any of the symbol's shapes, read from its declaration
+ *                              (cards/shapes.ts): "exported", "react-hook", "react-component"
  *               an empty or missing `when` matches every symbol with one of the labels
  *   decide      "layer.type": the answer, no model asked; or "none": the symbol is not an element
  *   narrow      ["layer.type" | "layer.*", ...]: the only answers the classifier may choose from
@@ -43,7 +45,7 @@ export type Tier0Action =
 export interface Tier0Rule {
   name: string;
   labels: string[];
-  when: { decorator?: RegExp; declaration?: RegExp; file?: RegExp; name?: RegExp };
+  when: { decorator?: RegExp; declaration?: RegExp; file?: RegExp; name?: RegExp; shape?: RegExp };
   action: Tier0Action;
   confidence: Tier0Confidence;
 }
@@ -55,13 +57,15 @@ export interface Tier0Symbol {
   file_path?: string | null;
   declaration?: string | null;
   decorator_names?: string[];
+  /** Shapes read from the declaration (cards/shapes.ts), matched by a rule's `shape` condition. */
+  shapes?: string[];
 }
 
 /** The first matching rule's action, with the rule's name and confidence. */
 export type Tier0Outcome = Tier0Action & { rule: string; confidence: Tier0Confidence };
 
 const TIER0_KEYS = ["labels", "when", "decide", "narrow", "confidence"] as const;
-const WHEN_KEYS = ["decorator", "declaration", "file", "name"] as const;
+const WHEN_KEYS = ["decorator", "declaration", "file", "name", "shape"] as const;
 
 function parseTarget(ruleName: string, s: unknown, allowWildcard: boolean): Tier0Target {
   if (typeof s !== "string") throw new Error(`Tier-0 rule ${ruleName}: target must be a string, got ${JSON.stringify(s)}`);
@@ -218,11 +222,12 @@ export function declarationOf(source: string | null | undefined, signature?: str
 
 function matches(rule: Tier0Rule, s: Tier0Symbol): boolean {
   if (!rule.labels.includes(s.label)) return false;
-  const { decorator, declaration, file, name } = rule.when;
+  const { decorator, declaration, file, name, shape } = rule.when;
   if (decorator && !(s.decorator_names ?? []).some((d) => decorator.test(d))) return false;
   if (declaration && !(s.declaration && declaration.test(s.declaration))) return false;
   if (file && !(s.file_path && file.test(s.file_path))) return false;
   if (name && !name.test(s.name)) return false;
+  if (shape && !(s.shapes ?? []).some((x) => shape.test(x))) return false;
   return true;
 }
 

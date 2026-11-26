@@ -1886,7 +1886,7 @@
         "rule": "A component in a shared UI library directory (components/ui, packages/*/ui, design-system) is a reusable library component or a single action trigger, not a placed view",
         "parameters": {
           "tier0": {
-            "labels": ["Function", "Class"],
+            "labels": ["Function", "Variable", "Class"],
             "when": {
               "file": "(^|/)(components/ui|packages/[^/]+/ui|design-system|ui-kit)/[^/]+\\.(tsx|jsx|vue|svelte)$"
             },
@@ -1907,7 +1907,7 @@
         "rule": "A component or class declared in a file-based routing directory (routes/ or pages/, or a Next.js app/ page, layout or route file) is reached by navigation: a view, a subview placed in a layout, or the route itself",
         "parameters": {
           "tier0": {
-            "labels": ["Function", "Class"],
+            "labels": ["Function", "Variable", "Class"],
             "when": {
               "file": "((^|/)(src/)?(routes|pages)/.+|(^|/)app/(.+/)?(page|layout|route|template|loading|error|not-found|default))\\.(tsx|jsx|vue|svelte)$"
             },
@@ -1916,6 +1916,50 @@
               "ux.subview",
               "navigation.route",
               "navigation.navigationgraph"
+            ],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_react_hook",
+        "description": "An exported React hook is UX data configuration or state",
+        "applies_to": ["ux.dataconfig", "ux.stateaction", "ux.statepattern"],
+        "rule": "An exported function or const named useX in a JS/TS file is a React hook: it binds a UI to its data or holds its state. Functions nested inside it are its implementation, not elements",
+        "parameters": {
+          "tier0": {
+            "labels": ["Function", "Variable"],
+            "when": {
+              "shape": "^react-hook$"
+            },
+            "narrow": ["ux.dataconfig", "ux.stateaction", "ux.statepattern"],
+            "confidence": "medium"
+          }
+        }
+      },
+      {
+        "name": "tier0_react_component",
+        "description": "An exported React component is a UX view, sub-view or component",
+        "applies_to": [
+          "ux.view",
+          "ux.subview",
+          "ux.librarycomponent",
+          "ux.librarysubview",
+          "ux.actioncomponent"
+        ],
+        "rule": "An exported function returning JSX, or an exported const holding React.forwardRef(...) or memo(...), is a React component: a placed view or sub-view, a reusable library component or sub-view, or an action trigger. Functions nested inside it are its implementation, not elements",
+        "parameters": {
+          "tier0": {
+            "labels": ["Function", "Variable"],
+            "when": {
+              "shape": "^react-component$"
+            },
+            "narrow": [
+              "ux.view",
+              "ux.subview",
+              "ux.librarycomponent",
+              "ux.librarysubview",
+              "ux.actioncomponent"
             ],
             "confidence": "medium"
           }

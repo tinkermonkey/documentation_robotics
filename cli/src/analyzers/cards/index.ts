@@ -6,3 +6,4 @@ export * from "./build.js";
 export * from "./tier0.js";
 export * from "./classify.js";
 export * from "./docs.js";
+export * from "./shapes.js";
