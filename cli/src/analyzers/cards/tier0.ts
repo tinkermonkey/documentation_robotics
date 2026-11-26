@@ -3,7 +3,7 @@
  * facts. Used by `dr analyzer classify` and by the classify-eval harness.
  */
 import { declarationOf, evaluateTier0, type Tier0Outcome, type Tier0Rule, type Tier0Symbol } from "../tier0-rules.js";
-import { shapesOf } from "./shapes.js";
+import { declarationShapesOf } from "./shapes.js";
 import type { CardFacts } from "./types.js";
 
 /** The card fields Tier 0 reads (a harness card, with its corpus field, also fits). */
@@ -16,7 +16,7 @@ export function tier0SymbolOf(card: Tier0Card, facts: CardFacts | undefined): Ti
     file_path: card.file_path,
     declaration: declarationOf(card.source, card.signature),
     decorator_names: facts?.decorator_names ?? [],
-    shapes: shapesOf(card),
+    shapes: declarationShapesOf(card),
   };
 }
 

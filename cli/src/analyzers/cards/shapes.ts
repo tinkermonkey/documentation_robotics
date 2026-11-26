@@ -25,7 +25,7 @@ const RENDERS = /<[A-Za-z][\w.]*(?:\s[^<>]*)?\/?>|<>|\bcreateElement\s*\(/;
 const PRIMITIVE_CONST = /=\s*(?:-?\d[\d_.eE+-]*n?|"[^"]*"|'[^']*'|`[^`$]*`|true|false|null|undefined)\s*(?:as\s+const\s*)?;?\s*$/;
 
 /** The shapes a JS/TS declaration has, [] for other languages. */
-export function shapesOf(card: ShapeCard): CardShape[] {
+export function declarationShapesOf(card: ShapeCard): CardShape[] {
   if (!card.file_path || !JS.test(card.file_path)) return [];
   const declaration = (declarationOf(card.source, card.signature) ?? "").trim();
   if (!/^export\b/.test(declaration)) return [];

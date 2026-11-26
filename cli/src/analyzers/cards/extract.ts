@@ -38,7 +38,7 @@ import { buildFactsIndex, factsFor } from "./facts.js";
 import { collectHandRoutes, definitionFor, readRouteDefinitions, type RouteDefinition } from "./hand-routes.js";
 import { TEST_PATH, namedRoutePath, normRoutePath, routesCalledIn } from "./routes.js";
 import { TEST_CASE_LABEL, collectJsTestCases, type TestCaseStats } from "./test-cases.js";
-import { isDeclaredVariable, shapesOf } from "./shapes.js";
+import { isDeclaredVariable, declarationShapesOf } from "./shapes.js";
 import { tier0ForCard } from "./tier0.js";
 import type { CardFacts, CardGraph, GraphNode, SymbolCard } from "./types.js";
 import { cardFacts, type TriageFacts } from "./visibility.js";
@@ -325,7 +325,7 @@ function rejectReactInternals(symbols: ExtractedSymbol[], summary: { undecided: 
   const units = new Map<string, Array<{ start: number; end: number }>>();
   for (const s of symbols) {
     const { file_path: file, start_line: start, end_line: end } = s.card;
-    if (!file || start === null || !shapesOf(s.card).some((x) => x === "react-hook" || x === "react-component")) continue;
+    if (!file || start === null || !declarationShapesOf(s.card).some((x) => x === "react-hook" || x === "react-component")) continue;
     (units.get(file) ?? units.set(file, []).get(file)!).push({ start, end: end ?? start });
   }
   if (!units.size) return;
