@@ -310,6 +310,8 @@ export interface CategoryCounts {
   deletionsNotDone: number;
   /** Planned changes extraction can't see; not part of the verdict. */
   unverifiable: number;
+  /** Relationships only: planned `tests` links to check (#1413), counted in none of the other categories. */
+  testsToCheck?: number;
   /**
    * Of `unverifiable`, the planned elements a code file may register by name: missing unless it
    * does. Present only when there are some; the verdict text leads with them.
@@ -553,6 +555,11 @@ export interface VerifyReport {
     unverifiable: UnverifiableRelationship[];
     unplanned: UnplannedRelationship[];
     deletionsNotDone: RelationshipDeletionNotDone[];
+    /**
+     * Planned `tests` links the build doesn't show (#1413): not missing, not part of the verdict, and
+     * not accepted away. For the agent to check (see TESTS_LINKS_TO_CHECK_NOTE). Absent when none.
+     */
+    testsToCheck?: MissingRelationship[];
   };
   /** Whether extraction's blind spots were taken into account, and where the as-built side came from. */
   extraction?: VerifyExtraction;
@@ -776,6 +783,12 @@ export interface VerifyHeader {
   wholePlan?: VerifyReport["wholePlan"];
 }
 
+/** What checking a planned `tests` link means (#1413). */
+export const TESTS_LINKS_TO_CHECK_NOTE =
+  "testsToCheck lists planned tests links the build doesn't show: not missing, and not accepted away. Check each in the code: " +
+  "is the link accurate, or did extraction miss it? Fix the model if it is wrong. Once it is accurate, decide whether a test is " +
+  "missing and needs writing, or the plan specified a test that isn't needed (unstage the link).";
+
 export interface CompactVerifyReport extends VerifyHeader {
   detail: "compact";
   warning?: string;
@@ -789,6 +802,9 @@ export interface CompactVerifyReport extends VerifyHeader {
   deletionsNotDone?: string[];
   /** Planned changes extraction can't see, one line per reason (not part of the verdict; no plan edit needed). */
   unverifiable: string[];
+  /** Planned tests links the build doesn't show, for the agent to check (testsToCheckNote says how). Absent when none. */
+  testsToCheck?: string[];
+  testsToCheckNote?: string;
   unplanned: CompactUnplanned;
   sourceReferences?: CompactSourceReferences;
   extraction?: CompactExtraction;
@@ -1226,6 +1242,17 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
     probable: cappedList(probable, "probable", counts, pager),
     ...(deletionsNotDone.length > 0 ? { deletionsNotDone: cappedList(deletionsNotDone, "deletionsNotDone", counts, pager) } : {}),
     unverifiable: cappedList(unverifiable, "unverifiable", counts, pager),
+    ...(report.relationships.testsToCheck?.length
+      ? {
+          testsToCheck: cappedList(
+            report.relationships.testsToCheck.map((m) => `${relLine(m.planned)}: ${m.reason}`),
+            "testsToCheck",
+            counts,
+            pager
+          ),
+          testsToCheckNote: TESTS_LINKS_TO_CHECK_NOTE,
+        }
+      : {}),
     unplanned,
     ...(sourceReferences ? { sourceReferences } : {}),
     ...(report.extraction ? { extraction: compactExtraction(report.extraction) } : {}),
@@ -2134,7 +2161,7 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
             unplaced.length > 1 ? "they have" : "it has"
           } code, set sourceFile and sourceSymbol with model_update, then verify again.`
         : "";
-    report.relationships.missing.push({
+    const lacking = {
       planned: plannedRef,
       reason:
         (absent.length > 0
@@ -2144,7 +2171,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
             : "not found in the build"
       ) + sourceHint,
       ...(candidates.length > 0 ? { candidates } : {}),
-    });
+    };
+    // A tests link the build doesn't show is for the agent to check, not a missing relationship.
+    if (planned.predicate === "tests") (report.relationships.testsToCheck ??= []).push(lacking);
+    else report.relationships.missing.push(lacking);
   }
 
   if (built.changedRelationships) {
@@ -2163,7 +2193,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   }
 
   report.summary.elements = countCategories(plan.elements.length, report.elements);
-  report.summary.relationships = countCategories(plan.relationships.length, report.relationships);
+  report.summary.relationships = {
+    ...countCategories(plan.relationships.length, report.relationships),
+    ...(report.relationships.testsToCheck?.length ? { testsToCheck: report.relationships.testsToCheck.length } : {}),
+  };
   const baseElements = report.elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length;
   if (baseElements > 0 || alreadyInBaseRelationships > 0) {
     report.alreadyInBase = { elements: baseElements, relationships: alreadyInBaseRelationships, planCommitted: false };

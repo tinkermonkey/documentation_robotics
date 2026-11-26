@@ -1,0 +1,15 @@
+id: changeset-1795718576689-uaepemg65
+name: cli010-k1-tests-links
+description: "#1413: codebase_verify and changeset_verify list tests links the code graph can't confirm in their own list (tests_to_check / testsToCheck) for the agent to check, with a reason each, a note on what checking means, no drift status and no gap_accept."
+created: 2026-11-26T18:42:56.761Z
+modified: 2026-11-26T18:43:05.962Z
+status: staged
+baseSnapshot: v2:sha256:440d553c6129cdbb5bfa188b1e6a5020a929c3bd525183dfeea350a86b02670b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 1
+  modifications: 0
+  deletions: 0
+lastSequence: 0

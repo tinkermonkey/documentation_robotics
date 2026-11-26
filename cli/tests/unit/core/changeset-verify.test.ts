@@ -450,6 +450,15 @@ describe("relationship matching", () => {
     expect(report.verdict).toBe("incomplete");
   });
 
+  it("lists a planned tests link the build doesn't show for the agent to check, not as missing (#1413)", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(FN), addEl(SVC), addRel(FN, "tests", SVC), addRel(FN, "serves", SVC)]));
+    const built = await asBuilt([addEl(FN), addEl(SVC)]);
+    const report = verifyChangeset(plan, built);
+    expect(report.relationships.missing.map((m) => m.planned.predicate)).toEqual(["serves"]);
+    expect(report.relationships.testsToCheck?.map((m) => m.planned.predicate)).toEqual(["tests"]);
+    expect(report.summary.relationships.testsToCheck).toBe(1);
+  });
+
   it("without the build's changes, a pre-existing relationship is a candidate, not the build's version", () => {
     const plan = planFromChangeset(changeset("plan", [addRel(FN, "serves", SVC)]));
     const elements = [

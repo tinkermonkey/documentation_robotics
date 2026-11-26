@@ -549,6 +549,8 @@ export interface LayerVerifyRelationship {
   target: string;
   /** The code-graph edge it comes from, for matched and in_graph_only. */
   edge?: string;
+  /** For tests_to_check: why the code graph can't confirm it. */
+  reason?: string;
 }
 
 export type LayerVerifyBucket = "matched" | "in_graph_only" | "in_model_only" | "not_indexed" | "ignored";
@@ -608,8 +610,14 @@ export interface LayerVerifyReport {
   relationships?: {
     matched: LayerVerifyRelationship[];
     in_graph_only: LayerVerifyRelationship[];
-    in_model_only: LayerVerifyRelationship[];
+    /**
+     * The model's tests links the code graph can't confirm. Not drift and never accepted away: for
+     * the agent to check (see `tests_to_check_note`). They don't count against the layer's status.
+     */
+    tests_to_check: LayerVerifyRelationship[];
   };
+  /** What checking `relationships.tests_to_check` means. Present when that list is not empty. */
+  tests_to_check_note?: string;
   summary: {
     matched_count: number;
     /** In the code, not the model. */
@@ -624,7 +632,7 @@ export interface LayerVerifyReport {
     elements_not_checked: number;
     /** In the code only or the model only, but covered by .dr-verify-ignore.yaml. */
     ignored_count?: number;
-    relationships?: { matched_count: number; gap_count: number; drift_count: number };
+    relationships?: { matched_count: number; gap_count: number; drift_count: number; tests_to_check_count?: number };
   };
 }
 

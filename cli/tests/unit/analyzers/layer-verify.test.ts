@@ -372,8 +372,13 @@ describe("layer-verify (#1082)", () => {
     expect(testing.relationships!.matched).toEqual([
       { source: sketch, predicate: "tests", target: "application.applicationfunction.owner-controller-show-owner", edge: "TESTS" },
     ]);
-    expect(testing.relationships!.in_model_only).toEqual([{ source: sketch, predicate: "tests", target: "application.applicationfunction.vet-controller-list" }]);
-    expect(testing.summary.relationships).toEqual({ matched_count: 1, gap_count: 0, drift_count: 1 });
+    // The model's tests link the code graph can't confirm is for the agent to check, not drift (#1413).
+    expect(testing.relationships!.tests_to_check).toEqual([
+      expect.objectContaining({ source: sketch, predicate: "tests", target: "application.applicationfunction.vet-controller-list", reason: expect.any(String) }),
+    ]);
+    expect(testing.tests_to_check_note).toContain("not drift");
+    expect(testing.summary.relationships).toEqual({ matched_count: 1, gap_count: 0, drift_count: 0, tests_to_check_count: 1 });
+    expect(testing.status_text).toContain("tests_to_check");
   });
 });
 

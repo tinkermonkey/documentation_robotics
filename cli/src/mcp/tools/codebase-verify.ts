@@ -84,7 +84,7 @@ export const VERIFY_SCOPE =
   "configuration artifact; system software sourced to a dependency manifest against what the manifest lists), and test cases " +
   "and their tests relationships against the testing layer. status gives each layer's result first: in_step (compared, nothing " +
   "differs), drifted (the buckets say what) or not_checked (nothing could be compared; not_checked under the layer says why and " +
-  "what would make it checkable). A layer that was not checked is not in step. not_indexed is a parse gap, not drift. It says " +
+  "what would make it checkable). A layer that was not checked is not in step. The model's tests links the code graph can't confirm are listed under the testing layer's relationships.tests_to_check, each with its reason: not drift, no gap_accept, and they don't count against status; check each in the code (tests_to_check_note says how). not_indexed is a parse gap, not drift. It says " +
   "nothing about the other layers, or about elements of other types in these.";
 
 /** Said when the code serves no routes the analyzer can read: a library's operations are not drift. */
@@ -127,7 +127,7 @@ export function pageLayerReport(layer: LayerVerifyReport, args: PageArgs): { lay
     ? {
         matched: pager.list("relationships.matched", layer.relationships.matched),
         in_graph_only: pager.list("relationships.in_graph_only", layer.relationships.in_graph_only),
-        in_model_only: pager.list("relationships.in_model_only", layer.relationships.in_model_only),
+        tests_to_check: pager.list("relationships.tests_to_check", layer.relationships.tests_to_check),
       }
     : undefined;
   return {
