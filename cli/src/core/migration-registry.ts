@@ -9,6 +9,7 @@ import type { Model } from "./model.js";
 import { getErrorMessage } from "../utils/errors.js";
 import { stringifyDrYaml } from "./dr-yaml.js";
 import { applyCatalogMigrations } from "./catalog-migration.js";
+import { migratedInterfaceAttributes } from "./interface-protocol.js";
 
 /**
  * Represents a single version migration
@@ -442,6 +443,31 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.15.0 to v0.16.0: coverage of functions, and the application interface's
+    // interfaceType and open protocol (Context Studio 9217c1d4 and 43f52ae5)
+    this.migrations.push({
+      fromVersion: "0.15.0",
+      toVersion: "0.16.0",
+      description:
+        "Coverage targets cover application functions; application interfaces gain interfaceType and an open protocol (Spec v0.16.0)",
+      apply: async (model: Model) => {
+        // `testcoveragetarget covers applicationfunction` and the optional interfaceType are
+        // additive, and protocol's closed list and required flag are gone, so every 0.15.0 model is
+        // valid as it is. The reshape's DR-side follow-up rewrites the values the spec now writes
+        // another way: protocol REST and HTTPS become HTTP, and interfaceType is set where the old
+        // value says it (see interface-protocol.ts). An interfaceType already set is kept, so a
+        // model a development CLI already stamped 0.16.0 can run it again unchanged.
+        const result = await migrateInterfaceProtocols(model);
+        return {
+          migrationsApplied: 1,
+          filesModified: result.filesModified,
+          description: `Spec version updated to 0.16.0 (coverage of application functions; ${result.elementsChanged} application interface(s) given interfaceType or HTTP for REST and HTTPS)`,
+          ...(result.errors.length > 0 && { error: result.errors.join("; ") }),
+          details: { applicationInterfacesChanged: result.elementIds },
+        };
+      },
+    });
   }
 
   /**
@@ -770,4 +796,73 @@ async function migrateObjectSchemaRequiredFiles(
   }
 
   return { filesModified, errors };
+}
+
+/**
+ * Spec v0.16.0: rewrites each application interface's protocol and interfaceType as
+ * migratedInterfaceAttributes says, in 05_application/*.yaml and in the application layer when the
+ * model has it loaded (`dr upgrade` saves the loaded layers after migrating, which would otherwise
+ * write the old values back over the rewritten files).
+ */
+async function migrateInterfaceProtocols(
+  model: Model
+): Promise<{ filesModified: number; elementsChanged: number; elementIds: string[]; errors: string[] }> {
+  const fs = await import("fs/promises");
+  const pathModule = await import("path");
+  const YAML = await import("yaml");
+
+  const changedIds = new Set<string>();
+  const errors: string[] = [];
+  let filesModified = 0;
+
+  const applicationDir = pathModule.join(model.rootPath, "documentation-robotics/model/05_application");
+  let files: string[] = [];
+  try {
+    files = await fs.readdir(applicationDir);
+  } catch (error) {
+    // No application layer folder: nothing on disk to migrate
+    if ((error as { code?: string }).code !== "ENOENT") throw error;
+  }
+
+  for (const file of files) {
+    if (!file.endsWith(".yaml") && !file.endsWith(".yml")) continue;
+    const filePath = pathModule.join(applicationDir, file);
+    try {
+      const doc = YAML.parse(await fs.readFile(filePath, "utf-8"));
+      if (!doc || typeof doc !== "object") continue;
+      let modified = false;
+      for (const [key, element] of Object.entries(doc)) {
+        const record = element as Record<string, unknown> | null;
+        if (!record || typeof record !== "object" || record.spec_node_id !== "application.applicationinterface") continue;
+        const attributes = record.attributes;
+        if (!attributes || typeof attributes !== "object") continue;
+        const next = migratedInterfaceAttributes(attributes as Record<string, unknown>);
+        if (!next) continue;
+        record.attributes = next;
+        modified = true;
+        changedIds.add(typeof record.path === "string" ? record.path : key);
+      }
+      if (modified) {
+        await fs.writeFile(filePath, stringifyDrYaml(doc), "utf-8");
+        filesModified++;
+      }
+    } catch (error) {
+      errors.push(`Failed to migrate ${file}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  // The committed layer: getLayer() would merge in an active changeset's staged changes
+  const layer = model.layers.get("application");
+  if (layer) {
+    for (const element of layer.listElements()) {
+      if (element.spec_node_id !== "application.applicationinterface") continue;
+      const next = migratedInterfaceAttributes(element.attributes ?? {});
+      if (!next) continue;
+      element.attributes = next;
+      layer.updateElement(element);
+      changedIds.add(element.path || element.id);
+    }
+  }
+
+  return { filesModified, elementsChanged: changedIds.size, elementIds: [...changedIds].sort(), errors };
 }

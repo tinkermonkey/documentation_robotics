@@ -9,7 +9,7 @@
 1. **CLI Tool (`cli/`)** - TypeScript implementation for managing architecture models
 2. **Metadata Model Specification** - Formal documentation defining the 13-layer model
 
-**Current Versions:** CLI v0.8.0, Spec v0.15.0
+**Current Versions:** CLI v0.9.0, Spec v0.16.0
 
 ## Repository Structure
 

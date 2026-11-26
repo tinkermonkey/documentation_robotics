@@ -445,7 +445,7 @@ describe("upgrade command - unified flow", () => {
       // Verify model spec version was updated to latest
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.15.0");
+      expect(updatedManifest.spec_version).toBe("0.16.0");
     });
 
     it("adds the documentation-robotics folder to .prettierignore when the project uses prettier, and says so (#1155, #1246)", async () => {
@@ -494,7 +494,7 @@ describe("upgrade command - unified flow", () => {
       // Should complete all migrations and reach latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.15.0");
+      expect(updatedManifest.spec_version).toBe("0.16.0");
     });
 
     it("should show migration steps in output", async () => {
@@ -557,7 +557,7 @@ describe("upgrade command - unified flow", () => {
       // Model should be upgraded to latest version
       const updatedContent = await fs.readFile(manifestPath, "utf-8");
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe("0.15.0");
+      expect(updatedManifest.spec_version).toBe("0.16.0");
     });
 
     it("should complete both upgrades successfully", async () => {
@@ -1386,7 +1386,7 @@ describe("upgrade command - unified flow", () => {
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(result.exitCode).toBe(0);
       assertOutputContains(result, "Model files written (1):");
-      expect(await getModelSpecVersion(tempDir.path)).toBe("0.15.0");
+      expect(await getModelSpecVersion(tempDir.path)).toBe("0.16.0");
       expect(git(tempDir.path, "status", "--short", "--", "documentation-robotics/model").trim()).toBe(
         "M documentation-robotics/model/manifest.yaml"
       );
@@ -1444,7 +1444,7 @@ describe("upgrade command - unified flow", () => {
       expect(modelOnly.exitCode).toBe(0);
       assertOutputContains(modelOnly, "Left alone (--model-only)");
       expect(modelOnly.stdout).not.toContain("Upgrade GitHub Copilot integration...");
-      expect(await getModelSpecVersion(tempDir.path)).toBe("0.15.0");
+      expect(await getModelSpecVersion(tempDir.path)).toBe("0.16.0");
       expect(git(tempDir.path, "status", "--short").trim()).toBe("M documentation-robotics/model/manifest.yaml");
 
       // Without it the rest follows, and the leftovers are listed but kept
@@ -1505,13 +1505,13 @@ describe("upgrade command - unified flow", () => {
       assertOutputContains(dryRun, "would have 3 validation error(s) on 1 element(s)");
       assertOutputContains(dryRun, "required, left empty: tags");
       assertOutputContains(dryRun, "required, value would be staged for review: operationId, summary");
-      assertOutputContains(dryRun, "would be derived and staged in the changeset 'upgrade-fills-0.15.0'");
+      assertOutputContains(dryRun, "would be derived and staged in the changeset 'upgrade-fills-0.16.0'");
       assertOutputContains(dryRun, 'api.operation.create-order: operationId = "createOrder"');
       expect(await fileExists(join(tempDir.path, "documentation-robotics/changesets"))).toBe(false);
 
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(result.exitCode).toBe(0);
-      assertOutputContains(result, "Staged 2 derived value(s) for required attributes on 1 element(s) in the changeset 'upgrade-fills-0.15.0'");
+      assertOutputContains(result, "Staged 2 derived value(s) for required attributes on 1 element(s) in the changeset 'upgrade-fills-0.16.0'");
       assertOutputContains(result, "Nothing was written to the base model");
       assertOutputContains(result, 'api.operation.create-order: summary = "Creates an order."');
       assertOutputContains(result, "required, left empty: tags");
@@ -1520,14 +1520,14 @@ describe("upgrade command - unified flow", () => {
       expect(await readFile(operationFile, "utf-8")).toBe(operation);
 
       // The review path the output names: activate it, then diff
-      assertOutputContains(result, "dr changeset activate upgrade-fills-0.15.0 then dr changeset diff");
-      expect((await runDr(["changeset", "activate", "upgrade-fills-0.15.0"], { cwd: tempDir.path })).exitCode).toBe(0);
+      assertOutputContains(result, "dr changeset activate upgrade-fills-0.16.0 then dr changeset diff");
+      expect((await runDr(["changeset", "activate", "upgrade-fills-0.16.0"], { cwd: tempDir.path })).exitCode).toBe(0);
       const diff = await runDr(["changeset", "diff"], { cwd: tempDir.path });
       expect(diff.exitCode).toBe(0);
       assertOutputContains(diff, "api.operation.create-order");
 
       // It lands like any plan; the error it doesn't fix (tags) was the base model's already
-      const commit = await runDr(["changeset", "commit", "upgrade-fills-0.15.0"], { cwd: tempDir.path });
+      const commit = await runDr(["changeset", "commit", "upgrade-fills-0.16.0"], { cwd: tempDir.path });
       expect(commit.exitCode).toBe(0);
       const landed = yaml.parse(await readFile(operationFile, "utf-8"))["api.operation.create-order"];
       expect(landed.attributes).toEqual({ operationId: "createOrder", summary: "Creates an order." });
@@ -1569,7 +1569,7 @@ describe("upgrade command - unified flow", () => {
       // The run itself: shortened the same way, pointing at the changeset, which holds all 60
       const result = await runDr(["upgrade", "--yes"], { cwd: tempDir.path });
       expect(result.exitCode).toBe(0);
-      assertOutputContains(result, "...and 40 more of 60; the changeset 'upgrade-fills-0.15.0' holds them all");
+      assertOutputContains(result, "...and 40 more of 60; the changeset 'upgrade-fills-0.16.0' holds them all");
       const dir = join(tempDir.path, "documentation-robotics/changesets");
       const [id] = (await readdir(dir, { withFileTypes: true }))
         .filter((entry) => entry.isDirectory() && !entry.name.endsWith(".lock"))

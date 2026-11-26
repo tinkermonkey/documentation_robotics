@@ -7,8 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-25
+
+**Specification Support:** v0.16.0
+
+This release works through the friction agents met using DR's tools (milestone "Tool ergonomics").
+Changeset and model reads are compact by default and page, with true totals. Write results lead
+with counts, group failures by cause and report a re-sent item as unchanged. A landing no longer
+loses writes staged into it, and a landing that fails rolls back cleanly. The model is checked
+against the spec it declares. `codebase_extract` indexes first, and its rules no longer override
+what Tier 0 staged unless they say so. The central server and viewer stop stalling, notice a CLI
+upgrade, and keep tests away from the user's farm. It carries spec 0.16.0.
+
+Read before upgrading: a kept `none` rule needs `overrideTier0: true` to keep rejecting what Tier 0
+stages (see Changed, #1424); writes refuse a type or relationship the model's declared spec lacks,
+so run `project_upgrade` first on an older model (#1411); and upgrading a model to spec 0.16.0
+rewrites application interfaces' `protocol` REST and HTTPS to HTTP (see Changed).
+
 ### Added
 
+- **Application interface protocol advice (spec 0.16.0):** validation warns, never errors, when an
+  application interface's `protocol` is outside the recommended vocabulary (HTTP, MCP, GraphQL, gRPC,
+  SOAP, JSON-RPC, WebSocket, SSE, AMQP, MQTT, Kafka, NATS). REST and HTTPS are written HTTP, a known
+  protocol in another spelling gets its own, and the fix names `dr update --attribute-patch`.
 - **`dr changeset show [changeset]` (#1219):** shows one changeset by name or id, whatever its state
   or purpose (a staged plan that isn't active, an upgrade record, a committed changeset; the active
   one when none is named): status, purpose, allowed actions, its description as written and one line
@@ -71,6 +92,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Upgrading to spec 0.16.0 rewrites application interface protocols** (Context Studio 43f52ae5):
+  `protocol` REST and HTTPS become HTTP, and `interfaceType` is set where the old value says it (api
+  for REST, gRPC, GraphQL, SOAP and WebSocket; message-channel for AMQP). HTTP and HTTPS leave
+  `interfaceType` unset, since an HTTP controller may serve pages; an `interfaceType` already set is
+  kept. This step changes model files, so its migration is not manifest-only.
 - **A changeset's intent is markdown, and called `intent` (#1210, #1433):** `changeset_create` and
   `changeset_update` take `intent`, the name the server instructions and skills use; `description`
   still works, and a call giving both with different values is refused. `dr changeset create` takes
@@ -116,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documentation-robotics/extraction-rules.yaml"). Add the key to
   that rule and commit the file, or narrow the rule's `where` if it was never meant to cover them.
 
-- **Bundled spec:** two Context Studio landings (spec changelog, Unreleased). A coverage target may
+- **Bundled spec:** two Context Studio landings (spec 0.16.0). A coverage target may
   cover an application function, and an application interface gains `interfaceType` while its
   `protocol` becomes optional open text.
 - **Tier 0:** a Spring `@RestController` typed as an application interface gets
@@ -294,7 +320,7 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   scratch folder, drops a `DR_FARM_PATH` from the shell, and names the real farm in
   `DR_PROTECTED_FARM_FILES`, which `FarmManifest.save` refuses to write.
 - **A farm project whose repository is gone is flagged** (#1438): `project_list`, `GET
-  /api/projects` and `dr farm status` mark it `missing` with the `dr farm remove <name>` call that
+/api/projects` and `dr farm status` mark it `missing` with the `dr farm remove <name>` call that
   drops it. A repository deleted while the central process runs no longer fails the whole listing,
   and one restored (or a folder that becomes a repository later) is seen again without a restart.
 - **dr serve's start-up sweep stops only its own farm's viewers** (#1369): a per-project viewer
@@ -342,8 +368,10 @@ wait: 30`) before calling again. A preview never indexes (it changes nothing), n
   as every other tool names a type, and so does `element` alone. A `layer` that disagrees with the
   dotted id is refused, and a call with neither says how to name the type. Carries #1288 by
   jiangyuer018.
-
-### Fixed
+- **The analyzer client survives an analyzer that has exited.** A write to `codebase-memory-mcp`
+  after it exits fails late, with `EPIPE` on its input. Nothing handled that, so the error was
+  thrown; it was most likely when closing the client. A request still waiting now fails with the
+  error, and one raised during shutdown is ignored.
 
 Extract output and decide (CLI 0.9.0, Tool ergonomics):
 

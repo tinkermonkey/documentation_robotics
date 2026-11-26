@@ -782,4 +782,74 @@ describe("MigrationRegistry", () => {
       ]);
     });
   });
+
+  describe("v0.15.0 → v0.16.0 migration: application interface protocols (Context Studio 43f52ae5)", () => {
+    let root: string;
+
+    beforeEach(async () => {
+      root = join(tmpdir(), `dr-test-interface-protocols-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`);
+      await mkdir(join(root, "documentation-robotics/model/05_application"), { recursive: true });
+    });
+
+    afterEach(async () => {
+      await rm(root, { recursive: true, force: true });
+    });
+
+    function iface(name: string, attributes: Record<string, unknown>) {
+      const path = `application.applicationinterface.${name}`;
+      return {
+        [path]: {
+          id: `00000000-0000-4000-8000-${name.length.toString().padStart(12, "0")}`,
+          path,
+          spec_node_id: "application.applicationinterface",
+          type: "applicationinterface",
+          layer_id: "application",
+          name,
+          attributes,
+        },
+      };
+    }
+
+    it("writes REST and HTTPS as HTTP, sets interfaceType where the old value says it, and runs again unchanged", async () => {
+      const file = join(root, "documentation-robotics/model/05_application/application_interface.yaml");
+      const { stringify, parse } = await import("yaml");
+      await writeFile(
+        file,
+        stringify({
+          ...iface("orders-api", { protocol: "REST" }),
+          ...iface("site", { protocol: "HTTPS" }),
+          ...iface("events", { protocol: "AMQP" }),
+          ...iface("pages", { protocol: "REST", interfaceType: "user-interface" }),
+          ...iface("mcp", { protocol: "MCP", interfaceType: "api" }),
+        })
+      );
+      const model = new Model(root, new Manifest({ name: "m", version: "1.0.0", specVersion: "0.15.0" }));
+      const registry = new MigrationRegistry();
+
+      const result = await registry.applyMigrations(model, { fromVersion: "0.15.0", toVersion: "0.16.0" });
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].changes?.filesModified).toBe(1);
+      const after = parse(readFileSync(file, "utf8"));
+      expect(after["application.applicationinterface.orders-api"].attributes).toEqual({ protocol: "HTTP", interfaceType: "api" });
+      expect(after["application.applicationinterface.site"].attributes).toEqual({ protocol: "HTTP" });
+      expect(after["application.applicationinterface.events"].attributes).toEqual({ protocol: "AMQP", interfaceType: "message-channel" });
+      expect(after["application.applicationinterface.pages"].attributes).toEqual({ protocol: "HTTP", interfaceType: "user-interface" });
+      expect(after["application.applicationinterface.mcp"].attributes).toEqual({ protocol: "MCP", interfaceType: "api" });
+
+      // A model a development CLI already stamped 0.16.0 can run the step again: nothing changes
+      const again = await new MigrationRegistry().applyMigrations(
+        new Model(root, new Manifest({ name: "m", version: "1.0.0", specVersion: "0.15.0" })),
+        { fromVersion: "0.15.0", toVersion: "0.16.0" }
+      );
+      expect(again.applied[0].changes?.filesModified).toBe(0);
+    });
+
+    it("changes nothing when the model has no application layer", async () => {
+      await rm(join(root, "documentation-robotics/model/05_application"), { recursive: true, force: true });
+      const model = new Model(root, new Manifest({ name: "m", version: "1.0.0", specVersion: "0.15.0" }));
+      const result = await new MigrationRegistry().applyMigrations(model, { fromVersion: "0.15.0", toVersion: "0.16.0" });
+      expect(result.applied[0].changes?.filesModified).toBe(0);
+      expect(result.applied[0].changes?.error).toBeUndefined();
+    });
+  });
 });

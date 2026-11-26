@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-25T22:31:46.967Z
+# Last updated: 2026-11-26T13:41:32.444Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -75228,5 +75228,70 @@
 - source: application.applicationfunction.unstaged-element-add
   target: application.applicationservice.model-delete-handler
   predicate: realizes
+  layer: application
+  category: structural
+- source: application.applicationfunction.migrate-interface-protocols
+  target: application.applicationfunction.migrated-interface-attributes
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.migration-registry-apply-migrations
+  target: application.applicationfunction.migrate-interface-protocols
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.semantic-validator-validate-interface-protocols
+  target: application.applicationfunction.recommended-protocol
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.semantic-validator-validate-model
+  target: application.applicationfunction.semantic-validator-validate-interface-protocols
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationcomponent.semantic-validator
+  target: application.applicationfunction.semantic-validator-validate-interface-protocols
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationfunction.semantic-validator-validate-interface-protocols
+  target: application.dataobject.validation-result
+  predicate: accesses
+  layer: application
+  category: structural
+- source: application.applicationcomponent.stdio-client
+  target: application.applicationfunction.stdio-client-reject-pending
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationfunction.stdio-client-spawn
+  target: application.applicationfunction.stdio-client-reject-pending
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.stdio-client-close
+  target: application.applicationfunction.stdio-client-reject-pending
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationcomponent.migration-registry
+  target: application.applicationfunction.migrate-interface-protocols
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationcomponent.migration-registry
+  target: application.applicationfunction.migration-registry-register-migrations
+  predicate: assigned-to
+  layer: application
+  category: structural
+- source: application.applicationfunction.migrate-interface-protocols
+  target: application.applicationfunction.stringify-dr-yaml
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.migrate-interface-protocols
+  target: application.applicationfunction.get-error-message
+  predicate: depends-on
   layer: application
   category: structural

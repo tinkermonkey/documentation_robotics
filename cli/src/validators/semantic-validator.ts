@@ -5,6 +5,7 @@
 import { ValidationResult } from "./types.js";
 import type { Model } from "../core/model.js";
 import { RELATIONSHIPS_BY_PREDICATE } from "../generated/relationship-index.js";
+import { RECOMMENDED_INTERFACE_PROTOCOLS, recommendedProtocol } from "../core/interface-protocol.js";
 
 /**
  * Validator for semantic/business rule validation
@@ -23,8 +24,40 @@ export class SemanticValidator {
 
     this.validateRelationshipPredicates(model, result);
     this.validateApmInferredWithoutSdk(model, result);
+    this.validateInterfaceProtocols(model, result);
 
     return result;
+  }
+
+  /**
+   * Rule: an application interface's protocol is open text (spec 0.16.0) with a recommended
+   * vocabulary (interface-protocol.ts). A value outside it is advice, never an error: REST and HTTPS
+   * are written HTTP, a known protocol in another spelling gets its own, and an unknown one is named
+   * so the modeller can check it is the highest-level protocol the interface speaks.
+   */
+  private validateInterfaceProtocols(model: Model, result: ValidationResult): void {
+    const layer = model.layers.get("application");
+    if (!layer) return;
+    for (const element of layer.listElements()) {
+      if (element.type !== "applicationinterface") continue;
+      const protocol = element.attributes?.protocol;
+      if (typeof protocol !== "string" || protocol.trim() === "") continue;
+      const recommended = recommendedProtocol(protocol);
+      if (recommended === protocol) continue;
+      const elementId = element.path || element.id;
+      result.addWarning({
+        layer: "application",
+        elementId,
+        category: "semantic",
+        message: recommended
+          ? `Application interface protocol '${protocol}' is written '${recommended}' (REST is a style over HTTP, HTTPS is HTTP plus TLS, and a protocol is spelled as its own documentation spells it)`
+          : `Application interface protocol '${protocol}' is not in the recommended vocabulary (${RECOMMENDED_INTERFACE_PROTOCOLS.join(", ")})`,
+        fixSuggestion: recommended
+          ? `dr update ${elementId} --attribute-patch '{"protocol":"${recommended}"}' (or model_update with attributePatch)`
+          : "Name the highest-level protocol the interface speaks (MCP for an MCP server, not JSON-RPC or HTTP). " +
+            "If it is a real protocol the list lacks, keep it; leave protocol unset where interfaceType says all there is.",
+      });
+    }
   }
 
   /**

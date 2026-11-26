@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.8.0
 spec_version: 0.15.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-25T22:31:47.147Z
+updated: 2026-11-26T13:41:32.622Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1672
+      applicationfunction: 1678
       applicationinterface: 2
       applicationservice: 116
       dataobject: 13
@@ -215,6 +215,9 @@ changeset_history:
     action: committed
   - name: cli09-clear-write-results
     committed_at: 2026-11-25T22:31:47.147Z
+    action: committed
+  - name: cli090-release-protocols-and-epipe
+    committed_at: 2026-11-26T13:41:32.622Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88
