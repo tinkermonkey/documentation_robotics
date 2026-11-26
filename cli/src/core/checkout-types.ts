@@ -73,6 +73,25 @@ export interface ResolvedCheckout {
  */
 export type CheckoutResolver = (ref: CheckoutRef) => Promise<ResolvedCheckout | null>;
 
+/**
+ * A staged plan in another checkout of the same project (#1368): what an agent planning here needs
+ * to see to avoid planning the same work twice.
+ */
+export interface SiblingPlan {
+  /** The checkout holding the plan: `"main"`, or git's name for the linked worktree. */
+  checkout: string;
+  branch: string | null;
+  /** The checkout's real path. */
+  path: string;
+  id: string;
+  name: string;
+  description?: string;
+  /** What the plan is for (`plan`, `as-built`, `chat`), when its metadata says. */
+  purpose?: string;
+  /** It is that checkout's active changeset. */
+  active: boolean;
+}
+
 /** One checkout as a project listing shows it. */
 export interface ProjectListCheckout {
   key: string;

@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-26T16:16:36.730Z
+updated: 2026-11-26T16:28:00.139Z
 project:
   name: dr-codebase
   description: ""
@@ -52,7 +52,7 @@ layers:
     elements:
       applicationcomponent: 110
       applicationevent: 2
-      applicationfunction: 1685
+      applicationfunction: 1695
       applicationinterface: 2
       applicationservice: 116
       dataobject: 13
@@ -119,7 +119,7 @@ layers:
     path: documentation-robotics/model/13_testing/
     enabled: true
     elements:
-      testcasesketch: 2685
+      testcasesketch: 2695
       testcoveragemodel: 1
       testcoveragetarget: 9
 changeset_history:
@@ -225,8 +225,14 @@ changeset_history:
   - name: cli010-a1-purpose-recorded
     committed_at: 2026-11-26T15:10:54.263Z
     action: committed
-  - name: cli010-t1-exports-r3
-    committed_at: 2026-11-26T16:16:36.726Z
+  - name: cli010-x1-checkouts
+    committed_at: 2026-11-26T16:16:34.312Z
+    action: committed
+  - name: cli010-b1-unwired-expected-links
+    committed_at: 2026-11-26T15:11:00.565Z
+    action: committed
+  - name: cli010-t2-routes
+    committed_at: 2026-11-26T16:28:00.134Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88

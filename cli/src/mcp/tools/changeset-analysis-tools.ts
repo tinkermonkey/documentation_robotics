@@ -160,7 +160,10 @@ const briefInputSchema = {
     .enum(["summary", "full", "none"])
     .optional()
     .describe(
-      "Unwired connections (catalog connections an added or updated element has no relationship for). The compact " +
+      "Unwired connections (catalog connections an added or updated element has no relationship for). Only the links an " +
+        "element of that type is expected to have count (required, high-strength, or carried by existing elements of the type); other catalog triples " +
+        "are an `optional` count, listed only with full, and an updated element whose type and relationships the " +
+        "change leaves alone is counted apart as `preexisting`. The compact " +
         "brief counts them per layer unless this is set. summary (the full brief's default) counts them per element " +
         "and layer and lists the ones in layers the change already reaches whose other type the model has (existing " +
         "or added), counting the rest as typesNotInModel; full lists them all; none omits them."
@@ -468,7 +471,7 @@ export const changesetBriefTool: McpToolDefinition<typeof briefInputSchema> = {
     `hops (default ${INTENT_TRACE_DEPTH}) and not through an element with more than hubThreshold relationships (default ${DEFAULT_HUB_THRESHOLD}): ` +
     "intent.walk names both and counts the elements that rule leaves untraced; drift since " +
     "the changeset was created; unwired connections (catalog connections an added or updated element has no " +
-    "relationship for) counted per layer; the files of the changed elements; open review annotations; and each " +
+    "relationship for) counted per layer, only the links an element of its type is expected to have (required, high-strength, or carried by existing elements of the type), with the optional catalog triples and the pre-existing ones of updated elements counted apart; the files of the changed elements; open review annotations; and each " +
     "changed element with its type, operation and connections as `predicate → id` lines (for a plan of more " +
     "than 60 elements, counts per type with the first ids of each, and long id lists counted per type). " +
     "sections: [...] returns only the sections named, with a small header, in compact forms. Long lists come a " +

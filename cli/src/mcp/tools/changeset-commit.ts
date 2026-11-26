@@ -61,7 +61,7 @@ import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-g
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
 import { assertRunningCodeInstalled, withRunningCodeChecked } from "../../utils/running-code.js";
 import { getCliVersion } from "../../utils/spec-version.js";
-import { changesetLinkIfRunning } from "./central-viewer.js";
+import { changesetLinkIfRunning, landsOnSentence } from "./central-viewer.js";
 import {
   jsonResult,
   loadModel,
@@ -627,11 +627,14 @@ async function summarizeLanding(target: LandingTarget, toolName: string): Promis
   const drift = await describeDriftSafely(target, toolName);
   const warnings = await landingWarnings(target);
   const { total, named } = overlapSummary(drift, OVERLAPS_NAMED_PER_KIND);
+  const landsOn = await landsOnSentence(target.rootPath);
+  const message = confirmationMessage(changeset, drift, hash, preExistingErrors, warnings);
   return {
     warnings,
     // The whole changeset and the whole base, whatever part of the overlaps the summary names.
     state: await confirmedState(model, changeset),
-    message: confirmationMessage(changeset, drift, hash, preExistingErrors, warnings),
+    // The branch is named in the summary the person confirms (#1422).
+    message: landsOn ? message.replace("\n\n", () => `\n${landsOn}\n\n`) : message,
     overlaps: { total, named },
   };
 }
@@ -791,11 +794,13 @@ export async function changesetCommitHandler(
     const landedOver = result.driftDetail ? overlapKinds(result.driftDetail) : [];
     const overlapTotal = landedOver.reduce((n, kind) => n + kind.items.length, 0);
 
+    const landedOn = await landsOnSentence(rootPath);
     return jsonResult({
       id: changeset.id,
       name: changeset.name,
       status: "committed",
       confirmedBy: token !== undefined ? "permission-prompt" : "dialog",
+      ...(landedOn ? { landedOn: landedOn.replace("Lands on", "Landed on") } : {}),
       committed: result.committed,
       skipped: result.skipped ?? 0,
       // Every one: a landed changeset's skips can't be read again anywhere else.
@@ -881,11 +886,13 @@ export async function changesetCommitPreviewHandler(
     if ("result" in prepared) return prepared.result;
     const { changeset, hash } = prepared.landing;
     const { state, message, overlaps } = await summarizeLanding(prepared.landing, "changeset_commit_preview");
+    const landsOn = await landsOnSentence(prepared.landing.rootPath);
     const stillWriting = await prepared.landing.manager.writeActivityWarning(changeset);
     const base = {
       id: changeset.id,
       name: changeset.name,
       status: "ready-to-commit",
+      ...(landsOn ? { landsOn } : {}),
       ...(stillWriting ? { stillWriting } : {}),
       // The CLI that lands it, stamped as the manifest's cli_version (#1427).
       cliVersion: getCliVersion(),

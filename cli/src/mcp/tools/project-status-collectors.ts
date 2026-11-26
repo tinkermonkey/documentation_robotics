@@ -26,7 +26,8 @@ import {
   legacyActiveMarkerPath,
   readActiveMarker,
 } from "../../core/active-changeset-marker.js";
-import type { ProjectListCheckout } from "../../core/checkout-types.js";
+import type { ProjectListCheckout, SiblingPlan } from "../../core/checkout-types.js";
+import { shortPlan } from "./sibling-plans.js";
 import { DEFAULT_CENTRAL_DEPS, runningCentralLink, type CentralDeps, type SessionCheckout } from "./central-viewer.js";
 import { readIndexJob } from "../../analyzers/index-job.js";
 import { installedAnalyzerVersion } from "../../analyzers/active-analyzer.js";
@@ -846,6 +847,8 @@ export const LIST_DEFAULTS = {
   uncommittedEdits: 15,
   /** The project's checkouts other than this one. */
   otherCheckouts: 10,
+  /** Staged plans in the project's other checkouts (#1368). */
+  siblingPlans: 10,
 } as const;
 
 /** The lists `project_status` pages with `list`, `limit` and `offset`. */
@@ -858,6 +861,7 @@ export const STATUS_LISTS = [
   "changedSinceIndex",
   "uncommittedEdits",
   "otherCheckouts",
+  "siblingPlans",
 ] as const;
 export type StatusList = (typeof STATUS_LISTS)[number];
 
@@ -1617,6 +1621,10 @@ export function statusListItems(list: StatusList, s: Partial<ListSections>): { i
   if (list === "otherCheckouts") {
     return s.checkout?.status === "ok" ? { items: s.checkout.otherCheckouts } : unavailable(s.checkout, "checkout");
   }
+  if (list === "siblingPlans") {
+    if (s.checkout?.status !== "ok") return unavailable(s.checkout, "checkout");
+    return s.checkout.siblingPlans ? { items: s.checkout.siblingPlans } : { unavailable: s.checkout.siblingPlansUnavailable ?? "siblingPlans was not read" };
+  }
   if (list === "changedSinceIndex" || list === "uncommittedEdits") {
     const index = s.codeIndex;
     if (!index || index.status === "error" || index.status === "absent") return unavailable(index, "codeIndex");
@@ -1669,7 +1677,10 @@ export function shortenSections<S extends Partial<ListSections>>(sections: S, ro
     const pages: ShortenedPages = {};
     const more: string[] = [];
     const otherCheckouts = cut("otherCheckouts", out.checkout.otherCheckouts, pages, more);
-    if (more.length > 0) out.checkout = { ...out.checkout, otherCheckouts, ...said(pages, more) };
+    const siblingPlans = out.checkout.siblingPlans ? cut("siblingPlans", out.checkout.siblingPlans, pages, more).map(shortPlan) : undefined;
+    if (more.length > 0) {
+      out.checkout = { ...out.checkout, otherCheckouts, ...(siblingPlans ? { siblingPlans } : {}), ...said(pages, more) };
+    }
   }
 
   const index = out.codeIndex;
@@ -1766,6 +1777,15 @@ export type CheckoutSection =
       head: string;
       farm: { root: string; source: string };
       otherCheckouts: ProjectListCheckout[];
+      /**
+       * Plans staged in those other checkouts (#1368), so work already planned in a worktree is seen
+       * before it is planned again. Absent, with siblingPlansUnavailable saying why, when the farm
+       * could not list them: an empty list means there are none.
+       */
+      siblingPlans?: SiblingPlan[];
+      siblingPlansUnavailable?: string;
+      /** What could not be read in the other checkouts: an empty siblingPlans is not "none" when this is set. */
+      siblingPlansNotRead?: string[];
       /** Set when the default answer shortened otherCheckouts: its page, and the call for the rest. */
       pages?: ShortenedPages;
       more?: string;
@@ -1785,6 +1805,16 @@ export async function collectCheckout(ctx: StatusContext): Promise<CheckoutSecti
   }
   const { ref, checkout } = session.resolved;
   const entry = await session.registry.listProject(ref.project);
+  let siblingPlans: SiblingPlan[] | undefined;
+  let siblingPlansUnavailable: string | undefined;
+  let siblingPlansNotRead: string[] = [];
+  try {
+    const found = await session.registry.siblingPlans(ref.project, ref.checkout);
+    siblingPlans = found.plans;
+    siblingPlansNotRead = found.notes;
+  } catch (error) {
+    siblingPlansUnavailable = `The farm could not list the other checkouts' plans: ${getErrorMessage(error)}`;
+  }
   return {
     status: "ok",
     project: ref.project,
@@ -1794,6 +1824,8 @@ export async function collectCheckout(ctx: StatusContext): Promise<CheckoutSecti
     head: checkout.head,
     farm,
     otherCheckouts: (entry?.checkouts ?? []).filter((c) => c.key !== ref.checkout),
+    ...(siblingPlans ? { siblingPlans } : { siblingPlansUnavailable }),
+    ...(siblingPlansNotRead.length > 0 ? { siblingPlansNotRead } : {}),
   };
 }
 

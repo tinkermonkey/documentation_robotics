@@ -61,7 +61,7 @@ describe("SERVER_INSTRUCTIONS", () => {
     // what it names, so unwired is listed with a filter.
     expect(SERVER_INSTRUCTIONS).toContain('sections: ["changes"]');
     expect(SERVER_INSTRUCTIONS).toContain('layers: ["<layer>"]');
-    expect(SERVER_INSTRUCTIONS).toContain('sections: ["unwired"], unwiredLayers: [...], never unfiltered');
+    expect(SERVER_INSTRUCTIONS).toContain('sections: ["unwired"], unwiredLayers: [...]');
     expect(SERVER_INSTRUCTIONS).not.toContain('sections: ["layers"]');
     expect(SERVER_INSTRUCTIONS).not.toContain('unwired: "summary"');
     expect(SERVER_INSTRUCTIONS).toContain("never written by hand");

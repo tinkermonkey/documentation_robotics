@@ -19,9 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they did. Documented in `docs/CHANGE_MODELING.md`, `/dr-plan` and the `dr_change_planning` skills.
 - **`codebase_extract` `purpose` argument (#1370):** with `since`, `purpose: "reconcile"` or
   `"verification"` overrides the rule below.
+- **Plans staged in other checkouts are listed and warned about (#1368):** `changeset_create` reads the
+  staged plans in the project's other checkouts (worktrees) from the farm before it creates, and its
+  result lists them (`siblingPlans`). When one has the same or a similar name, cites the same issue, or
+  states a similar intent, the result carries `siblingWarning`; nothing is refused. `project_status`
+  lists them under `checkout.siblingPlans` (paged with `list: "siblingPlans"`). When the farm can't
+  list them (no project owns the folder, the registry failed), or a checkout or plan couldn't be read
+  (`siblingPlansNotRead`), the result says so instead of showing none.
 
 ### Changed
 
+- **The branch sits beside the checkout key in every result (#1422):** `main` is the farm's key for a
+  project's primary folder, whatever branch that folder is on, so results now carry `branch` beside
+  `checkout` (null when detached), read at call time, and under `_meta["dr/checkout"]`. A landing names
+  it too: `changeset_commit_preview` returns `landsOn`, the confirmation summary leads with it, and
+  `changeset_commit` returns `landedOn` ("Landed on branch X in checkout main"). `review_open` returns
+  `branch`. The `checkout` key is unchanged.
 - **`codebase_extract` picks the purpose of a `since` run by rule (#1370):** with no plan active, a
   `since` equal to the manifest's `reconciled` code commit makes a reconcile; any other `since`
   makes a verification record (never landed), and the result's `purposeNote` says which plan it
@@ -49,6 +62,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `codebase_extract` now gives exported TypeScript consts a card (#1344): `export const projectListHandler = ...`, and `React.forwardRef(...)` and `memo(...)` components, which the graph labels Variable and extraction never read. Primitive constants and module-private consts are still not cards.
 - Exported React hooks and components get cards narrowed to UX types (#1381, #1344): `useX` to `ux.dataconfig`, `ux.stateaction` or `ux.statepattern`; a function returning JSX, or a `forwardRef` or `memo` const, to `ux.view`, `ux.subview`, `ux.librarycomponent`, `ux.librarysubview` or `ux.actioncomponent`. The callbacks declared inside one are rejected as `nested-in-react-unit` unless a rule or a `decide` item says otherwise. Tier-0 rules can match a declaration's `shape` (`exported`, `react-hook`, `react-component`).
 - `changeset_discard` and the viewer's discard refused a recorded verification record; they take it.
+
+### Changed
+
+- `codebase_extract` picks better subjects for `tests` links (#1412, #1443). A test's calls into its
+  own package win over calls elsewhere, and a name match in another package alone (a
+  `packages/render/test/render.test.ts` and an `apps/render-gpu/render.py`) is no longer a link. A
+  helper that three or more test files call, none named after it, is not their subject (listed in
+  `testLinks.sharedHelpers`). When a test's calls reach only symbols a rule rejected, they are
+  followed to the element that owns the rejected symbol's file (or, with no owner, the few
+  elements the symbol calls), with origin rule `edge:TEST_CALL_VIA_REJECTED`. Each test file still
+  unwired lists its `candidates` for the agent to check and wire. A test folder with no source of its
+  own package (`service/tests/test_orders.py` for `lib/orders.py`) no longer links by name alone.
+- `codebase_extract reject` takes `{files, predicate}` to reject a file's relationships of that
+  predicate as a group, such as `{files: "packages/render/test/**", predicate: "tests"}`. It covers
+  the links extraction staged, not ones already in the model, and takes no `keep`.
+
+- `changeset_brief`'s unwired count covers only the links an element of its type is expected to
+  have: marked required or high-strength in the catalog, or carried by an existing element of the
+  type in the model (issue 1293). The other catalog triples are an `optional` count, listed only
+  with `unwired: "full"`, so `sections: ["unwired"]` lists the expected links first and stays small
+  on a large changeset. An updated element whose type and relationships the change leaves alone has
+  its unwired links counted apart as `preexisting`, not in the headline (issue 1442). The server
+  instructions, the `dr_change_planning` skill and `/dr-plan` say the same. The layer rules have no
+  structured form yet, so rule-backed links are not marked separately.
 
 ## [0.9.0] - 2026-11-25
 

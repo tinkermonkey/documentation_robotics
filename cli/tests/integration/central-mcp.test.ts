@@ -164,7 +164,9 @@ describe("MCP on the central process", () => {
     expect(names(inOther)).not.toContain("feature-plan");
 
     // Every result also carries it in _meta, for a client that reads structured fields.
-    expect(inOther._meta?.["dr/checkout"]).toEqual({ project: "beta", checkout: "main" });
+    expect(inOther._meta?.["dr/checkout"]).toEqual({ project: "beta", checkout: "main", branch: "main" });
+    // The branch beside the key (#1422): the worktree is on a branch of its own.
+    expect(typeof created.branch).toBe("string");
 
     // The process never moved its working directory into any of them.
     expect(process.cwd()).not.toBe(feature);

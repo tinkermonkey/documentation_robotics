@@ -55,7 +55,7 @@ it in the log as `outside`, so step B and the maintainer can see it.
       - Large lists, for example hundreds of test cases with no coverage target: work by file or
         module, and log one line per group.
    5. Write an `end` line to the log.
-4. **Close.** Run `changeset_brief` and resolve whatever it counts as unwired. Then
+4. **Close.** Run `changeset_brief` and resolve its expected unwired links (the `optional` and `preexisting` counts are not yours to resolve). Then
    `changeset_deactivate`.
 
 ### The answer log

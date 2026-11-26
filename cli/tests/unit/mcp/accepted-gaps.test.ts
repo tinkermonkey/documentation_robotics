@@ -493,7 +493,8 @@ describe("changeset_brief", () => {
     expect(unwiredOf(after).accepted).toEqual([
       { direction: "in", predicate: "realizes", otherType: "api.operation", reason: "A nightly job: no API exposes it" },
     ]);
-    expect(unwiredOf(after).total).toBe(unwiredOf(before).total - 1);
+    // This catalog triple is optional for the type (nothing of it is carried), so it leaves the optional count.
+    expect(unwiredOf(after).optional).toBe(unwiredOf(before).optional - 1);
     expect(after.acceptedGaps).toHaveLength(1);
     expect(after.acceptedGaps[0]).toMatchObject({ element: FUNCTION, stagedHere: true, otherType: "api.operation" });
     expect(after.acceptedGaps[0].contradictedBy).toBeUndefined();

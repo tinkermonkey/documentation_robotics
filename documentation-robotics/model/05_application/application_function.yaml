@@ -12787,7 +12787,7 @@ application.applicationfunction.compute-unwired:
   type: applicationfunction
   layer_id: application
   name: computeUnwired
-  description: Unwired connections of every added or updated element
+  description: Unwired connections of every added or updated element, each flagged expected (required, high-strength, or carried by an existing element of the type) or optional; updated elements that keep their type and relationships are marked preexisting.
   source_reference:
     provenance: extracted
     locations:
@@ -12974,7 +12974,7 @@ application.applicationfunction.unwired-counts:
   type: applicationfunction
   layer_id: application
   name: unwiredCounts
-  description: Unwired connections counted per other-end layer, across every added or updated element.
+  description: "Unwired connections of added and updated elements: expected links counted per other-end layer, with the optional triples and the preexisting ones counted apart."
   source_reference:
     provenance: extracted
     locations:
@@ -28533,6 +28533,175 @@ application.applicationfunction.recorded-purpose:
   metadata:
     created_at: 2026-11-26T14:41:00.489Z
     updated_at: 2026-11-26T14:41:00.489Z
+application.applicationfunction.is-expected-link:
+  id: 4bd18094-78bd-48a6-976a-2308f677c8a5
+  path: application.applicationfunction.is-expected-link
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isExpectedLink
+  description: "Whether the catalog itself expects an element of the type to have a link: marked required, or of high or critical strength. computeUnwired adds the links existing elements of the type carry."
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: isExpectedLink
+  metadata:
+    created_at: 2026-11-26T14:34:26.026Z
+    updated_at: 2026-11-26T14:34:26.026Z
+    version: 1
+application.applicationfunction.is-preexisting:
+  id: a246714a-7eba-4e14-aae5-7772567f986e
+  path: application.applicationfunction.is-preexisting
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isPreexisting
+  description: Whether an updated element keeps its type and relationships, so its unwired connections predate the change and are counted apart.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/core/changeset-analysis.ts
+        symbol: isPreexisting
+  metadata:
+    created_at: 2026-11-26T14:34:26.027Z
+    updated_at: 2026-11-26T14:34:26.027Z
+    version: 1
+application.applicationfunction.collect-sibling-plans:
+  id: cc97eafc-c7f0-4fb4-b9f7-b675eda4bf28
+  path: application.applicationfunction.collect-sibling-plans
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: collectSiblingPlans
+  description: Lists staged plans in the project's other checkouts through the farm; says so when the farm can't tell.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/sibling-plans.ts
+        symbol: collectSiblingPlans
+  metadata:
+    created_at: 2026-11-26T14:32:37.975Z
+    updated_at: 2026-11-26T14:32:37.975Z
+    version: 1
+application.applicationfunction.match-sibling-plans:
+  id: 4d533401-9400-4bb5-b8be-cd7a6a1b4dfd
+  path: application.applicationfunction.match-sibling-plans
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: matchSiblingPlans
+  description: Flags sibling plans whose name, cited issue or intent looks like a new plan's.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/core/sibling-plans.ts
+        symbol: matchSiblingPlans
+  metadata:
+    created_at: 2026-11-26T14:32:37.975Z
+    updated_at: 2026-11-26T14:32:37.975Z
+    version: 1
+application.applicationfunction.lands-on-sentence:
+  id: 7c50b778-1eca-438a-8e93-00da273a254a
+  path: application.applicationfunction.lands-on-sentence
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: landsOnSentence
+  description: "Words where a write lands: branch X in checkout Y."
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/mcp/tools/central-viewer.ts
+        symbol: landsOnSentence
+  metadata:
+    created_at: 2026-11-26T14:32:37.975Z
+    updated_at: 2026-11-26T14:32:37.975Z
+    version: 1
+application.applicationfunction.read-hand-routes:
+  id: a60fbc34-8937-429b-b355-de813cae20ba
+  path: application.applicationfunction.read-hand-routes
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readHandRoutes
+  description: Reads method+path routes from hand-routed Node servers (http.createServer handlers comparing method and path) and route tables (matchRoute over a ROUTES array, anchored regex paths); lists files it could not read.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/cards/hand-routes.ts
+        symbol: readHandRoutes
+  metadata:
+    created_at: 2026-11-26T14:28:31.862Z
+    updated_at: 2026-11-26T14:28:31.862Z
+    version: 1
+application.applicationfunction.is-route-path:
+  id: d3ff1878-94df-4b73-94b5-3719633df60f
+  path: application.applicationfunction.is-route-path
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: isRoutePath
+  description: Whether a Route name's path is a URL path (not JSX text, a comment or a source path); with the test-file and method-ANY checks it drops false routes.
+  source_reference:
+    provenance: manual
+    locations:
+      - file: cli/src/analyzers/cards/routes.ts
+        symbol: isRoutePath
+  metadata:
+    created_at: 2026-11-26T14:28:31.863Z
+    updated_at: 2026-11-26T14:28:31.863Z
+    version: 1
+application.applicationfunction.read-route-definitions:
+  id: dc9727f5-4d9c-40f5-9353-0ef4ba7c077f
+  path: application.applicationfunction.read-route-definitions
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: readRouteDefinitions
+  description: Reads operationId, summary and tags from Hono createRoute / OpenAPI route definitions; a field it can't read stays unset.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/hand-routes.ts
+        symbol: readRouteDefinitions
+  metadata:
+    created_at: 2026-11-26T14:43:40.522Z
+    updated_at: 2026-11-26T14:43:40.522Z
+    version: 1
+application.applicationfunction.collect-hand-routes:
+  id: 648374cf-a186-402a-a086-8df00cd5dde5
+  path: application.applicationfunction.collect-hand-routes
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: collectHandRoutes
+  description: The hand-routed routes of a project's files and the files read only in part.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/hand-routes.ts
+        symbol: collectHandRoutes
+  metadata:
+    created_at: 2026-11-26T14:43:40.522Z
+    updated_at: 2026-11-26T14:43:40.522Z
+    version: 1
+application.applicationfunction.definition-for:
+  id: 9764c7a5-f3a6-4bab-92e5-d087b554afbb
+  path: application.applicationfunction.definition-for
+  spec_node_id: application.applicationfunction
+  type: applicationfunction
+  layer_id: application
+  name: definitionFor
+  description: The route definition for a method and path.
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/cards/hand-routes.ts
+        symbol: definitionFor
+  metadata:
+    created_at: 2026-11-26T14:43:40.522Z
+    updated_at: 2026-11-26T14:43:40.522Z
     version: 1
 application.applicationfunction.declaration-shapes-of:
   id: e177e064-95ee-4bc6-b723-9eef52591338

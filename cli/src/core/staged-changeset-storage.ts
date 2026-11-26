@@ -101,6 +101,14 @@ const STATUS_LINE = /^status:[ \t]*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s#'"][^\s#]*))
  * counted, where load() skips it too: text that is not YAML, or not a mapping (an empty file, say,
  * read mid-write).
  */
+/** A staged changeset as its metadata.yaml names it. */
+export interface StagedSummary {
+  id: string;
+  name: string;
+  description?: string;
+  purpose?: string;
+}
+
 export function readMetadataStatus(text: string): string | null {
   const matches = [...text.matchAll(STATUS_LINE)];
   if (matches.length === 1) {
@@ -410,6 +418,44 @@ export class StagedChangesetStorage {
       });
     }
     return statuses;
+  }
+
+  /**
+   * Every staged changeset's id, name, description and purpose, from metadata.yaml alone (never
+   * changes.yaml, which runs to megabytes). A folder whose metadata can't be read is not dropped
+   * silently: it is counted in `unreadable`, with why, so a caller can say it could not look.
+   */
+  async listStagedSummaries(): Promise<{ summaries: StagedSummary[]; unreadable: string[] }> {
+    const summaries: StagedSummary[] = [];
+    const unreadable: string[] = [];
+    let folders: string[];
+    try {
+      folders = (await readdir(this.changesetsDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch (error) {
+      // No changesets folder is no plans; anything else is a folder that couldn't be read.
+      if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return { summaries, unreadable };
+      return { summaries, unreadable: [`${this.changesetsDir}: ${getErrorMessage(error)}`] };
+    }
+    for (const id of folders) {
+      try {
+        const parsed = yaml.parse(await readFile(path.join(this.changesetsDir, id, "metadata.yaml"), "utf-8")) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          unreadable.push(`${id}: metadata.yaml is empty or not a mapping`);
+          continue;
+        }
+        const meta = parsed as Record<string, unknown>;
+        if ((typeof meta.status === "string" ? meta.status : "staged") !== "staged") continue;
+        summaries.push({
+          id: typeof meta.id === "string" ? meta.id : id,
+          name: typeof meta.name === "string" ? meta.name : id,
+          ...(typeof meta.description === "string" && meta.description.trim() ? { description: meta.description } : {}),
+          ...(typeof meta.purpose === "string" ? { purpose: meta.purpose } : {}),
+        });
+      } catch (error) {
+        unreadable.push(`${id}: ${getErrorMessage(error)}`);
+      }
+    }
+    return { summaries, unreadable };
   }
 
   /** The changeset folder names on disk (no file is read). */
