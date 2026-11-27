@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-27T01:23:09.081Z
+# Last updated: 2026-11-27T13:25:27.329Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -75696,6 +75696,48 @@
   category: structural
 - source: testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6
   target: application.applicationfunction.plan-relationships
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.changeset-brief-lists-a-contradicted-accepted-gap-under-gaps-with-the-gap-reopen-call-1391
+  target: application.applicationservice.changeset-brief-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.changeset-brief-peer-patterns-skip-an-external-element-and-learn-from-accepted-gaps-of-the-same-a1878606
+  target: application.applicationservice.changeset-brief-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-requirement-that-satisfies-an-added-requirement-e0b1dd3c
+  target: application.applicationservice.changeset-brief-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-leaves-a-requirement-that-reaches-no-goal-unanchored
+  target: application.applicationservice.changeset-brief-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-shows-a-realizes-chain-as-the-path-not-a-route-through-a-13b2d827
+  target: application.applicationservice.changeset-brief-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-traces-code-through-an-added-requirement-that-realizes-an-added-8da7cefc
+  target: application.applicationservice.changeset-brief-handler
+  predicate: tests
+  layer: testing
+  targetLayer: application
+  category: structural
+- source: testing.testcasesketch.intent-tracing-in-a-bootstrap-1329-anchors-an-added-capability-that-supports-an-added-goal
+  target: application.applicationservice.changeset-brief-handler
   predicate: tests
   layer: testing
   targetLayer: application

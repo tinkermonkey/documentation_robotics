@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 0.9.0
 spec_version: 0.16.0
 created: 2026-02-20T15:28:17.945Z
-updated: 2026-11-27T01:23:09.767Z
+updated: 2026-11-27T13:25:27.504Z
 project:
   name: dr-codebase
   description: ""
@@ -119,7 +119,7 @@ layers:
     path: documentation-robotics/model/13_testing/
     enabled: true
     elements:
-      testcasesketch: 2702
+      testcasesketch: 2709
       testcoveragemodel: 1
       testcoveragetarget: 9
 changeset_history:
@@ -245,6 +245,9 @@ changeset_history:
     action: committed
   - name: cli010-t4-commonjs
     committed_at: 2026-11-27T01:23:03.765Z
+    action: committed
+  - name: cli010-b2-intent-gaps
+    committed_at: 2026-11-27T13:25:27.502Z
     action: committed
 reconciled:
   changeset: extract-723c609..5b32f88
