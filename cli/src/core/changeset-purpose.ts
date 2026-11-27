@@ -135,6 +135,9 @@ interface ExtractionRecordFile {
   purpose?: unknown;
   verifies?: unknown;
   uncommitted?: unknown;
+  cards?: unknown;
+  candidateDeletes?: unknown;
+  layers?: unknown;
 }
 
 /** What extractionOrigin reads about the changeset's extraction from its record. */
@@ -150,6 +153,10 @@ export interface ExtractionOrigin {
   declared?: PurposeDeclaration;
   /** Source files with uncommitted changes when the run read the code, with their content hashes: the model may describe code no commit holds (#1330). */
   uncommitted?: Record<string, string | null>;
+  /** Cards the run left undecided and elements it listed as candidate deletes: code the model may not describe yet. */
+  open?: { cards: number; candidateDeletes: number };
+  /** The layers the run was limited to; absent for a run over every layer. */
+  layers?: string[];
 }
 
 /** The record's fields, read leniently. */
@@ -167,6 +174,10 @@ function originOf(record: ExtractionRecordFile): Omit<ExtractionOrigin, "asBuilt
     ...(record.uncommitted && typeof record.uncommitted === "object" && !Array.isArray(record.uncommitted) && Object.keys(record.uncommitted).length > 0
       ? { uncommitted: record.uncommitted as Record<string, string | null> }
       : {}),
+    ...(Array.isArray(record.cards) || Array.isArray(record.candidateDeletes)
+      ? { open: { cards: Array.isArray(record.cards) ? record.cards.length : 0, candidateDeletes: Array.isArray(record.candidateDeletes) ? record.candidateDeletes.length : 0 } }
+      : {}),
+    ...(Array.isArray(record.layers) && record.layers.length > 0 ? { layers: record.layers.filter((l): l is string => typeof l === "string") } : {}),
     ...(typeof record.gitHead === "string" && record.gitHead ? { gitHead: record.gitHead } : {}),
     ...(typeof record.since === "string" && record.since ? { since: record.since } : {}),
     ...(previous && typeof previous === "object" && typeof previous.id === "string" && previous.id

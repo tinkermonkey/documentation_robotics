@@ -55,8 +55,9 @@ import {
   type ChangesetDrift,
   type OverlapKind,
 } from "../../core/changeset-base-index.js";
+import { purposeOf, RECONCILING_PURPOSES } from "../../core/changeset-purpose.js";
 import { StagingAreaManager, type DriftReport } from "../../core/staging-area.js";
-import { checkUncommitted, extractionOrigin, landsEmpty, reconciliationStamp } from "../../core/reconciliation.js";
+import { checkUncommitted, emptyLandingHold, extractionOrigin, landsEmpty, reconciliationStamp } from "../../core/reconciliation.js";
 import { createCommitProgressReporter } from "../../core/commit-progress.js";
 import { isChangesetOnly, CHANGESET_ONLY_ENV } from "../../core/changeset-only-guard.js";
 import { CLIError, ErrorCategory, getErrorMessage } from "../../utils/errors.js";
@@ -566,15 +567,17 @@ async function describeDriftSafely(target: LandingTarget, toolName: string): Pro
 async function uncommittedCodeWarning(target: LandingTarget): Promise<string | undefined> {
   const origin = await extractionOrigin(target.rootPath, target.changeset);
   if (!origin.uncommitted || Object.keys(origin.uncommitted).length === 0) return undefined;
-  const check = await checkUncommitted(target.model.codebaseRoot ?? target.rootPath, origin.uncommitted);
+  const check = await checkUncommitted(target.model.codebaseRoot ?? target.rootPath, origin.uncommitted, origin.gitHead);
   if (check.settled) return undefined;
-  const files = [...check.pending, ...check.changed];
+  const files = [...check.pending, ...check.changed, ...check.others];
   const listed = files.length > 5 ? `${files.slice(0, 5).join(", ")} and ${files.length - 5} more` : files.join(", ");
   const read = origin.gitHead ? ` at ${origin.gitHead.slice(0, 7)}` : "";
   return (
     `Commit the code first, then land. The extraction read ${Object.keys(origin.uncommitted).length} source file(s) with uncommitted changes` +
     `${read}; ${check.pending.length ? `${check.pending.length} still uncommitted` : ""}` +
-    `${check.pending.length && check.changed.length ? ", " : ""}${check.changed.length ? `${check.changed.length} committed with other content than it read` : ""} ` +
+    `${check.pending.length && check.changed.length ? ", " : ""}${check.changed.length ? `${check.changed.length} committed with other content than it read or edited after the index` : ""}` +
+    `${check.others.length ? `; ${check.others.length} other source file(s) changed since, which it did not read` : ""}` +
+    `${check.orphaned ? "; the commit it read is no longer on this branch" : ""} ` +
     `(${listed}). Landing now is recorded against a HEAD that lacks that code, and once the code is committed project_status shows drift that isn't real. ` +
     "Landing after the code is committed as it was read records the commit that holds it."
   );
@@ -644,7 +647,16 @@ async function prepareLanding(
   // A reconcile or bootstrap with nothing staged still lands: it records that the model matches the
   // code it read, and moves the drift baseline there (#1331). Any other purpose has nothing to land.
   if (changeset.changes.length === 0 && !(await landsEmpty(rootPath, changeset))) {
-    return { result: jsonResult({ id: changeset.id, name: changeset.name, status: "nothing-to-commit", stagedChanges: 0 }) };
+    const hold = RECONCILING_PURPOSES.includes((await purposeOf(rootPath, changeset)).purpose) ? await emptyLandingHold(rootPath, changeset) : undefined;
+    return {
+      result: jsonResult({
+        id: changeset.id,
+        name: changeset.name,
+        status: "nothing-to-commit",
+        stagedChanges: 0,
+        ...(hold ? { note: `It stages nothing, and it can't land as the record that the model matches the code: ${hold}.` } : {}),
+      }),
+    };
   }
 
   const hash = await manager.detectDrift(changeset.id);

@@ -483,6 +483,8 @@ export async function judgeIndex(
   }
   const at = Date.parse(index.indexedAt);
   const editedSince = Number.isNaN(at) ? [] : [...(await probe.editedSince(at))].sort();
+  const dirty = probe.dirtyFiles ? (await probe.dirtyFiles()).filter((f) => !editedSince.includes(f)) : [];
+  const uncommittedRead = dirty.length ? { uncommittedRead: dirty } : {};
   if (editedSince.length > 0) {
     const n = editedSince.length;
     return {
@@ -490,10 +492,10 @@ export async function judgeIndex(
       reason: `${n} source file${n === 1 ? " has" : "s have"} uncommitted changes (edits, deletes or renames) the index hasn't seen: ${listed(editedSince)}`,
       committedSince,
       editedSince,
+      ...uncommittedRead,
     };
   }
-  const uncommittedRead = probe.dirtyFiles ? (await probe.dirtyFiles()).filter((f) => !editedSince.includes(f)) : [];
-  return { state: "fresh", ...(moved ? { reason: moved } : {}), committedSince, editedSince, ...(uncommittedRead.length ? { uncommittedRead } : {}) };
+  return { state: "fresh", ...(moved ? { reason: moved } : {}), committedSince, editedSince, ...uncommittedRead };
 }
 
 /**

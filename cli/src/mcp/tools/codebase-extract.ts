@@ -107,7 +107,7 @@ import { Element } from "../../core/element.js";
 import type { Model } from "../../core/model.js";
 import { setStagedSourceReference, stagedSourceReference } from "../../core/staged-source-reference.js";
 import { StagingAreaManager } from "../../core/staging-area.js";
-import { hashFiles } from "../../core/reconciliation.js";
+import { hashFiles, UNREAD_EDIT } from "../../core/reconciliation.js";
 import {
   decideExtractionPurpose,
   EXTRACTION_PURPOSE_ARGS,
@@ -4408,7 +4408,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         // stages nothing (#1331): landing it as it is records that the model matches the code it read.
         // A verification record of a plan that staged nothing is not: there is nothing to record.
         const declaredPurpose = purposeDecision?.declaration.purpose ?? (since ? "reconcile" : "bootstrap");
-        const emptyReconcile = !changeset && !stages && (!!args.intent || !!args.changeset) && RECONCILING_PURPOSES.includes(declaredPurpose as ChangesetPurpose);
+        const emptyReconcile = !changeset && !hasWork && !layers && (!!args.intent || !!args.changeset) && RECONCILING_PURPOSES.includes(declaredPurpose as ChangesetPurpose);
         if (changeset ? hasWork : stages || (!!args.intent && hasWork) || emptyReconcile) {
           if (!changeset) {
             // Its purpose: a verification record of the plan active before (verify mode), a
@@ -4521,8 +4521,14 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         keepList("planCoverage", coverage);
         const pendingPath = path.join(extractDir(projectRoot), PENDING_FILE);
         // The files with uncommitted changes the run read: those the index saw and those it didn't.
-        const uncommittedFiles = [...new Set([...indexJudgement.editedSince, ...(indexJudgement.uncommittedRead ?? [])])].sort();
-        const uncommittedRecord: Pick<StoredCards, "uncommitted"> = uncommittedFiles.length ? { uncommitted: await hashFiles(codebaseRoot, uncommittedFiles) } : {};
+        // Files the index read are hashed; files edited after the index was taken were not read, so they are marked
+        // never to settle: committing them must not move the reconciled commit past code the model lacks.
+        const readFiles = (indexJudgement.uncommittedRead ?? []).filter((f) => !indexJudgement.editedSince.includes(f)).sort();
+        const uncommittedHashes = {
+          ...(readFiles.length ? await hashFiles(codebaseRoot, readFiles) : {}),
+          ...Object.fromEntries(indexJudgement.editedSince.map((f) => [f, UNREAD_EDIT])),
+        };
+        const uncommittedRecord: Pick<StoredCards, "uncommitted"> = Object.keys(uncommittedHashes).length ? { uncommitted: uncommittedHashes } : {};
         if (changeset) {
           const staged = [...stillStaged];
           for (const a of adds) {
