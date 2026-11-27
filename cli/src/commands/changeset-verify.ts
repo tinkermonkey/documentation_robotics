@@ -125,7 +125,7 @@ export async function changesetVerifyCommand(
 export function formatAdoptionReport(result: VerifiedAdoptionReport): string {
   const lines: string[] = [];
   lines.push(ansis.bold(`Adopt source references: ${result.plannedChangeset.name}`));
-  lines.push(result.adopted.length > 0 ? ansis.green(result.next) : ansis.dim(result.next));
+  lines.push(result.written.copied + result.written.fromReferences > 0 ? ansis.green(result.next) : ansis.dim(result.next));
   const where = (g: { missing: Array<{ file: string; symbol?: string }> }) =>
     g.missing.map((l) => (l.symbol ? `${l.file}#${l.symbol}` : l.file)).join(", ");
   if (result.adopted.length > 0) {

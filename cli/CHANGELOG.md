@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`changeset_adopt_source_references` says what it wrote, takes several locations per element, and `changeset_brief` lists unreferenced elements (#1324, #1393, #1353):**
+  the result now counts `written` (references copied from the as-built side plus locations set from `references`) apart from `alreadyPresent`, and never says "nothing was copied" when something was.
+  `references` may name an element more than once, or give it a `locations` list; every location is appended in one staged change. `changeset_verify` no longer calls an as-built add hand-added when it was staged with `sourceProvenance: "extracted"` and a file and symbol; such elements are listed under `extraction.asBuilt.declaredExtracted` for the agent to confirm, and their references can be copied. `changeset_brief` with `sections: ["unreferenced"]` lists the plan's added and updated code elements with no source reference (paged, true total, no as-built changeset).
 - **Tier 0 on plain CommonJS and Electron code (#1320):** `codebase_extract` decided none of 338
   symbols on a CommonJS and Electron codebase. Tier-0 rules can now go by a symbol's `visibility`
   (read from the declaration and the file's exports, as project rules do), and a rule

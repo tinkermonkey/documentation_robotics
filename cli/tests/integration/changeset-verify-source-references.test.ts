@@ -266,15 +266,17 @@ describe("changeset_verify and the source references extraction found (#1096)", 
         rootPath,
       })
     );
+    // The second reference names the same file with no symbol: the element already has it (#1393, #1324).
     expect(adopted.confirmed).toEqual([
-      { planned: "product.feature.format-strings", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers.format" }] } },
+      { planned: "product.feature.format-strings", added: 1, reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers.format" }] } },
     ]);
+    expect(adopted.alreadyPresent).toEqual([{ planned: "product.feature.format-strings", location: HELPERS_FILE }]);
     expect(adopted.skipped.map((k: any) => [k.planned, k.reason.split(":")[0]])).toEqual([
-      ["product.feature.format-strings", "named twice in references"],
       ["product.feature.trim-strings", "src/util/Missing.java is not a file under the codebase root"],
       ["product.feature.nope", "the plan stages no add or update of this element to carry the reference"],
     ]);
-    expect(adopted.next).toContain("Set the confirmed source reference of 1 element(s)");
+    expect(adopted.next).toContain("Wrote 1 source reference(s)");
+    expect(adopted.next).not.toContain("Nothing was");
     const { manager: m } = await manager();
     const plan = (await m.load("add-helpers"))!;
     const add = plan.changes.find((c) => c.type === "add" && String(c.elementId).includes("format-strings"))!;
@@ -386,19 +388,20 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     );
     // An absolute path inside the root and a path with `..` are stored as the model keeps paths.
     expect(result.confirmed).toEqual([
-      { planned: "product.feature.absolute", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers" }] } },
-      { planned: "product.feature.dotted", reference: { provenance: "manual", locations: [{ file: HELPERS_FILE }] } },
+      { planned: "product.feature.absolute", added: 1, reference: { provenance: "manual", locations: [{ file: HELPERS_FILE, symbol: "Helpers" }] } },
+      { planned: "product.feature.dotted", added: 1, reference: { provenance: "manual", locations: [{ file: HELPERS_FILE }] } },
       {
         planned: "product.feature.inferred",
+        added: 1,
         reference: { provenance: "manual", locations: [{ file: "src/util" }, { file: HELPERS_FILE, symbol: "Helpers" }] },
       },
     ]);
     expect(result.skipped.map((k: any) => [k.planned, k.reason.split(":")[0]])).toEqual([
       ["product.feature.folder", "src/util is a folder, not a file"],
       ["product.feature.outside", "../elsewhere/Helpers.java is not a file under the codebase root"],
-      ["product.feature.same", `it already names ${HELPERS_FILE}#Helpers`],
     ]);
-    expect(result.counts).toEqual({ adopted: 0, confirmed: 3, skipped: 3, unknownIds: 0 });
+    expect(result.alreadyPresent).toEqual([{ planned: "product.feature.same", location: `${HELPERS_FILE}#Helpers` }]);
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 3, written: 3, alreadyPresent: 1, skipped: 2, unknownIds: 0 });
     expect(result.total).toBe(6);
 
     // A second call with the same references adds nothing: no location is listed twice.
@@ -414,8 +417,8 @@ describe("changeset_verify and the source references extraction found (#1096)", 
         rootPath,
       })
     );
-    expect(again.counts).toMatchObject({ confirmed: 0, skipped: 3 });
-    expect(again.skipped.every((k: any) => k.reason.startsWith("it already names"))).toBe(true);
+    expect(again.counts).toMatchObject({ confirmed: 0, written: 0, alreadyPresent: 3, skipped: 0 });
+    expect(again.next).toContain("Nothing was written");
 
     // A link inside the root that points outside it is refused like the file it points to.
     await symlink("/etc/hosts", join(rootPath, "src", "util", "link.java"));
@@ -429,6 +432,37 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     );
     expect(linked.counts).toMatchObject({ confirmed: 0, skipped: 1 });
     expect(linked.skipped[0].reason).toContain("is not a file under the codebase root");
+  }, 120_000);
+
+  it("appends several references to one element in a call, as its locations (#1393)", async () => {
+    ok(await changesetCreateHandler({ name: "multi-loc", rootPath }));
+    ok(await modelAddHandler({ layer: "product", type: "feature", name: "cloud-link", attributes: { priority: "high", status: "planned" }, rootPath } as any));
+    await mkdirAsync(join(rootPath, "src", "main"), { recursive: true });
+    await mkdirAsync(join(rootPath, "src", "renderer"), { recursive: true });
+    await writeFile(join(rootPath, "src", "main", "cloudlink.js"), "function open() {}\n");
+    await writeFile(join(rootPath, "src", "renderer", "cloudlink.js"), "function send() {}\n");
+    const id = "product.feature.cloud-link";
+    const result = ok(
+      await changesetAdoptSourceReferencesHandler({
+        changeset: "multi-loc",
+        against: { base: true },
+        references: [
+          { id, sourceFile: "src/main/cloudlink.js", sourceSymbol: "open" },
+          { id, locations: [{ file: "src/renderer/cloudlink.js", symbol: "send" }] },
+        ],
+        rootPath,
+      })
+    );
+    expect(result.counts).toMatchObject({ written: 2, confirmed: 1, skipped: 0 });
+    expect(result.confirmed[0].added).toBe(2);
+    expect(result.next).toContain("Wrote 2 source reference(s)");
+    const { manager: m } = await manager();
+    const plan = (await m.load("multi-loc"))!;
+    const add = plan.changes.find((c) => c.type === "add" && String(c.elementId).includes("cloud-link"))!;
+    expect(stagedSourceReference(add.after as any)?.locations).toEqual([
+      { file: "src/main/cloudlink.js", symbol: "open" },
+      { file: "src/renderer/cloudlink.js", symbol: "send" },
+    ]);
   }, 120_000);
 
   it("reports a planned element the code registers by a name string as unverifiable, not missing (#1226)", async () => {
@@ -630,7 +664,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect(result.adopted.map((g: any) => g.planned)).toEqual([HELPERS]);
     expect(result.missing).toBeUndefined();
     expect(result.skipped).toBeUndefined();
-    expect(result.next).toContain("Copied the source references of 1 element(s)");
+    expect(result.next).toContain("Wrote 1 source reference(s)");
 
     // The plan's add carries the reference now, rewritten in place (no extra change).
     const { manager: m } = await manager();
@@ -757,7 +791,7 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     // Counts are over everything listed; the reference still missing is the one skipped below
     // (verbose: true returns it in full).
     expect(result.total).toBe(1);
-    expect(result.counts).toEqual({ adopted: 0, confirmed: 0, skipped: 1, unknownIds: 0 });
+    expect(result.counts).toEqual({ adopted: 0, confirmed: 0, written: 0, alreadyPresent: 0, skipped: 1, unknownIds: 0 });
     expect(result.skipped.map((k: any) => k.planned)).toEqual([HELPERS]);
     expect(result.adopted).toEqual([]);
     // Confirming it by id doesn't help: its reference is the agent's, not evidence.
@@ -873,7 +907,7 @@ describe("dr changeset verify --adopt-source-references (the CLI's changeset_ado
     expect(adopted.plannedChangeset.name).toBe("add-helpers");
     expect(adopted.adopted.map((g: any) => g.planned)).toEqual([HELPERS]);
     expect(adopted.missing).toBeUndefined();
-    expect(adopted.next).toContain("Copied the source references of 1 element(s)");
+    expect(adopted.next).toContain("Wrote 1 source reference(s)");
     expect(await plannedReference("add-helpers")).toEqual({
       provenance: "extracted",
       locations: [{ file: HELPERS_FILE, symbol: "Helpers" }],

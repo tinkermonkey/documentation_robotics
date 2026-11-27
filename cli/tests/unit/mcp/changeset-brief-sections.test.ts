@@ -433,7 +433,8 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
       feedback: 53,
     };
     // Every section but the ones that are not lists, and the delta and drift (paged below).
-    const notLists = ["changeset", "drift", "delta", "summary", "byLayer", "reach", "changesByType"];
+    // unreferenced is paged by the same list helper; its own test is above (#1353).
+    const notLists = ["changeset", "drift", "delta", "summary", "byLayer", "reach", "changesByType", "unreferenced"];
     const listSections = BRIEF_SECTIONS.filter((section) => !notLists.includes(section));
     expect(Object.keys(expected).sort()).toEqual([...listSections].sort());
     for (const section of listSections) {
@@ -613,6 +614,30 @@ describe("changeset_brief sections: long lists page, nothing is dropped (#1183, 
     expect(service.connections).toEqual(["realizes ← application.applicationfunction.new-step"]);
     expect(service.connectionCounts).toEqual({ "realizes → product (base)": 1, "realizes ← application (base)": 5 });
     expect(service.changedFields).toEqual([{ field: "description", before: undefined, after: "Now asynchronous." }]);
+  });
+
+  it("lists planned code elements with no source reference, paged with a true total (#1353)", async () => {
+    await changesetCreateHandler({ name: "refs", description: "Refs.", rootPath });
+    await addAll([
+      ...Array.from({ length: 5 }, (_, i) => ({
+        layer: "application",
+        type: "applicationservice",
+        name: `bare-${i}`,
+        attributes: { serviceType: "synchronous" },
+      })),
+      { layer: "application", type: "applicationservice", name: "sourced", attributes: { serviceType: "synchronous" }, sourceFile: "src/a.ts", sourceProvenance: "manual" },
+      // Intent layers and tests are not code: they are never listed.
+      { layer: "product", type: "feature", name: "a-feature", attributes: { priority: "high", status: "planned" } },
+    ] as any);
+    const { json } = await brief({ sections: ["unreferenced"], limit: 2 });
+    expect(json.unreferenced).toEqual([
+      { id: "application.applicationservice.bare-0", op: "added" },
+      { id: "application.applicationservice.bare-1", op: "added" },
+    ]);
+    expect(json.page.totals.unreferenced).toBe(5);
+    expect(json.page.nextOffset).toBe(2);
+    const rest = (await brief({ sections: ["unreferenced"], limit: 10, offset: 2 })).json;
+    expect(rest.unreferenced.map((u: any) => u.id)).toEqual(["application.applicationservice.bare-2", "application.applicationservice.bare-3", "application.applicationservice.bare-4"]);
   });
 
   it("pages unwired connections per element with a per-type summary of them all, and narrows codeTouched", async () => {

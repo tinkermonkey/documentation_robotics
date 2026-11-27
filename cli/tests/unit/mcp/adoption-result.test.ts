@@ -32,6 +32,7 @@ function report(adopted: number, skippedProbable: number, skippedAgent: number):
   return {
     plannedChangeset: { id: "cs-1", name: "plan" },
     adopted: Array.from({ length: adopted }, (_, i) => gap(i)),
+    written: { copied: adopted, fromReferences: 0, elementsFromReferences: 0 },
     ...(skipped.length ? { skipped, missing: skipped.map((_, i) => gap(1000 + i)) } : {}),
     next: "Copied.",
   };
@@ -41,7 +42,7 @@ describe("adoptionResult", () => {
   it("gives one compact line of data per copied reference, with counts over everything", () => {
     const result = adoptionResult(report(3, 0, 0)) as any;
     expect(result.total).toBe(3);
-    expect(result.counts).toEqual({ adopted: 3, confirmed: 0, skipped: 0, unknownIds: 0 });
+    expect(result.counts).toEqual({ adopted: 3, confirmed: 0, written: 3, alreadyPresent: 0, skipped: 0, unknownIds: 0 });
     expect(result.adopted[0]).toEqual({ planned: "application.applicationfunction.f-0", op: "add", match: "exact", locations: ["src/f0.ts#f0"] });
     expect(result.adoptedNotListed).toBeUndefined();
     expect(result.skippedNotListed).toBeUndefined();

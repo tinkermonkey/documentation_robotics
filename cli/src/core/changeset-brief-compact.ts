@@ -50,6 +50,7 @@ export const BRIEF_SECTIONS = [
   "neighborFiles",
   "feedback",
   "delta",
+  "unreferenced",
 ] as const;
 
 export type BriefSection = (typeof BRIEF_SECTIONS)[number];
@@ -801,6 +802,29 @@ export interface CompactLayerChange {
   connectionCounts?: Record<string, number>;
 }
 
+/** A planned code element with no source reference. */
+export interface UnreferencedElement {
+  id: string;
+  op: "added" | "updated";
+}
+
+/** Layers whose elements are not code: they have no source reference to name. */
+const NON_CODE_LAYERS = new Set(["motivation", "business", "product", "testing"]);
+
+/**
+ * The plan's added and updated code elements that no changed element's source file covers: the
+ * brief's `codeTouched` has every file a changed element names, so an element missing from it has none.
+ */
+export function unreferencedElements(brief: ChangesetBrief): UnreferencedElement[] {
+  const withFile = new Set(brief.codeTouched.flatMap((f) => f.elements.filter((e) => e.role === "changed").map((e) => e.id)));
+  return brief.layers
+    .filter((l) => !NON_CODE_LAYERS.has(l.layer))
+    .flatMap((l) => l.changes)
+    .filter((c) => (c.op === "added" || c.op === "updated") && !withFile.has(c.id))
+    .map((c) => ({ id: c.id, op: c.op as "added" | "updated" }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
 /** A touched file in the compact `codeTouched` section. */
 export interface CompactCodeFile {
   file: string;
@@ -891,6 +915,11 @@ export interface SectionsBrief {
   intent?: CompactIntent | ChangesetBrief["intent"];
   codeTouched?: CompactCodeFile[] | ChangesetBrief["codeTouched"];
   feedback?: ChangesetBrief["feedback"];
+  /**
+   * Added and updated code elements (outside motivation, business, product and testing) that name no
+   * source file: what a landed plan would leave unsourced (#1353).
+   */
+  unreferenced?: UnreferencedElement[];
   /** With since: the compact delta, or in full the whole one when `delta` is named. */
   delta?: CompactDelta | BriefDelta;
   /**
@@ -1349,6 +1378,16 @@ export function briefSections(brief: ChangesetBrief, sections: readonly BriefSec
           changedElements: files.reduce((sum, f) => sum + f.changed.length, 0),
           neighborOnlyFiles: files.filter((f) => f.changed.length === 0).length,
         }));
+        break;
+      }
+      case "unreferenced": {
+        const kept = unreferencedElements(brief).filter((u) => keep(u.id));
+        if (full) out.unreferenced = kept;
+        else
+          list(name, kept, (page) => page, () => ({
+            byLayer: countBy(kept.map((u) => u.id.split(".")[0])),
+            byType: countBy(kept.map((u) => typeOfId(u.id))),
+          }));
         break;
       }
       case "feedback": {
