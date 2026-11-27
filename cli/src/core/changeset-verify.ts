@@ -30,6 +30,8 @@
  * See docs/CHANGE_MODELING.md (Verify).
  */
 
+import { matchPlannedElements, normalizeName, nameKeys, sameType, sourceFiles, idNameSegment, type ElementPairing } from "./changeset-matching.js";
+export { normalizeName };
 import { Changeset, type StagedChange } from "./changeset.js";
 import { ChangesetGraph, type GraphElement, type GraphRelationship } from "./changeset-graph.js";
 import type { Model } from "./model.js";
@@ -42,9 +44,11 @@ import { decisionKey } from "../analyzers/extraction-plan.js";
 import {
   readBuildFiles,
   registeredByName,
+  declaredSymbol,
   sourceCandidates,
   SOURCE_CANDIDATES_SHOWN,
   type BuildFile,
+  type DeclaredSymbol,
   type RegisteredByName,
   type SourceCandidate,
 } from "./build-evidence.js";
@@ -238,6 +242,12 @@ export interface UnverifiableElement {
    * element, and a clean match never rests on it.
    */
   registeredByName?: RegisteredByName;
+  /**
+   * Set when it is unverifiable only because extraction stages no element of its type for the
+   * symbol its source reference names, though that symbol is in the build's file (#1429). Read from
+   * the file's text: confirm the element in the code.
+   */
+  declaredSymbol?: DeclaredSymbol;
 }
 
 export interface UnplannedElement {
@@ -595,6 +605,12 @@ export interface VerifyOptions {
    * placeholder staged: a build that has since changed it to something else is compared.
    */
   defaultedFields?: ReadonlyMap<string, ReadonlyMap<string, unknown>>;
+  /**
+   * Finds the symbol a planned element's source reference names in the build's files (#1429). A
+   * planned element with no as-built match whose symbol is found is unverifiable, not missing:
+   * extraction produced nothing of its type for that code (a plain dict, a shape a function checks).
+   */
+  declaredSymbol?: (planned: VerifyElement) => DeclaredSymbol | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1388,10 +1404,9 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   const notes = [...plan.notes, ...built.notes];
 
   const builtById = new Map(built.elements.map((e) => [e.id, e]));
-  const changedIds = new Set((built.changedElements ?? []).map((e) => e.id));
   const claimed = new Set<string>();
   /** planned id → built id, with how it matched. */
-  const elementMap = new Map<string, { built: string; match: MatchKind; reason?: string }>();
+  const elementMap = new Map<string, ElementPairing>();
 
   const report: VerifyReport = {
     planned: { label: plan.label, elements: plan.elements.length, relationships: plan.relationships.length },
@@ -1443,109 +1458,38 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     return true;
   };
 
-  // --- Elements: exact ids first, so a fuzzy match never takes an element another plan entry names.
+  /** A planned element whose source reference names a symbol the build holds: found, though no element of its type was staged for it. */
+  const markDeclared = (planned: PlannedElementChange): boolean => {
+    const hit = planned.op === "delete" ? null : options.declaredSymbol?.(planned);
+    if (!hit) return false;
+    const reason =
+      `its source reference names ${hit.file}#${hit.symbol}, and the build's file has that symbol (line ${hit.line}), but extraction ` +
+      `stages no ${planned.layer}.${planned.type} element for it: read from the file's text, so confirm it in the code`;
+    unverifiableIds.set(planned.id, reason);
+    report.elements.unverifiable.push({
+      planned: planned.id,
+      layer: planned.layer,
+      type: planned.type,
+      name: planned.name,
+      op: planned.op,
+      reason,
+      declaredSymbol: hit,
+    });
+    return true;
+  };
+
+  // --- Elements: paired by the one matcher (changeset-matching.ts), exact ids first, so a fuzzy
+  // match never takes an element another plan entry names.
   const live = plan.elements.filter((e) => e.op !== "delete");
   const deletions = plan.elements.filter((e) => e.op === "delete");
 
-  for (const planned of live) {
-    if (builtById.has(planned.id)) {
-      claimed.add(planned.id);
-      elementMap.set(planned.id, { built: planned.id, match: "exact" });
-    }
+  const matching = matchPlannedElements(plan, built, { matchBySource });
+  const ambiguous = matching.ambiguous;
+  for (const [id, pairing] of matching.pairs) {
+    elementMap.set(id, pairing);
+    claimed.add(pairing.built);
   }
-
-  const pending = live.filter((e) => !elementMap.has(e.id));
-  const ambiguous = new Map<string, string[]>();
-  const tiers: Array<{
-    test: (planned: VerifyElement, candidate: VerifyElement) => boolean;
-    reason: (planned: VerifyElement, candidate: VerifyElement) => string;
-  }> = [
-    {
-      test: (p, c) => p.layer === c.layer && sameType(p, c) && namesMatch(p, c),
-      reason: (p, c) =>
-        `same layer and type, name matches ignoring case and separators ("${p.name}" ~ "${c.name}")`,
-    },
-    {
-      test: (p, c) => p.layer === c.layer && !sameType(p, c) && namesMatch(p, c),
-      reason: (p, c) => `same layer and name, but built as ${c.type} instead of ${p.type}`,
-    },
-  ];
-  if (matchBySource) {
-    tiers.push({
-      test: (p, c) => p.layer === c.layer && sameType(p, c) && sharesSourceFile(p, c),
-      reason: (p, c) => `same layer and type, shares source file ${sharedSourceFiles(p, c).join(", ")}`,
-    });
-  }
-
-  // A planned add cannot have been built as an element that existed before the plan. With the plan's
-  // base index that is exact; without one, an unchanged element with no relationship to the plan's
-  // elements is taken to predate it.
-  const baseIds = plan.baseElementIds ? new Set(plan.baseElementIds) : undefined;
-  const builtNeighbors = new Map<string, Set<string>>();
-  for (const rel of built.relationships) {
-    for (const [a, b] of [
-      [rel.source, rel.target],
-      [rel.target, rel.source],
-    ]) {
-      const set = builtNeighbors.get(a) ?? new Set<string>();
-      set.add(b);
-      builtNeighbors.set(a, set);
-    }
-  }
-  const planTouched = new Set<string>([
-    ...plan.elements.map((e) => e.id),
-    ...plan.relationships.flatMap((r) => [r.source, r.target]),
-  ]);
-  const neighborCache = new Map<string, Set<string>>();
-  const plannedNeighbors = (id: string): Set<string> => {
-    const cached = neighborCache.get(id);
-    if (cached) return cached;
-    const own = plan.relationships
-      .filter((r) => r.op === "add" && (r.source === id || r.target === id))
-      .map((r) => (r.source === id ? r.target : r.source));
-    const ids = own.length > 0 ? own : [...planTouched].filter((other) => other !== id);
-    const near = new Set(ids.flatMap((other) => [other, elementMap.get(other)?.built ?? other]));
-    neighborCache.set(id, near);
-    return near;
-  };
-  let fellBack = false;
-  const canBeBuildOf = (planned: PlannedElementChange, candidate: VerifyElement): boolean => {
-    if (planned.op !== "add") return true;
-    if (baseIds) return !baseIds.has(candidate.id);
-    if (changedIds.has(candidate.id)) return true;
-    fellBack = true;
-    const near = plannedNeighbors(planned.id);
-    for (const other of builtNeighbors.get(candidate.id) ?? []) if (near.has(other)) return true;
-    return false;
-  };
-
-  for (const tier of tiers) {
-    for (const planned of pending) {
-      if (elementMap.has(planned.id)) continue;
-      const candidates = built.elements.filter(
-        (c) => !claimed.has(c.id) && tier.test(planned, c) && canBeBuildOf(planned, c)
-      );
-      if (candidates.length === 0) continue;
-      let chosen = candidates;
-      if (chosen.length > 1 && changedIds.size > 0) {
-        const changed = chosen.filter((c) => changedIds.has(c.id));
-        if (changed.length > 0) chosen = changed;
-      }
-      if (chosen.length === 1) {
-        const candidate = chosen[0];
-        claimed.add(candidate.id);
-        elementMap.set(planned.id, { built: candidate.id, match: "probable", reason: tier.reason(planned, candidate) });
-        ambiguous.delete(planned.id);
-      } else if (!ambiguous.has(planned.id)) {
-        ambiguous.set(
-          planned.id,
-          chosen.map((c) => c.id)
-        );
-      }
-    }
-  }
-
-  if (fellBack) {
+  if (matching.baseUnknown) {
     notes.push(
       `No base index was recorded for ${plan.label}, so the elements that existed before it are not known exactly: ` +
         "unchanged elements with no relationship to the plan's elements were not considered as the built form of " +
@@ -1557,7 +1501,8 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   for (const planned of live) {
     const mapping = elementMap.get(planned.id);
     if (!mapping) {
-      if (markUnverifiable(planned)) continue;
+      // Elements of its type were staged in its file: they are the candidates, not a symbol the text shows.
+      if (markUnverifiable(planned) || (!ambiguous.has(planned.id) && markDeclared(planned))) continue;
       const candidates = ambiguous.get(planned.id);
       report.elements.missing.push({
         planned: planned.id,
@@ -1569,7 +1514,12 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
           ? `several built elements could be it (${candidates.length}); none matched uniquely`
           : planned.op === "update"
             ? "the element the plan updates does not exist in the build"
-            : (missingHints.get(planned.id) ?? "not found in the build by id, name or source file"),
+            : (missingHints.get(planned.id) ??
+              `not found in the build by id, name or source file${
+                sourceFiles(planned).length === 0
+                  ? `. It has no source reference, so no code can be placed against it: if it has code, set sourceFile with model_update, then verify again`
+                  : ""
+              }`),
         ...(candidates ? { candidates } : {}),
       });
       continue;
@@ -1637,7 +1587,11 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     // A description is prose: it differs from a docstring or extraction's placeholder without the
     // build being wrong. Only a planned update that changes it has it checked.
     const descriptionChecked = planned.op === "update" && (planned.changedFields ?? []).includes("description");
-    const informational = fields.filter((f) => f.field === "description" && !descriptionChecked);
+    // Paired by where the code is, the planned concept's name against the built symbol's says nothing
+    // about whether it is the same element: a note, never a divergence (#1348).
+    const informational = fields.filter(
+      (f) => (f.field === "description" && !descriptionChecked) || (f.field === "name" && mapping.bySource && planned.op !== "update")
+    );
     const differences = fields.filter((f) => !isLifecycleMove(f) && !informational.includes(f));
     if (lifecycle.length > 0) {
       match.lifecycle = lifecycle;
@@ -1657,12 +1611,21 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     );
   }
 
-  const described = [...report.elements.matched, ...report.elements.divergent].filter((m) => m.notes);
+  const matchedAll = [...report.elements.matched, ...report.elements.divergent];
+  const described = matchedAll.filter((m) => m.notes?.some((f) => f.field === "description"));
   if (described.length > 0) {
     notes.push(
       `${described.length} matched element${described.length === 1 ? " has a description that differs" : "s have descriptions that differ"} ` +
         "from the plan's (under notes on each match). Descriptions are not compared: no need to edit the plan to " +
         "match the build's text."
+    );
+  }
+  const renamed = matchedAll.filter((m) => m.notes?.some((f) => f.field === "name"));
+  if (renamed.length > 0) {
+    notes.push(
+      `${renamed.length} matched element${renamed.length === 1 ? " is" : "s are"} paired by source file${renamed.length === 1 ? "" : "s"} ` +
+        "and carry the code's name, not the plan's (under notes on each match). A planned concept name against a " +
+        "built symbol name is not a divergence: no need to rename either."
     );
   }
   const unwritten = [...report.elements.matched, ...report.elements.divergent].filter((m) => m.unverifiableFields);
@@ -1824,14 +1787,29 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     const absent = [planned.source, planned.target].filter(
       (id) => missingEndpoints.has(id) || (!elementMap.has(id) && !builtById.has(id))
     );
+    // An end that names no source file can't be placed by extraction's code, so a link to it can't be
+    // found there either (#1253): said, with the fix, when the cause may be that.
+    const unplaced = [planned.source, planned.target]
+      .filter((id, i, all) => all.indexOf(id) === i)
+      .filter((id) => {
+        const element = builtById.get(elementMap.get(id)?.built ?? "") ?? plannedById.get(id) ?? builtById.get(id);
+        return !!element && sourceFiles(element).length === 0;
+      });
+    const sourceHint =
+      unplaced.length > 0
+        ? ` ${unplaced.join(", ")} ${unplaced.length > 1 ? "have" : "has"} no source reference, so extraction can't place ${unplaced.length > 1 ? "them" : "it"}: if ${
+            unplaced.length > 1 ? "they have" : "it has"
+          } code, set sourceFile and sourceSymbol with model_update, then verify again.`
+        : "";
     report.relationships.missing.push({
       planned: plannedRef,
       reason:
-        absent.length > 0
+        (absent.length > 0
           ? `not built; endpoint${absent.length > 1 ? "s" : ""} ${absent.join(", ")} not found in the build`
           : candidates.length > 0
             ? "not found in the build; a relationship between the same elements exists, but it may predate the change"
-            : "not found in the build",
+            : "not found in the build"
+      ) + sourceHint,
       ...(candidates.length > 0 ? { candidates } : {}),
     });
   }
@@ -1966,6 +1944,7 @@ export async function verifyChangesetInModel(
   // name string (unverifiable, not missing), and the files a planned add with no source reference
   // may live in (build-evidence.ts). Read only when the built side came from extraction.
   let buildFiles: BuildFile[] = [];
+  let changedBuildFiles = new Set<string>();
   /** Why the build's files were not all searched, when they were not. */
   let unsearched: string | undefined;
   /** Planned elements reported unverifiable only because a file's text may register them by name. */
@@ -1975,6 +1954,7 @@ export async function verifyChangesetInModel(
     const adds = plan.elements.filter((e) => e.op === "add");
     const read = await readBuildFiles(model.codebaseRoot, since, adds.flatMap((e) => sourceFiles(e)));
     buildFiles = read.files;
+    changedBuildFiles = read.changed;
     if (read.note) {
       notes.push(read.note);
       unsearched = read.note;
@@ -2011,7 +1991,12 @@ export async function verifyChangesetInModel(
     }
   }
 
-  const report = verifyChangeset(plan, built, { matchBySource: options.matchBySource, observability, defaultedFields });
+  const report = verifyChangeset(plan, built, {
+    matchBySource: options.matchBySource,
+    observability,
+    defaultedFields,
+    ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles, changedBuildFiles) } : {}),
+  });
   report.extraction = extraction;
   report.notes.push(...notes);
   // "May be registered by name" is read from a file's text. It keeps the element out of "missing",
@@ -2033,6 +2018,14 @@ export async function verifyChangesetInModel(
       .replace(/^Everything extraction can see was found\./, "Apart from that, everything extraction can see was found.")
       .replace(/^Everything planned was found\./, "Apart from that, everything planned was found.");
     report.verdictText = `${lead} ${rest}`;
+  }
+  // "The build holds the symbol" is read from a file's text: never grounds for a clean match.
+  const declaredHits = report.elements.unverifiable.filter((u) => u.declaredSymbol);
+  if (declaredHits.length > 0) {
+    if (report.verdict === "match" || report.verdict === "unverifiable") report.verdict = "probable-match";
+    report.verdictText =
+      `${declaredHits.length} planned ${declaredHits.length === 1 ? "element is" : "elements are"} found only as a symbol in a file's text, with no element extraction staged for ` +
+      `${declaredHits.length === 1 ? "it" : "them"} (${declaredHits.map((u) => `${u.planned}: ${u.declaredSymbol!.file}#${u.declaredSymbol!.symbol}`).join("; ")}): confirm each in the code. ${report.verdictText}`;
   }
   // A missing element was looked for in the build's files too. When not all of them were searched,
   // "missing" may be "registered by name in a file that was not read": the verdict says so.
@@ -2585,44 +2578,6 @@ export function asBuiltWarning(share: AsBuiltShare, blindSpotsApplied = true): s
 // ---------------------------------------------------------------------------
 
 /** Lowercase with every non-alphanumeric removed: "Export Orders", "export-orders", "exportOrders" → "exportorders". */
-export function normalizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function nameKeys(element: VerifyElement): Set<string> {
-  const keys = new Set<string>();
-  if (element.name) keys.add(normalizeName(element.name));
-  const segment = idNameSegment(element.id);
-  if (segment) keys.add(normalizeName(segment));
-  keys.delete("");
-  return keys;
-}
-
-function namesMatch(a: VerifyElement, b: VerifyElement): boolean {
-  const keys = nameKeys(b);
-  for (const key of nameKeys(a)) if (keys.has(key)) return true;
-  return false;
-}
-
-function sameType(a: VerifyElement, b: VerifyElement): boolean {
-  return normalizeName(a.type) === normalizeName(b.type);
-}
-
-function sourceFiles(element: VerifyElement): string[] {
-  return (element.sourceReference?.locations ?? [])
-    .map((l) => (typeof l?.file === "string" ? l.file.replace(/^\.\//, "").replace(/\\/g, "/") : ""))
-    .filter((f) => f.length > 0);
-}
-
-function sharedSourceFiles(a: VerifyElement, b: VerifyElement): string[] {
-  const files = new Set(sourceFiles(b));
-  return sourceFiles(a).filter((f) => files.has(f));
-}
-
-function sharesSourceFile(a: VerifyElement, b: VerifyElement): boolean {
-  return sharedSourceFiles(a, b).length > 0;
-}
-
 /**
  * Fields where the built element differs from what the plan states. Only what the plan states is
  * compared: a description or attribute the build adds beyond the plan is not a divergence. The
@@ -2776,11 +2731,6 @@ function readRelationship(change: StagedChange, resolve: (id: string) => string)
       : change.elementId.split("::");
   if (!source || !predicate || !target) return null;
   return { source: resolve(source), predicate, target: resolve(target) };
-}
-
-function idNameSegment(id: string): string | undefined {
-  const parts = id.split(".");
-  return parts.length >= 3 ? parts.slice(2).join(".") : undefined;
 }
 
 function fromId(id: string, layerName: string): VerifyElement {

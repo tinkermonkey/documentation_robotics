@@ -304,6 +304,48 @@ export function registeredByName(element: EvidenceElement, buildFiles: BuildFile
   return null;
 }
 
+/** A symbol a planned element's source reference names, found in the build's file (#1429). */
+export interface DeclaredSymbol {
+  file: string;
+  symbol: string;
+  /** The line of the first whole-word mention outside comments, 1-based. */
+  line: number;
+}
+
+/**
+ * The location of a planned element's own source reference (file and symbol) whose symbol the
+ * file's text names as a whole word outside comments, when one does. This is what an element
+ * extraction produces nothing of that type for (a plain dict an object schema describes, a shape
+ * checked by a function) has to show that its code is in the build. Evidence from the file's text,
+ * not the code graph: the caller reports the element as unverifiable with it, never as matched.
+ * Only a declaration counts (a keyword and the name, or a member or assignment at the start of a line), in a file the build changed: an import, a call or a quoted string is not one. A qualified symbol (`Class.method`, `module::fn`) is looked for by its last segment.
+ */
+export function declaredSymbol(element: EvidenceElement, buildFiles: BuildFile[], changedFiles?: ReadonlySet<string>): DeclaredSymbol | null {
+  for (const location of element.sourceReference?.locations ?? []) {
+    const symbol = typeof location?.symbol === "string" ? location.symbol.trim() : "";
+    const file = typeof location?.file === "string" ? location.file.replace(/\\/g, "/").replace(/^\.\//, "") : "";
+    if (!symbol || !file) continue;
+    // Only a file the build changed can show that the build holds the symbol.
+    if (changedFiles && !changedFiles.has(file)) continue;
+    const parts = symbol.split(/[.#:/]+/).filter(Boolean);
+    const name = parts[parts.length - 1] ?? symbol;
+    const found = buildFiles.find((f) => f.file === file);
+    if (!found || !/^[\w$]+$/.test(name)) continue;
+    const text = withoutComments(file, found.text);
+    // A qualified symbol needs its qualifier in the file too (`Order.cancel`: `Order`).
+    if (parts.slice(0, -1).some((q) => !new RegExp(`(?<![\\w$])${q.replace(/[^\w$]/g, "")}(?![\\w$])`).test(text))) continue;
+    // A declaration: a keyword then the name, or a member/assignment at the start of a line.
+    const declaration = new RegExp(
+      `(?:\\b(?:def|function\\*?|class|interface|type|enum|const|let|var|fn|func|struct|trait|object|val)\\s+${name}(?![\\w$]))|` +
+        `(?:^[ \\t]*(?:(?:export|public|private|protected|static|async|readonly)\\s+)*${name}[ \\t]*(?:[:=](?!=)|(?:<[^>\\n]*>)?\\([^)\\n]*\\)[^;\\n]*\\{))`,
+      "m"
+    );
+    const hit = declaration.exec(text);
+    if (hit) return { file, symbol, line: text.slice(0, hit.index + hit[0].indexOf(name)).split("\n").length };
+  }
+  return null;
+}
+
 /** A file of the build that may hold a planned element's code. */
 export interface SourceCandidate {
   file: string;
@@ -368,6 +410,8 @@ export function sourceCandidates(element: EvidenceElement, buildFiles: BuildFile
 /** The files of the build, and why some could not be read. */
 export interface BuildFiles {
   files: BuildFile[];
+  /** The files the `since` range changed (not the extra files), when they could be listed. */
+  changed: Set<string>;
   /** Set when the range's files could not be listed, or more changed than are read. */
   note?: string;
 }
@@ -387,11 +431,15 @@ export async function readBuildFiles(codebaseRoot: string, since: string | undef
     wanted.push(f);
   };
   for (const f of extraFiles) want(f);
+  const changed = new Set<string>();
   let note: string | undefined;
   if (since) {
     try {
       const changes = await codeChangesSince(codebaseRoot, since);
-      for (const f of [...changes.changed].sort()) want(f);
+      for (const f of [...changes.changed].sort()) {
+        want(f);
+        changed.add(f.replace(/\\/g, "/").replace(/^\.\//, ""));
+      }
     } catch (error) {
       note = `The files changed since ${since} could not be listed (${error instanceof Error ? error.message : String(error)}), so the build's files were not searched for planned elements extraction can't see.`;
     }
@@ -424,5 +472,5 @@ export async function readBuildFiles(codebaseRoot: string, since: string | undef
     const large = `${tooLarge.length} file(s) over ${BUILD_FILE_MAX_BYTES / 1024} KB were not searched for planned elements extraction can't see: ${tooLarge.join(", ")}.`;
     note = note ? `${note} ${large}` : large;
   }
-  return { files, ...(note ? { note } : {}) };
+  return { files, changed, ...(note ? { note } : {}) };
 }

@@ -143,6 +143,7 @@ export function formatAdoptionReport(result: VerifiedAdoptionReport): string {
   }
   if (result.unknownIds && result.unknownIds.length > 0) {
     lines.push("", ansis.yellow(`--ids that name no listed element (nothing to confirm): ${result.unknownIds.join(", ")}`));
+    for (const r of result.unknownIdReasons ?? []) lines.push(`  ${r.id}: ${r.reason}`);
   }
   return lines.join("\n");
 }

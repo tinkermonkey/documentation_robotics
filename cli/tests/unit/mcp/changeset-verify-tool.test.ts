@@ -251,7 +251,7 @@ describe("changeset_verify compact result (#1152)", () => {
     expect(compact.verdict).toBe("incomplete");
     expect(compact.summary.elements).toMatchObject({ planned: 2, matched: 1, missing: 1, unplanned: 1 });
     expect(compact.elements).toBeUndefined();
-    expect(compact.missing[0]).toBe(`${FUNCTION} (add): not found in the build by id, name or source file`);
+    expect(compact.missing[0]).toContain(`${FUNCTION} (add): not found in the build by id, name or source file`);
     expect(compact.unplanned.elements).toEqual({
       total: 1,
       byChange: { added: 1 },

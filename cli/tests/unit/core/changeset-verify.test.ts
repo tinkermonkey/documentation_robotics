@@ -38,7 +38,7 @@ function changeset(name: string, changes: Change[]): Changeset {
 
 function addEl(
   id: string,
-  extra: { name?: string; description?: string; attributes?: Record<string, unknown>; file?: string } = {}
+  extra: { name?: string; description?: string; attributes?: Record<string, unknown>; file?: string; symbol?: string } = {}
 ): Change {
   const [layer, type, ...rest] = id.split(".");
   return {
@@ -54,7 +54,7 @@ function addEl(
       ...(extra.description ? { description: extra.description } : {}),
       attributes: extra.attributes ?? {},
       ...(extra.file
-        ? { source_reference: { provenance: "extracted", locations: [{ file: extra.file }] } }
+        ? { source_reference: { provenance: "extracted", locations: [{ file: extra.file, ...(extra.symbol ? { symbol: extra.symbol } : {}) }] } }
         : {}),
     },
   };
@@ -301,6 +301,59 @@ describe("verifyChangeset against an as-built changeset", () => {
     const off = verifyChangeset(plan, built, { matchBySource: false });
     expect(off.elements.missing.map((m) => m.planned)).toEqual([FN]);
     expect(off.elements.unplanned.map((u) => u.id)).toEqual(["application.applicationfunction.csv-download"]);
+  });
+
+  it("pairs on source file and symbol as an exact match, though the names differ (#1318, #1348)", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [addEl("api.operation.put-file-op", { name: "Put a file", file: "src/server.ts", symbol: "putFile" })])
+    );
+    const built = await asBuilt([
+      addEl("api.operation.get-file", { file: "src/server.ts", symbol: "getFile" }),
+      addEl("api.operation.put-file", { file: "src/server.ts", symbol: "putFile" }),
+      addEl("api.operation.delete-file", { file: "src/server.ts", symbol: "deleteFile" }),
+    ]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.missing).toHaveLength(0);
+    expect(report.elements.divergent).toHaveLength(0);
+    expect(report.elements.matched[0]).toMatchObject({ planned: "api.operation.put-file-op", built: "api.operation.put-file", match: "exact" });
+    // The name difference is a note, not a divergence.
+    expect(report.elements.matched[0].notes?.map((f) => f.field)).toEqual(["name"]);
+    expect(report.notes.join(" ")).toContain("paired by source file");
+  });
+
+  it("falls back to the file alone as probable when the symbols differ, and picks by description", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [
+        addEl(FN, { file: "src/orders/export.ts", symbol: "plannedName", description: "Exports orders as a CSV download" }),
+      ])
+    );
+    const built = await asBuilt([
+      addEl("application.applicationfunction.import-orders", { file: "src/orders/export.ts", symbol: "importOrders", description: "Reads orders from a feed" }),
+      addEl("application.applicationfunction.csv-download", { file: "src/orders/export.ts", symbol: "csvDownload", description: "Exports the orders as CSV for download" }),
+    ]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.divergent[0]).toMatchObject({ planned: FN, built: "application.applicationfunction.csv-download", match: "probable" });
+  });
+
+  it("offers a same-type element with a like description as probable when the plan names no file (#1348)", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [addEl("technology.artifact.server-entry-js", { description: "Server entry point script that starts the central server" })])
+    );
+    const built = await asBuilt([
+      addEl("technology.artifact.serve-entry", { file: "src/serve-entry.ts", description: "Entry point script that starts the central server" }),
+      addEl("technology.artifact.logger", { file: "src/log.ts", description: "Writes structured log lines" }),
+    ]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.divergent[0]).toMatchObject({ planned: "technology.artifact.server-entry-js", built: "technology.artifact.serve-entry", match: "probable" });
+    expect(report.elements.divergent[0].reason).toContain("description");
+  });
+
+  it("keeps the name difference of a description-only pair a divergence, not a source-file note", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl("technology.artifact.server-entry-js", { description: "Server entry point script that starts the central server" })]));
+    const built = await asBuilt([addEl("technology.artifact.serve-entry", { file: "src/serve-entry.ts", description: "Entry point script that starts the central server" })]);
+    const report = verifyChangeset(plan, built);
+    expect(report.elements.divergent[0]?.fields.map((f) => f.field)).toContain("name");
+    expect(report.notes.join(" ")).not.toContain("paired by source file");
   });
 
   it("does not guess between several fuzzy candidates; lists them instead", async () => {
@@ -734,5 +787,51 @@ describe("values extraction made up are not compared (#1349)", () => {
   it("compares a field the build has since changed from the placeholder", async () => {
     const report = verifyChangeset(plan(), await built(), { defaultedFields: new Map([[OP, new Map<string, unknown>([["operationId", "was-a-placeholder"], ["summary", "GET /orders/export"]])]]) });
     expect(report.elements.divergent.map((d) => d.fields.map((f) => f.field))).toEqual([["attributes.operationId"]]);
+  });
+});
+
+describe("symbol evidence and source-reference hints (#1429, #1253)", () => {
+  const SCHEMA = "data-model.objectschema.text-edit";
+  const declared = () => ({ file: "src/text_edits.py", symbol: "parse_text_edits", line: 12 });
+
+  it("keeps an adopted element whose symbol is in the build out of missing, with its links (#1429)", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [
+        addEl(SCHEMA, { file: "src/text_edits.py", symbol: "parse_text_edits" }),
+        addEl(FN),
+        addRel(FN, "accesses", SCHEMA),
+      ])
+    );
+    const observed: ObservabilityCheck = { element: () => ({ observable: true }), relationship: () => ({ observable: true }) };
+    const report = verifyChangeset(plan, await asBuilt([addEl(FN)]), { observability: observed, declaredSymbol: (e) => (e.id === SCHEMA ? declared() : null) });
+    expect(report.elements.missing).toHaveLength(0);
+    expect(report.elements.unverifiable[0]).toMatchObject({ planned: SCHEMA, declaredSymbol: { symbol: "parse_text_edits", line: 12 } });
+    expect(report.relationships.missing).toHaveLength(0);
+    expect(report.relationships.unverifiable).toHaveLength(1);
+    expect(report.verdict).not.toBe("incomplete");
+  });
+
+  it("still reports it missing when the build has no such symbol", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(SCHEMA, { file: "src/text_edits.py", symbol: "parse_text_edits" })]));
+    const observed: ObservabilityCheck = { element: () => ({ observable: true }), relationship: () => ({ observable: true }) };
+    const report = verifyChangeset(plan, await asBuilt([]), { observability: observed, declaredSymbol: () => null });
+    expect(report.elements.missing.map((m) => m.planned)).toEqual([SCHEMA]);
+  });
+
+  it("says a missing element has no source reference, and how to give it one (#1253)", async () => {
+    const plan = planFromChangeset(changeset("plan", [addEl(FN)]));
+    const report = verifyChangeset(plan, await asBuilt([]));
+    expect(report.elements.missing[0].reason).toContain("no source reference");
+    expect(report.elements.missing[0].reason).toContain("model_update");
+    const withFile = verifyChangeset(planFromChangeset(changeset("plan", [addEl(FN, { file: "src/a.ts" })])), await asBuilt([]));
+    expect(withFile.elements.missing[0].reason).not.toContain("no source reference");
+  });
+
+  it("says a missing link has an end with no source reference (#1253)", async () => {
+    const plan = planFromChangeset(
+      changeset("plan", [addEl(FN, { file: "src/a.ts" }), addEl(SVC), addRel(FN, "serves", SVC)])
+    );
+    const report = verifyChangeset(plan, await asBuilt([addEl(FN, { file: "src/a.ts" }), addEl(SVC)]));
+    expect(report.relationships.missing[0].reason).toContain(`${SVC} has no source reference`);
   });
 });
