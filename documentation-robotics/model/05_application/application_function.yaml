@@ -3592,7 +3592,7 @@ application.applicationfunction.plan-relationships:
   type: applicationfunction
   layer_id: application
   name: planRelationships
-  description: The relationships the edge mapping gives the mapped CBM edges between two elements, at least one of them a symbol in scope
+  description: "The relationships the edge mapping gives the mapped CBM edges between two elements, at least one of them a symbol in scope. An edge onto a member (field or method) of a class the caller's file never refers to, resolved by name only (WRITES, USAGE, unique_name or suffix_match calls), is a name collision: it is listed in weakCallPairs for the agent to check, not staged."
   source_reference:
     provenance: extracted
     locations:

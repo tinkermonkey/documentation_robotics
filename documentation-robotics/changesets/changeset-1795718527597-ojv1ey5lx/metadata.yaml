@@ -1,0 +1,15 @@
+id: changeset-1795718527597-ojv1ey5lx
+name: cli010-t5-collisions
+description: "#1326: codebase_extract stages accesses/serves links from name collisions. Member edges (WRITES/USAGE/name-matched CALLS) onto a class member the caller's file never refers to are not staged; they are listed as weakCallPairs hints for the agent to check."
+created: 2026-11-26T18:42:07.645Z
+modified: 2026-11-27T01:23:09.762Z
+status: committed
+baseSnapshot: v2:sha256:440d553c6129cdbb5bfa188b1e6a5020a929c3bd525183dfeea350a86b02670b
+origin:
+  kind: plan
+purpose: plan
+stats:
+  additions: 17
+  modifications: 1
+  deletions: 0
+lastSequence: 17

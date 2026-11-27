@@ -276,6 +276,7 @@ const RUN_LISTS = [
   "sharedHelpers",
   "planCoverage",
   "unwiredTests",
+  "weakCalls",
   "notElements",
   "declaredSpecNotStaged",
   "contradictedGaps",
@@ -4217,6 +4218,7 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
         keepList("rules", ruleReports);
         keepList("sharedHelpers", helpers.helpers);
         keepList("unwiredTests", planned.unwiredTests);
+        keepList("weakCalls", planned.weakCallPairs);
         keepList("tier1NotElementCards", tier1NotElementCards);
         keepList("contradictedGaps", contradictedGaps);
         keepList("declaredSpecNotStaged", notInDeclaredSpec);
@@ -4733,8 +4735,18 @@ export function createCodebaseExtractHandler(deps: CodebaseToolDeps = defaultCod
               elements: plan.unchanged,
               modelled: plan.modelled,
               relationships: alreadyPresent,
-              // Calls the index matched by name only, with nothing to corroborate them: not staged.
-              ...(weakCalls ? { weakCalls } : {}),
+              // Links the index matched by name only, with nothing to corroborate them: not staged,
+              // listed for the agent to check against the code.
+              ...(weakCalls
+                ? {
+                    weakCalls,
+                    weakCallPairs: capped(planned.weakCallPairs, Math.min(fit.listLimit ?? 20, 20), "weakCalls"),
+                    weakCallsNote:
+                      "Call-graph links left out because the index matched them by name: reason name-matched is a low-confidence call nothing corroborates; " +
+                      "member-of-unreferenced-class is a read, write or call of a class member (Xform.pts) from a file that never imports, calls or names the class. " +
+                      "They are hints, not drift: read the code, and wire a real one with relationship_add.",
+                  }
+                : {}),
               rejected: plan.rejected,
               ...(plan.outsideLayers ? { outsideLayers: plan.outsideLayers } : {}),
               // Stage mode: cards in Tier 1's not-element band, hidden rather than carded.
