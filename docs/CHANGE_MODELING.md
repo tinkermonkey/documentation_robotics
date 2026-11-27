@@ -350,6 +350,14 @@ read only the branch's changes, and is never landed. Landing a plan, or any othe
 `documentation-robotics/`, doesn't reconcile it: a plan says what was meant to be built, drawn
 before the code existed, and its landing checks nothing against the code.
 
+A reconcile or bootstrap with nothing staged still lands: it is the record that the model matches the
+code it read, and the preview says it moves the drift baseline from one commit to another.
+`codebase_extract` makes one when given an `intent` (or a `changeset` name) even though it stages
+nothing. It does not land empty when its run left cards undecided or candidate deletes unchecked, or
+was limited to some layers. When the extraction read source files with uncommitted changes, the
+preview and result say to commit the code first; landing after it is committed as it was read
+stamps the commit that holds it, provided nothing else changed since.
+
 - `StagingAreaManager.commit` (the CLI, `changeset_commit` and the viewer's Apply) decides it when a
   changeset lands, by its purpose: `bootstrap` and `reconcile` reconcile; any other doesn't
   (`cli/src/core/reconciliation.ts`). For a changeset made before purposes were declared, the
