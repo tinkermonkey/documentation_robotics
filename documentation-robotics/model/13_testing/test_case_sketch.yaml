@@ -48480,3 +48480,129 @@ testing.testcasesketch.tests-links-from-calls-a-test-that-calls-into-its-own-pac
     created_at: 2026-11-26T14:32:40.594Z
     updated_at: 2026-11-26T14:32:40.594Z
     version: 1
+testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-nothing-for-a-56cf48b3:
+  id: d6e2bca9-b55d-481d-9324-edfe9464101e
+  path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-nothing-for-a-56cf48b3
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages nothing for a WRITES onto Xform.pts from a module that never imports Xform, and lists it
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages nothing for a WRITES onto Xform.pts from a module that never imports Xform, and lists it
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1
+testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-cad1dd54:
+  id: 745a8289-93f8-45ee-8084-0814b37d44f8
+  path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-cad1dd54
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller's file imports the class
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller's file imports the class
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1
+testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-24c08dc4:
+  id: fe605ea4-cc6a-45ea-a159-57a523d5a3eb
+  path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-24c08dc4
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller is in the class's own file
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller is in the class's own file
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1
+testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-believes-a-call-the-9d494bbf:
+  id: 2c227e81-ae08-48b5-ad4f-6a2ea0f19786
+  path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-believes-a-call-the-9d494bbf
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > believes a call the analyzer resolved through types, even from a file that never names the class
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > believes a call the analyzer resolved through types, even from a file that never names the class
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1
+testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-lists-a-confident-but-a71fd7c3:
+  id: 64de0c7e-b557-4650-b644-c90bcd3acd4d
+  path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-lists-a-confident-but-a71fd7c3
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > lists a confident but name-only call (unique_name 0.75) to a member of an unreferenced class
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > lists a confident but name-only call (unique_name 0.75) to a member of an unreferenced class
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1
+testing.testcasesketch.the-same-shape-in-type-script-leaves-out-a-usage-of-camera-pts-from-a-file-that-never-imports-6a878a34:
+  id: a362c3d1-16d9-4d78-8821-b7601d8cadf2
+  path: testing.testcasesketch.the-same-shape-in-type-script-leaves-out-a-usage-of-camera-pts-from-a-file-that-never-imports-6a878a34
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: the same shape in TypeScript > leaves out a usage of Camera.pts from a file that never imports Camera, then stages it once the file does
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: the same shape in TypeScript > leaves out a usage of Camera.pts from a file that never imports Camera, then stages it once the file does
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1
+testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6:
+  id: 5ecaed61-202b-44dd-bd7e-f0c56f852477
+  path: testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6
+  spec_node_id: testing.testcasesketch
+  type: testcasesketch
+  layer_id: testing
+  name: the direction of serves from a call > runs from the called service to its caller (provider to consumer), never from the caller
+  attributes:
+    status: automated
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/tests/unit/analyzers/call-collisions.test.ts
+        symbol: the direction of serves from a call > runs from the called service to its caller (provider to consumer), never from the caller
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1

@@ -1763,3 +1763,23 @@ data-model.schemadefinition.layer-verify-status:
     created_at: 2026-11-20T18:09:54.576Z
     updated_at: 2026-11-20T18:09:54.576Z
     version: 1
+data-model.schemadefinition.weak-call-reason:
+  id: 4fb5fc7b-43b8-4c70-ace1-0b47d7c78275
+  path: data-model.schemadefinition.weak-call-reason
+  spec_node_id: data-model.schemadefinition
+  type: schemadefinition
+  layer_id: data-model
+  name: WeakCallReason
+  description: "Why a call-graph link is a hint and not staged: name-matched, or member-of-unreferenced-class."
+  attributes:
+    title: WeakCallReason
+    type: string
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/extraction-plan.ts
+        symbol: WeakCallReason
+  metadata:
+    created_at: 2026-11-26T18:49:51.720Z
+    updated_at: 2026-11-26T18:49:51.720Z
+    version: 1

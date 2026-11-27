@@ -1,0 +1,338 @@
+- type: update
+  elementId: application.applicationfunction.plan-relationships
+  layerName: application
+  before:
+    id: 5138e938-39ec-460e-9dd5-d2f3af882789
+    path: application.applicationfunction.plan-relationships
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planRelationships
+    description: The relationships the edge mapping gives the mapped CBM edges between two elements, at least one of them a symbol in scope
+    source_reference: &a1
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/extraction-plan.ts
+          symbol: planRelationships
+    metadata: &a2
+      created_at: 2026-11-20T15:04:45.123Z
+      updated_at: 2026-11-20T15:04:45.123Z
+      version: 1
+  after:
+    id: 5138e938-39ec-460e-9dd5-d2f3af882789
+    path: application.applicationfunction.plan-relationships
+    spec_node_id: application.applicationfunction
+    type: applicationfunction
+    layer_id: application
+    name: planRelationships
+    description: "The relationships the edge mapping gives the mapped CBM edges between two elements, at least one of them a symbol in scope. An edge onto a member (field or method) of a class the caller's file never refers to, resolved by name only (WRITES, USAGE, unique_name or suffix_match calls), is a name collision: it is listed in weakCallPairs for the agent to check, not staged."
+    source_reference: *a1
+    metadata: *a2
+  timestamp: 2026-11-26T18:42:14.628Z
+  sequenceNumber: 0
+- type: add
+  elementId: data-model.objectschema.weak-call-pair
+  layerName: data-model
+  after:
+    id: 20c6dd78-6254-4a2b-b9b8-179ca3f02cb7
+    path: data-model.objectschema.weak-call-pair
+    spec_node_id: data-model.objectschema
+    type: objectschema
+    layer_id: data-model
+    name: WeakCallPair
+    description: "A call-graph link left out of the staged relationships because the index matched it by name: the relationship it would have been, and why it is a hint (name-matched, or member-of-unreferenced-class)."
+    attributes:
+      type: object
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/extraction-plan.ts
+          symbol: WeakCallPair
+    metadata:
+      created_at: 2026-11-26T18:49:51.719Z
+      updated_at: 2026-11-26T18:49:51.719Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 1
+- type: add
+  elementId: data-model.schemadefinition.weak-call-reason
+  layerName: data-model
+  after:
+    id: 4fb5fc7b-43b8-4c70-ace1-0b47d7c78275
+    path: data-model.schemadefinition.weak-call-reason
+    spec_node_id: data-model.schemadefinition
+    type: schemadefinition
+    layer_id: data-model
+    name: WeakCallReason
+    description: "Why a call-graph link is a hint and not staged: name-matched, or member-of-unreferenced-class."
+    attributes:
+      title: WeakCallReason
+      type: string
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/src/analyzers/extraction-plan.ts
+          symbol: WeakCallReason
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 2
+- type: add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-nothing-for-a-56cf48b3
+  layerName: testing
+  after:
+    id: d6e2bca9-b55d-481d-9324-edfe9464101e
+    path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-nothing-for-a-56cf48b3
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages nothing for a WRITES onto Xform.pts from a module that never imports Xform, and lists it
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages nothing for a WRITES onto Xform.pts from a module that never imports Xform, and lists it
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 3
+- type: add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-cad1dd54
+  layerName: testing
+  after:
+    id: 745a8289-93f8-45ee-8084-0814b37d44f8
+    path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-cad1dd54
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller's file imports the class
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller's file imports the class
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 4
+- type: add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-24c08dc4
+  layerName: testing
+  after:
+    id: fe605ea4-cc6a-45ea-a159-57a523d5a3eb
+    path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-24c08dc4
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller is in the class's own file
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > stages the link when the caller is in the class's own file
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 5
+- type: add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-believes-a-call-the-9d494bbf
+  layerName: testing
+  after:
+    id: 2c227e81-ae08-48b5-ad4f-6a2ea0f19786
+    path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-believes-a-call-the-9d494bbf
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > believes a call the analyzer resolved through types, even from a file that never names the class
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > believes a call the analyzer resolved through types, even from a file that never names the class
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 6
+- type: add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-lists-a-confident-but-a71fd7c3
+  layerName: testing
+  after:
+    id: 64de0c7e-b557-4650-b644-c90bcd3acd4d
+    path: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-lists-a-confident-but-a71fd7c3
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: a member of a class the caller's file never refers to (Python, cabinet-sheets) > lists a confident but name-only call (unique_name 0.75) to a member of an unreferenced class
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: a member of a class the caller's file never refers to (Python, cabinet-sheets) > lists a confident but name-only call (unique_name 0.75) to a member of an unreferenced class
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 7
+- type: add
+  elementId: testing.testcasesketch.the-same-shape-in-type-script-leaves-out-a-usage-of-camera-pts-from-a-file-that-never-imports-6a878a34
+  layerName: testing
+  after:
+    id: a362c3d1-16d9-4d78-8821-b7601d8cadf2
+    path: testing.testcasesketch.the-same-shape-in-type-script-leaves-out-a-usage-of-camera-pts-from-a-file-that-never-imports-6a878a34
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: the same shape in TypeScript > leaves out a usage of Camera.pts from a file that never imports Camera, then stages it once the file does
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: the same shape in TypeScript > leaves out a usage of Camera.pts from a file that never imports Camera, then stages it once the file does
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 8
+- type: add
+  elementId: testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6
+  layerName: testing
+  after:
+    id: 5ecaed61-202b-44dd-bd7e-f0c56f852477
+    path: testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6
+    spec_node_id: testing.testcasesketch
+    type: testcasesketch
+    layer_id: testing
+    name: the direction of serves from a call > runs from the called service to its caller (provider to consumer), never from the caller
+    attributes:
+      status: automated
+    source_reference:
+      provenance: extracted
+      locations:
+        - file: cli/tests/unit/analyzers/call-collisions.test.ts
+          symbol: the direction of serves from a call > runs from the called service to its caller (provider to consumer), never from the caller
+    metadata:
+      created_at: 2026-11-26T18:49:51.720Z
+      updated_at: 2026-11-26T18:49:51.720Z
+      version: 1
+  timestamp: 2026-11-26T18:49:51.731Z
+  sequenceNumber: 9
+- type: relationship-add
+  elementId: application.applicationfunction.plan-relationships::accesses::data-model.objectschema.weak-call-pair
+  layerName: application
+  after:
+    source: application.applicationfunction.plan-relationships
+    target: data-model.objectschema.weak-call-pair
+    predicate: accesses
+    layer: application
+    targetLayer: data-model
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 10
+- type: relationship-add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-nothing-for-a-56cf48b3::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-nothing-for-a-56cf48b3
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 11
+- type: relationship-add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-cad1dd54::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-cad1dd54
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 12
+- type: relationship-add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-24c08dc4::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-stages-the-link-when-the-24c08dc4
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 13
+- type: relationship-add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-believes-a-call-the-9d494bbf::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-believes-a-call-the-9d494bbf
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 14
+- type: relationship-add
+  elementId: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-lists-a-confident-but-a71fd7c3::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.a-member-of-a-class-the-callers-file-never-refers-to-python-cabinet-sheets-lists-a-confident-but-a71fd7c3
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 15
+- type: relationship-add
+  elementId: testing.testcasesketch.the-same-shape-in-type-script-leaves-out-a-usage-of-camera-pts-from-a-file-that-never-imports-6a878a34::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.the-same-shape-in-type-script-leaves-out-a-usage-of-camera-pts-from-a-file-that-never-imports-6a878a34
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:49:56.771Z
+  sequenceNumber: 16
+- type: relationship-add
+  elementId: testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6::tests::application.applicationfunction.plan-relationships
+  layerName: testing
+  after:
+    source: testing.testcasesketch.the-direction-of-serves-from-a-call-runs-from-the-called-service-to-its-caller-provider-to-consumer-ec086eb6
+    target: application.applicationfunction.plan-relationships
+    predicate: tests
+    layer: testing
+    targetLayer: application
+    category: structural
+  timestamp: 2026-11-26T18:50:01.576Z
+  sequenceNumber: 17

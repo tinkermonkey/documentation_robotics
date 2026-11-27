@@ -18948,3 +18948,22 @@ data-model.objectschema.extraction-purpose-decision:
     created_at: 2026-11-26T14:41:00.489Z
     updated_at: 2026-11-26T14:41:00.489Z
     version: 1
+data-model.objectschema.weak-call-pair:
+  id: 20c6dd78-6254-4a2b-b9b8-179ca3f02cb7
+  path: data-model.objectschema.weak-call-pair
+  spec_node_id: data-model.objectschema
+  type: objectschema
+  layer_id: data-model
+  name: WeakCallPair
+  description: "A call-graph link left out of the staged relationships because the index matched it by name: the relationship it would have been, and why it is a hint (name-matched, or member-of-unreferenced-class)."
+  attributes:
+    type: object
+  source_reference:
+    provenance: extracted
+    locations:
+      - file: cli/src/analyzers/extraction-plan.ts
+        symbol: WeakCallPair
+  metadata:
+    created_at: 2026-11-26T18:49:51.719Z
+    updated_at: 2026-11-26T18:49:51.719Z
+    version: 1
