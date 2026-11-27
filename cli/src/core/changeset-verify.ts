@@ -53,6 +53,7 @@ import {
   type SourceCandidate,
 } from "./build-evidence.js";
 import { PagedLists, type MultiListPage } from "./list-page.js";
+import { classifyUnseenElements } from "./unverifiable-classification.js";
 import { checkPlanAcceptedGaps, type AcceptedGapsCheck } from "./accepted-gaps-verify.js";
 import { acceptedGapLine, LIST_LIMIT as BRIEF_LIST_LIMIT } from "./changeset-brief-compact.js";
 import { readFile } from "node:fs/promises";
@@ -482,6 +483,11 @@ export interface VerifyExtraction {
   /** Element types the analyzer's extraction can produce. */
   observableTypes?: string[];
   asBuilt?: AsBuiltShare;
+  /**
+   * Planned or changed files in a language the code index doesn't read (shell scripts): extraction
+   * and verify can't see them, so the agent covers them by reading the code (#1319).
+   */
+  unindexedFiles?: string[];
 }
 
 /** What extraction can see; given when the built side came from extraction. */
@@ -690,6 +696,8 @@ export interface CompactExtraction {
   applied: boolean;
   reason: string;
   analyzer?: string;
+  /** Files in a language the code index doesn't read (see VerifyExtraction.unindexedFiles). */
+  unindexedFiles?: string[];
   /** The as-built share in counts (the lists are in `sections: ["extraction"]`). */
   asBuilt?: {
     record: AsBuiltShare["record"];
@@ -883,6 +891,7 @@ function compactExtraction(extraction: VerifyExtraction): CompactExtraction {
     applied: extraction.applied,
     reason: extraction.reason,
     ...(extraction.analyzer ? { analyzer: extraction.analyzer } : {}),
+    ...(extraction.unindexedFiles?.length ? { unindexedFiles: extraction.unindexedFiles } : {}),
     ...(share
       ? {
           asBuilt: {
@@ -1991,6 +2000,31 @@ export async function verifyChangesetInModel(
     }
   }
 
+  // Unpaired planned elements the tools can't judge: code that exists but the range didn't change,
+  // a delete with no source reference, a file-backed collection, files in a language the index
+  // doesn't read. Unverifiable, with the reason, for the agent to check (unverifiable-classification.ts).
+  let unindexedFiles: string[] = [];
+  if (observability) {
+    const since = "changeset" in options.against ? options.against.changeset.scope?.since : undefined;
+    const unseen = await classifyUnseenElements(plan.elements, {
+      codebaseRoot: model.codebaseRoot,
+      since,
+      builtIds: new Set(built.elements.map((e) => e.id)),
+    });
+    unindexedFiles = unseen.unindexedFiles;
+    if (unseen.note) notes.push(unseen.note);
+    if (unseen.byId.size > 0) {
+      const inner = observability;
+      observability = {
+        ...inner,
+        element: (element) => {
+          const hit = unseen.byId.get(element.id);
+          return hit ? { observable: false, reason: hit.reason } : inner.element(element);
+        },
+      };
+    }
+  }
+
   const report = verifyChangeset(plan, built, {
     matchBySource: options.matchBySource,
     observability,
@@ -1998,6 +2032,15 @@ export async function verifyChangesetInModel(
     ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles, changedBuildFiles) } : {}),
   });
   report.extraction = extraction;
+  if (unindexedFiles.length > 0) {
+    extraction.unindexedFiles = unindexedFiles;
+    const list = unindexedFiles.length > 10 ? `${unindexedFiles.slice(0, 10).join(", ")} and ${unindexedFiles.length - 10} more` : unindexedFiles.join(", ");
+    notes.push(
+      `${unindexedFiles.length} planned or changed file(s) are in a language the code index doesn't read (${list}): ` +
+        "extraction stages nothing for them and verify can't check them. You extract, model and verify them by reading the code; " +
+        "they are not counted missing."
+    );
+  }
   report.notes.push(...notes);
   // "May be registered by name" is read from a file's text. It keeps the element out of "missing",
   // and it is never grounds for a clean match: the verdict names each one to confirm.

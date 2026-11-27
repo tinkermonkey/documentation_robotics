@@ -1,6 +1,6 @@
 # Intra-layer relationships
 # Format: source_id -> predicate -> target_id
-# Last updated: 2026-11-27T13:25:27.329Z
+# Last updated: 2026-11-27T14:29:14.214Z
 
 - source: motivation.outcome.changes-are-planned-as-changesets
   target: motivation.goal.dr-is-the-spec-for-software-changes
@@ -75741,4 +75741,20 @@
   predicate: tests
   layer: testing
   targetLayer: application
+  category: structural
+- source: application.applicationfunction.classify-unseen-elements
+  target: data-model.objectschema.unseen-classification
+  predicate: accesses
+  layer: application
+  targetLayer: data-model
+  category: structural
+- source: application.applicationfunction.verify-changeset-in-model
+  target: application.applicationfunction.classify-unseen-elements
+  predicate: depends-on
+  layer: application
+  category: structural
+- source: application.applicationfunction.classify-unseen-elements
+  target: application.applicationfunction.code-changes-since
+  predicate: depends-on
+  layer: application
   category: structural

@@ -1080,6 +1080,13 @@ writes itself proves little: a copy of the plan matches by definition.
   sections, each item in full, paged the same way (default 50 items per list) and narrowed by
   `layers` or `ids`; `detail: "full"` returns the whole report. `dr changeset verify --json` prints
   the whole report.
+- **Unverifiable: what the tools can't judge.** Beyond what extraction can't produce (next item), four cases go on the unverifiable list with a
+  reason, never missing or "deletions not done": a planned add whose source file declares its symbol
+  but the range didn't change it ("exists, unchanged in the range"); a planned delete of an element
+  with no source reference; a data-store collection that is not a table (a file); and an element
+  sourced to files in a language the code index doesn't read (shell scripts). The files the index
+  skipped are in `extraction.unindexedFiles` and a note: the agent extracts, models and verifies
+  them by reading the code. The evidence is the file's text, not the code graph.
 - **Unverifiable.** When the as-built changeset came from extraction (`codebase_extract` has a record
   of it; its description, or elements that declare `sourceProvenance: "extracted"`, don't count), a
   planned change that the build lacks

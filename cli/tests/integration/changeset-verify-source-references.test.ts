@@ -495,6 +495,62 @@ describe("changeset_verify and the source references extraction found (#1096)", 
     expect(report.summary.elements.missingUnlessRegisteredByName).toBe(1);
   }, 120_000);
 
+  it("reports code that exists, file collections and shell files as unverifiable, not missing (#1371, #1351, #1319)", async () => {
+    await mkdirAsync(join(rootPath, "src"), { recursive: true });
+    await mkdirAsync(join(rootPath, "scripts"), { recursive: true });
+    await writeFile(join(rootPath, "src", "existing.ts"), "export function spec_changes_for(id: string) {\n  return id;\n}\n");
+    await writeFile(join(rootPath, "scripts", "start.sh"), "#!/bin/sh\nstart_server() {\n  echo hi\n}\n");
+    // In git: the code is on main; the branch changes something else.
+    const git = (...args: string[]) => spawnSync("git", args, { cwd: rootPath, stdio: "pipe" });
+    git("init", "-q", "-b", "main");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test");
+    git("add", "src", "scripts");
+    git("commit", "-q", "-m", "base");
+    git("checkout", "-q", "-b", "feature");
+    await writeFile(join(rootPath, "README.md"), "# project\n");
+    git("add", "README.md");
+    git("commit", "-q", "-m", "build");
+    const plan = ok(await changesetCreateHandler({ name: "model-existing", description: "Model code that exists and a file.", rootPath }));
+    const add = (extra: Record<string, unknown>) => modelAddHandler({ rootPath, sourceProvenance: "manual", ...extra } as any).then(ok);
+    // The code is there; the range never touched it.
+    await add({ layer: "application", type: "applicationfunction", name: "spec_changes_for", sourceFile: "src/existing.ts", sourceSymbol: "spec_changes_for" });
+    // The symbol is not in the file: that one is missing.
+    await add({ layer: "application", type: "applicationfunction", name: "not_written", sourceFile: "src/existing.ts", sourceSymbol: "not_written" });
+    // A file the code reads and writes: no table, no schema.
+    await add({ layer: "data-store", type: "collection", name: "farm manifest", attributes: { collectionType: "COLLECTION" } });
+    // Built as a shell script, which the index doesn't read.
+    await add({ layer: "application", type: "applicationfunction", name: "start_server", sourceFile: "scripts/start.sh", sourceSymbol: "start_server" });
+    ok(await changesetDeactivateHandler({ rootPath }));
+    const first = ok(await extract({ changeset: "model-existing-as-built" }));
+    if (!first.changeset?.id) ok(await changesetCreateHandler({ name: "model-existing-as-built", rootPath }));
+    ok(
+      await modelAddHandler({
+        layer: "application",
+        type: "applicationcomponent",
+        name: "Helpers",
+        attributes: { type: "internal" },
+        sourceFile: HELPERS_FILE,
+        sourceSymbol: "Helpers",
+        sourceProvenance: "extracted",
+        rootPath,
+      })
+    );
+    const asBuilt = ok(await extract({ changeset: "model-existing-as-built" }));
+    const { manager: m } = await manager();
+    await m.declarePurpose(asBuilt.changeset.id, { purpose: "verification", verifies: plan.id, scope: { since: "main" } });
+    clearModelCache();
+
+    const report = ok(await changesetVerifyHandler({ detail: "full", changeset: "model-existing", against: { changeset: "model-existing-as-built" }, rootPath }));
+    const unverifiable = new Map<string, string>(report.elements.unverifiable.map((u: any) => [u.planned, u.reason]));
+    expect(unverifiable.get("application.applicationfunction.spec-changes-for")).toContain("exists, unchanged in the range");
+    expect(unverifiable.get("data-store.collection.farm-manifest")).toContain("not a table");
+    expect(unverifiable.get("application.applicationfunction.start-server")).toContain("extract, model and verify it by reading the code");
+    expect(report.elements.missing.map((m: any) => m.planned)).toEqual(["application.applicationfunction.not-written"]);
+    expect(report.extraction.unindexedFiles).toEqual(["scripts/start.sh"]);
+    expect(report.notes.join("\n")).toContain("in a language the code index doesn't read (scripts/start.sh)");
+  }, 120_000);
+
   it("never gives a clean match that rests on a by-name element (#1226 review)", async () => {
     await mkdirAsync(join(rootPath, "src"), { recursive: true });
     await writeFile(join(rootPath, "src", "server.ts"), 'export function registerTools(server: Server) {\n  server.registerTool("diff_set", diffSetHandler);\n}\n');
