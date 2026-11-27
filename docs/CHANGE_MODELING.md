@@ -1076,10 +1076,26 @@ writes itself proves little: a copy of the plan matches by definition.
   extraction's as-built share in counts; and `sourceReferences`. Every list is a page: `limit` lines
   (default 30) from `offset`, with every list's true length in `page.totals`, the next offset in
   `page.nextOffset` (absent on the last page), and `more` naming the call for the next page. The verdict
-  and the summary counts are always over everything. `sections: [...]` returns only the named
-  sections, each item in full, paged the same way (default 50 items per list) and narrowed by
-  `layers` or `ids`; `detail: "full"` returns the whole report. `dr changeset verify --json` prints
+  and the summary counts are always over everything, unless `layers` or `ids` narrow them. `sections: [...]` returns only the named
+  sections, each item in full, paged the same way (default 50 items per list); `detail: "full"` returns the whole report. `dr changeset verify --json` prints
   the whole report.
+- **A slice reads as itself.** With `ids` or `layers`, the verdict, its text and the counts are
+  computed over the items they keep (an element by its id or layer, a relationship by either end), so
+  a slice of a big plan is complete when its own elements are. `wholePlan` holds the whole plan's
+  verdict and counts beside them, and `subset` says what the numbers cover. Ids that name no
+  planned change say so, not "the plan is empty".
+- **A plan applied before its build.** A planned add already in the base, unchanged by the as-built
+  changeset, would match itself. It is matched among the as-built changeset's new elements instead
+  (by source symbol, name or file); when none names it, it is unverifiable with the reason, and so
+  is a planned relationship already in the base. A committed plan, or any such element
+  (`alreadyInBase`), is said first in `verdictText`, and the verdict is never a clean `match`.
+  `changeset_adopt_source_references` counts the planned adds with no source reference anywhere
+  (none on the plan, none on an as-built match to copy) as `unreferenced`, with a `next` step.
+- **A plan that changes only descriptions** can't be checked against code: the verdict is
+  `unverifiable`, and the text starts "Not checked: the plan changes only descriptions". What can
+  be checked is listed in `descriptionOnly`: whether each element's source files changed in the
+  range and whether the symbols it names are still in them; elements with no source file have
+  nothing to check. Read each description against the code.
 - **Unverifiable: what the tools can't judge.** Beyond what extraction can't produce (next item), four cases go on the unverifiable list with a
   reason, never missing or "deletions not done": a planned add whose source file declares its symbol
   but the range didn't change it ("exists, unchanged in the range"); a planned delete of an element

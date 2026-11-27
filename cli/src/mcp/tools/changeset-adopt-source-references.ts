@@ -106,7 +106,14 @@ export function adoptionResult(
   const totals = {
     // What verify listed to copy, and the references the caller sent.
     total: report.adopted.length + (report.missing?.length ?? 0) + (options.references ?? 0),
-    counts: { adopted: report.adopted.length, confirmed: confirmed.length, skipped: skipped.length, unknownIds: unknownIds.length },
+    counts: {
+      adopted: report.adopted.length,
+      confirmed: confirmed.length,
+      skipped: skipped.length,
+      unknownIds: unknownIds.length,
+      // Planned elements with no source reference anywhere: not "nothing to copy" (#1307).
+      ...(report.unreferenced ? { unreferenced: report.unreferenced.count } : {}),
+    },
   };
   if (options.verbose) {
     const { plannedChangeset, ...rest } = report;
@@ -158,6 +165,7 @@ export function adoptionResult(
           },
         }
       : {}),
+    ...(report.unreferenced ? { unreferenced: report.unreferenced } : {}),
     ...(unknownIds.length > 0 ? { unknownIds, ...(report.unknownIdReasons ? { unknownIdReasons: report.unknownIdReasons } : {}) } : {}),
     next: report.next,
   };

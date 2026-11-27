@@ -499,6 +499,39 @@ export interface ObservabilityCheck {
   field?(element: VerifyElement, field: string): boolean;
 }
 
+/** What a narrowed report covers. */
+export interface SubsetScope {
+  filter: VerifyFilter;
+  /** The planned changes the filter keeps. */
+  planned: { elements: number; relationships: number };
+  note: string;
+}
+
+/** Where an element's source reference stands for a plan that changes only descriptions. */
+export interface DescriptionOnlyElement {
+  id: string;
+  /** Each source file the element names: whether the range changed it (undefined when the range is not known). */
+  files: Array<{ file: string; changed: boolean | undefined }>;
+  /** Each symbol it names: found in the file's text, not found, or not checkable (no symbol, or the file was not read). */
+  symbols: Array<{ file: string; symbol: string; found: "found" | "not-found" | "unchecked" }>;
+}
+
+/**
+ * What verify could check for a plan that changes only descriptions. A description is prose: nothing
+ * in the code says whether it is right, so the verdict is never a match. What can be checked is that
+ * the element's code changed in the range and still holds the symbol it names.
+ */
+export interface DescriptionOnlyCheck {
+  elements: DescriptionOnlyElement[];
+  /** Elements that name no source file: nothing to check them against. */
+  withoutSourceReference: string[];
+  /** Whether the range's changed files were known (an as-built changeset with `since`). */
+  rangeKnown: boolean;
+  counts: { elements: number; filesChanged: number; filesUnchanged: number; symbolsFound: number; symbolsNotFound: number };
+  /** `id: what is off` for each element whose files didn't change or whose symbol was not found. */
+  attention: string[];
+}
+
 export interface VerifyReport {
   planned: { label: string; elements: number; relationships: number };
   against: { label: string; kind: BuiltSide["kind"] };
@@ -523,6 +556,21 @@ export interface VerifyReport {
   };
   /** Whether extraction's blind spots were taken into account, and where the as-built side came from. */
   extraction?: VerifyExtraction;
+  /**
+   * Planned adds already in the base model, unchanged by the build: the plan was applied before it
+   * was built (#1307). They are not matched with themselves; one the as-built changeset's new
+   * elements and source references don't name is unverifiable, with the reason. Present only when
+   * there are some, or when the plan is already committed.
+   */
+  alreadyInBase?: { elements: number; relationships: number; planCommitted: boolean };
+  /** For a plan that changes only descriptions: what could be checked (#1383). */
+  descriptionOnly?: DescriptionOnlyCheck;
+  /**
+   * Set when the report was narrowed with ids or layers (#1346): `verdict`, `verdictText` and `summary`
+   * then cover only the items the filter keeps, and `wholePlan` holds the whole plan's.
+   */
+  subset?: SubsetScope;
+  wholePlan?: { verdict: Verdict; verdictText: string; summary: VerifyReport["summary"] };
   /**
    * Set when the comparison says little about the code: more than half of the as-built side was not
    * staged by extraction (added by the agent, or copied from the plan), or the as-built changeset
@@ -573,8 +621,12 @@ export interface SourceReferenceGap {
 /** A planned add with no source reference and no as-built match to copy one from. */
 export interface UnreferencedPlannedAdd {
   planned: string;
-  /** How verify reported it: extraction can't see it (intent, for one), or it isn't in the build. */
-  result: "unverifiable" | "missing";
+  /**
+   * How verify reported it: extraction can't see it (intent, for one), it isn't in the build, or it
+   * matched an as-built element that has no source reference either (`matched`: still nothing ties
+   * it to the code).
+   */
+  result: "unverifiable" | "missing" | "matched";
   /**
    * Every file of the build that may hold its code, best first (a file that names it, a file named
    * after it, files that carry the words of its name): for the agent to confirm in the code and
@@ -716,6 +768,12 @@ export interface VerifyHeader {
   verdict: Verdict;
   verdictText: string;
   summary: VerifyReport["summary"];
+  alreadyInBase?: VerifyReport["alreadyInBase"];
+  /** Plan changes only descriptions: what was checked (the per-element detail is in detail: "full"). */
+  descriptionOnly?: Omit<DescriptionOnlyCheck, "elements" | "withoutSourceReference"> & { withoutSourceReference: number };
+  /** With ids or layers: the verdict and summary above are over this subset; wholePlan has the whole plan's. */
+  subset?: SubsetScope;
+  wholePlan?: VerifyReport["wholePlan"];
 }
 
 export interface CompactVerifyReport extends VerifyHeader {
@@ -744,8 +802,6 @@ export interface CompactVerifyReport extends VerifyHeader {
    * list's true length, and `nextOffset` is absent on the last page.
    */
   page: MultiListPage;
-  /** Set when the call had arguments this form doesn't use (`layers` or `ids` without `sections`). */
-  note?: string;
   /** How to get more. */
   more: string;
 }
@@ -882,6 +938,144 @@ function headerOf(report: VerifyReport & { plannedChangeset?: { id: string; name
     verdict: report.verdict,
     verdictText: report.verdictText,
     summary: report.summary,
+    ...(report.alreadyInBase ? { alreadyInBase: report.alreadyInBase } : {}),
+    ...(report.descriptionOnly
+      ? {
+          descriptionOnly: {
+            rangeKnown: report.descriptionOnly.rangeKnown,
+            counts: report.descriptionOnly.counts,
+            withoutSourceReference: report.descriptionOnly.withoutSourceReference.length,
+            attention: report.descriptionOnly.attention,
+          },
+        }
+      : {}),
+    ...(report.subset ? { subset: report.subset, wholePlan: report.wholePlan } : {}),
+  };
+}
+
+/** Which items a filter keeps: those touching an element with one of its ids or in one of its layers. */
+function filterKeeper(filter: VerifyFilter | undefined) {
+  const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
+  const layers = filter?.layers?.length ? new Set(filter.layers) : undefined;
+  const keep = (...elementIds: string[]): boolean =>
+    !(ids || layers) || elementIds.some((id) => (ids?.has(id) ?? false) || (layers?.has(id.split(".")[0]) ?? false));
+  const keepRel = (...rels: VerifyRelationship[]) => keep(...rels.flatMap((r) => [r.source, r.target]));
+  return { keep, keepRel, narrows: !!(ids || layers) };
+}
+
+/**
+ * The report narrowed to the items `filter` keeps (#1346). The verdict, its text and the summary are
+ * computed over those items, never the whole plan's: a slice of a big plan reads as complete when
+ * its own elements are. The whole plan's verdict and counts stay beside them in `wholePlan`, and
+ * `subset` says what the numbers cover. A report the filter doesn't narrow is returned as it is.
+ */
+export function narrowVerifyReport<R extends VerifyReport>(report: R, filter: VerifyFilter | undefined): R {
+  const { keep, keepRel, narrows } = filterKeeper(filter);
+  if (!narrows || !filter || report.subset) return report;
+  const e = report.elements;
+  const r = report.relationships;
+  const elements: VerifyReport["elements"] = {
+    matched: e.matched.filter((m) => keep(m.planned, m.built)),
+    divergent: e.divergent.filter((m) => keep(m.planned, m.built)),
+    missing: e.missing.filter((m) => keep(m.planned)),
+    unverifiable: e.unverifiable.filter((u) => keep(u.planned)),
+    unplanned: e.unplanned.filter((u) => keep(u.id)),
+    deletionsNotDone: e.deletionsNotDone.filter((d) => keep(d.planned, d.built)),
+  };
+  const relationships: VerifyReport["relationships"] = {
+    matched: r.matched.filter((m) => keepRel(m.planned, m.built)),
+    divergent: r.divergent.filter((m) => keepRel(m.planned, m.built)),
+    missing: r.missing.filter((m) => keepRel(m.planned)),
+    unverifiable: r.unverifiable.filter((u) => keepRel(u.planned)),
+    unplanned: r.unplanned.filter((u) => keepRel(u)),
+    deletionsNotDone: r.deletionsNotDone.filter((d) => keepRel(d.planned, d.built)),
+  };
+  // Every planned change is in exactly one of these lists.
+  const plannedIn = (s: { matched: unknown[]; divergent: unknown[]; missing: unknown[]; unverifiable: unknown[]; deletionsNotDone: unknown[] }) =>
+    s.matched.length + s.divergent.length + s.missing.length + s.unverifiable.length + s.deletionsNotDone.length;
+  const planned = { elements: plannedIn(elements), relationships: plannedIn(relationships) };
+  const summary = {
+    elements: { ...countCategories(planned.elements, elements) },
+    relationships: { ...countCategories(planned.relationships, relationships) },
+  };
+  const registered = elements.unverifiable.filter((u) => u.registeredByName).length;
+  if (registered > 0) summary.elements.missingUnlessRegisteredByName = registered;
+
+  const parts = [
+    filter.ids?.length ? `${filter.ids.length} id${filter.ids.length === 1 ? "" : "s"}` : "",
+    filter.layers?.length ? `layer${filter.layers.length === 1 ? "" : "s"} ${filter.layers.join(", ")}` : "",
+  ].filter(Boolean);
+  const scope = parts.join(" and ");
+  let { verdict, text } = decideVerdict({ summary } as VerifyReport);
+  if (report.descriptionOnly && verdict === "unverifiable") {
+    text = descriptionOnlyText(narrowDescriptionOnly(report.descriptionOnly, keep, planned.elements));
+  } else if (verdict === "empty-plan") {
+    text = `No planned change touches the ${scope} given: check the ids and layers.`;
+  } else if (report.alreadyInBase && elements.unverifiable.some((u) => u.reason === ALREADY_IN_BASE_REASON)) {
+    if (verdict === "match") verdict = "probable-match";
+    text = `${elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length} of these planned element(s) are already in the base unchanged by the build and are not matched with themselves. ${text}`;
+  }
+  const kept = {
+    ...report,
+    verdict,
+    verdictText: `For the ${scope} given (${planned.elements} planned elements, ${planned.relationships} planned relationships): ${text} The whole plan's verdict and counts are in wholePlan.`,
+    summary,
+    elements,
+    relationships,
+    subset: {
+      filter,
+      planned,
+      note:
+        `verdict, verdictText and summary are over the ${planned.elements} planned elements and ${planned.relationships} relationships the filter keeps, ` +
+        "with the unplanned changes touching them; wholePlan has the whole plan's, which a slice's completeness does not speak for.",
+    },
+    wholePlan: { verdict: report.verdict, verdictText: report.verdictText, summary: report.summary },
+    ...(report.sourceReferences
+      ? {
+          sourceReferences: {
+            ...report.sourceReferences,
+            missing: report.sourceReferences.missing.filter((g) => keep(g.planned, g.built)),
+            ...(report.sourceReferences.unreferenced
+              ? { unreferenced: report.sourceReferences.unreferenced.filter((u) => keep(u.planned)) }
+              : {}),
+          },
+        }
+      : {}),
+    ...(report.acceptedGaps
+      ? {
+          acceptedGaps: {
+            ...report.acceptedGaps,
+            contradicted: report.acceptedGaps.contradicted.filter((g) => keep(g.element, g.builtElement)),
+            ...(report.acceptedGaps.preexisting
+              ? { preexisting: report.acceptedGaps.preexisting.filter((g) => keep(g.element, g.builtElement)) }
+              : {}),
+          },
+        }
+      : {}),
+  } as R;
+  return kept;
+}
+
+/** A description-only check over the elements the filter keeps, its counts taken from them. */
+function narrowDescriptionOnly(check: DescriptionOnlyCheck, keep: (...ids: string[]) => boolean, planned: number): DescriptionOnlyCheck {
+  const kept = check.elements.filter((el) => keep(el.id));
+  const counts = { elements: planned, filesChanged: 0, filesUnchanged: 0, symbolsFound: 0, symbolsNotFound: 0 };
+  for (const el of kept) {
+    for (const f of el.files) {
+      if (f.changed === true) counts.filesChanged++;
+      if (f.changed === false) counts.filesUnchanged++;
+    }
+    for (const sym of el.symbols) {
+      if (sym.found === "found") counts.symbolsFound++;
+      if (sym.found === "not-found") counts.symbolsNotFound++;
+    }
+  }
+  return {
+    elements: kept,
+    withoutSourceReference: check.withoutSourceReference.filter((id) => keep(id)),
+    rangeKnown: check.rangeKnown,
+    counts,
+    attention: check.attention.filter((line) => keep(line.split(": ")[0])),
   };
 }
 
@@ -912,17 +1106,19 @@ function compactExtraction(extraction: VerifyExtraction): CompactExtraction {
  * note when `layers` or `ids` were given without sections (they narrow sections only).
  */
 export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?: { id: string; name: string } }>(
-  report: R,
+  whole: R,
   options: CompactVerifyOptions = {}
 ): R | CompactVerifyReport | VerifySectionsReport {
-  if (options.detail === "full") return report;
   const filter: VerifyFilter = {
     ...(options.layers?.length ? { layers: options.layers } : {}),
     ...(options.ids?.length ? { ids: options.ids } : {}),
   };
   const filtered = Object.keys(filter).length > 0;
+  // ids and layers narrow the verdict and counts too, not only the lists (#1346).
+  const report = filtered ? narrowVerifyReport(whole, filter) : whole;
+  if (options.detail === "full") return report;
   if (options.sections && options.sections.length > 0) {
-    return verifySections(report, options.sections, filtered ? filter : undefined, { limit: options.limit, offset: options.offset });
+    return verifySections(whole, options.sections, filtered ? filter : undefined, { limit: options.limit, offset: options.offset });
   }
 
   const counts: Record<string, number> = {};
@@ -1028,11 +1224,6 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
   };
   if (Object.keys(counts).length > 0) out.counts = counts;
   out.page = pager.page();
-  if (filtered) {
-    out.note =
-      "layers and ids narrow sections output only, so the whole compact report is returned. Pass sections too, " +
-      'e.g. sections: ["unplanned"] with them for those elements\' unplanned changes.';
-  }
   out.more =
     "Unplanned changes are counted per type (sections: [\"unplanned\"] lists them, layers or ids narrow it); " +
     'matches are counted in summary (sections: ["matched"] lists them with their notes and unverifiable fields). ' +
@@ -1054,11 +1245,12 @@ export function compactVerifyReport<R extends VerifyReport & { plannedChangeset?
  * relationship by either end).
  */
 export function verifySections(
-  report: VerifyReport & { plannedChangeset?: { id: string; name: string } },
+  whole: VerifyReport & { plannedChangeset?: { id: string; name: string } },
   sections: readonly VerifySection[],
   filter?: VerifyFilter,
   page: { limit?: number; offset?: number } = {}
 ): VerifySectionsReport {
+  const report = narrowVerifyReport(whole, filter);
   const names = [...new Set(sections)];
   const pager = new PagedLists(page, VERIFY_SECTION_PAGE_SIZE);
   /** A section's two lists, each a page, named `<section>.elements` and `<section>.relationships`. */
@@ -1066,11 +1258,7 @@ export function verifySections(
     elements: pager.list(`${section}.elements`, lists.elements),
     relationships: pager.list(`${section}.relationships`, lists.relationships),
   });
-  const ids = filter?.ids?.length ? new Set(filter.ids) : undefined;
-  const layers = filter?.layers?.length ? new Set(filter.layers) : undefined;
-  const keep = (...elementIds: string[]): boolean =>
-    !filter || elementIds.some((id) => (ids?.has(id) ?? false) || (layers?.has(id.split(".")[0]) ?? false));
-  const keepRel = (...rels: VerifyRelationship[]) => keep(...rels.flatMap((r) => [r.source, r.target]));
+  const { keep, keepRel } = filterKeeper(filter);
   const pick = <E, R>(elements: E[], relationships: R[], elementIds: (e: E) => string[], rels: (r: R) => VerifyRelationship[]) => ({
     elements: elements.filter((e) => keep(...elementIds(e))),
     relationships: relationships.filter((r) => keepRel(...rels(r))),
@@ -1082,7 +1270,7 @@ export function verifySections(
     detail: "compact",
     ...headerOf(report),
     sections: names,
-    ...(filter && (ids || layers) ? { filter } : {}),
+    ...(filterKeeper(filter).narrows ? { filter } : {}),
     page: pager.page(),
     more: "",
   };
@@ -1408,6 +1596,91 @@ export function builtFromSnapshot(snapshot: {
 // Verify
 // ---------------------------------------------------------------------------
 
+/** A plan whose every change is an update of descriptions alone: no adds, deletes or relationships. */
+export function isDescriptionOnlyPlan(plan: Plan): boolean {
+  return (
+    plan.elements.length > 0 &&
+    plan.relationships.length === 0 &&
+    plan.elements.every((e) => e.op === "update" && !!e.changedFields?.length && e.changedFields.every((f) => f === "description"))
+  );
+}
+
+/**
+ * What the code can show of a plan that changes only descriptions (#1383): for each element, whether
+ * the files its source reference names changed in the range (when the range is known), and whether
+ * the symbols it names are still in those files. A description is prose and nothing in the code says
+ * it is right, so this is never a match: the caller says plainly that the descriptions are not checked.
+ */
+export function checkDescriptionOnlyPlan(
+  plan: Plan,
+  evidence: { buildFiles: BuildFile[]; changedFiles: ReadonlySet<string>; rangeKnown: boolean }
+): DescriptionOnlyCheck {
+  const fileOf = (file: string) => file.replace(/\\/g, "/").replace(/^\.\//, "");
+  const elements: DescriptionOnlyElement[] = [];
+  const withoutSourceReference: string[] = [];
+  const attention: string[] = [];
+  const counts = { elements: plan.elements.length, filesChanged: 0, filesUnchanged: 0, symbolsFound: 0, symbolsNotFound: 0 };
+  for (const planned of [...plan.elements].sort((a, b) => a.id.localeCompare(b.id))) {
+    const locations = (planned.sourceReference?.locations ?? []).filter((l) => typeof l?.file === "string" && fileOf(l.file));
+    if (locations.length === 0) {
+      withoutSourceReference.push(planned.id);
+      continue;
+    }
+    const entry: DescriptionOnlyElement = { id: planned.id, files: [], symbols: [] };
+    const problems: string[] = [];
+    for (const file of [...new Set(locations.map((l) => fileOf(l.file)))]) {
+      const changed = evidence.rangeKnown ? evidence.changedFiles.has(file) : undefined;
+      entry.files.push({ file, changed });
+      if (changed === true) counts.filesChanged++;
+      if (changed === false) {
+        counts.filesUnchanged++;
+        problems.push(`${file} did not change in the range`);
+      }
+    }
+    for (const location of locations) {
+      const symbol = location.symbol?.trim();
+      if (!symbol) continue;
+      const file = fileOf(location.file);
+      if (!evidence.buildFiles.some((f) => f.file === file)) {
+        entry.symbols.push({ file, symbol, found: "unchecked" });
+        continue;
+      }
+      const found = declaredSymbol({ id: planned.id, name: planned.name, sourceReference: { provenance: "manual", locations: [{ file, symbol }] } }, evidence.buildFiles);
+      entry.symbols.push({ file, symbol, found: found ? "found" : "not-found" });
+      if (found) counts.symbolsFound++;
+      else {
+        counts.symbolsNotFound++;
+        problems.push(`${file}#${symbol} is not declared there`);
+      }
+    }
+    elements.push(entry);
+    if (problems.length > 0) attention.push(`${planned.id}: ${problems.join("; ")}`);
+  }
+  return { elements, withoutSourceReference, rangeKnown: evidence.rangeKnown, counts, attention };
+}
+
+/** The verdict text of a plan that changes only descriptions: what is not checked, and what was. */
+function descriptionOnlyText(check: DescriptionOnlyCheck): string {
+  const c = check.counts;
+  const checked: string[] = [];
+  if (check.rangeKnown) checked.push(`${c.filesChanged} source file(s) changed in the range, ${c.filesUnchanged} did not`);
+  else checked.push("the range's changed files are not known (compared with the base), so whether the source files changed was not checked");
+  checked.push(`${c.symbolsFound} referenced symbol(s) found in their files, ${c.symbolsNotFound} not found`);
+  return (
+    "Not checked: the plan changes only descriptions, and nothing in the code says whether a description is right. " +
+    `What could be checked: ${checked.join("; ")}.` +
+    (check.withoutSourceReference.length > 0
+      ? ` ${check.withoutSourceReference.length} element(s) name no source file, so nothing was checked for them.`
+      : "") +
+    (check.attention.length > 0 ? ` Look at: ${check.attention.slice(0, 5).join(" | ")}${check.attention.length > 5 ? ` | +${check.attention.length - 5} more` : ""}.` : "") +
+    " Read each description against the code."
+  );
+}
+
+const ALREADY_IN_BASE_REASON =
+  "it is already in the base model, unchanged by the build (the plan was applied before it was built), so an id match would " +
+  "be the plan matching itself, and none of the as-built changeset's new elements or source references names it: check it in the code";
+
 export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOptions = {}): VerifyReport {
   const matchBySource = options.matchBySource ?? true;
   const notes = [...plan.notes, ...built.notes];
@@ -1510,6 +1783,13 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   for (const planned of live) {
     const mapping = elementMap.get(planned.id);
     if (!mapping) {
+      if (matching.alreadyInBase.has(planned.id)) {
+        // Already in the base, and nothing the build changed names it: its own id would match itself.
+        const reason = ALREADY_IN_BASE_REASON;
+        unverifiableIds.set(planned.id, reason);
+        report.elements.unverifiable.push({ planned: planned.id, layer: planned.layer, type: planned.type, name: planned.name, op: planned.op, reason });
+        continue;
+      }
       // Elements of its type were staged in its file: they are the candidates, not a symbol the text shows.
       if (markUnverifiable(planned) || (!ambiguous.has(planned.id) && markDeclared(planned))) continue;
       const candidates = ambiguous.get(planned.id);
@@ -1687,10 +1967,12 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   const elementOf = (id: string): VerifyElement =>
     builtById.get(elementMap.get(id)?.built ?? "") ?? plannedById.get(id) ?? builtById.get(id) ?? fromId(id, "");
   const unverifiableReason = (rel: VerifyRelationship): string | undefined => {
-    if (!observability) return undefined;
     for (const end of [rel.source, rel.target]) {
       const known = unverifiableIds.get(end);
       if (known !== undefined) return `${end} is unverifiable (${known})`;
+    }
+    if (!observability) return undefined;
+    for (const end of [rel.source, rel.target]) {
       if (missingHints.has(end)) continue; // reported missing: its relationships are too
       const verdict = observability.element(elementOf(end));
       if (!verdict.observable) return `extraction can't see ${end}: ${verdict.reason ?? "no rule produces it"}`;
@@ -1720,6 +2002,8 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
   // Pass 1: exact (source, predicate, target) hits, so the fallback below can never take a built
   // relationship that another planned relationship matches exactly.
   const unresolved: PlannedRelationshipChange[] = [];
+  const changedRelKeys = built.changedRelationships ? new Set(built.changedRelationships.map((r) => relKey(r))) : undefined;
+  let alreadyInBaseRelationships = 0;
   for (const planned of plan.relationships) {
     const mapped = mapRel(planned);
     const found = builtRels.get(relKey(mapped));
@@ -1729,6 +2013,16 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
     }
     claimedRels.add(relKey(found));
     const plannedRef = strip(planned);
+    if (planned.op === "add" && changedRelKeys && !changedRelKeys.has(relKey(found))) {
+      // Already in the base, unchanged by the build: it would match itself (#1307).
+      report.relationships.unverifiable.push({
+        planned: plannedRef,
+        op: "add",
+        reason: "it is already in the base model, unchanged by the build (the plan was applied before it was built): a match would be the plan matching itself",
+      });
+      alreadyInBaseRelationships++;
+      continue;
+    }
     if (planned.op === "delete") {
       if (pushUnverifiable(planned)) continue;
       report.relationships.deletionsNotDone.push({ planned: plannedRef, built: strip(found) });
@@ -1840,6 +2134,10 @@ export function verifyChangeset(plan: Plan, built: BuiltSide, options: VerifyOpt
 
   report.summary.elements = countCategories(plan.elements.length, report.elements);
   report.summary.relationships = countCategories(plan.relationships.length, report.relationships);
+  const baseElements = report.elements.unverifiable.filter((u) => u.reason === ALREADY_IN_BASE_REASON).length;
+  if (baseElements > 0 || alreadyInBaseRelationships > 0) {
+    report.alreadyInBase = { elements: baseElements, relationships: alreadyInBaseRelationships, planCommitted: false };
+  }
   const { verdict, text } = decideVerdict(report);
   report.verdict = verdict;
   report.verdictText = text;
@@ -1958,10 +2256,15 @@ export async function verifyChangesetInModel(
   let unsearched: string | undefined;
   /** Planned elements reported unverifiable only because a file's text may register them by name. */
   const mayBeRegistered = new Map<string, RegisteredByName>();
-  if (observability) {
+  const descriptionOnly = isDescriptionOnlyPlan(plan);
+  if (observability || descriptionOnly) {
     const since = "changeset" in options.against ? options.against.changeset.scope?.since : undefined;
     const adds = plan.elements.filter((e) => e.op === "add");
-    const read = await readBuildFiles(model.codebaseRoot, since, adds.flatMap((e) => sourceFiles(e)));
+    const read = await readBuildFiles(
+      model.codebaseRoot,
+      since,
+      (descriptionOnly ? plan.elements : adds).flatMap((e) => sourceFiles(e))
+    );
     buildFiles = read.files;
     changedBuildFiles = read.changed;
     if (read.note) {
@@ -1975,7 +2278,7 @@ export async function verifyChangesetInModel(
         .map((e) => [e.id, registeredByName(e, buildFiles)] as const)
         .filter((entry): entry is readonly [string, NonNullable<ReturnType<typeof registeredByName>>] => entry[1] !== null)
     );
-    if (byName.size > 0) {
+    if (byName.size > 0 && observability) {
       const inner = observability;
       observability = {
         ...inner,
@@ -2032,6 +2335,42 @@ export async function verifyChangesetInModel(
     ...(observability ? { declaredSymbol: (planned: VerifyElement) => declaredSymbol(planned, buildFiles, changedBuildFiles) } : {}),
   });
   report.extraction = extraction;
+  if (descriptionOnly && report.verdict === "unverifiable") {
+    // Nothing the plan changes can be read from the code: say that, and what could be checked, never a verdict that reads like a pass.
+    const check = checkDescriptionOnlyPlan(plan, {
+      buildFiles,
+      changedFiles: changedBuildFiles,
+      rangeKnown: "changeset" in options.against && !!options.against.changeset.scope?.since && !unsearched,
+    });
+    report.descriptionOnly = check;
+    report.verdictText = descriptionOnlyText(check);
+  }
+  // A plan applied before its build is in the base the build is read against (#1307): said first, and never a clean match.
+  const committed = planned.status === "committed";
+  if (committed || report.alreadyInBase) {
+    const inBase = report.alreadyInBase ?? { elements: 0, relationships: 0, planCommitted: false };
+    report.alreadyInBase = { ...inBase, planCommitted: committed };
+    const bits: string[] = [];
+    if (committed) bits.push("The plan is already committed to the base model.");
+    if (inBase.elements > 0 || inBase.relationships > 0) {
+      const total = inBase.elements + inBase.relationships;
+      const what = [
+        inBase.elements > 0 ? `${inBase.elements} planned ${plural(inBase.elements, "element", "elements")}` : "",
+        inBase.relationships > 0 ? `${inBase.relationships} planned ${plural(inBase.relationships, "relationship", "relationships")}` : "",
+      ]
+        .filter(Boolean)
+        .join(" and ");
+      bits.push(
+        `${what} ${total === 1 ? "is" : "are"} already in the base unchanged by the build, so ${total === 1 ? "it is" : "they are"} not matched with ${total === 1 ? "itself" : "themselves"}: ` +
+          "unverifiable unless the as-built changeset's new elements or source references name them (check them in the code)."
+      );
+    } else if (committed && !("changeset" in options.against)) {
+      bits.push("Compared with the base, the plan is compared with itself: its matches say nothing about the build.");
+      if (report.verdict === "match" || report.verdict === "probable-match") report.verdict = "unverifiable";
+    }
+    if (report.verdict === "match") report.verdict = "probable-match";
+    report.verdictText = `${bits.join(" ")} ${report.verdictText}`;
+  }
   if (unindexedFiles.length > 0) {
     extraction.unindexedFiles = unindexedFiles;
     const list = unindexedFiles.length > 10 ? `${unindexedFiles.slice(0, 10).join(", ")} and ${unindexedFiles.length - 10} more` : unindexedFiles.join(", ");
@@ -2116,7 +2455,7 @@ export async function verifyChangesetInModel(
     }
   }
   const gaps = sourceReferenceGaps(plan, built, report);
-  const unreferenced = unreferencedPlannedAdds(plan, report);
+  const unreferenced = unreferencedPlannedAdds(plan, report, built);
   if (buildFiles.length > 0) {
     const plannedById = new Map(plan.elements.map((e) => [e.id, e]));
     for (const u of unreferenced) {
@@ -2143,7 +2482,7 @@ export async function verifyChangesetInModel(
     const unreferencedNext =
       unreferenced.length === 0
         ? undefined
-        : `${unreferenced.length} planned add(s) have no source reference and no as-built match to copy one from ` +
+        : `${unreferenced.length} planned add(s) have no source reference, and no as-built match has one to copy ` +
           "(sourceReferences.unreferenced" +
           (unreferenced.some((u) => u.candidates?.length) ? ", each with the build's files that may hold its code as candidates" : "") +
           "). For each one the build has code for, confirm the file in the code and pass it to " +
@@ -2235,15 +2574,22 @@ export function sourceReferenceGaps(plan: Plan, built: BuiltSide, report: Verify
  * match means changeset_adopt_source_references has nothing to copy, so they would land unsourced.
  * See SourceReferenceGaps.unreferenced.
  */
-export function unreferencedPlannedAdds(plan: Plan, report: VerifyReport): UnreferencedPlannedAdd[] {
-  const matched = new Set([...report.elements.matched, ...report.elements.divergent].map((m) => m.planned));
+export function unreferencedPlannedAdds(plan: Plan, report: VerifyReport, built?: BuiltSide): UnreferencedPlannedAdd[] {
+  const builtById = new Map((built?.elements ?? []).map((e) => [e.id, e]));
+  const matchedTo = new Map([...report.elements.matched, ...report.elements.divergent].map((m) => [m.planned, m.built]));
   const result = new Map<string, UnreferencedPlannedAdd["result"]>([
     ...report.elements.missing.map((m) => [m.planned, "missing"] as const),
     ...report.elements.unverifiable.map((u) => [u.planned, "unverifiable"] as const),
   ]);
+  const hasFile = (e: VerifyElement | undefined) =>
+    (e?.sourceReference?.locations ?? []).some((l) => typeof l?.file === "string" && normalizeFile(l.file));
+  // Against an as-built changeset, a match with no source reference on either side leaves the element unsourced too.
+  if (built?.kind === "changeset") {
+    for (const [planned, builtId] of matchedTo) if (!hasFile(builtById.get(builtId))) result.set(planned, "matched");
+  }
   return plan.elements
-    .filter((e) => e.op === "add" && !matched.has(e.id) && result.has(e.id))
-    .filter((e) => !(e.sourceReference?.locations ?? []).some((l) => typeof l?.file === "string" && normalizeFile(l.file)))
+    .filter((e) => e.op === "add" && result.has(e.id) && (result.get(e.id) === "matched" || !matchedTo.has(e.id)))
+    .filter((e) => !hasFile(e))
     .map((e) => ({ planned: e.id, result: result.get(e.id)! }))
     .sort((a, b) => a.planned.localeCompare(b.planned));
 }
